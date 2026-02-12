@@ -101,4 +101,23 @@ public class CameraControl : MonoBehaviour
             virtualCamera.m_Lens = lens;
         }
     }
+
+    public void SetFollowTarget(Transform target, Rigidbody targetRigidbody = null)
+    {
+        followTarget = target;
+
+        if (virtualCamera != null)
+        {
+            virtualCamera.Follow = target;
+        }
+
+        if (targetRigidbody != null)
+        {
+            followTargetRigidbody = targetRigidbody;
+        }
+        else if (followTarget != null)
+        {
+            followTargetRigidbody = followTarget.GetComponent<Rigidbody>();
+        }
+    }
 }

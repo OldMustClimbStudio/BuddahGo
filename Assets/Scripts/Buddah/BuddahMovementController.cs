@@ -1,8 +1,10 @@
+using FishNet.Object;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 
-public class BuddahMovement : MonoBehaviour
+[RequireComponent(typeof(NetworkObject))]
+public class BuddahMovement : NetworkBehaviour
 {
     [Header("Movement (Physics)")]
     [SerializeField] private float forwardForce = 20f;
@@ -15,10 +17,13 @@ public class BuddahMovement : MonoBehaviour
     private InputSystem_Actions inputActions;
     private InputAction movementAction;
 
+    private bool _inputInitialized;
+
     private void Awake()
     {
         inputActions = new InputSystem_Actions();
         movementAction = inputActions.Player.Movement;
+        _inputInitialized = true;
 
         if (rb == null)
         {
@@ -26,18 +31,48 @@ public class BuddahMovement : MonoBehaviour
         }
     }
 
-    private void OnEnable()
+    public override void OnStartClient()
     {
-        inputActions.Enable();
+        base.OnStartClient();
+
+        // Client-authoritative: only the owning client reads input and simulates physics.
+        bool isLocalOwner = IsOwner;
+
+        if (rb != null)
+            rb.isKinematic = !isLocalOwner;
+
+        SetInputEnabled(isLocalOwner);
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        SetInputEnabled(false);
     }
 
     private void OnDisable()
     {
-        inputActions.Disable();
+        // Covers despawn / scene unload in-editor.
+        SetInputEnabled(false);
+    }
+
+    private void SetInputEnabled(bool enabled)
+    {
+        if (!_inputInitialized || inputActions == null)
+            return;
+
+        if (enabled)
+            inputActions.Enable();
+        else
+            inputActions.Disable();
     }
 
     private void FixedUpdate()
     {
+        // Only simulate on the owning client.
+        if (!IsOwner)
+            return;
+
         float horizontal = 0f;
         if (movementAction != null)
         {

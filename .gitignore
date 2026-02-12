@@ -24,3 +24,10 @@
 # OS files
 .DS_Store
 Thumbs.db
+
+# Only keep scripts under Assets
+Assets/**
+!Assets/Scripts/
+!Assets/Scripts/**
+!Assets/Scripts.meta
+!Assets/Scripts/**.meta

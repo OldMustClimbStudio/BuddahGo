@@ -44,6 +44,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""HandPush"",
+                    ""type"": ""Button"",
+                    ""id"": ""d2cc45e1-0a9d-4f5e-9e8c-7556a6dd049e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -99,6 +108,28 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""HandRotation"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""5363e156-1751-4e7b-886e-035d28aa2ce8"",
+                    ""path"": ""<Keyboard>/w"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""HandPush"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9e1e20b6-0478-4521-8140-dc598efc26d8"",
+                    ""path"": ""<Keyboard>/upArrow"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""HandPush"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -172,6 +203,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Player = asset.FindActionMap("Player", throwIfNotFound: true);
         m_Player_Movement = m_Player.FindAction("Movement", throwIfNotFound: true);
         m_Player_HandRotation = m_Player.FindAction("HandRotation", throwIfNotFound: true);
+        m_Player_HandPush = m_Player.FindAction("HandPush", throwIfNotFound: true);
     }
 
     ~@InputSystem_Actions()
@@ -240,12 +272,14 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private List<IPlayerActions> m_PlayerActionsCallbackInterfaces = new List<IPlayerActions>();
     private readonly InputAction m_Player_Movement;
     private readonly InputAction m_Player_HandRotation;
+    private readonly InputAction m_Player_HandPush;
     public struct PlayerActions
     {
         private @InputSystem_Actions m_Wrapper;
         public PlayerActions(@InputSystem_Actions wrapper) { m_Wrapper = wrapper; }
         public InputAction @Movement => m_Wrapper.m_Player_Movement;
         public InputAction @HandRotation => m_Wrapper.m_Player_HandRotation;
+        public InputAction @HandPush => m_Wrapper.m_Player_HandPush;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -261,6 +295,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @HandRotation.started += instance.OnHandRotation;
             @HandRotation.performed += instance.OnHandRotation;
             @HandRotation.canceled += instance.OnHandRotation;
+            @HandPush.started += instance.OnHandPush;
+            @HandPush.performed += instance.OnHandPush;
+            @HandPush.canceled += instance.OnHandPush;
         }
 
         private void UnregisterCallbacks(IPlayerActions instance)
@@ -271,6 +308,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @HandRotation.started -= instance.OnHandRotation;
             @HandRotation.performed -= instance.OnHandRotation;
             @HandRotation.canceled -= instance.OnHandRotation;
+            @HandPush.started -= instance.OnHandPush;
+            @HandPush.performed -= instance.OnHandPush;
+            @HandPush.canceled -= instance.OnHandPush;
         }
 
         public void RemoveCallbacks(IPlayerActions instance)
@@ -337,5 +377,6 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     {
         void OnMovement(InputAction.CallbackContext context);
         void OnHandRotation(InputAction.CallbackContext context);
+        void OnHandPush(InputAction.CallbackContext context);
     }
 }

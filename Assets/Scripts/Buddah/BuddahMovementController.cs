@@ -1,4 +1,5 @@
 using FishNet.Object;
+using FishNet.Connection;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -10,6 +11,13 @@ public class BuddahMovement : NetworkBehaviour
     [SerializeField] private float forwardForce = 20f;
     [SerializeField] private float turnTorque = 12f;
     [SerializeField] private float maxSpeed = 8f;
+
+
+    [Header("Push Reaction")]
+    [SerializeField] private float pushGraceSeconds = 0.25f;
+    [SerializeField] private float pushExtraMaxSpeed = 6f;
+
+    private float _pushGraceTimer;
 
     [Header("References")]
     [SerializeField] private Rigidbody rb;
@@ -107,12 +115,31 @@ public class BuddahMovement : NetworkBehaviour
         }
 
         // Clamp max speed (horizontal plane)
-        Vector3 velocity = rb.velocity;
-        Vector3 planar = new Vector3(velocity.x, 0f, velocity.z);
-        if (planar.magnitude > maxSpeed)
-        {
-            Vector3 clamped = planar.normalized * maxSpeed;
-            rb.velocity = new Vector3(clamped.x, velocity.y, clamped.z);
-        }
+// NOTE: pushes apply an impulse; allow a brief grace window where max speed is higher,
+// otherwise the clamp will immediately eat the impulse and the shove will feel like "nothing happened".
+Vector3 velocity = rb.velocity;
+Vector3 planar = new Vector3(velocity.x, 0f, velocity.z);
+
+float allowedMax = maxSpeed + (_pushGraceTimer > 0f ? pushExtraMaxSpeed : 0f);
+
+if (planar.magnitude > allowedMax)
+{
+    Vector3 clamped = planar.normalized * allowedMax;
+    rb.velocity = new Vector3(clamped.x, velocity.y, clamped.z);
+}
+
+if (_pushGraceTimer > 0f)
+    _pushGraceTimer -= Time.fixedDeltaTime;
+}
+
+    [TargetRpc]
+    public void ApplyPushImpulseTargetRpc(NetworkConnection conn, Vector3 impulse)
+    {
+        // Only the owning client simulates physics (rb is non-kinematic there).
+        if (!IsOwner || rb == null)
+            return;
+
+        _pushGraceTimer = pushGraceSeconds;
+        rb.AddForce(impulse, ForceMode.Impulse);
     }
 }

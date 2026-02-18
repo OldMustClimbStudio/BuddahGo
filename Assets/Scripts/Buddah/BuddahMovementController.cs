@@ -8,14 +8,14 @@ using UnityEngine.InputSystem.Controls;
 public class BuddahMovement : NetworkBehaviour
 {
     [Header("Movement (Physics)")]
-    [SerializeField] private float forwardForce = 20f;
-    [SerializeField] private float turnTorque = 12f;
-    [SerializeField] private float maxSpeed = 8f;
+    [SerializeField] public float forwardForce = 20f;
+    [SerializeField] public float turnTorque = 12f;
+    [SerializeField] public float maxSpeed = 8f;
 
 
     [Header("Push Reaction")]
-    [SerializeField] private float pushGraceSeconds = 0.25f;
-    [SerializeField] private float pushExtraMaxSpeed = 6f;
+    [SerializeField] public float pushGraceSeconds = 0.25f;
+    [SerializeField] public float pushExtraMaxSpeed = 6f;
 
     private float _pushGraceTimer;
 

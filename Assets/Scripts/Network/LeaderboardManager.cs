@@ -13,7 +13,6 @@ public class LeaderboardManager : NetworkBehaviour
     [SerializeField] private float refreshIntervalSeconds = 1f;
 
     public readonly SyncList<RankEntry> Rankings = new SyncList<RankEntry>();
-
     private readonly Dictionary<int, PlayerProgress> _progressByClientId = new Dictionary<int, PlayerProgress>();
 
     private void Awake()
@@ -86,6 +85,23 @@ public class LeaderboardManager : NetworkBehaviour
         _progressByClientId[clientId] = progress;
         return true;
     }
+    public void ReportSplineProgress(int clientId, float distanceOnTrack, float forwardDot)
+    {
+        if (!IsServerInitialized)
+            return;
+
+        if (!_progressByClientId.TryGetValue(clientId, out PlayerProgress progress))
+        {
+            RegisterPlayer(clientId, $"Player {clientId}");
+            progress = _progressByClientId[clientId];
+        }
+
+        progress.DistanceOnTrack = Mathf.Max(0f, distanceOnTrack);
+        progress.ForwardDot = forwardDot;
+
+        _progressByClientId[clientId] = progress;
+    }
+
 
     private IEnumerator ServerRefreshLoop()
     {
@@ -114,18 +130,24 @@ public class LeaderboardManager : NetworkBehaviour
             {
                 ClientId = progress.ClientId,
                 DisplayName = progress.DisplayName,
-                Checkpoints = progress.CheckpointIndex
+                Checkpoints = progress.CheckpointIndex,
+                DistanceOnTrack = progress.DistanceOnTrack
             });
         }
 
         list.Sort((a, b) =>
         {
-            int byProgress = b.Checkpoints.CompareTo(a.Checkpoints);
-            if (byProgress != 0)
-                return byProgress;
+            // 先按 checkpoints（如果你没用 checkpoints，全员为0，等价于只按距离）
+            int byCp = b.Checkpoints.CompareTo(a.Checkpoints);
+            if (byCp != 0) return byCp;
+
+            // 再按 spline 距离（完成度）
+            int byDist = b.DistanceOnTrack.CompareTo(a.DistanceOnTrack);
+            if (byDist != 0) return byDist;
 
             return string.Compare(a.DisplayName, b.DisplayName, StringComparison.Ordinal);
         });
+
 
         Rankings.Clear();
         for (int i = 0; i < list.Count; i++)
@@ -139,6 +161,9 @@ public class LeaderboardManager : NetworkBehaviour
         public int ClientId;
         public string DisplayName;
         public int CheckpointIndex;
+
+        public float DistanceOnTrack; // 新增：沿线米数
+        public float ForwardDot;      // 可选：调试/显示用
     }
 }
 
@@ -149,20 +174,19 @@ public struct RankEntry : IEquatable<RankEntry>
     public string DisplayName;
     public int Checkpoints;
 
+    public float DistanceOnTrack; // 新增
+
     public bool Equals(RankEntry other)
     {
         return ClientId == other.ClientId
             && DisplayName == other.DisplayName
-            && Checkpoints == other.Checkpoints;
-    }
-
-    public override bool Equals(object obj)
-    {
-        return obj is RankEntry other && Equals(other);
+            && Checkpoints == other.Checkpoints
+            && Mathf.Approximately(DistanceOnTrack, other.DistanceOnTrack);
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(ClientId, DisplayName, Checkpoints);
+        return HashCode.Combine(ClientId, DisplayName, Checkpoints, DistanceOnTrack);
     }
 }
+

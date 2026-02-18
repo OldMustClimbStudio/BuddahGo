@@ -1,5 +1,4 @@
 using System.Text;
-using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using UnityEngine;
 using UnityEngine.UI;
@@ -54,7 +53,9 @@ public class LeaderboardUI : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             RankEntry entry = LeaderboardManager.Instance.Rankings[i];
-            sb.AppendLine($"{i + 1}. {entry.DisplayName} - {entry.Checkpoints}");
+            float trackLen = (TrackSplineRef.Instance != null) ? TrackSplineRef.Instance.TrackLength : 0f;
+            float pct = (trackLen > 1e-6f) ? (entry.DistanceOnTrack / trackLen * 100f) : 0f;
+            sb.AppendLine($"{i + 1}. {entry.DisplayName} - {pct:0.0}%");
         }
 
         if (count == 0)

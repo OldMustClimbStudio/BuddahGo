@@ -9,6 +9,13 @@ public abstract class SkillAction : ScriptableObject
 
     [Header("Balance")]
     [Min(0f)] public float cooldownSeconds = 1f;
+    [Min(0f)] public float castLockSeconds = 0.25f;
+
+
+    [Header("Obsession")]
+    [Min(0f)] public float obsessionGain = 0f;
+
+    public float ObsessionGain => obsessionGain;
 
     /// <summary>
     /// Server-authoritative skill execution (spawn hitbox, apply forces, etc).

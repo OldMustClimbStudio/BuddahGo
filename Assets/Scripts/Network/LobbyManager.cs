@@ -29,7 +29,7 @@ public class LobbyManager : NetworkBehaviour
 
     private void Awake()
     {
-        // 不要在 Awake 里 Destroy，避免误杀“真正网络对象”
+        // Avoid destroying network objects in Awake.
     }
     public override void OnStartClient()
     {
@@ -47,9 +47,7 @@ public class LobbyManager : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
-        Instance = this; // 服务器也设一下
-        
-        base.OnStartServer();
+        Instance = this; // Server-side singleton reference.
         LogDebug("OnStartServer", false);
 
         if (InstanceFinder.ServerManager != null)

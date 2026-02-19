@@ -55,7 +55,7 @@ public class PushHitbox : MonoBehaviour
     private void Update()
     {
         // This object should only matter on server; if created elsewhere, destroy it.
-        if (!InstanceFinder.IsServer)
+        if (!InstanceFinder.IsServerStarted)
         {
             Destroy(gameObject);
             return;
@@ -67,7 +67,7 @@ public class PushHitbox : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!InstanceFinder.IsServer)
+        if (!InstanceFinder.IsServerStarted)
             return;
 
         NetworkObject victimNO = other.GetComponentInParent<NetworkObject>();

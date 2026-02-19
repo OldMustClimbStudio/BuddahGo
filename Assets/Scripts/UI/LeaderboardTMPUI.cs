@@ -11,51 +11,51 @@ public class LeaderboardTMPUI : MonoBehaviour
     [Header("Display")]
     [SerializeField] private int maxRows = 8;
 
-    private bool _subscribed;
+    private bool _subscribedRankings;
+    private ObsessionFigure _localObsession;
+    private bool _subscribedObsession;
 
     private void OnEnable()
     {
-        TrySubscribe();
+        TrySubscribeRankings();
+        TrySubscribeLocalObsession();
         RefreshText();
     }
 
     private void OnDisable()
     {
-        Unsubscribe();
+        UnsubscribeRankings();
+        UnsubscribeLocalObsession();
     }
 
     private void Update()
     {
-        if (!_subscribed)
-        {
-            TrySubscribe();
-        }
+        if (!_subscribedRankings)
+            TrySubscribeRankings();
+
+        if (!_subscribedObsession)
+            TrySubscribeLocalObsession();
     }
 
-    private void TrySubscribe()
+    // ---------------- Rankings ----------------
+    private void TrySubscribeRankings()
     {
-        if (_subscribed)
-            return;
-
-        if (LeaderboardManager.Instance == null)
-            return;
+        if (_subscribedRankings) return;
+        if (LeaderboardManager.Instance == null) return;
 
         LeaderboardManager.Instance.Rankings.OnChange += HandleRankingsChanged;
-        _subscribed = true;
+        _subscribedRankings = true;
         RefreshText();
     }
 
-    private void Unsubscribe()
+    private void UnsubscribeRankings()
     {
-        if (!_subscribed)
-            return;
+        if (!_subscribedRankings) return;
 
         if (LeaderboardManager.Instance != null)
-        {
             LeaderboardManager.Instance.Rankings.OnChange -= HandleRankingsChanged;
-        }
 
-        _subscribed = false;
+        _subscribedRankings = false;
     }
 
     private void HandleRankingsChanged(SyncListOperation op, int index, RankEntry oldItem, RankEntry newItem, bool asServer)
@@ -63,6 +63,46 @@ public class LeaderboardTMPUI : MonoBehaviour
         RefreshText();
     }
 
+    // ---------------- Obsession (local) ----------------
+    private void TrySubscribeLocalObsession()
+    {
+        if (_subscribedObsession) return;
+
+        // 找本地玩家的 ObsessionFigure（owner）
+        var all = FindObjectsByType<ObsessionFigure>(FindObjectsSortMode.None);
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (all[i] != null && all[i].IsOwner)
+            {
+                _localObsession = all[i];
+                break;
+            }
+        }
+
+        if (_localObsession == null) return;
+
+        _localObsession.OnValueChanged += HandleObsessionChanged;
+        _subscribedObsession = true;
+        RefreshText();
+    }
+
+    private void UnsubscribeLocalObsession()
+    {
+        if (!_subscribedObsession) return;
+
+        if (_localObsession != null)
+            _localObsession.OnValueChanged -= HandleObsessionChanged;
+
+        _localObsession = null;
+        _subscribedObsession = false;
+    }
+
+    private void HandleObsessionChanged(float oldValue, float newValue)
+    {
+        RefreshText();
+    }
+
+    // ---------------- UI ----------------
     private void RefreshText()
     {
         if (outputText == null)
@@ -76,6 +116,13 @@ public class LeaderboardTMPUI : MonoBehaviour
             sb.AppendLine($"Your Progress: {(p01 * 100f):0.0}%   WrongWayDot: {dot:0.00}");
         else
             sb.AppendLine("Your Progress: (local player not found)");
+
+        // ✅ 本地执着值
+        if (_localObsession != null)
+            sb.AppendLine($"Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0}");
+        else
+            sb.AppendLine("Your Obsession: (local obsession not found)");
+
         sb.AppendLine();
 
         if (LeaderboardManager.Instance == null)
@@ -122,5 +169,4 @@ public class LeaderboardTMPUI : MonoBehaviour
         }
         return false;
     }
-
 }

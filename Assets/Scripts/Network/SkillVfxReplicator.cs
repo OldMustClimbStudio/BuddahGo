@@ -19,6 +19,15 @@ public class SkillVfxReplicator : NetworkBehaviour
     }
 
     /// <summary>
+    /// Server-side call: play a VFX on ALL clients with custom local transform/timing.
+    /// </summary>
+    public void PlayVfxAll(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler, float stopPlayingBeforeEndSeconds)
+    {
+        if (!IsServerInitialized) return;
+        PlayVfxAllObserversRpcCustom(vfxId, durationSeconds, localOffset, localEuler, stopPlayingBeforeEndSeconds);
+    }
+
+    /// <summary>
     /// Client/local call: play a VFX locally for durationSeconds.
     /// </summary>
     public void PlayVfxLocal(string vfxId, float durationSeconds)
@@ -46,6 +55,12 @@ public class SkillVfxReplicator : NetworkBehaviour
     private void PlayVfxAllObserversRpc(string vfxId, float durationSeconds)
     {
         PlayVfxInternal(vfxId, durationSeconds, DefaultLocalOffset, DefaultLocalEuler, DefaultStopPlayingBeforeEndSeconds);
+    }
+
+    [ObserversRpc]
+    private void PlayVfxAllObserversRpcCustom(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler, float stopPlayingBeforeEndSeconds)
+    {
+        PlayVfxInternal(vfxId, durationSeconds, localOffset, localEuler, stopPlayingBeforeEndSeconds);
     }
 
     private void PlayVfxInternal(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler, float stopPlayingBeforeEndSeconds)

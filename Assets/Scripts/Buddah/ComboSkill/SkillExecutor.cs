@@ -8,12 +8,19 @@ public class SkillExecutor : NetworkBehaviour
     [SerializeField] private ComboSkillInput comboInput;
     [SerializeField] private SkillLoadout loadout;
     [SerializeField] private SkillDatabase database;
+    private float _castLockedUntil;
+
+    
 
     private float[] _nextReadyTime; // server cooldown tracking
+
+    /// <summary> Cached reference. </summary>
+    private ObsessionFigure _obs;
 
     private void Awake()
     {
         _nextReadyTime = new float[SkillLoadout.SlotCount];
+        _obs = GetComponent<ObsessionFigure>();
     }
 
     public override void OnStartClient()
@@ -44,7 +51,7 @@ public class SkillExecutor : NetworkBehaviour
 
     private void OnSlotTriggeredByCombo(int slotIndex, string comboName)
     {
-        // Owner side request
+        // Runs only on the owning client.
         Debug.Log($"[SkillExecutor][Owner] Combo '{comboName}' triggered slot {slotIndex}, requesting cast...");
         RequestCast(slotIndex);
     }
@@ -79,16 +86,34 @@ public class SkillExecutor : NetworkBehaviour
         }
 
         float now = (float)Time.time;
+        if (now < _castLockedUntil) return;
+
         if (now < _nextReadyTime[slotIndex])
         {
             Debug.Log($"[SkillExecutor][Server] Skill '{skillId}' on cooldown. Ready in {(_nextReadyTime[slotIndex] - now):0.00}s");
             return;
         }
 
+        // Enter cooldown after validation succeeds.
+        _castLockedUntil = now + skill.castLockSeconds;
         _nextReadyTime[slotIndex] = now + skill.cooldownSeconds;
 
         Debug.Log($"[SkillExecutor][Server] CAST '{skillId}' (slot {slotIndex})");
         skill.ExecuteServer(this, slotIndex);
+
+        // Apply obsession gain; ObsessionFigure clamps internally.
+        if (_obs == null) _obs = GetComponent<ObsessionFigure>();
+
+        // Apply obsession gain; ObsessionFigure clamps internally.
+        if (_obs != null)
+        {
+            float gain = Mathf.Max(0f, skill.ObsessionGain);
+            _obs.AddServer(gain);
+        }
+        else
+        {
+            Debug.LogWarning("[SkillExecutor][Server] Missing ObsessionFigure component. Skill cast will ignore obsession gain.");
+        }
 
         CastObserversRpc(slotIndex, skillId);
     }
@@ -118,7 +143,7 @@ public class SkillExecutor : NetworkBehaviour
     [TargetRpc]
     private void ApplyAccelerationTargetRpc(NetworkConnection conn, float extraForwardForce, float extraMaxSpeed, float durationSeconds)
     {
-        // 只在该玩家的 Owner 客户端执行
+        // Runs only on the owning client.
         var move = GetComponent<BuddahMovement>();
         if (move == null)
         {
@@ -134,7 +159,5 @@ public class SkillExecutor : NetworkBehaviour
 
         Debug.Log($"[SkillExecutor][Target] Accel: +{extraForwardForce} forwardForce, +{extraMaxSpeed} maxSpeed for {durationSeconds}s");
     }
-
-
 
 }

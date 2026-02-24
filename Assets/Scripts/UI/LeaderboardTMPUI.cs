@@ -82,6 +82,7 @@ public class LeaderboardTMPUI : MonoBehaviour
         if (_localObsession == null) return;
 
         _localObsession.OnValueChanged += HandleObsessionChanged;
+        _localObsession.OnCompletionGapChanged += HandleCompletionGapChanged;
         _subscribedObsession = true;
         RefreshText();
     }
@@ -91,13 +92,21 @@ public class LeaderboardTMPUI : MonoBehaviour
         if (!_subscribedObsession) return;
 
         if (_localObsession != null)
+        {
             _localObsession.OnValueChanged -= HandleObsessionChanged;
+            _localObsession.OnCompletionGapChanged -= HandleCompletionGapChanged;
+        }
 
         _localObsession = null;
         _subscribedObsession = false;
     }
 
     private void HandleObsessionChanged(float oldValue, float newValue)
+    {
+        RefreshText();
+    }
+
+    private void HandleCompletionGapChanged(float oldValue, float newValue)
     {
         RefreshText();
     }
@@ -119,9 +128,15 @@ public class LeaderboardTMPUI : MonoBehaviour
 
         // ✅ 本地执着值
         if (_localObsession != null)
+        {
             sb.AppendLine($"Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0}");
+            sb.AppendLine($"Gap To Leader: {_localObsession.CompletionGapToLeaderPercent:0.0}%");
+        }
         else
+        {
             sb.AppendLine("Your Obsession: (local obsession not found)");
+            sb.AppendLine("Gap To Leader: (local obsession not found)");
+        }
 
         sb.AppendLine();
 

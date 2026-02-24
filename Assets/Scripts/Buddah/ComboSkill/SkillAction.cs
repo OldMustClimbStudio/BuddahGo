@@ -1,5 +1,6 @@
 using FishNet.Object;
 using UnityEngine;
+using System;
 
 public abstract class SkillAction : ScriptableObject
 {
@@ -16,6 +17,12 @@ public abstract class SkillAction : ScriptableObject
     [Min(0f)] public float obsessionGain = 0f;
 
     public float ObsessionGain => obsessionGain;
+
+    // 反噬技能相关参数放在这里
+    [Header("Anti (Backfire) Variant")]
+    [Tooltip("If set, casting this skill may instead cast the Anti variant based on ObsessionFigure.")]
+    public string antiSkillId = string.Empty;
+    public bool HasAnti => !string.IsNullOrWhiteSpace(antiSkillId);
 
     /// <summary>
     /// Server-authoritative skill execution (spawn hitbox, apply forces, etc).

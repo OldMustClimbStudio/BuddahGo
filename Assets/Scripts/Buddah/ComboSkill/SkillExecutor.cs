@@ -20,7 +20,13 @@ public class SkillExecutor : NetworkBehaviour
     private void Awake()
     {
         _nextReadyTime = new float[SkillLoadout.SlotCount];
-        _obs = GetComponent<ObsessionFigure>();
+        ResolveObsessionFigure();
+    }
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        ResolveObsessionFigure();
     }
 
     public override void OnStartClient()
@@ -99,37 +105,60 @@ public class SkillExecutor : NetworkBehaviour
         _nextReadyTime[slotIndex] = now + skill.cooldownSeconds;
 
         Debug.Log($"[SkillExecutor][Server] CAST '{skillId}' (slot {slotIndex})");
-        skill.ExecuteServer(this, slotIndex);
 
-        // Apply obsession gain; ObsessionFigure clamps internally.
-        if (_obs == null) _obs = GetComponent<ObsessionFigure>();
+        ResolveObsessionFigure();
+        float obsessionNow = (_obs != null) ? _obs.Current : 0f;
+        float backfirePercent = (_obs != null) ? _obs.GetBackfireProbabilityPercent(obsessionNow) : 0f;
 
-        // Apply obsession gain; ObsessionFigure clamps internally.
-        if (_obs != null)
+        bool isAnti = false;
+        SkillAction executedSkill = skill;
+        string executedSkillId = skillId;
+
+        if (skill.HasAnti && backfirePercent > 0.0001f)
         {
-            float gain = Mathf.Max(0f, skill.ObsessionGain);
-            _obs.AddServer(gain);
-        }
-        else
-        {
-            Debug.LogWarning("[SkillExecutor][Server] Missing ObsessionFigure component. Skill cast will ignore obsession gain.");
+            float roll = Random.value * 100f;
+            isAnti = roll < backfirePercent;
+
+            if (isAnti)
+            {
+                if (database.TryGet(skill.antiSkillId, out SkillAction antiSkill) && antiSkill != null)
+                {
+                    executedSkill = antiSkill;
+                    executedSkillId = skill.antiSkillId; // 用 DB key 保持一致
+                }
+                else
+                {
+                    Debug.LogWarning($"[SkillExecutor][Server] Anti skillId '{skill.antiSkillId}' not found. Fallback normal.");
+                    isAnti = false;
+                }
+            }
+
+            Debug.Log($"[SkillExecutor][Server] Backfire roll: obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
         }
 
-        CastObserversRpc(slotIndex, skillId);
+        // cooldown/castLock 仍按原技能
+
+        // 真正执行：普通 or 反噬
+        executedSkill.ExecuteServer(this, slotIndex);
+
+        // obsession 增长仍按原技能 obsessionGain
+        _obs?.AddServer(Mathf.Max(0f, skill.ObsessionGain));
+
+        // 广播给所有客户端播放正确版本
+        CastObserversRpc(slotIndex, executedSkillId, isAnti);
     }
 
-    [ObserversRpc]
-    private void CastObserversRpc(int slotIndex, string skillId)
-    {
-        if (database == null) return;
-
-        if (database.TryGet(skillId, out SkillAction skill) && skill != null)
+        [ObserversRpc]
+        private void CastObserversRpc(int slotIndex, string executedSkillId, bool isAnti)
         {
-            Debug.Log($"[SkillExecutor][Observers] '{skillId}' played (slot {slotIndex})");
-            skill.ExecuteObservers(this, slotIndex);
-        }
-    }
+            if (database == null) return;
 
+            if (database.TryGet(executedSkillId, out SkillAction skill) && skill != null)
+            {
+                Debug.Log($"[SkillExecutor][Observers] '{executedSkillId}' played (slot {slotIndex}) [anti={isAnti}]");
+                skill.ExecuteObservers(this, slotIndex);
+            }
+        }
     public void ApplyAccelerationToOwner(float extraForwardForce, float extraMaxSpeed, float durationSeconds)
     {
         if (!IsServerInitialized) return;
@@ -158,6 +187,18 @@ public class SkillExecutor : NetworkBehaviour
         effect.ApplyOrRefresh(move, extraForwardForce, extraMaxSpeed, durationSeconds);
 
         Debug.Log($"[SkillExecutor][Target] Accel: +{extraForwardForce} forwardForce, +{extraMaxSpeed} maxSpeed for {durationSeconds}s");
+    }
+
+    private void ResolveObsessionFigure()
+    {
+        if (_obs != null)
+            return;
+
+        _obs = GetComponent<ObsessionFigure>();
+        if (_obs == null)
+            _obs = GetComponentInParent<ObsessionFigure>();
+        if (_obs == null)
+            _obs = GetComponentInChildren<ObsessionFigure>(true);
     }
 
 }

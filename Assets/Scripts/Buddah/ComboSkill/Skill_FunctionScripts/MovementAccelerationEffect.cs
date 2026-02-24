@@ -29,9 +29,14 @@ public class MovementAccelerationEffect : MonoBehaviour
             _initialized = true;
         }
 
-        // 刷新策略：取更大增益 + 延长持续时间（你也可以改成叠加）
-        _extraForwardForce = Mathf.Max(_extraForwardForce, extraForwardForce);
-        _extraMaxSpeed = Mathf.Max(_extraMaxSpeed, extraMaxSpeed);
+        // 刷新策略：取“绝对值更强”的那个（支持负数 = 减速）
+        if (Mathf.Abs(extraForwardForce) > Mathf.Abs(_extraForwardForce))
+            _extraForwardForce = extraForwardForce;
+
+        if (Mathf.Abs(extraMaxSpeed) > Mathf.Abs(_extraMaxSpeed))
+            _extraMaxSpeed = extraMaxSpeed;
+
+        // 持续时间仍然取更长
         _timeLeft = Mathf.Max(_timeLeft, durationSeconds);
 
         ApplyNow();

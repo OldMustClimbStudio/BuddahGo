@@ -130,11 +130,13 @@ public class LeaderboardTMPUI : MonoBehaviour
         if (_localObsession != null)
         {
             sb.AppendLine($"Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0}");
+            sb.AppendLine($"Backfire Chance: {_localObsession.CurrentBackfireProbabilityPercent:0.0}%");
             sb.AppendLine($"Gap To Leader: {_localObsession.CompletionGapToLeaderPercent:0.0}%");
         }
         else
         {
             sb.AppendLine("Your Obsession: (local obsession not found)");
+            sb.AppendLine("Backfire Chance: (local obsession not found)");
             sb.AppendLine("Gap To Leader: (local obsession not found)");
         }
 

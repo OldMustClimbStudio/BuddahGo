@@ -1,5 +1,5 @@
-using FishNet.Object;
 using FishNet.Connection;
+using FishNet.Object;
 using UnityEngine;
 
 public class SkillExecutor : NetworkBehaviour
@@ -10,11 +10,9 @@ public class SkillExecutor : NetworkBehaviour
     [SerializeField] private SkillDatabase database;
     private float _castLockedUntil;
 
-    
-
     private float[] _nextReadyTime; // server cooldown tracking
 
-    /// <summary> Cached reference. </summary>
+    /// <summary>Cached reference.</summary>
     private ObsessionFigure _obs;
 
     private void Awake()
@@ -39,13 +37,9 @@ public class SkillExecutor : NetworkBehaviour
         if (loadout == null) loadout = GetComponent<SkillLoadout>();
 
         if (comboInput != null)
-        {
             comboInput.OnSkillSlotTriggered += OnSlotTriggeredByCombo;
-        }
         else
-        {
             Debug.LogWarning("[SkillExecutor] Missing ComboSkillInput reference.");
-        }
     }
 
     public override void OnStopClient()
@@ -100,7 +94,7 @@ public class SkillExecutor : NetworkBehaviour
             return;
         }
 
-        // Enter cooldown after validation succeeds.
+        // Enter cooldown after validation succeeds (follows the original skill).
         _castLockedUntil = now + skill.castLockSeconds;
         _nextReadyTime[slotIndex] = now + skill.cooldownSeconds;
 
@@ -124,7 +118,7 @@ public class SkillExecutor : NetworkBehaviour
                 if (database.TryGet(skill.antiSkillId, out SkillAction antiSkill) && antiSkill != null)
                 {
                     executedSkill = antiSkill;
-                    executedSkillId = skill.antiSkillId; // 用 DB key 保持一致
+                    executedSkillId = skill.antiSkillId;
                 }
                 else
                 {
@@ -136,29 +130,26 @@ public class SkillExecutor : NetworkBehaviour
             Debug.Log($"[SkillExecutor][Server] Backfire roll: obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
         }
 
-        // cooldown/castLock 仍按原技能
-
-        // 真正执行：普通 or 反噬
         executedSkill.ExecuteServer(this, slotIndex);
 
-        // obsession 增长仍按原技能 obsessionGain
+        // Obsession gain follows the original skill, not the anti variant.
         _obs?.AddServer(Mathf.Max(0f, skill.ObsessionGain));
 
-        // 广播给所有客户端播放正确版本
         CastObserversRpc(slotIndex, executedSkillId, isAnti);
     }
 
-        [ObserversRpc]
-        private void CastObserversRpc(int slotIndex, string executedSkillId, bool isAnti)
-        {
-            if (database == null) return;
+    [ObserversRpc]
+    private void CastObserversRpc(int slotIndex, string executedSkillId, bool isAnti)
+    {
+        if (database == null) return;
 
-            if (database.TryGet(executedSkillId, out SkillAction skill) && skill != null)
-            {
-                Debug.Log($"[SkillExecutor][Observers] '{executedSkillId}' played (slot {slotIndex}) [anti={isAnti}]");
-                skill.ExecuteObservers(this, slotIndex);
-            }
+        if (database.TryGet(executedSkillId, out SkillAction skill) && skill != null)
+        {
+            Debug.Log($"[SkillExecutor][Observers] '{executedSkillId}' played (slot {slotIndex}) [anti={isAnti}]");
+            skill.ExecuteObservers(this, slotIndex);
         }
+    }
+
     public void ApplyAccelerationToOwner(float extraForwardForce, float extraMaxSpeed, float durationSeconds)
     {
         if (!IsServerInitialized) return;
@@ -180,6 +171,12 @@ public class SkillExecutor : NetworkBehaviour
             return;
         }
 
+        if (move.IsSkillRooted)
+        {
+            Debug.Log($"[SkillExecutor][Target] Accel ignored because rooted. ({extraForwardForce}, {extraMaxSpeed}, {durationSeconds}s)");
+            return;
+        }
+
         var effect = GetComponent<MovementAccelerationEffect>();
         if (effect == null)
             effect = gameObject.AddComponent<MovementAccelerationEffect>();
@@ -187,6 +184,64 @@ public class SkillExecutor : NetworkBehaviour
         effect.ApplyOrRefresh(move, extraForwardForce, extraMaxSpeed, durationSeconds);
 
         Debug.Log($"[SkillExecutor][Target] Accel: +{extraForwardForce} forwardForce, +{extraMaxSpeed} maxSpeed for {durationSeconds}s");
+    }
+
+    public void ApplyRootThenAccelerationToOwner(float rootDurationSeconds, float extraForwardForce, float extraMaxSpeed, float accelDurationSeconds)
+    {
+        if (!IsServerInitialized) return;
+
+        NetworkConnection conn = Owner;
+        if (conn == null) return;
+
+        ApplyRootThenAccelerationTargetRpc(conn, rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds);
+    }
+
+    [TargetRpc]
+    private void ApplyRootThenAccelerationTargetRpc(NetworkConnection conn, float rootDurationSeconds, float extraForwardForce, float extraMaxSpeed, float accelDurationSeconds)
+    {
+        var move = GetComponent<BuddahMovement>();
+        if (move == null)
+        {
+            Debug.LogWarning("[SkillExecutor][Target] Missing BuddahMovement for root-then-accel.");
+            return;
+        }
+
+        var effect = GetComponent<MovementRootThenAccelerationEffect>();
+        if (effect == null)
+            effect = gameObject.AddComponent<MovementRootThenAccelerationEffect>();
+
+        effect.ApplyOrRestart(move, rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds);
+
+        Debug.Log($"[SkillExecutor][Target] RootThenAccel: root={rootDurationSeconds}s, accel=({extraForwardForce},{extraMaxSpeed}) for {accelDurationSeconds}s");
+    }
+
+    public void ApplyInvertTurnInputToOwner(float durationSeconds)
+    {
+        if (!IsServerInitialized) return;
+
+        NetworkConnection conn = Owner;
+        if (conn == null) return;
+
+        ApplyInvertTurnInputTargetRpc(conn, durationSeconds);
+    }
+
+    [TargetRpc]
+    private void ApplyInvertTurnInputTargetRpc(NetworkConnection conn, float durationSeconds)
+    {
+        var move = GetComponent<BuddahMovement>();
+        if (move == null)
+        {
+            Debug.LogWarning("[SkillExecutor][Target] Missing BuddahMovement for invert-turn.");
+            return;
+        }
+
+        var effect = GetComponent<MovementInvertTurnInputEffect>();
+        if (effect == null)
+            effect = gameObject.AddComponent<MovementInvertTurnInputEffect>();
+
+        effect.ApplyOrRefresh(move, durationSeconds);
+
+        Debug.Log($"[SkillExecutor][Target] InvertTurnInput for {durationSeconds}s");
     }
 
     private void ResolveObsessionFigure()
@@ -200,5 +255,4 @@ public class SkillExecutor : NetworkBehaviour
         if (_obs == null)
             _obs = GetComponentInChildren<ObsessionFigure>(true);
     }
-
 }

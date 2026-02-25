@@ -6,7 +6,7 @@ using UnityEngine;
 ///
 /// Requires SkillExecutor.ApplyAccelerationToOwner(...) and MovementAccelerationEffect to support negative values.
 /// </summary>
-[CreateAssetMenu(fileName = "Skill_Acceleration_Anti", menuName = "Skills/Actions/Acceleration Anti")]
+[CreateAssetMenu(fileName = "Skill_Acceleration_Anti", menuName = "Skills/Actions/Anti/Acceleration Anti")]
 public class Skill_Acceleration_Anti : SkillAction
 {
     [Header("Slow (Anti) Debuff")]

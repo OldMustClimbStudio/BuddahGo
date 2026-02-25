@@ -22,6 +22,12 @@ public class MovementAccelerationEffect : MonoBehaviour
             return;
         }
 
+        if (_move.IsSkillRooted)
+        {
+            Debug.Log("[MovementAccelerationEffect] Ignored apply/refresh because target is rooted.");
+            return;
+        }
+
         if (!_initialized)
         {
             _baseForwardForce = _move.forwardForce;
@@ -59,6 +65,9 @@ public class MovementAccelerationEffect : MonoBehaviour
 
     private void ApplyNow()
     {
+        if (_move == null || _move.IsSkillRooted)
+            return;
+
         _move.forwardForce = _baseForwardForce + _extraForwardForce;
         _move.maxSpeed = _baseMaxSpeed + _extraMaxSpeed;
     }

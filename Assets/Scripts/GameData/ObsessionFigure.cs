@@ -28,15 +28,15 @@ public class ObsessionFigure : NetworkBehaviour
     [Range(0f, 100f)]
     [SerializeField] private float backfirePMaxPercent = 75f;
 
-    [Tooltip("k in the sigmoid function (steepness). Larger = steeper curve.")]
+    [Tooltip("k in the sigmoid function (steepness). Larger = steeper curve. For a 0-1000 range, a smaller value (e.g. 0.012) is typical.")]
     [Min(0.0001f)]
-    [SerializeField] private float backfireK = 0.12f;
+    [SerializeField] private float backfireK = 0.012f;
 
-    [Tooltip("Midpoint of the sigmoid on the obsession axis. Matches your formula's 50 by default.")]
-    [SerializeField] private float backfireMidpointX = 50f;
+    [Tooltip("Midpoint of the sigmoid on the obsession axis. For a 0-1000 obsession range, 500 is a typical midpoint.")]
+    [SerializeField] private float backfireMidpointX = 500f;
 
     [Tooltip("If obsession is at or above this value, backfire chance stays at Pmax.")]
-    [SerializeField] private float backfireKeepPMaxAtOrAboveX = 100f;
+    [SerializeField] private float backfireKeepPMaxAtOrAboveX = 1000f;
 
     /// Current backfire probability in percent
     public float CurrentBackfireProbabilityPercent => GetBackfireProbabilityPercent(_current.Value);
@@ -92,7 +92,6 @@ public class ObsessionFigure : NetworkBehaviour
         {
             UpdateCompletionGapToLeaderPercent();
         }
-        Debug.Log($"[ObsessionFigure][Update] current={_current.Value:0.###}, gap={completionGapToLeaderPercent:0.###}%, extraRecovery={extraRecoveryPerSecond:0.###}, backfireP={CurrentBackfireProbabilityPercent:0.###}%");
     }
 
     private void UpdateCompletionGapToLeaderPercent()
@@ -174,8 +173,7 @@ public class ObsessionFigure : NetworkBehaviour
     /// P(x) = Pmax / (1 + e^{-k(x - midpoint)})
     public float GetBackfireProbabilityPercent(float obsessionValue)
     {
-        float obsessionForCalc = obsessionValue * 0.1f;
-        float x = Mathf.Clamp(obsessionForCalc, minValue, maxValue);
+        float x = Mathf.Clamp(obsessionValue, minValue, maxValue);
         float pMax = Mathf.Clamp(backfirePMaxPercent, 0f, 100f);
         float k = Mathf.Max(0.0001f, backfireK);
         float keepPMaxAtOrAboveX = Mathf.Clamp(backfireKeepPMaxAtOrAboveX, minValue, maxValue);

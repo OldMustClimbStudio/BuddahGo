@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Skill_Acceleration", menuName = "Skills/Actions/Acceleration")]
+[CreateAssetMenu(fileName = "Skill_Acceleration", menuName = "Skills/Actions/Normal/Acceleration")]
 public class Skill_Acceleration : SkillAction
 {
     [Header("Acceleration Buff")]

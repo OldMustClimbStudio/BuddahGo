@@ -10,7 +10,9 @@ public class BuddahMovement : NetworkBehaviour
     [Header("Movement (Physics)")]
     [SerializeField] public float forwardForce = 20f;
     [SerializeField] public float turnTorque = 12f;
+    [SerializeField] public float turnDecayPerSecond = 8f;
     [SerializeField] public float maxSpeed = 8f;
+    [SerializeField] public float turnInputMultiplier = 1f;
 
 
     [Header("Push Reaction")]
@@ -26,6 +28,9 @@ public class BuddahMovement : NetworkBehaviour
     private InputAction movementAction;
 
     private bool _inputInitialized;
+    private int _skillRootCount;
+
+    public bool IsSkillRooted => _skillRootCount > 0;
 
     private void Awake()
     {
@@ -102,6 +107,8 @@ public class BuddahMovement : NetworkBehaviour
             }
         }
 
+        horizontal *= turnInputMultiplier;
+
         // Constant forward push
         Vector3 forwardDir = transform.forward;
         forwardDir.y = 0f;
@@ -112,6 +119,12 @@ public class BuddahMovement : NetworkBehaviour
         if (Mathf.Abs(horizontal) > 0.001f)
         {
             rb.AddTorque(Vector3.up * horizontal * turnTorque, ForceMode.Force);
+        }
+        else if (rb != null && turnDecayPerSecond > 0f)
+        {
+            Vector3 angular = rb.angularVelocity;
+            angular.y = Mathf.MoveTowards(angular.y, 0f, turnDecayPerSecond * Time.fixedDeltaTime);
+            rb.angularVelocity = angular;
         }
 
         // Clamp max speed (horizontal plane)
@@ -131,6 +144,17 @@ if (planar.magnitude > allowedMax)
 if (_pushGraceTimer > 0f)
     _pushGraceTimer -= Time.fixedDeltaTime;
 }
+
+    public void SetSkillRooted(bool rooted)
+    {
+        if (rooted)
+        {
+            _skillRootCount++;
+            return;
+        }
+
+        _skillRootCount = Mathf.Max(0, _skillRootCount - 1);
+    }
 
     [TargetRpc]
     public void ApplyPushImpulseTargetRpc(NetworkConnection conn, Vector3 impulse)

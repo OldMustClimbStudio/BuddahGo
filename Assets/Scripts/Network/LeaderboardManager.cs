@@ -85,7 +85,7 @@ public class LeaderboardManager : NetworkBehaviour
         _progressByClientId[clientId] = progress;
         return true;
     }
-    public void ReportSplineProgress(int clientId, float distanceOnTrack, float forwardDot)
+    public void ReportSplineProgress(int clientId, float distanceOnTrack, float forwardDot, int lap)
     {
         if (!IsServerInitialized)
             return;
@@ -98,6 +98,7 @@ public class LeaderboardManager : NetworkBehaviour
 
         progress.DistanceOnTrack = Mathf.Max(0f, distanceOnTrack);
         progress.ForwardDot = forwardDot;
+        progress.Lap = Mathf.Max(0, lap);
 
         _progressByClientId[clientId] = progress;
     }
@@ -131,6 +132,7 @@ public class LeaderboardManager : NetworkBehaviour
                 ClientId = progress.ClientId,
                 DisplayName = progress.DisplayName,
                 Checkpoints = progress.CheckpointIndex,
+                Lap = progress.Lap,
                 DistanceOnTrack = progress.DistanceOnTrack
             });
         }
@@ -138,6 +140,9 @@ public class LeaderboardManager : NetworkBehaviour
         list.Sort((a, b) =>
         {
             // 先按 checkpoints（如果你没用 checkpoints，全员为0，等价于只按距离）
+            int byLap = b.Lap.CompareTo(a.Lap);
+            if (byLap != 0) return byLap;
+
             int byCp = b.Checkpoints.CompareTo(a.Checkpoints);
             if (byCp != 0) return byCp;
 
@@ -161,6 +166,7 @@ public class LeaderboardManager : NetworkBehaviour
         public int ClientId;
         public string DisplayName;
         public int CheckpointIndex;
+        public int Lap;
 
         public float DistanceOnTrack; // 新增：沿线米数
         public float ForwardDot;      // 可选：调试/显示用
@@ -173,6 +179,7 @@ public struct RankEntry : IEquatable<RankEntry>
     public int ClientId;
     public string DisplayName;
     public int Checkpoints;
+    public int Lap;
 
     public float DistanceOnTrack; // 新增
 
@@ -181,12 +188,13 @@ public struct RankEntry : IEquatable<RankEntry>
         return ClientId == other.ClientId
             && DisplayName == other.DisplayName
             && Checkpoints == other.Checkpoints
+            && Lap == other.Lap
             && Mathf.Approximately(DistanceOnTrack, other.DistanceOnTrack);
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(ClientId, DisplayName, Checkpoints, DistanceOnTrack);
+        return HashCode.Combine(ClientId, DisplayName, Checkpoints, Lap, DistanceOnTrack);
     }
 }
 

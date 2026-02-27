@@ -118,7 +118,7 @@ public class ObsessionFigure : NetworkBehaviour
             return 0f;
         }
 
-        float leaderPercent = Mathf.Clamp01(rankings[0].DistanceOnTrack / trackLen) * 100f;
+        float leaderPercent = GetTotalProgressPercent(rankings[0], trackLen);
         bool foundSelf = false;
         float selfPercent = 0f;
 
@@ -127,7 +127,7 @@ public class ObsessionFigure : NetworkBehaviour
             RankEntry entry = rankings[i];
             if (entry.ClientId == OwnerId)
             {
-                selfPercent = Mathf.Clamp01(entry.DistanceOnTrack / trackLen) * 100f;
+                selfPercent = GetTotalProgressPercent(entry, trackLen);
                 foundSelf = true;
                 break;
             }
@@ -139,6 +139,16 @@ public class ObsessionFigure : NetworkBehaviour
         }
 
         return Mathf.Max(0f, leaderPercent - selfPercent);
+    }
+
+    private static float GetTotalProgressPercent(RankEntry entry, float trackLen)
+    {
+        if (trackLen <= 1e-6f)
+            return 0f;
+
+        float lapBase = Mathf.Max(0, entry.Lap - 1);
+        float lapProgress = Mathf.Clamp01(entry.DistanceOnTrack / trackLen);
+        return (lapBase + lapProgress) * 100f;
     }
 
     private void SetCompletionGapToLeaderPercent(float value)

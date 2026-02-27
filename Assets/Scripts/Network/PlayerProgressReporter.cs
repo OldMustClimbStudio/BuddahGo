@@ -7,10 +7,12 @@ public class PlayerProgressReporter : NetworkBehaviour
     [SerializeField] private float reportIntervalSeconds = 0.2f;
     private float _nextReportTime;
     private SplineProgressTracker _tracker;
+    private LapProgress _lapTracker;
 
     private void Awake()
     {
         _tracker = GetComponent<SplineProgressTracker>();
+        _lapTracker = GetComponent<LapProgress>();
     }
 
     private void Update()
@@ -26,7 +28,8 @@ public class PlayerProgressReporter : NetworkBehaviour
         if (_tracker == null)
             return;
 
-        ReportSplineProgressServerRpc(_tracker.distanceOnTrack, _tracker.forwardDot);
+        int lap = (_lapTracker != null) ? _lapTracker.CurrentLap : 0;
+        ReportSplineProgressServerRpc(_tracker.distanceOnTrack, _tracker.forwardDot, lap);
     }
 
     public override void OnStartServer()
@@ -51,12 +54,12 @@ public class PlayerProgressReporter : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void ReportSplineProgressServerRpc(float distanceOnTrack, float forwardDot)
+    private void ReportSplineProgressServerRpc(float distanceOnTrack, float forwardDot, int lap)
     {
         if (LeaderboardManager.Instance == null)
             return;
 
-        LeaderboardManager.Instance.ReportSplineProgress(OwnerId, distanceOnTrack, forwardDot);
+        LeaderboardManager.Instance.ReportSplineProgress(OwnerId, distanceOnTrack, forwardDot, lap);
     }
 
     // Checkpoints are no longer required; progress is spline-based.

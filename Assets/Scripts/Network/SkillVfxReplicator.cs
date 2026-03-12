@@ -1,13 +1,51 @@
-using FishNet.Object;
-using UnityEngine;
+﻿using FishNet.Object;
 using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Playables;
 
 public class SkillVfxReplicator : NetworkBehaviour
 {
     [SerializeField] private SkillVfxDatabase vfxDatabase;
+
+    [Header("Prewarm")]
+    [SerializeField] private bool prewarmOnStart = true;
+    [SerializeField] private float prewarmAliveSeconds = 0.05f;
+    [SerializeField] private int revealDelayFrames = 2;
+
     private static readonly Vector3 DefaultLocalOffset = Vector3.back * 2f;
     private static readonly Vector3 DefaultLocalEuler = new Vector3(0f, 180f, 0f);
     private const float DefaultStopPlayingBeforeEndSeconds = 0f;
+
+    private static readonly HashSet<int> PrewarmedPrefabIds = new();
+    private bool prewarmStarted;
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        TryStartPrewarm("OnStartClient");
+    }
+
+    private void Start()
+    {
+        // Fallback for non-network/local test scenes.
+        TryStartPrewarm("Start");
+    }
+
+    public void ForcePrewarmNow()
+    {
+        TryStartPrewarm("ForcePrewarmNow");
+    }
+
+    private void TryStartPrewarm(string source)
+    {
+        if (!prewarmOnStart || prewarmStarted)
+            return;
+
+        prewarmStarted = true;
+        Debug.Log($"[SkillVfxReplicator] Prewarm started from {source}.", this);
+        StartCoroutine(PrewarmAllVfx());
+    }
 
     /// <summary>
     /// Server-side call: play a VFX on ALL clients for durationSeconds.
@@ -77,34 +115,23 @@ public class SkillVfxReplicator : NetworkBehaviour
             return;
         }
 
-        // 如果已有同 id 的特效：刷新持续时间（不重复堆积）
         var existing = FindExisting(vfxId);
         if (existing != null)
         {
             existing.Refresh(durationSeconds, stopPlayingBeforeEndSeconds);
             existing.gameObject.SetActive(true);
-            PlayAllParticleSystems(existing.gameObject);
+            PlayAllEffects(existing.gameObject);
             return;
         }
 
-        // 本地生成并挂在施法者身上
         var vfxObj = Instantiate(prefab);
-        // prefab 若在 Project 里是 inactive，实例会继承 inactive，这里强制激活
-        vfxObj.SetActive(true);
+        // Configure while inactive to avoid first-frame pop.
+        vfxObj.SetActive(false);
         vfxObj.transform.SetParent(transform, false);
-        DisableNetworkComponentsForLocalVfx(vfxId, vfxObj);
-        vfxObj.SetActive(true);
         vfxObj.transform.localPosition = localOffset;
         vfxObj.transform.localRotation = Quaternion.Euler(localEuler);
+        DisableNetworkComponentsForLocalVfx(vfxId, vfxObj);
 
-        if (!vfxObj.activeInHierarchy)
-            Debug.LogWarning($"[SkillVfxReplicator] Instantiated VFX '{vfxId}' is not active in hierarchy.");
-        else
-            Debug.Log($"[SkillVfxReplicator] Instantiated VFX '{vfxId}'.");
-
-        StartCoroutine(LogVfxStateNextFrame(vfxId, vfxObj));
-
-        // 标记 id + 计时
         var tag = vfxObj.GetComponent<SkillVfxTag>();
         if (tag == null) tag = vfxObj.AddComponent<SkillVfxTag>();
         tag.VfxId = vfxId;
@@ -113,12 +140,57 @@ public class SkillVfxReplicator : NetworkBehaviour
         if (timer == null) timer = vfxObj.AddComponent<TimedVfxInstance>();
         timer.Refresh(durationSeconds, stopPlayingBeforeEndSeconds);
 
-        PlayAllParticleSystems(vfxObj);
+        SetAllRenderersEnabled(vfxObj, false);
+        vfxObj.SetActive(true);
+        PlayAllEffects(vfxObj);
+        StartCoroutine(EnableRenderersAfterFrames(vfxObj, revealDelayFrames));
+    }
+
+    private IEnumerator PrewarmAllVfx()
+    {
+        if (vfxDatabase == null || vfxDatabase.entries == null)
+        {
+            Debug.LogWarning("[SkillVfxReplicator] Prewarm skipped: vfxDatabase or entries is null.", this);
+            yield break;
+        }
+
+        int warmedCount = 0;
+
+        foreach (var entry in vfxDatabase.entries)
+        {
+            if (entry == null || entry.prefab == null)
+                continue;
+
+            int prefabId = entry.prefab.GetInstanceID();
+            if (!PrewarmedPrefabIds.Add(prefabId))
+                continue;
+
+            var prewarmObj = Instantiate(entry.prefab);
+            prewarmObj.SetActive(false);
+            prewarmObj.transform.SetParent(transform, false);
+            DisableNetworkComponentsForLocalVfx(entry.vfxId, prewarmObj);
+            SetAllRenderersEnabled(prewarmObj, false);
+
+            prewarmObj.SetActive(true);
+            PlayAllEffects(prewarmObj);
+
+            if (prewarmAliveSeconds > 0f)
+                yield return new WaitForSeconds(prewarmAliveSeconds);
+            else
+                yield return null;
+
+            if (prewarmObj != null)
+                Destroy(prewarmObj);
+
+            warmedCount++;
+            yield return null;
+        }
+
+        Debug.Log($"[SkillVfxReplicator] Prewarm finished. warmed={warmedCount}", this);
     }
 
     private TimedVfxInstance FindExisting(string vfxId)
     {
-        // 找子物体中带 SkillVfxTag 且 VfxId 相同的特效
         var tags = GetComponentsInChildren<SkillVfxTag>(true);
         foreach (var t in tags)
         {
@@ -142,6 +214,44 @@ public class SkillVfxReplicator : NetworkBehaviour
         }
     }
 
+    private void PlayAllPlayableDirectors(GameObject root)
+    {
+        var directors = root.GetComponentsInChildren<PlayableDirector>(true);
+        foreach (var director in directors)
+        {
+            if (director == null) continue;
+            director.time = 0d;
+            director.Evaluate();
+            director.Play();
+        }
+    }
+
+    private void PlayAllEffects(GameObject root)
+    {
+        PlayAllPlayableDirectors(root);
+        PlayAllParticleSystems(root);
+    }
+
+    private void SetAllRenderersEnabled(GameObject root, bool enabled)
+    {
+        var renderers = root.GetComponentsInChildren<Renderer>(true);
+        foreach (var r in renderers)
+        {
+            if (r == null) continue;
+            r.enabled = enabled;
+        }
+    }
+
+    private IEnumerator EnableRenderersAfterFrames(GameObject root, int frames)
+    {
+        int safeFrames = Mathf.Max(1, frames);
+        for (int i = 0; i < safeFrames; i++)
+            yield return null;
+
+        if (root == null) yield break;
+        SetAllRenderersEnabled(root, true);
+    }
+
     private void DisableNetworkComponentsForLocalVfx(string vfxId, GameObject root)
     {
         var networkObjects = root.GetComponentsInChildren<NetworkObject>(true);
@@ -161,27 +271,6 @@ public class SkillVfxReplicator : NetworkBehaviour
             if (networkObject == null) continue;
             networkObject.enabled = false;
         }
-    }
-
-    // 调试用：生成后下一帧检查特效状态，帮助诊断 prefab 设置问题
-    private IEnumerator LogVfxStateNextFrame(string vfxId, GameObject vfxObj)
-    {
-        yield return null;
-
-        if (vfxObj == null)
-        {
-            yield break;
-        }
-
-        Transform parent = vfxObj.transform.parent;
-        bool parentActiveInHierarchy = parent == null || parent.gameObject.activeInHierarchy;
-
-        Debug.Log(
-            $"[SkillVfxReplicator] Next-frame state '{vfxId}': " +
-            $"activeSelf={vfxObj.activeSelf}, " +
-            $"activeInHierarchy={vfxObj.activeInHierarchy}, " +
-            $"parent={(parent != null ? parent.name : "<none>")}, " +
-            $"parentActiveInHierarchy={parentActiveInHierarchy}");
     }
 }
 

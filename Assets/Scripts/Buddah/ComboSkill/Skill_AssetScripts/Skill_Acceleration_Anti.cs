@@ -19,6 +19,8 @@ public class Skill_Acceleration_Anti : SkillAction
     [Min(0.1f)] public float durationSeconds = 3f;
 
     [Header("VFX")]
+    [Tooltip("VFX lifetime. 0 = follow durationSeconds.")]
+    [Min(0f)] public float vfxDurationSeconds = 0f;
     [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
     [SerializeField] public string vfxId = "accel_anti_vfx"; // Configure matching VFX id in SkillVfxReplicator.
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.back * 2f;
@@ -31,12 +33,13 @@ public class Skill_Acceleration_Anti : SkillAction
         float extraMaxSpeed = -Mathf.Abs(slowMaxSpeed);
 
         caster.ApplyAccelerationToOwner(extraForwardForce, extraMaxSpeed, durationSeconds);
+        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : durationSeconds;
 
         var vfx = caster.GetComponent<SkillVfxReplicator>();
         if (vfx != null)
-            vfx.PlayVfxAll(vfxId, durationSeconds, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
+            vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
 
-        Debug.Log($"[Skill_Acceleration_Anti][Server] Apply {extraForwardForce} force, {extraMaxSpeed} maxSpeed for {durationSeconds}s");
+        Debug.Log($"[Skill_Acceleration_Anti][Server] Apply {extraForwardForce} force, {extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)

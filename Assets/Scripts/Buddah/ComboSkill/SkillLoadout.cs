@@ -25,7 +25,7 @@ public class SkillLoadout : NetworkBehaviour
         //注意技能ID就是玩家装备的技能
         SlotSkillIds[0] = "acceleration"; // For Debug给一个加速技能
         SlotSkillIds[1] = "slowtrap";
-        SlotSkillIds[2] = "reverseturn";
+        SlotSkillIds[2] = "blackcurtain";
     }
 
     public string GetSkillId(int slotIndex)

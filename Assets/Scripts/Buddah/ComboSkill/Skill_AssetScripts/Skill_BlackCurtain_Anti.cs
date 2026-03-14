@@ -20,6 +20,8 @@ public class Skill_BlackCurtain_Anti : SkillAction
     [SerializeField] private string opacityProperty = "_Opacity";
     [SerializeField] private string elapsedTimeProperty = "_ElapsedTime";
     [SerializeField] private string activeProperty = "_EffectActive";
+    [SerializeField] private string centerProperty = "_Center";
+    [SerializeField] private Vector3 centerWorldOffset = new Vector3(0f, 1f, 0f);
 
     [Header("Caster VFX (Optional)")]
     [Tooltip("VFX lifetime. 0 = follow screen effect total duration.")]
@@ -28,26 +30,22 @@ public class Skill_BlackCurtain_Anti : SkillAction
     [SerializeField] public string vfxId = "black_curtain_anti_vfx";
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
     [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
+    [Header("Feel (Optional)")]
+    [SerializeField] private string observersFeelEventId = "blackcurtain_anti_observers";
+    [SerializeField] private string observersFeelStopEventId = string.Empty;
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
         if (caster == null)
             return;
 
-        var vfx = caster.GetComponent<SkillVfxReplicator>();
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds;
-        if (vfx != null)
-            vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
 
         Debug.Log($"[Skill_BlackCurtain_Anti][Server] Triggered by {caster.name}, totalDuration={actualVfxDuration:0.00}s");
     }
 
-    public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
+    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
     {
-        SkillExecutor localExecutor = FindLocalExecutor();
-        if (localExecutor == null || localExecutor != caster)
-            return;
-
         Camera localCamera = ResolveLocalCamera();
         if (localCamera == null)
         {
@@ -55,36 +53,52 @@ public class Skill_BlackCurtain_Anti : SkillAction
             return;
         }
 
-        var effect = localCamera.GetComponent<BlackCurtainScreenEffect>();
-        if (effect == null)
-            effect = localCamera.gameObject.AddComponent<BlackCurtainScreenEffect>();
+        var viewController = localCamera.GetComponent<BlackCurtainViewController>();
+        if (viewController == null)
+            viewController = localCamera.gameObject.AddComponent<BlackCurtainViewController>();
 
-        effect.ApplyOrRefresh(
-            fullscreenMaterial,
-            fullscreenMaterialName,
-            fullscreenShaderName,
-            expandDurationSeconds,
-            holdDurationSeconds,
-            fadeOutDurationSeconds,
-            maxOpacity,
-            progressProperty,
-            opacityProperty,
-            elapsedTimeProperty,
-            activeProperty);
-
-        Debug.Log($"[Skill_BlackCurtain_Anti][Observers] Local caster affected by '{skillId}' (slot {slotIndex})");
-    }
-
-    private static SkillExecutor FindLocalExecutor()
-    {
-        SkillExecutor[] executors = FindObjectsByType<SkillExecutor>(FindObjectsSortMode.None);
-        for (int i = 0; i < executors.Length; i++)
+        bool localShouldSeeEdge = localIsCaster ^ isAnti;
+        Vector2 center = ResolveScreenCenter(localCamera, caster);
+        Debug.Log($"[Skill_BlackCurtain_Anti][Observers] localIsCaster={localIsCaster}, isAnti={isAnti}, localShouldSeeEdge={localShouldSeeEdge}, camera={localCamera.name}");
+        if (localShouldSeeEdge)
         {
-            if (executors[i] != null && executors[i].IsOwner)
-                return executors[i];
+            viewController.PlayWithEdge(
+                fullscreenMaterial,
+                fullscreenMaterialName,
+                fullscreenShaderName,
+                expandDurationSeconds,
+                holdDurationSeconds,
+                fadeOutDurationSeconds,
+                maxOpacity,
+                progressProperty,
+                opacityProperty,
+                elapsedTimeProperty,
+                activeProperty,
+                centerProperty,
+                center);
+        }
+        else
+        {
+            viewController.PlayWithoutEdge(
+                fullscreenMaterial,
+                fullscreenMaterialName,
+                fullscreenShaderName,
+                expandDurationSeconds,
+                holdDurationSeconds,
+                fadeOutDurationSeconds,
+                maxOpacity,
+                progressProperty,
+                opacityProperty,
+                elapsedTimeProperty,
+                activeProperty,
+                centerProperty,
+                center);
         }
 
-        return null;
+        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds;
+        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualVfxDuration, $"{skillId}_observers");
+
+        Debug.Log($"[Skill_BlackCurtain_Anti][Observers] Local caster affected by '{skillId}' (slot {slotIndex})");
     }
 
     private static Camera ResolveLocalCamera()
@@ -100,5 +114,20 @@ public class Skill_BlackCurtain_Anti : SkillAction
         }
 
         return null;
+    }
+
+    private Vector2 ResolveScreenCenter(Camera localCamera, SkillExecutor caster)
+    {
+        if (localCamera == null || caster == null)
+            return new Vector2(0.5f, 0.5f);
+
+        Vector3 worldPosition = caster.transform.position + centerWorldOffset;
+        Vector3 viewportPosition = localCamera.WorldToViewportPoint(worldPosition);
+        if (viewportPosition.z <= 0f)
+            return new Vector2(0.5f, 0.5f);
+
+        return new Vector2(
+            Mathf.Clamp01(viewportPosition.x),
+            Mathf.Clamp01(viewportPosition.y));
     }
 }

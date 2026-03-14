@@ -21,6 +21,7 @@ public class LapProgress : NetworkBehaviour
     [SerializeField] private int currentLap = 0;
     [SerializeField] private bool hasStartedLap = false;
     [SerializeField] private bool lapArmed = false;
+    [SerializeField] private bool hasLeftStartZoneSinceLastCross = false;
 
     private SplineProgressTracker _tracker;
     private float _nextAllowedCrossTime = 0f;
@@ -44,7 +45,18 @@ public class LapProgress : NetworkBehaviour
         if (_tracker == null)
             return;
 
-        if (hasStartedLap && !lapArmed && _tracker.progress01 >= nearEndThreshold01 && _tracker.forwardDot >= minForwardDot)
+        if (!hasStartedLap)
+            return;
+
+        if (!hasLeftStartZoneSinceLastCross && _tracker.progress01 > nearStartThreshold01)
+        {
+            hasLeftStartZoneSinceLastCross = true;
+        }
+
+        if (!lapArmed
+            && hasLeftStartZoneSinceLastCross
+            && _tracker.progress01 >= nearEndThreshold01
+            && _tracker.forwardDot >= minForwardDot)
         {
             lapArmed = true;
         }
@@ -71,16 +83,18 @@ public class LapProgress : NetworkBehaviour
         {
             hasStartedLap = true;
             currentLap = 1;
+            lapArmed = false;
+            hasLeftStartZoneSinceLastCross = false;
             _nextAllowedCrossTime = Time.time + minimumCrossingCooldownSeconds;
             return;
         }
 
-        bool crossedNearStart = _tracker.progress01 <= nearStartThreshold01;
-        if (!crossedNearStart || !lapArmed)
+        if (!lapArmed || !hasLeftStartZoneSinceLastCross)
             return;
 
         currentLap += 1;
         lapArmed = false;
+        hasLeftStartZoneSinceLastCross = false;
         _nextAllowedCrossTime = Time.time + minimumCrossingCooldownSeconds;
     }
 

@@ -10,10 +10,13 @@ public class LeaderboardTMPUI : MonoBehaviour
 
     [Header("Display")]
     [SerializeField] private int maxRows = 8;
+    [SerializeField] private float localRefreshIntervalSeconds = 0.1f;
 
     private bool _subscribedRankings;
     private ObsessionFigure _localObsession;
     private bool _subscribedObsession;
+    private SplineProgressTracker _localTracker;
+    private float _nextLocalRefreshTime;
 
     private void OnEnable()
     {
@@ -35,6 +38,15 @@ public class LeaderboardTMPUI : MonoBehaviour
 
         if (!_subscribedObsession)
             TrySubscribeLocalObsession();
+
+        if (_localTracker == null)
+            TryFindLocalTracker();
+
+        if (Time.time >= _nextLocalRefreshTime)
+        {
+            _nextLocalRefreshTime = Time.time + Mathf.Max(0.02f, localRefreshIntervalSeconds);
+            RefreshText();
+        }
     }
 
     // ---------------- Rankings ----------------
@@ -85,6 +97,20 @@ public class LeaderboardTMPUI : MonoBehaviour
         _localObsession.OnCompletionGapChanged += HandleCompletionGapChanged;
         _subscribedObsession = true;
         RefreshText();
+    }
+
+    private void TryFindLocalTracker()
+    {
+        var movers = FindObjectsByType<BuddahMovement>(FindObjectsSortMode.None);
+        for (int i = 0; i < movers.Length; i++)
+        {
+            if (movers[i] != null && movers[i].IsOwner)
+            {
+                _localTracker = movers[i].GetComponent<SplineProgressTracker>();
+                if (_localTracker != null)
+                    return;
+            }
+        }
     }
 
     private void UnsubscribeLocalObsession()
@@ -172,20 +198,16 @@ public class LeaderboardTMPUI : MonoBehaviour
         p01 = 0f;
         dot = 0f;
 
-        var movers = FindObjectsByType<BuddahMovement>(FindObjectsSortMode.None);
-        for (int i = 0; i < movers.Length; i++)
+        if (_localTracker == null)
+            TryFindLocalTracker();
+
+        if (_localTracker != null)
         {
-            if (movers[i] != null && movers[i].IsOwner)
-            {
-                var tracker = movers[i].GetComponent<SplineProgressTracker>();
-                if (tracker != null)
-                {
-                    p01 = tracker.progress01;
-                    dot = tracker.forwardDot;
-                    return true;
-                }
-            }
+            p01 = _localTracker.progress01;
+            dot = _localTracker.forwardDot;
+            return true;
         }
+
         return false;
     }
 }

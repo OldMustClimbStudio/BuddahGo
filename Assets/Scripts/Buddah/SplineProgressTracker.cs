@@ -18,7 +18,7 @@ public class SplineProgressTracker : NetworkBehaviour
     [SerializeField] private float jumpMetersThreshold = 8f; // 5~15 
     [SerializeField] private float windowRadiusT = 0.1f;    // 0.03~0.10
     [SerializeField] private int windowSteps = 40;
-    [SerializeField] private float maxProjectionDistance = 20f; // 离赛道中心线太远就不更新（防飞出去乱跳）
+    [SerializeField] private float maxProjectionDistance = 40f; // 离赛道中心线太远就不更新（防飞出去乱跳）
     [SerializeField] private float maxStepFactor = 1.5f;        // 单帧最大允许前进 = 速度 * dt * factor
 
 
@@ -157,11 +157,12 @@ public class SplineProgressTracker : NetworkBehaviour
 
         float bestT = centerT01;
         float bestD2 = float.MaxValue;
+        float searchRadius = windowRadiusT;
 
         for (int i = 0; i <= windowSteps; i++)
         {
             float u = (float)i / windowSteps; // 0..1
-            float t = centerT01 - windowRadiusT + 2f * windowRadiusT * u;
+            float t = centerT01 - searchRadius + 2f * searchRadius * u;
             t = Mathf.Repeat(t, 1f);
 
             float3 pL, tanL, upL;
@@ -174,6 +175,36 @@ public class SplineProgressTracker : NetworkBehaviour
                 bestT = t;
             }
         }
+
+        // Refine around the best coarse sample to reduce visible "stepping"
+        // in progress01 near curved sections or on shorter tracks.
+        float refineRadius = Mathf.Max(searchRadius / Mathf.Max(1, windowSteps), 0.0005f);
+        for (int pass = 0; pass < 3; pass++)
+        {
+            float passBestT = bestT;
+            float passBestD2 = bestD2;
+
+            for (int i = -2; i <= 2; i++)
+            {
+                float u = i / 2f;
+                float t = Mathf.Repeat(bestT + u * refineRadius, 1f);
+
+                float3 pL, tanL, upL;
+                SplineUtility.Evaluate(spline, t, out pL, out tanL, out upL);
+                Vector3 pLocal = (Vector3)pL;
+                float d2 = (pLocal - posLocal).sqrMagnitude;
+                if (d2 < passBestD2)
+                {
+                    passBestD2 = d2;
+                    passBestT = t;
+                }
+            }
+
+            bestT = passBestT;
+            bestD2 = passBestD2;
+            refineRadius *= 0.5f;
+        }
+
         return bestT;
     }
 

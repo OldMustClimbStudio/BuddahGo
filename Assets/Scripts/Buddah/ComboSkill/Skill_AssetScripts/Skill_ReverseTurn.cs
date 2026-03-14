@@ -14,6 +14,9 @@ public class Skill_ReverseTurn : SkillAction
     [SerializeField] public string vfxId = "reverse_turn_trap_vfx";
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
     [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
+    [Header("Feel (Optional)")]
+    [SerializeField] private string observersFeelEventId = string.Empty;
+    [SerializeField] private string observersFeelStopEventId = string.Empty;
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
@@ -35,10 +38,7 @@ public class Skill_ReverseTurn : SkillAction
             appliedCount++;
         }
 
-        var vfx = caster.GetComponent<SkillVfxReplicator>();
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : invertDurationSeconds;
-        if (vfx != null)
-            vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
 
         Debug.Log($"[Skill_ReverseTurnTrap][Server] InvertTurnAllOthers duration={invertDurationSeconds}s, targets={appliedCount}, vfx={actualVfxDuration}s");
     }
@@ -46,5 +46,7 @@ public class Skill_ReverseTurn : SkillAction
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
         Debug.Log($"[Skill_ReverseTurnTrap][Observers] '{skillId}' triggered (slot {slotIndex})");
+        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : invertDurationSeconds;
+        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualVfxDuration, $"{skillId}_observers");
     }
 }

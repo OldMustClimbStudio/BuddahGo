@@ -37,4 +37,12 @@ public abstract class SkillAction : ScriptableObject
     {
         // optional
     }
+
+    /// <summary>
+    /// Observer-side execution with network context. Default behavior keeps older skills working.
+    /// </summary>
+    public virtual void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    {
+        ExecuteObservers(caster, slotIndex);
+    }
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkObject))]
 public class PlayerProgressReporter : NetworkBehaviour
 {
-    [SerializeField] private float reportIntervalSeconds = 0.2f;
+    [SerializeField] private float reportIntervalSeconds = 0.1f;
     private float _nextReportTime;
     private SplineProgressTracker _tracker;
     private LapProgress _lapTracker;

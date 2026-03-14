@@ -18,6 +18,9 @@ public class Skill_ReverseTurn_Anti : SkillAction
     [SerializeField] public string vfxId = "reverse_turn_trap_anti_vfx";
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
     [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
+    [Header("Feel (Optional)")]
+    [SerializeField] private string observersFeelEventId = string.Empty;
+    [SerializeField] private string observersFeelStopEventId = string.Empty;
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
@@ -27,15 +30,13 @@ public class Skill_ReverseTurn_Anti : SkillAction
         caster.ApplyInvertTurnInputToOwner(invertDurationSeconds);
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : invertDurationSeconds;
 
-        var vfx = caster.GetComponent<SkillVfxReplicator>();
-        if (vfx != null)
-            vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
-
         Debug.Log($"[Skill_ReverseTurnTrap_Anti][Server] Invert self turn input for {invertDurationSeconds}s, vfx={actualVfxDuration}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
         Debug.Log($"[Skill_ReverseTurnTrap_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
+        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : invertDurationSeconds;
+        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualVfxDuration, $"{skillId}_observers");
     }
 }

@@ -13,15 +13,14 @@ public class Skill_Acceleration : SkillAction
     [SerializeField] public string vfxId = "accel_back_vfx"; // Configure matching VFX id in SkillVfxReplicator.
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.back * 2f;
     [SerializeField] public Vector3 vfxLocalEuler = new Vector3(0f, 180f, 0f);
+    [Header("Feel (Optional)")]
+    [SerializeField] private string observersFeelEventId = "acceleration_shared";
+    [SerializeField] private string observersFeelStopEventId = string.Empty;
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
         caster.ApplyAccelerationToOwner(extraForwardForce, extraMaxSpeed, durationSeconds);
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : durationSeconds;
-
-        var vfx = caster.GetComponent<SkillVfxReplicator>();
-        if (vfx != null)
-            vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
 
         Debug.Log($"[Skill_Acceleration][Server] Apply +{extraForwardForce} force, +{extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
     }
@@ -29,7 +28,9 @@ public class Skill_Acceleration : SkillAction
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
         Debug.Log($"[Skill_Acceleration][Observers] '{skillId}' triggered (slot {slotIndex})");
+        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : durationSeconds;
+        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualVfxDuration, $"{skillId}_observers");
 
-        // VFX replication is sent from server in ExecuteServer().
+        // World-facing VFX now runs through Feel on each observer.
     }
 }

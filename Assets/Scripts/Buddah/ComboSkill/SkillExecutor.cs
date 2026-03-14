@@ -1,6 +1,8 @@
 using FishNet.Connection;
 using FishNet.Object;
 using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 
 public class SkillExecutor : NetworkBehaviour
 {
@@ -8,7 +10,9 @@ public class SkillExecutor : NetworkBehaviour
     [SerializeField] private ComboSkillInput comboInput;
     [SerializeField] private SkillLoadout loadout;
     [SerializeField] private SkillDatabase database;
+    [SerializeField] private SkillFeelRouter feelRouter;
     private float _castLockedUntil;
+    private readonly Dictionary<string, int> _feelStopTokens = new();
 
     private float[] _nextReadyTime; // server cooldown tracking
 
@@ -19,6 +23,7 @@ public class SkillExecutor : NetworkBehaviour
     {
         _nextReadyTime = new float[SkillLoadout.SlotCount];
         ResolveObsessionFigure();
+        ResolveFeelRouter();
     }
 
     public override void OnStartServer()
@@ -35,6 +40,7 @@ public class SkillExecutor : NetworkBehaviour
 
         if (comboInput == null) comboInput = GetComponent<ComboSkillInput>();
         if (loadout == null) loadout = GetComponent<SkillLoadout>();
+        ResolveFeelRouter();
 
         if (comboInput != null)
             comboInput.OnSkillSlotTriggered += OnSlotTriggeredByCombo;
@@ -143,10 +149,15 @@ public class SkillExecutor : NetworkBehaviour
     {
         if (database == null) return;
 
+        string ownerClientId = Owner != null ? Owner.ClientId.ToString() : "null";
+        string localClientId = LocalConnection != null ? LocalConnection.ClientId.ToString() : "null";
+        int objectId = NetworkObject != null ? NetworkObject.ObjectId : 0;
+        Debug.Log($"[SkillExecutor][ObserversRpc] object='{name}', objectId={objectId}, slot={slotIndex}, skill='{executedSkillId}', anti={isAnti}, IsOwner={IsOwner}, IsClientInitialized={IsClientInitialized}, ownerClientId={ownerClientId}, localClientId={localClientId}");
+
         if (database.TryGet(executedSkillId, out SkillAction skill) && skill != null)
         {
             Debug.Log($"[SkillExecutor][Observers] '{executedSkillId}' played (slot {slotIndex}) [anti={isAnti}]");
-            skill.ExecuteObservers(this, slotIndex);
+            skill.ExecuteObservers(this, slotIndex, isAnti, IsOwner);
         }
     }
 
@@ -182,6 +193,7 @@ public class SkillExecutor : NetworkBehaviour
             effect = gameObject.AddComponent<MovementAccelerationEffect>();
 
         effect.ApplyOrRefresh(move, extraForwardForce, extraMaxSpeed, durationSeconds);
+        PlayFeelLocal("acceleration_local");
 
         Debug.Log($"[SkillExecutor][Target] Accel: +{extraForwardForce} forwardForce, +{extraMaxSpeed} maxSpeed for {durationSeconds}s");
     }
@@ -254,5 +266,57 @@ public class SkillExecutor : NetworkBehaviour
             _obs = GetComponentInParent<ObsessionFigure>();
         if (_obs == null)
             _obs = GetComponentInChildren<ObsessionFigure>(true);
+    }
+
+    public void PlayFeelLocal(string eventId)
+    {
+        ResolveFeelRouter();
+
+        if (feelRouter == null)
+            return;
+
+        feelRouter.Play(eventId);
+    }
+
+    private void ResolveFeelRouter()
+    {
+        if (feelRouter != null)
+            return;
+
+        feelRouter = GetComponent<SkillFeelRouter>();
+        if (feelRouter != null)
+            return;
+
+        feelRouter = GetComponentInChildren<SkillFeelRouter>(true);
+        if (feelRouter != null)
+            return;
+
+        feelRouter = GetComponentInParent<SkillFeelRouter>();
+    }
+
+    public void PlayFeelLocalTimed(string startEventId, string stopEventId, float durationSeconds, string scheduleKey = null)
+    {
+        PlayFeelLocal(startEventId);
+
+        if (string.IsNullOrWhiteSpace(stopEventId) || durationSeconds <= 0f)
+            return;
+
+        string key = string.IsNullOrWhiteSpace(scheduleKey) ? stopEventId : scheduleKey;
+        int nextToken = 1;
+        if (_feelStopTokens.TryGetValue(key, out int currentToken))
+            nextToken = currentToken + 1;
+
+        _feelStopTokens[key] = nextToken;
+        StartCoroutine(PlayFeelStopAfterDelay(stopEventId, durationSeconds, key, nextToken));
+    }
+
+    private IEnumerator PlayFeelStopAfterDelay(string stopEventId, float durationSeconds, string scheduleKey, int token)
+    {
+        yield return new WaitForSeconds(durationSeconds);
+
+        if (!_feelStopTokens.TryGetValue(scheduleKey, out int currentToken) || currentToken != token)
+            yield break;
+
+        PlayFeelLocal(stopEventId);
     }
 }

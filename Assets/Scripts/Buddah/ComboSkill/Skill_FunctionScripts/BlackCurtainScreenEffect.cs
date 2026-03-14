@@ -15,6 +15,8 @@ public class BlackCurtainScreenEffect : MonoBehaviour
     private string _opacityProperty = "_Opacity";
     private string _elapsedTimeProperty = "_ElapsedTime";
     private string _activeProperty = "_EffectActive";
+    private string _centerProperty = "_Center";
+    private Vector2 _center = new Vector2(0.5f, 0.5f);
 
     public void ApplyOrRefresh(
         Material fullscreenMaterial,
@@ -27,7 +29,9 @@ public class BlackCurtainScreenEffect : MonoBehaviour
         string progressProperty,
         string opacityProperty,
         string elapsedTimeProperty,
-        string activeProperty)
+        string activeProperty,
+        string centerProperty,
+        Vector2 center)
     {
         _fullscreenMaterial = ResolveMaterial(fullscreenMaterial, fallbackMaterialName, fallbackShaderName);
         if (_fullscreenMaterial == null)
@@ -45,6 +49,8 @@ public class BlackCurtainScreenEffect : MonoBehaviour
         _opacityProperty = string.IsNullOrWhiteSpace(opacityProperty) ? "_Opacity" : opacityProperty;
         _elapsedTimeProperty = string.IsNullOrWhiteSpace(elapsedTimeProperty) ? "_ElapsedTime" : elapsedTimeProperty;
         _activeProperty = string.IsNullOrWhiteSpace(activeProperty) ? "_EffectActive" : activeProperty;
+        _centerProperty = string.IsNullOrWhiteSpace(centerProperty) ? "_Center" : centerProperty;
+        _center = center;
 
         _startedAt = Time.time;
         _isPlaying = true;
@@ -108,6 +114,7 @@ public class BlackCurtainScreenEffect : MonoBehaviour
         TrySetFloat(_opacityProperty, opacity);
         TrySetFloat(_elapsedTimeProperty, elapsed);
         TrySetFloat(_activeProperty, active ? 1f : 0f);
+        TrySetVector(_centerProperty, new Vector4(_center.x, _center.y, 0f, 0f));
     }
 
     private void TrySetFloat(string propertyName, float value)
@@ -116,6 +123,14 @@ public class BlackCurtainScreenEffect : MonoBehaviour
             return;
 
         _fullscreenMaterial.SetFloat(propertyName, value);
+    }
+
+    private void TrySetVector(string propertyName, Vector4 value)
+    {
+        if (_fullscreenMaterial == null || string.IsNullOrWhiteSpace(propertyName) || !_fullscreenMaterial.HasProperty(propertyName))
+            return;
+
+        _fullscreenMaterial.SetVector(propertyName, value);
     }
 
     private static Material ResolveMaterial(Material directReference, string fallbackMaterialName, string fallbackShaderName)

@@ -10,10 +10,11 @@ public class LeaderboardManager : NetworkBehaviour
     public static LeaderboardManager Instance { get; private set; }
 
     [Header("Settings")]
-    [SerializeField] private float refreshIntervalSeconds = 1f;
+    [SerializeField] private float refreshIntervalSeconds = 0.1f;
 
     public readonly SyncList<RankEntry> Rankings = new SyncList<RankEntry>();
     private readonly Dictionary<int, PlayerProgress> _progressByClientId = new Dictionary<int, PlayerProgress>();
+    private bool _rankingsDirty;
 
     private void Awake()
     {
@@ -53,6 +54,7 @@ public class LeaderboardManager : NetworkBehaviour
             DisplayName = string.IsNullOrWhiteSpace(displayName) ? $"Player {clientId}" : displayName,
             CheckpointIndex = 0
         };
+        _rankingsDirty = true;
     }
 
     public void UnregisterPlayer(int clientId)
@@ -83,6 +85,7 @@ public class LeaderboardManager : NetworkBehaviour
 
         progress.CheckpointIndex = checkpointId;
         _progressByClientId[clientId] = progress;
+        _rankingsDirty = true;
         return true;
     }
     public void ReportSplineProgress(int clientId, float distanceOnTrack, float forwardDot, int lap)
@@ -101,6 +104,7 @@ public class LeaderboardManager : NetworkBehaviour
         progress.Lap = Mathf.Max(0, lap);
 
         _progressByClientId[clientId] = progress;
+        _rankingsDirty = true;
     }
 
 
@@ -109,7 +113,7 @@ public class LeaderboardManager : NetworkBehaviour
         WaitForSeconds wait = new WaitForSeconds(Mathf.Max(0.1f, refreshIntervalSeconds));
         while (true)
         {
-            if (IsServerInitialized)
+            if (IsServerInitialized && _rankingsDirty)
             {
                 BuildRankings();
             }
@@ -159,6 +163,8 @@ public class LeaderboardManager : NetworkBehaviour
         {
             Rankings.Add(list[i]);
         }
+
+        _rankingsDirty = false;
     }
 
     private struct PlayerProgress

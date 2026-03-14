@@ -26,11 +26,6 @@
 - 本地 UI 显示排行榜、进度、Obsession 和反噬概率
 - 技能 Feel、VFX 复制和黑幕视效控制
 
-最近一轮代码清理还做了两件事：
-
-- 去掉了 `ComboSkillInput` 里重复触发网络 cast 的旧路径，输入现在只负责识别 combo，真正施法统一交给 `SkillExecutor`
-- 删除了当前未使用、也未被资源引用的旧“反转陷阱区”实现和未接线的全局技能设置壳
-
 ## 技术栈
 
 - Unity `2022.3.55f1c1`
@@ -98,27 +93,27 @@
 
 ### 3. 当前已实现技能
 
-#### Acceleration
+#### 神足通
 
 - 正常版本：给自己加速
 - Anti 版本：给自己减速
 - 真实数值效果通过 `TargetRpc` 下发到 owner，再由 `MovementAccelerationEffect` 改写移动参数
 - 视觉表现主要走 `SkillFeelRouter`
 
-#### Slow Trap
+#### 禅定缓流
 
 - 正常版本：给施法者挂一个服务器端减速触发区
 - 碰到目标后，通过 `ApplyAccelerationToOwner(负数)` 给目标施加减速
 - Anti 版本：自己先被短暂 root，再获得一段加速
 - 这组技能会使用 `SkillVfxReplicator` 把世界 VFX 同步到所有客户端
 
-#### Reverse Turn
+#### 逆姻缘
 
 - 正常版本：服务端遍历其他玩家，让他们的 owner 客户端进入反转输入状态
 - Anti 版本：只反转自己
 - 反转输入由 `MovementInvertTurnInputEffect` 实现
 
-#### Black Curtain
+#### 一念光明
 
 - 不走普通世界特效，而是走本地相机视角下的全屏材质效果
 - observer 侧根据“本地是否为施法者”和“是否为 anti”决定是否显示边缘轮廓
@@ -377,13 +372,6 @@
 - Black Curtain 在本地和远端视角都表现正常
 - 排行榜能随着样条线进度更新
 - 当前删除的旧脚本没有遗漏场景引用
-
-## 后续可继续优化的方向
-
-- 统一技能的 VFX 配置接口，减少“有字段但当前未使用”的保留项
-- 给技能系统补一份时序图文档
-- 把排行榜、圈数、Obsession 的 UI 抽成独立面板
-- 进一步梳理当前客户端权威移动和服务端规则之间的边界
 
 ---
 

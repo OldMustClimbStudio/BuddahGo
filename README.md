@@ -124,17 +124,18 @@ git lfs pull
 
 拉取完成后，建议先检查：
 
-- `Assets/Scenes/Menu.unity` 能否正常打开
 - `Assets/Scenes/RaceMap.unity` 能否正常打开
+- `Assets/Scenes/SpecialEffect.unity` 能否正常打开
 - Console 是否有脚本编译错误
 - 场景中是否有丢失材质、丢失 Prefab、丢失脚本
 
 当前 Build Settings 中启用的场景：
 
-- `Assets/Scenes/Menu.unity`
 - `Assets/Scenes/RaceMap.unity`
 
-`Assets/Scenes/SpecialEffect.unity` 保留在项目中，但当前未加入 Build Settings。
+当前保留在项目中的其他场景：
+
+- `Assets/Scenes/SpecialEffect.unity`
 
 ## 日常提交流程
 

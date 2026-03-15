@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!319 &31900000
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Mask_LeftHand
+  m_Mask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+  m_Elements:
+  - m_Path: 
+    m_Weight: 1
+  - m_Path: fotou
+    m_Weight: 0
+  - m_Path: "fotou/\u9AA8\u9ABC"
+    m_Weight: 0
+  - m_Path: "fotou/\u9AA8\u9ABC/\u9AA8\u9ABC.001"
+    m_Weight: 1
+  - m_Path: "fotou/\u9AA8\u9ABC/\u9AA8\u9ABC.001/\u9AA8\u9ABC.004"
+    m_Weight: 1
+  - m_Path: "fotou/\u9AA8\u9ABC/\u9AA8\u9ABC.001/\u9AA8\u9ABC.004/\u9AA8\u9ABC.005"
+    m_Weight: 1
+  - m_Path: "fotou/\u9AA8\u9ABC/\u9AA8\u9ABC.002"
+    m_Weight: 0
+  - m_Path: "fotou/\u9AA8\u9ABC/\u9AA8\u9ABC.002/\u9AA8\u9ABC.003"
+    m_Weight: 0
+  - m_Path: "fotou/\u9AA8\u9ABC/\u9AA8\u9ABC.002/\u9AA8\u9ABC.003/\u9AA8\u9ABC.006"
+    m_Weight: 0
+  - m_Path: model
+    m_Weight: 0

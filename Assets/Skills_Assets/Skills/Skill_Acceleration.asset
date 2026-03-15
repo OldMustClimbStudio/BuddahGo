@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c24a084e305596439525336f8ebe5b4, type: 3}
+  m_Name: Skill_Acceleration
+  m_EditorClassIdentifier: 
+  skillId: acceleration
+  displayName: "\u795E\u8DB3\u901A"
+  cooldownSeconds: 12
+  castLockSeconds: 10
+  obsessionGain: 300
+  antiSkillId: acceleration_anti
+  extraForwardForce: 50
+  extraMaxSpeed: 40
+  durationSeconds: 10
+  vfxDurationSeconds: 0
+  vfxStopPlayingBeforeEndSeconds: 1
+  vfxId: accel_back_vfx
+  vfxLocalOffset: {x: 0, y: 0, z: -2}
+  vfxLocalEuler: {x: 0, y: 180, z: 0}
+  observersFeelEventId: acceleration_shared
+  observersFeelStopEventId: 

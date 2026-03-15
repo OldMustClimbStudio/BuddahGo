@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb4aa94f8a7d75a40ba0e491897cc38e, type: 3}
+  m_Name: SkillVfxDatabase
+  m_EditorClassIdentifier: 
+  entries:
+  - vfxId: accel_back_vfx
+    prefab: {fileID: 7519620883813434088, guid: 2b42a39518812af4b9e586e4c0c9bcea,
+      type: 3}
+  - vfxId: slowtrap_vfx
+    prefab: {fileID: 6978937364740822117, guid: 7564fb515b79f0245bc1ef9ea43cbf40,
+      type: 3}

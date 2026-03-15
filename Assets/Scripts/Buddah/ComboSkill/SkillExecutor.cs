@@ -109,31 +109,33 @@ public class SkillExecutor : NetworkBehaviour
         ResolveObsessionFigure();
         float obsessionNow = (_obs != null) ? _obs.Current : 0f;
         float backfirePercent = (_obs != null) ? _obs.GetBackfireProbabilityPercent(obsessionNow) : 0f;
+        string resolvedAntiSkillId = ResolveAntiSkillId(skillId, skill);
+        bool hasResolvableAnti = !string.IsNullOrWhiteSpace(resolvedAntiSkillId);
 
         bool isAnti = false;
         SkillAction executedSkill = skill;
         string executedSkillId = skillId;
 
-        if (skill.HasAnti && backfirePercent > 0.0001f)
+        if (hasResolvableAnti && backfirePercent > 0.0001f)
         {
             float roll = Random.value * 100f;
             isAnti = roll < backfirePercent;
 
             if (isAnti)
             {
-                if (database.TryGet(skill.antiSkillId, out SkillAction antiSkill) && antiSkill != null)
+                if (database.TryGet(resolvedAntiSkillId, out SkillAction antiSkill) && antiSkill != null)
                 {
                     executedSkill = antiSkill;
-                    executedSkillId = skill.antiSkillId;
+                    executedSkillId = resolvedAntiSkillId;
                 }
                 else
                 {
-                    Debug.LogWarning($"[SkillExecutor][Server] Anti skillId '{skill.antiSkillId}' not found. Fallback normal.");
+                    Debug.LogWarning($"[SkillExecutor][Server] Anti skillId '{resolvedAntiSkillId}' not found for '{skillId}'. Fallback normal.");
                     isAnti = false;
                 }
             }
 
-            Debug.Log($"[SkillExecutor][Server] Backfire roll: obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
+            Debug.Log($"[SkillExecutor][Server] Backfire roll: skill='{skillId}', anti='{resolvedAntiSkillId}', obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
         }
 
         executedSkill.ExecuteServer(this, slotIndex);
@@ -256,6 +258,28 @@ public class SkillExecutor : NetworkBehaviour
         Debug.Log($"[SkillExecutor][Target] InvertTurnInput for {durationSeconds}s");
     }
 
+    public void ApplyScaleToOwner(float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds)
+    {
+        if (!IsServerInitialized) return;
+
+        NetworkConnection conn = Owner;
+        if (conn == null) return;
+
+        ApplyScaleTargetRpc(conn, scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds);
+    }
+
+    [TargetRpc]
+    private void ApplyScaleTargetRpc(NetworkConnection conn, float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds)
+    {
+        var effect = GetComponent<PlayerScaleEffect>();
+        if (effect == null)
+            effect = gameObject.AddComponent<PlayerScaleEffect>();
+
+        effect.ApplyOrRefresh(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds);
+
+        Debug.Log($"[SkillExecutor][Target] Scale x{scaleMultiplier:0.##} for {durationSeconds}s (enter={enterDurationSeconds:0.##}, restore={restoreDurationSeconds:0.##})");
+    }
+
     private void ResolveObsessionFigure()
     {
         if (_obs != null)
@@ -318,5 +342,23 @@ public class SkillExecutor : NetworkBehaviour
             yield break;
 
         PlayFeelLocal(stopEventId);
+    }
+
+    private string ResolveAntiSkillId(string skillId, SkillAction skill)
+    {
+        if (skill != null && !string.IsNullOrWhiteSpace(skill.antiSkillId))
+            return skill.antiSkillId.Trim();
+
+        if (string.IsNullOrWhiteSpace(skillId) || database == null)
+            return string.Empty;
+
+        string inferredAntiSkillId = $"{skillId}_anti";
+        if (database.TryGet(inferredAntiSkillId, out SkillAction inferredAntiSkill) && inferredAntiSkill != null)
+        {
+            Debug.LogWarning($"[SkillExecutor][Server] Skill '{skillId}' has no configured antiSkillId. Falling back to inferred anti '{inferredAntiSkillId}'.");
+            return inferredAntiSkillId;
+        }
+
+        return string.Empty;
     }
 }

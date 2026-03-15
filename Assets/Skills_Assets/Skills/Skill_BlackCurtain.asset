@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e97423927ba18024d95f7da074ae6956, type: 3}
+  m_Name: Skill_BlackCurtain
+  m_EditorClassIdentifier: 
+  skillId: blackcurtain
+  displayName: "\u4E00\u5FF5\u5149\u660E"
+  cooldownSeconds: 14
+  castLockSeconds: 12
+  obsessionGain: 200
+  antiSkillId: anti_blaclcurtain
+  fullscreenMaterial: {fileID: -876546973899608171, guid: 542df48691f3a4f4c848f6dd8209b18f,
+    type: 3}
+  fullscreenMaterialName: SG_BlackCurtain
+  fullscreenShaderName: Shader Graphs/SG_BlackCurtain
+  expandDurationSeconds: 0.5
+  holdDurationSeconds: 8
+  fadeOutDurationSeconds: 2
+  maxOpacity: 1
+  progressProperty: _Expansion
+  opacityProperty: _Opacity
+  elapsedTimeProperty: _ElapsedTime
+  activeProperty: _EffectActive
+  vfxDurationSeconds: 0
+  vfxStopPlayingBeforeEndSeconds: 0
+  vfxId: black_curtain_vfx
+  vfxLocalOffset: {x: 0, y: 0, z: 0}
+  vfxLocalEuler: {x: 0, y: 0, z: 0}

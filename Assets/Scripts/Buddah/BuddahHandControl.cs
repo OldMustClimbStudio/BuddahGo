@@ -405,22 +405,33 @@ public class BuddahHandControl : NetworkBehaviour
             dir = transform.forward;
         dir.Normalize();
 
+        float scaleMultiplier = GetPushScaleMultiplier();
         float sideBias = isLeft ? pushLeftSideBias : pushRightSideBias;
-        float side = (isLeft ? -pushSideOffset : pushSideOffset) + sideBias;
+        float side = ((isLeft ? -pushSideOffset : pushSideOffset) + sideBias) * scaleMultiplier;
 
         Vector3 sideDir = Vector3.Cross(Vector3.up, dir).normalized;
 
         Vector3 spawnPos = transform.position
-                   + Vector3.up * pushHeightOffset
+                   + Vector3.up * (pushHeightOffset * scaleMultiplier)
                    + sideDir * side
-                   + dir * pushForwardOffset;
+                   + dir * (pushForwardOffset * scaleMultiplier);
 
         Quaternion spawnRot = Quaternion.LookRotation(dir, Vector3.up);
 
         PushHitbox hb = Instantiate(pushHitboxPrefab, spawnPos, spawnRot);
+        hb.ApplyScaleMultiplier(scaleMultiplier);
 
         Vector3 impulse = dir * pushImpulseStrength;
         hb.Init(base.NetworkObject, impulse, pushLifetimeSeconds);
+    }
+
+    private float GetPushScaleMultiplier()
+    {
+        var scaleEffect = GetComponent<PlayerScaleEffect>();
+        if (scaleEffect == null)
+            return 1f;
+
+        return Mathf.Max(0.1f, scaleEffect.CurrentScaleMultiplier);
     }
 
 [ServerRpc]

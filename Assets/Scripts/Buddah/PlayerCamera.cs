@@ -9,6 +9,10 @@ public class PlayerCamera : NetworkBehaviour
     [SerializeField] private Vector3 directionalOffsetPerSpeed = new Vector3(0.25f, 0f, 0.25f);
     [SerializeField] private Vector3 maxDirectionalOffset = new Vector3(4f, 0f, 4f);
     [SerializeField] private float baseFieldOfView = 60f;
+    [Header("Scale Adaptation")]
+    [SerializeField] private bool adaptToPlayerScale = true;
+    [SerializeField] private float cameraDistanceScaleFactor = 1f;
+    [SerializeField] private float cameraFovPerExtraScale = 0f;
 
     private CinemachineVirtualCamera _cinemachineCamera;
     private CinemachineTransposer transposer;
@@ -21,6 +25,7 @@ public class PlayerCamera : NetworkBehaviour
     private float _runtimeFovOffset;
     private Vector3 _runtimeOffsetDampVelocity = Vector3.zero;
     private float _runtimeFovVelocity;
+    private PlayerScaleEffect _scaleEffect;
 
     private void Awake()
     {
@@ -72,16 +77,29 @@ public class PlayerCamera : NetworkBehaviour
         float lerpFactor = 1f - Mathf.Exp(-Time.deltaTime / smoothTime);
         _directionalOffset = Vector3.Lerp(_directionalOffset, targetOffset, lerpFactor);
 
+        float currentScaleMultiplier = GetCameraScaleMultiplier();
+        Vector3 scaleCompensationOffset = Vector3.zero;
+        Vector3 scaleCompensationTrackedOffset = Vector3.zero;
+        float scaleFovOffset = 0f;
+
+        if (adaptToPlayerScale && !Mathf.Approximately(currentScaleMultiplier, 1f))
+        {
+            float extraScale = (currentScaleMultiplier - 1f) * cameraDistanceScaleFactor;
+            scaleCompensationOffset = baseFollowOffset * extraScale;
+            scaleCompensationTrackedOffset = baseTrackedOffset * extraScale;
+            scaleFovOffset = (currentScaleMultiplier - 1f) * cameraFovPerExtraScale;
+        }
+
         if (transposer != null)
         {
-            transposer.m_FollowOffset = baseFollowOffset + _directionalOffset + _runtimeOffset;
+            transposer.m_FollowOffset = baseFollowOffset + scaleCompensationOffset + _directionalOffset + _runtimeOffset;
         }
         else if (framingTransposer != null)
         {
-            framingTransposer.m_TrackedObjectOffset = baseTrackedOffset + _directionalOffset + _runtimeOffset;
+            framingTransposer.m_TrackedObjectOffset = baseTrackedOffset + scaleCompensationTrackedOffset + _directionalOffset + _runtimeOffset;
         }
 
-        SetFieldOfView(baseFieldOfView + _runtimeFovOffset);
+        SetFieldOfView(baseFieldOfView + scaleFovOffset + _runtimeFovOffset);
     }
 
     public void SetFieldOfView(float fov)
@@ -148,5 +166,16 @@ public class PlayerCamera : NetworkBehaviour
 
         if (followTargetRigidbody == null && _cinemachineCamera.Follow != null)
             followTargetRigidbody = _cinemachineCamera.Follow.GetComponent<Rigidbody>();
+    }
+
+    private float GetCameraScaleMultiplier()
+    {
+        if (_scaleEffect == null)
+            _scaleEffect = GetComponent<PlayerScaleEffect>();
+
+        if (_scaleEffect == null)
+            return 1f;
+
+        return Mathf.Max(0.1f, _scaleEffect.CurrentScaleMultiplier);
     }
 }

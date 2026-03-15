@@ -52,6 +52,30 @@ public class PushHitbox : MonoBehaviour
         }
     }
 
+    public void ApplyScaleMultiplier(float scaleMultiplier)
+    {
+        float multiplier = Mathf.Max(0.01f, scaleMultiplier);
+        if (Mathf.Approximately(multiplier, 1f))
+            return;
+
+        if (_myCollider == null)
+            _myCollider = GetComponent<Collider>();
+
+        switch (_myCollider)
+        {
+            case BoxCollider box:
+                box.size *= multiplier;
+                break;
+            case SphereCollider sphere:
+                sphere.radius *= multiplier;
+                break;
+            case CapsuleCollider capsule:
+                capsule.radius *= multiplier;
+                capsule.height *= multiplier;
+                break;
+        }
+    }
+
     private void Update()
     {
         // This object should only matter on server; if created elsewhere, destroy it.

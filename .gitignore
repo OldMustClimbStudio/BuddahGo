@@ -6,12 +6,13 @@
 [Ll]ogs/
 [Uu]ser[Ss]ettings/
 
-# MemoryCaptures can be large
+# Memory captures can get very large.
 [Mm]emoryCaptures/
 
-# Rider / VS / IDE
+# IDE files
 .vscode/
 .idea/
+.vs/
 *.sln
 *.csproj
 *.unityproj
@@ -25,9 +26,38 @@
 .DS_Store
 Thumbs.db
 
-# Only keep scripts under Assets
-Assets/**
-!Assets/Scripts/
-!Assets/Scripts/**
-!Assets/Scripts.meta
-!Assets/Scripts/**.meta
+# Local download / partial-transfer artifacts that should never be committed.
+*.downloading
+
+# Source art files: keep imported sources, but skip Blender working files.
+*.blend
+*.blend1
+*.blend2
+
+# Third-party plugin demo/sample content not used by the project.
+Assets/FishNet/Demos/
+Assets/FishNet/Demos.meta
+Assets/Plugins/Feel/FeelDemos/
+Assets/Plugins/Feel/FeelDemos.meta
+Assets/Plugins/Feel/FeelDemosHDRP/
+Assets/Plugins/Feel/FeelDemosHDRP.meta
+Assets/Plugins/Feel/FeelDemosURP/
+Assets/Plugins/Feel/FeelDemosURP.meta
+Assets/Plugins/Feel/MMTools/Demos/
+Assets/Plugins/Feel/MMTools/Demos.meta
+Assets/Plugins/Feel/MMFeedbacks/Demos/
+Assets/Plugins/Feel/MMFeedbacks/Demos.meta
+Assets/Plugins/Feel/NiceVibrations/Demo/
+Assets/Plugins/Feel/NiceVibrations/Demo.meta
+Assets/Plugins/Feel/NiceVibrations/HapticSamples/
+Assets/Plugins/Feel/NiceVibrations/HapticSamples.meta
+
+# Unity template/tutorial assets not used by the project.
+Assets/TutorialInfo/
+Assets/TutorialInfo.meta
+Assets/Readme.asset
+Assets/Readme.asset.meta
+
+# Entire Gabriel Aguiar Productions drop is unused by the project.
+Assets/Plugins/GabrielAguiarProductions/
+Assets/Plugins/GabrielAguiarProductions.meta

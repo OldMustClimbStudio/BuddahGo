@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 241db042e92353f4c8a2cfa8e4e3fa9f, type: 3}
+  m_Name: Skill_ReverseTurn
+  m_EditorClassIdentifier: 
+  skillId: reverseturn
+  displayName: "\u9006\u56E0\u7F18"
+  cooldownSeconds: 12
+  castLockSeconds: 10
+  obsessionGain: 0
+  antiSkillId: reverseturn_anti
+  invertDurationSeconds: 10
+  vfxDurationSeconds: 0
+  vfxStopPlayingBeforeEndSeconds: 0
+  vfxId: reverse_turn_trap_vfx
+  vfxLocalOffset: {x: 0, y: 0, z: 0}
+  vfxLocalEuler: {x: 0, y: 0, z: 0}

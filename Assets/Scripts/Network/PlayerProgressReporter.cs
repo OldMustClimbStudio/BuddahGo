@@ -63,10 +63,13 @@ public class PlayerProgressReporter : NetworkBehaviour
     }
 
     // Checkpoints are no longer required; progress is spline-based.
-    // Kept as a compatibility no-op because some scenes may still have Checkpoint triggers.
     public void ReportCheckpoint(int checkpointId)
     {
-        // Intentionally no-op.
+        if (!IsOwner)
+            return;
+
+        _lapTracker ??= GetComponent<LapProgress>();
+        _lapTracker?.TryAdvanceCheckpoint(checkpointId);
     }
 
 }

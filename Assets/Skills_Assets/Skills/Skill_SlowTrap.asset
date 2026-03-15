@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f3673d5b309ffc45a7768ee73ae4499, type: 3}
+  m_Name: Skill_SlowTrap
+  m_EditorClassIdentifier: 
+  skillId: slowtrap
+  displayName: "\u7985\u5B9A\u7F13\u6D41"
+  cooldownSeconds: 12
+  castLockSeconds: 10
+  obsessionGain: 300
+  antiSkillId: slowtrap_anti
+  triggerColliderPrefab: {fileID: 3548138375007760348, guid: 7d62612470e8e3a4ea41c006f4cf5ecb,
+    type: 3}
+  debugReferencePrefab: {fileID: 0}
+  debugReferenceLocalOffset: {x: 0, y: 0, z: 0}
+  debugReferenceLocalEuler: {x: 0, y: 0, z: 0}
+  debugReferenceLocalScale: {x: 1, y: 1, z: 1}
+  zoneDurationSeconds: 10
+  perTargetReapplyCooldown: 0.5
+  affectCaster: 0
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  slowForwardForce: 20
+  slowMaxSpeed: 15
+  slowDurationSeconds: 1.25
+  vfxDurationSeconds: 11
+  vfxStopPlayingBeforeEndSeconds: 0
+  vfxId: slowtrap_vfx
+  vfxLocalOffset: {x: 0, y: 0, z: 0}
+  vfxLocalEuler: {x: 0, y: 0, z: 0}
+  observersFeelEventId: slowtrap_shared
+  observersFeelStopEventId: 

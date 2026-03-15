@@ -35,8 +35,22 @@ Thumbs.db
 *.blend2
 
 # Third-party plugin demo/sample content not used by the project.
-Assets/FishNet/Demos/
-Assets/FishNet/Demos.meta
+# FishNet demos are ignored by default, except the small bootstrap HUD/prefabs used by RaceMap.
+Assets/FishNet/Demos/*
+!Assets/FishNet/Demos/FishNet.Demos.asmdef
+!Assets/FishNet/Demos/FishNet.Demos.asmdef.meta
+!Assets/FishNet/Demos/Prefabs/
+!Assets/FishNet/Demos/Prefabs.meta
+!Assets/FishNet/Demos/Scripts/
+!Assets/FishNet/Demos/Scripts.meta
+Assets/FishNet/Demos/Prefabs/*
+!Assets/FishNet/Demos/Prefabs/NetworkManager.prefab
+!Assets/FishNet/Demos/Prefabs/NetworkManager.prefab.meta
+!Assets/FishNet/Demos/Prefabs/NetworkHudCanvas.prefab
+!Assets/FishNet/Demos/Prefabs/NetworkHudCanvas.prefab.meta
+Assets/FishNet/Demos/Scripts/*
+!Assets/FishNet/Demos/Scripts/NetworkHudCanvases.cs
+!Assets/FishNet/Demos/Scripts/NetworkHudCanvases.cs.meta
 Assets/Plugins/Feel/FeelDemos/
 Assets/Plugins/Feel/FeelDemos.meta
 Assets/Plugins/Feel/FeelDemosHDRP/

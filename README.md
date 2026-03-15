@@ -300,26 +300,6 @@ git lfs pull
 
 同步完成后先确认项目能正常打开，再决定是否需要恢复本地暂存内容。
 
-### 5. `RaceMap` 提示 Missing Prefab: `NetworkManager`
-
-先确认已经同步到最新 `dev`：
-
-```bash
-git checkout dev
-git pull
-git lfs pull
-git rev-parse --short HEAD
-```
-
-然后检查下面文件是否存在：
-
-```bash
-dir Assets\FishNet\Demos\Prefabs\NetworkManager.prefab
-type Assets\FishNet\Demos\Prefabs\NetworkManager.prefab.meta
-```
-
-如果 `git pull` 被本地改动阻塞，请先参考上面的第 4 条处理。
-
 ## 资源检查工具
 
 仓库中已加入一个 Unity Editor 工具，用来辅助检查未使用资源候选：

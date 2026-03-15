@@ -99,5 +99,15 @@ public static class AssetUsageReport
         return $"{size:0.##} {suffixes[suffixIndex]}";
     }
 
-    private readonly record struct UnusedAssetCandidate(string Path, long SizeBytes);
+    private struct UnusedAssetCandidate
+    {
+        public readonly string Path;
+        public readonly long SizeBytes;
+
+        public UnusedAssetCandidate(string path, long sizeBytes)
+        {
+            Path = path;
+            SizeBytes = sizeBytes;
+        }
+    }
 }

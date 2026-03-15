@@ -72,6 +72,25 @@ Assets/TutorialInfo.meta
 Assets/Readme.asset
 Assets/Readme.asset.meta
 
-# Entire Gabriel Aguiar Productions drop is unused by the project.
-Assets/Plugins/GabrielAguiarProductions/
-Assets/Plugins/GabrielAguiarProductions.meta
+# Gabriel Aguiar Productions content is ignored by default, but keep FreeQuickEffectsVol1 materials/textures.
+Assets/Plugins/GabrielAguiarProductions/*
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1.meta
+Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/*
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials.meta
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures.meta
+Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/*
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/*.mat
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/*.mat.meta
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene/
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene.meta
+Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene/*
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene/*.mat
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene/*.mat.meta
+Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*.png
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*.png.meta
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*.PNG
+!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*.PNG.meta

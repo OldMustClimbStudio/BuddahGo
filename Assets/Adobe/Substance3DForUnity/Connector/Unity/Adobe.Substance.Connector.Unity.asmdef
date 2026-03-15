@@ -14,7 +14,9 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "ADOBE_SUBSTANCE_CONNECTOR"
+    ],
     "versionDefines": [],
     "noEngineReferences": false
 }

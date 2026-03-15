@@ -201,7 +201,6 @@ git push
 
 当前已明确忽略的内容：
 
-- `Assets/FishNet/Demos/`
 - `Assets/Plugins/Feel/FeelDemos/`
 - `Assets/Plugins/Feel/FeelDemosHDRP/`
 - `Assets/Plugins/Feel/FeelDemosURP/`
@@ -212,6 +211,13 @@ git push
 - `Assets/TutorialInfo/`
 - `Assets/Readme.asset`
 - `Assets/Plugins/GabrielAguiarProductions/`
+
+`Assets/FishNet/Demos/` 默认也会忽略，但目前保留了 `RaceMap` 实际使用的少量文件：
+
+- `NetworkManager.prefab`
+- `NetworkHudCanvas.prefab`
+- `NetworkHudCanvases.cs`
+- 对应的 `.meta` 与 `FishNet.Demos.asmdef`
 
 原则只有一条：
 
@@ -261,6 +267,58 @@ git clone -b dev https://github.com/OldMustClimbStudio/BuddahGo.git
 cd BuddahGo
 git lfs pull
 ```
+
+### 4. `git pull` 提示本地改动会被覆盖
+
+如果出现下面这类问题：
+
+```text
+error: Your local changes to the following files would be overwritten by merge
+```
+
+通常说明本地 Unity 自动改动了某些项目文件，例如：
+
+- `ProjectSettings/EditorBuildSettings.asset`
+- 其他 `ProjectSettings` 文件
+
+团队同步以 Git 上的远程版本为主。  
+如果只是想先同步远程最新内容，建议先暂存本地改动，再拉取：
+
+```bash
+git stash push -m "temp before sync"
+git pull
+git lfs pull
+```
+
+如果只想暂存某一个文件，也可以：
+
+```bash
+git stash push -m "temp before sync" -- ProjectSettings/EditorBuildSettings.asset
+git pull
+git lfs pull
+```
+
+同步完成后先确认项目能正常打开，再决定是否需要恢复本地暂存内容。
+
+### 5. `RaceMap` 提示 Missing Prefab: `NetworkManager`
+
+先确认已经同步到最新 `dev`：
+
+```bash
+git checkout dev
+git pull
+git lfs pull
+git rev-parse --short HEAD
+```
+
+然后检查下面文件是否存在：
+
+```bash
+dir Assets\FishNet\Demos\Prefabs\NetworkManager.prefab
+type Assets\FishNet\Demos\Prefabs\NetworkManager.prefab.meta
+```
+
+如果 `git pull` 被本地改动阻塞，请先参考上面的第 4 条处理。
 
 ## 资源检查工具
 

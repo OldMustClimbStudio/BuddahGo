@@ -14,24 +14,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   skillId: anti_blaclcurtain
   displayName: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
-  cooldownSeconds: 14
-  castLockSeconds: 12
+  cooldownSeconds: 16
+  castLockSeconds: 14
   obsessionGain: 100
   antiSkillId: 
   fullscreenMaterial: {fileID: -876546973899608171, guid: 542df48691f3a4f4c848f6dd8209b18f,
     type: 3}
   fullscreenMaterialName: SG_BlackCurtain
   fullscreenShaderName: Shader Graphs/SG_BlackCurtain
-  expandDurationSeconds: 0.5
-  holdDurationSeconds: 8
+  expandDurationSeconds: 1
+  holdDurationSeconds: 10
   fadeOutDurationSeconds: 2
   maxOpacity: 1
   progressProperty: _Expansion
   opacityProperty: _Opacity
   elapsedTimeProperty: _ElapsedTime
   activeProperty: _EffectActive
+  centerProperty: _Center
+  centerWorldOffset: {x: 0, y: 1, z: 0}
   vfxDurationSeconds: 0
   vfxStopPlayingBeforeEndSeconds: 0
   vfxId: black_curtain_anti_vfx
   vfxLocalOffset: {x: 0, y: 0, z: 0}
   vfxLocalEuler: {x: 0, y: 0, z: 0}
+  observersFeelEventId: blackcurtain_anti_observers
+  observersFeelStopEventId: 

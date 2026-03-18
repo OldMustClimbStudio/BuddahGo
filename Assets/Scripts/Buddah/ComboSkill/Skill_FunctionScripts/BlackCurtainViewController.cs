@@ -17,6 +17,9 @@ public class BlackCurtainViewController : MonoBehaviour
 
     [Header("Track Edge")]
     [SerializeField] private bool controlTrackEdgesByShader = true;
+    [SerializeField] private bool controlTaggedEdgeObjects = true;
+    [SerializeField] private string trackEdgeTag = "TrackEdge";
+    [SerializeField] private float trackEdgeFadeInDuration = 1f;
 
     [Header("Player Visibility")]
     [SerializeField] private bool hideOtherPlayersForVictim = true;
@@ -26,12 +29,15 @@ public class BlackCurtainViewController : MonoBehaviour
     private BlackCurtainScreenEffect _screenEffect;
     private float _activeUntil;
     private float _edgeUntil;
+    private float _edgeFadeInStartAt;
+    private float _edgeFadeInEndAt;
     private float _edgeFadeStartAt;
     private float _edgeFadeEndAt;
     private bool _edgeWasShownThisPlay;
     private float _restoreOtherPlayersAt;
     private int _playToken;
     private readonly Dictionary<Renderer, bool> _hiddenPlayerRenderers = new Dictionary<Renderer, bool>();
+    private readonly Dictionary<GameObject, bool> _hiddenTaggedEdgeObjects = new Dictionary<GameObject, bool>();
 
     private void Awake()
     {
@@ -187,6 +193,8 @@ public class BlackCurtainViewController : MonoBehaviour
         float endsAt = Time.time + totalDuration;
         _activeUntil = Mathf.Max(_activeUntil, endsAt);
         _edgeWasShownThisPlay = showEdge;
+        _edgeFadeInStartAt = Time.time;
+        _edgeFadeInEndAt = Time.time + Mathf.Max(0f, trackEdgeFadeInDuration);
         _edgeFadeStartAt = Time.time + Mathf.Max(0.01f, expandDuration) + Mathf.Max(0f, holdDuration);
         _edgeFadeEndAt = endsAt;
 
@@ -198,6 +206,7 @@ public class BlackCurtainViewController : MonoBehaviour
         bool localIsVictim = !showEdge;
         SetTrailsVisible(localIsVictim, totalDuration);
         SetTrackEdgesVisible(showEdge);
+        SetTaggedEdgeObjectsVisible(showEdge);
         SetOtherPlayersVisible(!localIsVictim || !hideOtherPlayersForVictim);
         if (localIsVictim && hideOtherPlayersForVictim)
             _restoreOtherPlayersAt = fadeOutDuration > 0f ? Time.time + Mathf.Max(0.01f, expandDuration) + Mathf.Max(0f, holdDuration) : endsAt;
@@ -236,6 +245,8 @@ public class BlackCurtainViewController : MonoBehaviour
     {
         _activeUntil = 0f;
         _edgeUntil = 0f;
+        _edgeFadeInStartAt = 0f;
+        _edgeFadeInEndAt = 0f;
         _edgeFadeStartAt = 0f;
         _edgeFadeEndAt = 0f;
         _edgeWasShownThisPlay = false;
@@ -244,6 +255,7 @@ public class BlackCurtainViewController : MonoBehaviour
         StopAllCoroutines();
         SetTrailsVisible(false, 0f);
         SetTrackEdgesVisible(false);
+        SetTaggedEdgeObjectsVisible(true);
         SetOtherPlayersVisible(true);
         ApplyCurrentRenderer();
     }
@@ -304,7 +316,13 @@ public class BlackCurtainViewController : MonoBehaviour
             return;
 
         if (Time.time < _edgeFadeStartAt)
+        {
+            float fadeInT = _edgeFadeInEndAt > _edgeFadeInStartAt
+                ? Mathf.InverseLerp(_edgeFadeInStartAt, _edgeFadeInEndAt, Time.time)
+                : 1f;
+            SetTrackEdgesVisibilityAmount(fadeInT);
             return;
+        }
 
         if (_edgeFadeEndAt <= _edgeFadeStartAt)
         {
@@ -319,6 +337,52 @@ public class BlackCurtainViewController : MonoBehaviour
 
         if (t >= 1f)
             _edgeWasShownThisPlay = false;
+    }
+
+    private void SetTaggedEdgeObjectsVisible(bool visible)
+    {
+        if (!controlTaggedEdgeObjects || string.IsNullOrWhiteSpace(trackEdgeTag))
+            return;
+
+        if (visible)
+        {
+            RestoreTaggedEdgeObjects();
+            return;
+        }
+
+        HideTaggedEdgeObjects();
+    }
+
+    private void HideTaggedEdgeObjects()
+    {
+        if (_hiddenTaggedEdgeObjects.Count > 0)
+            return;
+
+        GameObject[] taggedObjects = GameObject.FindGameObjectsWithTag(trackEdgeTag);
+        Debug.Log($"[BlackCurtainViewController] HideTaggedEdgeObjects tag={trackEdgeTag}, count={taggedObjects.Length}, camera={name}");
+        for (int i = 0; i < taggedObjects.Length; i++)
+        {
+            GameObject taggedObject = taggedObjects[i];
+            if (taggedObject == null || _hiddenTaggedEdgeObjects.ContainsKey(taggedObject))
+                continue;
+
+            _hiddenTaggedEdgeObjects.Add(taggedObject, taggedObject.activeSelf);
+            taggedObject.SetActive(false);
+        }
+    }
+
+    private void RestoreTaggedEdgeObjects()
+    {
+        if (_hiddenTaggedEdgeObjects.Count == 0)
+            return;
+
+        foreach (KeyValuePair<GameObject, bool> pair in _hiddenTaggedEdgeObjects)
+        {
+            if (pair.Key != null)
+                pair.Key.SetActive(pair.Value);
+        }
+
+        _hiddenTaggedEdgeObjects.Clear();
     }
 
     private void SetOtherPlayersVisible(bool visible)

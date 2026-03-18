@@ -100,12 +100,6 @@ public class SkillExecutor : NetworkBehaviour
             return;
         }
 
-        // Enter cooldown after validation succeeds (follows the original skill).
-        _castLockedUntil = now + skill.castLockSeconds;
-        _nextReadyTime[slotIndex] = now + skill.cooldownSeconds;
-
-        Debug.Log($"[SkillExecutor][Server] CAST '{skillId}' (slot {slotIndex})");
-
         ResolveObsessionFigure();
         float obsessionNow = (_obs != null) ? _obs.Current : 0f;
         float backfirePercent = (_obs != null) ? _obs.GetBackfireProbabilityPercent(obsessionNow) : 0f;
@@ -137,6 +131,12 @@ public class SkillExecutor : NetworkBehaviour
 
             Debug.Log($"[SkillExecutor][Server] Backfire roll: skill='{skillId}', anti='{resolvedAntiSkillId}', obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
         }
+
+        // Cooldown and cast lock follow the actually executed skill variant.
+        _castLockedUntil = now + executedSkill.castLockSeconds;
+        _nextReadyTime[slotIndex] = now + executedSkill.cooldownSeconds;
+
+        Debug.Log($"[SkillExecutor][Server] CAST '{executedSkillId}' (slot {slotIndex}) cooldown={executedSkill.cooldownSeconds:0.##} lock={executedSkill.castLockSeconds:0.##}");
 
         executedSkill.ExecuteServer(this, slotIndex);
 

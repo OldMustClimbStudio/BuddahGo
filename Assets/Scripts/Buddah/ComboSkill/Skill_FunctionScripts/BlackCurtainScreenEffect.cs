@@ -2,6 +2,12 @@ using UnityEngine;
 
 public class BlackCurtainScreenEffect : MonoBehaviour
 {
+    private const string DefaultBlackHoleStrengthProperty = "StrengthBlackHole";
+    private const string AlternateBlackHoleStrengthProperty = "_StrengthBlackHole";
+    private const float MaxBlackHoleStrength = 15f;
+    private const float ExpansionDelaySeconds = 0.5f;
+    private static readonly Vector2 DefaultCenter = new Vector2(0.5f, 0.5f);
+
     private Material _fullscreenMaterial;
 
     private float _expandDuration;
@@ -16,7 +22,8 @@ public class BlackCurtainScreenEffect : MonoBehaviour
     private string _elapsedTimeProperty = "_ElapsedTime";
     private string _activeProperty = "_EffectActive";
     private string _centerProperty = "_Center";
-    private Vector2 _center = new Vector2(0.5f, 0.5f);
+    private string _blackHoleStrengthProperty = DefaultBlackHoleStrengthProperty;
+    private Vector2 _center = DefaultCenter;
 
     public void ApplyOrRefresh(
         Material fullscreenMaterial,
@@ -54,7 +61,7 @@ public class BlackCurtainScreenEffect : MonoBehaviour
 
         _startedAt = Time.time;
         _isPlaying = true;
-        ApplyMaterialProperties(0f, _maxOpacity, 0f, true);
+        ApplyMaterialProperties(0f, _maxOpacity, 0f, true, 0f, _center);
     }
 
     private void Awake()
@@ -70,8 +77,15 @@ public class BlackCurtainScreenEffect : MonoBehaviour
         float elapsed = Mathf.Max(0f, Time.time - _startedAt);
         float totalDuration = _expandDuration + _holdDuration + _fadeOutDuration;
 
-        float progress = Mathf.Clamp01(elapsed / _expandDuration);
+        float delayedExpandElapsed = Mathf.Max(0f, elapsed - ExpansionDelaySeconds);
+        float expandT = Mathf.Clamp01(delayedExpandElapsed / _expandDuration);
+        float blackHoleDuration = ExpansionDelaySeconds + _expandDuration;
+        float progress = expandT;
         float opacity = _maxOpacity;
+        float blackHoleStrength = elapsed < blackHoleDuration
+            ? Mathf.Lerp(0f, MaxBlackHoleStrength, Mathf.Clamp01(elapsed / blackHoleDuration))
+            : 0f;
+        Vector2 center = elapsed < _expandDuration ? _center : DefaultCenter;
 
         if (_fadeOutDuration > 0f && elapsed > (_expandDuration + _holdDuration))
         {
@@ -81,7 +95,7 @@ public class BlackCurtainScreenEffect : MonoBehaviour
         }
 
         bool active = elapsed < totalDuration;
-        ApplyMaterialProperties(progress, opacity, elapsed, active);
+        ApplyMaterialProperties(progress, opacity, elapsed, active, blackHoleStrength, center);
 
         if (!active)
         {
@@ -105,16 +119,25 @@ public class BlackCurtainScreenEffect : MonoBehaviour
         if (_fullscreenMaterial == null)
             return;
 
-        ApplyMaterialProperties(0f, 0f, 0f, false);
+        ApplyMaterialProperties(0f, 0f, 0f, false, 0f, DefaultCenter);
     }
 
-    private void ApplyMaterialProperties(float progress, float opacity, float elapsed, bool active)
+    private void ApplyMaterialProperties(float progress, float opacity, float elapsed, bool active, float blackHoleStrength, Vector2 center)
     {
         TrySetFloat(_progressProperty, progress);
         TrySetFloat(_opacityProperty, opacity);
         TrySetFloat(_elapsedTimeProperty, elapsed);
         TrySetFloat(_activeProperty, active ? 1f : 0f);
-        TrySetVector(_centerProperty, new Vector4(_center.x, _center.y, 0f, 0f));
+        ApplyBlackHoleStrength(blackHoleStrength);
+        TrySetVector(_centerProperty, new Vector4(center.x, center.y, 0f, 0f));
+    }
+
+    private void ApplyBlackHoleStrength(float value)
+    {
+        TrySetFloat(_blackHoleStrengthProperty, value);
+
+        if (_blackHoleStrengthProperty != AlternateBlackHoleStrengthProperty)
+            TrySetFloat(AlternateBlackHoleStrengthProperty, value);
     }
 
     private void TrySetFloat(string propertyName, float value)

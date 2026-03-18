@@ -754,7 +754,7 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
-  forwardForce: 50
+  forwardForce: 0
   turnTorque: 20
   turnDecayPerSecond: 3
   maxSpeed: 60
@@ -822,6 +822,12 @@ MonoBehaviour:
   pushHeightOffset: 1
   pushImpulseStrength: 1000
   pushCooldownSeconds: 1
+  projectilePrefab: {fileID: 8556278171290780645, guid: 7c7e490df8b0466478a63eecefd252e6,
+    type: 3}
+  projectileVisualPrefab: {fileID: 8556278171290780645, guid: 7c7e490df8b0466478a63eecefd252e6,
+    type: 3}
+  projectileVisualLocalEuler: {x: 0, y: 0, z: 0}
+  projectileVisualScale: {x: 1, y: 1, z: 1}
 --- !u!114 &5961911359123562421
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -864,7 +870,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584281547121819679
+  _initializedTimestamp: -8584279316142276120
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -886,7 +892,7 @@ MonoBehaviour:
   SceneId: 0
   SerializedTransformProperties:
     Position: {x: 25.82054, y: 0.61, z: -405.31854}
-    Rotation: {x: -0, y: -0.62135434, z: -0, w: 0.7835297}
+    Rotation: {x: 0, y: 0, z: 0, w: 1}
     Scale: {x: 4, y: 4, z: 4}
     IsValid: 1
 --- !u!114 &1974550320793371896

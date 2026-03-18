@@ -4,9 +4,6 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
-// Add the appropriate using directive for PushHitbox (replace with actual namespace)
-// using YourNamespace;
-
 
 [RequireComponent(typeof(NetworkObject))]
 public class BuddahHandControl : NetworkBehaviour
@@ -66,10 +63,30 @@ public class BuddahHandControl : NetworkBehaviour
     [Tooltip("Server-side cooldown between pushes (seconds).")]
     [SerializeField] private float pushCooldownSeconds = 0.25f;
 
+    [Header("Projectile Push Skill")]
+    [Tooltip("Optional authored projectile prefab. If assigned, its collider is used for server hit detection and the same prefab is shown on clients.")]
+    [SerializeField] private GameObject projectilePrefab;
+
+    [Tooltip("Optional projectile model shown while the projectile hand is flying. Leave empty to use a generated placeholder hand.")]
+    [SerializeField] private GameObject projectileVisualPrefab;
+
+    [Tooltip("Rotation offset applied to the projectile visual so imported hand models face the projectile travel direction.")]
+    [SerializeField] private Vector3 projectileVisualLocalEuler = Vector3.zero;
+
+    [Tooltip("Scale multiplier applied to the projectile visual on every client.")]
+    [SerializeField] private Vector3 projectileVisualScale = Vector3.one;
+
     private float _nextPushServerTimeLeft;
     private float _nextPushServerTimeRight;
     private float _nextPushLocalTimeLeft;
     private float _nextPushLocalTimeRight;
+    private float _projectilePushModeUntilServer;
+    private float _projectileSpeedServer;
+    private float _projectileLifetimeServer;
+    private float _projectileImpulseStrengthServer;
+    private Vector3 _projectileColliderSizeServer = new Vector3(1.25f, 1.1f, 1.8f);
+    private float _projectileForwardOffsetServer;
+    private float _projectileHeightOffsetServer;
 
     private InputAction handPushAction;
 
@@ -362,13 +379,14 @@ public class BuddahHandControl : NetworkBehaviour
         // Snapshot the current LOCAL hand yaw offset at the moment of input.
         // We pass this to the server so the shove direction matches your hand-aim.
         float yawSnapshot = handYawOffsetDeg;
+        Vector3 handWorldPositionSnapshot = GetHandWorldPositionSnapshot(isLeft);
 
         // Server spawns hitbox after windup. The server is authoritative for hit detection.
-        RequestPushServerRpc(isLeft, yawSnapshot);
+        RequestPushServerRpc(isLeft, yawSnapshot, handWorldPositionSnapshot);
     }
 
     [ServerRpc]
-    private void RequestPushServerRpc(bool isLeft, float yawSnapshotDeg)
+    private void RequestPushServerRpc(bool isLeft, float yawSnapshotDeg, Vector3 handWorldPositionSnapshot)
     {
         // Server-side cooldown to prevent spamming.
         if (isLeft)
@@ -384,18 +402,40 @@ public class BuddahHandControl : NetworkBehaviour
             _nextPushServerTimeRight = Time.time + pushCooldownSeconds;
         }
 
-        if (pushHitboxPrefab == null)
+        bool useProjectileMode = IsProjectilePushModeActiveServer();
+        if (!useProjectileMode && pushHitboxPrefab == null)
             return;
 
-        StartCoroutine(ServerSpawnPushAfterWindup(isLeft, yawSnapshotDeg));
+        float projectileSpeed = _projectileSpeedServer;
+        float projectileLifetime = _projectileLifetimeServer;
+        float projectileImpulseStrength = _projectileImpulseStrengthServer;
+        Vector3 projectileColliderSize = _projectileColliderSizeServer;
+
+        StartCoroutine(ServerSpawnPushAfterWindup(
+            isLeft,
+            yawSnapshotDeg,
+            handWorldPositionSnapshot,
+            useProjectileMode,
+            projectileSpeed,
+            projectileLifetime,
+            projectileImpulseStrength,
+            projectileColliderSize));
     }
 
-    private IEnumerator ServerSpawnPushAfterWindup(bool isLeft, float yawSnapshotDeg)
+    private IEnumerator ServerSpawnPushAfterWindup(
+        bool isLeft,
+        float yawSnapshotDeg,
+        Vector3 handWorldPositionSnapshot,
+        bool useProjectileMode,
+        float projectileSpeed,
+        float projectileLifetimeSeconds,
+        float projectileImpulseStrength,
+        Vector3 projectileColliderSize)
     {
         if (pushWindupSeconds > 0f)
             yield return new WaitForSeconds(pushWindupSeconds);
 
-        if (pushHitboxPrefab == null)
+        if (!useProjectileMode && pushHitboxPrefab == null)
             yield break;
 
         // Direction is character forward rotated by the yaw snapshot, so it matches hand aim.
@@ -406,17 +446,24 @@ public class BuddahHandControl : NetworkBehaviour
         dir.Normalize();
 
         float scaleMultiplier = GetPushScaleMultiplier();
-        float sideBias = isLeft ? pushLeftSideBias : pushRightSideBias;
-        float side = ((isLeft ? -pushSideOffset : pushSideOffset) + sideBias) * scaleMultiplier;
-
-        Vector3 sideDir = Vector3.Cross(Vector3.up, dir).normalized;
-
-        Vector3 spawnPos = transform.position
-                   + Vector3.up * (pushHeightOffset * scaleMultiplier)
-                   + sideDir * side
-                   + dir * (pushForwardOffset * scaleMultiplier);
+        float forwardOffset = useProjectileMode ? _projectileForwardOffsetServer : 0f;
+        float heightOffset = useProjectileMode ? _projectileHeightOffsetServer : 0f;
+        Vector3 spawnPos = GetPushSpawnPosition(handWorldPositionSnapshot, isLeft, dir, scaleMultiplier, forwardOffset, heightOffset, useProjectileMode);
 
         Quaternion spawnRot = Quaternion.LookRotation(dir, Vector3.up);
+
+        if (useProjectileMode)
+        {
+            SpawnProjectilePushServer(
+                spawnPos,
+                dir,
+                scaleMultiplier,
+                projectileSpeed,
+                projectileLifetimeSeconds,
+                projectileImpulseStrength,
+                projectileColliderSize);
+            yield break;
+        }
 
         PushHitbox hb = Instantiate(pushHitboxPrefab, spawnPos, spawnRot);
         hb.ApplyScaleMultiplier(scaleMultiplier);
@@ -434,7 +481,197 @@ public class BuddahHandControl : NetworkBehaviour
         return Mathf.Max(0.1f, scaleEffect.CurrentScaleMultiplier);
     }
 
-[ServerRpc]
+    private Vector3 GetPushSpawnPosition(
+        Vector3 handWorldPosition,
+        bool isLeft,
+        Vector3 dir,
+        float scaleMultiplier,
+        float forwardOffset,
+        float heightOffset,
+        bool useProjectileMode)
+    {
+        float sideBias = isLeft ? pushLeftSideBias : pushRightSideBias;
+        float side = ((isLeft ? -pushSideOffset : pushSideOffset) + sideBias) * scaleMultiplier;
+        Vector3 sideDir = Vector3.Cross(Vector3.up, dir).normalized;
+
+        Vector3 baseSpawnPosition = transform.position
+               + Vector3.up * (pushHeightOffset * scaleMultiplier)
+               + sideDir * side
+               + dir * (pushForwardOffset * scaleMultiplier);
+
+        if (!useProjectileMode)
+            return baseSpawnPosition;
+
+        // Projectile skills reuse the validated melee push offset, then add skill-specific tuning.
+        return baseSpawnPosition
+               + Vector3.up * (heightOffset * scaleMultiplier)
+               + dir * (forwardOffset * scaleMultiplier);
+    }
+
+    private Vector3 GetHandWorldPositionSnapshot(bool isLeft)
+    {
+        Transform handBone = isLeft ? leftHandBone : rightHandBone;
+        if (handBone != null)
+            return handBone.position;
+
+        return transform.position;
+    }
+
+    public void ActivateProjectilePushMode(
+        float activeDurationSeconds,
+        float projectileSpeed,
+        float projectileLifetimeSeconds,
+        float projectileImpulseStrength,
+        Vector3 projectileColliderSize,
+        float projectileForwardOffset,
+        float projectileHeightOffset)
+    {
+        if (!IsServerInitialized)
+            return;
+
+        _projectilePushModeUntilServer = Mathf.Max(_projectilePushModeUntilServer, Time.time + Mathf.Max(0.05f, activeDurationSeconds));
+        _projectileSpeedServer = Mathf.Max(0.01f, projectileSpeed);
+        _projectileLifetimeServer = Mathf.Max(0.05f, projectileLifetimeSeconds);
+        _projectileImpulseStrengthServer = Mathf.Max(0f, projectileImpulseStrength);
+        _projectileColliderSizeServer = SanitizeColliderSize(projectileColliderSize);
+        _projectileForwardOffsetServer = Mathf.Max(0f, projectileForwardOffset);
+        _projectileHeightOffsetServer = Mathf.Max(0f, projectileHeightOffset);
+    }
+
+    private bool IsProjectilePushModeActiveServer()
+    {
+        return IsServerInitialized && Time.time < _projectilePushModeUntilServer;
+    }
+
+    private void SpawnProjectilePushServer(
+        Vector3 spawnPos,
+        Vector3 dir,
+        float scaleMultiplier,
+        float projectileSpeed,
+        float projectileLifetimeSeconds,
+        float projectileImpulseStrength,
+        Vector3 projectileColliderSize,
+        bool allowSelfHit = false)
+    {
+        Vector3 scaledColliderSize = projectileColliderSize * scaleMultiplier;
+        Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
+        Vector3 impulse = dir * projectileImpulseStrength;
+
+        HandPushProjectileRuntime.SpawnServer(
+            base.NetworkObject,
+            spawnPos,
+            dir,
+            projectileSpeed,
+            projectileLifetimeSeconds,
+            impulse,
+            projectilePrefab,
+            scaledColliderSize,
+            allowSelfHit);
+
+        SpawnProjectileVisualObserversRpc(
+            spawnPos,
+            dir,
+            projectileSpeed,
+            projectileLifetimeSeconds,
+            scaledVisualSize);
+    }
+
+    public void FireProjectileBurstImmediate(
+        int projectileCount,
+        float projectileSpacing,
+        float projectileSpeed,
+        float projectileLifetimeSeconds,
+        float projectileImpulseStrength,
+        Vector3 projectileColliderSize,
+        bool reverseDirection,
+        bool allowSelfHit,
+        float additionalForwardSpawnOffset = 0f,
+        float additionalHeightSpawnOffset = 0f)
+    {
+        if (!IsServerInitialized)
+            return;
+
+        int safeProjectileCount = Mathf.Max(1, projectileCount);
+        float safeSpacing = Mathf.Max(0f, projectileSpacing);
+        float scaleMultiplier = GetPushScaleMultiplier();
+        Vector3 outwardDir = GetCurrentAimDirectionServer();
+        Vector3 burstAnchor = GetProjectileBurstAnchorPosition(outwardDir, scaleMultiplier, additionalForwardSpawnOffset, additionalHeightSpawnOffset);
+        Vector3 travelDir = reverseDirection ? -outwardDir : outwardDir;
+        Vector3 sideDir = Vector3.Cross(Vector3.up, outwardDir).normalized;
+
+        for (int i = 0; i < safeProjectileCount; i++)
+        {
+            float offsetIndex = i - ((safeProjectileCount - 1) * 0.5f);
+            Vector3 spawnPos = burstAnchor + (sideDir * (offsetIndex * safeSpacing * scaleMultiplier));
+
+            SpawnProjectilePushServer(
+                spawnPos,
+                travelDir,
+                scaleMultiplier,
+                projectileSpeed,
+                projectileLifetimeSeconds,
+                projectileImpulseStrength,
+                projectileColliderSize,
+                allowSelfHit);
+        }
+    }
+
+    private Vector3 GetCurrentAimDirectionServer()
+    {
+        Vector3 dir = Quaternion.AngleAxis(_syncedYawOffsetDeg.Value, Vector3.up) * transform.forward;
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f)
+            dir = transform.forward;
+
+        dir.y = 0f;
+        return dir.normalized;
+    }
+
+    private Vector3 GetProjectileBurstAnchorPosition(Vector3 outwardDir, float scaleMultiplier, float additionalForwardSpawnOffset, float additionalHeightSpawnOffset)
+    {
+        float forwardDistance = (pushForwardOffset + Mathf.Max(0f, additionalForwardSpawnOffset)) * scaleMultiplier;
+        float extraHeight = Mathf.Max(0f, additionalHeightSpawnOffset) * scaleMultiplier;
+
+        if (leftHandBone != null && rightHandBone != null)
+        {
+            Vector3 midpoint = (leftHandBone.position + rightHandBone.position) * 0.5f;
+            return midpoint
+                   + Vector3.up * ((pushHeightOffset * 0.1f * scaleMultiplier) + extraHeight)
+                   + outwardDir * forwardDistance;
+        }
+
+        return transform.position
+               + Vector3.up * ((pushHeightOffset * scaleMultiplier) + extraHeight)
+               + outwardDir * forwardDistance;
+    }
+
+    [ObserversRpc]
+    private void SpawnProjectileVisualObserversRpc(
+        Vector3 spawnPos,
+        Vector3 dir,
+        float projectileSpeed,
+        float projectileLifetimeSeconds,
+        Vector3 scaledVisualSize)
+    {
+        HandPushProjectileRuntime.SpawnVisual(
+            spawnPos,
+            dir,
+            projectileSpeed,
+            projectileLifetimeSeconds,
+            projectilePrefab != null ? projectilePrefab : projectileVisualPrefab,
+            projectileVisualLocalEuler,
+            scaledVisualSize);
+    }
+
+    private static Vector3 SanitizeColliderSize(Vector3 size)
+    {
+        return new Vector3(
+            Mathf.Max(0.05f, Mathf.Abs(size.x)),
+            Mathf.Max(0.05f, Mathf.Abs(size.y)),
+            Mathf.Max(0.05f, Mathf.Abs(size.z)));
+    }
+
+    [ServerRpc]
     private void PlayLeftHandServerRpc()
     {
         PlayLeftHandObserversRpc();

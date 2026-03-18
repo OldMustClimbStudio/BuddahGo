@@ -3405,7 +3405,7 @@ GameObject:
   - component: {fileID: 323086437}
   m_Layer: 8
   m_Name: "\u5730\u56FE\u5916Edge"
-  m_TagString: Untagged
+  m_TagString: TrackEdge
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -3832,6 +3832,9 @@ MonoBehaviour:
   edgeRendererIndex: -1
   controlCameraRenderer: 0
   controlTrackEdgesByShader: 1
+  controlTaggedEdgeObjects: 1
+  trackEdgeTag: TrackEdge
+  trackEdgeFadeInDuration: 1
   hideOtherPlayersForVictim: 1
 --- !u!1 &349655934
 GameObject:
@@ -8575,7 +8578,7 @@ GameObject:
   - component: {fileID: 784027527}
   m_Layer: 8
   m_Name: "\u5730\u56FE\u5185Edge"
-  m_TagString: Untagged
+  m_TagString: TrackEdge
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -9133,6 +9136,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: "\u53CD\u8F6C\u6CD5\u7EBF\u7A7A\u6C14\u5899"
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248005052643708886, guid: f3a1e789eb6af1d48acebfc3eab53ee7,
+        type: 3}
+      propertyPath: m_TagString
+      value: TrackEdge
+      objectReference: {fileID: 0}
+    - target: {fileID: 4269900605184349933, guid: f3a1e789eb6af1d48acebfc3eab53ee7,
+        type: 3}
+      propertyPath: m_TagString
+      value: TrackEdge
       objectReference: {fileID: 0}
     - target: {fileID: 8895326104501024036, guid: f3a1e789eb6af1d48acebfc3eab53ee7,
         type: 3}
@@ -9941,9 +9954,19 @@ PrefabInstance:
       objectReference: {fileID: 1191116429}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 4393252310584637084, guid: 0b650fca685f2eb41a86538aa883e4c1,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 965485211}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0b650fca685f2eb41a86538aa883e4c1, type: 3}
+--- !u!224 &881549292 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 4393252310584637084, guid: 0b650fca685f2eb41a86538aa883e4c1,
+    type: 3}
+  m_PrefabInstance: {fileID: 881549291}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &885471535
 GameObject:
   m_ObjectHideFlags: 0
@@ -11512,6 +11535,81 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963994783}
   m_Mesh: {fileID: -1119430988441025290, guid: eed43fce88059ab489967ad03a04edf6, type: 3}
+--- !u!1 &965485210
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 965485211}
+  - component: {fileID: 965485213}
+  - component: {fileID: 965485212}
+  m_Layer: 5
+  m_Name: Image
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &965485211
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 965485210}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 881549292}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -518.57086, y: -469.2195}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &965485212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 965485210}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &965485213
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 965485210}
+  m_CullTransparentMesh: 1
 --- !u!1 &966962663
 GameObject:
   m_ObjectHideFlags: 0

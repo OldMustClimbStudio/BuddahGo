@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class CinemachineLocalPlayerFollower : MonoBehaviour
 {
+
     private CinemachineVirtualCamera _virtualCamera;
     private PlayerCamera _currentLocalPlayer;
 

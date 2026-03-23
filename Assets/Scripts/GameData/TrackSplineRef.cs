@@ -75,4 +75,55 @@ public class TrackSplineRef : MonoBehaviour
         float d = DistanceAtT(t);
         return TrackLength > 1e-6f ? d / TrackLength : 0f;
     }
+
+    public float TAtDistance(float distance)
+    {
+        if (TrackLength <= 1e-6f)
+            return 0f;
+
+        float targetDistance = Mathf.Clamp(distance, 0f, TrackLength);
+        float low = 0f;
+        float high = 1f;
+
+        for (int i = 0; i < 18; i++)
+        {
+            float mid = (low + high) * 0.5f;
+            float midDistance = DistanceAtT(mid);
+            if (midDistance < targetDistance)
+                low = mid;
+            else
+                high = mid;
+        }
+
+        return (low + high) * 0.5f;
+    }
+
+    public float TAtProgress01(float progress01)
+    {
+        return TAtDistance(Mathf.Clamp01(progress01) * TrackLength);
+    }
+
+    public bool TryEvaluateWorldPoseAtProgress01(float progress01, out Vector3 worldPosition, out Vector3 worldForward)
+    {
+        worldPosition = Vector3.zero;
+        worldForward = Vector3.forward;
+
+        if (container == null || TrackLength <= 1e-6f)
+            return false;
+
+        float t = TAtProgress01(progress01);
+        worldPosition = container.EvaluatePosition(t);
+        worldForward = container.EvaluateTangent(t);
+
+        if (worldForward.sqrMagnitude <= 0.0001f)
+            worldForward = container.transform.forward;
+
+        worldForward.y = 0f;
+        if (worldForward.sqrMagnitude <= 0.0001f)
+            worldForward = Vector3.forward;
+        else
+            worldForward.Normalize();
+
+        return true;
+    }
 }

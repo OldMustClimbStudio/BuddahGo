@@ -9,6 +9,13 @@ public class PlayerCamera : NetworkBehaviour
     [SerializeField] private Vector3 directionalOffsetPerSpeed = new Vector3(0.25f, 0f, 0.25f);
     [SerializeField] private Vector3 maxDirectionalOffset = new Vector3(4f, 0f, 4f);
     [SerializeField] private float baseFieldOfView = 60f;
+    [Header("Speed Zoom")]
+    [SerializeField] private bool zoomBySpeed = true;
+    [SerializeField] private float speedForMaxZoomOut = 10f;
+    [SerializeField] private float minSpeedFieldOfView = 50f;
+    [SerializeField] private float maxSpeedFieldOfView = 72f;
+    [SerializeField] private float maxSpeedDistanceOffset = 12f;
+    [SerializeField] private float speedZoomSmoothTime = 0.2f;
     [Header("Scale Adaptation")]
     [SerializeField] private bool adaptToPlayerScale = true;
     [SerializeField] private float cameraDistanceScaleFactor = 1f;
@@ -25,14 +32,22 @@ public class PlayerCamera : NetworkBehaviour
     private float _runtimeFovOffset;
     private Vector3 _runtimeOffsetDampVelocity = Vector3.zero;
     private float _runtimeFovVelocity;
+    private float _speedFieldOfView;
+    private float _speedFovVelocity;
+    private float _baseFramingCameraDistance;
+    private float _speedDistanceOffset;
+    private float _speedDistanceVelocity;
     private PlayerScaleEffect _scaleEffect;
 
     private void Awake()
     {
         ResolveCameraReferences();
+        EnsurePerspectiveCamera();
 
         if (followTargetRigidbody == null)
             followTargetRigidbody = GetComponentInParent<Rigidbody>();
+
+        _speedFieldOfView = baseFieldOfView;
     }
 
     // This method is called on the client after the object is spawned in.
@@ -51,6 +66,8 @@ public class PlayerCamera : NetworkBehaviour
         if (_cinemachineCamera == null)
             return;
 
+        EnsurePerspectiveCamera();
+
         if (followTargetRigidbody == null)
             followTargetRigidbody = GetComponentInParent<Rigidbody>();
 
@@ -62,12 +79,15 @@ public class PlayerCamera : NetworkBehaviour
         if (!IsOwner || followTargetRigidbody == null)
             return;
 
-        Vector3 planarVelocity = followTargetRigidbody.velocity;
+        Vector3 absoluteVelocity = followTargetRigidbody.velocity;
+        float absoluteSpeed = absoluteVelocity.magnitude;
+
+        Vector3 planarVelocity = absoluteVelocity;
         planarVelocity.y = 0f;
-        float speed = planarVelocity.magnitude;
-        Vector3 planarDir = speed > 0.0001f ? (planarVelocity / speed) : Vector3.zero;
+        float planarSpeed = planarVelocity.magnitude;
+        Vector3 planarDir = planarSpeed > 0.0001f ? (planarVelocity / planarSpeed) : Vector3.zero;
         
-        Vector3 targetOffset = Vector3.Scale(planarDir * speed, directionalOffsetPerSpeed);
+        Vector3 targetOffset = Vector3.Scale(planarDir * planarSpeed, directionalOffsetPerSpeed);
         targetOffset = new Vector3(
             Mathf.Clamp(targetOffset.x, -maxDirectionalOffset.x, maxDirectionalOffset.x),
             Mathf.Clamp(targetOffset.y, -maxDirectionalOffset.y, maxDirectionalOffset.y),
@@ -90,16 +110,20 @@ public class PlayerCamera : NetworkBehaviour
             scaleFovOffset = (currentScaleMultiplier - 1f) * cameraFovPerExtraScale;
         }
 
+        UpdateSpeedZoom(absoluteSpeed);
+
         if (transposer != null)
         {
-            transposer.m_FollowOffset = baseFollowOffset + scaleCompensationOffset + _directionalOffset + _runtimeOffset;
+            Vector3 zoomDistanceOffset = GetSpeedDistanceVector();
+            transposer.m_FollowOffset = baseFollowOffset + scaleCompensationOffset + zoomDistanceOffset + _directionalOffset + _runtimeOffset;
         }
         else if (framingTransposer != null)
         {
             framingTransposer.m_TrackedObjectOffset = baseTrackedOffset + scaleCompensationTrackedOffset + _directionalOffset + _runtimeOffset;
+            framingTransposer.m_CameraDistance = Mathf.Max(0.01f, _baseFramingCameraDistance + _speedDistanceOffset);
         }
 
-        SetFieldOfView(baseFieldOfView + scaleFovOffset + _runtimeFovOffset);
+        ApplyLensZoom(scaleFovOffset);
     }
 
     public void SetFieldOfView(float fov)
@@ -138,8 +162,12 @@ public class PlayerCamera : NetworkBehaviour
     {
         _runtimeOffset = Vector3.zero;
         _runtimeFovOffset = 0f;
+        _speedFieldOfView = baseFieldOfView;
+        _speedDistanceOffset = 0f;
         _runtimeOffsetDampVelocity = Vector3.zero;
         _runtimeFovVelocity = 0f;
+        _speedFovVelocity = 0f;
+        _speedDistanceVelocity = 0f;
     }
 
     private void ResolveCameraReferences()
@@ -160,7 +188,10 @@ public class PlayerCamera : NetworkBehaviour
             baseFollowOffset = transposer.m_FollowOffset;
 
         if (framingTransposer != null)
+        {
             baseTrackedOffset = framingTransposer.m_TrackedObjectOffset;
+            _baseFramingCameraDistance = framingTransposer.m_CameraDistance;
+        }
 
         baseFieldOfView = _cinemachineCamera.m_Lens.FieldOfView;
 
@@ -177,5 +208,61 @@ public class PlayerCamera : NetworkBehaviour
             return 1f;
 
         return Mathf.Max(0.1f, _scaleEffect.CurrentScaleMultiplier);
+    }
+
+    private void UpdateSpeedZoom(float speed)
+    {
+        if (!zoomBySpeed)
+        {
+            _speedFieldOfView = baseFieldOfView;
+            _speedDistanceOffset = 0f;
+            _speedFovVelocity = 0f;
+            _speedDistanceVelocity = 0f;
+            return;
+        }
+
+        float normalizedSpeed = speedForMaxZoomOut > 0.001f
+            ? Mathf.Clamp01(speed / speedForMaxZoomOut)
+            : 0f;
+
+        float targetFieldOfView = Mathf.Lerp(minSpeedFieldOfView, maxSpeedFieldOfView, normalizedSpeed);
+        float targetDistanceOffset = normalizedSpeed * maxSpeedDistanceOffset;
+        float safeSmoothTime = Mathf.Max(0.001f, speedZoomSmoothTime);
+        _speedFieldOfView = Mathf.SmoothDamp(_speedFieldOfView, targetFieldOfView, ref _speedFovVelocity, safeSmoothTime);
+        _speedDistanceOffset = Mathf.SmoothDamp(_speedDistanceOffset, targetDistanceOffset, ref _speedDistanceVelocity, safeSmoothTime);
+    }
+
+    private void ApplyLensZoom(float scaleFovOffset)
+    {
+        if (_cinemachineCamera == null)
+            return;
+
+        float targetFieldOfView = zoomBySpeed ? _speedFieldOfView : baseFieldOfView;
+        SetFieldOfView(targetFieldOfView + scaleFovOffset + _runtimeFovOffset);
+    }
+
+    private Vector3 GetSpeedDistanceVector()
+    {
+        if (Mathf.Approximately(_speedDistanceOffset, 0f))
+            return Vector3.zero;
+
+        Vector3 zoomDirection = baseFollowOffset.sqrMagnitude > 0.0001f
+            ? baseFollowOffset.normalized
+            : Vector3.back;
+
+        return zoomDirection * _speedDistanceOffset;
+    }
+
+    private void EnsurePerspectiveCamera()
+    {
+        if (_cinemachineCamera == null)
+            return;
+
+        var lens = _cinemachineCamera.m_Lens;
+        lens.ModeOverride = LensSettings.OverrideModes.Perspective;
+        _cinemachineCamera.m_Lens = lens;
+
+        if (Camera.main != null && Camera.main.orthographic)
+            Camera.main.orthographic = false;
     }
 }

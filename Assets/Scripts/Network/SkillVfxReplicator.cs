@@ -118,6 +118,7 @@ public class SkillVfxReplicator : NetworkBehaviour
         var existing = FindExisting(vfxId);
         if (existing != null)
         {
+            ConfigureAttachment(existing.gameObject, localOffset, localEuler);
             existing.Refresh(durationSeconds, stopPlayingBeforeEndSeconds);
             existing.gameObject.SetActive(true);
             PlayAllEffects(existing.gameObject);
@@ -127,9 +128,7 @@ public class SkillVfxReplicator : NetworkBehaviour
         var vfxObj = Instantiate(prefab);
         // Configure while inactive to avoid first-frame pop.
         vfxObj.SetActive(false);
-        vfxObj.transform.SetParent(transform, false);
-        vfxObj.transform.localPosition = localOffset;
-        vfxObj.transform.localRotation = Quaternion.Euler(localEuler);
+        ConfigureAttachment(vfxObj, localOffset, localEuler);
         DisableNetworkComponentsForLocalVfx(vfxId, vfxObj);
 
         var tag = vfxObj.GetComponent<SkillVfxTag>();
@@ -167,7 +166,7 @@ public class SkillVfxReplicator : NetworkBehaviour
 
             var prewarmObj = Instantiate(entry.prefab);
             prewarmObj.SetActive(false);
-            prewarmObj.transform.SetParent(transform, false);
+            ConfigureAttachment(prewarmObj, DefaultLocalOffset, DefaultLocalEuler);
             DisableNetworkComponentsForLocalVfx(entry.vfxId, prewarmObj);
             SetAllRenderersEnabled(prewarmObj, false);
 
@@ -271,6 +270,32 @@ public class SkillVfxReplicator : NetworkBehaviour
             if (networkObject == null) continue;
             networkObject.enabled = false;
         }
+    }
+
+    private void ConfigureAttachment(GameObject vfxObj, Vector3 localOffset, Vector3 localEuler)
+    {
+        if (vfxObj == null)
+            return;
+
+        var settings = vfxObj.GetComponent<SkillVfxAttachmentSettings>();
+        if (settings == null || settings.InheritTargetRotation)
+        {
+            var follower = vfxObj.GetComponent<SkillVfxFollowTarget>();
+            if (follower != null)
+                Destroy(follower);
+
+            vfxObj.transform.SetParent(transform, false);
+            vfxObj.transform.localPosition = localOffset;
+            vfxObj.transform.localRotation = Quaternion.Euler(localEuler);
+            return;
+        }
+
+        vfxObj.transform.SetParent(null, true);
+        var follow = vfxObj.GetComponent<SkillVfxFollowTarget>();
+        if (follow == null)
+            follow = vfxObj.AddComponent<SkillVfxFollowTarget>();
+
+        follow.Initialize(transform, localOffset, localEuler, settings.InheritTargetRotation, settings.InheritTargetScale);
     }
 }
 

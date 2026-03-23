@@ -42,6 +42,7 @@ public class BuddahMovement : NetworkBehaviour
         {
             rb = GetComponent<Rigidbody>();
         }
+
     }
 
     public override void OnStartClient()
@@ -51,8 +52,7 @@ public class BuddahMovement : NetworkBehaviour
         // Client-authoritative: only the owning client reads input and simulates physics.
         bool isLocalOwner = IsOwner;
 
-        if (rb != null)
-            rb.isKinematic = !isLocalOwner;
+        ConfigureRigidbodyForClient(isLocalOwner);
 
         SetInputEnabled(isLocalOwner);
     }
@@ -78,6 +78,20 @@ public class BuddahMovement : NetworkBehaviour
             inputActions.Enable();
         else
             inputActions.Disable();
+    }
+
+    private void ConfigureRigidbodyForClient(bool isLocalOwner)
+    {
+        if (rb == null)
+            return;
+
+        rb.isKinematic = !isLocalOwner;
+
+        // Push skills apply abrupt impulses; continuous collision detection prevents
+        // the locally simulated owner from tunneling through thin walls.
+        rb.collisionDetectionMode = isLocalOwner
+            ? CollisionDetectionMode.ContinuousDynamic
+            : CollisionDetectionMode.ContinuousSpeculative;
     }
 
     private void FixedUpdate()
@@ -141,9 +155,9 @@ if (planar.magnitude > allowedMax)
     rb.velocity = new Vector3(clamped.x, velocity.y, clamped.z);
 }
 
-if (_pushGraceTimer > 0f)
-    _pushGraceTimer -= Time.fixedDeltaTime;
-}
+        if (_pushGraceTimer > 0f)
+            _pushGraceTimer -= Time.fixedDeltaTime;
+    }
 
     public void SetSkillRooted(bool rooted)
     {
@@ -159,11 +173,25 @@ if (_pushGraceTimer > 0f)
     [TargetRpc]
     public void ApplyPushImpulseTargetRpc(NetworkConnection conn, Vector3 impulse)
     {
+        ApplyPushAndTorqueLocal(impulse, 0f);
+    }
+
+    [TargetRpc]
+    public void ApplyPushImpulseAndTorqueTargetRpc(NetworkConnection conn, Vector3 impulse, float hitTurnTorqueImpulse)
+    {
+        ApplyPushAndTorqueLocal(impulse, hitTurnTorqueImpulse);
+    }
+
+    private void ApplyPushAndTorqueLocal(Vector3 impulse, float hitTurnTorqueImpulse)
+    {
         // Only the owning client simulates physics (rb is non-kinematic there).
         if (!IsOwner || rb == null)
             return;
 
         _pushGraceTimer = pushGraceSeconds;
+        rb.WakeUp();
         rb.AddForce(impulse, ForceMode.Impulse);
+        if (Mathf.Abs(hitTurnTorqueImpulse) > 0.001f)
+            rb.AddTorque(Vector3.up * hitTurnTorqueImpulse, ForceMode.Impulse);
     }
 }

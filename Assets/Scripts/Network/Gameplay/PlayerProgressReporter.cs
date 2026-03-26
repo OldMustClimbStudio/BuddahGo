@@ -33,14 +33,17 @@ public class PlayerProgressReporter : NetworkBehaviour
             return;
 
         int lap = (_lapTracker != null) ? _lapTracker.CurrentLap : 0;
-        Debug.Log($"[Leaderboard] Reporting progress OwnerId={OwnerId} distance={_tracker.distanceOnTrack:0.00} lap={lap} dot={_tracker.forwardDot:0.00}");
+        // High-frequency progress reports are gated behind a global verbose switch.
+        DebugLog($"[Leaderboard] Reporting progress OwnerId={OwnerId} distance={_tracker.distanceOnTrack:0.00} lap={lap} dot={_tracker.forwardDot:0.00}");
         ReportSplineProgressServerRpc(_tracker.distanceOnTrack, _tracker.forwardDot, lap);
     }
 
     public override void OnStartServer()
     {
         base.OnStartServer();
-        Debug.Log($"[Leaderboard] Register player request OwnerId={OwnerId} object={name}");
+        // Validation log: server observed this player's spawned network avatar.
+        DebugLog($"[Spawn] Player ready for conn {OwnerId}");
+        DebugLog($"[Leaderboard] Register player request OwnerId={OwnerId} object={name}");
         StartCoroutine(RegisterWithLeaderboardWhenReady());
     }
 
@@ -98,13 +101,19 @@ public class PlayerProgressReporter : NetworkBehaviour
                     : $"{gameObject.name} #{OwnerId}";
 
                 LeaderboardManager.Instance.RegisterPlayer(OwnerId, displayName);
-                Debug.Log($"[Leaderboard] Register player success OwnerId={OwnerId} displayName={displayName}");
+                DebugLog($"[Leaderboard] Register player success OwnerId={OwnerId} displayName={displayName}");
                 _registeredWithLeaderboard = true;
                 yield break;
             }
 
             yield return null;
         }
+    }
+
+    private static void DebugLog(string message)
+    {
+        if (NetDebug.EnableVerboseLog)
+            Debug.Log(message);
     }
 
 }

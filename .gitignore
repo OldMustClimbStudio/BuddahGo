@@ -1,22 +1,21 @@
 [Ll]ibrary/
+!Assets/Adobe/Substance3DForUnity/Connector/Library/
+!Assets/Adobe/Substance3DForUnity/Connector/Library/**
 [Tt]emp/
 [Oo]bj/
-[Bb]uild/
-[Bb]uilds/
-[Bb]uild.zip
-[Bb]uild*.zip
 [Ll]ogs/
 [Uu]ser[Ss]ettings/
-
-# Memory captures can get very large.
 [Mm]emoryCaptures/
 
-# IDE files
+[Bb]uild/
+[Bb]uilds/
+
+.vs/
 .vscode/
 .idea/
-.vs/
-*.sln
+
 *.csproj
+*.sln
 *.unityproj
 *.user
 *.userprefs
@@ -24,35 +23,13 @@
 *.booproj
 *.svd
 
-# OS files
 .DS_Store
 Thumbs.db
 
-# Local download / partial-transfer artifacts that should never be committed.
 *.downloading
+*.zip
 
-# Source art files: keep imported sources, but skip Blender working files.
-*.blend
-*.blend1
-*.blend2
-
-# Third-party plugin demo/sample content not used by the project.
-# FishNet demos are ignored by default, except the small bootstrap HUD/prefabs used by RaceMap.
-Assets/FishNet/Demos/*
-!Assets/FishNet/Demos/FishNet.Demos.asmdef
-!Assets/FishNet/Demos/FishNet.Demos.asmdef.meta
-!Assets/FishNet/Demos/Prefabs/
-!Assets/FishNet/Demos/Prefabs.meta
-!Assets/FishNet/Demos/Scripts/
-!Assets/FishNet/Demos/Scripts.meta
-Assets/FishNet/Demos/Prefabs/*
-!Assets/FishNet/Demos/Prefabs/NetworkManager.prefab
-!Assets/FishNet/Demos/Prefabs/NetworkManager.prefab.meta
-!Assets/FishNet/Demos/Prefabs/NetworkHudCanvas.prefab
-!Assets/FishNet/Demos/Prefabs/NetworkHudCanvas.prefab.meta
-Assets/FishNet/Demos/Scripts/*
-!Assets/FishNet/Demos/Scripts/NetworkHudCanvases.cs
-!Assets/FishNet/Demos/Scripts/NetworkHudCanvases.cs.meta
+# Plugin demos/samples that are usually safe to ignore after audit.
 Assets/Plugins/Feel/FeelDemos/
 Assets/Plugins/Feel/FeelDemos.meta
 Assets/Plugins/Feel/FeelDemosHDRP/
@@ -68,31 +45,24 @@ Assets/Plugins/Feel/NiceVibrations/Demo.meta
 Assets/Plugins/Feel/NiceVibrations/HapticSamples/
 Assets/Plugins/Feel/NiceVibrations/HapticSamples.meta
 
-# Unity template/tutorial assets not used by the project.
+# FishNet demos: keep only the audited subset used by this project.
+Assets/FishNet/Demos/*
+!Assets/FishNet/Demos/FishNet.Demos.asmdef
+!Assets/FishNet/Demos/FishNet.Demos.asmdef.meta
+!Assets/FishNet/Demos/Prefabs/
+!Assets/FishNet/Demos/Prefabs.meta
+!Assets/FishNet/Demos/Scripts/
+!Assets/FishNet/Demos/Scripts.meta
+Assets/FishNet/Demos/Prefabs/*
+!Assets/FishNet/Demos/Prefabs/NetworkManager.prefab
+!Assets/FishNet/Demos/Prefabs/NetworkManager.prefab.meta
+!Assets/FishNet/Demos/Prefabs/NetworkHudCanvas.prefab
+!Assets/FishNet/Demos/Prefabs/NetworkHudCanvas.prefab.meta
+Assets/FishNet/Demos/Scripts/*
+!Assets/FishNet/Demos/Scripts/NetworkHudCanvases.cs
+!Assets/FishNet/Demos/Scripts/NetworkHudCanvases.cs.meta
+
 Assets/TutorialInfo/
 Assets/TutorialInfo.meta
 Assets/Readme.asset
 Assets/Readme.asset.meta
-
-# Gabriel Aguiar Productions content is ignored by default, but keep FreeQuickEffectsVol1 materials/textures.
-Assets/Plugins/GabrielAguiarProductions/*
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1.meta
-Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/*
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials.meta
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures.meta
-Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/*
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/*.mat
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/*.mat.meta
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene/
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene.meta
-Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene/*
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene/*.mat
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Materials/Scene/*.mat.meta
-Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*.png
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*.png.meta
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*.PNG
-!Assets/Plugins/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/*.PNG.meta

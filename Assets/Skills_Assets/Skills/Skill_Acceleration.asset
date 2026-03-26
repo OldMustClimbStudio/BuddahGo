@@ -28,3 +28,54 @@ MonoBehaviour:
   vfxLocalEuler: {x: 0, y: 180, z: 0}
   observersFeelEventId: acceleration_shared
   observersFeelStopEventId: 
+  localCasterBuffFovBoost: 10
+  localCasterBuffFovRampInSeconds: 1
+  localCasterBuffFovSettleSeconds: 1
+  localCasterBuffFovRampInCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  localCasterBuffFovSettleCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: -3.016146
+      outSlope: -3.016146
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.029714284
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -0.063497745
+      outSlope: -0.063497745
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.074285805
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4

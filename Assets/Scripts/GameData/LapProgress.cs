@@ -95,12 +95,9 @@ public class LapProgress : NetworkBehaviour
             return;
         }
 
-        if (!lapArmed
-            || !hasLeftStartZoneSinceLastCross
+        if (!hasLeftStartZoneSinceLastCross
             || !hasReachedLapValidationDistance
-            || !sawValidForwardWrapSinceLastCross
-            || !HasCompletedCheckpointSequence()
-            || currentProgress > nearStartThreshold01)
+            || !HasCompletedCheckpointSequence())
             return;
 
         currentLap += 1;

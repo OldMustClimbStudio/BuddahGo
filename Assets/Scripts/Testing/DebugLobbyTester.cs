@@ -38,7 +38,7 @@ namespace SteamMultiplayer.Testing
         [SerializeField] private int _logMaxLines = 10;
 
         // ── State ──────────────────────────────────────────────────────────────
-        private List<Lobby> _lobbyList = new();
+        private List<LobbyListItemData> _lobbyList = new();
         private Vector2 _listScroll;
         private readonly Queue<string> _eventLog = new();
         private bool _subscribed;
@@ -80,8 +80,9 @@ namespace SteamMultiplayer.Testing
             SteamLobbyManager.Instance.OnLobbyJoinFailed    += OnJoinFailed;
             SteamLobbyManager.Instance.OnMemberJoined       += OnMemberJoined;
             SteamLobbyManager.Instance.OnMemberLeft         += OnMemberLeft;
-            SteamLobbyManager.Instance.OnLobbyListRefreshed += OnListRefreshed;
+            SteamLobbyManager.Instance.OnLobbyListDataRefreshed += OnListRefreshed;
             SteamLobbyManager.Instance.OnHostLeft           += OnHostLeft;
+            SteamLobbyManager.Instance.OnDebugLog           += OnSharedDebugLog;
             _subscribed = true;
         }
 
@@ -97,8 +98,9 @@ namespace SteamMultiplayer.Testing
             SteamLobbyManager.Instance.OnLobbyJoinFailed    -= OnJoinFailed;
             SteamLobbyManager.Instance.OnMemberJoined       -= OnMemberJoined;
             SteamLobbyManager.Instance.OnMemberLeft         -= OnMemberLeft;
-            SteamLobbyManager.Instance.OnLobbyListRefreshed -= OnListRefreshed;
+            SteamLobbyManager.Instance.OnLobbyListDataRefreshed -= OnListRefreshed;
             SteamLobbyManager.Instance.OnHostLeft           -= OnHostLeft;
+            SteamLobbyManager.Instance.OnDebugLog           -= OnSharedDebugLog;
             _subscribed = false;
         }
 
@@ -141,7 +143,10 @@ namespace SteamMultiplayer.Testing
             if (!manager.IsInLobby)
             {
                 if (GUI.Button(new Rect(x, y, LeftWidth, 28), "Create Lobby"))
+                {
+                    manager.PublishDebugLog($"Creating lobby... visibility={_visibility}, maxPlayers={_maxPlayers}");
                     manager.CreateLobby(_lobbyName, _visibility, _maxPlayers);
+                }
                 y += 33;
 
                 if (GUI.Button(new Rect(x, y, LeftWidth / 2 - 2, 28), "Join by ID"))
@@ -184,15 +189,15 @@ namespace SteamMultiplayer.Testing
             _listScroll = GUI.BeginScrollView(scrollView, _listScroll, content);
             for (int i = 0; i < _lobbyList.Count; i++)
             {
-                Lobby lobby = _lobbyList[i];
-                string lobbyName  = lobby.GetData(SteamLobbyManager.KEY_LOBBY_NAME);
-                string memberInfo = $"{lobby.MemberCount}/{lobby.MaxMembers}";
+                LobbyListItemData lobby = _lobbyList[i];
+                string lobbyName  = string.IsNullOrWhiteSpace(lobby.LobbyName) ? "(Unnamed Lobby)" : lobby.LobbyName;
+                string memberInfo = $"{lobby.CurrentPlayers}/{lobby.MaxPlayers}";
                 string label      = $"{lobbyName}  [{memberInfo}]";
 
                 if (GUI.Button(new Rect(0, i * 30f, content.width, 26), label))
                 {
                     if (!manager.IsInLobby)
-                        manager.JoinLobby(lobby);
+                        manager.JoinLobbyById(lobby.LobbyId);
                     else
                         AddLog("[!] Leave your current lobby before joining another.");
                 }
@@ -210,37 +215,32 @@ namespace SteamMultiplayer.Testing
         }
 
         // ── Event Receivers ────────────────────────────────────────────────────
-        private void OnLobbyCreated(Lobby l)
-            => AddLog($"CREATED: \"{l.GetData(SteamLobbyManager.KEY_LOBBY_NAME)}\"  [{l.Id.Value}]");
+        private void OnLobbyCreated(Lobby l) { }
 
-        private void OnLobbyJoined(Lobby l)
-            => AddLog($"JOINED: \"{l.GetData(SteamLobbyManager.KEY_LOBBY_NAME)}\"  [{l.Id.Value}]");
+        private void OnLobbyJoined(Lobby l) { }
 
-        private void OnLobbyLeft()
-            => AddLog("LEFT lobby.");
+        private void OnLobbyLeft() { }
 
-        private void OnCreateFailed(string reason)
-            => AddLog($"[!] Create failed: {reason}");
+        private void OnCreateFailed(string reason) { }
 
-        private void OnJoinFailed(string reason)
-            => AddLog($"[!] Join failed: {reason}");
+        private void OnJoinFailed(string reason) { }
 
-        private void OnMemberJoined(Steamworks.Friend f)
-            => AddLog($"+ {f.Name} joined.");
+        private void OnMemberJoined(Steamworks.Friend f) { }
 
-        private void OnMemberLeft(Steamworks.Friend f)
-            => AddLog($"- {f.Name} left.");
+        private void OnMemberLeft(Steamworks.Friend f) { }
 
-        private void OnListRefreshed(List<Lobby> list)
+        private void OnListRefreshed(List<LobbyListItemData> list)
         {
             _lobbyList = list;
-            AddLog($"List refreshed: {list.Count} lobbies.");
         }
 
         private void OnHostLeft()
             => AddLog("[!] HOST LEFT – disconnecting.");
 
         // ── Helpers ───────────────────────────────────────────────────────────
+        private void OnSharedDebugLog(string message)
+            => AddLog(message);
+
         private void AddLog(string msg)
         {
             _eventLog.Enqueue(msg);
@@ -251,7 +251,11 @@ namespace SteamMultiplayer.Testing
         private string BuildStatusText(SteamLobbyManager manager)
         {
             if (!manager.IsInLobby)
-                return "<b>[Lobby Debug]</b>\nStatus: <color=#aaaaaa>Not in lobby</color>";
+                return
+                    "<b>[Lobby Debug]</b>\n" +
+                    "Status: <color=#aaaaaa>Not in lobby</color>\n" +
+                    $"Pending Visibility: {manager.PendingVisibility}\n" +
+                    $"Pending MaxPlayers: {manager.PendingMaxPlayers}";
 
             Lobby l = manager.CurrentLobby.Value;
             string ownerTag = manager.IsLobbyOwner
@@ -262,7 +266,20 @@ namespace SteamMultiplayer.Testing
                 $"Role   : {ownerTag}\n" +
                 $"Name   : {l.GetData(SteamLobbyManager.KEY_LOBBY_NAME)}\n" +
                 $"ID     : {l.Id.Value}\n" +
-                $"Members: {l.MemberCount} / {l.MaxMembers}";
+                $"Visibility: {GetLobbyVisibility(l)}\n" +
+                $"Members: {l.MemberCount} / {GetLobbyMaxPlayers(l)}";
+        }
+
+        private string GetLobbyVisibility(Lobby lobby)
+        {
+            string visibility = lobby.GetData(SteamLobbyManager.KEY_VISIBILITY);
+            return string.IsNullOrWhiteSpace(visibility) ? "Unknown" : visibility;
+        }
+
+        private string GetLobbyMaxPlayers(Lobby lobby)
+        {
+            string maxPlayers = lobby.GetData(SteamLobbyManager.KEY_MAX_PLAYERS);
+            return string.IsNullOrWhiteSpace(maxPlayers) ? lobby.MaxMembers.ToString() : maxPlayers;
         }
 
         private GUIStyle BuildBoxStyle()

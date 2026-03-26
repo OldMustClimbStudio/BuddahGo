@@ -21,11 +21,18 @@ public class Skill_Giant_Anti : SkillAction
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
     {
-        if (!localIsCaster)
-            ApplyScaleEffect(caster);
+        ApplyScaleEffect(caster);
 
         caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, durationSeconds, $"{skillId}_observers");
         Debug.Log($"[Skill_Giant_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
+    }
+
+    public override void ExecuteLocal(SkillExecutor caster, int slotIndex, bool isAnti)
+    {
+        if (caster == null || !caster.IsOwner)
+            return;
+
+        ApplyLocalCameraEffect(caster);
     }
 
     private void ApplyScaleEffect(SkillExecutor caster)
@@ -38,5 +45,21 @@ public class Skill_Giant_Anti : SkillAction
             effect = caster.gameObject.AddComponent<PlayerScaleEffect>();
 
         effect.ApplyOrRefresh(scaleMultiplier, durationSeconds, shrinkDurationSeconds, restoreDurationSeconds);
+    }
+
+    private void ApplyLocalCameraEffect(SkillExecutor caster)
+    {
+        var camera = caster.GetComponentInChildren<PlayerCamera>(true);
+        if (camera == null)
+            camera = caster.GetComponentInParent<PlayerCamera>();
+
+        if (camera == null)
+        {
+            Debug.LogWarning("[Skill_Giant_Anti][Owner] Missing PlayerCamera for local camera effect.");
+            return;
+        }
+
+        camera.ResetRuntimeEffects();
+        Debug.Log("[Skill_Giant_Anti][Owner] Applied local camera reinforcement.");
     }
 }

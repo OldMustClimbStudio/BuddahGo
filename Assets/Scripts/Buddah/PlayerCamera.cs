@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class PlayerCamera : NetworkBehaviour
 {
+    [SerializeField] private CinemachineVirtualCamera localCamera;
     [SerializeField] private Rigidbody followTargetRigidbody;
     [SerializeField] private Vector3 directionalOffsetPerSpeed = new Vector3(0.25f, 0f, 0.25f);
     [SerializeField] private Vector3 maxDirectionalOffset = new Vector3(4f, 0f, 4f);
@@ -26,6 +27,7 @@ public class PlayerCamera : NetworkBehaviour
     private Vector3 _runtimeOffsetDampVelocity = Vector3.zero;
     private float _runtimeFovVelocity;
     private PlayerScaleEffect _scaleEffect;
+    private bool _missingScaleEffectLogged;
 
     private void Awake()
     {
@@ -44,12 +46,15 @@ public class PlayerCamera : NetworkBehaviour
         if (!IsOwner)
             return;
 
-        // Get the virtual camera - the external script will handle following
+        // Resolve local camera references and force-follow owner player transform.
         if (_cinemachineCamera == null)
             ResolveCameraReferences();
 
         if (_cinemachineCamera == null)
             return;
+
+        _cinemachineCamera.Follow = transform;
+        _cinemachineCamera.enabled = true;
 
         if (followTargetRigidbody == null)
             followTargetRigidbody = GetComponentInParent<Rigidbody>();
@@ -78,6 +83,7 @@ public class PlayerCamera : NetworkBehaviour
         _directionalOffset = Vector3.Lerp(_directionalOffset, targetOffset, lerpFactor);
 
         float currentScaleMultiplier = GetCameraScaleMultiplier();
+        Debug.Log($"[Camera] scale={currentScaleMultiplier}");
         Vector3 scaleCompensationOffset = Vector3.zero;
         Vector3 scaleCompensationTrackedOffset = Vector3.zero;
         float scaleFovOffset = 0f;
@@ -142,13 +148,26 @@ public class PlayerCamera : NetworkBehaviour
         _runtimeFovVelocity = 0f;
     }
 
+    public void SetLocalCamera(CinemachineVirtualCamera camera)
+    {
+        if (!IsOwner)
+            return;
+
+        localCamera = camera;
+        _cinemachineCamera = camera;
+        ResolveCameraReferences();
+
+        if (_cinemachineCamera != null)
+        {
+            _cinemachineCamera.Follow = transform;
+            _cinemachineCamera.enabled = true;
+        }
+    }
+
     private void ResolveCameraReferences()
     {
         if (_cinemachineCamera == null)
-            _cinemachineCamera = GetComponent<CinemachineVirtualCamera>();
-
-        if (_cinemachineCamera == null)
-            _cinemachineCamera = FindObjectOfType<CinemachineVirtualCamera>();
+            _cinemachineCamera = localCamera != null ? localCamera : GetComponent<CinemachineVirtualCamera>();
 
         if (_cinemachineCamera == null)
             return;
@@ -174,7 +193,23 @@ public class PlayerCamera : NetworkBehaviour
             _scaleEffect = GetComponent<PlayerScaleEffect>();
 
         if (_scaleEffect == null)
+            _scaleEffect = GetComponentInParent<PlayerScaleEffect>();
+
+        if (_scaleEffect == null)
+            _scaleEffect = GetComponentInChildren<PlayerScaleEffect>(true);
+
+        if (_scaleEffect == null)
+        {
+            if (!_missingScaleEffectLogged)
+            {
+                Debug.LogWarning("[Camera] PlayerScaleEffect not found yet; fallback scale=1.");
+                _missingScaleEffectLogged = true;
+            }
+
             return 1f;
+        }
+
+        _missingScaleEffectLogged = false;
 
         return Mathf.Max(0.1f, _scaleEffect.CurrentScaleMultiplier);
     }

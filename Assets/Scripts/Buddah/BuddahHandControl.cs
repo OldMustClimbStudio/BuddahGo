@@ -1,6 +1,7 @@
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using System.Collections;
+using SteamMultiplayer.Network;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -162,6 +163,9 @@ public class BuddahHandControl : NetworkBehaviour
         if (!IsOwner)
             return;
 
+        if (IsRaceGameplayBlocked())
+            return;
+
         HandRotationAxis = ReadHandRotationAxis();
 
         if (Mathf.Abs(HandRotationAxis) > 0.001f)
@@ -306,7 +310,7 @@ public class BuddahHandControl : NetworkBehaviour
     {
         Debug.Log($"[HandControl] HandPush PERFORMED. IsOwner={IsOwner}, control={ctx.control?.path}");
 
-        if (!IsOwner || animator == null)
+        if (!IsOwner || animator == null || IsRaceGameplayBlocked())
         {
             Debug.LogWarning($"[HandControl] Ignored HandPush. IsOwner={IsOwner}, animatorNull={animator==null}");
             return;
@@ -370,6 +374,9 @@ public class BuddahHandControl : NetworkBehaviour
     [ServerRpc]
     private void RequestPushServerRpc(bool isLeft, float yawSnapshotDeg)
     {
+        if (RoomStateManager.Instance != null && !RoomStateManager.Instance.IsRaceStarted)
+            return;
+
         // Server-side cooldown to prevent spamming.
         if (isLeft)
         {
@@ -462,6 +469,11 @@ public class BuddahHandControl : NetworkBehaviour
         if (IsOwner) return;
         if (animator != null)
             animator.SetTrigger(rightHandTriggerName);
+    }
+
+    private bool IsRaceGameplayBlocked()
+    {
+        return RoomStateManager.Instance != null && RoomStateManager.Instance.ShouldBlockRaceGameplayInput;
     }
 
 

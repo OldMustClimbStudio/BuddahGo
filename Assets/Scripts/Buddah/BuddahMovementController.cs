@@ -1,5 +1,6 @@
 using FishNet.Object;
 using FishNet.Connection;
+using SteamMultiplayer.Network;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -47,14 +48,7 @@ public class BuddahMovement : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-
-        // Client-authoritative: only the owning client reads input and simulates physics.
-        bool isLocalOwner = IsOwner;
-
-        if (rb != null)
-            rb.isKinematic = !isLocalOwner;
-
-        SetInputEnabled(isLocalOwner);
+        RefreshLocalControlState();
     }
 
     public override void OnStopClient()
@@ -67,6 +61,12 @@ public class BuddahMovement : NetworkBehaviour
     {
         // Covers despawn / scene unload in-editor.
         SetInputEnabled(false);
+    }
+
+    private void Update()
+    {
+        if (IsOwner)
+            RefreshLocalControlState();
     }
 
     private void SetInputEnabled(bool enabled)
@@ -85,6 +85,17 @@ public class BuddahMovement : NetworkBehaviour
         // Only simulate on the owning client.
         if (!IsOwner)
             return;
+
+        if (IsRaceGameplayBlocked())
+        {
+            if (rb != null)
+            {
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
+            return;
+        }
 
         float horizontal = 0f;
         if (movementAction != null)
@@ -144,6 +155,21 @@ if (planar.magnitude > allowedMax)
 if (_pushGraceTimer > 0f)
     _pushGraceTimer -= Time.fixedDeltaTime;
 }
+
+    private void RefreshLocalControlState()
+    {
+        bool allowLocalControl = IsOwner && !IsRaceGameplayBlocked();
+
+        if (rb != null)
+            rb.isKinematic = !allowLocalControl;
+
+        SetInputEnabled(allowLocalControl);
+    }
+
+    private bool IsRaceGameplayBlocked()
+    {
+        return RoomStateManager.Instance != null && RoomStateManager.Instance.ShouldBlockRaceGameplayInput;
+    }
 
     public void SetSkillRooted(bool rooted)
     {

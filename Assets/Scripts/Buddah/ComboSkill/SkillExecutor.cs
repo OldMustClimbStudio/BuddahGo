@@ -1,5 +1,6 @@
 using FishNet.Connection;
 using FishNet.Object;
+using SteamMultiplayer.Network;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -80,13 +81,16 @@ public class SkillExecutor : NetworkBehaviour
 
     public void RequestCast(int slotIndex)
     {
-        if (!IsOwner) return;
+        if (!IsOwner || IsRaceGameplayBlocked()) return;
         CastSlotServerRpc(slotIndex);
     }
 
     [ServerRpc(RequireOwnership = true)]
     private void CastSlotServerRpc(int slotIndex)
     {
+        if (RoomStateManager.Instance != null && !RoomStateManager.Instance.IsRaceStarted)
+            return;
+
         if (slotIndex < 0 || slotIndex >= SkillLoadout.SlotCount) return;
         if (loadout == null || database == null)
         {
@@ -216,6 +220,12 @@ public class SkillExecutor : NetworkBehaviour
         {
             Debug.Log($"[SkillExecutor][Observers] '{executedSkillId}' played (slot {slotIndex}) [anti={isAnti}]");
             skill.ExecuteObservers(this, slotIndex, isAnti, IsOwner);
+
+            if (IsOwner)
+            {
+                Debug.Log($"[SkillExecutor][Owner] ExecuteLocal '{executedSkillId}' (slot {slotIndex}) [anti={isAnti}]");
+                skill.ExecuteLocal(this, slotIndex, isAnti);
+            }
         }
     }
 
@@ -436,6 +446,11 @@ public class SkillExecutor : NetworkBehaviour
             return;
 
         accelerationTrailController = GetComponentInParent<PlayerAccelerationTrail>();
+    }
+
+    private bool IsRaceGameplayBlocked()
+    {
+        return RoomStateManager.Instance != null && RoomStateManager.Instance.ShouldBlockRaceGameplayInput;
     }
 
     public void PlayFeelLocalTimed(string startEventId, string stopEventId, float durationSeconds, string scheduleKey = null)

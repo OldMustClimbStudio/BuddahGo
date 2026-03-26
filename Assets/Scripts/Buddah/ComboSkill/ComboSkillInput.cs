@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using FishNet.Object;
+using SteamMultiplayer.Network;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -89,7 +90,7 @@ public class ComboSkillInput : NetworkBehaviour
 
     private void OnHandPushPerformed(InputAction.CallbackContext ctx)
     {
-        if (!IsOwner)
+        if (!IsOwner || IsRaceGameplayBlocked())
             return;
 
         if (ctx.control is not KeyControl key)
@@ -106,6 +107,11 @@ public class ComboSkillInput : NetworkBehaviour
             return;
 
         PushToken(token.Value);
+    }
+
+    private bool IsRaceGameplayBlocked()
+    {
+        return RoomStateManager.Instance != null && RoomStateManager.Instance.ShouldBlockRaceGameplayInput;
     }
 
     private void PushToken(Token token)

@@ -27,6 +27,7 @@ public class CinemachineLocalPlayerFollower : MonoBehaviour
 
         if (localPlayer != null && _virtualCamera.Follow != localPlayer.transform)
         {
+            localPlayer.SetLocalCamera(_virtualCamera);
             _virtualCamera.Follow = localPlayer.transform;
             _virtualCamera.enabled = true;
         }

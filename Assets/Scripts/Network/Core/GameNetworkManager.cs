@@ -119,8 +119,26 @@ namespace SteamMultiplayer.Network
             bool clientOk = _networkManager.ClientManager.StartConnection();
             if (!clientOk)
             {
-                NetLog.Error("ClientManager.StartConnection() returned false after server started.");
+                NetLog.Error("[Host] ClientManager.StartConnection() failed after server started. Rolling back host startup.");
+
+                // Roll back to a clean stopped state to avoid half-started host instances.
+                if (_networkManager.ClientManager != null
+                    && _networkManager.ClientManager.Started)
+                {
+                    _networkManager.ClientManager.StopConnection();
+                }
+
+                if (_networkManager.ServerManager != null
+                    && _networkManager.ServerManager.Started)
+                {
+                    _networkManager.ServerManager.StopConnection(true);
+                }
+
+                NetLog.Warn("[Host] Host startup rolled back due to client start failure.");
+                return;
             }
+
+            NetLog.Info("[Host] Host started successfully.");
         }
 
         /// <summary>

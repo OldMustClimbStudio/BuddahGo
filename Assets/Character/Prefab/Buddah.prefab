@@ -1482,7 +1482,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584273770309168619
+  _initializedTimestamp: -8584271012904892807
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -1498,7 +1498,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 14
+  <PrefabId>k__BackingField: 15
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 18371748090803339527
   SceneId: 0
@@ -1583,6 +1583,7 @@ MonoBehaviour:
   _componentIndexCache: 4
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
+  localCamera: {fileID: 0}
   followTargetRigidbody: {fileID: 0}
   directionalOffsetPerSpeed: {x: 0.5, y: 0, z: 0.4}
   maxDirectionalOffset: {x: 15, y: 0, z: 15}
@@ -1628,8 +1629,7 @@ MonoBehaviour:
   _componentIndexCache: 6
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
-  startPointObject: {fileID: 1535211186281821646, guid: 62e7ccae630d9c74db6b770c8f347351,
-    type: 3}
+  startPointObject: {fileID: 0}
   startPointTag: StartingPoint
   nearEndThreshold01: 0.85
   nearStartThreshold01: 0.2
@@ -1942,6 +1942,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9081028380414964557, guid: 48a474a51decdb84c860634ae885be75,
         type: 3}
+      propertyPath: managedReferences[4931365097556934963].ShakeDuration
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9081028380414964557, guid: 48a474a51decdb84c860634ae885be75,
+        type: 3}
       propertyPath: managedReferences[4931364929986625548].Timing.PlayCount
       value: 7
       objectReference: {fileID: 0}
@@ -1958,7 +1963,7 @@ PrefabInstance:
     - target: {fileID: 9081028380414964557, guid: 48a474a51decdb84c860634ae885be75,
         type: 3}
       propertyPath: managedReferences[4931365097556934963].RemapIntensityOne
-      value: 3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 9081028380414964557, guid: 48a474a51decdb84c860634ae885be75,
         type: 3}

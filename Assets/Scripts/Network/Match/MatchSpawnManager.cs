@@ -122,6 +122,9 @@ namespace SteamMultiplayer.Network.Match
             UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(playerInstance.gameObject, gameObject.scene);
             InstanceFinder.ServerManager.Spawn(playerInstance, conn);
             _spawnedPlayers[conn.ClientId] = playerInstance;
+
+            // Validation log for race-readiness pipeline (disabled by default).
+            DebugLog($"[Spawn] Player ready for conn {conn.ClientId}");
         }
 
         private void DespawnPlayer(int clientId)
@@ -166,6 +169,12 @@ namespace SteamMultiplayer.Network.Match
         private void OnValidate()
         {
             _spawnPoints = GetComponentsInChildren<MatchSpawnPoint>(true);
+        }
+
+        private static void DebugLog(string message)
+        {
+            if (NetDebug.EnableVerboseLog)
+                Debug.Log(message);
         }
     }
 }

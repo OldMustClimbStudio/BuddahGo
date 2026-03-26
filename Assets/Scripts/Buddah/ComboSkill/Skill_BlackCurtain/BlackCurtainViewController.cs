@@ -27,6 +27,7 @@ public class BlackCurtainViewController : MonoBehaviour
     [Header("Volumes")]
     [SerializeField] private Volume outdoorVolume;
     [SerializeField] private string outdoorVolumeObjectName = "Outdoor Volume";
+    [SerializeField] private bool disableOutdoorVolumeDuringBlackCurtain = true;
 
     private UniversalAdditionalCameraData _cameraData;
     private BlackCurtainScreenEffect _screenEffect;
@@ -151,7 +152,18 @@ public class BlackCurtainViewController : MonoBehaviour
         else
             SetTrackEdgesVisible(false, true);
         SetTrailsVisible(!canSeeEdge, totalDuration);
-        ScheduleOutdoorVolumeWindow(fadeInEndsAt, fadeOutStartsAt);
+        // Disable Outdoor Volume only for the local observer who can see track edges.
+        // This avoids extra scene clutter while black curtain is active.
+        if (disableOutdoorVolumeDuringBlackCurtain && canSeeEdge)
+        {
+            ScheduleOutdoorVolumeWindow(fadeInEndsAt, fadeOutStartsAt);
+        }
+        else
+        {
+            _disableOutdoorVolumeAt = 0f;
+            _enableOutdoorVolumeAt = 0f;
+            SetOutdoorVolumeEnabled(true);
+        }
         SetOtherPlayersVisible(canSeeEdge || !hideOtherPlayersForVictim);
         if (!canSeeEdge && hideOtherPlayersForVictim)
             _restoreOtherPlayersAt = fadeOutDuration > 0f ? Time.time + Mathf.Max(0.01f, expandDuration) + Mathf.Max(0f, holdDuration) : endsAt;

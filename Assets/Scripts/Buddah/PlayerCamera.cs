@@ -72,10 +72,11 @@ public class PlayerCamera : NetworkBehaviour
         _cinemachineCamera.Follow = transform;
         _cinemachineCamera.enabled = true;
 
+        // Validation log for local camera ownership binding.
+        DebugLog($"[Camera] Bound to {transform.name}");
+
         if (followTargetRigidbody == null)
             followTargetRigidbody = GetComponentInParent<Rigidbody>();
-
-        Debug.Log("PlayerCamera: Initialized for local player " + transform.name);
     }
 
     private void LateUpdate()
@@ -102,7 +103,8 @@ public class PlayerCamera : NetworkBehaviour
         _directionalOffset = Vector3.Lerp(_directionalOffset, targetOffset, lerpFactor);
 
         float currentScaleMultiplier = GetCameraScaleMultiplier();
-        Debug.Log($"[Camera] scale={currentScaleMultiplier}");
+        // High-frequency camera telemetry must be opt-in to keep multiplayer logs readable.
+        DebugLog($"[Camera] scale={currentScaleMultiplier}");
         Vector3 scaleCompensationOffset = Vector3.zero;
         Vector3 scaleCompensationTrackedOffset = Vector3.zero;
         float scaleFovOffset = 0f;
@@ -298,5 +300,11 @@ public class PlayerCamera : NetworkBehaviour
 
         if (Camera.main != null && Camera.main.orthographic)
             Camera.main.orthographic = false;
+    }
+
+    private static void DebugLog(string message)
+    {
+        if (NetDebug.EnableVerboseLog)
+            Debug.Log(message);
     }
 }

@@ -90,7 +90,21 @@ namespace Adobe.Substance
         /// </summary>
         public static void Shutdown()
         {
-            var code = (ErrorCode)NativeMethods.sbsario_shutdown();
+            // If initialization never completed, there is no native engine instance to shut down.
+            if (sLoadState != LoadState.Engine_Loaded)
+                return;
+
+            ErrorCode code;
+            try
+            {
+                code = (ErrorCode)NativeMethods.sbsario_shutdown();
+            }
+            catch (SubstanceEngineNotFoundException)
+            {
+                // Treat missing native library during shutdown as already unloaded.
+                sLoadState = LoadState.Engine_Unloaded;
+                return;
+            }
 
             if (sLoadState == LoadState.Engine_Loaded)
             {

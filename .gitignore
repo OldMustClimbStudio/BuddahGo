@@ -1,4 +1,6 @@
 [Ll]ibrary/
+!Assets/Adobe/Substance3DForUnity/Connector/Library/
+!Assets/Adobe/Substance3DForUnity/Connector/Library/**
 [Tt]emp/
 [Oo]bj/
 [Ll]ogs/

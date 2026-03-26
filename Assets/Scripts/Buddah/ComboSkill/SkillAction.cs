@@ -45,4 +45,12 @@ public abstract class SkillAction : ScriptableObject
     {
         ExecuteObservers(caster, slotIndex);
     }
+
+    /// <summary>
+    /// Runs only on the owning client for local feel (camera/UI/input feedback).
+    /// </summary>
+    public virtual void ExecuteLocal(SkillExecutor caster, int slotIndex, bool isAnti)
+    {
+        // optional
+    }
 }

@@ -273,6 +273,9 @@ namespace FishyFacepunch.Server
                 packet.Dispose();
             }
 
+            if (_socket == null)
+                return;
+
             _socket.Receive(MAX_MESSAGES);
         }
 

@@ -534,6 +534,8 @@ namespace SteamMultiplayer.Network
             if (_raceStarted.Value || _raceCountdownActive.Value)
                 return;
 
+            // Only begin countdown after every authenticated connection owns a race-scene player avatar.
+            LogDebug("[Race] Countdown start");
             StartCoroutine(RaceCountdownCoroutine());
         }
 
@@ -622,16 +624,31 @@ namespace SteamMultiplayer.Network
             if (conn == null || conn.Objects == null)
                 return false;
 
+            bool isReady = false;
+
             foreach (NetworkObject networkObject in conn.Objects)
             {
                 if (networkObject == null || !networkObject.IsSpawned)
                     continue;
 
-                if (string.Equals(networkObject.gameObject.scene.name, _raceSceneName, StringComparison.Ordinal))
-                    return true;
+                if (!string.Equals(networkObject.gameObject.scene.name, _raceSceneName, StringComparison.Ordinal))
+                    continue;
+
+                // Tight readiness gate: only treat real player-avatar objects as race ready.
+                bool isPlayerAvatar =
+                    networkObject.GetComponent<BuddahMovement>() != null
+                    || networkObject.GetComponent<PlayerProgressReporter>() != null
+                    || networkObject.GetComponent<SkillExecutor>() != null;
+
+                if (!isPlayerAvatar)
+                    continue;
+
+                isReady = true;
+                break;
             }
 
-            return false;
+            LogDebug($"[RaceReady] Conn {conn.ClientId} ready={isReady}");
+            return isReady;
         }
 
         private bool ContainsRaceScene(UnityEngine.SceneManagement.Scene[] loadedScenes)
@@ -693,7 +710,8 @@ namespace SteamMultiplayer.Network
 
         private void LogDebug(string message)
         {
-            if (_enableDebugLogs)
+            // Require both local inspector intent and global verbose switch.
+            if (_enableDebugLogs && NetDebug.EnableVerboseLog)
                 Debug.Log($"[RoomStateManager] {message}");
         }
     }

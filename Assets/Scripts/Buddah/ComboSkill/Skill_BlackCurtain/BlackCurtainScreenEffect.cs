@@ -6,6 +6,7 @@ public class BlackCurtainScreenEffect : MonoBehaviour
     private const string AlternateBlackHoleStrengthProperty = "_StrengthBlackHole";
     private const float MaxBlackHoleStrength = 15f;
     private const float ExpansionDelaySeconds = 0.5f;
+    private const float MaxExpansionProgress = 2f;
     private static readonly Vector2 DefaultCenter = new Vector2(0.5f, 0.5f);
 
     private Material _fullscreenMaterial;
@@ -80,7 +81,7 @@ public class BlackCurtainScreenEffect : MonoBehaviour
         float delayedExpandElapsed = Mathf.Max(0f, elapsed - ExpansionDelaySeconds);
         float expandT = Mathf.Clamp01(delayedExpandElapsed / _expandDuration);
         float blackHoleDuration = ExpansionDelaySeconds + _expandDuration;
-        float progress = expandT;
+        float progress = expandT * MaxExpansionProgress;
         float opacity = _maxOpacity;
         float blackHoleStrength = elapsed < blackHoleDuration
             ? Mathf.Lerp(0f, MaxBlackHoleStrength, Mathf.Clamp01(elapsed / blackHoleDuration))

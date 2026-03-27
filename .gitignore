@@ -66,3 +66,7 @@ Assets/TutorialInfo/
 Assets/TutorialInfo.meta
 Assets/Readme.asset
 Assets/Readme.asset.meta
+
+# Local UI font source kept out of git history.
+Assets/Sources/Font/
+Assets/Sources/Font.meta

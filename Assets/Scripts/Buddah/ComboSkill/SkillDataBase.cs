@@ -18,16 +18,37 @@ public class SkillDatabase : ScriptableObject
 
     private void OnEnable()
     {
-        _byId = new Dictionary<string, SkillAction>();
-        AddListToLookup(normalSkills, "normalSkills");
-        AddListToLookup(antiSkills, "antiSkills");
-        AddListToLookup(skills, "skills");
+        RebuildLookup();
     }
 
     public bool TryGet(string skillId, out SkillAction skill)
     {
-        if (_byId == null) OnEnable();
+        if (_byId == null)
+            RebuildLookup();
+
         return _byId.TryGetValue(skillId, out skill);
+    }
+
+    public List<SkillAction> GetSelectableNormalSkills()
+    {
+        if (_byId == null)
+            RebuildLookup();
+
+        List<SkillAction> results = new List<SkillAction>();
+        HashSet<string> antiSkillIds = BuildAntiSkillIdSet();
+        HashSet<string> seen = new HashSet<string>();
+
+        AddSelectableSkillsFromList(normalSkills, antiSkillIds, seen, results, "normalSkills");
+        AddSelectableSkillsFromList(skills, antiSkillIds, seen, results, "skills");
+        return results;
+    }
+
+    private void RebuildLookup()
+    {
+        _byId = new Dictionary<string, SkillAction>();
+        AddListToLookup(normalSkills, "normalSkills");
+        AddListToLookup(antiSkills, "antiSkills");
+        AddListToLookup(skills, "skills");
     }
 
     private void AddListToLookup(List<SkillAction> list, string listName)
@@ -35,18 +56,67 @@ public class SkillDatabase : ScriptableObject
         if (list == null)
             return;
 
-        foreach (var s in list)
+        foreach (SkillAction skill in list)
         {
-            if (s == null || string.IsNullOrWhiteSpace(s.skillId))
+            if (!TryGetValidSkillId(skill, out string skillId))
                 continue;
 
-            if (_byId.ContainsKey(s.skillId))
+            if (_byId.ContainsKey(skillId))
             {
-                Debug.LogWarning($"[SkillDatabase] Duplicate skillId '{s.skillId}' in database (list={listName}).");
+                Debug.LogWarning($"[SkillDatabase] Duplicate skillId '{skillId}' in database (list={listName}).");
                 continue;
             }
 
-            _byId.Add(s.skillId, s);
+            _byId.Add(skillId, skill);
         }
+    }
+
+    private void AddSelectableSkillsFromList(
+        List<SkillAction> list,
+        HashSet<string> antiSkillIds,
+        HashSet<string> seen,
+        List<SkillAction> results,
+        string listName)
+    {
+        if (list == null)
+            return;
+
+        foreach (SkillAction skill in list)
+        {
+            if (!TryGetValidSkillId(skill, out string skillId))
+                continue;
+
+            if (antiSkillIds.Contains(skillId))
+                continue;
+
+            if (!seen.Add(skillId))
+            {
+                Debug.LogWarning($"[SkillDatabase] Duplicate selectable skillId '{skillId}' skipped (list={listName}).");
+                continue;
+            }
+
+            results.Add(skill);
+        }
+    }
+
+    private HashSet<string> BuildAntiSkillIdSet()
+    {
+        HashSet<string> antiSkillIds = new HashSet<string>();
+        if (antiSkills == null)
+            return antiSkillIds;
+
+        foreach (SkillAction skill in antiSkills)
+        {
+            if (TryGetValidSkillId(skill, out string skillId))
+                antiSkillIds.Add(skillId);
+        }
+
+        return antiSkillIds;
+    }
+
+    private static bool TryGetValidSkillId(SkillAction skill, out string skillId)
+    {
+        skillId = skill != null ? (skill.skillId ?? string.Empty).Trim() : string.Empty;
+        return !string.IsNullOrWhiteSpace(skillId);
     }
 }

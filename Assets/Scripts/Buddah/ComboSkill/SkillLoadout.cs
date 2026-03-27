@@ -1,10 +1,15 @@
+using System.Collections.Generic;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
+using SteamMultiplayer.Network;
 using UnityEngine;
 
 public class SkillLoadout : NetworkBehaviour
 {
     public const int SlotCount = 3;
+
+    [Header("Default Skills")]
+    [SerializeField] private string[] _defaultSkillIds = { "acceleration", "push_projectile_hands", "blackcurtain" };
 
     // slotIndex -> skillId
     public readonly SyncList<string> SlotSkillIds = new SyncList<string>();
@@ -13,25 +18,20 @@ public class SkillLoadout : NetworkBehaviour
     {
         base.OnStartServer();
 
-        // Ensure 3 slots exist
-        if (SlotSkillIds.Count != SlotCount)
-        {
-            SlotSkillIds.Clear();
-            for (int i = 0; i < SlotCount; i++)
-                SlotSkillIds.Add(string.Empty);
-        }
+        EnsureSlotCountServer();
 
-        // 这里先默认给个技能，你可以在游戏里将以下改成实际的使用技能ID
-        //注意技能ID就是玩家装备的技能
-        SlotSkillIds[0] = "acceleration"; 
-        SlotSkillIds[1] = "push_projectile_hands";
-        SlotSkillIds[2] = "blackcurtain";
+        if (!TryApplyResolvedSelectionServer(Owner != null ? Owner.ClientId : -1))
+            ApplyDefaultSkillsServer();
     }
 
     public string GetSkillId(int slotIndex)
     {
-        if (slotIndex < 0 || slotIndex >= SlotCount) return string.Empty;
-        if (SlotSkillIds.Count < SlotCount) return string.Empty;
+        if (slotIndex < 0 || slotIndex >= SlotCount)
+            return string.Empty;
+
+        if (SlotSkillIds.Count < SlotCount)
+            return string.Empty;
+
         return SlotSkillIds[slotIndex] ?? string.Empty;
     }
 
@@ -40,18 +40,91 @@ public class SkillLoadout : NetworkBehaviour
     /// </summary>
     public void RequestSetSlot(int slotIndex, string skillId)
     {
-        if (!IsOwner) return;
+        if (!IsOwner)
+            return;
+
         SetSlotServerRpc(slotIndex, skillId);
+    }
+
+    [Server]
+    public void SetSlotsServer(IReadOnlyList<string> skillIds)
+    {
+        EnsureSlotCountServer();
+
+        for (int i = 0; i < SlotCount; i++)
+        {
+            string skillId = (skillIds != null && i < skillIds.Count ? skillIds[i] : string.Empty) ?? string.Empty;
+            SlotSkillIds[i] = skillId;
+        }
+
+        LogFinalLoadout("SetSlotsServer");
+    }
+
+    [Server]
+    public void SetSlotServer(int slotIndex, string skillId)
+    {
+        if (slotIndex < 0 || slotIndex >= SlotCount)
+            return;
+
+        EnsureSlotCountServer();
+        SlotSkillIds[slotIndex] = skillId ?? string.Empty;
+        Debug.Log($"[SkillLoadout][Server] Set slot {slotIndex} -> '{SlotSkillIds[slotIndex]}'");
+    }
+
+    [Server]
+    public bool TryApplyResolvedSelectionServer(int playerId)
+    {
+        if (playerId < 0)
+            return false;
+
+        if (!ResolvedPropertySelectionCache.TryGetPlayerSkillLoadout(playerId, out string[] resolvedLoadout)
+            || resolvedLoadout == null
+            || resolvedLoadout.Length < SlotCount)
+        {
+            return false;
+        }
+
+        SetSlotsServer(resolvedLoadout);
+        Debug.Log($"[SkillLoadout][Server] Applied property selection loadout for player {playerId}.");
+        return true;
+    }
+
+    [Server]
+    public void ApplyDefaultSkillsServer()
+    {
+        EnsureSlotCountServer();
+
+        for (int i = 0; i < SlotCount; i++)
+        {
+            string defaultSkillId = i < _defaultSkillIds.Length ? _defaultSkillIds[i] : string.Empty;
+            SlotSkillIds[i] = defaultSkillId ?? string.Empty;
+        }
+
+        LogFinalLoadout("ApplyDefaultSkillsServer");
     }
 
     [ServerRpc(RequireOwnership = true)]
     private void SetSlotServerRpc(int slotIndex, string skillId)
     {
-        if (slotIndex < 0 || slotIndex >= SlotCount) return;
+        SetSlotServer(slotIndex, skillId);
+    }
 
-        // TODO: 这里可以做白名单校验、等级限制、解锁校验等
-        SlotSkillIds[slotIndex] = skillId ?? string.Empty;
+    [Server]
+    private void EnsureSlotCountServer()
+    {
+        if (SlotSkillIds.Count == SlotCount)
+            return;
 
-        Debug.Log($"[SkillLoadout][Server] Set slot {slotIndex} -> '{SlotSkillIds[slotIndex]}'");
+        SlotSkillIds.Clear();
+        for (int i = 0; i < SlotCount; i++)
+            SlotSkillIds.Add(string.Empty);
+    }
+
+    [Server]
+    private void LogFinalLoadout(string context)
+    {
+        Debug.Log(
+            $"[SkillLoadout][Server] {context} final slots: " +
+            $"0='{GetSkillId(0)}', 1='{GetSkillId(1)}', 2='{GetSkillId(2)}'");
     }
 }

@@ -28,6 +28,8 @@ public class BlackCurtainViewController : MonoBehaviour
     [SerializeField] private Volume outdoorVolume;
     [SerializeField] private string outdoorVolumeObjectName = "Outdoor Volume";
     [SerializeField] private bool disableOutdoorVolumeDuringBlackCurtain = true;
+    [SerializeField] private Volume blackCurtainActiveVolume;
+    [SerializeField] private string blackCurtainActiveVolumeObjectName = "BlackCurtain Active Volume";
 
     private UniversalAdditionalCameraData _cameraData;
     private BlackCurtainScreenEffect _screenEffect;
@@ -47,6 +49,8 @@ public class BlackCurtainViewController : MonoBehaviour
     private int _playToken;
     private bool _cachedOutdoorVolumeEnabled;
     private bool _hasCachedOutdoorVolumeEnabled;
+    private bool _cachedBlackCurtainActiveVolumeEnabled;
+    private bool _hasCachedBlackCurtainActiveVolumeEnabled;
     private MaterialPropertyBlock _trackEdgePropertyBlock;
     private readonly Dictionary<Renderer, bool> _hiddenPlayerRenderers = new Dictionary<Renderer, bool>();
     private readonly Dictionary<GameObject, bool> _hiddenTrackEdgeObjects = new Dictionary<GameObject, bool>();
@@ -98,6 +102,7 @@ public class BlackCurtainViewController : MonoBehaviour
             SetOtherPlayersVisible(true);
             SetTrackEdgesVisible(false, false);
             SetOutdoorVolumeEnabled(true);
+            SetBlackCurtainActiveVolumeEnabled(false);
         }
 
         ApplyCurrentRenderer();
@@ -242,6 +247,7 @@ public class BlackCurtainViewController : MonoBehaviour
         SetOtherPlayersVisible(true);
         SetTrackEdgesVisible(false, false);
         SetOutdoorVolumeEnabled(true);
+        SetBlackCurtainActiveVolumeEnabled(false);
         ApplyCurrentRenderer();
     }
 
@@ -285,6 +291,26 @@ public class BlackCurtainViewController : MonoBehaviour
         }
     }
 
+    private void ResolveBlackCurtainActiveVolume()
+    {
+        if (blackCurtainActiveVolume != null)
+            return;
+
+        Volume[] volumes = FindObjectsByType<Volume>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < volumes.Length; i++)
+        {
+            Volume volume = volumes[i];
+            if (volume == null)
+                continue;
+
+            if (volume.gameObject.name == blackCurtainActiveVolumeObjectName)
+            {
+                blackCurtainActiveVolume = volume;
+                return;
+            }
+        }
+    }
+
     private void SetOutdoorVolumeEnabled(bool enabled)
     {
         ResolveOutdoorVolume();
@@ -310,9 +336,35 @@ public class BlackCurtainViewController : MonoBehaviour
         _hasCachedOutdoorVolumeEnabled = false;
     }
 
+    private void SetBlackCurtainActiveVolumeEnabled(bool enabled)
+    {
+        ResolveBlackCurtainActiveVolume();
+        if (blackCurtainActiveVolume == null)
+            return;
+
+        if (enabled)
+        {
+            if (!_hasCachedBlackCurtainActiveVolumeEnabled)
+            {
+                _cachedBlackCurtainActiveVolumeEnabled = blackCurtainActiveVolume.enabled;
+                _hasCachedBlackCurtainActiveVolumeEnabled = true;
+            }
+
+            blackCurtainActiveVolume.enabled = true;
+            return;
+        }
+
+        if (!_hasCachedBlackCurtainActiveVolumeEnabled)
+            return;
+
+        blackCurtainActiveVolume.enabled = _cachedBlackCurtainActiveVolumeEnabled;
+        _hasCachedBlackCurtainActiveVolumeEnabled = false;
+    }
+
     private void ScheduleOutdoorVolumeWindow(float disableAt, float enableAt)
     {
         SetOutdoorVolumeEnabled(true);
+        SetBlackCurtainActiveVolumeEnabled(false);
         _disableOutdoorVolumeAt = 0f;
         _enableOutdoorVolumeAt = 0f;
 
@@ -331,11 +383,15 @@ public class BlackCurtainViewController : MonoBehaviour
             _disableOutdoorVolumeAt = 0f;
             _enableOutdoorVolumeAt = 0f;
             SetOutdoorVolumeEnabled(true);
+            SetBlackCurtainActiveVolumeEnabled(false);
             return;
         }
 
         if (_disableOutdoorVolumeAt > 0f && Time.time >= _disableOutdoorVolumeAt)
+        {
             SetOutdoorVolumeEnabled(false);
+            SetBlackCurtainActiveVolumeEnabled(true);
+        }
     }
 
     private void SetTrackEdgesVisible(bool visible, bool hideTaggedObjects)

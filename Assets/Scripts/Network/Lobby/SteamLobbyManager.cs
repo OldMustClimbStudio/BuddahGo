@@ -449,10 +449,19 @@ namespace SteamMultiplayer.Network
             }
 
             Lobby lobby = result.Value;
-            CurrentLobby = lobby;
-
             string lobbyName  = lobby.GetData(KEY_LOBBY_NAME);
             string hostSteamId = lobby.GetData(KEY_HOST_STEAM_ID);
+
+            // Treat lobbies missing core metadata as invalid join targets.
+            // This prevents the UI from entering RoomUI for dead/invalid lobby ids.
+            if (string.IsNullOrWhiteSpace(hostSteamId))
+            {
+                lobby.Leave();
+                FireJoinFailed($"Lobby {steamId.Value} is invalid or missing host metadata.");
+                return;
+            }
+
+            CurrentLobby = lobby;
             SetFlowState(LobbyFlowState.LobbyJoined, $"Joined lobby \"{lobbyName}\".");
 
             NetLog.Info($"[Lobby] Joined \"{lobbyName}\" | Host={hostSteamId}");
@@ -470,11 +479,6 @@ namespace SteamMultiplayer.Network
                     NetLog.Warn("[Lobby] GameNetworkManager not found – StartClient() skipped.");
                     SetFlowState(LobbyFlowState.Failed, "GameNetworkManager not found.");
                 }
-            }
-            else
-            {
-                NetLog.Error("[Lobby] Joined lobby is missing hostSteamId metadata – cannot connect.");
-                SetFlowState(LobbyFlowState.Failed, "Joined lobby is missing hostSteamId metadata.");
             }
 
             PublishDebugLog($"Joined lobby: {lobby.Id.Value}, visibility={lobby.GetData(KEY_VISIBILITY)}, maxPlayers={lobby.GetData(KEY_MAX_PLAYERS)}");

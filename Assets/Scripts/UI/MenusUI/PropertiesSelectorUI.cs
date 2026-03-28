@@ -14,6 +14,7 @@ namespace SteamMultiplayer.UI
         [Header("Current Stage")]
         [SerializeField] private Transform propertyGroupListRoot;
         [SerializeField] private PropertyGroupView propertyGroupPrefab;
+        [SerializeField] private SkillLoadoutSelectorUI skillLoadoutSelector;
 
         [Header("Summary")]
         [SerializeField] private TextMeshProUGUI pageTitleText;
@@ -122,6 +123,15 @@ namespace SteamMultiplayer.UI
             ClearGroups();
             _lastRenderedStageKey = currentStageKey;
 
+            if (skillLoadoutSelector != null)
+                skillLoadoutSelector.SetVisible(currentStageKey == PropertiesSelectionManager.SkillLoadoutStageKey);
+
+            if (currentStageKey == PropertiesSelectionManager.SkillLoadoutStageKey)
+            {
+                skillLoadoutSelector?.Bind(_selectionManager);
+                return;
+            }
+
             if (propertyGroupListRoot == null || propertyGroupPrefab == null)
                 return;
 
@@ -158,6 +168,8 @@ namespace SteamMultiplayer.UI
 
             for (int i = 0; i < _spawnedGroups.Count; i++)
                 _spawnedGroups[i].RefreshView();
+
+            skillLoadoutSelector?.RefreshView();
 
             RefreshStatusTexts();
         }
@@ -214,10 +226,34 @@ namespace SteamMultiplayer.UI
                 return "No active stage.";
 
             List<string> lines = new List<string>();
+            bool isSkillStage = propertyKey == PropertiesSelectionManager.SkillLoadoutStageKey;
             for (int i = 0; i < _selectionManager.Participants.Count; i++)
             {
                 PropertiesSelectionManager.SelectionParticipantState participant = _selectionManager.Participants[i];
                 string selectedOptionId = "Choosing...";
+
+                if (isSkillStage)
+                {
+                    _selectionManager.TryGetPlayerSkillLoadoutSelection(participant.PlayerId, out string[] skillIds);
+                    if (skillIds == null)
+                        skillIds = new string[SkillLoadout.SlotCount];
+                    int filledCount = 0;
+                    List<string> names = new List<string>();
+                    for (int slotIndex = 0; slotIndex < skillIds.Length; slotIndex++)
+                    {
+                        if (string.IsNullOrWhiteSpace(skillIds[slotIndex]))
+                            continue;
+
+                        filledCount++;
+                        names.Add(skillIds[slotIndex]);
+                    }
+
+                    selectedOptionId = filledCount > 0
+                        ? $"{filledCount}/{SkillLoadout.SlotCount} [{string.Join(", ", names)}]"
+                        : "Choosing...";
+                    lines.Add($"{participant.PlayerName}: {selectedOptionId}");
+                    continue;
+                }
 
                 if (_selectionManager.TryGetPlayerSelection(participant.PlayerId, out PlayerPropertySelection selection)
                     && selection.TryGetSelectedOptionId(propertyKey, out string currentSelection)

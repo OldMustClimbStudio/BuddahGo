@@ -121,6 +121,7 @@ namespace SteamMultiplayer.Network.Match
             NetworkObject playerInstance = Instantiate(_playerPrefab, spawnPosition, spawnRotation);
             UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(playerInstance.gameObject, gameObject.scene);
             InstanceFinder.ServerManager.Spawn(playerInstance, conn);
+            ApplyResolvedSkillLoadout(playerInstance, conn.ClientId);
             _spawnedPlayers[conn.ClientId] = playerInstance;
 
             // Validation log for race-readiness pipeline (disabled by default).
@@ -175,6 +176,27 @@ namespace SteamMultiplayer.Network.Match
         {
             if (NetDebug.EnableVerboseLog)
                 Debug.Log(message);
+        }
+
+        private void ApplyResolvedSkillLoadout(NetworkObject playerInstance, int playerId)
+        {
+            if (playerInstance == null)
+                return;
+
+            SkillLoadout skillLoadout = playerInstance.GetComponent<SkillLoadout>();
+            if (skillLoadout == null)
+                skillLoadout = playerInstance.GetComponentInChildren<SkillLoadout>(true);
+
+            if (skillLoadout == null)
+                return;
+
+            bool appliedResolvedLoadout = skillLoadout.TryApplyResolvedSelectionServer(playerId);
+            if (!appliedResolvedLoadout)
+                skillLoadout.ApplyDefaultSkillsServer();
+
+            Debug.Log(
+                $"[MatchSpawnManager] Applied skill loadout for player {playerId}. " +
+                $"resolved={appliedResolvedLoadout}, slots=('{skillLoadout.GetSkillId(0)}','{skillLoadout.GetSkillId(1)}','{skillLoadout.GetSkillId(2)}')");
         }
     }
 }

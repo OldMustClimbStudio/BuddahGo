@@ -29,10 +29,8 @@ public class LapProgress : NetworkBehaviour
     [Header("Read Only")]
     [SerializeField] private int currentLap = 0;
     [SerializeField] private bool hasStartedLap = false;
-    [SerializeField] private bool lapArmed = false;
     [SerializeField] private bool hasLeftStartZoneSinceLastCross = false;
     [SerializeField] private bool hasReachedLapValidationDistance = false;
-    [SerializeField] private bool sawValidForwardWrapSinceLastCross = false;
     [SerializeField] private int nextCheckpointIndex = 1;
 
     private SplineProgressTracker _tracker;
@@ -183,21 +181,13 @@ public class LapProgress : NetworkBehaviour
             && rawDelta <= -minimumForwardWrapDelta01
             && _tracker.forwardDot >= minForwardDot;
 
-        if (isValidForwardWrap)
-        {
-            sawValidForwardWrapSinceLastCross = true;
-            lapArmed = true;
-        }
-
         _lastProgress01 = currentProgress;
     }
 
     private void ResetCrossState()
     {
-        lapArmed = false;
         hasLeftStartZoneSinceLastCross = false;
         hasReachedLapValidationDistance = false;
-        sawValidForwardWrapSinceLastCross = false;
         nextCheckpointIndex = 1;
     }
 

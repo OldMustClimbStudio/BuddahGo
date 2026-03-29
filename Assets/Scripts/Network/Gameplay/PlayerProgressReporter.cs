@@ -3,12 +3,15 @@ using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(NetworkObject))]
+[RequireComponent(typeof(RaceCompletionTracker))]
 public class PlayerProgressReporter : NetworkBehaviour
 {
     [SerializeField] private float reportIntervalSeconds = 0.1f;
+
     private float _nextReportTime;
     private SplineProgressTracker _tracker;
     private LapProgress _lapTracker;
+    private RaceCompletionTracker _completionTracker;
     private bool _registeredWithLeaderboard;
 
     private void Awake()
@@ -25,23 +28,26 @@ public class PlayerProgressReporter : NetworkBehaviour
             return;
 
         _nextReportTime = Time.time + reportIntervalSeconds;
+        ResolveProgressDependencies();
 
-        if (_tracker == null)
-            ResolveProgressDependencies();
-
-        if (_tracker == null)
+        if (_tracker == null || _completionTracker == null)
             return;
 
         int lap = (_lapTracker != null) ? _lapTracker.CurrentLap : 0;
-        // High-frequency progress reports are gated behind a global verbose switch.
+        _completionTracker.UpdateCompletionFromLapAndSpline(lap, _tracker.progress01, GetConfiguredLapsToFinish());
+
         DebugLog($"[Leaderboard] Reporting progress OwnerId={OwnerId} distance={_tracker.distanceOnTrack:0.00} lap={lap} dot={_tracker.forwardDot:0.00}");
-        ReportSplineProgressServerRpc(_tracker.distanceOnTrack, _tracker.forwardDot, lap);
+        ReportSplineProgressServerRpc(
+            _tracker.distanceOnTrack,
+            _tracker.forwardDot,
+            lap,
+            _tracker.progress01,
+            _tracker.PreviousProgress01);
     }
 
     public override void OnStartServer()
     {
         base.OnStartServer();
-        // Validation log: server observed this player's spawned network avatar.
         DebugLog($"[Spawn] Player ready for conn {OwnerId}");
         DebugLog($"[Leaderboard] Register player request OwnerId={OwnerId} object={name}");
         StartCoroutine(RegisterWithLeaderboardWhenReady());
@@ -59,15 +65,36 @@ public class PlayerProgressReporter : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void ReportSplineProgressServerRpc(float distanceOnTrack, float forwardDot, int lap)
+    private void ReportSplineProgressServerRpc(float distanceOnTrack, float forwardDot, int lap, float progress01, float previousProgress01)
     {
         if (LeaderboardManager.Instance == null)
             return;
 
-        LeaderboardManager.Instance.ReportSplineProgress(OwnerId, distanceOnTrack, forwardDot, lap);
+        ResolveProgressDependencies();
+        if (_completionTracker == null)
+            return;
+
+        int lapsToFinish = GetConfiguredLapsToFinish();
+        _completionTracker.UpdateCompletionFromLapAndSpline(lap, progress01, lapsToFinish, previousProgress01, forwardDot);
+
+        RaceFinishManager finishManager = RaceFinishManager.Instance;
+        if (finishManager != null && _completionTracker.ShouldMarkFinished(lapsToFinish))
+        {
+            finishManager.TryRegisterFinish(_completionTracker);
+        }
+
+        LeaderboardManager.Instance.ReportSplineProgress(
+            OwnerId,
+            distanceOnTrack,
+            forwardDot,
+            lap,
+            progress01,
+            _completionTracker.FinalCompletionPercent,
+            _completionTracker.IsFinished,
+            _completionTracker.FinishOrder,
+            _completionTracker.FinishServerTime);
     }
 
-    // Checkpoints are no longer required; progress is spline-based.
     public void ReportCheckpoint(int checkpointId)
     {
         if (!IsOwner)
@@ -88,6 +115,10 @@ public class PlayerProgressReporter : NetworkBehaviour
         _lapTracker ??= GetComponent<LapProgress>();
         _lapTracker ??= GetComponentInParent<LapProgress>();
         _lapTracker ??= GetComponentInChildren<LapProgress>(true);
+
+        _completionTracker ??= GetComponent<RaceCompletionTracker>();
+        _completionTracker ??= GetComponentInParent<RaceCompletionTracker>();
+        _completionTracker ??= GetComponentInChildren<RaceCompletionTracker>(true);
     }
 
     private IEnumerator RegisterWithLeaderboardWhenReady()
@@ -116,4 +147,11 @@ public class PlayerProgressReporter : NetworkBehaviour
             Debug.Log(message);
     }
 
+    private int GetConfiguredLapsToFinish()
+    {
+        if (RaceFinishManager.Instance != null)
+            return RaceFinishManager.Instance.LapsToFinish;
+
+        return 3;
+    }
 }

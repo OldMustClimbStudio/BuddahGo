@@ -1,27 +1,35 @@
 using FishNet.Object;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Splines;
-using Unity.Mathematics;
 
 public class SplineProgressTracker : NetworkBehaviour
 {
     [Header("Read Only")]
-    [Range(0f, 1f)] public float progress01;      // 完成度 0..1
-    public float distanceOnTrack;                 // 0..trackLength (米，估算)
-    public float forwardDot;                      // <0 逆行倾向（可选）
+    [Range(0f, 1f)] public float progress01;
+    public float distanceOnTrack;
+    public float forwardDot;
+    [SerializeField, Range(0f, 1f)] private float previousProgress01;
+    [SerializeField] private float rawProgressDelta01;
+    [SerializeField] private bool wrappedFromStartToEndThisFrame;
+    [SerializeField] private bool wrappedFromEndToStartThisFrame;
 
     [SerializeField] private Rigidbody rb;
     private float _lastT01;
     private float _lastDistance;
     private bool _hasLast;
 
-    [SerializeField] private float jumpMetersThreshold = 8f; // 5~15 
-    [SerializeField] private float windowRadiusT = 0.1f;    // 0.03~0.10
+    [SerializeField] private float jumpMetersThreshold = 8f;
+    [SerializeField] private float windowRadiusT = 0.1f;
     [SerializeField] private int windowSteps = 40;
-    [SerializeField] private float maxProjectionDistance = 40f; // 离赛道中心线太远就不更新（防飞出去乱跳）
-    [SerializeField] private float maxStepFactor = 1.5f;        // 单帧最大允许前进 = 速度 * dt * factor
+    [SerializeField] private float maxProjectionDistance = 40f;
+    [SerializeField] private float maxStepFactor = 1.5f;
 
-
+    public float PreviousProgress01 => previousProgress01;
+    public float RawProgressDelta01 => rawProgressDelta01;
+    public bool WrappedFromStartToEndThisFrame => wrappedFromStartToEndThisFrame;
+    public bool WrappedFromEndToStartThisFrame => wrappedFromEndToStartThisFrame;
+    public bool IsClearlyWrongWay => forwardDot < 0f;
 
     private void Awake()
     {
@@ -43,11 +51,8 @@ public class SplineProgressTracker : NetworkBehaviour
 
         float dt = Time.deltaTime;
         float speed = (rb != null) ? rb.velocity.magnitude : 0f;
-        float maxStepMeters = Mathf.Max(2f, speed * dt * maxStepFactor); // 最小给2m，避免低速抖动过严
+        float maxStepMeters = Mathf.Max(2f, speed * dt * maxStepFactor);
 
-        // ====== 1) 全局最近点 ======
-        // NOTE: SplineUtility APIs operate in the spline's local space.
-        // Convert world position into container-local space before projecting.
         Vector3 posW = transform.position;
         Vector3 posLWorld = container.transform.InverseTransformPoint(posW);
 
@@ -57,46 +62,33 @@ public class SplineProgressTracker : NetworkBehaviour
         float tGlobal = Mathf.Repeat(t, 1f);
         float dGlobal = track.DistanceAtT(tGlobal);
 
-        // 当前点离样条太远：不要更新（比如飞出去/撞飞到旁边段附近）
         float3 posGlobalL, tanGlobalL, upGlobalL;
         SplineUtility.Evaluate(spline, tGlobal, out posGlobalL, out tanGlobalL, out upGlobalL);
         Vector3 pGlobalW = container.transform.TransformPoint((Vector3)posGlobalL);
         if ((posW - pGlobalW).sqrMagnitude > maxProjectionDistance * maxProjectionDistance)
         {
-            // 仍然更新 wrong-way（用当前朝向大概估一下也行）
-            // 但进度就保持上次
             if (!_hasLast)
             {
-                distanceOnTrack = dGlobal;
-                progress01 = dGlobal / L;
-                _lastT01 = tGlobal;
-                _lastDistance = dGlobal;
-                _hasLast = true;
+                ApplyProgressState(dGlobal / L, dGlobal, tGlobal);
             }
             return;
         }
 
         if (!_hasLast)
         {
-            _hasLast = true;
-            _lastT01 = tGlobal;
-            _lastDistance = dGlobal;
+            ApplyProgressState(dGlobal / L, dGlobal, tGlobal);
         }
 
-        // ====== 2) 本地窗口最近点（围绕上一帧 t） ======
         float tLocal = FindNearestTInWindow(track, posW, _lastT01);
         float dLocal = track.DistanceAtT(tLocal);
 
-        // 计算两个候选相对上一帧的“环形增量”
         float deltaGlobal = CircularDelta(dGlobal, _lastDistance, L);
-        float deltaLocal  = CircularDelta(dLocal,  _lastDistance, L);
+        float deltaLocal = CircularDelta(dLocal, _lastDistance, L);
 
-        // 选“更连续”的那个
         float chosenT = tGlobal;
         float chosenD = dGlobal;
         float chosenDelta = deltaGlobal;
 
-        // 只要全局出现异常跳变，优先考虑本地窗口；否则两者择优
         bool globalLooksJump = Mathf.Abs(deltaGlobal) > jumpMetersThreshold;
         if (globalLooksJump || Mathf.Abs(deltaLocal) < Mathf.Abs(deltaGlobal))
         {
@@ -105,26 +97,15 @@ public class SplineProgressTracker : NetworkBehaviour
             chosenDelta = deltaLocal;
         }
 
-        // ====== 3) 速度限制：硬切掉单帧不可能的跳跃 ======
         if (Mathf.Abs(chosenDelta) > maxStepMeters)
         {
-            // 用“上一帧距离 + 被限制的delta”得到新距离（连续）
             chosenDelta = Mathf.Clamp(chosenDelta, -maxStepMeters, maxStepMeters);
             chosenD = Mathf.Repeat(_lastDistance + chosenDelta, L);
-
-            // t 不强求精确，保留上一帧附近即可（避免抖动）
             chosenT = _lastT01;
         }
 
-        // 输出
-        distanceOnTrack = chosenD;
-        progress01 = chosenD / L;
+        ApplyProgressState(chosenD / L, chosenD, chosenT);
 
-        // 更新缓存
-        _lastDistance = chosenD;
-        _lastT01 = chosenT;
-
-        // ====== Wrong-way：用 chosenT 对应的切线做 dot ======
         float3 posL, tanL, upL;
         SplineUtility.Evaluate(spline, chosenT, out posL, out tanL, out upL);
         Vector3 tangentW = container.transform.TransformDirection((Vector3)tanL);
@@ -136,15 +117,47 @@ public class SplineProgressTracker : NetworkBehaviour
         Vector3 vDir = v.sqrMagnitude > 0.01f ? v.normalized : transform.forward;
 
         forwardDot = Vector3.Dot(vDir, tangentW);
+        UpdateWrapFlags();
     }
 
+    public void SnapToTrackProgress(float targetProgress01)
+    {
+        targetProgress01 = Mathf.Clamp01(targetProgress01);
+        TrackSplineRef track = TrackSplineRef.Instance;
+        if (track == null || track.TrackLength <= 1e-6f)
+            return;
+
+        float distance = targetProgress01 * track.TrackLength;
+        float t = track.TAtProgress01(targetProgress01);
+        ApplyProgressState(targetProgress01, distance, t);
+        forwardDot = 0f;
+        UpdateWrapFlags();
+    }
+
+    private void ApplyProgressState(float newProgress01, float newDistance, float newT01)
+    {
+        float clampedProgress01 = Mathf.Clamp01(newProgress01);
+        previousProgress01 = progress01;
+        progress01 = clampedProgress01;
+        distanceOnTrack = Mathf.Max(0f, newDistance);
+        rawProgressDelta01 = progress01 - previousProgress01;
+        _lastDistance = distanceOnTrack;
+        _lastT01 = Mathf.Repeat(newT01, 1f);
+        _hasLast = true;
+    }
+
+    private void UpdateWrapFlags()
+    {
+        wrappedFromStartToEndThisFrame = previousProgress01 <= 0.2f && progress01 >= 0.8f;
+        wrappedFromEndToStartThisFrame = previousProgress01 >= 0.8f && progress01 <= 0.2f;
+    }
 
     private float CircularDelta(float cur, float prev, float loopLength)
     {
         float d = cur - prev;
         if (loopLength <= 0.0001f) return d;
 
-        if (d >  loopLength * 0.5f) d -= loopLength;
+        if (d > loopLength * 0.5f) d -= loopLength;
         if (d < -loopLength * 0.5f) d += loopLength;
         return d;
     }
@@ -161,7 +174,7 @@ public class SplineProgressTracker : NetworkBehaviour
 
         for (int i = 0; i <= windowSteps; i++)
         {
-            float u = (float)i / windowSteps; // 0..1
+            float u = (float)i / windowSteps;
             float t = centerT01 - searchRadius + 2f * searchRadius * u;
             t = Mathf.Repeat(t, 1f);
 
@@ -176,8 +189,6 @@ public class SplineProgressTracker : NetworkBehaviour
             }
         }
 
-        // Refine around the best coarse sample to reduce visible "stepping"
-        // in progress01 near curved sections or on shorter tracks.
         float refineRadius = Mathf.Max(searchRadius / Mathf.Max(1, windowSteps), 0.0005f);
         for (int pass = 0; pass < 3; pass++)
         {
@@ -207,5 +218,4 @@ public class SplineProgressTracker : NetworkBehaviour
 
         return bestT;
     }
-
 }

@@ -7,6 +7,7 @@ using FishNet.Managing.Scened;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using FishNet.Transporting;
+using SteamMultiplayer.Network.Results;
 using Steamworks;
 using Steamworks.Data;
 using UnityEngine;
@@ -616,6 +617,7 @@ namespace SteamMultiplayer.Network
             _stageCountdownActive.Value = false;
             _stageCountdownSecondsRemaining.Value = 0;
             _transitioningToMatch.Value = true;
+            MatchResultCache.Clear();
             UpdateResolvedSelectionCache();
             if (!string.IsNullOrWhiteSpace(_resolvedMatchSceneName) && InstanceFinder.SceneManager != null)
             {

@@ -39,6 +39,13 @@ public class PlayerScaleEffect : MonoBehaviour
         StartTransition(_targetScaleMultiplier, _enterDuration);
     }
 
+    public void CancelAndRestore()
+    {
+        Restore(immediateOnly: true);
+        _timeLeft = 0f;
+        Destroy(this);
+    }
+
     private void Update()
     {
         if (!_initialized)

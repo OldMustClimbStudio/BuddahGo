@@ -41,6 +41,24 @@ public class BuddahRespawn : MonoBehaviour
         TryQueueRespawn(collision.collider);
     }
 
+    public bool RespawnToTrackProgress(float targetProgress01, bool resetSkillEffects = false, bool preserveObsession = true, string reason = "respawn")
+    {
+        if (!IsLocalOwner())
+            return false;
+
+        ResolveReferences();
+
+        float clampedTargetProgress01 = Mathf.Clamp01(targetProgress01);
+        Debug.Log($"[Respawn] reason={reason} targetProgress01={clampedTargetProgress01:0.000} skillEffectsPreserved=true obsessionPreserved=true");
+
+        return TeleportToTrackProgress(clampedTargetProgress01);
+    }
+
+    public bool RequestWrongWayCorrectionRespawn(float targetProgress01, bool resetSkillEffects = false, bool preserveObsession = true, string reason = "wrong-way-correction")
+    {
+        return RespawnToTrackProgress(targetProgress01, resetSkillEffects, preserveObsession, reason);
+    }
+
     private void TryQueueRespawn(Collider other)
     {
         if (!IsLocalOwner() || !enabled || other == null)
@@ -60,43 +78,71 @@ public class BuddahRespawn : MonoBehaviour
     {
         yield return new WaitForSeconds(respawnDelaySeconds);
         _respawnRoutine = null;
-        RespawnToCurrentProgress();
+        float currentProgress = progressTracker != null ? progressTracker.progress01 : 0f;
+        RespawnToTrackProgress(currentProgress, false, true, "fall-respawn");
     }
 
-    private void RespawnToCurrentProgress()
+    private bool TeleportToTrackProgress(float targetProgress01)
     {
-        if (progressTracker == null)
-            progressTracker = GetComponent<SplineProgressTracker>();
+        ResolveReferences();
 
         TrackSplineRef track = TrackSplineRef.Instance;
-        if (track == null || progressTracker == null)
-            return;
+        if (track == null)
+            return false;
 
-        if (!track.TryEvaluateWorldPoseAtProgress01(progressTracker.progress01, out Vector3 trackPosition, out Vector3 trackForward))
-            return;
+        if (!track.TryEvaluateWorldPoseAtProgress01(targetProgress01, out Vector3 trackPosition, out Vector3 trackForward))
+            return false;
+
+        NotifyTeleportTrailRebases();
 
         Vector3 respawnPosition = trackPosition + Vector3.up * respawnHeightOffset;
+        Quaternion respawnRotation = trackForward.sqrMagnitude > 0.0001f
+            ? Quaternion.LookRotation(trackForward, Vector3.up)
+            : Quaternion.identity;
 
         if (rb != null)
         {
             rb.velocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
             rb.position = respawnPosition;
-
-            if (trackForward.sqrMagnitude > 0.0001f)
-                rb.rotation = Quaternion.LookRotation(trackForward, Vector3.up);
-            else
-                rb.rotation = Quaternion.identity;
-
+            rb.rotation = respawnRotation;
             rb.Sleep();
             rb.WakeUp();
         }
         else
         {
             transform.position = respawnPosition;
-            if (trackForward.sqrMagnitude > 0.0001f)
-                transform.rotation = Quaternion.LookRotation(trackForward, Vector3.up);
+            transform.rotation = respawnRotation;
         }
+
+        progressTracker?.SnapToTrackProgress(targetProgress01);
+        return true;
+    }
+
+    private void NotifyTeleportTrailRebases()
+    {
+        PlayerBlackCurtainTrail[] blackCurtainTrails = GetComponentsInChildren<PlayerBlackCurtainTrail>(true);
+        for (int i = 0; i < blackCurtainTrails.Length; i++)
+        {
+            if (blackCurtainTrails[i] != null)
+                blackCurtainTrails[i].NotifyTeleportRebase();
+        }
+
+        PlayerAccelerationTrail[] accelerationTrails = GetComponentsInChildren<PlayerAccelerationTrail>(true);
+        for (int i = 0; i < accelerationTrails.Length; i++)
+        {
+            if (accelerationTrails[i] != null)
+                accelerationTrails[i].NotifyTeleportRebase();
+        }
+    }
+
+    private void ResolveReferences()
+    {
+        if (rb == null)
+            rb = GetComponent<Rigidbody>();
+
+        if (progressTracker == null)
+            progressTracker = GetComponent<SplineProgressTracker>();
     }
 
     private bool IsLocalOwner()

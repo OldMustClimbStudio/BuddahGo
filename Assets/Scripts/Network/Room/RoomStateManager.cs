@@ -8,6 +8,7 @@ using FishNet.Managing.Scened;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using FishNet.Transporting;
+using SteamMultiplayer.Network.Results;
 using Steamworks;
 using Steamworks.Data;
 using UnityEngine;
@@ -33,6 +34,8 @@ namespace SteamMultiplayer.Network
 
         [Header("Race Flow")]
         [SerializeField] private string _raceSceneName = "RaceMap";
+        [SerializeField] private string _resultSceneName = "RaceMapEndField";
+        [SerializeField] private string _mainMenuSceneName = "MainMenu";
         [SerializeField] private int _pregameCountdownSeconds = 3;
 
         public readonly SyncList<RoomPlayerState> Players = new SyncList<RoomPlayerState>();
@@ -43,7 +46,9 @@ namespace SteamMultiplayer.Network
         private readonly SyncVar<bool> _raceCountdownActive = new SyncVar<bool>();
         private readonly SyncVar<int> _raceCountdownSecondsRemaining = new SyncVar<int>();
         private readonly SyncVar<bool> _raceStarted = new SyncVar<bool>();
+        private readonly SyncVar<MatchSessionPhase> _matchSessionPhase = new SyncVar<MatchSessionPhase>();
         private float _nextRaceReadinessPollTime;
+        private bool _returningToRoomMenu;
 
         public bool IsTransitioningToPropertiesSelector => _transitioningToPropertiesSelector.Value;
         public string PlayersSummaryText => _playersSummaryText.Value;
@@ -53,6 +58,7 @@ namespace SteamMultiplayer.Network
         public bool IsRaceCountdownActive => _raceCountdownActive.Value;
         public int RaceCountdownSecondsRemaining => _raceCountdownSecondsRemaining.Value;
         public bool IsRaceStarted => _raceStarted.Value;
+        public MatchSessionPhase CurrentMatchSessionPhase => _matchSessionPhase.Value;
         public bool IsRaceSceneLoadedLocally => !string.IsNullOrWhiteSpace(_raceSceneName) && UnitySceneManager.GetSceneByName(_raceSceneName).isLoaded;
         public bool ShouldBlockRaceGameplayInput => IsRaceSceneLoadedLocally && !_raceStarted.Value;
 
@@ -114,6 +120,8 @@ namespace SteamMultiplayer.Network
             _transitioningToPropertiesSelector.Value = false;
             UpdatePlayersSummaryText();
             ResetRaceFlowStateServer();
+            _matchSessionPhase.Value = MatchSessionPhase.InRoom;
+            _returningToRoomMenu = false;
         }
 
         public override void OnStopServer()
@@ -140,6 +148,8 @@ namespace SteamMultiplayer.Network
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
             _raceStarted.Value = false;
+            _matchSessionPhase.Value = MatchSessionPhase.InRoom;
+            _returningToRoomMenu = false;
         }
 
         public void RequestToggleReady()
@@ -156,6 +166,14 @@ namespace SteamMultiplayer.Network
                 return;
 
             StartGameServerRpc();
+        }
+
+        public void RequestReturnToRoomMenuKeepingSession()
+        {
+            if (!IsClientInitialized)
+                return;
+
+            ReturnToRoomMenuKeepingSessionServerRpc();
         }
 
         public bool TryGetPlayer(int playerId, out RoomPlayerState player)
@@ -234,6 +252,21 @@ namespace SteamMultiplayer.Network
         }
 
         [ServerRpc(RequireOwnership = false)]
+        private void ReturnToRoomMenuKeepingSessionServerRpc(NetworkConnection caller = null)
+        {
+            if (caller == null || !caller.IsAuthenticated)
+                return;
+
+            if (_matchSessionPhase.Value != MatchSessionPhase.InResult)
+            {
+                LogDebug($"Ignored room-return request from player {caller.ClientId} because phase={_matchSessionPhase.Value}");
+                return;
+            }
+
+            ReturnToRoomMenuKeepingSessionServer();
+        }
+
+        [ServerRpc(RequireOwnership = false)]
         private void SubmitDisplayNameServerRpc(string displayName, NetworkConnection caller = null)
         {
             if (caller == null || !caller.IsAuthenticated)
@@ -291,8 +324,20 @@ namespace SteamMultiplayer.Network
             if (!IsServerInitialized)
                 return;
 
+            if (ContainsScene(args.LoadedScenes, _mainMenuSceneName))
+            {
+                CompleteReturnToRoomMenuServer();
+                return;
+            }
+
             if (ContainsScene(args.LoadedScenes, _propertiesSelectorSceneName))
                 ValidatePropertiesSelectionManagerServer();
+
+            if (ContainsScene(args.LoadedScenes, _resultSceneName))
+            {
+                BeginResultPhaseServer();
+                return;
+            }
 
             if (!ContainsRaceScene(args.LoadedScenes))
                 return;
@@ -476,6 +521,7 @@ namespace SteamMultiplayer.Network
                 return;
 
             ResetRaceFlowStateServer();
+            _matchSessionPhase.Value = MatchSessionPhase.TransitioningToProperties;
             _transitioningToPropertiesSelector.Value = true;
             OnPropertiesSelectorTransitionRequested?.Invoke();
             NotifyPropertiesSelectorRequestedObserversRpc();
@@ -505,8 +551,124 @@ namespace SteamMultiplayer.Network
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
             _raceStarted.Value = false;
+            _matchSessionPhase.Value = MatchSessionPhase.InMatch;
             EvaluateRaceStartReadinessServer();
             LogDebug("Race scene loaded. Waiting for all players and spawned characters before countdown.");
+        }
+
+        [Server]
+        public void MarkTransitionToResultServer()
+        {
+            if (!IsServerInitialized)
+                return;
+
+            _matchSessionPhase.Value = MatchSessionPhase.TransitioningToResult;
+        }
+
+        [Server]
+        private void BeginResultPhaseServer()
+        {
+            ResetRaceFlowStateServer();
+            _matchSessionPhase.Value = MatchSessionPhase.InResult;
+            _returningToRoomMenu = false;
+            LogDebug("Result scene loaded. Waiting for host-authoritative return-to-room trigger.");
+        }
+
+        [Server]
+        public void ReturnToRoomMenuKeepingSessionServer()
+        {
+            ReturnToRoomMenuKeepingSessionServer(_mainMenuSceneName);
+        }
+
+        [Server]
+        public void ReturnToRoomMenuKeepingSessionServer(string targetMainMenuSceneName)
+        {
+            if (!IsServerInitialized)
+                return;
+
+            if (_returningToRoomMenu)
+            {
+                Debug.LogWarning("[RoomStateManager] ReturnToRoomMenuKeepingSessionServer ignored because room return is already in progress.");
+                return;
+            }
+
+            _returningToRoomMenu = true;
+            _matchSessionPhase.Value = MatchSessionPhase.ReturningToRoom;
+            CleanupMatchSessionButKeepRoomServer();
+
+            string sceneName = string.IsNullOrWhiteSpace(targetMainMenuSceneName) ? _mainMenuSceneName : targetMainMenuSceneName;
+            if (string.IsNullOrWhiteSpace(sceneName) || InstanceFinder.SceneManager == null)
+            {
+                Debug.LogWarning("[RoomStateManager] Main menu scene name is empty or SceneManager is missing. Cannot return room to menu.");
+                _returningToRoomMenu = false;
+                _matchSessionPhase.Value = MatchSessionPhase.InRoom;
+                return;
+            }
+
+            SceneLoadData sceneLoadData = new SceneLoadData(sceneName)
+            {
+                ReplaceScenes = ReplaceOption.All
+            };
+
+            InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
+            LogDebug($"Returning all players to main menu scene '{sceneName}' while keeping room session alive.");
+        }
+
+        [Server]
+        public void StartNextGameFromResultServer(string targetPropertySelectionSceneName)
+        {
+            if (!IsServerInitialized)
+                return;
+
+            if (_returningToRoomMenu)
+            {
+                Debug.LogWarning("[RoomStateManager] StartNextGameFromResultServer ignored because a return-to-room flow is already in progress.");
+                return;
+            }
+
+            string sceneName = string.IsNullOrWhiteSpace(targetPropertySelectionSceneName)
+                ? _propertiesSelectorSceneName
+                : targetPropertySelectionSceneName;
+
+            if (string.IsNullOrWhiteSpace(sceneName) || InstanceFinder.SceneManager == null)
+            {
+                Debug.LogWarning("[RoomStateManager] Property selection scene name is empty or SceneManager is missing. Cannot start next game.");
+                return;
+            }
+
+            CleanupMatchSessionButKeepRoomServer();
+            _transitioningToPropertiesSelector.Value = true;
+            _matchSessionPhase.Value = MatchSessionPhase.TransitioningToProperties;
+            OnPropertiesSelectorTransitionRequested?.Invoke();
+            NotifyPropertiesSelectorRequestedObserversRpc();
+
+            SceneLoadData sceneLoadData = new SceneLoadData(sceneName)
+            {
+                ReplaceScenes = ReplaceOption.All
+            };
+
+            InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
+            LogDebug($"Starting next game from result scene by loading property selection scene '{sceneName}'.");
+        }
+
+        [Server]
+        private void CleanupMatchSessionButKeepRoomServer()
+        {
+            MatchResultCache.Clear();
+            ResolvedPropertySelectionCache.Clear();
+            ResetRaceFlowStateServer();
+            ResetPlayersReadyStateForRoomReturn();
+        }
+
+        [Server]
+        private void CompleteReturnToRoomMenuServer()
+        {
+            ResetRaceFlowStateServer();
+            _transitioningToPropertiesSelector.Value = false;
+            _matchSessionPhase.Value = MatchSessionPhase.InRoom;
+            _returningToRoomMenu = false;
+            UpdatePlayersSummaryText();
+            LogDebug("Main menu loaded while keeping the current room session alive.");
         }
 
         [Server]
@@ -515,6 +677,23 @@ namespace SteamMultiplayer.Network
             StopRaceCountdownServer();
             _waitingForRacePlayers.Value = false;
             _raceStarted.Value = false;
+        }
+
+        [Server]
+        private void ResetPlayersReadyStateForRoomReturn()
+        {
+            for (int i = 0; i < Players.Count; i++)
+            {
+                RoomPlayerState player = Players[i];
+                bool nextReady = player.IsHost;
+                if (player.IsReady == nextReady)
+                    continue;
+
+                player.IsReady = nextReady;
+                Players[i] = player;
+            }
+
+            UpdatePlayersSummaryText();
         }
 
         [Server]
@@ -714,5 +893,15 @@ namespace SteamMultiplayer.Network
             if (_enableDebugLogs && NetDebug.EnableVerboseLog)
                 Debug.Log($"[RoomStateManager] {message}");
         }
+    }
+
+    public enum MatchSessionPhase
+    {
+        InRoom,
+        TransitioningToProperties,
+        InMatch,
+        TransitioningToResult,
+        InResult,
+        ReturningToRoom
     }
 }

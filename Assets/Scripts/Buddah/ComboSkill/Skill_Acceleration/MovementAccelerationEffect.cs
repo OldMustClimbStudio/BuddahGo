@@ -50,6 +50,15 @@ public class MovementAccelerationEffect : MonoBehaviour
         Debug.Log($"[AccelEffect] ON: +{_extraForwardForce} forwardForce, +{_extraMaxSpeed} maxSpeed, {_timeLeft:0.00}s");
     }
 
+    public void CancelAndRestore()
+    {
+        if (_initialized && _move != null)
+            Restore();
+
+        _timeLeft = 0f;
+        Destroy(this);
+    }
+
     private void Update()
     {
         if (!_initialized || _move == null) return;

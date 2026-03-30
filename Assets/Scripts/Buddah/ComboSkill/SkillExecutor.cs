@@ -23,13 +23,11 @@ public class SkillExecutor : NetworkBehaviour
     [SerializeField] private Animator characterAnimator;
     [SerializeField] private PlayerAccelerationTrail accelerationTrailController;
     [SerializeField] private PlayerCamera playerCamera;
+
     private float _castLockedUntil;
     private readonly Dictionary<string, int> _feelStopTokens = new();
     private Coroutine _cameraFovPulseRoutine;
-
-    private float[] _nextReadyTime; // server cooldown tracking
-
-    /// <summary>Cached reference.</summary>
+    private float[] _nextReadyTime;
     private ObsessionFigure _obs;
 
     private static readonly int AntiAnimatorTriggerHash = Animator.StringToHash(AntiAnimatorTriggerName);
@@ -74,7 +72,6 @@ public class SkillExecutor : NetworkBehaviour
 
     private void OnSlotTriggeredByCombo(int slotIndex, string comboName)
     {
-        // Runs only on the owning client.
         Debug.Log($"[SkillExecutor][Owner] Combo '{comboName}' triggered slot {slotIndex}, requesting cast...");
         RequestCast(slotIndex);
     }
@@ -83,6 +80,70 @@ public class SkillExecutor : NetworkBehaviour
     {
         if (!IsOwner || IsRaceGameplayBlocked()) return;
         CastSlotServerRpc(slotIndex);
+    }
+
+    public void RequestResetActiveSkillEffectsForRespawn()
+    {
+        if (!IsOwner)
+            return;
+
+        if (IsServerInitialized)
+        {
+            ResetActiveSkillEffectsServer();
+            return;
+        }
+
+        ResetActiveSkillEffectsForOwner();
+        RequestResetActiveSkillEffectsServerRpc();
+    }
+
+    public void ResetActiveSkillEffectsServer()
+    {
+        if (!IsServerInitialized)
+            return;
+
+        NetworkConnection conn = Owner;
+        if (conn == null)
+            return;
+
+        ResetActiveSkillEffectsTargetRpc(conn);
+    }
+
+    public void ResetActiveSkillEffectsForOwner()
+    {
+        ResolveCharacterAnimator();
+        ResolveAccelerationTrailController();
+        ResolvePlayerCamera();
+
+        if (_cameraFovPulseRoutine != null)
+        {
+            StopCoroutine(_cameraFovPulseRoutine);
+            _cameraFovPulseRoutine = null;
+        }
+
+        _feelStopTokens.Clear();
+
+        var accelerationEffect = GetComponent<MovementAccelerationEffect>();
+        if (accelerationEffect != null)
+            accelerationEffect.CancelAndRestore();
+
+        var rootThenAccelerationEffect = GetComponent<MovementRootThenAccelerationEffect>();
+        if (rootThenAccelerationEffect != null)
+            rootThenAccelerationEffect.CancelAndRestore();
+
+        var invertTurnEffect = GetComponent<MovementInvertTurnInputEffect>();
+        if (invertTurnEffect != null)
+            invertTurnEffect.CancelAndRestore();
+
+        var scaleEffect = GetComponent<PlayerScaleEffect>();
+        if (scaleEffect != null)
+            scaleEffect.CancelAndRestore();
+
+        accelerationTrailController?.ClearTrail();
+        playerCamera?.ResetRuntimeEffects();
+
+        if (characterAnimator != null)
+            characterAnimator.ResetTrigger(AntiAnimatorTriggerHash);
     }
 
     [ServerRpc(RequireOwnership = true)]
@@ -155,7 +216,6 @@ public class SkillExecutor : NetworkBehaviour
         float castDelaySeconds = isAnti ? AntiCastConfirmDelaySeconds : CastConfirmDelaySeconds;
         float triggerAt = now + castDelaySeconds;
 
-        // Cooldown and cast lock start when the delayed cast actually fires.
         _castLockedUntil = triggerAt + executedSkill.castLockSeconds;
         _nextReadyTime[slotIndex] = triggerAt + executedSkill.cooldownSeconds;
 
@@ -163,6 +223,12 @@ public class SkillExecutor : NetworkBehaviour
         Debug.Log($"[SkillExecutor][Server] QUEUE '{executedSkillId}' (slot {slotIndex}) delay={castDelaySeconds:0.##}s cooldown={executedSkill.cooldownSeconds:0.##} lock={executedSkill.castLockSeconds:0.##} anti={isAnti}");
         PlayQueuedCastFeedbackObserversRpc(executedSkillId, isAnti);
         StartCoroutine(ExecuteQueuedCastAfterDelay(slotIndex, executedSkill, executedSkillId, obsessionGain, isAnti, castDelaySeconds));
+    }
+
+    [ServerRpc(RequireOwnership = true)]
+    private void RequestResetActiveSkillEffectsServerRpc()
+    {
+        ResetActiveSkillEffectsServer();
     }
 
     private IEnumerator ExecuteQueuedCastAfterDelay(int slotIndex, SkillAction executedSkill, string executedSkillId, float obsessionGain, bool isAnti, float castDelaySeconds)
@@ -178,10 +244,7 @@ public class SkillExecutor : NetworkBehaviour
         Debug.Log($"[SkillExecutor][Server] CAST '{executedSkillId}' (slot {slotIndex}) after {castDelaySeconds:0.##}s delay.");
 
         executedSkill.ExecuteServer(this, slotIndex);
-
-        // Obsession gain follows the original skill, not the anti variant.
         _obs?.AddServer(obsessionGain);
-
         CastObserversRpc(slotIndex, executedSkillId, isAnti);
     }
 
@@ -242,7 +305,6 @@ public class SkillExecutor : NetworkBehaviour
     [TargetRpc]
     private void ApplyAccelerationTargetRpc(NetworkConnection conn, float extraForwardForce, float extraMaxSpeed, float durationSeconds)
     {
-        // Runs only on the owning client.
         var move = GetComponent<BuddahMovement>();
         if (move == null)
         {
@@ -480,6 +542,12 @@ public class SkillExecutor : NetworkBehaviour
             StopCoroutine(_cameraFovPulseRoutine);
 
         _cameraFovPulseRoutine = StartCoroutine(PlayCameraFovBoostRoutine(fovOffset, rampInSeconds, durationSeconds, settleSeconds, rampInCurve, settleCurve));
+    }
+
+    [TargetRpc]
+    private void ResetActiveSkillEffectsTargetRpc(NetworkConnection conn)
+    {
+        ResetActiveSkillEffectsForOwner();
     }
 
     private IEnumerator PlayFeelStopAfterDelay(string stopEventId, float durationSeconds, string scheduleKey, int token)

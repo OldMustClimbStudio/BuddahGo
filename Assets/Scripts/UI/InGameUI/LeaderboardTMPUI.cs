@@ -17,6 +17,7 @@ public class LeaderboardTMPUI : MonoBehaviour
     private ObsessionFigure _localObsession;
     private bool _subscribedObsession;
     private SplineProgressTracker _localTracker;
+    private RaceCompletionTracker _localCompletionTracker;
     private float _nextLocalRefreshTime;
 
     private void OnEnable()
@@ -40,8 +41,8 @@ public class LeaderboardTMPUI : MonoBehaviour
         if (!_subscribedObsession)
             TrySubscribeLocalObsession();
 
-        if (_localTracker == null)
-            TryFindLocalTracker();
+        if (_localTracker == null || _localCompletionTracker == null)
+            TryFindLocalProgressComponents();
 
         if (Time.time >= _nextLocalRefreshTime)
         {
@@ -50,7 +51,6 @@ public class LeaderboardTMPUI : MonoBehaviour
         }
     }
 
-    // ---------------- Rankings ----------------
     private void TrySubscribeRankings()
     {
         if (_subscribedRankings) return;
@@ -78,12 +78,10 @@ public class LeaderboardTMPUI : MonoBehaviour
         RefreshText();
     }
 
-    // ---------------- Obsession (local) ----------------
     private void TrySubscribeLocalObsession()
     {
         if (_subscribedObsession) return;
 
-        // 找本地玩家的 ObsessionFigure（owner）
         var all = FindObjectsByType<ObsessionFigure>(FindObjectsSortMode.None);
         for (int i = 0; i < all.Length; i++)
         {
@@ -102,17 +100,18 @@ public class LeaderboardTMPUI : MonoBehaviour
         RefreshText();
     }
 
-    private void TryFindLocalTracker()
+    private void TryFindLocalProgressComponents()
     {
         var movers = FindObjectsByType<BuddahMovement>(FindObjectsSortMode.None);
         for (int i = 0; i < movers.Length; i++)
         {
-            if (movers[i] != null && movers[i].IsOwner)
-            {
-                _localTracker = movers[i].GetComponent<SplineProgressTracker>();
-                if (_localTracker != null)
-                    return;
-            }
+            if (movers[i] == null || !movers[i].IsOwner)
+                continue;
+
+            _localTracker = movers[i].GetComponent<SplineProgressTracker>();
+            _localCompletionTracker = movers[i].GetComponent<RaceCompletionTracker>();
+            if (_localTracker != null || _localCompletionTracker != null)
+                return;
         }
     }
 
@@ -140,7 +139,6 @@ public class LeaderboardTMPUI : MonoBehaviour
         RefreshText();
     }
 
-    // ---------------- UI ----------------
     private void RefreshText()
     {
         if (outputText == null)
@@ -161,13 +159,11 @@ public class LeaderboardTMPUI : MonoBehaviour
 
         sb.AppendLine("Leaderboard");
 
-        // 本地完成度
-        if (TryGetLocalProgress(out float p01, out float dot))
-            sb.AppendLine($"Your Progress: {(p01 * 100f):0.0}%   WrongWayDot: {dot:0.00}");
+        if (TryGetLocalProgress(out float splineProgress01, out float finalCompletionPercent, out float dot))
+            sb.AppendLine($"Your Progress: {finalCompletionPercent:0.0}%   LapSpline: {(splineProgress01 * 100f):0.0}%   WrongWayDot: {dot:0.00}");
         else
             sb.AppendLine("Your Progress: (local player not found)");
 
-        // ✅ 本地执着值
         if (_localObsession != null)
         {
             sb.AppendLine($"Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0}");
@@ -190,16 +186,12 @@ public class LeaderboardTMPUI : MonoBehaviour
             return;
         }
 
-        // 显示排行榜前 N 名
         int count = Mathf.Min(maxRows, LeaderboardManager.Instance.Rankings.Count);
         for (int i = 0; i < count; i++)
         {
             RankEntry entry = LeaderboardManager.Instance.Rankings[i];
-            float trackLen = (TrackSplineRef.Instance != null) ? TrackSplineRef.Instance.TrackLength : 0f;
-            float lapBase = Mathf.Max(0, entry.Lap - 1);
-            float lapProgress = (trackLen > 1e-6f) ? Mathf.Clamp01(entry.DistanceOnTrack / trackLen) : 0f;
-            float totalPct = (lapBase + lapProgress) * 100f;
-            sb.AppendLine($"{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {totalPct:0.0}%");
+            string finishSuffix = entry.IsFinished ? $" - Finished #{entry.FinishOrder}" : string.Empty;
+            sb.AppendLine($"{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}");
         }
 
         if (count == 0)
@@ -208,21 +200,27 @@ public class LeaderboardTMPUI : MonoBehaviour
         outputText.text = sb.ToString();
     }
 
-    private bool TryGetLocalProgress(out float p01, out float dot)
+    private bool TryGetLocalProgress(out float splineProgress01, out float finalCompletionPercent, out float dot)
     {
-        p01 = 0f;
+        splineProgress01 = 0f;
+        finalCompletionPercent = 0f;
         dot = 0f;
 
-        if (_localTracker == null)
-            TryFindLocalTracker();
+        if (_localTracker == null || _localCompletionTracker == null)
+            TryFindLocalProgressComponents();
 
         if (_localTracker != null)
         {
-            p01 = _localTracker.progress01;
+            splineProgress01 = _localTracker.progress01;
             dot = _localTracker.forwardDot;
+        }
+
+        if (_localCompletionTracker != null)
+        {
+            finalCompletionPercent = _localCompletionTracker.FinalCompletionPercent;
             return true;
         }
 
-        return false;
+        return _localTracker != null;
     }
 }

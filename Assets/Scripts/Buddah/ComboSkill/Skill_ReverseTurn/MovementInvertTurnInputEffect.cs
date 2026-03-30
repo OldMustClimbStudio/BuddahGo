@@ -30,6 +30,15 @@ public class MovementInvertTurnInputEffect : MonoBehaviour
         ApplyNow();
     }
 
+    public void CancelAndRestore()
+    {
+        if (_initialized && _move != null)
+            Restore();
+
+        _timeLeft = 0f;
+        Destroy(this);
+    }
+
     private void Update()
     {
         if (!_initialized || _move == null)

@@ -17,6 +17,7 @@ public class PlayerBlackCurtainTrail : MonoBehaviour
     private readonly Dictionary<string, float> _activeRequestExpiryById = new();
     private float[] _defaultTrailTimes;
     private Coroutine _fadeOutRoutine;
+    private Coroutine _teleportRebaseRoutine;
     private bool _isTrailVisible;
 
     private void Awake()
@@ -56,6 +57,36 @@ public class PlayerBlackCurtainTrail : MonoBehaviour
         SetVisibilityRequest(BlackCurtainRequestId, visible, activeDuration);
     }
 
+    public void NotifyTeleportRebase()
+    {
+        if (trailRenderers == null || trailRenderers.Length == 0)
+            return;
+
+        if (_teleportRebaseRoutine != null)
+            StopCoroutine(_teleportRebaseRoutine);
+
+        _teleportRebaseRoutine = StartCoroutine(TeleportRebaseCoroutine());
+    }
+
+    private IEnumerator TeleportRebaseCoroutine()
+    {
+        CleanupExpiredRequests();
+        bool shouldRestoreVisible = _activeRequestExpiryById.Count > 0;
+
+        DisableEmissionAndClearGeometry();
+        yield return null;
+        DisableEmissionAndClearGeometry();
+
+        CleanupExpiredRequests();
+        if (shouldRestoreVisible && _activeRequestExpiryById.Count > 0)
+        {
+            EnsureTrailVisible();
+            ApplyTrailTime(GetRequiredActiveTrailTime());
+        }
+
+        _teleportRebaseRoutine = null;
+    }
+
     private void SetVisibilityRequest(string requestId, bool visible, float activeDuration)
     {
         if (trailRenderers == null)
@@ -92,6 +123,12 @@ public class PlayerBlackCurtainTrail : MonoBehaviour
         {
             StopCoroutine(_fadeOutRoutine);
             _fadeOutRoutine = null;
+        }
+
+        if (_teleportRebaseRoutine != null)
+        {
+            StopCoroutine(_teleportRebaseRoutine);
+            _teleportRebaseRoutine = null;
         }
 
         for (int i = 0; i < trailRenderers.Length; i++)
@@ -300,5 +337,18 @@ public class PlayerBlackCurtainTrail : MonoBehaviour
             return Mathf.Max(fallbackTime, GetFadeOutDuration());
 
         return Mathf.Max(fallbackTime, longestRemainingDuration + GetFadeOutDuration());
+    }
+
+    private void DisableEmissionAndClearGeometry()
+    {
+        for (int i = 0; i < trailRenderers.Length; i++)
+        {
+            TrailRenderer trail = trailRenderers[i];
+            if (trail == null)
+                continue;
+
+            trail.emitting = false;
+            trail.Clear();
+        }
     }
 }

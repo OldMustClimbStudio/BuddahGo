@@ -14,6 +14,7 @@ public class PlayerAccelerationTrail : MonoBehaviour
     private float[] _defaultTrailTimes;
     private float _activeUntilTime;
     private Coroutine _fadeOutRoutine;
+    private Coroutine _teleportRebaseRoutine;
     private bool _isTrailVisible;
 
     private void Awake()
@@ -49,6 +50,17 @@ public class PlayerAccelerationTrail : MonoBehaviour
         EnsureTrailVisible();
     }
 
+    public void NotifyTeleportRebase()
+    {
+        if (trailRenderers == null || trailRenderers.Length == 0)
+            return;
+
+        if (_teleportRebaseRoutine != null)
+            StopCoroutine(_teleportRebaseRoutine);
+
+        _teleportRebaseRoutine = StartCoroutine(TeleportRebaseCoroutine());
+    }
+
     public void ClearTrail()
     {
         _activeUntilTime = 0f;
@@ -57,6 +69,12 @@ public class PlayerAccelerationTrail : MonoBehaviour
         {
             StopCoroutine(_fadeOutRoutine);
             _fadeOutRoutine = null;
+        }
+
+        if (_teleportRebaseRoutine != null)
+        {
+            StopCoroutine(_teleportRebaseRoutine);
+            _teleportRebaseRoutine = null;
         }
 
         if (trailRenderers == null)
@@ -75,6 +93,20 @@ public class PlayerAccelerationTrail : MonoBehaviour
         }
 
         _isTrailVisible = false;
+    }
+
+    private IEnumerator TeleportRebaseCoroutine()
+    {
+        bool shouldRestoreVisible = Time.time < _activeUntilTime;
+
+        DisableEmissionAndClearGeometry();
+        yield return null;
+        DisableEmissionAndClearGeometry();
+
+        if (shouldRestoreVisible && Time.time < _activeUntilTime)
+            EnsureTrailVisible();
+
+        _teleportRebaseRoutine = null;
     }
 
     private void EnsureTrailSetup()
@@ -218,5 +250,18 @@ public class PlayerAccelerationTrail : MonoBehaviour
             return fallbackTime;
 
         return Mathf.Max(fallbackTime, _defaultTrailTimes[index]);
+    }
+
+    private void DisableEmissionAndClearGeometry()
+    {
+        for (int i = 0; i < trailRenderers.Length; i++)
+        {
+            TrailRenderer trail = trailRenderers[i];
+            if (trail == null)
+                continue;
+
+            trail.emitting = false;
+            trail.Clear();
+        }
     }
 }

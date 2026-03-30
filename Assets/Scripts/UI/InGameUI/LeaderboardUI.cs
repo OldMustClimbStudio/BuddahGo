@@ -55,11 +55,8 @@ public class LeaderboardUI : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             RankEntry entry = LeaderboardManager.Instance.Rankings[i];
-            float trackLen = (TrackSplineRef.Instance != null) ? TrackSplineRef.Instance.TrackLength : 0f;
-            float lapBase = Mathf.Max(0, entry.Lap - 1);
-            float lapProgress = (trackLen > 1e-6f) ? Mathf.Clamp01(entry.DistanceOnTrack / trackLen) : 0f;
-            float totalPct = (lapBase + lapProgress) * 100f;
-            sb.AppendLine($"{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {totalPct:0.0}%");
+            string finishSuffix = entry.IsFinished ? $" - Finished #{entry.FinishOrder}" : string.Empty;
+            sb.AppendLine($"{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}");
         }
 
         if (count == 0)

@@ -13,9 +13,6 @@ MonoBehaviour:
   m_Name: SkillVfxDatabase
   m_EditorClassIdentifier: 
   entries:
-  - vfxId: accel_back_vfx
-    prefab: {fileID: 7519620883813434088, guid: 2b42a39518812af4b9e586e4c0c9bcea,
-      type: 3}
   - vfxId: slowtrap_vfx
     prefab: {fileID: 6079683255119547140, guid: ef7dfc3a2f7f32a4790c8d434ca2a9a6,
       type: 3}

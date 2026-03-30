@@ -1306,6 +1306,14 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 2160443733358872716}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7662734946556459576}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1886057877069683260}
   m_SourcePrefab: {fileID: 100100000, guid: a4376dfe8a76c574f88ecfdb036cc262, type: 3}
 --- !u!137 &812422496317005451 stripped
 SkinnedMeshRenderer:
@@ -1722,6 +1730,10 @@ MonoBehaviour:
   _componentIndexCache: 9
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
+  _defaultSkillIds:
+  - acceleration
+  - push_projectile_hands
+  - blackcurtain
 --- !u!114 &3264553301400044323
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1845,6 +1857,48 @@ MonoBehaviour:
   playSpeedThreshold: 30
   stopSpeedThreshold: 28
   usePlanarSpeed: 1
+--- !u!114 &7662734946556459576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f678393c69c331418985080981164cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5961911359123562421}
+  _networkObjectCache: {fileID: 0}
+  currentLap: 0
+  currentLapProgress01: 0
+  finalCompletionPercent: 0
+  isFinished: 0
+  finishOrder: 0
+  finishServerTime: -1
+--- !u!114 &1886057877069683260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f678393c69c331418985080981164cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5961911359123562421}
+  _networkObjectCache: {fileID: 0}
+  currentLap: 0
+  currentLapProgress01: 0
+  finalCompletionPercent: 0
+  isFinished: 0
+  finishOrder: 0
+  finishServerTime: -1
 --- !u!4 &4240001563575149182 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: a4376dfe8a76c574f88ecfdb036cc262,

@@ -50,6 +50,20 @@ public class MovementRootThenAccelerationEffect : MonoBehaviour
         ForceRootNow();
     }
 
+    public void CancelAndRestore()
+    {
+        _rooting = false;
+
+        if (_move != null && _hasSavedMoveStats)
+        {
+            _move.forwardForce = _savedForwardForce;
+            _move.maxSpeed = _savedMaxSpeed;
+        }
+
+        SetRootFlag(false);
+        Destroy(this);
+    }
+
     private void Update()
     {
         if (_move == null)

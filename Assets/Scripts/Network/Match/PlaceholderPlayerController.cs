@@ -54,7 +54,7 @@ namespace SteamMultiplayer.Network.Match
                 CaptureAndSubmitOwnerInput();
             }
 
-            if (IsServer)
+            if (IsServerInitialized)
             {
                 SimulateServerMovement();
             }
@@ -64,7 +64,7 @@ namespace SteamMultiplayer.Network.Match
         {
             Vector2 moveInput = ReadMoveInput();
 
-            if (IsServer)
+            if (IsServerInitialized)
             {
                 _serverMoveInput = moveInput;
                 return;

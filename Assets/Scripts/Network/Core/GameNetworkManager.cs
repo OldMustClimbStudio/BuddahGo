@@ -288,6 +288,7 @@ namespace SteamMultiplayer.Network
             }
 
             NetworkObject roomStateManagerInstance = Instantiate(_roomStateManagerPrefab);
+            DontDestroyOnLoad(roomStateManagerInstance.gameObject);
             _networkManager.ServerManager.Spawn(roomStateManagerInstance);
             NetLog.Info($"Spawned RoomStateManager network object: {roomStateManagerInstance.gameObject.name}");
         }

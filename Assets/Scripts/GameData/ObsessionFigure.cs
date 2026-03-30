@@ -38,13 +38,12 @@ public class ObsessionFigure : NetworkBehaviour
     [Tooltip("If obsession is at or above this value, backfire chance stays at Pmax.")]
     [SerializeField] private float backfireKeepPMaxAtOrAboveX = 1000f;
 
-    /// Current backfire probability in percent
     public float CurrentBackfireProbabilityPercent => GetBackfireProbabilityPercent(_current.Value);
 
     private readonly SyncVar<float> _current = new SyncVar<float>();
 
-    public event Action<float, float> OnValueChanged; // (old, new)
-    public event Action<float, float> OnCompletionGapChanged; // (old, new)
+    public event Action<float, float> OnValueChanged;
+    public event Action<float, float> OnCompletionGapChanged;
 
     public float Current => _current.Value;
     public float Max => maxValue;
@@ -55,7 +54,6 @@ public class ObsessionFigure : NetworkBehaviour
     public override void OnStartNetwork()
     {
         base.OnStartNetwork();
-        // 客户端收到变化事件
         _current.OnChange += OnValueChangedSync;
     }
 
@@ -80,8 +78,6 @@ public class ObsessionFigure : NetworkBehaviour
             extraRecoveryPerSecond = Mathf.Max(0f, extraRecovery);
 
             float totalRecoveryPerSecond = Mathf.Max(0f, drainPerSecond + extraRecoveryPerSecond);
-
-            // 持续恢复（数值向 minValue 下降）
             if (_current.Value > minValue && totalRecoveryPerSecond > 0f)
             {
                 _current.Value = Mathf.Clamp(_current.Value - totalRecoveryPerSecond * Time.deltaTime, minValue, maxValue);
@@ -102,23 +98,13 @@ public class ObsessionFigure : NetworkBehaviour
     private float GetCompletionGapToLeaderPercent()
     {
         if (LeaderboardManager.Instance == null)
-        {
             return 0f;
-        }
 
         var rankings = LeaderboardManager.Instance.Rankings;
         if (rankings.Count == 0)
-        {
             return 0f;
-        }
 
-        float trackLen = (TrackSplineRef.Instance != null) ? TrackSplineRef.Instance.TrackLength : 0f;
-        if (trackLen <= 1e-6f)
-        {
-            return 0f;
-        }
-
-        float leaderPercent = GetTotalProgressPercent(rankings[0], trackLen);
+        float leaderPercent = rankings[0].FinalCompletionPercent;
         bool foundSelf = false;
         float selfPercent = 0f;
 
@@ -127,28 +113,16 @@ public class ObsessionFigure : NetworkBehaviour
             RankEntry entry = rankings[i];
             if (entry.ClientId == OwnerId)
             {
-                selfPercent = GetTotalProgressPercent(entry, trackLen);
+                selfPercent = entry.FinalCompletionPercent;
                 foundSelf = true;
                 break;
             }
         }
 
         if (!foundSelf)
-        {
             return 0f;
-        }
 
         return Mathf.Max(0f, leaderPercent - selfPercent);
-    }
-
-    private static float GetTotalProgressPercent(RankEntry entry, float trackLen)
-    {
-        if (trackLen <= 1e-6f)
-            return 0f;
-
-        float lapBase = Mathf.Max(0, entry.Lap - 1);
-        float lapProgress = Mathf.Clamp01(entry.DistanceOnTrack / trackLen);
-        return (lapBase + lapProgress) * 100f;
     }
 
     private void SetCompletionGapToLeaderPercent(float value)
@@ -162,15 +136,14 @@ public class ObsessionFigure : NetworkBehaviour
         OnCompletionGapChanged?.Invoke(oldValue, completionGapToLeaderPercent);
     }
 
-    /// <summary>
-    /// Server only: add obsession (skill use increases it).
-    /// </summary>
     public void AddServer(float amount)
     {
-        if (!IsServerInitialized) return;
+        if (!IsServerInitialized)
+            return;
 
         amount = Mathf.Max(0f, amount);
-        if (amount <= 0f) return;
+        if (amount <= 0f)
+            return;
 
         _current.Value = Mathf.Clamp(_current.Value + amount, minValue, maxValue);
     }
@@ -180,7 +153,6 @@ public class ObsessionFigure : NetworkBehaviour
         OnValueChanged?.Invoke(oldValue, newValue);
     }
 
-    /// P(x) = Pmax / (1 + e^{-k(x - midpoint)})
     public float GetBackfireProbabilityPercent(float obsessionValue)
     {
         float x = Mathf.Clamp(obsessionValue, minValue, maxValue);

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using FishNet;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
+using SteamMultiplayer.Network.Results;
 using UnityEngine;
 
 [RequireComponent(typeof(NetworkObject))]
@@ -17,6 +18,7 @@ public class LeaderboardManager : NetworkBehaviour
     public readonly SyncList<RankEntry> Rankings = new SyncList<RankEntry>();
     private readonly Dictionary<int, PlayerProgress> _progressByClientId = new Dictionary<int, PlayerProgress>();
     private bool _rankingsDirty;
+    private bool _rankingsFrozen;
 
     private void Awake()
     {
@@ -41,11 +43,12 @@ public class LeaderboardManager : NetworkBehaviour
         base.OnStopServer();
         Rankings.Clear();
         _progressByClientId.Clear();
+        _rankingsFrozen = false;
     }
 
     public void RegisterPlayer(int clientId, string displayName)
     {
-        if (!IsServerInitialized)
+        if (!IsServerInitialized || _rankingsFrozen)
             return;
 
         if (_progressByClientId.ContainsKey(clientId))
@@ -55,14 +58,16 @@ public class LeaderboardManager : NetworkBehaviour
         {
             ClientId = clientId,
             DisplayName = string.IsNullOrWhiteSpace(displayName) ? $"Player {clientId}" : displayName,
-            CheckpointIndex = 0
+            CheckpointIndex = 0,
+            FinishOrder = 0,
+            FinishServerTime = -1d
         };
         _rankingsDirty = true;
     }
 
     public void UnregisterPlayer(int clientId)
     {
-        if (!IsServerInitialized)
+        if (!IsServerInitialized || _rankingsFrozen)
             return;
 
         if (_progressByClientId.Remove(clientId))
@@ -73,7 +78,7 @@ public class LeaderboardManager : NetworkBehaviour
 
     public bool TryAdvanceCheckpoint(int clientId, int checkpointId)
     {
-        if (!IsServerInitialized)
+        if (!IsServerInitialized || _rankingsFrozen)
             return false;
 
         if (!_progressByClientId.TryGetValue(clientId, out PlayerProgress progress))
@@ -82,7 +87,6 @@ public class LeaderboardManager : NetworkBehaviour
             progress = _progressByClientId[clientId];
         }
 
-        // Enforce sequential checkpoints: 1, 2, 3 ...
         if (checkpointId != progress.CheckpointIndex + 1)
             return false;
 
@@ -91,9 +95,19 @@ public class LeaderboardManager : NetworkBehaviour
         _rankingsDirty = true;
         return true;
     }
-    public void ReportSplineProgress(int clientId, float distanceOnTrack, float forwardDot, int lap)
+
+    public void ReportSplineProgress(
+        int clientId,
+        float distanceOnTrack,
+        float forwardDot,
+        int lap,
+        float lapProgress01,
+        float finalCompletionPercent,
+        bool isFinished,
+        int finishOrder,
+        double finishServerTime)
     {
-        if (!IsServerInitialized)
+        if (!IsServerInitialized || _rankingsFrozen)
             return;
 
         if (!_progressByClientId.TryGetValue(clientId, out PlayerProgress progress))
@@ -105,11 +119,60 @@ public class LeaderboardManager : NetworkBehaviour
         progress.DistanceOnTrack = Mathf.Max(0f, distanceOnTrack);
         progress.ForwardDot = forwardDot;
         progress.Lap = Mathf.Max(0, lap);
+        progress.LapProgress01 = Mathf.Clamp01(lapProgress01);
+        progress.FinalCompletionPercent = Mathf.Clamp(finalCompletionPercent, 0f, 100f);
+        progress.IsFinished = isFinished;
+        progress.FinishOrder = isFinished ? Mathf.Max(1, finishOrder) : 0;
+        progress.FinishServerTime = isFinished ? finishServerTime : -1d;
 
         _progressByClientId[clientId] = progress;
         _rankingsDirty = true;
     }
 
+    public void FreezeRankings()
+    {
+        if (!IsServerInitialized || _rankingsFrozen)
+            return;
+
+        BuildRankings();
+        _rankingsFrozen = true;
+        Debug.Log($"[Leaderboard] Rankings frozen count={Rankings.Count}");
+    }
+
+    public List<FinalMatchResultEntry> BuildFinalResultsSnapshot(Func<int, string> playerNameResolver = null)
+    {
+        if (!IsServerInitialized)
+            return new List<FinalMatchResultEntry>();
+
+        if (_rankingsDirty)
+            BuildRankings();
+
+        List<FinalMatchResultEntry> snapshot = new List<FinalMatchResultEntry>(Rankings.Count);
+        for (int i = 0; i < Rankings.Count; i++)
+        {
+            RankEntry entry = Rankings[i];
+            string playerName = playerNameResolver?.Invoke(entry.ClientId);
+            if (string.IsNullOrWhiteSpace(playerName))
+                playerName = entry.DisplayName;
+
+            snapshot.Add(new FinalMatchResultEntry
+            {
+                ClientId = entry.ClientId,
+                PlayerName = playerName,
+                FinalRank = i + 1,
+                FinalCompletionPercent = entry.FinalCompletionPercent,
+                IsFinished = entry.IsFinished,
+                FinishOrder = entry.FinishOrder,
+                FinishServerTime = entry.FinishServerTime,
+                Lap = entry.Lap,
+                Checkpoints = entry.Checkpoints,
+                DistanceOnTrack = entry.DistanceOnTrack,
+                LapProgress01 = entry.LapProgress01
+            });
+        }
+
+        return snapshot;
+    }
 
     private IEnumerator ServerRefreshLoop()
     {
@@ -145,26 +208,43 @@ public class LeaderboardManager : NetworkBehaviour
                 DisplayName = progress.DisplayName,
                 Checkpoints = progress.CheckpointIndex,
                 Lap = progress.Lap,
-                DistanceOnTrack = progress.DistanceOnTrack
+                DistanceOnTrack = progress.DistanceOnTrack,
+                LapProgress01 = progress.LapProgress01,
+                FinalCompletionPercent = progress.FinalCompletionPercent,
+                IsFinished = progress.IsFinished,
+                FinishOrder = progress.FinishOrder,
+                FinishServerTime = progress.FinishServerTime
             });
         }
 
         list.Sort((a, b) =>
         {
-            // 先按 checkpoints（如果你没用 checkpoints，全员为0，等价于只按距离）
+            int byFinishState = b.IsFinished.CompareTo(a.IsFinished);
+            if (byFinishState != 0) return byFinishState;
+
+            if (a.IsFinished && b.IsFinished)
+            {
+                int byFinishOrder = a.FinishOrder.CompareTo(b.FinishOrder);
+                if (byFinishOrder != 0) return byFinishOrder;
+
+                int byFinishTime = a.FinishServerTime.CompareTo(b.FinishServerTime);
+                if (byFinishTime != 0) return byFinishTime;
+            }
+
+            int byCompletion = b.FinalCompletionPercent.CompareTo(a.FinalCompletionPercent);
+            if (byCompletion != 0) return byCompletion;
+
             int byLap = b.Lap.CompareTo(a.Lap);
             if (byLap != 0) return byLap;
 
-            int byCp = b.Checkpoints.CompareTo(a.Checkpoints);
-            if (byCp != 0) return byCp;
+            int byCheckpoint = b.Checkpoints.CompareTo(a.Checkpoints);
+            if (byCheckpoint != 0) return byCheckpoint;
 
-            // 再按 spline 距离（完成度）
-            int byDist = b.DistanceOnTrack.CompareTo(a.DistanceOnTrack);
-            if (byDist != 0) return byDist;
+            int byDistance = b.DistanceOnTrack.CompareTo(a.DistanceOnTrack);
+            if (byDistance != 0) return byDistance;
 
             return string.Compare(a.DisplayName, b.DisplayName, StringComparison.Ordinal);
         });
-
 
         Rankings.Clear();
         for (int i = 0; i < list.Count; i++)
@@ -173,13 +253,12 @@ public class LeaderboardManager : NetworkBehaviour
         }
 
         Debug.Log($"[Leaderboard] BuildRankings count={list.Count}");
-
         _rankingsDirty = false;
     }
 
     private void EnsureServerPlayerRegistrations()
     {
-        if (!IsServerInitialized)
+        if (!IsServerInitialized || _rankingsFrozen)
             return;
 
         if (InstanceFinder.ServerManager != null)
@@ -219,9 +298,13 @@ public class LeaderboardManager : NetworkBehaviour
         public string DisplayName;
         public int CheckpointIndex;
         public int Lap;
-
-        public float DistanceOnTrack; // 新增：沿线米数
-        public float ForwardDot;      // 可选：调试/显示用
+        public float DistanceOnTrack;
+        public float ForwardDot;
+        public float LapProgress01;
+        public float FinalCompletionPercent;
+        public bool IsFinished;
+        public int FinishOrder;
+        public double FinishServerTime;
     }
 }
 
@@ -232,8 +315,12 @@ public struct RankEntry : IEquatable<RankEntry>
     public string DisplayName;
     public int Checkpoints;
     public int Lap;
-
-    public float DistanceOnTrack; // 新增
+    public float DistanceOnTrack;
+    public float LapProgress01;
+    public float FinalCompletionPercent;
+    public bool IsFinished;
+    public int FinishOrder;
+    public double FinishServerTime;
 
     public bool Equals(RankEntry other)
     {
@@ -241,12 +328,19 @@ public struct RankEntry : IEquatable<RankEntry>
             && DisplayName == other.DisplayName
             && Checkpoints == other.Checkpoints
             && Lap == other.Lap
-            && Mathf.Approximately(DistanceOnTrack, other.DistanceOnTrack);
+            && Mathf.Approximately(DistanceOnTrack, other.DistanceOnTrack)
+            && Mathf.Approximately(LapProgress01, other.LapProgress01)
+            && Mathf.Approximately(FinalCompletionPercent, other.FinalCompletionPercent)
+            && IsFinished == other.IsFinished
+            && FinishOrder == other.FinishOrder
+            && FinishServerTime.Equals(other.FinishServerTime);
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(ClientId, DisplayName, Checkpoints, Lap, DistanceOnTrack);
+        return HashCode.Combine(
+            HashCode.Combine(ClientId, DisplayName, Checkpoints, Lap, DistanceOnTrack),
+            HashCode.Combine(LapProgress01, FinalCompletionPercent, IsFinished, FinishOrder),
+            FinishServerTime);
     }
 }
-

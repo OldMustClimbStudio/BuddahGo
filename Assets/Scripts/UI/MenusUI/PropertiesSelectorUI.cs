@@ -9,12 +9,15 @@ namespace SteamMultiplayer.UI
     public class PropertiesSelectorUI : MonoBehaviour
     {
         [Header("Roots")]
-        [SerializeField] private GameObject root;
+        [SerializeField] private GameObject sharedUiRoot;
+        [SerializeField] private GameObject mapSelectorRoot;
+        [SerializeField] private GameObject skillSelectorRoot;
+        [SerializeField] private GameObject skinSelectorRoot;
 
         [Header("Current Stage")]
-        [SerializeField] private Transform propertyGroupListRoot;
+        [SerializeField] private Transform mapPropertyGroupListRoot;
+        [SerializeField] private Transform skinPropertyGroupListRoot;
         [SerializeField] private PropertyGroupView propertyGroupPrefab;
-        [SerializeField] private SkillLoadoutSelectorUI skillLoadoutSelector;
 
         [Header("Summary")]
         [SerializeField] private TextMeshProUGUI pageTitleText;
@@ -29,7 +32,7 @@ namespace SteamMultiplayer.UI
         [SerializeField] private TextMeshProUGUI readyButtonText;
 
         [Header("Debug")]
-        [SerializeField] private bool forceRefreshEveryFrame = true;
+        [SerializeField] private bool forceRefreshEveryFrame = false;
 
         private readonly List<PropertyGroupView> _spawnedGroups = new List<PropertyGroupView>();
         private PropertiesSelectionManager _selectionManager;
@@ -117,21 +120,17 @@ namespace SteamMultiplayer.UI
                 return;
 
             string currentStageKey = _selectionManager.CurrentStagePropertyKey;
-            if (!force && currentStageKey == _lastRenderedStageKey && _spawnedGroups.Count == 1)
+            if (!force && currentStageKey == _lastRenderedStageKey)
                 return;
 
             ClearGroups();
             _lastRenderedStageKey = currentStageKey;
-
-            if (skillLoadoutSelector != null)
-                skillLoadoutSelector.SetVisible(currentStageKey == PropertiesSelectionManager.SkillLoadoutStageKey);
+            RefreshStageRoots(currentStageKey);
 
             if (currentStageKey == PropertiesSelectionManager.SkillLoadoutStageKey)
-            {
-                skillLoadoutSelector?.Bind(_selectionManager);
                 return;
-            }
 
+            Transform propertyGroupListRoot = GetPropertyGroupListRootForStage(currentStageKey);
             if (propertyGroupListRoot == null || propertyGroupPrefab == null)
                 return;
 
@@ -145,8 +144,8 @@ namespace SteamMultiplayer.UI
 
         private void RefreshUi()
         {
-            if (root != null)
-                root.SetActive(true);
+            if (sharedUiRoot != null)
+                sharedUiRoot.SetActive(true);
 
             SetText(pageTitleText, "Properties Selector");
 
@@ -168,8 +167,6 @@ namespace SteamMultiplayer.UI
 
             for (int i = 0; i < _spawnedGroups.Count; i++)
                 _spawnedGroups[i].RefreshView();
-
-            skillLoadoutSelector?.RefreshView();
 
             RefreshStatusTexts();
         }
@@ -279,10 +276,38 @@ namespace SteamMultiplayer.UI
             _spawnedGroups.Clear();
         }
 
+        private void RefreshStageRoots(string currentStageKey)
+        {
+            bool isSkillStage = string.Equals(currentStageKey, PropertiesSelectionManager.SkillLoadoutStageKey, System.StringComparison.Ordinal);
+            bool isSkinStage = string.Equals(currentStageKey, PropertiesSelectionManager.SkinStageKey, System.StringComparison.Ordinal);
+            bool isMapStage = !isSkillStage && !isSkinStage;
+
+            SetActiveSafe(mapSelectorRoot, isMapStage);
+            SetActiveSafe(skillSelectorRoot, isSkillStage);
+            SetActiveSafe(skinSelectorRoot, isSkinStage);
+        }
+
+        private Transform GetPropertyGroupListRootForStage(string currentStageKey)
+        {
+            if (string.Equals(currentStageKey, PropertiesSelectionManager.SkinStageKey, System.StringComparison.Ordinal))
+                return skinPropertyGroupListRoot;
+
+            if (string.Equals(currentStageKey, PropertiesSelectionManager.MapStageKey, System.StringComparison.Ordinal))
+                return mapPropertyGroupListRoot;
+
+            return null;
+        }
+
         private static void SetText(TextMeshProUGUI target, string value)
         {
             if (target != null)
                 target.text = value;
+        }
+
+        private static void SetActiveSafe(GameObject target, bool active)
+        {
+            if (target != null && target.activeSelf != active)
+                target.SetActive(active);
         }
 
         private void EmitManagerDiagnosticIfNeeded()

@@ -49,7 +49,18 @@ public class BuddahRespawn : MonoBehaviour
         ResolveReferences();
 
         float clampedTargetProgress01 = Mathf.Clamp01(targetProgress01);
-        Debug.Log($"[Respawn] reason={reason} targetProgress01={clampedTargetProgress01:0.000} skillEffectsPreserved=true obsessionPreserved=true");
+
+        if (resetSkillEffects || !preserveObsession)
+        {
+            Debug.LogWarning(
+                $"[Respawn] RespawnToTrackProgress currently does not implement resetSkillEffects/preserveObsession behavior. " +
+                $"requestedResetSkillEffects={resetSkillEffects} requestedPreserveObsession={preserveObsession}");
+        }
+
+        Debug.Log(
+            $"[Respawn] reason={reason} targetProgress01={clampedTargetProgress01:0.000} " +
+            $"requestedResetSkillEffects={resetSkillEffects} requestedPreserveObsession={preserveObsession} " +
+            $"appliedSkillEffectReset=false appliedObsessionChange=false");
 
         return TeleportToTrackProgress(clampedTargetProgress01);
     }

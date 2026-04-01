@@ -1393,6 +1393,7 @@ MonoBehaviour:
   mapStageRoot: {fileID: 336384955}
   skillStageRoot: {fileID: 0}
   thirdStageRoot: {fileID: 336384955}
+  skillWallSelectionController: {fileID: 0}
   activeCameraPriority: 100
   inactiveCameraPriority: 0
   enableDebugLogs: 1
@@ -3447,7 +3448,7 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 2056323061}
   _networkObjectCache: {fileID: 2056323061}
   _registerDefaultStageProperties: 1
-  _stageDurationSeconds: 120
+  _stageDurationSeconds: 60
   _resolvedMatchSceneName: RaceMap
   _enableDebugLogs: 1
   _skillDatabase: {fileID: 11400000, guid: 7cbd45d736ea3e64bb0477a811b3f6bf, type: 2}

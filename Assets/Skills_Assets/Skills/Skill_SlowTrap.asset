@@ -30,13 +30,11 @@ MonoBehaviour:
   targetLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  slowForwardForce: 20
-  slowMaxSpeed: 15
-  slowDurationSeconds: 1.25
+  slowForwardForce: 40
+  slowMaxSpeed: 20
+  slowDurationSeconds: 2
   vfxDurationSeconds: 11
   vfxStopPlayingBeforeEndSeconds: 0
   vfxId: slowtrap_vfx
   vfxLocalOffset: {x: 0, y: 0, z: 0}
   vfxLocalEuler: {x: 0, y: 0, z: 0}
-  observersFeelEventId: slowtrap_shared
-  observersFeelStopEventId: 

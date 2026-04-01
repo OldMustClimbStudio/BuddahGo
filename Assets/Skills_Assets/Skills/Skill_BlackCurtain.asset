@@ -17,7 +17,7 @@ MonoBehaviour:
   cooldownSeconds: 16
   castLockSeconds: 14
   obsessionGain: 200
-  antiSkillId: anti_blaclcurtain
+  antiSkillId: anti_blackcurtain
   fullscreenMaterial: {fileID: -876546973899608171, guid: 542df48691f3a4f4c848f6dd8209b18f,
     type: 3}
   fullscreenMaterialName: SG_BlackCurtain

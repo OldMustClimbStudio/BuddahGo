@@ -1,0 +1,344 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2191ec9008e17274eb249e7d11ab958b, type: 3}
+  m_Name: ProjectConfigDatabase_Main
+  m_EditorClassIdentifier: 
+  _defaultRuleSetId: default
+  _defaultModeTag: default
+  skillDefinitions:
+  - skillId: acceleration
+    displayName: "\u795E\u8DB3\u901A"
+    description: "\u52A0\u901F\u81EA\u8EAB\u4E00\u6BB5\u65F6\u95F4"
+    behaviorType: Acceleration
+    iconKey: icon_acceleration
+    isSelectable: 1
+    sortOrder: 10
+    tags:
+    - movement
+    - buff
+    unlockState: unlocked
+  - skillId: slowtrap
+    displayName: "\u7985\u5B9A\u7F13\u6D41"
+    description: "\u51CF\u901F\u533A\u57DF"
+    behaviorType: SlowTrap
+    iconKey: icon_slow_trap
+    isSelectable: 1
+    sortOrder: 20
+    tags:
+    - trap
+    - debuff
+    unlockState: unlocked
+  - skillId: blackcurtain
+    displayName: "\u4E00\u5FF5\u5149\u660E"
+    description: "\u89E6\u53D1\u9ED1\u5E55\u6548\u679C"
+    behaviorType: BlackCurtain
+    iconKey: icon_blackcurtain
+    isSelectable: 1
+    sortOrder: 30
+    tags:
+    - special
+    - vision
+    unlockState: unlocked
+  - skillId: giant
+    displayName: "\u6CD5\u76F8\u91D1\u8EAB"
+    description: "\u653E\u5927\u81EA\u8EAB\u5F62\u6001"
+    behaviorType: Giant
+    iconKey: icon_giant
+    isSelectable: 1
+    sortOrder: 40
+    tags:
+    - body
+    - buff
+    unlockState: unlocked
+  - skillId: push_projectile_hands
+    displayName: "\u5982\u6765\u795E\u638C"
+    description: "\u53D1\u5C04\u5982\u6765\u795E\u638C"
+    behaviorType: PushProjectileHands
+    iconKey: icon_push_projectile_hands
+    isSelectable: 1
+    sortOrder: 50
+    tags:
+    - projectile
+    - attack
+    unlockState: unlocked
+  - skillId: reverseturn
+    displayName: "\u9006\u56E0\u7F18"
+    description: "\u5E72\u6270\u8F6C\u5411\u8F93\u5165"
+    behaviorType: ReverseTurn
+    iconKey: icon_reverseturn
+    isSelectable: 1
+    sortOrder: 60
+    tags:
+    - control
+    - debuff
+    unlockState: unlocked
+  - skillId: acceleration_anti
+    displayName: "\u795E\u8DB3\u901A\uFF08\u566C\uFF09"
+    description: "\u795E\u8DB3\u901A\u7684\u53CD\u566C\u53D8\u4F53"
+    behaviorType: AccelerationAnti
+    iconKey: icon_acceleration_anti
+    isSelectable: 0
+    sortOrder: 110
+    tags:
+    - anti
+    - hidden
+    unlockState: hidden
+  - skillId: slowtrap_anti
+    displayName: "\u7985\u5B9A\u7F13\u6D41\uFF08\u566C\uFF09"
+    description: "\u7985\u5B9A\u7F13\u6D41\u7684\u53CD\u566C\u53D8\u4F53"
+    behaviorType: SlowTrapAnti
+    iconKey: icon_slowtrap_anti
+    isSelectable: 0
+    sortOrder: 120
+    tags:
+    - anti
+    - hidden
+    unlockState: hidden
+  - skillId: anti_blackcurtain
+    displayName: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
+    description: "\u4E00\u5FF5\u5149\u660E\u7684\u53CD\u566C\u53D8\u4F53"
+    behaviorType: BlackCurtainAnti
+    iconKey: icon_blackcurtain_anti
+    isSelectable: 0
+    sortOrder: 130
+    tags:
+    - anti
+    - hidden
+    unlockState: hidden
+  - skillId: giant_anti
+    displayName: "\u6CD5\u76F8\u91D1\u8EAB \uFF08\u566C\uFF09"
+    description: "\u6CD5\u76F8\u91D1\u8EAB\u7684\u53CD\u566C\u53D8\u4F53"
+    behaviorType: GiantAnti
+    iconKey: icon_giant_anti
+    isSelectable: 0
+    sortOrder: 140
+    tags:
+    - anti
+    - hidden
+    unlockState: hidden
+  - skillId: push_projectile_hands_anti
+    displayName: "\u5982\u6765\u795E\u638C\uFF08\u566C\uFF09"
+    description: "\u5982\u6765\u795E\u638C\u7684\u53CD\u566C\u53D8\u4F53"
+    behaviorType: PushProjectileHandsAnti
+    iconKey: icon_push_projectile_hands_anti
+    isSelectable: 0
+    sortOrder: 150
+    tags:
+    - anti
+    - hidden
+    unlockState: hidden
+  - skillId: reverseturn_anti
+    displayName: "\u9006\u56E0\u7F18\uFF08\u566C\uFF09"
+    description: "\u9006\u56E0\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
+    behaviorType: ReverseTurnAnti
+    iconKey: icon_reverseturn_anti
+    isSelectable: 0
+    sortOrder: 160
+    tags:
+    - anti
+    - hidden
+    unlockState: hidden
+  skillBalances:
+  - skillId: acceleration
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    obsessionGain: 300
+    antiSkillId: acceleration_anti
+  - skillId: slowtrap
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    obsessionGain: 300
+    antiSkillId: slowtrap_anti
+  - skillId: blackcurtain
+    cooldownSeconds: 16
+    castLockSeconds: 14
+    obsessionGain: 200
+    antiSkillId: anti_blackcurtain
+  - skillId: giant
+    cooldownSeconds: 8
+    castLockSeconds: 6
+    obsessionGain: 200
+    antiSkillId: giant_anti
+  - skillId: push_projectile_hands
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    obsessionGain: 300
+    antiSkillId: push_projectile_hands_anti
+  - skillId: reverseturn
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    obsessionGain: 0
+    antiSkillId: reverseturn_anti
+  - skillId: acceleration_anti
+    cooldownSeconds: 8
+    castLockSeconds: 6
+    obsessionGain: 0
+    antiSkillId: 
+  - skillId: slowtrap_anti
+    cooldownSeconds: 3
+    castLockSeconds: 1
+    obsessionGain: 0
+    antiSkillId: 
+  - skillId: anti_blackcurtain
+    cooldownSeconds: 16
+    castLockSeconds: 14
+    obsessionGain: 100
+    antiSkillId: 
+  - skillId: giant_anti
+    cooldownSeconds: 8
+    castLockSeconds: 6
+    obsessionGain: 0
+    antiSkillId: 
+  - skillId: push_projectile_hands_anti
+    cooldownSeconds: 10
+    castLockSeconds: 10
+    obsessionGain: 0
+    antiSkillId: 
+  - skillId: reverseturn_anti
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    obsessionGain: 0
+    antiSkillId: 
+  skillEffectParams: []
+  skillSelectionRules:
+  - ruleSetId: default
+    skillId: acceleration
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 0
+  - ruleSetId: default
+    skillId: slowtrap
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 0
+  - ruleSetId: default
+    skillId: blackcurtain
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 0
+  - ruleSetId: default
+    skillId: giant
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 0
+  - ruleSetId: default
+    skillId: push_projectile_hands
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 0
+  - ruleSetId: default
+    skillId: reverseturn
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 0
+  - ruleSetId: default
+    skillId: acceleration
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 1
+  - ruleSetId: default
+    skillId: push_projectile_hands
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 1
+  - ruleSetId: default
+    skillId: blackcurtain
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 1
+  - ruleSetId: default
+    skillId: acceleration_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: slowtrap_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: anti_blackcurtain
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: giant_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: push_projectile_hands_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: reverseturn_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  defaultLoadouts:
+  - loadoutId: race_default
+    slot0SkillId: acceleration
+    slot1SkillId: push_projectile_hands
+    slot2SkillId: slowtrap
+    ruleSetId: default
+    modeTag: default
+  globalRules:
+  - ruleKey: combo_input_window_seconds
+    ruleValue: 0.35
+    ruleSetId: default
+    description: combo input gap window

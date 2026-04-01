@@ -26,7 +26,7 @@ MonoBehaviour:
   vfxId: accel_back_vfx
   vfxLocalOffset: {x: 0, y: 0, z: -2}
   vfxLocalEuler: {x: 0, y: 180, z: 0}
-  observersFeelEventId: acceleration_shared
+  observersFeelEventId: 
   observersFeelStopEventId: 
   localCasterBuffFovBoost: 10
   localCasterBuffFovRampInSeconds: 1

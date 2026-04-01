@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebfb155dab682ae4888b21de723f868e, type: 3}
   m_Name: Skill_BlackCurtain_Anti
   m_EditorClassIdentifier: 
-  skillId: anti_blaclcurtain
+  skillId: anti_blackcurtain
   displayName: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
   cooldownSeconds: 16
   castLockSeconds: 14
@@ -33,9 +33,5 @@ MonoBehaviour:
   centerProperty: _Center
   centerWorldOffset: {x: 0, y: 1, z: 0}
   vfxDurationSeconds: 0
-  vfxStopPlayingBeforeEndSeconds: 0
-  vfxId: black_curtain_anti_vfx
-  vfxLocalOffset: {x: 0, y: 0, z: 0}
-  vfxLocalEuler: {x: 0, y: 0, z: 0}
   observersFeelEventId: blackcurtain_anti_observers
   observersFeelStopEventId: 

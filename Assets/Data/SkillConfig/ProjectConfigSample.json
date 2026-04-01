@@ -1,0 +1,93 @@
+{
+  "_defaultRuleSetId": "default",
+  "_defaultModeTag": "race",
+  "skillDefinitions": [
+    {
+      "skillId": "acceleration",
+      "displayName": "Acceleration",
+      "description": "Boost your forward force and max speed for a short duration.",
+      "behaviorType": "Acceleration",
+      "iconKey": "icon_acceleration",
+      "isSelectable": true,
+      "sortOrder": 10,
+      "tags": [ "movement", "buff" ],
+      "unlockState": "unlocked"
+    },
+    {
+      "skillId": "slow_trap",
+      "displayName": "Slow Trap",
+      "description": "Create a trailing trap zone that slows racers behind you.",
+      "behaviorType": "SlowTrap",
+      "iconKey": "icon_slow_trap",
+      "isSelectable": true,
+      "sortOrder": 20,
+      "tags": [ "trap", "debuff" ],
+      "unlockState": "unlocked"
+    },
+    {
+      "skillId": "blackcurtain",
+      "displayName": "Black Curtain",
+      "description": "Obscure vision with a high-impact special effect.",
+      "behaviorType": "BlackCurtain",
+      "iconKey": "icon_blackcurtain",
+      "isSelectable": true,
+      "sortOrder": 30,
+      "tags": [ "special", "vision" ],
+      "unlockState": "unlocked"
+    }
+  ],
+  "skillBalances": [
+    {
+      "skillId": "acceleration",
+      "cooldownSeconds": 6.0,
+      "castLockSeconds": 0.25,
+      "obsessionGain": 2.0,
+      "antiSkillId": "acceleration_anti"
+    },
+    {
+      "skillId": "slow_trap",
+      "cooldownSeconds": 8.0,
+      "castLockSeconds": 0.35,
+      "obsessionGain": 1.0,
+      "antiSkillId": "slow_trap_anti"
+    },
+    {
+      "skillId": "blackcurtain",
+      "cooldownSeconds": 12.0,
+      "castLockSeconds": 0.5,
+      "obsessionGain": 3.0,
+      "antiSkillId": "anti_blackcurtain"
+    }
+  ],
+  "skillEffectParams": [
+    { "skillId": "acceleration", "effectType": "movement", "paramKey": "extraForwardForce", "paramValue": "10.0" },
+    { "skillId": "acceleration", "effectType": "movement", "paramKey": "extraMaxSpeed", "paramValue": "3.0" },
+    { "skillId": "slow_trap", "effectType": "zone", "paramKey": "durationSeconds", "paramValue": "5.0" },
+    { "skillId": "blackcurtain", "effectType": "screen", "paramKey": "durationSeconds", "paramValue": "2.5" }
+  ],
+  "skillSelectionRules": [
+    { "ruleSetId": "default", "skillId": "acceleration", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 0 },
+    { "ruleSetId": "default", "skillId": "slow_trap", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 0 },
+    { "ruleSetId": "default", "skillId": "blackcurtain", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 0 },
+    { "ruleSetId": "default", "skillId": "acceleration", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 1 },
+    { "ruleSetId": "default", "skillId": "slow_trap", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 1 },
+    { "ruleSetId": "default", "skillId": "blackcurtain", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 1 }
+  ],
+  "defaultLoadouts": [
+    {
+      "loadoutId": "race_default",
+      "slot0SkillId": "acceleration",
+      "slot1SkillId": "slow_trap",
+      "slot2SkillId": "blackcurtain",
+      "ruleSetId": "default",
+      "modeTag": "race"
+    }
+  ],
+  "globalRules": [
+    {
+      "ruleKey": "combo_input_window_seconds",
+      "ruleValue": "0.35",
+      "ruleSetId": "default",
+      "description": "Input gap window for combo-to-slot matching."
+    }
+  ]

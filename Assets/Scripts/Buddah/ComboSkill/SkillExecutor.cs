@@ -216,11 +216,14 @@ public class SkillExecutor : NetworkBehaviour
         float castDelaySeconds = isAnti ? AntiCastConfirmDelaySeconds : CastConfirmDelaySeconds;
         float triggerAt = now + castDelaySeconds;
 
-        _castLockedUntil = triggerAt + executedSkill.castLockSeconds;
-        _nextReadyTime[slotIndex] = triggerAt + executedSkill.cooldownSeconds;
+        float resolvedCastLockSeconds = database != null ? database.GetCastLockSeconds(executedSkillId, executedSkill) : executedSkill.castLockSeconds;
+        float resolvedCooldownSeconds = database != null ? database.GetCooldownSeconds(executedSkillId, executedSkill) : executedSkill.cooldownSeconds;
 
-        float obsessionGain = Mathf.Max(0f, skill.ObsessionGain);
-        Debug.Log($"[SkillExecutor][Server] QUEUE '{executedSkillId}' (slot {slotIndex}) delay={castDelaySeconds:0.##}s cooldown={executedSkill.cooldownSeconds:0.##} lock={executedSkill.castLockSeconds:0.##} anti={isAnti}");
+        _castLockedUntil = triggerAt + resolvedCastLockSeconds;
+        _nextReadyTime[slotIndex] = triggerAt + resolvedCooldownSeconds;
+
+        float obsessionGain = database != null ? Mathf.Max(0f, database.GetObsessionGain(skillId, skill)) : Mathf.Max(0f, skill.ObsessionGain);
+        Debug.Log($"[SkillExecutor][Server] QUEUE '{executedSkillId}' (slot {slotIndex}) delay={castDelaySeconds:0.##}s cooldown={resolvedCooldownSeconds:0.##} lock={resolvedCastLockSeconds:0.##} anti={isAnti}");
         PlayQueuedCastFeedbackObserversRpc(executedSkillId, isAnti);
         StartCoroutine(ExecuteQueuedCastAfterDelay(slotIndex, executedSkill, executedSkillId, obsessionGain, isAnti, castDelaySeconds));
     }
@@ -625,6 +628,13 @@ public class SkillExecutor : NetworkBehaviour
 
     private string ResolveAntiSkillId(string skillId, SkillAction skill)
     {
+        if (database != null)
+        {
+            string configuredAntiSkillId = database.GetAntiSkillId(skillId, skill);
+            if (!string.IsNullOrWhiteSpace(configuredAntiSkillId))
+                return configuredAntiSkillId;
+        }
+
         if (skill != null && !string.IsNullOrWhiteSpace(skill.antiSkillId))
             return skill.antiSkillId.Trim();
 

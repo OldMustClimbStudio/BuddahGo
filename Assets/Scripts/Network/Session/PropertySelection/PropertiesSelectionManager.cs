@@ -65,7 +65,9 @@ namespace SteamMultiplayer.Network
 
         [Header("Skill Loadout Stage")]
         [SerializeField] private SkillDatabase _skillDatabase;
+        [Tooltip("Legacy fallback. Config table rules override this when present.")]
         [SerializeField] private bool _allowDuplicateSkillSelections = false;
+        [Tooltip("Legacy fallback. Config table fallback pool overrides this when present.")]
         [SerializeField] private string[] _fallbackSkillIds = { "acceleration", "push_projectile_hands", "blackcurtain" };
 
         public readonly SyncList<PropertyDefinitionRecord> PropertyDefinitions = new SyncList<PropertyDefinitionRecord>();
@@ -959,7 +961,7 @@ namespace SteamMultiplayer.Network
                 currentSkillIds = new string[SkillLoadout.SlotCount];
             List<string> candidateSkillIds = BuildSkillAutoFillCandidates();
             HashSet<string> used = new HashSet<string>();
-            if (!_allowDuplicateSkillSelections)
+            if (!IsDuplicateSkillSelectionAllowed())
             {
                 for (int i = 0; i < currentSkillIds.Length; i++)
                 {
@@ -977,7 +979,7 @@ namespace SteamMultiplayer.Network
                     Debug.LogWarning($"[PropertySelection] Could not auto-fill skill slot {slotIndex} for player {playerId}; leaving empty.");
                     fillSkillId = string.Empty;
                 }
-                else if (!_allowDuplicateSkillSelections)
+                else if (!IsDuplicateSkillSelectionAllowed())
                 {
                     used.Add(fillSkillId);
                 }
@@ -1007,7 +1009,7 @@ namespace SteamMultiplayer.Network
                     validationError = $"invalid skillId '{skillId}' in slot {slotIndex}";
                     return false;
                 }
-                if (!_allowDuplicateSkillSelections && !seen.Add(skillId))
+                if (!IsDuplicateSkillSelectionAllowed() && !seen.Add(skillId))
                 {
                     validationError = $"duplicate skill '{skillId}' is not allowed";
                     return false;
@@ -1026,7 +1028,7 @@ namespace SteamMultiplayer.Network
                 if (string.IsNullOrWhiteSpace(skillIds[i]) || !IsOptionValid(SkillLoadoutStageKey, skillIds[i]))
                     return false;
             }
-            if (_allowDuplicateSkillSelections)
+            if (IsDuplicateSkillSelectionAllowed())
                 return true;
             HashSet<string> seen = new HashSet<string>();
             for (int i = 0; i < skillIds.Length; i++)
@@ -1048,6 +1050,16 @@ namespace SteamMultiplayer.Network
                 if (!string.IsNullOrWhiteSpace(optionId) && seen.Add(optionId))
                     candidates.Add(optionId);
             }
+            if (_skillDatabase != null)
+            {
+                List<string> configuredFallbackSkillIds = _skillDatabase.GetFallbackSkillIds();
+                for (int i = 0; i < configuredFallbackSkillIds.Count; i++)
+                {
+                    string skillId = (configuredFallbackSkillIds[i] ?? string.Empty).Trim();
+                    if (!string.IsNullOrWhiteSpace(skillId) && seen.Add(skillId))
+                        candidates.Add(skillId);
+                }
+            }
             for (int i = 0; i < _fallbackSkillIds.Length; i++)
             {
                 string skillId = (_fallbackSkillIds[i] ?? string.Empty).Trim();
@@ -1062,7 +1074,7 @@ namespace SteamMultiplayer.Network
             for (int i = 0; i < candidateSkillIds.Count; i++)
             {
                 string candidate = candidateSkillIds[i];
-                if (!string.IsNullOrWhiteSpace(candidate) && (_allowDuplicateSkillSelections || !used.Contains(candidate)))
+                if (!string.IsNullOrWhiteSpace(candidate) && (IsDuplicateSkillSelectionAllowed() || !used.Contains(candidate)))
                     return candidate;
             }
             return string.Empty;
@@ -1097,6 +1109,10 @@ namespace SteamMultiplayer.Network
                 Debug.LogWarning("[PropertySelection] Skill loadout stage has no SkillDatabase assigned.");
                 return results;
             }
+            results = _skillDatabase.BuildSelectableSkillOptions();
+            if (results.Count > 0)
+                return results;
+
             List<SkillAction> selectableSkills = _skillDatabase.GetSelectableNormalSkills();
             HashSet<string> seen = new HashSet<string>();
             for (int i = 0; i < selectableSkills.Count; i++)
@@ -1107,9 +1123,17 @@ namespace SteamMultiplayer.Network
                 string skillId = (skill.skillId ?? string.Empty).Trim();
                 if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
                     continue;
-                results.Add(SelectablePropertyOption.Create(SkillLoadoutStageKey, skillId, string.IsNullOrWhiteSpace(skill.displayName) ? skillId : skill.displayName, string.Empty));
+                results.Add(SelectablePropertyOption.Create(SkillLoadoutStageKey, skillId, _skillDatabase.GetResolvedDisplayName(skillId, skill), string.Empty));
             }
             return results;
+        }
+
+        private bool IsDuplicateSkillSelectionAllowed()
+        {
+            if (_skillDatabase != null)
+                return _skillDatabase.GetAllowDuplicateSkillSelections(_allowDuplicateSkillSelections);
+
+            return _allowDuplicateSkillSelections;
         }
 
         private static SelectablePropertyDefinition CreateDefaultMapProperty()

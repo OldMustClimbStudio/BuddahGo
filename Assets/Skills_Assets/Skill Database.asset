@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 530d6773c196dea41bfda2cc95b74678, type: 3}
   m_Name: Skill Database
   m_EditorClassIdentifier: 
+  _projectConfigDatabase: {fileID: 11400000, guid: c7af77b610879164e925ff4f5fcbb6f7,
+    type: 2}
+  _activeRuleSetId: default
+  _activeModeTag: default
+  _activeMapTag: 
   normalSkills:
   - {fileID: 11400000, guid: 32d16e20e589e1448b9b41021af41c7f, type: 2}
   - {fileID: 11400000, guid: 5a86471fdf2f6d2489a6c1b8b3d14078, type: 2}

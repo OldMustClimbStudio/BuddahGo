@@ -8,7 +8,11 @@ public class SkillLoadout : NetworkBehaviour
 {
     public const int SlotCount = 3;
 
+    [Header("Config Bridge")]
+    [SerializeField] private SkillDatabase _skillDatabase;
+
     [Header("Default Skills")]
+    [Tooltip("Legacy fallback. Config default loadout overrides this when available.")]
     [SerializeField] private string[] _defaultSkillIds = { "acceleration", "push_projectile_hands", "blackcurtain" };
 
     // slotIndex -> skillId
@@ -93,6 +97,30 @@ public class SkillLoadout : NetworkBehaviour
     public void ApplyDefaultSkillsServer()
     {
         EnsureSlotCountServer();
+
+        if (_skillDatabase != null && _skillDatabase.TryGetDefaultLoadout(out string[] configuredSkillIds) && configuredSkillIds != null && configuredSkillIds.Length >= SlotCount)
+        {
+            for (int i = 0; i < SlotCount; i++)
+                SlotSkillIds[i] = configuredSkillIds[i] ?? string.Empty;
+
+            LogFinalLoadout("ApplyDefaultSkillsServer(config)");
+            return;
+        }
+
+        if (_skillDatabase == null
+            && ProjectConfigRuntime.TryGetSelectionRuleRepository(out SelectionRuleRepository selectionRules)
+            && selectionRules.TryGetDefaultLoadout(ProjectConfigConstants.DefaultRuleSetId, ProjectConfigConstants.DefaultModeTag, out DefaultLoadoutRecord defaultLoadout))
+        {
+            string[] runtimeConfiguredSkillIds = defaultLoadout.ToSlots();
+            if (runtimeConfiguredSkillIds != null && runtimeConfiguredSkillIds.Length >= SlotCount)
+            {
+                for (int i = 0; i < SlotCount; i++)
+                    SlotSkillIds[i] = runtimeConfiguredSkillIds[i] ?? string.Empty;
+
+                LogFinalLoadout("ApplyDefaultSkillsServer(runtime-config)");
+                return;
+            }
+        }
 
         for (int i = 0; i < SlotCount; i++)
         {

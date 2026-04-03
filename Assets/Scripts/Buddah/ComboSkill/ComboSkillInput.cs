@@ -8,6 +8,8 @@ using UnityEngine.InputSystem.Controls;
 
 public class ComboSkillInput : NetworkBehaviour
 {
+    private const float MinimumStepWindowSeconds = 0.01f;
+
     public enum Token { W, Up }
 
     [Serializable]
@@ -44,6 +46,8 @@ public class ComboSkillInput : NetworkBehaviour
 
     private void Awake()
     {
+        ApplyConfiguredGlobalRules();
+
         if (useGeneratedInputActions)
         {
             _actions = new InputSystem_Actions();
@@ -112,6 +116,15 @@ public class ComboSkillInput : NetworkBehaviour
     private bool IsRaceGameplayBlocked()
     {
         return RoomStateManager.Instance != null && RoomStateManager.Instance.ShouldBlockRaceGameplayInput;
+    }
+
+    private void ApplyConfiguredGlobalRules()
+    {
+        if (!ProjectConfigRuntime.TryGetGlobalRuleRepository(out GlobalRuleRepository repository))
+            return;
+
+        if (repository.TryGetFloat(ProjectConfigConstants.GlobalRuleComboInputWindowSeconds, out float configuredStepWindow))
+            stepWindowSeconds = Mathf.Max(MinimumStepWindowSeconds, configuredStepWindow);
     }
 
     private void PushToken(Token token)

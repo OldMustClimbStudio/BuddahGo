@@ -134,6 +134,85 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": false
                 }
             ]
+        },
+        {
+            ""name"": ""Menu"",
+            ""id"": ""2738fa08-3a94-4eeb-86b2-f3a41e0c4eec"",
+            ""actions"": [
+                {
+                    ""name"": ""MenuSelect"",
+                    ""type"": ""Button"",
+                    ""id"": ""c2f8b094-28b0-4d3a-8f41-39e38b749b20"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""MenuCancel"",
+                    ""type"": ""Button"",
+                    ""id"": ""72e56bf1-c583-4f18-8e16-32f4dbc4b7c7"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""MenuInspect"",
+                    ""type"": ""Button"",
+                    ""id"": ""99f023af-09e5-41eb-a05f-1d138134ac45"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""c53fd91a-0e91-4993-a433-a505417f3889"",
+                    ""path"": ""<Mouse>/leftButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MenuSelect"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""df30ddb8-ca93-4ce9-bb1a-9a929ca378b1"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MenuCancel"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""56f643ca-4c4a-4b56-8c19-4ce2a71e75c8"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MenuInspect"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9cd87a66-42cb-4441-b64a-605a7c735e08"",
+                    ""path"": ""<Keyboard>/f"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MenuInspect"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
         }
     ],
     ""controlSchemes"": [
@@ -204,11 +283,17 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Player_Movement = m_Player.FindAction("Movement", throwIfNotFound: true);
         m_Player_HandRotation = m_Player.FindAction("HandRotation", throwIfNotFound: true);
         m_Player_HandPush = m_Player.FindAction("HandPush", throwIfNotFound: true);
+        // Menu
+        m_Menu = asset.FindActionMap("Menu", throwIfNotFound: true);
+        m_Menu_MenuSelect = m_Menu.FindAction("MenuSelect", throwIfNotFound: true);
+        m_Menu_MenuCancel = m_Menu.FindAction("MenuCancel", throwIfNotFound: true);
+        m_Menu_MenuInspect = m_Menu.FindAction("MenuInspect", throwIfNotFound: true);
     }
 
     ~@InputSystem_Actions()
     {
         UnityEngine.Debug.Assert(!m_Player.enabled, "This will cause a leak and performance issues, InputSystem_Actions.Player.Disable() has not been called.");
+        UnityEngine.Debug.Assert(!m_Menu.enabled, "This will cause a leak and performance issues, InputSystem_Actions.Menu.Disable() has not been called.");
     }
 
     public void Dispose()
@@ -328,6 +413,68 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         }
     }
     public PlayerActions @Player => new PlayerActions(this);
+
+    // Menu
+    private readonly InputActionMap m_Menu;
+    private List<IMenuActions> m_MenuActionsCallbackInterfaces = new List<IMenuActions>();
+    private readonly InputAction m_Menu_MenuSelect;
+    private readonly InputAction m_Menu_MenuCancel;
+    private readonly InputAction m_Menu_MenuInspect;
+    public struct MenuActions
+    {
+        private @InputSystem_Actions m_Wrapper;
+        public MenuActions(@InputSystem_Actions wrapper) { m_Wrapper = wrapper; }
+        public InputAction @MenuSelect => m_Wrapper.m_Menu_MenuSelect;
+        public InputAction @MenuCancel => m_Wrapper.m_Menu_MenuCancel;
+        public InputAction @MenuInspect => m_Wrapper.m_Menu_MenuInspect;
+        public InputActionMap Get() { return m_Wrapper.m_Menu; }
+        public void Enable() { Get().Enable(); }
+        public void Disable() { Get().Disable(); }
+        public bool enabled => Get().enabled;
+        public static implicit operator InputActionMap(MenuActions set) { return set.Get(); }
+        public void AddCallbacks(IMenuActions instance)
+        {
+            if (instance == null || m_Wrapper.m_MenuActionsCallbackInterfaces.Contains(instance)) return;
+            m_Wrapper.m_MenuActionsCallbackInterfaces.Add(instance);
+            @MenuSelect.started += instance.OnMenuSelect;
+            @MenuSelect.performed += instance.OnMenuSelect;
+            @MenuSelect.canceled += instance.OnMenuSelect;
+            @MenuCancel.started += instance.OnMenuCancel;
+            @MenuCancel.performed += instance.OnMenuCancel;
+            @MenuCancel.canceled += instance.OnMenuCancel;
+            @MenuInspect.started += instance.OnMenuInspect;
+            @MenuInspect.performed += instance.OnMenuInspect;
+            @MenuInspect.canceled += instance.OnMenuInspect;
+        }
+
+        private void UnregisterCallbacks(IMenuActions instance)
+        {
+            @MenuSelect.started -= instance.OnMenuSelect;
+            @MenuSelect.performed -= instance.OnMenuSelect;
+            @MenuSelect.canceled -= instance.OnMenuSelect;
+            @MenuCancel.started -= instance.OnMenuCancel;
+            @MenuCancel.performed -= instance.OnMenuCancel;
+            @MenuCancel.canceled -= instance.OnMenuCancel;
+            @MenuInspect.started -= instance.OnMenuInspect;
+            @MenuInspect.performed -= instance.OnMenuInspect;
+            @MenuInspect.canceled -= instance.OnMenuInspect;
+        }
+
+        public void RemoveCallbacks(IMenuActions instance)
+        {
+            if (m_Wrapper.m_MenuActionsCallbackInterfaces.Remove(instance))
+                UnregisterCallbacks(instance);
+        }
+
+        public void SetCallbacks(IMenuActions instance)
+        {
+            foreach (var item in m_Wrapper.m_MenuActionsCallbackInterfaces)
+                UnregisterCallbacks(item);
+            m_Wrapper.m_MenuActionsCallbackInterfaces.Clear();
+            AddCallbacks(instance);
+        }
+    }
+    public MenuActions @Menu => new MenuActions(this);
     private int m_KeyboardMouseSchemeIndex = -1;
     public InputControlScheme KeyboardMouseScheme
     {
@@ -378,5 +525,11 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         void OnMovement(InputAction.CallbackContext context);
         void OnHandRotation(InputAction.CallbackContext context);
         void OnHandPush(InputAction.CallbackContext context);
+    }
+    public interface IMenuActions
+    {
+        void OnMenuSelect(InputAction.CallbackContext context);
+        void OnMenuCancel(InputAction.CallbackContext context);
+        void OnMenuInspect(InputAction.CallbackContext context);
     }
 }

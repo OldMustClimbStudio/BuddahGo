@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using SteamMultiplayer.Network;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 namespace SteamMultiplayer.UI
 {
-    public class SkillWallSelectionController : MonoBehaviour
+    public class SkillWallSelectionController : MonoBehaviour, ISkillSelectionFocusProvider
     {
         [Serializable]
         private class SpawnedSkillItem
@@ -60,13 +61,21 @@ namespace SteamMultiplayer.UI
         private bool _draftDirty;
         private bool _draftLocked;
         private bool _skillStageActive;
+        private bool _selectionInputBlocked;
+        private SkillWallItemView _focusedView;
+        private SkillInspectController _inspectController;
+        private InputSystem_Actions _inputActions;
+        private InputAction _menuSelectAction;
+        private int _lastMenuSelectFrame = -1;
 
         public IReadOnlyList<string> SelectedSkillIds => _selectedSkillIds;
+        public bool IsSelectionInputBlocked => _selectionInputBlocked;
 
         private void Awake()
         {
             ClearLocalSelectionState();
             InitializeSlotControllers();
+            EnsureInputActions();
 
             if (confirmButton != null)
                 confirmButton.onClick.AddListener(HandleConfirmClicked);
@@ -74,6 +83,7 @@ namespace SteamMultiplayer.UI
 
         private void OnEnable()
         {
+            EnableMenuInput();
             ResolveManager();
             SubscribeToManager();
             RefreshForCurrentState(forceRebuild: true);
@@ -105,11 +115,13 @@ namespace SteamMultiplayer.UI
         private void OnDisable()
         {
             UnsubscribeFromManager();
+            DisableMenuInput();
         }
 
         private void OnDestroy()
         {
             UnsubscribeFromManager();
+            DisableMenuInput();
             ClearSpawnedWallItems();
 
             if (confirmButton != null)
@@ -242,6 +254,62 @@ namespace SteamMultiplayer.UI
             }
 
             RequestSelectSkill(skillId);
+        }
+
+        public void HandleItemInspectRequested(SkillInspectableItem item)
+        {
+            if (item == null)
+                return;
+
+            SkillInspectController inspectController = GetComponentInChildren<SkillInspectController>(true);
+            if (inspectController != null)
+                inspectController.RequestToggleInspect(item);
+        }
+
+        public void NotifyItemHoverEntered(SkillWallItemView itemView)
+        {
+            if (_selectionInputBlocked)
+                return;
+
+            _focusedView = itemView;
+        }
+
+        public void NotifyItemHoverExited(SkillWallItemView itemView)
+        {
+            if (_focusedView == itemView)
+                _focusedView = null;
+        }
+
+        public SkillInspectableItem GetCurrentFocusedItem()
+        {
+            if (_focusedView == null || _selectionInputBlocked)
+                return null;
+
+            return _focusedView.InspectableItem;
+        }
+
+        public void SetSelectionInputBlocked(bool blocked)
+        {
+            _selectionInputBlocked = blocked;
+            _focusedView = null;
+            RefreshConfirmButtonState();
+        }
+
+        public bool WasMenuLeftClickThisFrame()
+        {
+            return _lastMenuSelectFrame == Time.frameCount;
+        }
+
+        public bool IsViewingInspectedItem(SkillWallItemView itemView)
+        {
+            if (itemView == null)
+                return false;
+
+            if (_inspectController == null)
+                _inspectController = GetComponentInChildren<SkillInspectController>(true);
+
+            return _inspectController != null
+                && _inspectController.CurrentInspectedView == itemView;
         }
 
         public bool RemoveSkillFromSlot(int slotIndex)
@@ -435,6 +503,43 @@ namespace SteamMultiplayer.UI
                 selectionManager = sceneManager;
         }
 
+        private void EnsureInputActions()
+        {
+            if (_inputActions != null)
+                return;
+
+            _inputActions = new InputSystem_Actions();
+            _menuSelectAction = _inputActions.Menu.Get().FindAction("MenuSelect");
+        }
+
+        private void EnableMenuInput()
+        {
+            EnsureInputActions();
+            if (_menuSelectAction == null)
+                return;
+
+            _menuSelectAction.performed -= HandleMenuSelectPerformed;
+            _menuSelectAction.performed += HandleMenuSelectPerformed;
+            _inputActions.Menu.Enable();
+        }
+
+        private void DisableMenuInput()
+        {
+            if (_menuSelectAction != null)
+                _menuSelectAction.performed -= HandleMenuSelectPerformed;
+
+            if (_inputActions != null)
+                _inputActions.Menu.Disable();
+        }
+
+        private void HandleMenuSelectPerformed(InputAction.CallbackContext context)
+        {
+            if (!context.performed)
+                return;
+
+            _lastMenuSelectFrame = Time.frameCount;
+        }
+
         private void SubscribeToManager()
         {
             if (selectionManager == null || _subscribedManager == selectionManager)
@@ -463,7 +568,8 @@ namespace SteamMultiplayer.UI
             _draftDirty = false;
             _draftLocked = false;
 
-            if (wallItemRoot == null || wallItemPrefab == null || options == null)
+            Transform motionRoot = GetMotionRoot();
+            if (motionRoot == null || wallItemPrefab == null || options == null)
             {
                 LogDebug("Skipped wall build because required references are missing.");
                 return;
@@ -476,7 +582,7 @@ namespace SteamMultiplayer.UI
                 if (string.IsNullOrWhiteSpace(option.OptionId))
                     continue;
 
-                SkillWallItemView view = Instantiate(wallItemPrefab, wallItemRoot);
+                SkillWallItemView view = Instantiate(wallItemPrefab, motionRoot);
                 GetWallSpawnPose(i, safeColumnCount, out Vector3 localPosition, out Quaternion localRotation);
 
                 view.transform.localPosition = localPosition;
@@ -527,9 +633,11 @@ namespace SteamMultiplayer.UI
 
                 item.CurrentSlotIndex = slotIndex;
                 item.View.SetSelected(true);
-                item.View.SetInteractionLocked(true);
+                if (!IsViewingInspectedItem(item.View))
+                    item.View.SetInteractionLocked(true);
                 slot.SetOccupied(item.View);
-                item.View.MoveToWorldPose(slot.SnapAnchor.position, slot.SnapAnchor.rotation, 0f);
+                if (!IsViewingInspectedItem(item.View))
+                    item.View.MoveToWorldPose(slot.SnapAnchor.position, slot.SnapAnchor.rotation, 0f);
             }
 
             RebuildSelectedSkillIdsFromSlots();
@@ -542,9 +650,15 @@ namespace SteamMultiplayer.UI
                 if (item.CurrentSlotIndex >= 0)
                     continue;
 
+                if (IsViewingInspectedItem(item.View))
+                    continue;
+
                 item.View.SetSelected(false);
                 item.View.SetInteractionLocked(false);
-                item.View.SnapToWallPose();
+                if (item.View.IsHovered)
+                    item.View.RefreshHoverPose();
+                else
+                    item.View.SnapToWallPose();
             }
         }
 
@@ -673,6 +787,16 @@ namespace SteamMultiplayer.UI
             if (TryGetManualWallAnchorPose(itemIndex, out localPosition, out localRotation))
                 return;
 
+            Transform motionRoot = GetMotionRoot();
+            if (wallItemRoot != null && motionRoot != null && motionRoot != wallItemRoot)
+            {
+                Vector3 wallLocalPosition = ComputeWallLocalPosition(itemIndex, columnCount);
+                Vector3 worldPosition = wallItemRoot.TransformPoint(wallLocalPosition);
+                localPosition = motionRoot.InverseTransformPoint(worldPosition);
+                localRotation = Quaternion.Inverse(motionRoot.rotation) * wallItemRoot.rotation;
+                return;
+            }
+
             localPosition = ComputeWallLocalPosition(itemIndex, columnCount);
             localRotation = Quaternion.identity;
         }
@@ -689,10 +813,11 @@ namespace SteamMultiplayer.UI
             if (anchor == null)
                 return false;
 
-            if (wallItemRoot != null)
+            Transform motionRoot = GetMotionRoot();
+            if (motionRoot != null)
             {
-                localPosition = wallItemRoot.InverseTransformPoint(anchor.position);
-                localRotation = Quaternion.Inverse(wallItemRoot.rotation) * anchor.rotation;
+                localPosition = motionRoot.InverseTransformPoint(anchor.position);
+                localRotation = Quaternion.Inverse(motionRoot.rotation) * anchor.rotation;
             }
             else
             {
@@ -701,6 +826,14 @@ namespace SteamMultiplayer.UI
             }
 
             return true;
+        }
+
+        private Transform GetMotionRoot()
+        {
+            if (wallItemRoot == null)
+                return null;
+
+            return wallItemRoot.parent != null ? wallItemRoot.parent : wallItemRoot;
         }
 
         private static string BuildOptionSignature(List<SelectablePropertyOption> options)
@@ -753,6 +886,7 @@ namespace SteamMultiplayer.UI
         private bool CanEdit()
         {
             return selectionManager != null
+                && !_selectionInputBlocked
                 && selectionManager.IsStageCountdownActive
                 && !selectionManager.IsTransitioningToMatch
                 && IsSkillStageActive();

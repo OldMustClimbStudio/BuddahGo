@@ -36,6 +36,9 @@ namespace SteamMultiplayer.UI
             if (_controller == null || !IsOccupied)
                 return;
 
+            if (!_controller.WasMenuLeftClickThisFrame())
+                return;
+
             _controller.RemoveSkillFromSlot(slotIndex);
         }
     }

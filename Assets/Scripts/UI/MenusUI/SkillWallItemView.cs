@@ -29,9 +29,12 @@ namespace SteamMultiplayer.UI
         [SerializeField] private AnimationCurve flightCurve;
 
         private SkillWallSelectionController _controller;
+        private SkillInspectableItem _inspectableItem;
+        private SelectablePropertyOption _optionData;
         private string _skillId = string.Empty;
         private string _displayName = string.Empty;
         private string _description = string.Empty;
+        private string _previewIconKey = string.Empty;
 
         private Vector3 _wallLocalPosition;
         private Quaternion _wallLocalRotation = Quaternion.identity;
@@ -47,23 +50,30 @@ namespace SteamMultiplayer.UI
         public string SkillId => _skillId;
         public string DisplayName => _displayName;
         public string Description => _description;
+        public string PreviewIconKey => _previewIconKey;
         public bool IsSelected => _isSelected;
         public bool IsInFlight => _isInFlight;
+        public bool IsHovered => _isHovered;
         public bool IsInteractionLocked => _interactionLocked;
         public Vector3 WallLocalPosition => _wallLocalPosition;
         public Quaternion WallLocalRotation => _wallLocalRotation;
+        public SelectablePropertyOption OptionData => _optionData;
+        public SkillInspectableItem InspectableItem => _inspectableItem;
 
         private void Awake()
         {
             EnsureCurves();
+            _inspectableItem = GetComponent<SkillInspectableItem>();
         }
 
         public void Initialize(SkillWallSelectionController controller, SelectablePropertyOption option)
         {
             _controller = controller;
+            _optionData = option;
             _skillId = (option.OptionId ?? string.Empty).Trim();
             _displayName = string.IsNullOrWhiteSpace(option.DisplayName) ? _skillId : option.DisplayName;
             _description = option.Description ?? string.Empty;
+            _previewIconKey = option.PreviewIconKey ?? string.Empty;
 
             gameObject.name = $"SkillWallItem_{_skillId}";
             RecordCurrentWallPose();
@@ -75,6 +85,12 @@ namespace SteamMultiplayer.UI
             _isSelected = false;
             _isInFlight = false;
             _interactionLocked = false;
+
+            _inspectableItem = _inspectableItem != null ? _inspectableItem : GetComponent<SkillInspectableItem>();
+            if (_inspectableItem != null)
+                _inspectableItem.Initialize(option, this);
+
+            EnsureInteractionRelays();
 
             ApplyVisualState();
             SnapToWallPose();
@@ -119,12 +135,22 @@ namespace SteamMultiplayer.UI
         public void SetSelected(bool selected)
         {
             _isSelected = selected;
+            if (selected)
+            {
+                _isHovered = false;
+                StopHoverRoutine();
+            }
             ApplyVisualState();
         }
 
         public void SetInteractionLocked(bool locked)
         {
             _interactionLocked = locked;
+            if (locked)
+            {
+                _isHovered = false;
+                StopHoverRoutine();
+            }
             ApplyVisualState();
         }
 
@@ -146,7 +172,7 @@ namespace SteamMultiplayer.UI
 
         public void MoveToWorldPose(Vector3 worldPosition, Quaternion worldRotation, float? durationOverride = null)
         {
-            StopMoveRoutine();
+            StopAllMotion();
             float duration = durationOverride ?? defaultFlightDuration;
             if (duration <= 0f)
             {
@@ -161,8 +187,9 @@ namespace SteamMultiplayer.UI
 
         public IEnumerator AnimateFlightToWorldPose(Vector3 worldPosition, Quaternion worldRotation, float duration, float arcHeight)
         {
-            StopMoveRoutine();
+            StopAllMotion();
             _isInFlight = true;
+            _isHovered = false;
             ApplyVisualState();
 
             EnsureCurves();
@@ -196,7 +223,7 @@ namespace SteamMultiplayer.UI
 
         public void MoveToLocalPose(Vector3 localPosition, Quaternion localRotation, float? durationOverride = null)
         {
-            StopMoveRoutine();
+            StopAllMotion();
             float duration = durationOverride ?? defaultFlightDuration;
             if (duration <= 0f)
             {
@@ -216,33 +243,60 @@ namespace SteamMultiplayer.UI
             SnapToWallPose();
         }
 
-        private void OnMouseEnter()
+        public void HandlePointerEnter()
         {
             if (!CanInteract())
                 return;
 
             _isHovered = true;
+            ApplyVisualState();
             StartHoverMotion();
+            _controller.NotifyItemHoverEntered(this);
         }
 
-        private void OnMouseExit()
+        public void HandlePointerExit()
         {
             if (_isSelected || _isInFlight)
                 return;
 
             _isHovered = false;
+            ApplyVisualState();
             StartHoverMotion();
+            _controller.NotifyItemHoverExited(this);
         }
 
-        private void OnMouseDown()
+        public void HandlePrimaryPointerDown()
         {
             if (_controller == null || string.IsNullOrWhiteSpace(_skillId))
                 return;
 
-            if (_isInFlight)
+            if (_isInFlight || !_controller.WasMenuLeftClickThisFrame())
                 return;
 
             _controller.HandleItemClicked(_skillId);
+        }
+
+        public void RefreshHoverPose()
+        {
+            if (_isSelected || _isInFlight)
+                return;
+
+            StartHoverMotion();
+        }
+
+        private void OnMouseEnter()
+        {
+            HandlePointerEnter();
+        }
+
+        private void OnMouseExit()
+        {
+            HandlePointerExit();
+        }
+
+        private void OnMouseDown()
+        {
+            HandlePrimaryPointerDown();
         }
 
         private void StartHoverMotion()
@@ -261,6 +315,7 @@ namespace SteamMultiplayer.UI
         private bool CanInteract()
         {
             return _controller != null
+                && !_controller.IsSelectionInputBlocked
                 && !_interactionLocked
                 && !_isSelected
                 && !_isInFlight
@@ -412,6 +467,23 @@ namespace SteamMultiplayer.UI
 
             if (flightCurve == null || flightCurve.length == 0)
                 flightCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        }
+
+        private void EnsureInteractionRelays()
+        {
+            Collider[] colliders = GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                Collider targetCollider = colliders[i];
+                if (targetCollider == null)
+                    continue;
+
+                SkillWallItemInteractionRelay relay = targetCollider.GetComponent<SkillWallItemInteractionRelay>();
+                if (relay == null)
+                    relay = targetCollider.gameObject.AddComponent<SkillWallItemInteractionRelay>();
+
+                relay.Initialize(this);
+            }
         }
     }
 }

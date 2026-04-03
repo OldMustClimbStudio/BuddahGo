@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using SteamMultiplayer.Network;
 
 namespace SteamMultiplayer.UI
@@ -30,6 +32,8 @@ namespace SteamMultiplayer.UI
         private MenuPanel _currentPanel = MenuPanel.Home;
         private SteamLobbyManager _steamLobbyManager;
         private bool _subscribed;
+        private InputSystem_Actions _inputActions;
+        private InputAction _menuCancelAction;
 
         public MenuPanel CurrentPanel => _currentPanel;
 
@@ -41,6 +45,7 @@ namespace SteamMultiplayer.UI
 
         private void Start()
         {
+            EnsureInputActions();
             ResolveManager();
             Subscribe();
             ShowHome();
@@ -49,6 +54,8 @@ namespace SteamMultiplayer.UI
 
         private void OnEnable()
         {
+            EnsureInputActions();
+            EnableMenuInput();
             ResolveManager();
             Subscribe();
             RefreshRootVisibility();
@@ -57,30 +64,13 @@ namespace SteamMultiplayer.UI
         private void OnDisable()
         {
             Unsubscribe();
+            DisableMenuInput();
         }
 
         private void OnDestroy()
         {
             Unsubscribe();
-        }
-
-        private void Update()
-        {
-            if (!allowEscapeBack || !Input.GetKeyDown(KeyCode.Escape))
-                return;
-
-            if (_steamLobbyManager != null && _steamLobbyManager.IsInLobby)
-                return;
-
-            if (_currentPanel == MenuPanel.Home)
-            {
-                if (escapeFromHomeQuits)
-                    Application.Quit();
-
-                return;
-            }
-
-            GoBack();
+            DisableMenuInput();
         }
 
         public void ShowHome()
@@ -134,6 +124,53 @@ namespace SteamMultiplayer.UI
         {
             if (_steamLobbyManager == null)
                 _steamLobbyManager = SteamLobbyManager.Instance;
+        }
+
+        private void EnsureInputActions()
+        {
+            if (_inputActions != null)
+                return;
+
+            _inputActions = new InputSystem_Actions();
+            _menuCancelAction = _inputActions.Menu.Get().FindAction("MenuCancel");
+        }
+
+        private void EnableMenuInput()
+        {
+            if (_menuCancelAction == null)
+                return;
+
+            _menuCancelAction.performed -= HandleMenuCancelPerformed;
+            _menuCancelAction.performed += HandleMenuCancelPerformed;
+            _inputActions.Menu.Enable();
+        }
+
+        private void DisableMenuInput()
+        {
+            if (_menuCancelAction != null)
+                _menuCancelAction.performed -= HandleMenuCancelPerformed;
+
+            if (_inputActions != null)
+                _inputActions.Menu.Disable();
+        }
+
+        private void HandleMenuCancelPerformed(InputAction.CallbackContext context)
+        {
+            if (!allowEscapeBack || !context.performed)
+                return;
+
+            if (_steamLobbyManager != null && _steamLobbyManager.IsInLobby)
+                return;
+
+            if (_currentPanel == MenuPanel.Home)
+            {
+                if (escapeFromHomeQuits)
+                    Application.Quit();
+
+                return;
+            }
+
+            GoBack();
         }
 
         private void Subscribe()

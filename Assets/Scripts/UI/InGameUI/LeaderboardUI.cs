@@ -51,17 +51,26 @@ public class LeaderboardUI : MonoBehaviour
             return;
         }
 
-        int count = Mathf.Min(maxRows, LeaderboardManager.Instance.Rankings.Count);
-        for (int i = 0; i < count; i++)
+        string snapshotText = LeaderboardManager.Instance.LeaderboardSnapshotText;
+        if (!string.IsNullOrWhiteSpace(snapshotText))
         {
-            RankEntry entry = LeaderboardManager.Instance.Rankings[i];
-            string finishSuffix = entry.IsFinished ? $" - Finished #{entry.FinishOrder}" : string.Empty;
-            sb.AppendLine($"{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}");
+            string[] lines = snapshotText.Split('\n');
+            int linesToShow = Mathf.Min(maxRows, lines.Length);
+            for (int i = 0; i < linesToShow; i++)
+                sb.AppendLine(lines[i].TrimEnd('\r'));
         }
-
-        if (count == 0)
+        else
         {
-            sb.AppendLine("(empty)");
+            int count = Mathf.Min(maxRows, LeaderboardManager.Instance.Rankings.Count);
+            for (int i = 0; i < count; i++)
+            {
+                RankEntry entry = LeaderboardManager.Instance.Rankings[i];
+                string finishSuffix = entry.IsFinished ? $" - Finished #{entry.FinishOrder}" : string.Empty;
+                sb.AppendLine($"{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}");
+            }
+
+            if (count == 0)
+                sb.AppendLine("(empty)");
         }
 
         outputText.text = sb.ToString();

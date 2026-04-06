@@ -5,6 +5,14 @@ using UnityEngine;
 
 public class PlayerCamera : NetworkBehaviour
 {
+    public enum CameraPresentationMode
+    {
+        Normal,
+        Spectator,
+        TimelineCamera,
+        ResultArea
+    }
+
     [SerializeField] private CinemachineVirtualCamera localCamera;
     [SerializeField] private Rigidbody followTargetRigidbody;
     [SerializeField] private Vector3 directionalOffsetPerSpeed = new Vector3(0.25f, 0f, 0.25f);
@@ -40,6 +48,9 @@ public class PlayerCamera : NetworkBehaviour
     private float _speedDistanceVelocity;
     private PlayerScaleEffect _scaleEffect;
     private bool _missingScaleEffectLogged;
+    private Transform _followTargetOverride;
+    private Rigidbody _followTargetOverrideRigidbody;
+    public CameraPresentationMode CurrentPresentationMode { get; private set; } = CameraPresentationMode.Normal;
 
     private void Awake()
     {
@@ -69,7 +80,7 @@ public class PlayerCamera : NetworkBehaviour
             return;
 
         EnsurePerspectiveCamera();
-        _cinemachineCamera.Follow = transform;
+        _cinemachineCamera.Follow = GetActiveFollowTarget();
         _cinemachineCamera.enabled = true;
 
         // Validation log for local camera ownership binding.
@@ -81,10 +92,18 @@ public class PlayerCamera : NetworkBehaviour
 
     private void LateUpdate()
     {
-        if (!IsOwner || followTargetRigidbody == null)
+        if (!IsOwner)
             return;
 
-        Vector3 absoluteVelocity = followTargetRigidbody.velocity;
+        Transform activeFollowTarget = GetActiveFollowTarget();
+        if (_cinemachineCamera != null && _cinemachineCamera.Follow != activeFollowTarget)
+            _cinemachineCamera.Follow = activeFollowTarget;
+
+        Rigidbody activeFollowRigidbody = GetActiveFollowRigidbody();
+        if (activeFollowRigidbody == null)
+            return;
+
+        Vector3 absoluteVelocity = activeFollowRigidbody.velocity;
         float absoluteSpeed = absoluteVelocity.magnitude;
 
         Vector3 planarVelocity = absoluteVelocity;
@@ -188,9 +207,37 @@ public class PlayerCamera : NetworkBehaviour
 
         if (_cinemachineCamera != null)
         {
-            _cinemachineCamera.Follow = transform;
+            _cinemachineCamera.Follow = GetActiveFollowTarget();
             _cinemachineCamera.enabled = true;
         }
+    }
+
+    public void SetFollowTargetOverride(Transform followTarget, Rigidbody targetRigidbody = null)
+    {
+        if (!IsOwner)
+            return;
+
+        _followTargetOverride = followTarget;
+        _followTargetOverrideRigidbody = targetRigidbody != null
+            ? targetRigidbody
+            : (followTarget != null ? followTarget.GetComponent<Rigidbody>() : null);
+    }
+
+    public void ClearFollowTargetOverride()
+    {
+        if (!IsOwner)
+            return;
+
+        _followTargetOverride = null;
+        _followTargetOverrideRigidbody = null;
+    }
+
+    public void SetPresentationMode(CameraPresentationMode mode)
+    {
+        if (!IsOwner)
+            return;
+
+        CurrentPresentationMode = mode;
     }
 
     private void ResolveCameraReferences()
@@ -215,8 +262,8 @@ public class PlayerCamera : NetworkBehaviour
 
         baseFieldOfView = _cinemachineCamera.m_Lens.FieldOfView;
 
-        if (followTargetRigidbody == null && _cinemachineCamera.Follow != null)
-            followTargetRigidbody = _cinemachineCamera.Follow.GetComponent<Rigidbody>();
+        if (followTargetRigidbody == null)
+            followTargetRigidbody = GetComponentInParent<Rigidbody>();
     }
 
     private float GetCameraScaleMultiplier()
@@ -306,5 +353,26 @@ public class PlayerCamera : NetworkBehaviour
     {
         if (NetDebug.EnableVerboseLog)
             Debug.Log(message);
+    }
+
+    private Transform GetActiveFollowTarget()
+    {
+        return _followTargetOverride != null ? _followTargetOverride : transform;
+    }
+
+    private Rigidbody GetActiveFollowRigidbody()
+    {
+        if (_followTargetOverride != null)
+        {
+            if (_followTargetOverrideRigidbody == null)
+                _followTargetOverrideRigidbody = _followTargetOverride.GetComponent<Rigidbody>();
+
+            return _followTargetOverrideRigidbody;
+        }
+
+        if (followTargetRigidbody == null)
+            followTargetRigidbody = GetComponentInParent<Rigidbody>();
+
+        return followTargetRigidbody;
     }
 }

@@ -16,9 +16,12 @@ public class LeaderboardManager : NetworkBehaviour
     [SerializeField] private float refreshIntervalSeconds = 0.1f;
 
     public readonly SyncList<RankEntry> Rankings = new SyncList<RankEntry>();
+    private readonly SyncVar<string> _leaderboardSnapshotText = new SyncVar<string>();
     private readonly Dictionary<int, PlayerProgress> _progressByClientId = new Dictionary<int, PlayerProgress>();
     private bool _rankingsDirty;
     private bool _rankingsFrozen;
+
+    public string LeaderboardSnapshotText => _leaderboardSnapshotText.Value;
 
     private void Awake()
     {
@@ -35,6 +38,8 @@ public class LeaderboardManager : NetworkBehaviour
     {
         base.OnStartServer();
         EnsureServerPlayerRegistrations();
+        if (_rankingsDirty)
+            BuildRankings();
         StartCoroutine(ServerRefreshLoop());
     }
 
@@ -42,6 +47,7 @@ public class LeaderboardManager : NetworkBehaviour
     {
         base.OnStopServer();
         Rankings.Clear();
+        _leaderboardSnapshotText.Value = string.Empty;
         _progressByClientId.Clear();
         _rankingsFrozen = false;
     }
@@ -63,6 +69,7 @@ public class LeaderboardManager : NetworkBehaviour
             FinishServerTime = -1d
         };
         _rankingsDirty = true;
+        BuildRankings();
     }
 
     public void UnregisterPlayer(int clientId)
@@ -252,8 +259,37 @@ public class LeaderboardManager : NetworkBehaviour
             Rankings.Add(list[i]);
         }
 
+        _leaderboardSnapshotText.Value = BuildLeaderboardSnapshotText(list);
+
         Debug.Log($"[Leaderboard] BuildRankings count={list.Count}");
         _rankingsDirty = false;
+    }
+
+    private static string BuildLeaderboardSnapshotText(List<RankEntry> list)
+    {
+        if (list == null || list.Count == 0)
+            return "(empty)";
+
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        for (int i = 0; i < list.Count; i++)
+        {
+            RankEntry entry = list[i];
+            string finishSuffix = entry.IsFinished ? $" - Finished #{entry.FinishOrder}" : string.Empty;
+            sb.Append(i + 1)
+                .Append(". ")
+                .Append(entry.DisplayName)
+                .Append(" - Lap ")
+                .Append(entry.Lap)
+                .Append(" - ")
+                .Append(entry.FinalCompletionPercent.ToString("0.0"))
+                .Append('%')
+                .Append(finishSuffix);
+
+            if (i < list.Count - 1)
+                sb.AppendLine();
+        }
+
+        return sb.ToString();
     }
 
     private void EnsureServerPlayerRegistrations()

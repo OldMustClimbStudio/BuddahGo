@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using FishNet;
 using FishNet.Connection;
-using FishNet.Managing.Scened;
 using FishNet.Object;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
@@ -15,7 +14,9 @@ public class RaceFinishManager : NetworkBehaviour
     [Header("Race Rules")]
     [SerializeField, Min(1)] private int lapsToFinish = 3;
     [SerializeField, Min(0f)] private float postFirstFinishCountdownSeconds = 15f;
-    [SerializeField] private string resultSceneName = "RaceMapEndField";
+    [SerializeField] private bool enableVerboseLogs = true;
+    [SerializeField, Tooltip("Deprecated: result flow no longer loads a separate scene. Kept only for inspector migration.")]
+    private string resultSceneName = "RaceMapEndField";
 
     [Header("Read Only")]
     [SerializeField] private bool hasFirstFinisher;
@@ -100,6 +101,7 @@ public class RaceFinishManager : NetworkBehaviour
 
         _finishedClientIds.Add(clientId);
         completionTracker.MarkFinishedServer(finishOrder, finishTime);
+        MatchResultPresentationCoordinator.Instance?.NotifyPlayerFinishedServer(clientId, finishOrder);
 
         if (!hasFirstFinisher)
         {
@@ -125,11 +127,11 @@ public class RaceFinishManager : NetworkBehaviour
             return;
         }
 
-        RequestDebugFinishRaceServerRpc();
+        RequestDebugChampionFinishServerRpc();
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void RequestDebugFinishRaceServerRpc(NetworkConnection caller = null)
+    public void RequestDebugChampionFinishServerRpc(NetworkConnection caller = null)
     {
         if (!IsServerInitialized || caller == null || !caller.IsAuthenticated)
             return;
@@ -140,12 +142,43 @@ public class RaceFinishManager : NetworkBehaviour
 
         if (!callerIsHost)
         {
-            Debug.LogWarning($"[RaceFinishManager] Ignored debug finish request from non-host client {caller.ClientId}.");
+            Debug.LogWarning($"[RaceFinishManager] Ignored debug champion-finish request from non-host client {caller.ClientId}.");
             return;
         }
 
-        Debug.Log($"[RaceFinishManager] Debug finish requested by client {caller.ClientId}. Finalizing race from current leaderboard state.");
-        EndMatchAndLoadResultScene();
+        if (!TryGetOwnedCompletionTracker(caller.ClientId, out RaceCompletionTracker completionTracker))
+        {
+            Debug.LogWarning($"[RaceFinishManager] Debug champion-finish failed because no live RaceCompletionTracker was found for client {caller.ClientId}.");
+            return;
+        }
+
+        if (completionTracker.IsFinished)
+        {
+            Debug.LogWarning($"[RaceFinishManager] Debug champion-finish ignored because client {caller.ClientId} is already finished.");
+            return;
+        }
+
+        Debug.Log($"[RaceFinishManager] Debug champion-finish requested by client {caller.ClientId}. Simulating a first-place finish presentation for the host player.");
+        bool registered = TryRegisterFinish(completionTracker);
+        if (!registered)
+        {
+            Debug.LogWarning($"[RaceFinishManager] Debug champion-finish could not register a finish for client {caller.ClientId}.");
+            return;
+        }
+
+        if (LeaderboardManager.Instance != null)
+        {
+            LeaderboardManager.Instance.ReportSplineProgress(
+                caller.ClientId,
+                distanceOnTrack: 0f,
+                forwardDot: 1f,
+                lap: LapsToFinish + 1,
+                lapProgress01: 1f,
+                finalCompletionPercent: 100f,
+                isFinished: true,
+                finishOrder: completionTracker.FinishOrder,
+                finishServerTime: completionTracker.FinishServerTime);
+        }
     }
 
     [Server]
@@ -163,35 +196,40 @@ public class RaceFinishManager : NetworkBehaviour
         _matchEndTriggered = true;
         isRaceForceEnded = true;
         countdownRemaining = 0f;
-        RoomStateManager.Instance?.MarkTransitionToResultServer();
 
+        List<FinalMatchResultEntry> finalResults = null;
         LeaderboardManager leaderboard = LeaderboardManager.Instance;
         if (leaderboard == null)
         {
             Debug.LogWarning("[RaceFinishManager] Cannot end match cleanly because LeaderboardManager.Instance is null.");
-            MatchResultCache.Clear();
         }
         else
         {
             leaderboard.FreezeRankings();
-            List<FinalMatchResultEntry> finalResults = leaderboard.BuildFinalResultsSnapshot(ResolvePlayerNameForClient);
-            MatchResultCache.SetResults(finalResults);
-            Debug.Log($"[RaceFinishManager] Final results cached. count={finalResults.Count}");
+            finalResults = leaderboard.BuildFinalResultsSnapshot(ResolvePlayerNameForClient);
+
+            DebugLog($"Final results frozen. count={finalResults.Count}");
         }
 
-        if (string.IsNullOrWhiteSpace(resultSceneName) || InstanceFinder.SceneManager == null)
+        MatchResultPresentationCoordinator presentationCoordinator = MatchResultPresentationCoordinator.Instance;
+        if (presentationCoordinator == null)
         {
-            Debug.LogWarning("[RaceFinishManager] Result scene load skipped because resultSceneName is empty or FishNet SceneManager is missing.");
+            Debug.LogWarning("[RaceFinishManager] MatchResultPresentationCoordinator.Instance is null. Match is frozen but result presentation did not start.");
             return;
         }
 
-        SceneLoadData sceneLoadData = new SceneLoadData(resultSceneName)
+        if (finalResults == null)
         {
-            ReplaceScenes = ReplaceOption.All
-        };
+            finalResults = new List<FinalMatchResultEntry>();
+        }
 
-        InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
-        Debug.Log($"[RaceFinishManager] Loading result scene '{resultSceneName}'.");
+        if (!presentationCoordinator.BeginFinalResultPresentationServer(finalResults))
+        {
+            Debug.LogWarning("[RaceFinishManager] Final result presentation was rejected or already running.");
+            return;
+        }
+
+        DebugLog($"Started in-scene result presentation flow. legacySceneField='{resultSceneName}'.");
     }
 
     private string ResolvePlayerNameForClient(int clientId)
@@ -203,5 +241,32 @@ public class RaceFinishManager : NetworkBehaviour
         }
 
         return $"Player {clientId}";
+    }
+
+    private bool TryGetOwnedCompletionTracker(int clientId, out RaceCompletionTracker completionTracker)
+    {
+        PlayerProgressReporter[] reporters = FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None);
+        for (int i = 0; i < reporters.Length; i++)
+        {
+            PlayerProgressReporter reporter = reporters[i];
+            if (reporter == null || !reporter.IsSpawned || reporter.OwnerId != clientId)
+                continue;
+
+            completionTracker = reporter.GetComponent<RaceCompletionTracker>()
+                ?? reporter.GetComponentInParent<RaceCompletionTracker>()
+                ?? reporter.GetComponentInChildren<RaceCompletionTracker>(true);
+
+            if (completionTracker != null)
+                return true;
+        }
+
+        completionTracker = null;
+        return false;
+    }
+
+    private void DebugLog(string message)
+    {
+        if (enableVerboseLogs)
+            Debug.Log($"[RaceFinishManager] {message}");
     }
 }

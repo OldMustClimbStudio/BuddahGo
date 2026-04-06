@@ -877,7 +877,8 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: 310dfaa542aa7f945b55fb2c7905bea1, type: 2}
+      objectReference: {fileID: -876546973899608171, guid: 5e3587d637270a740a4370872f3db4d2,
+        type: 3}
     - target: {fileID: -5324531855699944674, guid: a4376dfe8a76c574f88ecfdb036cc262,
         type: 3}
       propertyPath: m_Materials.Array.data[1]
@@ -1096,6 +1097,10 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 7662734946556459576}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3456789012345678901}
   m_SourcePrefab: {fileID: 100100000, guid: a4376dfe8a76c574f88ecfdb036cc262, type: 3}
 --- !u!137 &812422496317005451 stripped
 SkinnedMeshRenderer:
@@ -1162,10 +1167,15 @@ MonoBehaviour:
   forwardForce: 50
   turnTorque: 20
   turnDecayPerSecond: 3
-  maxSpeed: 60
+  maxSpeed: 80
   turnInputMultiplier: 1
+  directHeadingDegreesPerSecond: 360
+  directHeadingAngularDamping: 14
+  directHeadingSnapAngle: 2
   pushGraceSeconds: 0.25
   pushExtraMaxSpeed: 6
+  launchInheritTime: 0.2
+  launchBlendTime: 0.32
   rb: {fileID: 8984405970169020143}
 --- !u!54 &8984405970169020143
 Rigidbody:
@@ -1273,7 +1283,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584266732972852331
+  _initializedTimestamp: -8584263141232168175
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -1622,7 +1632,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   respawnFloorTag: Respawn
   respawnDelaySeconds: 2
+  postRaceStartRespawnProtectionSeconds: 4
   respawnHeightOffset: 3
+  respawnCollisionGraceSeconds: 0.75
+  respawnClearanceCheckRadius: 0.75
+  additionalRespawnLiftStep: 1.5
+  maxAdditionalRespawnLift: 6
+  minimumDistanceBeforeAnotherFallRespawn: 8
+  enableVerboseRespawnLogs: 1
   rb: {fileID: 8984405970169020143}
   progressTracker: {fileID: -4850889153095608646}
 --- !u!114 &2160443733358872716
@@ -1665,6 +1682,7 @@ MonoBehaviour:
   wrongWayForceRespawnLapProgressThreshold: 0.85
   wrongWayRespawnLapProgress: 0.01
   wrongWayLap0RespawnLapProgress: 0.99
+  startGraceSeconds: 0.35
   currentLap: 0
   currentLapProgress01: 0
   finalCompletionPercent: 0
@@ -1677,6 +1695,25 @@ MonoBehaviour:
   lastLegalLapFloorPercent: 0
   lastObservedPreviousLapProgress01: 0
   lastObservedForwardDot: 0
+--- !u!114 &3456789012345678901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f3d9591782bbbf41b4a840d08c6e982, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  networkObject: {fileID: 5961911359123562421}
+  targetRigidbody: {fileID: 8984405970169020143}
+  movementController: {fileID: 1929130196522971536}
+  collidersToToggle:
+  - {fileID: 1118377708582347918}
+  defaultHandoffLeadTime: 0.5
+  velocitySampleDeltaSeconds: 0.02
 --- !u!4 &4240001563575149182 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: a4376dfe8a76c574f88ecfdb036cc262,

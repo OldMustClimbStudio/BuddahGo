@@ -1,4 +1,6 @@
 using FishNet.Object;
+using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
 using UnityEngine;
 
 [RequireComponent(typeof(SplineProgressTracker))]
@@ -54,6 +56,9 @@ public class LapProgress : NetworkBehaviour
         if (!IsOwner)
             return;
 
+        if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
+            return;
+
         if (_tracker == null)
             return;
 
@@ -66,6 +71,9 @@ public class LapProgress : NetworkBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!IsOwner)
+            return;
+
+        if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
             return;
 
         if (_tracker == null)
@@ -107,6 +115,9 @@ public class LapProgress : NetworkBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!IsOwner)
+            return;
+
+        if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
             return;
 
         if (!hasStartedLap)

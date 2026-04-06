@@ -1,5 +1,7 @@
 using System.Collections;
 using FishNet.Object;
+using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -8,15 +10,29 @@ public class BuddahRespawn : MonoBehaviour
     [Header("Trigger")]
     [SerializeField] private string respawnFloorTag = "RespawnFloor";
     [SerializeField] private float respawnDelaySeconds = 2f;
+    [SerializeField, Min(0f)] private float postRaceStartRespawnProtectionSeconds = 4f;
 
     [Header("Placement")]
     [SerializeField] private float respawnHeightOffset = 3f;
+    [SerializeField, Min(0f)] private float respawnCollisionGraceSeconds = 0.75f;
+    [SerializeField, Min(0f)] private float respawnClearanceCheckRadius = 0.75f;
+    [SerializeField, Min(0f)] private float additionalRespawnLiftStep = 1.5f;
+    [SerializeField, Min(0f)] private float maxAdditionalRespawnLift = 6f;
+    [SerializeField, Min(0f)] private float minimumDistanceBeforeAnotherFallRespawn = 8f;
+
+    [Header("Debug")]
+    [SerializeField] private bool enableVerboseRespawnLogs = true;
 
     [Header("References")]
     [SerializeField] private Rigidbody rb;
     [SerializeField] private SplineProgressTracker progressTracker;
 
     private Coroutine _respawnRoutine;
+    private float _ignoreRespawnUntilTime;
+    private Vector3 _lastRespawnWorldPosition;
+    private float _lastRespawnTime = float.NegativeInfinity;
+    private bool _observedRaceStart;
+    private float _raceStartObservedTime = float.PositiveInfinity;
 
     private void Awake()
     {
@@ -41,9 +57,26 @@ public class BuddahRespawn : MonoBehaviour
         TryQueueRespawn(collision.collider);
     }
 
+    private void Update()
+    {
+        if (_observedRaceStart)
+            return;
+
+        RoomStateManager room = RoomStateManager.Instance;
+        if (room != null && room.IsMatchPhaseActive && room.IsRaceStarted)
+        {
+            _observedRaceStart = true;
+            _raceStartObservedTime = Time.time;
+            DebugLog($"Observed race start. Respawn protection active for {postRaceStartRespawnProtectionSeconds:0.00}s.");
+        }
+    }
+
     public bool RespawnToTrackProgress(float targetProgress01, bool resetSkillEffects = false, bool preserveObsession = true, string reason = "respawn")
     {
         if (!IsLocalOwner())
+            return false;
+
+        if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
             return false;
 
         ResolveReferences();
@@ -75,21 +108,47 @@ public class BuddahRespawn : MonoBehaviour
         if (!IsLocalOwner() || !enabled || other == null)
             return;
 
+        if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
+            return;
+
+        if (ShouldIgnoreRespawnBecauseOfRaceStartProtection())
+            return;
+
         if (other.isTrigger)
             return;
+
+        if (Time.time < _ignoreRespawnUntilTime)
+        {
+            DebugLog($"Ignored respawn collision during grace window. collider='{other.name}' remaining={_ignoreRespawnUntilTime - Time.time:0.00}s");
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(respawnFloorTag) || !other.CompareTag(respawnFloorTag))
             return;
 
+        if (WasRecentlyRespawnedNearCurrentPosition())
+        {
+            DebugLog($"Ignored repeated respawn collision near last respawn point. collider='{other.name}' playerPos={transform.position}");
+            return;
+        }
+
         if (_respawnRoutine == null)
+        {
+            DebugLog($"Queued fall respawn from collider='{other.name}' playerPos={transform.position}");
             _respawnRoutine = StartCoroutine(RespawnAfterDelay());
+        }
     }
 
     private IEnumerator RespawnAfterDelay()
     {
         yield return new WaitForSeconds(respawnDelaySeconds);
         _respawnRoutine = null;
+
+        if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
+            yield break;
+
         float currentProgress = progressTracker != null ? progressTracker.progress01 : 0f;
+        DebugLog($"Executing fall respawn. progress01={currentProgress:0.000} playerPos={transform.position}");
         RespawnToTrackProgress(currentProgress, false, true, "fall-respawn");
     }
 
@@ -104,29 +163,48 @@ public class BuddahRespawn : MonoBehaviour
         if (!track.TryEvaluateWorldPoseAtProgress01(targetProgress01, out Vector3 trackPosition, out Vector3 trackForward))
             return false;
 
-        NotifyTeleportTrailRebases();
-
         Vector3 respawnPosition = trackPosition + Vector3.up * respawnHeightOffset;
         Quaternion respawnRotation = trackForward.sqrMagnitude > 0.0001f
             ? Quaternion.LookRotation(trackForward, Vector3.up)
             : Quaternion.identity;
+        respawnPosition = ResolveSafeRespawnPosition(respawnPosition);
+
+        if (!TeleportToWorldPose(respawnPosition, respawnRotation))
+            return false;
+
+        progressTracker?.SnapToTrackProgress(targetProgress01);
+        return true;
+    }
+
+    public bool TeleportToWorldPose(Vector3 targetPosition, Quaternion targetRotation, bool zeroVelocity = true, bool rebaseTrails = true)
+    {
+        ResolveReferences();
+        _ignoreRespawnUntilTime = Time.time + Mathf.Max(0f, respawnCollisionGraceSeconds);
+        _lastRespawnWorldPosition = targetPosition;
+        _lastRespawnTime = Time.time;
+
+        if (rebaseTrails)
+            NotifyTeleportTrailRebases();
 
         if (rb != null)
         {
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.position = respawnPosition;
-            rb.rotation = respawnRotation;
+            if (zeroVelocity)
+            {
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
+            rb.position = targetPosition;
+            rb.rotation = targetRotation;
             rb.Sleep();
             rb.WakeUp();
         }
         else
         {
-            transform.position = respawnPosition;
-            transform.rotation = respawnRotation;
+            transform.position = targetPosition;
+            transform.rotation = targetRotation;
         }
 
-        progressTracker?.SnapToTrackProgress(targetProgress01);
         return true;
     }
 
@@ -160,5 +238,86 @@ public class BuddahRespawn : MonoBehaviour
     {
         NetworkObject networkObject = GetComponent<NetworkObject>();
         return networkObject == null || networkObject.IsOwner;
+    }
+
+    private Vector3 ResolveSafeRespawnPosition(Vector3 basePosition)
+    {
+        if (string.IsNullOrWhiteSpace(respawnFloorTag) || respawnClearanceCheckRadius <= 0f)
+            return basePosition;
+
+        Vector3 candidatePosition = basePosition;
+        float liftedAmount = 0f;
+        while (liftedAmount <= maxAdditionalRespawnLift)
+        {
+            if (!WouldOverlapRespawnFloor(candidatePosition))
+                return candidatePosition;
+
+            candidatePosition += Vector3.up * additionalRespawnLiftStep;
+            liftedAmount += additionalRespawnLiftStep;
+        }
+
+        return candidatePosition;
+    }
+
+    private bool WouldOverlapRespawnFloor(Vector3 candidatePosition)
+    {
+        Collider[] overlaps = Physics.OverlapSphere(candidatePosition, respawnClearanceCheckRadius, ~0, QueryTriggerInteraction.Collide);
+        for (int i = 0; i < overlaps.Length; i++)
+        {
+            Collider overlap = overlaps[i];
+            if (overlap == null || overlap.transform.IsChildOf(transform))
+                continue;
+
+            if (overlap.CompareTag(respawnFloorTag))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool WasRecentlyRespawnedNearCurrentPosition()
+    {
+        if (minimumDistanceBeforeAnotherFallRespawn <= 0f || float.IsNegativeInfinity(_lastRespawnTime))
+            return false;
+
+        return Vector3.Distance(transform.position, _lastRespawnWorldPosition) < minimumDistanceBeforeAnotherFallRespawn;
+    }
+
+    private bool ShouldIgnoreRespawnBecauseOfRaceStartProtection()
+    {
+        RoomStateManager room = RoomStateManager.Instance;
+        if (room == null)
+            return false;
+
+        if (!room.IsMatchPhaseActive || !room.IsRaceStarted)
+        {
+            DebugLog("Ignored respawn collision because the race has not started yet.");
+            return true;
+        }
+
+        if (!_observedRaceStart)
+        {
+            _observedRaceStart = true;
+            _raceStartObservedTime = Time.time;
+        }
+
+        float protectionSeconds = Mathf.Max(0f, postRaceStartRespawnProtectionSeconds);
+        if (protectionSeconds <= 0f)
+            return false;
+
+        bool withinProtectionWindow = Time.time < (_raceStartObservedTime + protectionSeconds);
+        if (withinProtectionWindow)
+        {
+            DebugLog($"Ignored respawn collision during post-start protection window. remaining={(_raceStartObservedTime + protectionSeconds) - Time.time:0.00}s");
+            return true;
+        }
+
+        return false;
+    }
+
+    private void DebugLog(string message)
+    {
+        if (enableVerboseRespawnLogs)
+            Debug.Log($"[BuddahRespawn] {message}");
     }
 }

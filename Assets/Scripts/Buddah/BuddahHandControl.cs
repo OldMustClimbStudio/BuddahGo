@@ -2,6 +2,7 @@ using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using System.Collections;
 using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -436,7 +437,7 @@ public class BuddahHandControl : NetworkBehaviour
     [ServerRpc]
     private void RequestPushServerRpc(bool isLeft, float yawSnapshotDeg, Vector3 handWorldPositionSnapshot)
     {
-        if (RoomStateManager.Instance != null && !RoomStateManager.Instance.IsRaceStarted)
+        if (!ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject))
             return;
 
         // Server-side cooldown to prevent spamming.
@@ -1080,7 +1081,7 @@ public class BuddahHandControl : NetworkBehaviour
 
     private bool IsRaceGameplayBlocked()
     {
-        return RoomStateManager.Instance != null && RoomStateManager.Instance.ShouldBlockRaceGameplayInput;
+        return !ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject);
     }
 
 

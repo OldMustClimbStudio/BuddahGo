@@ -1,6 +1,7 @@
 using FishNet.Connection;
 using FishNet.Object;
 using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -149,7 +150,7 @@ public class SkillExecutor : NetworkBehaviour
     [ServerRpc(RequireOwnership = true)]
     private void CastSlotServerRpc(int slotIndex)
     {
-        if (RoomStateManager.Instance != null && !RoomStateManager.Instance.IsRaceStarted)
+        if (!ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject))
             return;
 
         if (slotIndex < 0 || slotIndex >= SkillLoadout.SlotCount) return;
@@ -515,7 +516,7 @@ public class SkillExecutor : NetworkBehaviour
 
     private bool IsRaceGameplayBlocked()
     {
-        return RoomStateManager.Instance != null && RoomStateManager.Instance.ShouldBlockRaceGameplayInput;
+        return !ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject);
     }
 
     public void PlayFeelLocalTimed(string startEventId, string stopEventId, float durationSeconds, string scheduleKey = null)

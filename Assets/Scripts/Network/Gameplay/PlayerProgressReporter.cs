@@ -1,5 +1,7 @@
 using FishNet.Object;
 using System.Collections;
+using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
 using UnityEngine;
 
 [RequireComponent(typeof(NetworkObject))]
@@ -12,8 +14,10 @@ public class PlayerProgressReporter : NetworkBehaviour
     private SplineProgressTracker _tracker;
     private LapProgress _lapTracker;
     private RaceCompletionTracker _completionTracker;
+    private Rigidbody _rigidbody;
+    private BuddahRespawn _respawn;
+    private PlayerFinishPresentationController _finishPresentationController;
     private bool _registeredWithLeaderboard;
-
     private void Awake()
     {
         ResolveProgressDependencies();
@@ -22,6 +26,9 @@ public class PlayerProgressReporter : NetworkBehaviour
     private void Update()
     {
         if (!IsOwner)
+            return;
+
+        if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
             return;
 
         if (Time.time < _nextReportTime)
@@ -67,6 +74,9 @@ public class PlayerProgressReporter : NetworkBehaviour
     [ServerRpc]
     private void ReportSplineProgressServerRpc(float distanceOnTrack, float forwardDot, int lap, float progress01, float previousProgress01)
     {
+        if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
+            return;
+
         if (LeaderboardManager.Instance == null)
             return;
 
@@ -106,6 +116,44 @@ public class PlayerProgressReporter : NetworkBehaviour
         _lapTracker?.TryAdvanceCheckpoint(checkpointId);
     }
 
+    [Server]
+    public void EnterResultAreaServer(Vector3 worldPosition, Quaternion worldRotation)
+    {
+        if (!IsServerInitialized)
+            return;
+
+        ApplyResultAreaTeleportLocally(worldPosition, worldRotation);
+        SyncResultAreaTeleportObserversRpc(worldPosition, worldRotation);
+    }
+
+    [Server]
+    public void BeginPersonalFinishPresentationServer(float dissolveDurationSeconds, int finishOrder, bool forcedByGlobalEnd)
+    {
+        ApplyPersonalFinishPresentationLocally(dissolveDurationSeconds, finishOrder, forcedByGlobalEnd);
+        BeginPersonalFinishPresentationObserversRpc(dissolveDurationSeconds, finishOrder, forcedByGlobalEnd);
+    }
+
+    [Server]
+    public void TeleportToHiddenResultAreaServer(Vector3 worldPosition, Quaternion worldRotation)
+    {
+        ApplyTeleportToHiddenResultAreaLocally(worldPosition, worldRotation);
+        TeleportToHiddenResultAreaObserversRpc(worldPosition, worldRotation);
+    }
+
+    [Server]
+    public void BeginResultAreaRevealServer(float dissolveDurationSeconds)
+    {
+        ApplyResultAreaRevealLocally(dissolveDurationSeconds);
+        BeginResultAreaRevealObserversRpc(dissolveDurationSeconds);
+    }
+
+    [Server]
+    public void EnterResultAreaInteractiveServer(bool allowMovement, bool allowSkills)
+    {
+        ApplyResultAreaInteractiveLocally(allowMovement, allowSkills);
+        EnterResultAreaInteractiveObserversRpc(allowMovement, allowSkills);
+    }
+
     private void ResolveProgressDependencies()
     {
         _tracker ??= GetComponent<SplineProgressTracker>();
@@ -119,6 +167,15 @@ public class PlayerProgressReporter : NetworkBehaviour
         _completionTracker ??= GetComponent<RaceCompletionTracker>();
         _completionTracker ??= GetComponentInParent<RaceCompletionTracker>();
         _completionTracker ??= GetComponentInChildren<RaceCompletionTracker>(true);
+        _rigidbody ??= GetComponent<Rigidbody>();
+        _rigidbody ??= GetComponentInParent<Rigidbody>();
+        _rigidbody ??= GetComponentInChildren<Rigidbody>(true);
+        _respawn ??= GetComponent<BuddahRespawn>();
+        _respawn ??= GetComponentInParent<BuddahRespawn>();
+        _respawn ??= GetComponentInChildren<BuddahRespawn>(true);
+        _finishPresentationController ??= GetComponent<PlayerFinishPresentationController>();
+        if (_finishPresentationController == null)
+            _finishPresentationController = gameObject.AddComponent<PlayerFinishPresentationController>();
     }
 
     private IEnumerator RegisterWithLeaderboardWhenReady()
@@ -153,5 +210,84 @@ public class PlayerProgressReporter : NetworkBehaviour
             return RaceFinishManager.Instance.LapsToFinish;
 
         return 3;
+    }
+
+    [ObserversRpc]
+    private void SyncResultAreaTeleportObserversRpc(Vector3 worldPosition, Quaternion worldRotation)
+    {
+        ApplyResultAreaTeleportLocally(worldPosition, worldRotation);
+    }
+
+    private void ApplyResultAreaTeleportLocally(Vector3 worldPosition, Quaternion worldRotation)
+    {
+        ResolveProgressDependencies();
+
+        if (_respawn != null)
+        {
+            _respawn.TeleportToWorldPose(worldPosition, worldRotation, true, true);
+            return;
+        }
+
+        if (_rigidbody != null)
+        {
+            _rigidbody.velocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+            _rigidbody.position = worldPosition;
+            _rigidbody.rotation = worldRotation;
+            _rigidbody.Sleep();
+            _rigidbody.WakeUp();
+            return;
+        }
+
+        transform.SetPositionAndRotation(worldPosition, worldRotation);
+    }
+
+    [ObserversRpc]
+    private void BeginPersonalFinishPresentationObserversRpc(float dissolveDurationSeconds, int finishOrder, bool forcedByGlobalEnd)
+    {
+        ApplyPersonalFinishPresentationLocally(dissolveDurationSeconds, finishOrder, forcedByGlobalEnd);
+    }
+
+    [ObserversRpc]
+    private void BeginResultAreaRevealObserversRpc(float dissolveDurationSeconds)
+    {
+        ApplyResultAreaRevealLocally(dissolveDurationSeconds);
+    }
+
+    [ObserversRpc]
+    private void EnterResultAreaInteractiveObserversRpc(bool allowMovement, bool allowSkills)
+    {
+        ApplyResultAreaInteractiveLocally(allowMovement, allowSkills);
+    }
+
+    [ObserversRpc]
+    private void TeleportToHiddenResultAreaObserversRpc(Vector3 worldPosition, Quaternion worldRotation)
+    {
+        ApplyTeleportToHiddenResultAreaLocally(worldPosition, worldRotation);
+    }
+
+    private void ApplyPersonalFinishPresentationLocally(float dissolveDurationSeconds, int finishOrder, bool forcedByGlobalEnd)
+    {
+        ResolveProgressDependencies();
+        _finishPresentationController?.ApplyFinishedPresentation(dissolveDurationSeconds, forcedByGlobalEnd);
+    }
+
+    private void ApplyResultAreaRevealLocally(float dissolveDurationSeconds)
+    {
+        ResolveProgressDependencies();
+        _finishPresentationController?.ApplyResultReveal(dissolveDurationSeconds);
+    }
+
+    private void ApplyResultAreaInteractiveLocally(bool allowMovement, bool allowSkills)
+    {
+        ResolveProgressDependencies();
+        _finishPresentationController?.EnterResultInteractive(allowMovement, allowSkills);
+    }
+
+    private void ApplyTeleportToHiddenResultAreaLocally(Vector3 worldPosition, Quaternion worldRotation)
+    {
+        ResolveProgressDependencies();
+        ApplyResultAreaTeleportLocally(worldPosition, worldRotation);
+        _finishPresentationController?.EnterHiddenInResultAreaWaitingReveal();
     }
 }

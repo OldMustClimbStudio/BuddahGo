@@ -11,6 +11,8 @@ using SteamMultiplayer.Network.Results;
 using Steamworks;
 using Steamworks.Data;
 using UnityEngine;
+using UnityEngine.Playables;
+using SteamMultiplayer.UI;
 
 namespace SteamMultiplayer.Network
 {
@@ -61,6 +63,8 @@ namespace SteamMultiplayer.Network
         [SerializeField] private bool _registerDefaultStageProperties = true;
         [SerializeField] private int _stageDurationSeconds = 30;
         [SerializeField] private string _resolvedMatchSceneName = "RaceMap";
+        [SerializeField, Min(0f)] private float _sceneTransitionFadeDurationSeconds = 1f;
+        [SerializeField] private bool _preferTimelineForMatchTransition = true;
         [SerializeField] private bool _enableDebugLogs = false;
 
         [Header("Skill Loadout Stage")]
@@ -619,19 +623,59 @@ namespace SteamMultiplayer.Network
             _stageCountdownActive.Value = false;
             _stageCountdownSecondsRemaining.Value = 0;
             _transitioningToMatch.Value = true;
-            MatchResultCache.Clear();
             UpdateResolvedSelectionCache();
-            if (!string.IsNullOrWhiteSpace(_resolvedMatchSceneName) && InstanceFinder.SceneManager != null)
-            {
-                SceneLoadData sceneLoadData = new SceneLoadData(_resolvedMatchSceneName) { ReplaceScenes = ReplaceOption.All };
-                InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
-                LogDebug($"Loading match scene: {_resolvedMatchSceneName}");
-            }
-            else
+            StartCoroutine(LoadResolvedMatchSceneWithFadeCoroutine());
+            RaiseSelectionStateChanged();
+        }
+
+        [Server]
+        private IEnumerator LoadResolvedMatchSceneWithFadeCoroutine()
+        {
+            if (string.IsNullOrWhiteSpace(_resolvedMatchSceneName) || InstanceFinder.SceneManager == null)
             {
                 LogDebug("Resolved match scene is empty or SceneManager missing.");
+                yield break;
             }
-            RaiseSelectionStateChanged();
+
+            float transitionDurationSeconds = ResolveMatchTransitionDurationSeconds();
+            TriggerSceneFadeObserversRpc(transitionDurationSeconds);
+
+            if (transitionDurationSeconds > 0f)
+                yield return new WaitForSeconds(transitionDurationSeconds);
+
+            SceneLoadData sceneLoadData = new SceneLoadData(_resolvedMatchSceneName) { ReplaceScenes = ReplaceOption.All };
+            InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
+            LogDebug($"Loading match scene: {_resolvedMatchSceneName}");
+        }
+
+        [ObserversRpc]
+        private void TriggerSceneFadeObserversRpc(float fadeDurationSeconds)
+        {
+            if (_preferTimelineForMatchTransition && TryPlayMatchTransitionTimeline())
+                return;
+
+            SceneFadeController.PlayFadeInBeforeSceneLoad(fadeDurationSeconds);
+        }
+
+        private float ResolveMatchTransitionDurationSeconds()
+        {
+            if (!_preferTimelineForMatchTransition)
+                return _sceneTransitionFadeDurationSeconds;
+
+            PropertySelectionMatchTransitionTimeline timeline = FindFirstObjectByType<PropertySelectionMatchTransitionTimeline>(FindObjectsInactive.Include);
+            if (timeline == null || !timeline.IsConfigured)
+                return _sceneTransitionFadeDurationSeconds;
+
+            return timeline.GetDurationSeconds();
+        }
+
+        private bool TryPlayMatchTransitionTimeline()
+        {
+            PropertySelectionMatchTransitionTimeline timeline = FindFirstObjectByType<PropertySelectionMatchTransitionTimeline>(FindObjectsInactive.Include);
+            if (timeline == null)
+                return false;
+
+            return timeline.PlayTransition();
         }
 
         private SelectionParticipantState BuildParticipantState(NetworkConnection conn)

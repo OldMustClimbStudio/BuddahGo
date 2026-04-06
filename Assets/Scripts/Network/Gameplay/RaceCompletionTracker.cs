@@ -1,4 +1,6 @@
 using FishNet.Object;
+using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
 using UnityEngine;
 
 [RequireComponent(typeof(SplineProgressTracker))]
@@ -15,6 +17,7 @@ public class RaceCompletionTracker : NetworkBehaviour
     [SerializeField, Range(0f, 1f)] private float wrongWayForceRespawnLapProgressThreshold = 0.85f;
     [SerializeField, Range(0f, 1f)] private float wrongWayRespawnLapProgress = 0.01f;
     [SerializeField, Range(0f, 1f)] private float wrongWayLap0RespawnLapProgress = 0.99f;
+    [SerializeField, Min(0f)] private float startGraceSeconds = 0.35f;
 
     [Header("Read Only")]
     [SerializeField] private int currentLap;
@@ -33,6 +36,9 @@ public class RaceCompletionTracker : NetworkBehaviour
     private SplineProgressTracker _splineProgressTracker;
     private LapProgress _lapProgress;
     private BuddahRespawn _buddahRespawn;
+    private RaceBodyIntroStateController _introStateController;
+    private BuddahMovement _buddahMovement;
+    private float _raceStartGraceTimer;
 
     public int CurrentLap => currentLap;
     public float CurrentLapProgress01 => currentLapProgress01;
@@ -54,6 +60,25 @@ public class RaceCompletionTracker : NetworkBehaviour
     {
         if (!IsOwner)
             return;
+
+        if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
+        {
+            _raceStartGraceTimer = startGraceSeconds;
+            return;
+        }
+
+        if (_raceStartGraceTimer > 0f)
+        {
+            _raceStartGraceTimer = Mathf.Max(0f, _raceStartGraceTimer - Time.deltaTime);
+            return;
+        }
+
+        if ((_introStateController != null && _introStateController.IsIntroActive)
+            || (_buddahMovement != null && _buddahMovement.IsLaunchHandoffActive))
+        {
+            _raceStartGraceTimer = Mathf.Max(_raceStartGraceTimer, startGraceSeconds);
+            return;
+        }
 
         ResolveDependencies();
         if (_lapProgress == null || _splineProgressTracker == null)
@@ -167,7 +192,7 @@ public class RaceCompletionTracker : NetworkBehaviour
 
         if (currentLap <= 0)
         {
-            if (currentLapProgress01 <= wrongWayForceRespawnLapProgressThreshold)
+            if (DidWrongWayCrossStartLine())
             {
                 TryApplyWrongWayCorrectionRespawn();
             }
@@ -270,5 +295,7 @@ public class RaceCompletionTracker : NetworkBehaviour
         _splineProgressTracker ??= GetComponent<SplineProgressTracker>();
         _lapProgress ??= GetComponent<LapProgress>();
         _buddahRespawn ??= GetComponent<BuddahRespawn>();
+        _introStateController ??= GetComponent<RaceBodyIntroStateController>();
+        _buddahMovement ??= GetComponent<BuddahMovement>();
     }
 }

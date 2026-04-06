@@ -63,7 +63,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584272011541836423
+  _initializedTimestamp: -8584263133566210896
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -79,7 +79,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 1
+  <PrefabId>k__BackingField: 12
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 17493868179482190126
   SceneId: 0
@@ -106,3 +106,7 @@ MonoBehaviour:
   _propertiesSelectorSceneName: PropertySelection
   _requireAllClientsReady: 1
   _enableDebugLogs: 0
+  _raceSceneName: RaceMap
+  _resultSceneName: RaceMapEndField
+  _mainMenuSceneName: MainMenu
+  _pregameCountdownSeconds: 18

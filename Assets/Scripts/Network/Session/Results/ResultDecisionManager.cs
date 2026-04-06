@@ -51,7 +51,7 @@ namespace SteamMultiplayer.Network.Results
         public override void OnStartServer()
         {
             base.OnStartServer();
-            InitializeDecisionServer();
+            ResetDecisionStateServer();
 
             if (InstanceFinder.ServerManager != null)
                 InstanceFinder.ServerManager.OnRemoteConnectionState += HandleRemoteConnectionState;
@@ -72,10 +72,7 @@ namespace SteamMultiplayer.Network.Results
 
             _trackedParticipantIds.Clear();
             _serverInitializedDecisions = false;
-            PlayerDecisions.Clear();
-            _remainingSeconds.Value = 0;
-            _decisionActive.Value = false;
-            _finalDecision.Value = ResultFinalDecision.None;
+            ResetDecisionStateServer();
         }
 
         public override void OnStartClient()
@@ -138,6 +135,15 @@ namespace SteamMultiplayer.Network.Results
             return false;
         }
 
+        [Server]
+        public void BeginDecisionPhaseServer()
+        {
+            if (!IsServerInitialized)
+                return;
+
+            InitializeDecisionServer(forceRestart: true);
+        }
+
         public string BuildDecisionSummary()
         {
             StringBuilder sb = new StringBuilder();
@@ -152,10 +158,21 @@ namespace SteamMultiplayer.Network.Results
         }
 
         [Server]
-        private void InitializeDecisionServer()
+        private void InitializeDecisionServer(bool forceRestart = false)
         {
-            if (_serverInitializedDecisions)
+            if (_serverInitializedDecisions && !forceRestart)
                 return;
+
+            if (forceRestart)
+            {
+                if (_decisionCountdownRoutine != null)
+                {
+                    StopCoroutine(_decisionCountdownRoutine);
+                    _decisionCountdownRoutine = null;
+                }
+
+                ResetDecisionStateServer();
+            }
 
             _serverInitializedDecisions = true;
             _trackedParticipantIds.Clear();
@@ -181,6 +198,7 @@ namespace SteamMultiplayer.Network.Results
             }
 
             _decisionCountdownRoutine = StartCoroutine(DecisionCountdownCoroutine());
+            Debug.Log($"[ResultDecisionManager] Decision phase started. participants={PlayerDecisions.Count}");
         }
 
         [Server]
@@ -303,6 +321,15 @@ namespace SteamMultiplayer.Network.Results
                 return -1;
 
             return GameNetworkManager.Instance.FishNetManager.ClientManager.Connection.ClientId;
+        }
+
+        [Server]
+        private void ResetDecisionStateServer()
+        {
+            PlayerDecisions.Clear();
+            _remainingSeconds.Value = 0;
+            _decisionActive.Value = false;
+            _finalDecision.Value = ResultFinalDecision.None;
         }
     }
 }

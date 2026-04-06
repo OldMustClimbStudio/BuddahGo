@@ -36,7 +36,7 @@ namespace SteamMultiplayer.Network
         [SerializeField] private string _raceSceneName = "RaceMap";
         [SerializeField] private string _resultSceneName = "RaceMapEndField";
         [SerializeField] private string _mainMenuSceneName = "MainMenu";
-        [SerializeField] private int _pregameCountdownSeconds = 3;
+        [SerializeField] private int _pregameCountdownSeconds = 15;
 
         public readonly SyncList<RoomPlayerState> Players = new SyncList<RoomPlayerState>();
 
@@ -60,13 +60,16 @@ namespace SteamMultiplayer.Network
         public bool IsRaceStarted => _raceStarted.Value;
         public MatchSessionPhase CurrentMatchSessionPhase => _matchSessionPhase.Value;
         public bool IsRaceSceneLoadedLocally => !string.IsNullOrWhiteSpace(_raceSceneName) && UnitySceneManager.GetSceneByName(_raceSceneName).isLoaded;
-        public bool ShouldBlockRaceGameplayInput => IsRaceSceneLoadedLocally && !_raceStarted.Value;
+        public bool IsMatchPhaseActive => _matchSessionPhase.Value == MatchSessionPhase.InMatch;
+        public bool IsResultPhaseActive => _matchSessionPhase.Value == MatchSessionPhase.InResult;
+        public bool CanPlayersUseGameplayInput => IsResultPhaseActive || (IsMatchPhaseActive && _raceStarted.Value);
+        public bool ShouldBlockRaceGameplayInput => IsRaceSceneLoadedLocally && IsMatchPhaseActive && !_raceStarted.Value;
 
         public event Action OnPropertiesSelectorTransitionRequested;
 
         private void Update()
         {
-            if (!IsServerInitialized || !ShouldMonitorRaceFlowServer())
+            if (!IsServerInitialized || _matchSessionPhase.Value != MatchSessionPhase.InMatch || !ShouldMonitorRaceFlowServer())
                 return;
 
             if (!_waitingForRacePlayers.Value && !_raceCountdownActive.Value)
@@ -370,6 +373,9 @@ namespace SteamMultiplayer.Network
             if (!IsServerInitialized)
                 return;
 
+            if (_matchSessionPhase.Value != MatchSessionPhase.InMatch)
+                return;
+
             if (!string.Equals(args.Scene.name, _raceSceneName, StringComparison.Ordinal))
                 return;
 
@@ -566,12 +572,21 @@ namespace SteamMultiplayer.Network
         }
 
         [Server]
+        public void EnterResultPhaseServer()
+        {
+            if (!IsServerInitialized)
+                return;
+
+            BeginResultPhaseServer();
+        }
+
+        [Server]
         private void BeginResultPhaseServer()
         {
             ResetRaceFlowStateServer();
             _matchSessionPhase.Value = MatchSessionPhase.InResult;
             _returningToRoomMenu = false;
-            LogDebug("Result scene loaded. Waiting for host-authoritative return-to-room trigger.");
+            LogDebug("Entered in-scene result phase. Waiting for host-authoritative return-to-room trigger.");
         }
 
         [Server]
@@ -654,7 +669,6 @@ namespace SteamMultiplayer.Network
         [Server]
         private void CleanupMatchSessionButKeepRoomServer()
         {
-            MatchResultCache.Clear();
             ResolvedPropertySelectionCache.Clear();
             ResetRaceFlowStateServer();
             ResetPlayersReadyStateForRoomReturn();
@@ -699,7 +713,7 @@ namespace SteamMultiplayer.Network
         [Server]
         private void EvaluateRaceStartReadinessServer()
         {
-            if (!ShouldMonitorRaceFlowServer())
+            if (_matchSessionPhase.Value != MatchSessionPhase.InMatch || !ShouldMonitorRaceFlowServer())
                 return;
 
             bool allPlayersReady = AreAllPlayersReadyForRaceServer();

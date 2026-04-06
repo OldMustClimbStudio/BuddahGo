@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using FishNet.Object;
 using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -115,7 +116,7 @@ public class ComboSkillInput : NetworkBehaviour
 
     private bool IsRaceGameplayBlocked()
     {
-        return RoomStateManager.Instance != null && RoomStateManager.Instance.ShouldBlockRaceGameplayInput;
+        return !ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject);
     }
 
     private void ApplyConfiguredGlobalRules()

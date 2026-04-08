@@ -44,6 +44,7 @@ namespace FishNet.Object
 
     [DefaultExecutionOrder(short.MinValue + 1)]
     [DisallowMultipleComponent]
+    [AddComponentMenu("FishNet/Component/NetworkObject")]
     public partial class NetworkObject : MonoBehaviour, IOrderable
     {
         #region Public.
@@ -423,6 +424,7 @@ namespace FishNet.Object
             CollectionCaches<NetworkBehaviour>.Store(_predictionBehaviours);
             ResettableT2CollectionCaches<Transform, PreReconcilingTransformProperties>.Store(_rigidbodyTransformsPreReconcileProperties);
             CollectionCaches<PreReconcilingTransformProperties>.Store(_updatedPreReconcilingTransformProperties);
+            CollectionCaches<NetworkConnection, uint>.StoreAndDefault(ref ObserverLevelOfDetailDivisors);
 
             SetIsDestroying(DespawnType.Destroy);
 
@@ -457,7 +459,7 @@ namespace FishNet.Object
             if (Owner.IsValid)
                 Owner.RemoveObject(this);
 
-            Observers.Clear();
+            ClearObservers();
             if (NetworkBehaviours.Count > 0)
             {
                 NetworkBehaviour thisNb = NetworkBehaviours[0];
@@ -646,7 +648,13 @@ namespace FishNet.Object
                 SetOwner(owner);
 
                 if (ObjectId != UNSET_OBJECTID_VALUE)
-                    NetworkManager.LogError($"Object was initialized twice without being reset. Object {ToString()}");
+                {
+                    if (ObjectId != objectId)
+                    {
+                        ServerManager.Objects.ObjectInitializedWithoutDeinitializing(oldId: objectId, this);
+                        ClientManager.Objects.ObjectInitializedWithoutDeinitializing(oldId: objectId, this);
+                    }
+                }
 
                 ObjectId = objectId;
 
@@ -710,6 +718,7 @@ namespace FishNet.Object
         {
             if (!CanChangeParent(true))
                 return;
+
             if (nob == null)
             {
                 UnsetParent();
@@ -725,6 +734,8 @@ namespace FishNet.Object
 
             NetworkBehaviour newParent = nob.NetworkBehaviours[0];
             UpdateParent(newParent);
+
+            SetLevelOfDetailUsage(); 
         }
 
         /// <summary>
@@ -984,7 +995,7 @@ namespace FishNet.Object
 
             // Iterate all cached transforms and get networkbehaviours.
             List<NetworkBehaviour> nbCache = CollectionCaches<NetworkBehaviour>.RetrieveList();
-            //
+            // 
             List<NetworkBehaviour> nbCache2 = CollectionCaches<NetworkBehaviour>.RetrieveList();
             for (int i = 0; i < transformCache.Count; i++)
             {
@@ -992,6 +1003,10 @@ namespace FishNet.Object
                 transformCache[i].GetNetworkBehavioursNonAlloc(ref nbCache2);
                 nbCache.AddRange(nbCache2);
             }
+
+            /* The maximum number of NetworkBehaviours allowed per NetworkObject.
+             * This value is reset with nested NetworkObjects. */
+            const byte maximumNetworkBehaviours = 250;
 
             /* If there's no NBs then add an empty one.
              * All NetworkObjects must have at least 1 NetworkBehaviour
@@ -1001,10 +1016,17 @@ namespace FishNet.Object
                 if (TryAddEmptyNetworkBehaviour(this, addToNetworkBehaviours: false, out NetworkBehaviour addedNetworkBehaviour))
                     nbCache.Add(addedNetworkBehaviour);
             }
+            else if (nbCache.Count > maximumNetworkBehaviours)
+            {
+                NetworkManager.LogError($"{gameObject.name} has {nbCache.Count} NetworkBehaviours but the limit is {maximumNetworkBehaviours} under a single NetworkObject. Reduce the amount of NetworkBehaviours or use nested NetworkObjects to exceed this limit.");
+                StoreCacheCollections();
+
+                return;
+            }
 
             // Copy to array.
             int nbCount = nbCache.Count;
-            //
+            // 
             for (int i = 0; i < nbCount; i++)
             {
                 NetworkBehaviour nb = nbCache[i];
@@ -1013,9 +1035,7 @@ namespace FishNet.Object
                 nb.SerializeComponents(this, (byte)i);
             }
 
-            CollectionCaches<Transform>.Store(transformCache);
-            CollectionCaches<NetworkBehaviour>.Store(nbCache);
-            CollectionCaches<NetworkBehaviour>.Store(nbCache2);
+            StoreCacheCollections();
 
             // Tell children nobs to update their NetworkBehaviours.
             foreach (NetworkObject item in InitializedNestedNetworkObjects)
@@ -1026,6 +1046,13 @@ namespace FishNet.Object
 
             // Update global states to that of this one.
             SetChildGlobalState();
+
+            void StoreCacheCollections()
+            {
+                CollectionCaches<Transform>.Store(transformCache);
+                CollectionCaches<NetworkBehaviour>.Store(nbCache);
+                CollectionCaches<NetworkBehaviour>.Store(nbCache2);
+            }
         }
 
         /// <summary>
@@ -1120,7 +1147,7 @@ namespace FishNet.Object
             SetInitializedStatus(false, asServer);
 
             if (asServer)
-                Observers.Clear();
+                ClearObservers();
         }
 
         /// <summary>
@@ -1144,7 +1171,7 @@ namespace FishNet.Object
             // // If nested then set active state to serialized value.
             // if (IsNested)
             //     gameObject.SetActive(WasActiveDuringEdit);
-            //
+            // 
             SetOwner(NetworkManager.EmptyConnection);
             if (NetworkObserver != null)
                 NetworkObserver.Deinitialize(false);
@@ -1205,7 +1232,7 @@ namespace FishNet.Object
 
                 if (newOwner != null && newOwner.IsActive && !newOwner.LoadedStartScenes(true))
                 {
-                    NetworkManager.LogWarning($"Ownership has been transfered to ConnectionId {newOwner.ClientId} but this is not recommended until after they have loaded start scenes. You can be notified when a connection loads start scenes by using connection.OnLoadedStartScenes on the connection, or SceneManager.OnClientLoadStartScenes.");
+                    NetworkManager.LogWarning($"Ownership has been transferred to ConnectionId {newOwner.ClientId} but this is not recommended until after they have loaded start scenes. You can be notified when a connection loads start scenes by using connection.OnLoadedStartScenes on the connection, or SceneManager.OnClientLoadStartScenes.");
                 }
             }
 
@@ -1246,7 +1273,7 @@ namespace FishNet.Object
                 // If sharing then send to all observers.
                 if (NetworkManager.ServerManager.ShareIds)
                 {
-                    NetworkManager.TransportManager.SendToClients((byte)Channel.Reliable, writer.GetArraySegment(), this);
+                    NetworkManager.TransportManager.SendToClients((byte)Channel.Reliable, writer.GetArraySegment());
                 }
                 // Only sending to old / new.
                 else

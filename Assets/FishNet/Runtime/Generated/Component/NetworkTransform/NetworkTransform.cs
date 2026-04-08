@@ -1703,7 +1703,28 @@ namespace FishNet.Component.Transforming
                     //No more in buffer, see if can extrapolate.
                     else
                     {
-                        /* If everything matches up then end queue.
+                        //PROSTART
+                        //Can extrapolate.
+                        if (td.ExtrapolationState == TransformData.ExtrapolateState.Available)
+                        {
+                            rd.TimeRemaining = (float)(_extrapolation * _timeManager.TickDelta);
+                            td.ExtrapolationState = TransformData.ExtrapolateState.Active;
+                            if (leftOver > 0f)
+                                MoveToTarget(leftOver);
+                        }
+                        //Ran out of extrapolate.
+                        else if (td.ExtrapolationState == TransformData.ExtrapolateState.Active)
+                        {
+                            rd.TimeRemaining = (float)(_extrapolation * _timeManager.TickDelta);
+                            td.ExtrapolationState = TransformData.ExtrapolateState.Disabled;
+                            if (leftOver > 0f)
+                                MoveToTarget(leftOver);
+                        }
+                        //Extrapolation has ended or was never enabled.
+                        else
+                        {
+                            //PROEND
+                            /* If everything matches up then end queue.
                              * Otherwise let it play out until stuff
                              * aligns. Generally the time remaining is enough
                              * but every once in awhile something goes funky
@@ -1711,7 +1732,10 @@ namespace FishNet.Component.Transforming
                             if (!HasChanged(td))
                                 _currentGoalData = null;
                             OnInterpolationComplete?.Invoke();
-                            }
+                            //PROSTART
+                        }
+                        //PROEND
+                    }
                 }
             }
         }
@@ -1963,29 +1987,38 @@ namespace FishNet.Component.Transforming
             ChangedDelta changed = ChangedDelta.Unset;
             Transform t = _cachedTransform;
 
-            Vector3 position = t.localPosition;
-            if (Mathf.Abs(position.x - lastPosition.x) >= _positionSensitivity)
-                changed |= ChangedDelta.PositionX;
-            if (Mathf.Abs(position.y - lastPosition.y) >= _positionSensitivity)
-                changed |= ChangedDelta.PositionY;
-            if (Mathf.Abs(position.z - lastPosition.z) >= _positionSensitivity)
-                changed |= ChangedDelta.PositionZ;
+            if (_synchronizePosition)
+            {
+                Vector3 position = t.localPosition;
+                if (Mathf.Abs(position.x - lastPosition.x) >= _positionSensitivity)
+                    changed |= ChangedDelta.PositionX;
+                if (Mathf.Abs(position.y - lastPosition.y) >= _positionSensitivity)
+                    changed |= ChangedDelta.PositionY;
+                if (Mathf.Abs(position.z - lastPosition.z) >= _positionSensitivity)
+                    changed |= ChangedDelta.PositionZ;
+            }
 
-            Quaternion rotation = t.localRotation;
-            if (!rotation.Matches(lastRotation, true))
-                changed |= ChangedDelta.Rotation;
-
+            if (_synchronizeRotation)
+            {
+                Quaternion rotation = t.localRotation;
+                if (!rotation.Matches(lastRotation, true))
+                    changed |= ChangedDelta.Rotation;
+            }
+            
             ChangedDelta startChanged = changed;
 
-            Vector3 scale = t.localScale;
-            if (Mathf.Abs(scale.x - lastScale.x) >= _scaleSensitivity)
-                changed |= ChangedDelta.ScaleX;
-            if (Mathf.Abs(scale.y - lastScale.y) >= _scaleSensitivity)
-                changed |= ChangedDelta.ScaleY;
-            if (Mathf.Abs(scale.z - lastScale.z) >= _scaleSensitivity)
-                changed |= ChangedDelta.ScaleZ;
+            if (_synchronizeScale)
+            {
+                Vector3 scale = t.localScale;
+                if (Mathf.Abs(scale.x - lastScale.x) >= _scaleSensitivity)
+                    changed |= ChangedDelta.ScaleX;
+                if (Mathf.Abs(scale.y - lastScale.y) >= _scaleSensitivity)
+                    changed |= ChangedDelta.ScaleY;
+                if (Mathf.Abs(scale.z - lastScale.z) >= _scaleSensitivity)
+                    changed |= ChangedDelta.ScaleZ;
+            }
 
-            if (changed != ChangedDelta.Unset && ParentBehaviour != null)
+            if (_synchronizeParent && changed != ChangedDelta.Unset && ParentBehaviour != null)
                 changed |= ChangedDelta.Nested;
 
             //If added scale or childed then also add extended.
@@ -2256,7 +2289,16 @@ namespace FishNet.Component.Transforming
             //Default value.
             next.ExtrapolationState = TransformData.ExtrapolateState.Disabled;
 
-            }
+            //PROSTART
+            //Teleports cannot extrapolate.
+            if (_extrapolation == 0 || !_synchronizePosition || channel == Channel.Reliable || next.Position == prev.Position)
+                return;
+
+            Vector3 offet = (next.Position - prev.Position) * _extrapolation;
+            next.ExtrapolatedPosition = next.Position + offet;
+            next.ExtrapolationState = TransformData.ExtrapolateState.Available;
+            //PROEND
+        }
 
         /// <summary>
         /// Updates a client with transform data.

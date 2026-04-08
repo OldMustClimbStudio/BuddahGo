@@ -105,7 +105,9 @@ namespace FishNet.Object.Prediction
         public static void WritePredictionRigidbody(this Writer w, PredictionRigidbody pr)
         {
             w.Write(pr.Rigidbody.GetState(pr.RotationPacking));
-            w.WriteList(pr.GetPendingForces());
+            /* This used to write pr.GetPendingForces() but is no longer needed, assuming the user properly
+             * reconciles everything that modifies the predictionRigidbody. */
+            w.WriteList<PredictionRigidbody.EntryData>(null);
         }
 
         [DefaultReader]
@@ -464,11 +466,13 @@ namespace FishNet.Object.Prediction
         public void Reconcile(PredictionRigidbody pr)
         {
             _pendingForces.Clear();
+            
             if (pr._pendingForces != null)
             {
                 foreach (EntryData item in pr._pendingForces)
                     _pendingForces.Add(new(item));
             }
+            
             // Set state.
             Rigidbody.SetState(pr.RigidbodyState);
 
@@ -485,20 +489,22 @@ namespace FishNet.Object.Prediction
             {
                 ForceApplicationType velocityApplicationTypes = ForceApplicationType.AddRelativeForce | ForceApplicationType.AddForce | ForceApplicationType.AddExplosiveForce;
 
-                List<EntryData> newDatas = CollectionCaches<EntryData>.RetrieveList();
+                List<EntryData> datasToKeep = CollectionCaches<EntryData>.RetrieveList();
                 foreach (EntryData item in _pendingForces)
                 {
-                    if (VelocityApplicationTypesContains(item.Type) == !nonAngular)
-                        newDatas.Add(item);
+                    if (VelocityApplicationTypesContains(item.Type) == !nonAngular || item.Type == ForceApplicationType.MovePosition || item.Type == ForceApplicationType.MoveRotation)
+                        datasToKeep.Add(item);
                 }
                 // Add back to _pendingForces if changed.
-                if (newDatas.Count != _pendingForces.Count)
+                if (datasToKeep.Count != _pendingForces.Count)
                 {
                     _pendingForces.Clear();
-                    foreach (EntryData item in newDatas)
+                    
+                    foreach (EntryData item in datasToKeep)
                         _pendingForces.Add(item);
                 }
-                CollectionCaches<EntryData>.Store(newDatas);
+                
+                CollectionCaches<EntryData>.Store(datasToKeep);
 
                 bool VelocityApplicationTypesContains(ForceApplicationType apt)
                 {

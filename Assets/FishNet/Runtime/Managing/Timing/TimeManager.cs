@@ -8,6 +8,7 @@ using GameKit.Dependencies.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using FishNet.Managing.Observing;
 using FishNet.Managing.Predicting;
 using FishNet.Managing.Statistic;
 using FishNet.Object;
@@ -742,9 +743,9 @@ namespace FishNet.Managing.Timing
 
                     if (PhysicsMode == PhysicsMode.TimeManager && tickDelta > 0f)
                     {
-                        InvokeOnSimulation(preSimulation: true, tickDelta);
+                        InvokeOnPhysicsSimulation(preSimulation: true, tickDelta);
                         SimulatePhysics(tickDelta);
-                        InvokeOnSimulation(preSimulation: false, tickDelta);
+                        InvokeOnPhysicsSimulation(preSimulation: false, tickDelta);
                     }
 
                     using (_pm_OnPostTick.Auto())
@@ -770,6 +771,9 @@ namespace FishNet.Managing.Timing
                     _elapsedTickTime -= timePerSimulation;
                     Tick++;
                     LocalTick++;
+                    
+                    //Cache localTick to ObserverManager for performance.
+                    NetworkManager.ObserverManager.LocalTick = LocalTick;
                 }
             } while (_elapsedTickTime >= timePerSimulation);
         }
@@ -1065,7 +1069,7 @@ namespace FishNet.Managing.Timing
         /// <summary>
         /// Invokes OnPreSimulation or OnPostSimulation.
         /// </summary>
-        internal void InvokeOnSimulation(bool preSimulation, float delta)
+        internal void InvokeOnPhysicsSimulation(bool preSimulation, float delta)
         {
             if (preSimulation)
             {

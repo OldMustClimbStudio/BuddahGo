@@ -187,7 +187,7 @@ public class SkillSlotUI : MonoBehaviour
             ApplyReadyState();
     }
 
-    private void HandleSkillTriggered(LocalSkillUiEvent skillEvent)
+    private void HandleSkillTriggered(SkillExecutor.LocalSkillUiEvent skillEvent)
     {
         if (skillEvent.SlotIndex != _slotIndex)
             return;
@@ -195,7 +195,7 @@ public class SkillSlotUI : MonoBehaviour
         PlayCooldown(skillEvent.CooldownSeconds, skillEvent.CastLockSeconds);
     }
 
-    private void HandleComboProgress(ComboProgressEvent progressEvent)
+    private void HandleComboProgress(ComboSkillInput.ComboProgressEvent progressEvent)
     {
         if (progressEvent.slotIndex != _slotIndex)
             return;

@@ -143,6 +143,7 @@ PlayerSettings:
   bundleVersion: 0.1.0
   preloadedAssets:
   - {fileID: -944628639613478452, guid: 0c2d608aa5910dc4ab0e659049968f03, type: 3}
+  - {fileID: 11400000, guid: 5efa29db8a388d64087d2ff79158db42, type: 2}
   metroInputSource: 0
   wsaTransparentSwapchain: 0
   m_HolographicPauseOnTrackingLoss: 1
@@ -812,7 +813,7 @@ PlayerSettings:
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
   scriptingDefineSymbols:
-    Standalone: FISHNET;FISHNET_V4;MOREMOUNTAINS_NICEVIBRATIONS_INSTALLED
+    Standalone: FISHNET;FISHNET_V4;MOREMOUNTAINS_NICEVIBRATIONS_INSTALLED;FISHNET_PRO
     WebGL: MOREMOUNTAINS_NICEVIBRATIONS_INSTALLED
   additionalCompilerArguments: {}
   platformArchitecture: {}

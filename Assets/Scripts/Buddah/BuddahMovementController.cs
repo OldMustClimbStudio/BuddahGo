@@ -282,6 +282,19 @@ public class BuddahMovement : NetworkBehaviour
         RefreshInputSourceForCurrentControlState();
     }
 
+    public void TeleportPredictedMotor(Vector3 position, Quaternion rotation, Vector3 velocity, Vector3 angularVelocity)
+    {
+        if (rb == null || !IsOwner)
+            return;
+
+        rb.position = position;
+        rb.rotation = rotation;
+        rb.velocity = velocity;
+        rb.angularVelocity = angularVelocity;
+        rb.Sleep();
+        rb.WakeUp();
+    }
+
     public void SetSkillRooted(bool rooted)
     {
         if (rooted)

@@ -11,6 +11,20 @@ public class ComboSkillInput : NetworkBehaviour
 {
     private const float MinimumStepWindowSeconds = 0.01f;
 
+    public readonly struct ComboProgressEvent
+    {
+        public ComboProgressEvent(int slotIndex, int matchedStepCount, bool isValidPrefix)
+        {
+            this.slotIndex = slotIndex;
+            this.matchedStepCount = matchedStepCount;
+            this.isValidPrefix = isValidPrefix;
+        }
+
+        public readonly int slotIndex;
+        public readonly int matchedStepCount;
+        public readonly bool isValidPrefix;
+    }
+
     public enum Token { W, Up }
 
     [Serializable]
@@ -36,6 +50,7 @@ public class ComboSkillInput : NetworkBehaviour
     [SerializeField] private List<ComboBinding> bindings = new();
 
     public event Action<int, string> OnSkillSlotTriggered;
+    public event Action<ComboProgressEvent> OnComboProgress;
 
     private InputSystem_Actions _actions;
     private InputAction _handPushAction;
@@ -143,6 +158,8 @@ public class ComboSkillInput : NetworkBehaviour
         if (_buffer.Count > maxBuffer)
             _buffer.RemoveAt(0);
 
+        RaiseComboProgressEvents();
+
         Debug.Log($"[Combo] +{token} | buffer = {string.Join(",", _buffer)}");
 
         ComboBinding matched = FindExactMatchOnSuffix(_buffer);
@@ -150,6 +167,7 @@ public class ComboSkillInput : NetworkBehaviour
         {
             OnSkillSlotTriggered?.Invoke(matched.slotIndex, matched.name);
             _buffer.Clear();
+            RaiseComboProgressEvents();
             return;
         }
 
@@ -157,7 +175,24 @@ public class ComboSkillInput : NetworkBehaviour
         {
             Debug.Log($"[Combo] dead-end buffer, clearing: {string.Join(",", _buffer)}");
             _buffer.Clear();
+            RaiseComboProgressEvents();
         }
+    }
+
+    public bool TryGetSequenceForSlot(int slotIndex, out Token[] sequence)
+    {
+        sequence = null;
+        for (int i = 0; i < bindings.Count; i++)
+        {
+            ComboBinding binding = bindings[i];
+            if (binding == null || binding.slotIndex != slotIndex || binding.sequence == null || binding.sequence.Length == 0)
+                continue;
+
+            sequence = (Token[])binding.sequence.Clone();
+            return true;
+        }
+
+        return false;
     }
 
     private ComboBinding FindExactMatchOnSuffix(List<Token> buffer)
@@ -215,6 +250,45 @@ public class ComboSkillInput : NetworkBehaviour
         }
 
         return true;
+    }
+
+    private void RaiseComboProgressEvents()
+    {
+        if (OnComboProgress == null)
+            return;
+
+        HashSet<int> seenSlots = new();
+        for (int i = 0; i < bindings.Count; i++)
+        {
+            ComboBinding binding = bindings[i];
+            if (binding == null)
+                continue;
+
+            int slot = binding.slotIndex;
+            if (seenSlots.Contains(slot))
+                continue;
+
+            seenSlots.Add(slot);
+
+            int bestMatchedCount = 0;
+            bool hasValidPrefix = false;
+
+            for (int j = 0; j < bindings.Count; j++)
+            {
+                ComboBinding candidate = bindings[j];
+                if (candidate == null || candidate.slotIndex != slot || candidate.sequence == null || candidate.sequence.Length == 0)
+                    continue;
+
+                if (!IsPrefixMatch(_buffer, candidate.sequence))
+                    continue;
+
+                hasValidPrefix = _buffer.Count > 0;
+                if (_buffer.Count > bestMatchedCount)
+                    bestMatchedCount = _buffer.Count;
+            }
+
+            OnComboProgress.Invoke(new ComboProgressEvent(slot, bestMatchedCount, hasValidPrefix));
+        }
     }
 
     private void OnGUI()

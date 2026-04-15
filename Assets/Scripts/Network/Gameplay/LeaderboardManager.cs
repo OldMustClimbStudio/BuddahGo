@@ -11,6 +11,7 @@ using UnityEngine;
 public class LeaderboardManager : NetworkBehaviour
 {
     public static LeaderboardManager Instance { get; private set; }
+    private const bool EnableVerboseRankingLogs = false;
 
     [Header("Settings")]
     [SerializeField] private float refreshIntervalSeconds = 0.1f;
@@ -27,16 +28,21 @@ public class LeaderboardManager : NetworkBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Destroy(gameObject);
+            Debug.LogWarning("[LeaderboardManager] Duplicate instance detected during Awake. Keeping scene NetworkObject alive and allowing network lifecycle to resolve the active instance.");
             return;
         }
+    }
 
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
         Instance = this;
     }
 
     public override void OnStartServer()
     {
         base.OnStartServer();
+        Instance = this;
         EnsureServerPlayerRegistrations();
         if (_rankingsDirty)
             BuildRankings();
@@ -50,6 +56,21 @@ public class LeaderboardManager : NetworkBehaviour
         _leaderboardSnapshotText.Value = string.Empty;
         _progressByClientId.Clear();
         _rankingsFrozen = false;
+        if (Instance == this)
+            Instance = null;
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        if (Instance == this)
+            Instance = null;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     public void RegisterPlayer(int clientId, string displayName)
@@ -261,7 +282,8 @@ public class LeaderboardManager : NetworkBehaviour
 
         _leaderboardSnapshotText.Value = BuildLeaderboardSnapshotText(list);
 
-        Debug.Log($"[Leaderboard] BuildRankings count={list.Count}");
+        if (EnableVerboseRankingLogs)
+            Debug.Log($"[Leaderboard] BuildRankings count={list.Count}");
         _rankingsDirty = false;
     }
 

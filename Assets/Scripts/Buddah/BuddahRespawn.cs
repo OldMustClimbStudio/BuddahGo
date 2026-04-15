@@ -1,5 +1,8 @@
 using System.Collections;
 using FishNet.Object;
+using NewBuddah.PredictionV2.Bootstrap;
+using NewBuddah.PredictionV2.Core;
+using NewBuddah.PredictionV2.Integration;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
 using UnityEngine;
@@ -26,6 +29,9 @@ public class BuddahRespawn : MonoBehaviour
     [Header("References")]
     [SerializeField] private Rigidbody rb;
     [SerializeField] private SplineProgressTracker progressTracker;
+    [SerializeField] private BuddahPredictionBootstrap predictionBootstrap;
+    [SerializeField] private BuddahPredictionRespawnBridge predictionRespawnBridge;
+    [SerializeField] private RaceBodyIntroStateController introStateController;
 
     private Coroutine _respawnRoutine;
     private float _ignoreRespawnUntilTime;
@@ -41,6 +47,14 @@ public class BuddahRespawn : MonoBehaviour
 
         if (progressTracker == null)
             progressTracker = GetComponent<SplineProgressTracker>();
+        if (predictionBootstrap == null)
+            predictionBootstrap = GetComponent<BuddahPredictionBootstrap>();
+        if (predictionRespawnBridge == null)
+            predictionRespawnBridge = GetComponent<BuddahPredictionRespawnBridge>();
+        if (introStateController == null)
+            introStateController = GetComponent<RaceBodyIntroStateController>();
+        if (predictionBootstrap != null && predictionRespawnBridge == null)
+            predictionRespawnBridge = gameObject.AddComponent<BuddahPredictionRespawnBridge>();
     }
 
     private void OnDisable()
@@ -95,7 +109,7 @@ public class BuddahRespawn : MonoBehaviour
             $"requestedResetSkillEffects={resetSkillEffects} requestedPreserveObsession={preserveObsession} " +
             $"appliedSkillEffectReset=false appliedObsessionChange=false");
 
-        return TeleportToTrackProgress(clampedTargetProgress01);
+        return TeleportToTrackProgress(clampedTargetProgress01, reason);
     }
 
     public bool RequestWrongWayCorrectionRespawn(float targetProgress01, bool resetSkillEffects = false, bool preserveObsession = true, string reason = "wrong-way-correction")
@@ -109,6 +123,9 @@ public class BuddahRespawn : MonoBehaviour
             return;
 
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
+            return;
+
+        if (ShouldIgnoreRespawnBecauseGameplayIsNotLive())
             return;
 
         if (ShouldIgnoreRespawnBecauseOfRaceStartProtection())
@@ -147,12 +164,15 @@ public class BuddahRespawn : MonoBehaviour
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
             yield break;
 
+        if (ShouldIgnoreRespawnBecauseGameplayIsNotLive())
+            yield break;
+
         float currentProgress = progressTracker != null ? progressTracker.progress01 : 0f;
         DebugLog($"Executing fall respawn. progress01={currentProgress:0.000} playerPos={transform.position}");
         RespawnToTrackProgress(currentProgress, false, true, "fall-respawn");
     }
 
-    private bool TeleportToTrackProgress(float targetProgress01)
+    private bool TeleportToTrackProgress(float targetProgress01, string reason)
     {
         ResolveReferences();
 
@@ -168,6 +188,18 @@ public class BuddahRespawn : MonoBehaviour
             ? Quaternion.LookRotation(trackForward, Vector3.up)
             : Quaternion.identity;
         respawnPosition = ResolveSafeRespawnPosition(respawnPosition);
+
+        if (predictionBootstrap != null && predictionBootstrap.IsPredictionModeActive() && predictionRespawnBridge != null)
+        {
+            BuddahPredictedTeleportSourceType sourceType = ResolveTeleportSourceType(reason);
+            bool routed = predictionRespawnBridge.TryRespawnToTrackProgress(respawnPosition, respawnRotation, targetProgress01, sourceType, reason);
+            if (routed)
+            {
+                MarkTeleportRequested(respawnPosition);
+                DebugLog($"PredictionV2 respawn routed. reason={reason} source={sourceType} progress01={targetProgress01:0.000} pos={respawnPosition}");
+                return true;
+            }
+        }
 
         if (!TeleportToWorldPose(respawnPosition, respawnRotation))
             return false;
@@ -232,6 +264,14 @@ public class BuddahRespawn : MonoBehaviour
 
         if (progressTracker == null)
             progressTracker = GetComponent<SplineProgressTracker>();
+        if (predictionBootstrap == null)
+            predictionBootstrap = GetComponent<BuddahPredictionBootstrap>();
+        if (predictionRespawnBridge == null)
+            predictionRespawnBridge = GetComponent<BuddahPredictionRespawnBridge>();
+        if (introStateController == null)
+            introStateController = GetComponent<RaceBodyIntroStateController>();
+        if (predictionBootstrap != null && predictionRespawnBridge == null)
+            predictionRespawnBridge = gameObject.AddComponent<BuddahPredictionRespawnBridge>();
     }
 
     private bool IsLocalOwner()
@@ -315,9 +355,50 @@ public class BuddahRespawn : MonoBehaviour
         return false;
     }
 
+    private bool ShouldIgnoreRespawnBecauseGameplayIsNotLive()
+    {
+        if (introStateController != null && introStateController.IsIntroActive)
+        {
+            DebugLog("Ignored respawn collision because intro is still active.");
+            return true;
+        }
+
+        RoomStateManager room = RoomStateManager.Instance;
+        if (room == null)
+            return false;
+
+        if (room.IsMatchPhaseActive && !room.IsGameplayMovementUnlocked)
+        {
+            DebugLog("Ignored respawn collision because gameplay is not unlocked yet.");
+            return true;
+        }
+
+        return false;
+    }
+
     private void DebugLog(string message)
     {
         if (enableVerboseRespawnLogs)
             Debug.Log($"[BuddahRespawn] {message}");
+    }
+
+    private void MarkTeleportRequested(Vector3 targetPosition)
+    {
+        _ignoreRespawnUntilTime = Time.time + Mathf.Max(0f, respawnCollisionGraceSeconds);
+        _lastRespawnWorldPosition = targetPosition;
+        _lastRespawnTime = Time.time;
+    }
+
+    private BuddahPredictedTeleportSourceType ResolveTeleportSourceType(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            return BuddahPredictedTeleportSourceType.Unknown;
+
+        string lowered = reason.ToLowerInvariant();
+        if (lowered.Contains("wrong"))
+            return BuddahPredictedTeleportSourceType.WrongWayCorrection;
+        if (lowered.Contains("fall") || lowered.Contains("drop") || lowered.Contains("respawn"))
+            return BuddahPredictedTeleportSourceType.DropRespawn;
+        return BuddahPredictedTeleportSourceType.Manual;
     }
 }

@@ -14,12 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   skillId: push_projectile_hands
   displayName: "\u5982\u6765\u795E\u638C"
-  cooldownSeconds: 12
-  castLockSeconds: 10
+  cooldownSeconds: 18
+  castLockSeconds: 15
   obsessionGain: 300
   antiSkillId: push_projectile_hands_anti
-  buffDurationSeconds: 10
+  buffDurationSeconds: 15
   buildUpSeconds: 1
+  chargedPushCooldownSeconds: 1
   delayedPushActionSeconds: 0.9
   projectileForwardOffset: 0
   projectileHeightOffset: 30

@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace SteamMultiplayer.UI
 {
@@ -13,9 +14,12 @@ namespace SteamMultiplayer.UI
 
         private static SceneFadeController _instance;
         private static bool _playFadeOutOnNextSceneLoad;
+        private static bool _holdBlackUntilReleased;
 
         [Header("Auto Bind")]
         [SerializeField] private Animator crossFadeAnimator;
+        [SerializeField] private CanvasGroup crossFadeCanvasGroup;
+        [SerializeField] private Graphic crossFadeGraphic;
         [SerializeField] private bool dontDestroyOnLoad = true;
 
         [Header("Animation States")]
@@ -34,6 +38,28 @@ namespace SteamMultiplayer.UI
         {
             _playFadeOutOnNextSceneLoad = true;
             EnsureInstance();
+        }
+
+        public static void HoldBlackOnNextSceneLoad()
+        {
+            _holdBlackUntilReleased = true;
+            EnsureInstance();
+        }
+
+        public static void ReleaseHeldBlackScreen()
+        {
+            SceneFadeController controller = EnsureInstance();
+            _holdBlackUntilReleased = false;
+            controller.ReleaseHeldBlackScreenInternal();
+        }
+
+        public static void RegisterPersistentFadeCarrier(Animator animator, CanvasGroup canvasGroup = null)
+        {
+            if (animator == null && canvasGroup == null)
+                return;
+
+            SceneFadeController controller = EnsureInstance();
+            controller.RegisterPersistentFadeCarrierInternal(animator, canvasGroup);
         }
 
         private static SceneFadeController EnsureInstance()
@@ -93,6 +119,12 @@ namespace SteamMultiplayer.UI
             yield return null;
 
             TryBindAnimator();
+            if (_holdBlackUntilReleased)
+            {
+                _playFadeOutOnNextSceneLoad = false;
+                yield break;
+            }
+
             PlayState(fadeOutStateName, AlternateFadeOutState);
             _playFadeOutOnNextSceneLoad = false;
         }
@@ -100,15 +132,37 @@ namespace SteamMultiplayer.UI
         private float PlayFadeInInternal(float fallbackDuration)
         {
             TryBindAnimator();
+            if (crossFadeCanvasGroup != null)
+            {
+                crossFadeCanvasGroup.alpha = 1f;
+                crossFadeCanvasGroup.interactable = false;
+                crossFadeCanvasGroup.blocksRaycasts = false;
+            }
+
+            if (crossFadeGraphic != null)
+                crossFadeGraphic.gameObject.SetActive(true);
+
             PlayState(fadeInStateName, AlternateFadeInState);
             return Mathf.Max(0f, fallbackDurationSeconds > 0f ? fallbackDurationSeconds : fallbackDuration);
         }
 
         private void PlayState(string primaryStateName, string alternateStateName)
         {
-            if (crossFadeAnimator == null)
+            if (crossFadeAnimator == null || !HasAnyFadeState(crossFadeAnimator))
             {
-                Debug.LogWarning("[SceneFadeController] No CrossFade Animator was found.");
+                if (crossFadeCanvasGroup != null)
+                {
+                    bool fadeIn = string.Equals(primaryStateName, fadeInStateName, System.StringComparison.Ordinal)
+                        || string.Equals(alternateStateName, AlternateFadeInState, System.StringComparison.Ordinal);
+                    crossFadeCanvasGroup.alpha = fadeIn ? 1f : 0f;
+                    crossFadeCanvasGroup.interactable = false;
+                    crossFadeCanvasGroup.blocksRaycasts = false;
+                    if (crossFadeGraphic != null && !fadeIn)
+                        crossFadeGraphic.gameObject.SetActive(false);
+                    return;
+                }
+
+                Debug.LogWarning("[SceneFadeController] No CrossFade Animator or CanvasGroup was found.");
                 return;
             }
 
@@ -140,8 +194,11 @@ namespace SteamMultiplayer.UI
 
         private void TryBindAnimator()
         {
-            if (crossFadeAnimator != null)
+            if (HasAnyFadeState(crossFadeAnimator))
+            {
+                CacheFadeComponentsFromAnimator();
                 return;
+            }
 
             Animator[] animators = Resources.FindObjectsOfTypeAll<Animator>();
             Scene activeScene = SceneManager.GetActiveScene();
@@ -159,6 +216,8 @@ namespace SteamMultiplayer.UI
                     continue;
 
                 int score = ScoreAnimator(animator);
+                if (score <= 0)
+                    continue;
                 if (target.scene == activeScene)
                     score += 25;
                 if (score <= bestScore)
@@ -171,8 +230,52 @@ namespace SteamMultiplayer.UI
             if (bestMatch != null)
             {
                 crossFadeAnimator = bestMatch;
+                CacheFadeComponentsFromAnimator();
                 PreserveFadeHierarchyIfNeeded();
             }
+        }
+
+        private void ReleaseHeldBlackScreenInternal()
+        {
+            TryBindAnimator();
+            if (crossFadeCanvasGroup != null)
+            {
+                crossFadeCanvasGroup.alpha = 0f;
+                crossFadeCanvasGroup.interactable = false;
+                crossFadeCanvasGroup.blocksRaycasts = false;
+                if (crossFadeGraphic != null)
+                    crossFadeGraphic.gameObject.SetActive(false);
+                _playFadeOutOnNextSceneLoad = false;
+                return;
+            }
+
+            PlayState(fadeOutStateName, AlternateFadeOutState);
+            _playFadeOutOnNextSceneLoad = false;
+        }
+
+        private void RegisterPersistentFadeCarrierInternal(Animator animator, CanvasGroup canvasGroup)
+        {
+            if (animator != null)
+                crossFadeAnimator = animator;
+
+            if (canvasGroup == null && animator != null)
+                canvasGroup = animator.GetComponent<CanvasGroup>();
+
+            if (canvasGroup != null)
+                crossFadeCanvasGroup = canvasGroup;
+
+            if (crossFadeCanvasGroup != null)
+            {
+                crossFadeGraphic = crossFadeCanvasGroup.GetComponent<Graphic>();
+                crossFadeCanvasGroup.alpha = 1f;
+                crossFadeCanvasGroup.interactable = false;
+                crossFadeCanvasGroup.blocksRaycasts = false;
+            }
+
+            if (crossFadeGraphic != null)
+                crossFadeGraphic.gameObject.SetActive(true);
+
+            PreserveFadeHierarchyIfNeeded();
         }
 
         private void PreserveFadeHierarchyIfNeeded()
@@ -207,6 +310,29 @@ namespace SteamMultiplayer.UI
                 score += 200;
 
             return score;
+        }
+
+        private void CacheFadeComponentsFromAnimator()
+        {
+            if (crossFadeAnimator == null)
+                return;
+
+            if (crossFadeCanvasGroup == null)
+                crossFadeCanvasGroup = crossFadeAnimator.GetComponent<CanvasGroup>();
+
+            if (crossFadeGraphic == null)
+                crossFadeGraphic = crossFadeAnimator.GetComponent<Graphic>();
+        }
+
+        private static bool HasAnyFadeState(Animator animator)
+        {
+            if (animator == null)
+                return false;
+
+            return animator.HasState(0, Animator.StringToHash(DefaultFadeInState))
+                || animator.HasState(0, Animator.StringToHash(AlternateFadeInState))
+                || animator.HasState(0, Animator.StringToHash(DefaultFadeOutState))
+                || animator.HasState(0, Animator.StringToHash(AlternateFadeOutState));
         }
     }
 }

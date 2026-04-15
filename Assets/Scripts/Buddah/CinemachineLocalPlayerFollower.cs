@@ -1,5 +1,6 @@
 using Cinemachine;
 using FishNet.Object;
+using NewBuddah.PredictionV2.Integration;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
 using UnityEngine;
@@ -34,6 +35,11 @@ public class CinemachineLocalPlayerFollower : MonoBehaviour
             {
                 _currentLocalPlayer.ClearFollowTargetOverride();
                 _currentLocalPlayer.SetPresentationMode(PlayerCamera.CameraPresentationMode.TimelineCamera);
+                _currentLocalPlayer.GetComponent<BuddahPredictionCameraBridge>()?.ReportFollowTarget(
+                    PlayerCamera.CameraPresentationMode.TimelineCamera,
+                    null,
+                    null,
+                    "CinemachineFollower.TimelineLock");
             }
 
             _virtualCamera.enabled = false;
@@ -58,6 +64,11 @@ public class CinemachineLocalPlayerFollower : MonoBehaviour
                     spectatorTarget.transform,
                     spectatorTarget.GetComponent<Rigidbody>() ?? spectatorTarget.GetComponentInParent<Rigidbody>());
                 localPlayer.SetPresentationMode(PlayerCamera.CameraPresentationMode.Spectator);
+                localPlayer.GetComponent<BuddahPredictionCameraBridge>()?.ReportFollowTarget(
+                    PlayerCamera.CameraPresentationMode.Spectator,
+                    spectatorTarget.transform,
+                    spectatorTarget.GetComponent<Rigidbody>() ?? spectatorTarget.GetComponentInParent<Rigidbody>(),
+                    "CinemachineFollower.Spectator");
             }
             else
             {
@@ -66,6 +77,13 @@ public class CinemachineLocalPlayerFollower : MonoBehaviour
                 localPlayer.SetPresentationMode(room != null && room.IsResultPhaseActive
                     ? PlayerCamera.CameraPresentationMode.ResultArea
                     : PlayerCamera.CameraPresentationMode.Normal);
+                localPlayer.GetComponent<BuddahPredictionCameraBridge>()?.ReportFollowTarget(
+                    room != null && room.IsResultPhaseActive
+                        ? PlayerCamera.CameraPresentationMode.ResultArea
+                        : PlayerCamera.CameraPresentationMode.Normal,
+                    localPlayer.transform,
+                    localPlayer.GetComponent<Rigidbody>() ?? localPlayer.GetComponentInParent<Rigidbody>(),
+                    "CinemachineFollower.NormalOrResult");
             }
 
             if (previousLocalPlayer != localPlayer || !_virtualCamera.enabled || _virtualCamera.Follow == null)
@@ -80,6 +98,11 @@ public class CinemachineLocalPlayerFollower : MonoBehaviour
             {
                 previousLocalPlayer.ClearFollowTargetOverride();
                 previousLocalPlayer.SetPresentationMode(PlayerCamera.CameraPresentationMode.Normal);
+                previousLocalPlayer.GetComponent<BuddahPredictionCameraBridge>()?.ReportFollowTarget(
+                    PlayerCamera.CameraPresentationMode.Normal,
+                    null,
+                    null,
+                    "CinemachineFollower.Release");
             }
 
             _virtualCamera.Follow = null;

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using FishNet.Object;
+using NewBuddah.PredictionV2.Integration;
 using UnityEngine;
 
 namespace SteamMultiplayer.Network.Results
@@ -29,6 +30,7 @@ namespace SteamMultiplayer.Network.Results
         private Rigidbody _rigidbody;
         private BuddahMovement _movement;
         private NetworkObject _networkObject;
+        private BuddahPredictionPresentationBridge _predictionPresentationBridge;
         private Coroutine _dissolveRoutine;
         private float _dissolveAmount;
         private PresentationState _pendingStateAfterDissolve = PresentationState.Racing;
@@ -181,6 +183,9 @@ namespace SteamMultiplayer.Network.Results
             if (_rigidbody == null)
                 _rigidbody = GetComponent<Rigidbody>() ?? GetComponentInParent<Rigidbody>();
 
+            if (_predictionPresentationBridge == null)
+                _predictionPresentationBridge = GetComponent<BuddahPredictionPresentationBridge>() ?? GetComponentInParent<BuddahPredictionPresentationBridge>();
+
             if (_colliders == null || _colliders.Length == 0)
                 _colliders = GetComponentsInChildren<Collider>(includeInactiveRenderers);
 
@@ -214,6 +219,7 @@ namespace SteamMultiplayer.Network.Results
 
             if (_movement != null)
             {
+                _predictionPresentationBridge?.ReportPresentationExternalControl(suppressMovement, "result-presentation");
                 _movement.SetExternalKinematicControlActive(suppressMovement);
                 if (suppressMovement && _rigidbody != null)
                     _movement.TeleportPredictedMotor(_rigidbody.position, _rigidbody.rotation, Vector3.zero, Vector3.zero);

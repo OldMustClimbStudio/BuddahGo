@@ -1,12 +1,18 @@
 using UnityEngine;
+using NewBuddah.PredictionV2.Bootstrap;
 
 public class PlayerScaleEffect : MonoBehaviour
 {
     private const float MinScaleMultiplier = 0.1f;
 
     private BuddahMovement _move;
+    private Rigidbody _rb;
     private Vector3 _baseLocalScale;
     private float _baseTurnTorque;
+    private float _baseForwardForce;
+    private float _baseMass;
+    private float _movementMassMultiplier = 1f;
+    private float _movementForwardForceMultiplier = 1f;
     private float _targetScaleMultiplier = 1f;
     private float _appliedScaleMultiplier = 1f;
     private float _transitionStartMultiplier = 1f;
@@ -17,21 +23,28 @@ public class PlayerScaleEffect : MonoBehaviour
     private float _enterDuration;
     private float _restoreDuration;
     private bool _initialized;
+    private BuddahPredictionBootstrap _predictionBootstrap;
 
     public float CurrentScaleMultiplier => _initialized ? _appliedScaleMultiplier : 1f;
 
-    public void ApplyOrRefresh(float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds)
+    public void ApplyOrRefresh(float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds, float massMultiplier = 1f, float forwardForceMultiplier = 1f)
     {
         float targetMultiplier = Mathf.Max(MinScaleMultiplier, scaleMultiplier);
         if (!_initialized)
         {
             _move = GetComponent<BuddahMovement>();
+            _rb = GetComponent<Rigidbody>();
+            _predictionBootstrap = GetComponent<BuddahPredictionBootstrap>() ?? GetComponentInParent<BuddahPredictionBootstrap>();
             _baseLocalScale = transform.localScale;
             _baseTurnTorque = _move != null ? _move.turnTorque : 0f;
+            _baseForwardForce = _move != null ? _move.forwardForce : 0f;
+            _baseMass = _rb != null ? Mathf.Max(0.0001f, _rb.mass) : 1f;
             _appliedScaleMultiplier = 1f;
             _initialized = true;
         }
 
+        _movementMassMultiplier = Mathf.Max(0.1f, massMultiplier);
+        _movementForwardForceMultiplier = Mathf.Max(0.1f, forwardForceMultiplier);
         _enterDuration = Mathf.Max(0f, enterDurationSeconds);
         _restoreDuration = Mathf.Max(0f, restoreDurationSeconds);
         _targetScaleMultiplier = targetMultiplier;
@@ -112,8 +125,17 @@ public class PlayerScaleEffect : MonoBehaviour
     private void ApplyNow()
     {
         transform.localScale = _baseLocalScale * _appliedScaleMultiplier;
-        if (_move != null)
-            _move.turnTorque = _baseTurnTorque * _appliedScaleMultiplier;
+        if (!IsPredictionModeActive())
+        {
+            if (_move != null)
+            {
+                _move.turnTorque = _baseTurnTorque * _appliedScaleMultiplier;
+                _move.forwardForce = _baseForwardForce * _movementForwardForceMultiplier;
+            }
+
+            if (_rb != null)
+                _rb.mass = _baseMass * _movementMassMultiplier;
+        }
         Physics.SyncTransforms();
     }
 
@@ -130,9 +152,28 @@ public class PlayerScaleEffect : MonoBehaviour
 
         _appliedScaleMultiplier = 1f;
         transform.localScale = _baseLocalScale;
-        if (_move != null)
-            _move.turnTorque = _baseTurnTorque;
+        if (!IsPredictionModeActive())
+        {
+            if (_move != null)
+            {
+                _move.turnTorque = _baseTurnTorque;
+                _move.forwardForce = _baseForwardForce;
+            }
+
+            if (_rb != null)
+                _rb.mass = _baseMass;
+        }
+        _movementMassMultiplier = 1f;
+        _movementForwardForceMultiplier = 1f;
         Physics.SyncTransforms();
+    }
+
+    private bool IsPredictionModeActive()
+    {
+        if (_predictionBootstrap == null)
+            _predictionBootstrap = GetComponent<BuddahPredictionBootstrap>() ?? GetComponentInParent<BuddahPredictionBootstrap>();
+
+        return _predictionBootstrap != null && _predictionBootstrap.IsPredictionModeActive();
     }
 
     private void OnDisable()

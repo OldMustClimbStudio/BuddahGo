@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using FishNet;
 using FishNet.Object;
+using NewBuddah.PredictionV2.Core;
+using NewBuddah.PredictionV2.Integration;
 using UnityEngine;
 
 public class HandPushProjectileRuntime : MonoBehaviour
@@ -207,11 +209,12 @@ public class HandPushProjectileRuntime : MonoBehaviour
 
         _hitVictims.Add(victimNO);
 
-        BuddahMovement victimMove = victimNO.GetComponent<BuddahMovement>();
-        if (victimMove == null)
+        if (BuddahPredictionCombatRouting.TryRouteImpulse(victimNO, _impulse, _hitTurnTorqueImpulse, BuddahPredictedImpulseSourceType.Projectile, _attacker))
             return;
 
-        victimMove.ApplyPushImpulseAndTorqueTargetRpc(victimNO.Owner, _impulse, _hitTurnTorqueImpulse);
+        BuddahMovement victimMove = victimNO.GetComponent<BuddahMovement>();
+        if (victimMove != null)
+            victimMove.ApplyPushImpulseAndTorqueTargetRpc(victimNO.Owner, _impulse, _hitTurnTorqueImpulse);
     }
 
     private bool TryStopAtSolidWorld(float moveDistance)

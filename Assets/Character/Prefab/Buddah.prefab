@@ -247,10 +247,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.79
-  m_Height: 2.48
+  m_Radius: 0.9760958
+  m_Height: 2.1024914
   m_Direction: 1
-  m_Center: {x: 0, y: 0.79, z: 0}
+  m_Center: {x: 0, y: 0.9787543, z: -0.031902194}
 --- !u!1 &3326763354659800816
 GameObject:
   m_ObjectHideFlags: 0
@@ -1164,6 +1164,46 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: -4746972721882065834}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 912340000000000001}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 912340000000000002}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 912340000000000003}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 912340000000000004}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 912340000000000005}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 912340000000000006}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 912340000000000007}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4424877027949792500}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8633058841083368909}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a4376dfe8a76c574f88ecfdb036cc262,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2639597811331696358}
   m_SourcePrefab: {fileID: 100100000, guid: a4376dfe8a76c574f88ecfdb036cc262, type: 3}
 --- !u!137 &812422496317005451 stripped
 SkinnedMeshRenderer:
@@ -1208,10 +1248,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.79
-  m_Height: 2.48
+  m_Radius: 0.98672974
+  m_Height: 2.1085982
   m_Direction: 1
-  m_Center: {x: 0, y: 0.79, z: 0}
+  m_Center: {x: 0, y: 0.97570086, z: -0.026585221}
 --- !u!54 &8984405970169020143
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1259,8 +1299,6 @@ MonoBehaviour:
   turnDecayPerSecond: 3
   maxSpeed: 80
   turnInputMultiplier: 1
-  highSpeedTurnTorqueMultiplier: 2
-  steeringYawAssistDegreesPerSecond: 120
   directHeadingDegreesPerSecond: 360
   directHeadingAngularDamping: 14
   directHeadingSnapAngle: 2
@@ -1269,20 +1307,7 @@ MonoBehaviour:
   launchInheritTime: 0.2
   launchBlendTime: 0.32
   rb: {fileID: 8984405970169020143}
-  introStateController: {fileID: 0}
-  enableDebugLogs: 0
-  enableStateProbeLogs: 0
-  stateProbeLogIntervalSeconds: 0.75
-  debugStateSummary: 
-  debugGameplayBlocked: 0
-  debugHasMovementInput: 0
-  debugExternalKinematicControlActive: 0
-  debugIntroControlActive: 0
-  debugSkillRooted: 0
-  debugRoomStateBypassTimer: 0
-  debugRigidbodyIsKinematic: 0
-  debugRotationMode: 
-  debugInputGateReason: 
+  predictionHandoffBridge: {fileID: 0}
 --- !u!114 &6200725826635987881
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1305,16 +1330,17 @@ MonoBehaviour:
   leftHandTriggerName: LeftW
   rightHandTriggerName: RightUp
   replicateToOthers: 1
-  pushHitboxPrefab: {fileID: 100100000, guid: 673cfc8ddee0ec24aa1299e376a9cde5, type: 3}
+  pushHitboxPrefab: {fileID: 1853710533753161014, guid: 673cfc8ddee0ec24aa1299e376a9cde5,
+    type: 3}
   pushWindupSeconds: 0.1
-  pushLifetimeSeconds: 0.12
-  pushForwardOffset: 0.9
-  pushSideOffset: 0.25
-  pushLeftSideBias: -0.05
-  pushRightSideBias: 0.05
+  pushLifetimeSeconds: 0.3
+  pushForwardOffset: 7
+  pushSideOffset: 4
+  pushLeftSideBias: -0.1
+  pushRightSideBias: 0.1
   pushHeightOffset: 1
-  pushImpulseStrength: 6
-  pushCooldownSeconds: 0.25
+  pushImpulseStrength: 100
+  pushCooldownSeconds: 0.4
   projectilePrefab: {fileID: 0}
   projectileVisualLocalEuler: {x: 0, y: 0, z: 0}
   projectileVisualScale: {x: 1, y: 1, z: 1}
@@ -1345,7 +1371,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6aea7b6bb6e3bd84c800eea837d7eb16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 4
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   localCamera: {fileID: 0}
@@ -1375,7 +1401,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4d6fb40762a54545b4c12a1589e6b6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 5
+  _componentIndexCache: 4
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   reportIntervalSeconds: 0.2
@@ -1391,7 +1417,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ffbc970cab2b354eb327d2668b459d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 6
+  _componentIndexCache: 5
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   startPointObject: {fileID: 0}
@@ -1427,7 +1453,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4855db3e38ddbc445a368e6fe1e57bfa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 7
+  _componentIndexCache: 6
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   maxValue: 1000
@@ -1436,7 +1462,7 @@ MonoBehaviour:
   extraRecoveryPerSecond: 0
   drainPerSecond: 10
   catchupRecoveryA: 0.01
-  initialValue: 0
+  initialValue: 1000
   backfirePMaxPercent: 95
   backfireK: 0.008
   backfireMidpointX: 500
@@ -1453,7 +1479,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8477a01e04a889b4db3a82035a0906f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 8
+  _componentIndexCache: 7
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   useGeneratedInputActions: 1
@@ -1482,7 +1508,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d1fd240cf2b49448ad70ab86ecbd97f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 9
+  _componentIndexCache: 8
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   _skillDatabase: {fileID: 11400000, guid: 7cbd45d736ea3e64bb0477a811b3f6bf, type: 2}
@@ -1502,7 +1528,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 888374126f239764ab7c82ebcaf7632f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 10
+  _componentIndexCache: 9
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   comboInput: {fileID: -4047580665225652334}
@@ -1512,6 +1538,8 @@ MonoBehaviour:
   characterAnimator: {fileID: 0}
   accelerationTrailController: {fileID: 0}
   playerCamera: {fileID: 0}
+  predictionBootstrap: {fileID: 0}
+  predictionSkillMovementBridge: {fileID: 0}
 --- !u!114 &-7394383762514951774
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1524,7 +1552,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e325df983ac6b9241a8d260ce7259488, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 11
+  _componentIndexCache: 10
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   vfxDatabase: {fileID: 11400000, guid: 3a626f7dd3675054abcc20967cccbf5b, type: 2}
@@ -1543,7 +1571,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7305a557aecc35848b5f86a60db47d62, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 12
+  _componentIndexCache: 11
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   progress01: 0
@@ -1605,8 +1633,9 @@ MonoBehaviour:
   minimumDistanceBeforeAnotherFallRespawn: 8
   enableVerboseRespawnLogs: 1
   rb: {fileID: 8984405970169020143}
-  movement: {fileID: 0}
   progressTracker: {fileID: -4850889153095608646}
+  predictionBootstrap: {fileID: 0}
+  predictionRespawnBridge: {fileID: 0}
 --- !u!114 &2160443733358872716
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1637,7 +1666,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f678393c69c331418985080981164cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 13
+  _componentIndexCache: 12
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   wrongWayWrapStartThreshold: 0.2
@@ -1701,7 +1730,6 @@ MonoBehaviour:
   - {fileID: 1929130196522971536}
   - {fileID: 6200725826635987881}
   - {fileID: 1974550320793371896}
-  - {fileID: 3150940144239169832}
   - {fileID: 5060007389804818386}
   - {fileID: -6967932826743009680}
   - {fileID: 7966388255017697292}
@@ -1712,7 +1740,9 @@ MonoBehaviour:
   - {fileID: -7394383762514951774}
   - {fileID: -4850889153095608646}
   - {fileID: 7662734946556459576}
+  - {fileID: 3150940144239169832}
   - {fileID: -4746972721882065834}
+  - {fileID: 912340000000000004}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -1723,15 +1753,15 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584263141232168175
+  _initializedTimestamp: -8584255823398121947
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
   NetworkObserver: {fileID: 0}
-  _enablePrediction: 0
-  _predictionType: 0
+  _enablePrediction: 1
+  _predictionType: 1
   _localReconcileCorrectionType: 2
-  _graphicalObject: {fileID: 0}
+  _graphicalObject: {fileID: 901731869074417048}
   _detachGraphicalObject: 0
   _enableStateForwarding: 1
   _networkTransform: {fileID: 0}
@@ -1763,7 +1793,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 3
+  _componentIndexCache: 13
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   _componentConfiguration: 0
@@ -1817,6 +1847,302 @@ MonoBehaviour:
   _boundingBoxSize: {x: 3, y: 3, z: 3}
   _colliderParents:
   - {fileID: 1045079333563515846}
+--- !u!114 &912340000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6dc752fdb29340b09c792d73d89c9b8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  runtimeMode: 1
+  bootstrap: {fileID: 912340000000000002}
+  predictedMotor: {fileID: 912340000000000004}
+--- !u!114 &912340000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e72f8d13c2549209c313013695b7171, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  modeSwitcher: {fileID: 912340000000000001}
+  predictedMotor: {fileID: 912340000000000004}
+  predictedMotorConfig: {fileID: 912340000000000003}
+  skillMovementBridge: {fileID: 912340000000000007}
+  respawnBridge: {fileID: 0}
+  handoffBridge: {fileID: 0}
+  visualRootBridge: {fileID: 4424877027949792500}
+  cameraBridge: {fileID: 8633058841083368909}
+  presentationBridge: {fileID: 2639597811331696358}
+  compatibilityRegistry: {fileID: 0}
+  runtimeHealthReport: {fileID: 0}
+  debugSettings:
+    enableVerboseLogs: 0
+    enableOnScreenDebug: 1
+    dumpReplicate: 0
+    dumpReconcile: 0
+    dumpGateState: 0
+  legacyComponentRefs:
+    movement: {fileID: 1929130196522971536}
+    rigidbody: {fileID: 8984405970169020143}
+    playerCamera: {fileID: 5060007389804818386}
+    handControl: {fileID: 6200725826635987881}
+    respawn: {fileID: 9022145637712458123}
+    splineProgressTracker: {fileID: -4850889153095608646}
+  debugState:
+    currentMode: 0
+    predictionActive: 0
+    legacyMovementEnabled: 1
+    predictedMotorEnabled: 0
+    isOwner: 0
+    movementAllowed: 1
+    gateBlocked: 0
+    ownerInputLive: 0
+    rigidbodyIsKinematic: 0
+    inputBridgeEnabled: 0
+    rooted: 0
+    invertTurnActive: 0
+    pushGraceActive: 0
+    suppressSteeringActive: 0
+    roomBypassActive: 0
+    lastImpulseConsumed: 0
+    reconcileHadCorrection: 0
+    lastTeleportConsumed: 0
+    modifiersClearedByTeleport: 0
+    impulseQueueClearedByTeleport: 0
+    pushGraceClearedByTeleport: 0
+    progressSnappedByTeleport: 0
+    trailRebasedByTeleport: 0
+    introControlActive: 0
+    externalKinematicControlActive: 0
+    handoffActive: 0
+    handoffSuppressSteeringActive: 0
+    handoffRoomBypassActive: 0
+    presentationControlActive: 0
+    steeringInput: 0
+    planarSpeed: 0
+    finalForwardForce: 0
+    finalMaxSpeed: 0
+    finalTurnTorque: 0
+    finalSteeringSign: 1
+    scaleMultiplier: 1
+    preImpulseSpeed: 0
+    postImpulseSpeed: 0
+    lastImpulseTurnTorque: 0
+    lastReconcilePositionDelta: 0
+    lastReconcileVelocityDelta: 0
+    preTeleportSpeed: 0
+    postTeleportSpeed: 0
+    preTeleportAngularSpeed: 0
+    postTeleportAngularSpeed: 0
+    lastTeleportTargetProgress01: 0
+    lastTeleportTargetYaw: 0
+    handoffBlendAlpha: 0
+    handoffSnapshotYaw: 0
+    handoffSnapshotSpeed: 0
+    handoffSnapshotAngularSpeed: 0
+    preHandoffSpeed: 0
+    postHandoffSpeed: 0
+    motorVisualPosDelta: 0
+    motorVisualYawDelta: 0
+    currentTick: 0
+    lastReplicateTick: 0
+    lastReconcileTick: 0
+    lastImpulseEventId: 0
+    lastImpulseEventTick: 0
+    lastTeleportEventId: 0
+    lastTeleportEventTick: 0
+    lastHandoffEventId: 0
+    lastHandoffEventTick: 0
+    handoffStartTick: 0
+    handoffInheritEndTick: 0
+    handoffBlendEndTick: 0
+    rootUntilTick: 0
+    accelUntilTick: 0
+    postRootAccelUntilTick: 0
+    scaleUntilTick: 0
+    invertTurnUntilTick: 0
+    pushGraceUntilTick: 0
+    suppressSteeringUntilTick: 0
+    roomBypassUntilTick: 0
+    pendingImpulseCount: 0
+    lastImpulseVector: {x: 0, y: 0, z: 0}
+    preTeleportPosition: {x: 0, y: 0, z: 0}
+    postTeleportPosition: {x: 0, y: 0, z: 0}
+    lastTeleportTargetPosition: {x: 0, y: 0, z: 0}
+    handoffSnapshotPosition: {x: 0, y: 0, z: 0}
+    predictionBlockReason: n/a
+    activeModifiers: none
+    lastImpulseSourceType: none
+    lastTeleportSourceType: none
+    launchState: Normal
+    movementRootName: null
+    visualRootName: null
+    cameraFollowTargetName: null
+    cameraMode: Normal
+    visualScaleSource: default
+    externalControlSource: none
+    primaryTrack: Legacy
+    primaryTrackComplete: 0
+    fallbackActive: 0
+    compatibilityLayerCount: 0
+    systemMapSummary: n/a
+    compatibilitySummary: n/a
+    fallbackSummary: n/a
+    highRiskFlagsSummary: n/a
+    runtimeAutoAddSummary: n/a
+    legacyResponsibilitySummary: n/a
+    validationChecklistSummary: n/a
+    movementChecklistSummary: n/a
+    combatChecklistSummary: n/a
+    presentationChecklistSummary: n/a
+    legacyChecklistSummary: n/a
+    healthSummary: n/a
+    pendingImpulseSummary: none
+    replicateSummary: n/a
+    reconcileSummary: n/a
+    lastLifecycleMessage: Bootstrap pending
+--- !u!114 &912340000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80df400d0d7a4e20a6da8cc78ec68bfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  forwardForce: 50
+  turnTorque: 30
+  turnDecayPerSecond: 3
+  maxSpeed: 80
+  turnInputMultiplier: 2
+  pushGraceSeconds: 0.25
+  pushExtraMaxSpeed: 6
+--- !u!114 &912340000000000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e298ee802d14f38bf6f030cd1e3fed1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 15
+  _addedNetworkObject: {fileID: 5961911359123562421}
+  _networkObjectCache: {fileID: 5961911359123562421}
+  _tickCallbacks: 6
+  bootstrap: {fileID: 912340000000000002}
+  config: {fileID: 912340000000000003}
+  rb: {fileID: 8984405970169020143}
+--- !u!114 &912340000000000005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fe426d22572461282e368b91b6f653b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bootstrap: {fileID: 912340000000000002}
+  anchor: {x: 16, y: 16}
+  panelSize: {x: 760, y: 1000}
+--- !u!114 &912340000000000006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 605ed1b45f1f41248d47cfe616510239, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bootstrap: {fileID: 912340000000000002}
+  predictedMotor: {fileID: 912340000000000004}
+--- !u!114 &912340000000000007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b72ffcd874ec4198a8dbf13ddcd42fb6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bootstrap: {fileID: 912340000000000002}
+  modifierBridge: {fileID: 912340000000000006}
+--- !u!114 &4424877027949792500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5678a7cbc8eb9943a32a384f6ce00e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bootstrap: {fileID: 912340000000000002}
+  predictedMotor: {fileID: 912340000000000004}
+  presentationBridge: {fileID: 2639597811331696358}
+  movementRoot: {fileID: 4240001563575149182}
+  visualRoot: {fileID: 901731869074417048}
+  movementRigidbody: {fileID: 8984405970169020143}
+  cameraFollowTarget: {fileID: 6592649726880740709}
+  cameraFollowRigidbody: {fileID: 8984405970169020143}
+  visualScaleEffect: {fileID: 0}
+--- !u!114 &8633058841083368909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 109ec32b49ec7194c83501f529efd072, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bootstrap: {fileID: 912340000000000002}
+  visualRootBridge: {fileID: 4424877027949792500}
+  playerCamera: {fileID: 5060007389804818386}
+--- !u!114 &2639597811331696358
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1d14c04ca8244c4cb19b1d3c0821721, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bootstrap: {fileID: 912340000000000002}
+  currentExternalControlSource: none
+  presentationControlActive: 0
 --- !u!4 &4240001563575149182 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: a4376dfe8a76c574f88ecfdb036cc262,
@@ -1826,12 +2152,6 @@ Transform:
 --- !u!4 &6754417643696001773 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6981063787904472952, guid: a4376dfe8a76c574f88ecfdb036cc262,
-    type: 3}
-  m_PrefabInstance: {fileID: 4421755866013894037}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &7797892739366041604 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: a4376dfe8a76c574f88ecfdb036cc262,
     type: 3}
   m_PrefabInstance: {fileID: 4421755866013894037}
   m_PrefabAsset: {fileID: 0}

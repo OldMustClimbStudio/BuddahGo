@@ -1,9 +1,15 @@
 using FishNet.Object;
+using SteamMultiplayer.Network;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class RaceBodyIntroStateController : MonoBehaviour
 {
+    private const float SplineDiagnosticHeartbeatSeconds = 0.25f;
+    private const float SplineDiagnosticBackwardMeters = 0.01f;
+    private const float SplineDiagnosticOvershootFactor = 1.75f;
+    private const float SplineDiagnosticLargeSnapMeters = 0.35f;
+
     private enum IntroPhase
     {
         None,
@@ -29,12 +35,27 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private bool _goApplied;
     private int _activeSequenceId = -1;
     private LaunchHandoffSnapshot _latestSplineSnapshot;
-    private double _networkToLocalOffsetSeconds;
+    private IntroRuntimeState _runtimeState = IntroRuntimeState.Idle;
+    private bool _visualStarted;
+    private bool _authoritativeGoIssued;
+    private bool _introShellEntered;
+    private bool _authoritativeGoPendingTransition;
+    private double _authoritativeGoIssuedNetworkTime;
+    private double _authoritativeScheduledGoNetworkTime;
+    private double _resolvedIntroStartNetworkTime = -1d;
+    private double _resolvedGoNetworkTime = -1d;
+    private Vector3 _lastSplineDiagnosticPosition;
+    private double _lastSplineDiagnosticNetworkTime;
+    private bool _hasSplineDiagnosticSample;
+    private float _lastSplineDiagnosticLogTime = float.NegativeInfinity;
+    private IntroPhase _lastLoggedIntroPhase = IntroPhase.None;
 
     public int OwnerId => networkObject != null ? networkObject.OwnerId : -1;
     public NetworkObject NetworkObject => networkObject;
     public Rigidbody TargetRigidbody => targetRigidbody;
     public bool IsIntroActive => _phase == IntroPhase.IntroKinematic || _phase == IntroPhase.HandoffWindow;
+    public int ActiveSequenceId => _activeSequenceId;
+    public bool HasAssignment => _hasAssignment;
 
     private void Awake()
     {
@@ -54,29 +75,42 @@ public class RaceBodyIntroStateController : MonoBehaviour
             return;
 
         double now = GetSmoothedNetworkTimeSeconds();
-        if (now >= _assignment.goNetworkTime)
-        {
-            if (!_goApplied)
-                CompleteGoTransition(now);
+        TryCompleteAuthoritativeGoTransition(now);
 
+        if (_goApplied)
             return;
-        }
 
-        double handoffStartTime = _assignment.goNetworkTime - GetHandoffLeadTime();
+        if (!_visualStarted)
+            return;
+
+        if (!TryGetResolvedTiming(out IntroSequenceTiming timing))
+            return;
+
+        double handoffStartTime = timing.GoNetworkTime - GetHandoffLeadTime();
         bool inHandoffWindow = now >= handoffStartTime;
         _phase = inHandoffWindow ? IntroPhase.HandoffWindow : IntroPhase.IntroKinematic;
+        if (_authoritativeGoIssued)
+            _runtimeState = IntroRuntimeState.WaitingForGo;
+        else
+            _runtimeState = inHandoffWindow ? IntroRuntimeState.WaitingForGo : IntroRuntimeState.IntroRunning;
+
+        LogIntroPhaseIfChanged(now);
     }
 
     private void FixedUpdate()
     {
-        if (!_hasAssignment || _assignedPath == null || targetRigidbody == null || _goApplied)
+        if (!_hasAssignment || _assignedPath == null || targetRigidbody == null || _goApplied || !_visualStarted)
             return;
 
         double now = GetSmoothedNetworkTimeSeconds();
-        if (now >= _assignment.goNetworkTime)
+        TryCompleteAuthoritativeGoTransition(now);
+        if (_goApplied)
             return;
 
-        DriveSplinePose(now);
+        if (!TryGetResolvedTiming(out IntroSequenceTiming timing))
+            return;
+
+        DriveSplinePose(IntroTimeUtility.GetClampedIntroNetworkTime(timing, now));
     }
 
     public void ApplyIntroAssignment(IntroAssignmentData assignment, SplineIntroPath splinePath)
@@ -94,22 +128,113 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _hasAssignment = true;
         _goApplied = false;
         _phase = IntroPhase.None;
-        _networkToLocalOffsetSeconds = IntroTimeUtility.GetNetworkTimeSeconds() - Time.unscaledTimeAsDouble;
-        EnterIntroState();
+        _runtimeState = IntroRuntimeState.AssignmentsReceived;
+        _visualStarted = false;
+        _authoritativeGoIssued = false;
+        _introShellEntered = false;
+        _authoritativeGoPendingTransition = false;
+        _authoritativeGoIssuedNetworkTime = 0d;
+        _authoritativeScheduledGoNetworkTime = -1d;
+        _resolvedIntroStartNetworkTime = -1d;
+        _resolvedGoNetworkTime = -1d;
+        _hasSplineDiagnosticSample = false;
+        _lastSplineDiagnosticLogTime = float.NegativeInfinity;
+        _lastLoggedIntroPhase = IntroPhase.None;
+        Debug.Log(
+            $"[IntroState][Body:{name}] Assignment prepared seq={assignment.sequenceId} ownerId={OwnerId} " +
+            $"isLocalOwner={(networkObject != null && networkObject.IsOwner)} objId={(networkObject != null ? networkObject.ObjectId : -1)} " +
+            $"spline={splinePath.SplineId} introStart={assignment.introStartNetworkTime:0.000} go={assignment.goNetworkTime:0.000} " +
+            $"now={GetSmoothedNetworkTimeSeconds():0.000} shellEntered={_introShellEntered} visualStarted={_visualStarted}");
+        Debug.Log($"[IntroVisual][Body:{name}] Waiting visual start seq={assignment.sequenceId}; no intro shell enter and no visible snap during prepared phase.");
+        _runtimeState = IntroRuntimeState.IntroPrepared;
+    }
 
-        double now = GetSmoothedNetworkTimeSeconds();
-        if (now >= assignment.goNetworkTime)
+    public void ApplyVisualStart(int sequenceId, double introStartNetworkTime, double goNetworkTime)
+    {
+        if (!_hasAssignment || sequenceId != _activeSequenceId || _assignedPath == null || targetRigidbody == null)
         {
-            CompleteGoTransition(now);
+            Debug.Log($"[SequenceGuard][Body:{name}] Ignored visual start seq={sequenceId} active={_activeSequenceId} hasAssignment={_hasAssignment}");
             return;
         }
 
-        DriveSplinePose(System.Math.Max(assignment.introStartNetworkTime, now));
+        if (_goApplied)
+        {
+            Debug.Log($"[SequenceGuard][Body:{name}] Ignored late visual start after go seq={sequenceId} goApplied={_goApplied} authoritativeGo={_authoritativeGoIssued}");
+            return;
+        }
+
+        if (_visualStarted)
+        {
+            Debug.Log($"[IntroVisual][Body:{name}] Duplicate visual start seq={sequenceId} ignored (already started).");
+            return;
+        }
+
+        IntroSequenceTiming timing = new IntroSequenceTiming(_activeSequenceId, introStartNetworkTime, goNetworkTime);
+        if (!timing.IsValid)
+        {
+            Debug.LogWarning($"[IntroVisual][Body:{name}] Rejected invalid visual start seq={sequenceId} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000}");
+            return;
+        }
+
+        _resolvedIntroStartNetworkTime = introStartNetworkTime;
+        _resolvedGoNetworkTime = goNetworkTime;
+        _authoritativeScheduledGoNetworkTime = goNetworkTime;
+        EnterIntroState();
+        _visualStarted = true;
+        double now = GetSmoothedNetworkTimeSeconds();
+        double driveTime = IntroTimeUtility.GetClampedIntroNetworkTime(timing, System.Math.Max(now, introStartNetworkTime));
+        DriveSplinePose(driveTime);
+        _runtimeState = IntroTimeUtility.HasReachedGo(timing, now)
+            ? IntroRuntimeState.WaitingForGo
+            : IntroRuntimeState.VisualStarted;
+        Debug.Log($"[IntroVisual][Body:{name}] Visual start seq={sequenceId} now={now:0.000} seekTime={driveTime:0.000} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000}");
+    }
+
+    public void ApplyAuthoritativeGo(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)
+    {
+        if (!_hasAssignment || sequenceId != _activeSequenceId)
+        {
+            Debug.Log($"[SequenceGuard][Body:{name}] Ignored authoritative go seq={sequenceId} active={_activeSequenceId} hasAssignment={_hasAssignment}");
+            return;
+        }
+
+        if (_goApplied)
+        {
+            Debug.Log($"[IntroGo][Body:{name}] Duplicate authoritative go ignored seq={sequenceId} goIssued={goIssuedNetworkTime:0.000}");
+            return;
+        }
+
+        if (!_visualStarted)
+            Debug.Log($"[LateJoin][Body:{name}] Authoritative go arrived before visual start seq={sequenceId} goIssued={goIssuedNetworkTime:0.000}");
+
+        double resolvedScheduledGo = scheduledGoNetworkTime >= 0d ? scheduledGoNetworkTime : _resolvedGoNetworkTime;
+        _authoritativeScheduledGoNetworkTime = resolvedScheduledGo;
+        if (resolvedScheduledGo >= 0d)
+            _resolvedGoNetworkTime = resolvedScheduledGo;
+        _authoritativeGoIssuedNetworkTime = goIssuedNetworkTime;
+        _authoritativeGoIssued = true;
+        _authoritativeGoPendingTransition = true;
+        _runtimeState = IntroRuntimeState.AuthoritativeGoIssued;
+        double now = GetSmoothedNetworkTimeSeconds();
+        bool transitionDelayed = now < resolvedScheduledGo;
+        Debug.Log(
+            $"[IntroGo][Body:{name}] Authoritative go approved seq={sequenceId} goIssuedNow={goIssuedNetworkTime:0.000} " +
+            $"scheduledGoTime={resolvedScheduledGo:0.000} rpcScheduledGo={scheduledGoNetworkTime:0.000} localNow={now:0.000} " +
+            $"delayUntilScheduledGo={transitionDelayed}");
+
+        TryCompleteAuthoritativeGoTransition(now);
     }
 
     public void EnterIntroState()
     {
+        if (_introShellEntered)
+            return;
+
         ResolveReferences();
+        _introShellEntered = true;
+        Debug.Log(
+            $"[IntroVisual][Body:{name}] EnterIntroState shell seq={_activeSequenceId} ownerId={OwnerId} isLocalOwner={(networkObject != null && networkObject.IsOwner)} " +
+            $"rbKinematicBefore={(targetRigidbody != null && targetRigidbody.isKinematic)}");
 
         if (movementController != null)
         {
@@ -131,6 +256,18 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _hasAssignment = false;
         _goApplied = false;
         _latestSplineSnapshot = default;
+        _runtimeState = IntroRuntimeState.Cancelled;
+        _visualStarted = false;
+        _authoritativeGoIssued = false;
+        _introShellEntered = false;
+        _authoritativeGoPendingTransition = false;
+        _authoritativeGoIssuedNetworkTime = 0d;
+        _authoritativeScheduledGoNetworkTime = -1d;
+        _resolvedIntroStartNetworkTime = -1d;
+        _resolvedGoNetworkTime = -1d;
+        _hasSplineDiagnosticSample = false;
+        _lastSplineDiagnosticLogTime = float.NegativeInfinity;
+        _lastLoggedIntroPhase = IntroPhase.None;
         bool isLocalOwner = networkObject != null && networkObject.IsOwner;
 
         if (movementController != null)
@@ -145,26 +282,44 @@ public class RaceBodyIntroStateController : MonoBehaviour
         SetCollisionsEnabled(true);
     }
 
-    private void CompleteGoTransition(double handoffNetworkTime)
+    private void CompleteGoTransition()
     {
         if (_goApplied || targetRigidbody == null)
             return;
 
         _goApplied = true;
+        _authoritativeGoPendingTransition = false;
         _phase = IntroPhase.RaceLive;
 
         bool isLocalOwner = networkObject != null && networkObject.IsOwner;
-        double resolvedHandoffTime = System.Math.Max(_assignment.introStartNetworkTime, handoffNetworkTime);
+        double resolvedHandoffTime = _resolvedGoNetworkTime >= 0d
+            ? System.Math.Max(_resolvedIntroStartNetworkTime, _resolvedGoNetworkTime)
+            : GetSmoothedNetworkTimeSeconds();
         SampleSnapshotAtTime(resolvedHandoffTime, out LaunchHandoffSnapshot snapshot);
         _latestSplineSnapshot = snapshot;
+        Debug.Log(
+            $"[IntroGo][Body:{name}] CompleteGoTransition seq={_activeSequenceId} ownerId={OwnerId} isLocalOwner={isLocalOwner} " +
+            $"goIssuedNow={_authoritativeGoIssuedNetworkTime:0.000} scheduledGoTime={_resolvedGoNetworkTime:0.000} handoffSampleTime={resolvedHandoffTime:0.000} " +
+            $"snapshotPos={snapshot.Position} snapshotSpeed={snapshot.Velocity.magnitude:0.00} " +
+            $"introActive={IsIntroActive}");
 
         if (movementController != null && isLocalOwner)
         {
+            _runtimeState = IntroRuntimeState.AuthoritativeHandoffPending;
+            RoomStateManager.Instance?.ReportLocalGameplayLive(_activeSequenceId);
+            Debug.Log($"[IntroHandoff][Body:{name}] Local owner launching handoff seq={_activeSequenceId}.");
             movementController.BeginLaunchHandoff(
                 snapshot,
                 Mathf.Max(0.1f, GetHandoffLeadTime()),
                 0.15f,
+                false,
+                _activeSequenceId,
                 false);
+        }
+        else
+        {
+            _runtimeState = IntroRuntimeState.AuthoritativeHandoffApplied;
+            Debug.Log($"[IntroHandoff][Body:{name}] Remote authoritative go applied without local handoff seq={_activeSequenceId}.");
         }
 
         if (movementController != null && !isLocalOwner)
@@ -178,22 +333,49 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
         SetCollisionsEnabled(true);
         _hasAssignment = false;
+        _visualStarted = false;
+        _introShellEntered = false;
+    }
+
+    private void TryCompleteAuthoritativeGoTransition(double currentNetworkTime)
+    {
+        if (!_hasAssignment || !_authoritativeGoIssued || !_authoritativeGoPendingTransition || _goApplied)
+            return;
+
+        if (!_visualStarted)
+            return;
+
+        double scheduledGoTime = _authoritativeScheduledGoNetworkTime >= 0d
+            ? _authoritativeScheduledGoNetworkTime
+            : _resolvedGoNetworkTime;
+        if (scheduledGoTime < 0d)
+            return;
+
+        if (currentNetworkTime < scheduledGoTime)
+            return;
+
+        Debug.Log(
+            $"[IntroGo][Body:{name}] Scheduled go reached seq={_activeSequenceId} localNow={currentNetworkTime:0.000} " +
+            $"scheduledGoTime={scheduledGoTime:0.000} issuingCompleteTransition=true visualStarted={_visualStarted}");
+        CompleteGoTransition();
     }
 
     private void DriveSplinePose(double networkTime)
     {
         SampleSnapshotAtTime(networkTime, out LaunchHandoffSnapshot snapshot);
         _latestSplineSnapshot = snapshot;
-        if (targetRigidbody.isKinematic)
-        {
-            targetRigidbody.MovePosition(snapshot.Position);
-            targetRigidbody.MoveRotation(snapshot.Rotation);
-        }
-        else
-        {
-            targetRigidbody.position = snapshot.Position;
-            targetRigidbody.rotation = snapshot.Rotation;
-        }
+        if (targetRigidbody == null)
+            return;
+
+        float normalizedT = GetNormalizedDistanceT(networkTime);
+        Vector3 prePosition = targetRigidbody.position;
+
+        // Intro spline motion should be single-writer and exact; MovePosition/MoveRotation
+        // adds another interpolation layer that shows up as visible jitter under prediction.
+        targetRigidbody.position = snapshot.Position;
+        targetRigidbody.rotation = snapshot.Rotation;
+
+        MaybeLogSplineDriveDiagnostics(networkTime, normalizedT, prePosition, snapshot);
     }
 
     private void SampleSnapshotAtTime(double networkTime, out LaunchHandoffSnapshot snapshot)
@@ -221,7 +403,10 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (_assignedPath == null)
             return 0f;
 
-        float elapsedSeconds = Mathf.Max(0f, (float)(networkTime - _assignment.introStartNetworkTime));
+        if (_resolvedIntroStartNetworkTime < 0d)
+            return 0f;
+
+        float elapsedSeconds = Mathf.Max(0f, (float)(networkTime - _resolvedIntroStartNetworkTime));
         float distance = elapsedSeconds * GetIntroSpeedMetersPerSecond();
         float totalLength = Mathf.Max(0.0001f, _assignedPath.TotalLength);
         return _assignedPath.TAtDistance(Mathf.Min(distance, totalLength));
@@ -256,7 +441,74 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
     private double GetSmoothedNetworkTimeSeconds()
     {
-        return Time.unscaledTimeAsDouble + _networkToLocalOffsetSeconds;
+        return IntroTimeUtility.GetNetworkTimeSeconds();
+    }
+
+    private void LogIntroPhaseIfChanged(double networkTime)
+    {
+        if (_lastLoggedIntroPhase == _phase)
+            return;
+
+        _lastLoggedIntroPhase = _phase;
+        Debug.Log(
+            $"[IntroSplineDiag][Body:{name}] Phase -> {_phase} seq={_activeSequenceId} owner={(networkObject != null && networkObject.IsOwner)} " +
+            $"net={networkTime:0.000} introStart={_resolvedIntroStartNetworkTime:0.000} go={_resolvedGoNetworkTime:0.000}");
+    }
+
+    private void MaybeLogSplineDriveDiagnostics(double networkTime, float normalizedT, Vector3 prePosition, LaunchHandoffSnapshot snapshot)
+    {
+        if (networkObject == null || !networkObject.IsOwner)
+            return;
+
+        float expectedStep = GetIntroSpeedMetersPerSecond() * Mathf.Max(Time.fixedDeltaTime, 0.0001f);
+        Vector3 appliedDelta = snapshot.Position - prePosition;
+        float appliedDistance = appliedDelta.magnitude;
+        float appliedForward = Vector3.Dot(appliedDelta, snapshot.Forward);
+
+        bool periodic = Time.unscaledTime - _lastSplineDiagnosticLogTime >= SplineDiagnosticHeartbeatSeconds;
+        bool backwardApplied = appliedForward < -SplineDiagnosticBackwardMeters;
+        bool largeAppliedSnap = appliedDistance > Mathf.Max(SplineDiagnosticLargeSnapMeters, expectedStep * SplineDiagnosticOvershootFactor);
+
+        Vector3 sampledDelta = Vector3.zero;
+        float sampledDistance = 0f;
+        float sampledForward = 0f;
+        bool backwardSampled = false;
+        bool largeSampledStep = false;
+
+        if (_hasSplineDiagnosticSample)
+        {
+            sampledDelta = snapshot.Position - _lastSplineDiagnosticPosition;
+            sampledDistance = sampledDelta.magnitude;
+            sampledForward = Vector3.Dot(sampledDelta, snapshot.Forward);
+            float sampledExpectedStep = GetIntroSpeedMetersPerSecond() * Mathf.Max((float)(networkTime - _lastSplineDiagnosticNetworkTime), Time.fixedDeltaTime);
+            backwardSampled = sampledForward < -SplineDiagnosticBackwardMeters;
+            largeSampledStep = sampledDistance > Mathf.Max(SplineDiagnosticLargeSnapMeters, sampledExpectedStep * SplineDiagnosticOvershootFactor);
+        }
+
+        if (!periodic && !backwardApplied && !largeAppliedSnap && !backwardSampled && !largeSampledStep)
+        {
+            _lastSplineDiagnosticPosition = snapshot.Position;
+            _lastSplineDiagnosticNetworkTime = networkTime;
+            _hasSplineDiagnosticSample = true;
+            return;
+        }
+
+        _lastSplineDiagnosticLogTime = Time.unscaledTime;
+        _lastSplineDiagnosticPosition = snapshot.Position;
+        _lastSplineDiagnosticNetworkTime = networkTime;
+        _hasSplineDiagnosticSample = true;
+
+        Debug.Log(
+            $"[IntroSplineDiag][Body:{name}] seq={_activeSequenceId} phase={_phase} t={normalizedT:0.000} net={networkTime:0.000} " +
+            $"prePos={prePosition} snapPos={snapshot.Position} appliedDist={appliedDistance:0.000} appliedForward={appliedForward:0.000} " +
+            $"sampleDist={sampledDistance:0.000} sampleForward={sampledForward:0.000} expectedStep={expectedStep:0.000} " +
+            $"flags(backApplied={backwardApplied}, snapApplied={largeAppliedSnap}, backSample={backwardSampled}, snapSample={largeSampledStep})");
+    }
+
+    private bool TryGetResolvedTiming(out IntroSequenceTiming timing)
+    {
+        timing = new IntroSequenceTiming(_activeSequenceId, _resolvedIntroStartNetworkTime, _resolvedGoNetworkTime);
+        return timing.IsValid;
     }
 
     private Vector3 GetResolvedForwardAtT(float t)

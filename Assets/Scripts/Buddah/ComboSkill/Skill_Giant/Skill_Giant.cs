@@ -10,6 +10,8 @@ public class Skill_Giant : SkillAction
     [Min(0.1f)] public float durationSeconds = 6f;
     [Min(0f)] public float growDurationSeconds = 0.35f;
     [Min(0f)] public float shrinkDurationSeconds = 0.35f;
+    [Min(0.1f)] public float massMultiplier = 1f;
+    [Min(0.1f)] public float forwardForceMultiplier = 1f;
 
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = string.Empty;
@@ -27,7 +29,13 @@ public class Skill_Giant : SkillAction
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
-        caster.ApplyScaleToOwner(scaleMultiplier, durationSeconds, growDurationSeconds, shrinkDurationSeconds);
+        caster.ApplyScaleToOwner(
+            scaleMultiplier,
+            durationSeconds,
+            growDurationSeconds,
+            shrinkDurationSeconds,
+            massMultiplier,
+            forwardForceMultiplier);
         Debug.Log($"[Skill_Giant][Server] Apply x{scaleMultiplier:0.##} scale for {durationSeconds:0.##}s");
     }
 

@@ -247,6 +247,8 @@ namespace FishNet.Managing.Client
                 if (nob.GetIsNetworked())
                 {
                     AddToSceneObjects(nob);
+                    if (IsTrackedSceneDiagnostic(nob.SceneId, nob.name))
+                        Debug.Log($"[FishNetSceneDiag][Client] RegisterAndDespawnSceneObjects added name='{nob.name}' scene='{s.name}' sceneId={nob.SceneId} activeSelf={nob.gameObject.activeSelf} activeInHierarchy={nob.gameObject.activeInHierarchy}");
                     //Only run if not also server, as this already ran on server.
                     if (!NetworkManager.IsServerStarted)
                         nob.gameObject.SetActive(false);
@@ -254,6 +256,18 @@ namespace FishNet.Managing.Client
             }
 
             CollectionCaches<NetworkObject>.Store(nobs);
+        }
+
+        private static bool IsTrackedSceneDiagnostic(ulong sceneId, string objectName)
+        {
+            return sceneId == 3134013429ul
+                || sceneId == 2659942399ul
+                || sceneId == 2676718428ul
+                || sceneId == 4227260384ul
+                || objectName == "IntroSequenceManager"
+                || objectName == "ResultRuntime"
+                || objectName == "ResultDecisionManager"
+                || objectName == "LeaderBoardManager";
         }
 
         /// <summary>

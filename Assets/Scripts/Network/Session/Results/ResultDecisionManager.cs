@@ -41,16 +41,15 @@ namespace SteamMultiplayer.Network.Results
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
+                Debug.LogWarning("[ResultDecisionManager] Duplicate instance detected during Awake. Keeping scene NetworkObject alive and allowing network lifecycle to resolve the active instance.");
                 return;
             }
-
-            Instance = this;
         }
 
         public override void OnStartServer()
         {
             base.OnStartServer();
+            Instance = this;
             ResetDecisionStateServer();
 
             if (InstanceFinder.ServerManager != null)
@@ -84,6 +83,12 @@ namespace SteamMultiplayer.Network.Results
         public override void OnStopClient()
         {
             base.OnStopClient();
+            if (Instance == this)
+                Instance = null;
+        }
+
+        private void OnDestroy()
+        {
             if (Instance == this)
                 Instance = null;
         }

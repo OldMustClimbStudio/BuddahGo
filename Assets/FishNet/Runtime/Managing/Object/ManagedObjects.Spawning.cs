@@ -345,6 +345,8 @@ namespace FishNet.Managing.Object
             // If found in scene objects.
             if (nob == null)
             {
+                if (IsTrackedSceneDiagnosticSpawn(sceneId, objectName))
+                    Debug.LogError($"[FishNetSceneDiag] GetSceneNetworkObject MISS sceneId={sceneId} scene='{sceneName}' object='{objectName}' trackedCount={SceneObjects_Internal.Count}");
 #if DEVELOPMENT
                 string missingObjectDetails = sceneName == string.Empty ? "For more information on the missing object add DebugManager to your NetworkManager and enable WriteSceneObjectDetails" : $"Scene containing the object is '{sceneName}', object name is '{objectName}";
                 NetworkManager.LogError($"SceneId of {sceneId} not found in SceneObjects. {missingObjectDetails}. This may occur if your scene differs between client and server, if client does not have the scene loaded, or if networked scene objects do not have a SceneCondition. See ObserverManager in the documentation for more on conditions.");
@@ -354,6 +356,18 @@ namespace FishNet.Managing.Object
             }
 
             return nob;
+        }
+
+        private static bool IsTrackedSceneDiagnosticSpawn(ulong sceneId, string objectName)
+        {
+            return sceneId == 3134013429ul
+                || sceneId == 2659942399ul
+                || sceneId == 2676718428ul
+                || sceneId == 4227260384ul
+                || objectName == "IntroSequenceManager"
+                || objectName == "ResultRuntime"
+                || objectName == "ResultDecisionManager"
+                || objectName == "LeaderBoardManager";
         }
 
         /// <summary>

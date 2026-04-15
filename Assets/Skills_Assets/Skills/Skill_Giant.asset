@@ -22,5 +22,7 @@ MonoBehaviour:
   durationSeconds: 6
   growDurationSeconds: 0.35
   shrinkDurationSeconds: 0.35
+  massMultiplier: 3
+  forwardForceMultiplier: 3.5
   observersFeelEventId: 
   observersFeelStopEventId: 

@@ -19,6 +19,10 @@ namespace NewBuddah.PredictionV2.Core
     [DisallowMultipleComponent]
     public class BuddahPredictedMotor : TickNetworkBehaviour
     {
+        // Small buffer ahead of the owner's last known tick so the TargetRpc has time to arrive
+        // before the owner reaches StartTick. Keeps Consume firing the instant the event queues.
+        private const uint HandoffOwnerTickTravelBufferTicks = 2u;
+
         [Header("References")]
         [SerializeField] private BuddahPredictionBootstrap bootstrap;
         [SerializeField] private BuddahPredictedMotorConfig config;
@@ -181,6 +185,16 @@ namespace NewBuddah.PredictionV2.Core
                 planarVelocity.magnitude,
                 transform.forward);
 
+            data.PendingTeleport = default;
+            data.HasPendingTeleport = false;
+            data.LastConsumedTeleportId = 0u;
+            data.PendingHandoff = default;
+            data.HasPendingHandoff = false;
+            data.LastConsumedHandoffId = 0u;
+            data.AwaitingAuthoritativeLaunchHandoff = false;
+            data.LocalPreHandoffBypassUntilTick = 0u;
+            data.ImpulseQueueState = default;
+
             ReconcileState(data);
         }
 
@@ -240,7 +254,13 @@ namespace NewBuddah.PredictionV2.Core
                 SyncModifierDebugState(currentTick);
             }
 
-            return new BuddahPredictedInputData(steering, throttle, movementAllowed, ownerInputLive);
+            BuddahPredictedInputData replicate = new BuddahPredictedInputData(steering, throttle, movementAllowed, ownerInputLive);
+            replicate.LastConsumedImpulseId = 0u;
+            replicate.LastConsumedTeleportId = 0u;
+            replicate.LastConsumedModifierId = 0u;
+            replicate.LastConsumedHandoffId = 0u;
+            replicate.OwnerControlMask = 0;
+            return replicate;
         }
 
         [Replicate]
@@ -251,6 +271,13 @@ namespace NewBuddah.PredictionV2.Core
 
             InitializePredictionRigidbody();
             uint currentTick = TimeManager != null ? TimeManager.LocalTick : data.GetTick();
+
+            _ = data.LastConsumedImpulseId;
+            _ = data.LastConsumedTeleportId;
+            _ = data.LastConsumedModifierId;
+            _ = data.LastConsumedHandoffId;
+            _ = data.OwnerControlMask;
+
             RefreshLaunchState(currentTick);
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
             ApplyResolvedMassMultiplier();
@@ -368,6 +395,17 @@ namespace NewBuddah.PredictionV2.Core
             _handoffState = data.HandoffState;
             _introControlActive = data.IntroControlActive;
             _externalKinematicControlActive = data.ExternalKinematicControlActive;
+
+            _ = data.PendingTeleport;
+            _ = data.HasPendingTeleport;
+            _ = data.LastConsumedTeleportId;
+            _ = data.PendingHandoff;
+            _ = data.HasPendingHandoff;
+            _ = data.LastConsumedHandoffId;
+            _ = data.AwaitingAuthoritativeLaunchHandoff;
+            _ = data.LocalPreHandoffBypassUntilTick;
+            _ = data.ImpulseQueueState;
+
             if (rb != null && (IsOwner || IsServerInitialized))
                 rb.isKinematic = _externalKinematicControlActive;
             bootstrap.DebugState.lastReconcileTick = data.GetTick();
@@ -392,6 +430,16 @@ namespace NewBuddah.PredictionV2.Core
 
             if (bootstrap.DebugSettings.dumpReconcile)
                 bootstrap.LogVerbose($"reconcile tick={data.GetTick()} allowed={data.MovementAllowed} speed={data.PlanarSpeed:0.00}");
+
+#if BUDDAH_SERGATE_DEBUG
+            // Enable via ProjectSettings -> Scripting Define Symbols: BUDDAH_SERGATE_DEBUG.
+            // Used in Phase 2/3 to observe reconcile-data mirroring from motor private state.
+            Debug.Log($"[SerGate] T={data.GetTick()} isOwner={IsOwner} " +
+                      $"preHoTick={data.LocalPreHandoffBypassUntilTick} " +
+                      $"awaitHo={data.AwaitingAuthoritativeLaunchHandoff} " +
+                      $"pendingTp={data.HasPendingTeleport} tpPos={data.PendingTeleport.TargetPosition} " +
+                      $"impHead={data.ImpulseQueueState.Head} impCount={data.ImpulseQueueState.Count}");
+#endif
         }
 
         private bool ShouldRelinquishPredictionWriterDuringIntroOrPending(bool introControlActive, bool externalControlActive, bool authoritativePending, out string reason)
@@ -691,6 +739,7 @@ namespace NewBuddah.PredictionV2.Core
                 blendDurationSeconds,
                 bypassRoomStateSeconds,
                 suppressTurnInputSeconds,
+                currentTick,
                 debugSequenceId,
                 enableDebugLogs);
             return true;
@@ -704,14 +753,26 @@ namespace NewBuddah.PredictionV2.Core
             float suppressTurnInputSeconds,
             bool clearAngularVelocity,
             int debugSequenceId,
-            bool enableDebugLogs)
+            bool enableDebugLogs,
+            uint ownerTickAtRequest = 0u)
         {
             if (!IsServerInitialized || TimeManager == null)
                 return false;
 
+            // Server queues with its own LocalTick so ConsumePendingLaunchHandoffEvent fires with
+            // staleTicks=0 and does not project the snapshot forward. The RPC to the remote owner
+            // uses an owner-anchored tick instead, because server.LocalTick can be hundreds of ticks
+            // ahead of client.LocalTick (the host's tick counter keeps running from before the
+            // client joined), and a single shared StartTick would either freeze the owner or make
+            // the server over-project its Buddah hundreds of meters ahead of the snapshot.
+            uint serverStartTick = TimeManager.LocalTick;
+            uint clientStartTick = (ownerTickAtRequest > 0u)
+                ? ownerTickAtRequest + HandoffOwnerTickTravelBufferTicks
+                : serverStartTick;
+
             BuddahPredictedLaunchHandoffData eventData = new(
                 _nextLaunchHandoffEventId++,
-                TimeManager.LocalTick,
+                serverStartTick,
                 snapshot.Position,
                 snapshot.Rotation,
                 snapshot.Velocity,
@@ -728,7 +789,7 @@ namespace NewBuddah.PredictionV2.Core
             QueueLaunchHandoffTargetRpc(
                 Owner,
                 eventData.EventId,
-                eventData.StartTick,
+                clientStartTick,
                 eventData.SnapshotPosition,
                 eventData.SnapshotRotation,
                 eventData.SnapshotVelocity,
@@ -741,7 +802,7 @@ namespace NewBuddah.PredictionV2.Core
                 eventData.DebugSequenceId,
                 eventData.EnableDebugLogs);
 
-            Debug.Log($"[IntroHandoff][Server] Created authoritative handoff eventId={eventData.EventId} seq={debugSequenceId} startTick={eventData.StartTick} queuedServer={queuedOnServer}");
+            Debug.Log($"[IntroHandoff][Server] Created authoritative handoff eventId={eventData.EventId} seq={debugSequenceId} serverStartTick={eventData.StartTick} clientStartTick={clientStartTick} ownerTickAtRequest={ownerTickAtRequest} queuedServer={queuedOnServer}");
             bootstrap?.LogVerbose(
                 $"[HandoffDebug] server authoritative create owner={(Owner != null ? Owner.ClientId : -1)} " +
                 $"eventId={eventData.EventId} tick={eventData.StartTick} queuedServer={queuedOnServer} seq={debugSequenceId}");
@@ -809,12 +870,13 @@ namespace NewBuddah.PredictionV2.Core
             float blendDurationSeconds,
             float bypassRoomStateSeconds,
             float suppressTurnInputSeconds,
+            uint ownerTickAtRequest,
             int debugSequenceId,
             bool enableDebugLogs)
         {
-            Debug.Log($"[IntroHandoff][Server] Received owner handoff request seq={debugSequenceId} tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} speed={snapshotVelocity.magnitude:0.00}");
+            Debug.Log($"[IntroHandoff][Server] Received owner handoff request seq={debugSequenceId} tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} ownerTick={ownerTickAtRequest} speed={snapshotVelocity.magnitude:0.00}");
             bootstrap?.LogVerbose(
-                $"[HandoffDebug] ServerRpc received tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} " +
+                $"[HandoffDebug] ServerRpc received tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} ownerTick={ownerTickAtRequest} " +
                 $"pos={snapshotPosition} speed={snapshotVelocity.magnitude:0.00} seq={debugSequenceId}");
             LaunchHandoffSnapshot snapshot = new LaunchHandoffSnapshot
             {
@@ -833,7 +895,8 @@ namespace NewBuddah.PredictionV2.Core
                 suppressTurnInputSeconds,
                 false,
                 debugSequenceId,
-                enableDebugLogs);
+                enableDebugLogs,
+                ownerTickAtRequest);
         }
 
         [ServerRpc(RequireOwnership = true)]

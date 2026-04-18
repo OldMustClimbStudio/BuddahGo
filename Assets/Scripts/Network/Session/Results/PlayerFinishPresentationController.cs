@@ -213,15 +213,14 @@ namespace SteamMultiplayer.Network.Results
             ResolveReferences();
 
             if (_movement != null)
-                _movement.SetExternalKinematicControlActive(suppressMovement);
-
-            if (_rigidbody == null)
-                return;
-
-            if (suppressMovement)
             {
-                _rigidbody.velocity = Vector3.zero;
-                _rigidbody.angularVelocity = Vector3.zero;
+                _movement.SetExternalKinematicControlActive(suppressMovement);
+                if (suppressMovement && _rigidbody != null)
+                    _movement.TeleportPredictedMotor(_rigidbody.position, _rigidbody.rotation, Vector3.zero, Vector3.zero);
+            }
+            else if (suppressMovement)
+            {
+                Debug.LogError($"[PlayerFinishPresentationController] Missing BuddahMovement on '{name}'. Finish presentation cannot zero Rigidbody directly.");
             }
         }
 

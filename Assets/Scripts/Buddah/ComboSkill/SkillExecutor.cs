@@ -2,12 +2,29 @@ using FishNet.Connection;
 using FishNet.Object;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
+using System;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
 public class SkillExecutor : NetworkBehaviour
 {
+    public readonly struct LocalSkillUiEvent
+    {
+        public LocalSkillUiEvent(int slotIndex, float cooldownSeconds, float castLockSeconds)
+        {
+            SlotIndex = slotIndex;
+            CooldownSeconds = cooldownSeconds;
+            CastLockSeconds = castLockSeconds;
+        }
+
+        public int SlotIndex { get; }
+        public float CooldownSeconds { get; }
+        public float CastLockSeconds { get; }
+    }
+
+    public event Action<LocalSkillUiEvent> LocalSkillUiTriggered;
+
     private const float CastConfirmDelaySeconds = 1f;
     private const float AntiCastConfirmDelaySeconds = 1f;
     private const string SkillReflectionSharedFeelEventId = "Skill_Reflection_Shared";
@@ -194,7 +211,7 @@ public class SkillExecutor : NetworkBehaviour
 
         if (hasResolvableAnti && backfirePercent > 0.0001f)
         {
-            float roll = Random.value * 100f;
+            float roll = UnityEngine.Random.value * 100f;
             isAnti = roll < backfirePercent;
 
             if (isAnti)
@@ -290,6 +307,10 @@ public class SkillExecutor : NetworkBehaviour
 
             if (IsOwner)
             {
+                float resolvedCooldownSeconds = database != null ? database.GetCooldownSeconds(executedSkillId, skill) : skill.cooldownSeconds;
+                float resolvedCastLockSeconds = database != null ? database.GetCastLockSeconds(executedSkillId, skill) : skill.castLockSeconds;
+                LocalSkillUiTriggered?.Invoke(new LocalSkillUiEvent(slotIndex, resolvedCooldownSeconds, resolvedCastLockSeconds));
+
                 Debug.Log($"[SkillExecutor][Owner] ExecuteLocal '{executedSkillId}' (slot {slotIndex}) [anti={isAnti}]");
                 skill.ExecuteLocal(this, slotIndex, isAnti);
             }

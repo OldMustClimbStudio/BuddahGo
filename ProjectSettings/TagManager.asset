@@ -6,6 +6,9 @@ TagManager:
   tags:
   - StartingPoint
   - TrackEdge
+  - MainLight
+  - ScreenCamera
+  - CinemachineTarget
   layers:
   - Default
   - TransparentFX
@@ -16,7 +19,7 @@ TagManager:
   - Buddah
   - BlackCurtainTrail
   - TrackEdge
-  - 
+  - RollbackBoundingBox
   - 
   - 
   - 

@@ -199,8 +199,7 @@ namespace FishNet.Managing.Predicting
         public event PostPhysicsSyncTransformDel OnPostPhysicsTransformSync;
 
         public delegate void PostPhysicsSyncTransformDel(uint clientTick, uint serverTick);
-
-        public event PostPhysicsSyncTransformDel OnPostReconcileSyncTransforms;
+        
         /// <summary>
         /// Called before physics is simulated when replaying a replicate method.
         /// </summary>
@@ -397,14 +396,12 @@ namespace FishNet.Managing.Predicting
         private static readonly ProfilerMarker _pm_OnPreReconcile = new("PredictionManager.OnPreReconcile(uint, uint)");
         private static readonly ProfilerMarker _pm_OnReconcile = new("PredictionManager.OnReconcile(uint, uint)");
         private static readonly ProfilerMarker _pm_OnPrePhysicsTransformSync = new("PredictionManager.OnPrePhysicsTransformSync(uint, uint)");
-        //private static readonly ProfilerMarker _pm_PhysicsSyncTransforms = new("PredictionManager.Physics.SyncTransforms()");
-        //private static readonly ProfilerMarker _pm_Physics2DSyncTransforms = new("PredictionManager.Physics2D.SyncTransforms()");
+        private static readonly ProfilerMarker _pm_PhysicsSyncTransforms = new("PredictionManager.Physics.SyncTransforms()");
+        private static readonly ProfilerMarker _pm_Physics2DSyncTransforms = new("PredictionManager.Physics2D.SyncTransforms()");
         private static readonly ProfilerMarker _pm_OnPostPhysicsTransformSync = new("PredictionManager.OnPostPhysicsTransformSync(uint, uint)");
         private static readonly ProfilerMarker _pm_OnPostReconcileSyncTransforms = new("PredictionManager.OnPostReconcileSyncTransforms(uint, uint)");
         private static readonly ProfilerMarker _pm_OnPreReplicateReplay = new("PredictionManager.OnPreReplicateReplay(uint, uint)");
         private static readonly ProfilerMarker _pm_OnReplicateReplay = new("PredictionManager.OnReplicateReplay(uint, uint)");
-        //private static readonly ProfilerMarker _pm_PhysicsSimulate = new("PredictionManager.Physics.Simulate(float)");
-        //private static readonly ProfilerMarker _pm_Physics2DSimulate = new("PredictionManager.Physics2D.Simulate(float)");
         private static readonly ProfilerMarker _pm_OnPostReplicateReplay = new("PredictionManager.OnPostReplicateReplay(uint, uint)");
         private static readonly ProfilerMarker _pm_OnPostReconcile = new("PredictionManager.OnPostReconcile(uint, uint)");
         #endregion
@@ -665,11 +662,6 @@ namespace FishNet.Managing.Predicting
                 bool timeManagerPhysics = tm.PhysicsMode == PhysicsMode.TimeManager;
                 float tickDelta = (float)tm.TickDelta * _networkManager.TimeManager.GetPhysicsTimeScale();
 
-                // using (_pm_PhysicsSyncTransforms.Auto())
-                //     Physics.SyncTransforms();
-                // using (_pm_Physics2DSyncTransforms.Auto())
-                //     Physics2D.SyncTransforms();
-
                 using (_pm_OnPreReconcile.Auto())
                     OnPreReconcile?.Invoke(ClientStateTick, ServerStateTick);
                 using (_pm_OnReconcile.Auto())
@@ -680,18 +672,14 @@ namespace FishNet.Managing.Predicting
                     using (_pm_OnPrePhysicsTransformSync.Auto())
                         OnPrePhysicsTransformSync?.Invoke(ClientStateTick, ServerStateTick);
 
-                    Physics.SyncTransforms();
-                    Physics2D.SyncTransforms();
+                    using (_pm_PhysicsSyncTransforms.Auto())
+                        Physics.SyncTransforms();
+                    using (_pm_Physics2DSyncTransforms.Auto())
+                        Physics2D.SyncTransforms();
 
                     using (_pm_OnPostPhysicsTransformSync.Auto())
                         OnPostPhysicsTransformSync?.Invoke(ClientStateTick, ServerStateTick);
                 }
-
-                using (_pm_OnPostReconcileSyncTransforms.Auto())
-                    OnPostReconcileSyncTransforms?.Invoke(ClientStateTick, ServerStateTick);
-
-                Physics.SyncTransforms();
-                Physics2D.SyncTransforms();
 
                 /* Set first replicate to be the 1 tick
                  * after reconcile. This is because reconcile calcs
@@ -720,9 +708,9 @@ namespace FishNet.Managing.Predicting
 
                     if (timeManagerPhysics && tickDelta > 0f)
                     {
-                        _networkManager.TimeManager.InvokeOnSimulation(preSimulation: true, tickDelta);
+                        _networkManager.TimeManager.InvokeOnPhysicsSimulation(preSimulation: true, tickDelta);
                         _networkManager.TimeManager.SimulatePhysics(tickDelta);
-                        _networkManager.TimeManager.InvokeOnSimulation(preSimulation: false, tickDelta);
+                        _networkManager.TimeManager.InvokeOnPhysicsSimulation(preSimulation: false, tickDelta);
                     }
 
                     using (_pm_OnPostReplicateReplay.Auto())
@@ -734,7 +722,7 @@ namespace FishNet.Managing.Predicting
 
                 using (_pm_OnPostReconcile.Auto())
                     OnPostReconcile?.Invoke(ClientStateTick, ServerStateTick);
-
+                
                 ClientStateTick = TimeManager.UNSET_TICK;
                 ServerStateTick = TimeManager.UNSET_TICK;
                 ClientReplayTick = TimeManager.UNSET_TICK;
@@ -777,7 +765,7 @@ namespace FishNet.Managing.Predicting
 
                     lastReplicateTick = ncLocalTick;
                 }
-
+                
                 foreach (PooledWriter writer in nc.PredictionStateWriters)
                 {
                     #if DEVELOPMENT && !UNITY_SERVER
@@ -803,9 +791,8 @@ namespace FishNet.Managing.Predicting
                     writer.WriteInt32Unpacked(dataLength);
                     // Channel is defaulted to unreliable.
                     Channel channel = Channel.Unreliable;
-                    // If a single state exceeds MTU it must be sent on reliable. This is extremely unlikely.
-                    _networkManager.TransportManager.CheckSetReliableChannel(segment.Count, ref channel);
-                    tm.SendToClient((byte)channel, segment, nc, splitLargeMessages: true);
+
+                    tm.SendToClient((byte)channel, segment, nc);
                 }
 
                 nc.StorePredictionStateWriters();
@@ -836,9 +823,6 @@ namespace FishNet.Managing.Predicting
                 reader.ReadTickUnpacked();
                 int payloadLength = reader.ReadInt32Unpacked();
                 reader.Skip(payloadLength);
-
-                // if (!_networkManager.IsServerStarted)
-                //     Debug.Log($"Discarding state " + lastRemoteTick);
             }
             else
             {
@@ -860,12 +844,10 @@ namespace FishNet.Managing.Predicting
                  * add onto the data. Otherwise, add a new state packet. */
                 if (_stateLookups.TryGetValue(clientTick, out StatePacket sp1))
                 {
-                    //Debug.Log($"Updating state " + clientTick);
                     sp1.AddData(segment, channel);
                 }
                 else
                 {
-                    //Debug.Log($"Adding state " + clientTick);
                     StatePacket sp2 = ResettableObjectCaches<StatePacket>.Retrieve();
                     sp2.Update(segment, clientTick, lastRemoteTick, channel);
                     _stateLookups[clientTick] = sp2;

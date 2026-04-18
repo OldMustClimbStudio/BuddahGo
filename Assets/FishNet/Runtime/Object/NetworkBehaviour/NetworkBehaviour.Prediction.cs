@@ -19,7 +19,9 @@ using GameKit.Dependencies.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using FishNet.Managing.Observing;
 using GameKit.Dependencies.Utilities.Types;
+using Unity.Profiling;
 using UnityEngine;
 
 [assembly: InternalsVisibleTo(UtilityConstants.CODEGEN_ASSEMBLY_NAME)]
@@ -84,31 +86,28 @@ namespace FishNet.Object
                 int index = FindIndexBruteForce(out findResult);
                 return index;
             }
-            else if (diff < 0)
+
+            if (diff < 0)
             {
                 findResult = DataPlacementResult.InsertBeginning;
                 return 0;
             }
-            else
+
+            /* If replicatesHistory contained the ticks
+             * of 1 2 3 4 5, and the tick is 3, then the difference
+             * would be 2 (because 3 - 1 = 2). As we can see index
+             * 2 of replicatesHistory does indeed return the proper tick. */
+            // Expected diff to be result but was not.
+            if (replicatesHistory[diff].Data.GetTick() != tick)
             {
-                /* If replicatesHistory contained the ticks
-                 * of 1 2 3 4 5, and the tick is 3, then the difference
-                 * would be 2 (because 3 - 1 = 2). As we can see index
-                 * 2 of replicatesHistory does indeed return the proper tick. */
-                // Expected diff to be result but was not.
-                if (replicatesHistory[diff].Data.GetTick() != tick)
-                {
-                    // Try to return value using brute force.
-                    int index = FindIndexBruteForce(out findResult);
-                    return index;
-                }
-                // Exact was found, this is the most ideal situation.
-                else
-                {
-                    findResult = DataPlacementResult.Exact;
-                    return diff;
-                }
+                // Try to return value using brute force.
+                int index = FindIndexBruteForce(out findResult);
+                return index;
             }
+
+            // Exact was found, this is the most ideal situation.
+            findResult = DataPlacementResult.Exact;
+            return diff;
 
             // Tries to find the index by brute forcing the collection.
             int FindIndexBruteForce(out DataPlacementResult result)
@@ -120,47 +119,41 @@ namespace FishNet.Object
                     result = DataPlacementResult.InsertBeginning;
                     return 0;
                 }
+
                 // If tick is larger the last then it must be inserted at the end.
-                else if (tick > replicatesHistory[replicatesCount - 1].Data.GetTick())
+                if (tick > replicatesHistory[replicatesCount - 1].Data.GetTick())
                 {
                     result = DataPlacementResult.InsertEnd;
                     return replicatesCount;
                 }
-                else
-                {
-                    // Brute check.
-                    for (int i = 0; i < replicatesCount; i++)
-                    {
-                        uint lTick = replicatesHistory[i].Data.GetTick();
-                        // Exact match found.
-                        if (lTick == tick)
-                        {
-                            result = DataPlacementResult.Exact;
-                            return i;
-                        }
-                        /* The checked data is greater than
-                         * what was being searched. This means
-                         * to insert right before it. */
-                        else if (lTick > tick)
-                        {
-                            result = DataPlacementResult.InsertMiddle;
-                            return i;
-                        }
-                    }
 
-                    // Should be impossible to get here.
-                    result = DataPlacementResult.Error;
-                    return -1;
+                // Brute check.
+                for (int i = 0; i < replicatesCount; i++)
+                {
+                    uint lTick = replicatesHistory[i].Data.GetTick();
+                    // Exact match found.
+                    if (lTick == tick)
+                    {
+                        result = DataPlacementResult.Exact;
+                        return i;
+                    }
+                    /* The checked data is greater than
+                     * what was being searched. This means
+                     * to insert right before it. */
+
+                    if (lTick > tick)
+                    {
+                        result = DataPlacementResult.InsertMiddle;
+                        return i;
+                    }
                 }
+
+                // Should be impossible to get here.
+                result = DataPlacementResult.Error;
+                return -1;
             }
         }
     }
-
-    // See todo below.
-    /* Update codegen to remove arrBuffer from replicate method calls.
-     * Update codegen to remove channel from replicate method calls where applicable.
-     * Convert BasicQueue<T>/RingBuffer<T> to BasicQueue/RingBuffer<ReplicateData<T>>.
-     * */
     #endregion
 
     public abstract partial class NetworkBehaviour : MonoBehaviour
@@ -233,10 +226,6 @@ namespace FishNet.Object
         /// </summary>
         /// <remarks>This is only used by prediction.</remarks>
         private TransformProperties _lastCheckedTransformProperties;
-        /// <summary>
-        /// 5 seconds worth of ticks.
-        /// </summary>
-        private uint _fiveSecondsToTicks;
         #endregion
 
         /// <summary>
@@ -434,6 +423,10 @@ namespace FishNet.Object
             else
                 writer = CreateRpc(hash, methodWriter, PacketId.Reconcile, rpcChannel);
 
+            #if !UNITY_SERVER
+            int observersWrittenTo = 0;
+            #endif
+
             // If state forwarding is not enabled then only send to owner.
             if (!stateForwarding)
             {
@@ -442,15 +435,49 @@ namespace FishNet.Object
             // State forwarding, send to all.
             else
             {
-                foreach (NetworkConnection nc in Observers)
-                    nc.WriteState(writer);
+                //PROSTART
+                if (_networkObjectCache.ServerIsLevelOfDetailInitialized)
+                {
+                    /* The server will use its localTick to send
+                     * reconciles in burst to applicable clients. */
+                    uint lodTick = _networkObjectCache.ObserverManager.GetLevelOfDetailTick();
+                    foreach (NetworkConnection nc in Observers)
+                    {
+                        /* If the LOD divisor is met, or not found, then send
+                         * to the connection. */
+                        if (!_networkObjectCache.ObserverLevelOfDetailDivisors.TryGetValueIL2CPP(nc, out uint divisor) || lodTick % divisor == 0)
+                        {
+                            // bool found = _networkObjectCache.ObserverLevelOfDetailDivisors.TryGetValueIL2CPP(nc, out _);
+                            // Debug.Log("Writing " + lodTick + "  " + _networkObjectCache.TimeManager.LocalTick + "  " + divisor + "  " + found + "  " + gameObject.name);
+                            nc.WriteState(writer);
+                            #if !UNITY_SERVER
+                            observersWrittenTo++;
+                            #endif
+                        }
+                        else
+                        {
+                            //                            Debug.Log("Skipping " + gameObject.name);
+                        }
+                    }
+                }
+                else
+                    //PROEND
+                {
+                    #if !UNITY_SERVER
+                    observersWrittenTo = Observers.Count;
+                    #endif
+
+                    //Send to everyone unconditionally when not using LOD.
+                    foreach (NetworkConnection nc in Observers)
+                        nc.WriteState(writer);
+                }
             }
 
             #if !UNITY_SERVER
             if (_networkTrafficStatistics != null)
             {
-                int written = stateForwarding ? writer.Length * Observers.Count : writer.Length;
-                _networkTrafficStatistics.AddInboundPacketIdData(PacketId.Reconcile, GetRpcName(PacketId.Reconcile, hash), written + Managing.Transporting.TransportManager.PACKETID_LENGTH, gameObject, asServer: true);
+                int writtenBytes = stateForwarding ? writer.Length * observersWrittenTo : writer.Length;
+                _networkTrafficStatistics.AddOutboundPacketIdData(PacketId.Reconcile, GetRpcName(PacketId.Reconcile, hash), writtenBytes + Managing.Transporting.TransportManager.PACKETID_LENGTH, gameObject, asServer: true);
             }
             #endif
 
@@ -587,12 +614,8 @@ namespace FishNet.Object
 
             SetReplicateTick(dataTick, createdReplicate: true);
 
-            #if !FISHNET_STABLE_REPLICATESTATES
             // Owner always replicates with new data.
             del.Invoke(dataContainer.Data, ReplicateState.Ticked | ReplicateState.Created, dataContainer.Channel);
-            #else
-            del.Invoke(dataContainer.Data, ReplicateState.CurrentCreated, dataContainer.Channel);
-            #endif
         }
 
         /// <summary>
@@ -600,11 +623,12 @@ namespace FishNet.Object
         /// </summary>
         /// </summary>
         private void Replicate_NonAuthoritative<T>(ReplicateUserLogicDelegate<T> del, BasicQueue<ReplicateDataContainer<T>> replicatesQueue, RingBuffer<ReplicateDataContainer<T>> replicatesHistory) where T : IReplicateData, new()
-        { PredictionManager predictionManager = PredictionManager;
+        {
+            PredictionManager predictionManager = PredictionManager;
 
             bool isServerStarted = _networkObjectCache.IsServerStarted;
             bool isServerWithoutOwner = isServerStarted && !Owner.IsValid;
-            
+
             /* Both owner and server when no owner should run
              * authoritative replicate. */
             if (isServerWithoutOwner)
@@ -613,7 +637,7 @@ namespace FishNet.Object
              * The server still needs to run inputs even if not authoritative. */
             if (!isServerStarted && !_networkObjectCache.EnableStateForwarding)
                 return;
-            
+
             TimeManager tm = _networkObjectCache.TimeManager;
             uint localTick = tm.LocalTick;
 
@@ -770,11 +794,7 @@ namespace FishNet.Object
             if (findResult == ReplicateTickFinder.DataPlacementResult.Exact)
             {
                 dataContainer = replicatesHistory[replicateIndex];
-                #if !FISHNET_STABLE_REPLICATESTATES
                 state = ReplicateState.Replayed | ReplicateState.Ticked | ReplicateState.Created;
-                #else
-                state = ReplicateState.ReplayedCreated;
-                #endif
 
                 //SetReplicateTick(data.GetTick(), true);
                 del.Invoke(dataContainer.Data, state, dataContainer.Channel);
@@ -787,6 +807,16 @@ namespace FishNet.Object
         [MakePublic]
         private void Replicate_Replay_NonAuthoritative<T>(uint replayTick, ReplicateUserLogicDelegate<T> del, RingBuffer<ReplicateDataContainer<T>> replicatesHistory) where T : IReplicateData, new()
         {
+            //NOTESSTART
+            /* When inserting states only replay the first state after the reconcile.
+             * This prevents an inconsistency on running created states if other created states
+             * were to arrive late. Essentially the first state is considered 'current' and the rest
+             * are acting as a buffer against unsteady networking conditions. */
+
+            /* When appending states all created can be run. Appended states are only inserted after they've
+             * run at the end of the tick, which performs of it's own queue. Because of this, it's safe to assume
+             * if the state has been inserted into the past it has already passed it's buffer checks. */
+            //NOTESEND             
             ReplicateDataContainer<T> dataContainer;
             ReplicateState state;
             bool isAppendedOrder = _networkObjectCache.PredictionManager.IsAppendedStateOrder;
@@ -800,7 +830,6 @@ namespace FishNet.Object
                 {
                     dataContainer = replicatesHistory[replicateIndex];
 
-                    #if !FISHNET_STABLE_REPLICATESTATES
                     state = ReplicateState.Replayed;
 
                     bool isCreated = dataContainer.IsCreated;
@@ -812,10 +841,6 @@ namespace FishNet.Object
                      * and not yet ticked if state order is inserted rather than append. */
                     if (replayTick <= _lastOrderedReplicatedTick || isCreated)
                         state |= ReplicateState.Ticked;
-                    #else
-                    //state = ReplicateState.ReplayedCreated;
-                    state = (dataContainer.IsCreated) ? ReplicateState.ReplayedCreated : ReplicateState.ReplayedFuture;
-                    #endif
                 }
                 else
                 {
@@ -831,11 +856,7 @@ namespace FishNet.Object
             void SetDataToDefault()
             {
                 dataContainer = ReplicateDataContainer<T>.GetDefault(replayTick);
-                #if !FISHNET_STABLE_REPLICATESTATES
                 state = ReplicateState.Replayed;
-                #else
-                state = ReplicateState.ReplayedFuture;
-                #endif
             }
 
             del.Invoke(dataContainer.Data, state, dataContainer.Channel);
@@ -925,7 +946,9 @@ namespace FishNet.Object
             #else
             methodWriter.WriteReplicate<T>(replicatesHistory, offset);
             #endif
-            _transportManagerCache.CheckSetReliableChannel(methodWriter.Length + MAXIMUM_RPC_HEADER_SIZE, ref channel);
+
+            channel = _transportManagerCache.GetReliableChannelIfOverMTU(methodWriter.Length + MAXIMUM_RPC_HEADER_SIZE, channel);
+
             PooledWriter writer = CreateRpc(hash, methodWriter, PacketId.Replicate, channel);
 
             #if !UNITY_SERVER
@@ -940,7 +963,7 @@ namespace FishNet.Object
                 #if !UNITY_SERVER
                 written = writer.Length;
                 #endif
-                NetworkManager.TransportManager.SendToServer((byte)channel, writer.GetArraySegment(), splitLargeMessages: true);
+                NetworkManager.TransportManager.SendToServer((byte)channel, writer.GetArraySegment());
             }
             else
             {
@@ -957,7 +980,7 @@ namespace FishNet.Object
                     #if !UNITY_SERVER
                     written = writer.Length * (Observers.Count - _networkConnectionCache.Count);
                     #endif
-                    NetworkManager.TransportManager.SendToClients((byte)channel, writer.GetArraySegment(), Observers, _networkConnectionCache, splitLargeMessages: true);
+                    NetworkManager.TransportManager.SendToClients((byte)channel, writer.GetArraySegment(), Observers, _networkConnectionCache);
                 }
             }
 
@@ -1113,7 +1136,7 @@ namespace FishNet.Object
             }
             #endif
 
-            NetworkManager.TransportManager.SendToClients((byte)channel, writer.GetArraySegment(), Observers, _networkConnectionCache, false);
+            NetworkManager.TransportManager.SendToClients((byte)channel, writer.GetArraySegment(), Observers, _networkConnectionCache);
 
             methodWriter.StoreLength();
             writer.StoreLength();
@@ -1280,9 +1303,7 @@ namespace FishNet.Object
         internal void Reconcile_Client_AddToLocalHistory<T>(RingBuffer<LocalReconcile<T>> reconcilesHistory, T data) where T : IReconcileData
         {
             //Server does not need to store these locally.
-            if (_networkObjectCache.IsServerStarted)
-                return;
-            if (!_networkObjectCache.PredictionManager.CreateLocalStates)
+            if (_networkObjectCache.IsServerStarted || !_networkObjectCache.PredictionManager.CreateLocalStates)
                 return;
             if (!IsOwner && !_networkObjectCache.EnableStateForwarding)
                 return;
@@ -1334,10 +1355,6 @@ namespace FishNet.Object
         [MakePublic]
         internal void Reconcile_Client<T, T2>(ReconcileUserLogicDelegate<T> reconcileDel, RingBuffer<ReplicateDataContainer<T2>> replicatesHistory, RingBuffer<LocalReconcile<T>> reconcilesHistory, T data) where T : IReconcileData where T2 : IReplicateData, new()
         {
-            bool isBehaviourReconciling = IsBehaviourReconciling;
-            if (!isBehaviourReconciling)
-                return;
-
             const long unsetHistoryIndex = -1;
             long historyIndex = unsetHistoryIndex;
 
@@ -1371,6 +1388,19 @@ namespace FishNet.Object
                     uint lrTick = reconcilesHistory[(int)historyIndex].Tick;
                     if (lrTick != reconcileTick)
                         historyIndex = unsetHistoryIndex;
+
+                    //If index is set and behaviour is not reconciling then apply data.
+                    if (!IsBehaviourReconciling && historyIndex != unsetHistoryIndex)
+                    {
+                        LocalReconcile<T> localReconcile = reconcilesHistory[(int)historyIndex];
+                        //Before disposing get the writer and call reconcile reader so it's parsed.
+                        PooledWriter reconcileWritten = localReconcile.Writer;
+                        /* Although this is actually from the local client the datasource is being set to server since server
+                         * is what typically sends reconciles. */
+                        PooledReader reader = ReaderPool.Retrieve(reconcileWritten.GetArraySegment(), _networkObjectCache.NetworkManager, Reader.DataSource.Server);
+                        data = Reconcile_Reader_Local<T>(localReconcile.Tick, reader);
+                        ReaderPool.Store(reader);
+                    }
                 }
             }
 
@@ -1388,12 +1418,9 @@ namespace FishNet.Object
                 reconcilesHistory.RemoveRange(true, (int)historyIndex);
             }
 
-            //If does not have data still then exit method.
+            //If this behaviour does not have data still then exit method.
             if (!IsBehaviourReconciling)
                 return;
-
-            //Set on the networkObject that a reconcile can now occur.
-            _networkObjectCache.IsObjectReconciling = true;
 
             uint dataTick = data.GetTick();
             _lastReconcileTick = dataTick;
@@ -1436,6 +1463,39 @@ namespace FishNet.Object
                     replicatesHistory[i].Dispose();
                 replicatesHistory.RemoveRange(true, removeCount);
             }
+
+            //PROSTART
+            /* If LOD is enabled and not a remote reconcile see if
+             * the reconcile can be skipped. */
+            if (_networkObjectCache.UseLevelOfDetail && !IsReconcileRemote)
+            {
+                ObserverManager observerManager = _networkObjectCache.ObserverManager;
+                /* Reconciles are only run on the client; the client
+                 * does not have the observer collection with cached
+                 * distances so a distance will be done every reconcile.
+                 *
+                 * Checking the distance every reconcile is much
+                 * more performant than reconciling, and since games
+                 * will have at most a few dozen prediction objects
+                 * only a few iterations would be made. */
+                uint tickDivisor = observerManager.GetLocalLevelOfDetailDivisorTickUnsafe(transform.position);
+                uint lodTick = observerManager.GetLevelOfDetailTick(dataTick);
+                
+                /* If modulo does not result in 0 or if only using localReconcile
+                 * on close objects and the divisor tick is >= lowestDivisor
+                 * then drop the reconcile.*/
+                if (lodTick % tickDivisor != 0 || (_networkObjectCache.IsLocalReconcileLODCloseObjectsOnly && tickDivisor >= observerManager.SmallestLevelOfDetailTickDivisor))
+                {
+                    data.Dispose();
+                    IsBehaviourReconciling = false;
+
+                    return;
+                }
+            }
+            //PROEND
+
+            //Set on the networkObject that a reconcile can now occur.
+            _networkObjectCache.IsObjectReconciling = true;
 
             //Call reconcile user logic.
             reconcileDel?.Invoke(data, Channel.Reliable);

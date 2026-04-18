@@ -6260,6 +6260,7 @@ GameObject:
   - component: {fileID: 1186892262}
   - component: {fileID: 1186892266}
   - component: {fileID: 1186892268}
+  - component: {fileID: 1186892269}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -6348,6 +6349,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Transport: {fileID: 1186892263}
+  _maximumClientPacketSize: 20480
   _intermediateLayer: {fileID: 0}
   _latencySimulator:
     _enabled: 0
@@ -6370,6 +6372,23 @@ MonoBehaviour:
   _defaultMaxPlayers: 6
   _defaultLobbyName: My Room
   _maxSearchResults: 20
+--- !u!114 &1186892269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186892261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b185516acd802904383e2a5f1a666750, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _boundingBoxLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  _maximumRollbackTime: 1.25
+  Interpolation: 2
 --- !u!1 &1200910288
 GameObject:
   m_ObjectHideFlags: 0
@@ -7287,6 +7306,61 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1304695165}
   m_CullTransparentMesh: 1
+--- !u!1 &1312863388
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1312863390}
+  - component: {fileID: 1312863389}
+  m_Layer: 6
+  m_Name: RollbackHurtbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!136 &1312863389
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1312863388}
+  m_Material: {fileID: 13400000, guid: 3967af2d7670dbb429e7f84f1acaac64, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.6998701
+  m_Height: 1.7097924
+  m_Direction: 1
+  m_Center: {x: 0.040000044, y: 0.7989716, z: -0.06000002}
+--- !u!4 &1312863390
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1312863388}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1334795557
 GameObject:
   m_ObjectHideFlags: 0
@@ -12002,3 +12076,4 @@ SceneRoots:
   - {fileID: 1391301758}
   - {fileID: 15574974}
   - {fileID: 1824664814}
+  - {fileID: 1312863390}

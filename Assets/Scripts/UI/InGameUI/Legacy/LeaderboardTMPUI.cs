@@ -73,8 +73,11 @@ public class LeaderboardTMPUI : MonoBehaviour
 
     private void HandleRankingsChanged(SyncListOperation op, int index, RankEntry oldItem, RankEntry newItem, bool asServer)
     {
-        int count = LeaderboardManager.Instance != null ? LeaderboardManager.Instance.Rankings.Count : -1;
-        Debug.Log($"[Leaderboard] SyncList updated count={count} op={op} asServer={asServer}");
+        if (NetDebug.EnableVerboseLog)
+        {
+            int count = LeaderboardManager.Instance != null ? LeaderboardManager.Instance.Rankings.Count : -1;
+            Debug.Log($"[Leaderboard] SyncList updated count={count} op={op} asServer={asServer}");
+        }
         RefreshText();
     }
 

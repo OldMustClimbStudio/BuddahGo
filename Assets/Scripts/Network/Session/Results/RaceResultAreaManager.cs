@@ -23,7 +23,6 @@ namespace SteamMultiplayer.Network.Results
         [Header("Debug")]
         [SerializeField] private bool enableDebugLogs = true;
 
-        private readonly HashSet<int> _warnedMissingPlayers = new HashSet<int>();
         private readonly HashSet<int> _placedClientIds = new HashSet<int>();
         private bool _warnedMissingAnchors;
         private bool _warnedOverflowAnchors;
@@ -63,7 +62,6 @@ namespace SteamMultiplayer.Network.Results
             _placedClientIds.Clear();
             _warnedMissingAnchors = false;
             _warnedOverflowAnchors = false;
-            _warnedMissingPlayers.Clear();
             if (Instance == this)
                 Instance = null;
         }
@@ -73,41 +71,6 @@ namespace SteamMultiplayer.Network.Results
             base.OnStopClient();
             if (Instance == this)
                 Instance = null;
-        }
-
-        [Server]
-        public bool TryPlacePlayersInResultAreaServer(IReadOnlyList<FinalMatchResultEntry> finalResults)
-        {
-            if (!IsServerInitialized)
-                return false;
-
-            CacheAnchorsIfNeeded();
-
-            int placedCount = 0;
-            int resultCount = finalResults != null ? finalResults.Count : 0;
-            for (int i = 0; i < resultCount; i++)
-            {
-                FinalMatchResultEntry result = finalResults[i];
-                if (result == null)
-                    continue;
-
-                if (!TryFindReporter(result.ClientId, out PlayerProgressReporter reporter))
-                {
-                    if (_warnedMissingPlayers.Add(result.ClientId))
-                    {
-                        Debug.LogWarning($"[RaceResultAreaManager] Could not find live player object for client {result.ClientId} during result-area placement.");
-                    }
-
-                    continue;
-                }
-
-                if (ApplyPlacementToPlayer(reporter, i))
-                    placedCount++;
-            }
-
-            DebugLog($"Placed {placedCount}/{resultCount} players into the in-scene result area.");
-
-            return true;
         }
 
         [Server]
@@ -125,22 +88,6 @@ namespace SteamMultiplayer.Network.Results
         }
 
         [Server]
-        public bool ApplyPlacementToPlayer(PlayerProgressReporter reporter, int placementIndex)
-        {
-            if (!IsServerInitialized || reporter == null)
-                return false;
-
-            if (_placedClientIds.Contains(reporter.OwnerId))
-                return false;
-
-            ResolvePlacementTransform(placementIndex, out Vector3 worldPosition, out Quaternion worldRotation);
-            reporter.EnterResultAreaServer(worldPosition, worldRotation);
-            _placedClientIds.Add(reporter.OwnerId);
-            DebugLog($"Placed clientId={reporter.OwnerId} placementIndex={placementIndex}");
-            return true;
-        }
-
-        [Server]
         public void NotifyPlacementApplied(int clientId)
         {
             if (!IsServerInitialized)
@@ -153,23 +100,6 @@ namespace SteamMultiplayer.Network.Results
         public bool HasPlacementApplied(int clientId)
         {
             return IsServerInitialized && _placedClientIds.Contains(clientId);
-        }
-
-        private bool TryFindReporter(int clientId, out PlayerProgressReporter reporter)
-        {
-            PlayerProgressReporter[] reporters = FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None);
-            for (int i = 0; i < reporters.Length; i++)
-            {
-                PlayerProgressReporter candidate = reporters[i];
-                if (candidate == null || !candidate.IsSpawned || candidate.OwnerId != clientId)
-                    continue;
-
-                reporter = candidate;
-                return true;
-            }
-
-            reporter = null;
-            return false;
         }
 
         private void ResolvePlacementTransform(int placementIndex, out Vector3 worldPosition, out Quaternion worldRotation)

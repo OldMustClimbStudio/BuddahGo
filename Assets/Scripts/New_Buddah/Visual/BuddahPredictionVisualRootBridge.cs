@@ -14,6 +14,10 @@ namespace NewBuddah.PredictionV2.Visual
         private const float PostIntroVisualLockYawThreshold = 10f;
         private const float PostIntroVisualUnlockPositionThreshold = 0.25f;
         private const float PostIntroVisualUnlockYawThreshold = 4f;
+        // Post-intro visual lock only engages briefly after intro/external control ends, so the
+        // one-shot snap covers the handoff transition without fighting FishNet's graphical smoother
+        // during normal high-speed gameplay.
+        private const int PostIntroVisualLockMaxFramesAfterExit = 4;
 
         [SerializeField] private BuddahPredictionBootstrap bootstrap;
         [SerializeField] private BuddahPredictedMotor predictedMotor;
@@ -36,6 +40,8 @@ namespace NewBuddah.PredictionV2.Visual
         private bool _lastStabilizationApplied;
         private string _lastStabilizationReason = "init";
         private bool _fishNetGraphicalSmoothingSuppressed;
+        private RaceBodyIntroStateController _introStateController;
+        private int _lastIntroOrExternalActiveFrame = int.MinValue / 2;
 
         private void Awake()
         {
@@ -53,6 +59,7 @@ namespace NewBuddah.PredictionV2.Visual
             BuddahPredictionDebugState debugState = bootstrap.DebugState;
             Transform resolvedMovementRoot = GetMovementRoot();
             Transform resolvedVisualRoot = GetVisualRoot();
+            UpdateIntroOrExternalActiveTracking();
             UpdateFishNetGraphicalSmoothingState(resolvedMovementRoot, resolvedVisualRoot);
             StabilizeOwnerVisualRootIfNeeded(resolvedMovementRoot, resolvedVisualRoot, debugState);
 
@@ -97,11 +104,20 @@ namespace NewBuddah.PredictionV2.Visual
                 presentationBridge = GetComponent<BuddahPredictionPresentationBridge>();
             if (movementRoot == null)
                 movementRoot = transform;
-            if (visualRoot == null)
-                visualRoot = transform;
             if (_networkObject == null)
                 _networkObject = GetComponent<NetworkObject>();
+            if (visualRoot == null)
+            {
+                // Prefer the FishNet graphical object so that smoother-suppression logic can
+                // correctly identify it as a distinct visual root from the physics root.
+                Transform fishNetGraphical = _networkObject != null ? _networkObject.GetGraphicalObject() : null;
+                visualRoot = (fishNetGraphical != null && fishNetGraphical != transform)
+                    ? fishNetGraphical
+                    : transform;
+            }
             CacheVisualLocalPose();
+            if (_introStateController == null)
+                _introStateController = GetComponent<RaceBodyIntroStateController>();
             if (movementRigidbody == null)
                 movementRigidbody = GetComponent<Rigidbody>() ?? GetComponentInParent<Rigidbody>();
             if (cameraFollowTarget == null)
@@ -175,7 +191,15 @@ namespace NewBuddah.PredictionV2.Visual
 
         private void UpdateFishNetGraphicalSmoothingState(Transform resolvedMovementRoot, Transform resolvedVisualRoot)
         {
+            if (_networkObject == null)
+                _networkObject = GetComponent<NetworkObject>();
+
+            // Only owner has a local spline/stabilization provider; suppressing the smoother on
+            // spectators leaves their visual root without any driver during intro and produces
+            // the opponent-side tearing the client sees.
+            bool isOwner = _networkObject != null && _networkObject.IsOwner;
             bool shouldSuppress =
+                isOwner &&
                 ShouldLockVisualRootDuringIntroOrPresentation(resolvedMovementRoot, resolvedVisualRoot, out _) &&
                 IsFishNetPredictionSmoothingVisualRoot(resolvedVisualRoot);
 
@@ -236,7 +260,12 @@ namespace NewBuddah.PredictionV2.Visual
 
             if (ShouldApplyOwnerVisualStabilization(resolvedMovementRoot, resolvedVisualRoot, out reason))
             {
-                ApplyVisualRootStabilization(resolvedMovementRoot, resolvedVisualRoot);
+                bool isIntroSplineReason =
+                    string.Equals(reason, "intro-visual-lock", System.StringComparison.Ordinal) ||
+                    string.Equals(reason, "intro-visual-lock-legacy", System.StringComparison.Ordinal);
+
+                if (!(isIntroSplineReason && TryApplyIntroSplineVisualPose(resolvedMovementRoot, resolvedVisualRoot)))
+                    ApplyVisualRootStabilization(resolvedMovementRoot, resolvedVisualRoot);
                 applied = true;
             }
 
@@ -334,6 +363,14 @@ namespace NewBuddah.PredictionV2.Visual
 
             if (bootstrap == null || !bootstrap.IsPredictionModeActive())
             {
+                // In legacy movement mode, FishNet's PredictionSmoother is still active because
+                // _enablePrediction is set on the NetworkObject independently of bootstrap mode.
+                // Suppress it during intro to prevent graphical lag against the spline-driven rigidbody.
+                if (_introStateController != null && _introStateController.IsIntroActive)
+                {
+                    reason = "intro-visual-lock-legacy";
+                    return true;
+                }
                 reason = "prediction-inactive";
                 return false;
             }
@@ -390,6 +427,30 @@ namespace NewBuddah.PredictionV2.Visual
             return true;
         }
 
+        private void UpdateIntroOrExternalActiveTracking()
+        {
+            if (IsIntroOrExternalControlCurrentlyActive())
+                _lastIntroOrExternalActiveFrame = Time.frameCount;
+        }
+
+        private bool IsIntroOrExternalControlCurrentlyActive()
+        {
+            if (predictedMotor != null && bootstrap != null && bootstrap.IsPredictionModeActive()
+                && (predictedMotor.IsPredictionIntroControlActive || predictedMotor.IsPredictionExternalKinematicControlActive))
+            {
+                return true;
+            }
+
+            if (_introStateController != null && _introStateController.IsIntroActive)
+                return true;
+
+            BuddahPredictionDebugState state = bootstrap != null ? bootstrap.DebugState : null;
+            if (state != null && (state.introControlActive || state.externalKinematicControlActive))
+                return true;
+
+            return false;
+        }
+
         private bool ShouldHoldPostIntroVisualLock(Transform resolvedMovementRoot, Transform resolvedVisualRoot)
         {
             if (bootstrap == null || !bootstrap.IsPredictionModeActive())
@@ -413,6 +474,14 @@ namespace NewBuddah.PredictionV2.Visual
             if (resolvedMovementRoot == null || resolvedVisualRoot == null || resolvedMovementRoot == resolvedVisualRoot)
                 return false;
 
+            // Only engage for a brief window after intro/external control actually ended. Without
+            // this gate, per-tick physics displacement (~1.2m at 60 m/s) keeps the position/yaw
+            // delta above the threshold indefinitely, re-suppressing FishNet's smoother and
+            // producing 50Hz stair-stepping during normal gameplay.
+            int framesSinceIntroExit = Time.frameCount - _lastIntroOrExternalActiveFrame;
+            if (framesSinceIntroExit < 0 || framesSinceIntroExit > PostIntroVisualLockMaxFramesAfterExit)
+                return false;
+
             float positionDelta = Vector3.Distance(resolvedMovementRoot.position, resolvedVisualRoot.position);
             float yawDelta = Quaternion.Angle(resolvedMovementRoot.rotation, resolvedVisualRoot.rotation);
             bool wasHoldingPostIntro = _lastStabilizationApplied
@@ -425,6 +494,39 @@ namespace NewBuddah.PredictionV2.Visual
                 : PostIntroVisualLockYawThreshold;
 
             return positionDelta >= positionThreshold || yawDelta >= yawThreshold;
+        }
+
+        // Drives the visual root from the intro spline sampled at sub-tick render time, bypassing
+        // the 50Hz stair-step that direct rigidbody.position writes cause on the movement root.
+        private bool TryApplyIntroSplineVisualPose(Transform resolvedMovementRoot, Transform resolvedVisualRoot)
+        {
+            if (resolvedVisualRoot == null || resolvedMovementRoot == null)
+                return false;
+
+            if (resolvedVisualRoot == resolvedMovementRoot)
+                return false;
+
+            if (_introStateController == null)
+                _introStateController = GetComponent<RaceBodyIntroStateController>();
+
+            if (_introStateController == null)
+                return false;
+
+            if (!_introStateController.TrySampleVisualPoseAtRenderTime(out Vector3 splinePosition, out Quaternion splineRotation))
+                return false;
+
+            if (!_hasCachedVisualLocalPose)
+                CacheVisualLocalPose(force: true);
+
+            Vector3 worldPosition = _hasCachedVisualLocalPose
+                ? splinePosition + splineRotation * _cachedVisualLocalPosition
+                : splinePosition;
+            Quaternion worldRotation = _hasCachedVisualLocalPose
+                ? splineRotation * _cachedVisualLocalRotation
+                : splineRotation;
+
+            resolvedVisualRoot.SetPositionAndRotation(worldPosition, worldRotation);
+            return true;
         }
 
         private void ApplyVisualRootStabilization(Transform resolvedMovementRoot, Transform resolvedVisualRoot)

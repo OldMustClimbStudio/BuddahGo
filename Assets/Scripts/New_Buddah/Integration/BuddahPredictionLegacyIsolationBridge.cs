@@ -1,4 +1,6 @@
 using NewBuddah.PredictionV2.Bootstrap;
+using NewBuddah.PredictionV2.Events;
+using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Integration
 {
@@ -8,7 +10,8 @@ namespace NewBuddah.PredictionV2.Integration
             BuddahMovementRuntimeMode mode,
             BuddahLegacyComponentRefs legacyRefs,
             Core.BuddahPredictedMotor predictedMotor,
-            Debugging.BuddahPredictionDebugState debugState)
+            Debugging.BuddahPredictionDebugState debugState,
+            BuddahPredictionCommandBus commandBus)
         {
             bool predictionActive = mode == BuddahMovementRuntimeMode.PredictionV2;
 
@@ -17,6 +20,16 @@ namespace NewBuddah.PredictionV2.Integration
 
             if (predictedMotor != null)
                 predictedMotor.enabled = predictionActive;
+
+            // Phase 2: every legacy<->prediction transition clears pending command-bus events so the
+            // new mode starts from a known-empty state. Log stays on until Phase 3+ starts consuming.
+            if (commandBus != null)
+            {
+                int cleared = commandBus.TryClearChannels(BuddahPredictionChannelMask.All);
+                Debug.Log(
+                    $"{BuddahPredictionCommandBus.LogPrefix}:ClearAll triggeredBy=ModeSwitch channelsCleared={cleared} mode={mode}",
+                    commandBus);
+            }
 
             if (debugState == null)
                 return;

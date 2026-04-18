@@ -1,5 +1,6 @@
 using NewBuddah.PredictionV2.Config;
 using NewBuddah.PredictionV2.Debugging;
+using NewBuddah.PredictionV2.Events;
 using NewBuddah.PredictionV2.Integration;
 using NewBuddah.PredictionV2.Validation;
 using NewBuddah.PredictionV2.Visual;
@@ -23,6 +24,7 @@ namespace NewBuddah.PredictionV2.Bootstrap
         [SerializeField] private BuddahPredictionPresentationBridge presentationBridge;
         [SerializeField] private BuddahPredictionCompatibilityRegistry compatibilityRegistry;
         [SerializeField] private BuddahPredictionRuntimeHealthReport runtimeHealthReport;
+        [SerializeField] private BuddahPredictionCommandBus commandBus;
         [SerializeField] private BuddahPredictionDebugSettings debugSettings = new();
         [SerializeField] private BuddahLegacyComponentRefs legacyComponentRefs = new();
         [SerializeField] private BuddahPredictionDebugState debugState = new();
@@ -44,6 +46,7 @@ namespace NewBuddah.PredictionV2.Bootstrap
         public BuddahPredictionPresentationBridge PresentationBridge => presentationBridge;
         public BuddahPredictionCompatibilityRegistry CompatibilityRegistry => compatibilityRegistry;
         public BuddahPredictionRuntimeHealthReport RuntimeHealthReport => runtimeHealthReport;
+        public BuddahPredictionCommandBus CommandBus => commandBus;
         public BuddahPredictionDebugSettings DebugSettings => debugSettings;
         public BuddahLegacyComponentRefs LegacyComponentRefs => legacyComponentRefs;
         public BuddahPredictionDebugState DebugState => debugState;
@@ -120,6 +123,8 @@ namespace NewBuddah.PredictionV2.Bootstrap
                     _runtimeHealthReportAutoAdded = true;
                 }
             }
+            if (commandBus == null)
+                commandBus = GetComponent<BuddahPredictionCommandBus>();
 
             legacyComponentRefs.Resolve(gameObject);
             compatibilityRegistry?.ResolveReferences();

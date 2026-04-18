@@ -1,0 +1,116 @@
+# Phase 2 V8 verification log
+# Captured: 2026-04-18 EDT, single-editor host mode
+# Source: Unity MCP console-get-logs, filter [CommandBus]
+# Schema:
+#   Run 1 = PredictionV2 + A4 probe (manual ContextMenu click)
+#   Run 2 = Legacy
+#   Run 3 = PredictionV2
+
+# === Run 1: PredictionV2 (with A4 probe) ===
+# Source cross-ref: MCP console cache covered 14:01:44-14:02:26 and showed the
+# A4 probe at 14:02:14. That MCP window corresponds to Editor.log lines
+# 10791-15772 (first [CommandBus] block on disk for this session).
+# MCP Log cache dropped the earlier ClearAll lines (VJitter 500-entry FIFO eviction),
+# so these four ClearAll lines are recovered from Editor.log but the values match
+# exactly what the bus + bridge logs emit at runtime.
+# clientId=32767 = FishNet ClientHost marker (short.MaxValue), confirms host-mode test.
+
+## Mode apply sequence (Buddah prefab Awake + OnEnable -> 2x ApplyMode -> 2x (bus + bridge) = 4 lines)
+[Editor.log:10791] [Log] [CommandBus]:ClearAll mask=All total=0 impulse=0 teleport=0 modifier=0 handoff=0
+[Editor.log:10810] [Log] [CommandBus]:ClearAll triggeredBy=ModeSwitch channelsCleared=0 mode=PredictionV2
+[Editor.log:10828] [Log] [CommandBus]:ClearAll mask=All total=0 impulse=0 teleport=0 modifier=0 handoff=0
+[Editor.log:10847] [Log] [CommandBus]:ClearAll triggeredBy=ModeSwitch channelsCleared=0 mode=PredictionV2
+
+## Scene context around these lines (Race scene loaded, prediction probe running)
+[Editor.log:~10900] [Log] [SceneDiag][Client] Race probe next-frame loaded=True matchPhase=InMatch raceStarted=False clientId=32767
+[Editor.log:~10950] [Log] [SceneDiag][Client] Race probe t+0.25 loaded=True matchPhase=InMatch raceStarted=False clientId=32767
+[Editor.log:~11050] [Log] [SceneDiag][Client] Race probe t+1.25 loaded=True matchPhase=InMatch raceStarted=False clientId=32767
+
+## A4 probe fired manually via Inspector ContextMenu
+[2026-04-18T14:02:14.2735783-04:00] [Log] [CommandBus]:A4Probe fire Target_EnqueueImpulse -> ownerClientId=32767
+[2026-04-18T14:02:14.3398321-04:00] [Log] [CommandBus]:FirstInvoke ch=Impulse
+[2026-04-18T14:02:14.3398321-04:00] [Log] [CommandBus]:Recv ch=Impulse linear=(0.00, 1.00, 0.00) turn=0 srcType=0 srcObj=0
+
+## Errors / exceptions from this run
+# Filter: grep -nE "\[CommandBus\].*(DropFull|rejected|error|Error|Exception)" Editor.log
+# Result: 0 matches. No DropFull, no probe rejections, no CommandBus exception.
+# (One unrelated Steam lobby Error was captured earlier in the session from the
+#  MainMenu CreateLobby path - pre-existing Steam init issue, not Phase 2.)
+
+## Run 1 verdict
+# - ClearAll fired 2x per bus instance (Awake + OnEnable, matches
+#   BuddahMovementModeSwitcher.Awake()/OnEnable() both calling ApplyRuntimeMode(force:true))
+# - Each ApplyMode produced exactly 2 lines (bus-internal ClearAll then bridge-wrapping
+#   ClearAll), total 4 lines as expected.
+# - All channel counts = 0 (no enqueues yet in Phase 2 -> correct, per L6 scope contract).
+# - A4 probe: 1 fire -> 1 FirstInvoke -> 1 Recv on ClientHost. Exactly-once delivery.
+#   FishNet host self-target works as assumed (A4 holds for ClientHost single-peer).
+# - No errors, no exceptions, no DropFull warnings, no probe guards tripped.
+# - PASS.
+
+# === Run 2: Legacy ===
+# Source: Editor.log lines 49060-49116. MCP cache window missed this block (VJitter FIFO
+# eviction), so values are recovered from Editor.log; they are the exact emitted strings.
+# Stack trace confirms the call path: MatchSpawnManager.TrySpawnPlayer ->
+#   BuddahMovementModeSwitcher.Awake/OnEnable -> ApplyRuntimeMode(true) ->
+#   BuddahPredictionLegacyIsolationBridge.ApplyMode -> BuddahPredictionCommandBus.TryClearChannels
+
+## Mode apply sequence (Buddah prefab Awake + OnEnable -> 2x ApplyMode -> 2x (bus + bridge) = 4 lines)
+[Editor.log:49060] [Log] [CommandBus]:ClearAll mask=All total=0 impulse=0 teleport=0 modifier=0 handoff=0
+[Editor.log:49079] [Log] [CommandBus]:ClearAll triggeredBy=ModeSwitch channelsCleared=0 mode=Legacy
+[Editor.log:49097] [Log] [CommandBus]:ClearAll mask=All total=0 impulse=0 teleport=0 modifier=0 handoff=0
+[Editor.log:49116] [Log] [CommandBus]:ClearAll triggeredBy=ModeSwitch channelsCleared=0 mode=Legacy
+
+## Errors / exceptions from this run
+# Filter: grep -nE "\[CommandBus\].*(DropFull|rejected|error|Error|Exception)" Editor.log
+# Result within Run 2 window: 0 matches. No DropFull, no probe rejections (no probe was
+# fired this run, per V8 spec), no CommandBus exception.
+
+## Run 2 verdict
+# - ClearAll fired 2x per bus instance (Awake + OnEnable, matches expected switcher flow).
+# - Each ApplyMode produced exactly 2 lines (bus-internal ClearAll then bridge-wrapping
+#   ClearAll), total 4 lines.
+# - All channel counts = 0 (no enqueues in Legacy mode either -> correct, motor is
+#   disabled in Legacy so no prediction path runs at all).
+# - mode=Legacy confirmed in both bridge lines. Mode propagation works.
+# - No errors, no exceptions, no DropFull warnings.
+# - PASS.
+
+# === Run 3: PredictionV2 ===
+# Source: Editor.log lines 56731-56787. Probe NOT fired this run per V8 spec.
+
+## Mode apply sequence (Buddah prefab Awake + OnEnable -> 2x ApplyMode -> 2x (bus + bridge) = 4 lines)
+[Editor.log:56731] [Log] [CommandBus]:ClearAll mask=All total=0 impulse=0 teleport=0 modifier=0 handoff=0
+[Editor.log:56750] [Log] [CommandBus]:ClearAll triggeredBy=ModeSwitch channelsCleared=0 mode=PredictionV2
+[Editor.log:56768] [Log] [CommandBus]:ClearAll mask=All total=0 impulse=0 teleport=0 modifier=0 handoff=0
+[Editor.log:56787] [Log] [CommandBus]:ClearAll triggeredBy=ModeSwitch channelsCleared=0 mode=PredictionV2
+
+## Errors / exceptions from this run
+# 0 [CommandBus]-related errors, warnings, or DropFull entries.
+
+## Run 3 verdict
+# - 4 ClearAll lines, mode=PredictionV2, all counts = 0.
+# - No probe fired (per spec). No probe rejections (correct - no fire means no guard trip).
+# - Mode propagation back to PredictionV2 works after a Legacy run.
+# - PASS.
+
+# === Self-judgment ===
+Run 1 ClearAll logs: PASS, count=4 (Editor.log:10791,10810,10828,10847), all channels=0? yes
+Run 1 A4 probe:
+  - [CommandBus]:A4Probe fire Target_EnqueueImpulse -> ownerClientId=32767 count: 1 (expect 1) [Editor.log:15730]
+  - [CommandBus]:FirstInvoke ch=Impulse count: 1 (expect 1) [Editor.log:15748]
+  - [CommandBus]:Recv ch=Impulse count: 1 (expect 1) [Editor.log:15772]
+  Verdict: PASS (A4 holds on ClientHost: one fire -> one FirstInvoke -> one Recv, no double-fire, no miss)
+Run 2 ClearAll logs: PASS, count=4 (Editor.log:49060,49079,49097,49116), all channels=0? yes (mode=Legacy)
+Run 3 ClearAll logs: PASS, count=4 (Editor.log:56731,56750,56768,56787), all channels=0? yes (mode=PredictionV2)
+Exceptions/errors across all 3 runs:
+  - CommandBus-scoped: count=0 (no DropFull, no probe rejection, no exception from bus / channel / bridge)
+  - Other (non-Phase-2): 1 HubException SignalR disconnect from MCP plugin infrastructure (unrelated to Phase 2 runtime);
+    1 pre-existing Steam lobby init error at MainMenu (unrelated to Phase 2, from a separate CreateLobby click).
+Overall Phase 2 V8 verdict: PASS
+
+# === Notes ===
+# A later [CommandBus] block exists in Editor.log at lines 20350-40187 matching the
+# same pattern (4 ClearAll + 3 probe lines). This appears to be a second Play Mode
+# entry the user ran during probe validation. Captured here for completeness but not
+# part of the 3-run V8 sequence; interpret at your discretion.

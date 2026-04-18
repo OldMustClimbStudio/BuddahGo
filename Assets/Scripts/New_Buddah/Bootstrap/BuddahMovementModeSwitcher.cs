@@ -51,7 +51,7 @@ namespace NewBuddah.PredictionV2.Bootstrap
             if (bootstrap == null)
                 return;
 
-            _legacyIsolationBridge.ApplyMode(runtimeMode, bootstrap.LegacyComponentRefs, predictedMotor, bootstrap.DebugState);
+            _legacyIsolationBridge.ApplyMode(runtimeMode, bootstrap.LegacyComponentRefs, predictedMotor, bootstrap.DebugState, bootstrap.CommandBus);
             _appliedMode = runtimeMode;
             bootstrap.RefreshDebugBanner($"mode switch applied -> {runtimeMode}");
 

@@ -11,6 +11,12 @@ namespace NewBuddah.PredictionV2.Core
         public bool MovementAllowed;
         public bool OwnerInputLive;
 
+        public uint LastConsumedImpulseId;
+        public uint LastConsumedTeleportId;
+        public uint LastConsumedModifierId;
+        public uint LastConsumedHandoffId;
+        public byte OwnerControlMask;
+
         public BuddahPredictedInputData(float steering, float throttle, bool movementAllowed, bool ownerInputLive) : this()
         {
             Steering = steering;

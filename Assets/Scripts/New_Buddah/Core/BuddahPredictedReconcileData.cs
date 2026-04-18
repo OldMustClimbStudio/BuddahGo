@@ -17,6 +17,19 @@ namespace NewBuddah.PredictionV2.Core
         public float PlanarSpeed;
         public Vector3 ServerForward;
 
+        public BuddahPredictedTeleportEventData PendingTeleport;
+        public bool HasPendingTeleport;
+        public uint LastConsumedTeleportId;
+
+        public BuddahPredictedLaunchHandoffData PendingHandoff;
+        public bool HasPendingHandoff;
+        public uint LastConsumedHandoffId;
+
+        public bool AwaitingAuthoritativeLaunchHandoff;
+        public uint LocalPreHandoffBypassUntilTick;
+
+        public BuddahPredictedImpulseRingSnapshot ImpulseQueueState;
+
         public BuddahPredictedReconcileData(
             PredictionRigidbody rigidbodyState,
             BuddahPredictedModifierState modifierState,

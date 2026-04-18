@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using FishNet;
 using FishNet.Object;
+using NewBuddah.PredictionV2.Core;
+using NewBuddah.PredictionV2.Integration;
 using UnityEngine;
 using UnityEngine.VFX;
 
@@ -138,6 +140,7 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         _ignoreSolidWorld = ignoreSolidWorld;
         _impulse = impulse;
         _hitTurnTorqueImpulse = hitTurnTorqueImpulse;
+        EnsureServerHitbox();
         ConfigureMotion(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds);
         SetProgress(0f);
 
@@ -163,6 +166,8 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         ConfigureMotion(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds);
         _launchEffectPrefab = launchEffectPrefab;
         _launchEffectWorldOffset = launchEffectWorldOffset;
+        if (_hitbox != null)
+            _hitbox.enabled = false;
 
         transform.rotation *= Quaternion.Euler(visualLocalEuler);
         transform.localScale = Vector3.Scale(transform.localScale, visualScale);
@@ -222,8 +227,8 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         if (moveDistance <= 0f)
             return;
 
-        if (_applyHits && !_ignoreSolidWorld && TryStopAtSolidWorld(moveDistance))
-            return;
+        if (_applyHits)
+            CheckVictimOverlaps();
 
         Vector3 nextPosition = transform.position + (_direction * moveDistance);
         nextPosition.y = _lockedY;
@@ -252,7 +257,29 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         if (_hitbox != null)
             _hitbox.enabled = _applyHits;
 
+        Physics.SyncTransforms();
         CheckVictimOverlaps();
+    }
+
+    private void EnsureServerHitbox()
+    {
+        if (!_applyHits)
+            return;
+
+        if (_hitbox == null)
+            _hitbox = GetComponent<Collider>();
+        if (_hitbox == null)
+            _hitbox = GetComponentInChildren<Collider>(true);
+
+        if (_hitbox == null)
+        {
+            BoxCollider createdBox = gameObject.AddComponent<BoxCollider>();
+            createdBox.isTrigger = true;
+            _hitbox = createdBox;
+        }
+
+        _hitbox.isTrigger = true;
+        _hitbox.enabled = false;
     }
 
     private void SpawnLaunchEffect()
@@ -332,11 +359,12 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
 
         _hitVictims.Add(victimNO);
 
-        BuddahMovement victimMove = victimNO.GetComponent<BuddahMovement>();
-        if (victimMove == null)
+        if (BuddahPredictionCombatRouting.TryRouteImpulse(victimNO, _impulse, _hitTurnTorqueImpulse, BuddahPredictedImpulseSourceType.ChargedProjectile, _attacker))
             return;
 
-        victimMove.ApplyPushImpulseAndTorqueTargetRpc(victimNO.Owner, _impulse, _hitTurnTorqueImpulse);
+        BuddahMovement victimMove = victimNO.GetComponent<BuddahMovement>();
+        if (victimMove != null)
+            victimMove.ApplyPushImpulseAndTorqueTargetRpc(victimNO.Owner, _impulse, _hitTurnTorqueImpulse);
     }
 
     private bool TryStopAtSolidWorld(float moveDistance)

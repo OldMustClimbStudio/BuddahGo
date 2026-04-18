@@ -32,12 +32,23 @@ namespace SteamMultiplayer.Network.Results
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
+                Debug.LogWarning("[RaceResultAreaManager] Duplicate instance detected during Awake. Keeping scene NetworkObject alive and allowing network lifecycle to resolve the active instance.");
                 return;
             }
 
-            Instance = this;
             CacheAnchorsIfNeeded();
+        }
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            Instance = this;
+        }
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+            Instance = this;
         }
 
         private void OnDestroy()
@@ -53,6 +64,15 @@ namespace SteamMultiplayer.Network.Results
             _warnedMissingAnchors = false;
             _warnedOverflowAnchors = false;
             _warnedMissingPlayers.Clear();
+            if (Instance == this)
+                Instance = null;
+        }
+
+        public override void OnStopClient()
+        {
+            base.OnStopClient();
+            if (Instance == this)
+                Instance = null;
         }
 
         [Server]

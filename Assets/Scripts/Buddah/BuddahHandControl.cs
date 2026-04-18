@@ -91,6 +91,7 @@ public class BuddahHandControl : NetworkBehaviour
     private bool _projectileIgnoreSolidWorldServer;
     private GameObject _projectileChargedVisualPrefabServer;
     private string _projectileChargedProgressPropertyServer = "Progress";
+    private float _projectileChargedPushCooldownServer;
 
     private float _projectilePushModeUntilLocal;
     private bool _projectileUseChargedRuntimeLocal;
@@ -100,6 +101,7 @@ public class BuddahHandControl : NetworkBehaviour
     private float _projectileForwardOffsetLocal;
     private float _projectileHeightOffsetLocal;
     private float _projectileDelayedPushSecondsLocal;
+    private float _projectileChargedPushCooldownLocal;
 
     private const string DefaultChargedProjectileProgressProperty = "Progress";
 
@@ -191,6 +193,8 @@ public class BuddahHandControl : NetworkBehaviour
 
     private void Update()
     {
+        RefreshProjectilePushModeExpiration();
+
         if (!IsOwner)
             return;
 
@@ -205,6 +209,55 @@ public class BuddahHandControl : NetworkBehaviour
         }
 
         TrySendYawToServer();
+    }
+
+    private void RefreshProjectilePushModeExpiration()
+    {
+        if (IsServerInitialized
+            && _projectilePushModeUntilServer > 0f
+            && Time.time >= _projectilePushModeUntilServer)
+        {
+            ClearProjectilePushModeServer();
+        }
+
+        if (IsOwner
+            && _projectilePushModeUntilLocal > 0f
+            && Time.time >= _projectilePushModeUntilLocal)
+        {
+            ClearProjectilePushModeLocal();
+        }
+    }
+
+    private void ClearProjectilePushModeServer()
+    {
+        _projectilePushModeUntilServer = 0f;
+        _projectileUseChargedRuntimeServer = false;
+        _projectileBuildUpSecondsServer = 0f;
+        _projectileSpeedServer = 0f;
+        _projectileLifetimeServer = 0f;
+        _projectileImpulseStrengthServer = 0f;
+        _projectileColliderSizeServer = new Vector3(1.25f, 1.1f, 1.8f);
+        _projectileForwardOffsetServer = 0f;
+        _projectileHeightOffsetServer = 0f;
+        _projectileIgnoreSolidWorldServer = false;
+        _projectileChargedVisualPrefabServer = null;
+        _projectileChargedProgressPropertyServer = DefaultChargedProjectileProgressProperty;
+        _projectileChargedPushCooldownServer = 0f;
+        Debug.Log("[HandControl] Projectile push mode expired on server. Reverting to normal push.");
+    }
+
+    private void ClearProjectilePushModeLocal()
+    {
+        _projectilePushModeUntilLocal = 0f;
+        _projectileUseChargedRuntimeLocal = false;
+        _projectileChargedVisualPrefabLocal = null;
+        _projectileChargedProgressPropertyLocal = DefaultChargedProjectileProgressProperty;
+        _projectileChargedLaunchEffectPrefabLocal = null;
+        _projectileForwardOffsetLocal = 0f;
+        _projectileHeightOffsetLocal = 0f;
+        _projectileDelayedPushSecondsLocal = 0f;
+        _projectileChargedPushCooldownLocal = 0f;
+        Debug.Log("[HandControl] Projectile push mode expired locally. Reverting to normal push.");
     }
 
     private void LateUpdate()
@@ -357,17 +410,19 @@ public class BuddahHandControl : NetworkBehaviour
 
         if (key.keyCode == Key.W)
         {
+            float activeCooldown = GetActivePushCooldownLocal();
             if (Time.time < _nextPushLocalTimeLeft)
                 return;
-            _nextPushLocalTimeLeft = Time.time + pushCooldownSeconds;
+            _nextPushLocalTimeLeft = Time.time + activeCooldown;
             TryStartPush(true);
             StartDelayedPushAnimationLocal(true);
         }
         else if (key.keyCode == Key.UpArrow)
         {
+            float activeCooldown = GetActivePushCooldownLocal();
             if (Time.time < _nextPushLocalTimeRight)
                 return;
-            _nextPushLocalTimeRight = Time.time + pushCooldownSeconds;
+            _nextPushLocalTimeRight = Time.time + activeCooldown;
             TryStartPush(false);
             StartDelayedPushAnimationLocal(false);
         }
@@ -440,21 +495,25 @@ public class BuddahHandControl : NetworkBehaviour
         if (!ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject))
             return;
 
+        bool useProjectileMode = IsProjectilePushModeActiveServer();
+        bool useChargedProjectileRuntime = _projectileUseChargedRuntimeServer;
+
         // Server-side cooldown to prevent spamming.
         if (isLeft)
         {
+            float activeCooldown = GetActivePushCooldownServer(useProjectileMode, useChargedProjectileRuntime);
             if (Time.time < _nextPushServerTimeLeft)
                 return;
-            _nextPushServerTimeLeft = Time.time + pushCooldownSeconds;
+            _nextPushServerTimeLeft = Time.time + activeCooldown;
         }
         else
         {
+            float activeCooldown = GetActivePushCooldownServer(useProjectileMode, useChargedProjectileRuntime);
             if (Time.time < _nextPushServerTimeRight)
                 return;
-            _nextPushServerTimeRight = Time.time + pushCooldownSeconds;
+            _nextPushServerTimeRight = Time.time + activeCooldown;
         }
 
-        bool useProjectileMode = IsProjectilePushModeActiveServer();
         if (!useProjectileMode && pushHitboxPrefab == null)
             return;
 
@@ -463,7 +522,6 @@ public class BuddahHandControl : NetworkBehaviour
         float projectileImpulseStrength = _projectileImpulseStrengthServer;
         Vector3 projectileColliderSize = _projectileColliderSizeServer;
         float projectileBuildUpSeconds = _projectileBuildUpSecondsServer;
-        bool useChargedProjectileRuntime = _projectileUseChargedRuntimeServer;
         bool projectileIgnoreSolidWorld = _projectileIgnoreSolidWorldServer;
 
         StartCoroutine(ServerSpawnPushAfterWindup(
@@ -606,6 +664,7 @@ public class BuddahHandControl : NetworkBehaviour
         float projectileHeightOffset,
         GameObject chargedVisualPrefab,
         string chargedProgressProperty,
+        float chargedPushCooldownSeconds,
         bool useChargedProjectileRuntime = false,
         bool ignoreSolidWorld = false)
     {
@@ -624,6 +683,7 @@ public class BuddahHandControl : NetworkBehaviour
         _projectileIgnoreSolidWorldServer = ignoreSolidWorld;
         _projectileChargedVisualPrefabServer = chargedVisualPrefab;
         _projectileChargedProgressPropertyServer = string.IsNullOrWhiteSpace(chargedProgressProperty) ? DefaultChargedProjectileProgressProperty : chargedProgressProperty;
+        _projectileChargedPushCooldownServer = Mathf.Max(0f, chargedPushCooldownSeconds);
     }
 
     public void ConfigureProjectilePushModeLocal(
@@ -633,6 +693,7 @@ public class BuddahHandControl : NetworkBehaviour
         GameObject chargedLaunchEffectPrefab,
         float projectileForwardOffset,
         float projectileHeightOffset,
+        float chargedPushCooldownSeconds,
         bool useChargedProjectileRuntime,
         float delayedPushSeconds)
     {
@@ -643,6 +704,7 @@ public class BuddahHandControl : NetworkBehaviour
         _projectileChargedLaunchEffectPrefabLocal = chargedLaunchEffectPrefab;
         _projectileForwardOffsetLocal = Mathf.Max(0f, projectileForwardOffset);
         _projectileHeightOffsetLocal = Mathf.Max(0f, projectileHeightOffset);
+        _projectileChargedPushCooldownLocal = Mathf.Max(0f, chargedPushCooldownSeconds);
         _projectileDelayedPushSecondsLocal = Mathf.Max(0f, delayedPushSeconds);
     }
 
@@ -657,6 +719,36 @@ public class BuddahHandControl : NetworkBehaviour
             return 0f;
 
         return Mathf.Max(0f, _projectileDelayedPushSecondsLocal);
+    }
+
+    private float GetActivePushCooldownLocal()
+    {
+        if (_projectileUseChargedRuntimeLocal && Time.time < _projectilePushModeUntilLocal)
+            return GetChargedProjectilePushCooldownLocal();
+
+        return Mathf.Max(0f, pushCooldownSeconds);
+    }
+
+    private float GetActivePushCooldownServer(bool useProjectileMode, bool useChargedProjectileRuntime)
+    {
+        if (useProjectileMode && useChargedProjectileRuntime)
+            return GetChargedProjectilePushCooldownServer();
+
+        return Mathf.Max(0f, pushCooldownSeconds);
+    }
+
+    private float GetChargedProjectilePushCooldownLocal()
+    {
+        return _projectileChargedPushCooldownLocal > 0f
+            ? _projectileChargedPushCooldownLocal
+            : Mathf.Max(0f, pushCooldownSeconds);
+    }
+
+    private float GetChargedProjectilePushCooldownServer()
+    {
+        return _projectileChargedPushCooldownServer > 0f
+            ? _projectileChargedPushCooldownServer
+            : Mathf.Max(0f, pushCooldownSeconds);
     }
 
     private void SpawnChargedProjectileServer(

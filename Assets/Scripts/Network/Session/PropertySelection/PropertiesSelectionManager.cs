@@ -644,6 +644,7 @@ namespace SteamMultiplayer.Network
                 yield return new WaitForSeconds(transitionDurationSeconds);
 
             SceneLoadData sceneLoadData = new SceneLoadData(_resolvedMatchSceneName) { ReplaceScenes = ReplaceOption.All };
+            Debug.Log($"[SceneDiag][Server] LoadGlobalScenes start scene='{_resolvedMatchSceneName}' replace={sceneLoadData.ReplaceScenes} time={Time.unscaledTime:F3}");
             InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
             LogDebug($"Loading match scene: {_resolvedMatchSceneName}");
         }
@@ -651,6 +652,8 @@ namespace SteamMultiplayer.Network
         [ObserversRpc]
         private void TriggerSceneFadeObserversRpc(float fadeDurationSeconds)
         {
+            SceneFadeController.HoldBlackOnNextSceneLoad();
+
             if (_preferTimelineForMatchTransition && TryPlayMatchTransitionTimeline())
                 return;
 

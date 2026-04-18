@@ -19,7 +19,7 @@ namespace SteamMultiplayer.Network.Results
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
+                Debug.LogWarning("[ResultAreaInteractionGate] Duplicate instance detected during Awake. Keeping scene object alive and allowing scene lifecycle to resolve the active instance.");
                 return;
             }
 
@@ -45,7 +45,10 @@ namespace SteamMultiplayer.Network.Results
             if (room.IsResultPhaseActive)
                 return Instance == null || Instance.allowMovementInResultArea;
 
-            return room.IsMatchPhaseActive && room.IsRaceStarted;
+            if (!room.IsMatchPhaseActive)
+                return false;
+
+            return room.ShouldEnableOwnerMovementInputNow();
         }
 
         public static bool ShouldAllowSkillInput(GameObject actor)
@@ -61,13 +64,16 @@ namespace SteamMultiplayer.Network.Results
             if (room.IsResultPhaseActive)
                 return Instance == null || Instance.allowSkillsInResultArea;
 
-            return room.IsMatchPhaseActive && room.IsRaceStarted;
+            if (!room.IsMatchPhaseActive)
+                return false;
+
+            return room.ShouldEnableOwnerMovementInputNow();
         }
 
         public static bool ShouldProcessRaceProgress(GameObject actor)
         {
             RoomStateManager room = RoomStateManager.Instance;
-            if (room == null || !room.IsMatchPhaseActive || !room.IsRaceStarted)
+            if (room == null || !room.IsMatchPhaseActive || !room.ShouldEnableOwnerMovementInputNow())
                 return false;
 
             MatchResultPresentationCoordinator coordinator = MatchResultPresentationCoordinator.Instance;

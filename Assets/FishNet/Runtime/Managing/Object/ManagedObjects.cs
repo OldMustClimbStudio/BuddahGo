@@ -457,6 +457,8 @@ namespace FishNet.Managing.Object
         protected internal void AddToSceneObjects(NetworkObject nob)
         {
             SceneObjects_Internal[nob.SceneId] = nob;
+            if (IsTrackedSceneDiagnostic(nob.SceneId, nob.name))
+                Debug.Log($"[FishNetSceneDiag] AddToSceneObjects name='{nob.name}' scene='{nob.gameObject.scene.name}' sceneId={nob.SceneId}");
         }
 
         /// <summary>
@@ -465,6 +467,8 @@ namespace FishNet.Managing.Object
         /// <param name = "nob"></param>
         protected internal void RemoveFromSceneObjects(NetworkObject nob)
         {
+            if (IsTrackedSceneDiagnostic(nob.SceneId, nob.name))
+                Debug.LogWarning($"[FishNetSceneDiag] RemoveFromSceneObjects(name) name='{nob.name}' scene='{nob.gameObject.scene.name}' sceneId={nob.SceneId}");
             SceneObjects_Internal.Remove(nob.SceneId);
         }
 
@@ -474,7 +478,21 @@ namespace FishNet.Managing.Object
         /// <param name = "nob"></param>
         protected internal void RemoveFromSceneObjects(ulong sceneId)
         {
+            if (IsTrackedSceneDiagnostic(sceneId, string.Empty))
+                Debug.LogWarning($"[FishNetSceneDiag] RemoveFromSceneObjects(id) sceneId={sceneId}");
             SceneObjects_Internal.Remove(sceneId);
+        }
+
+        private static bool IsTrackedSceneDiagnostic(ulong sceneId, string objectName)
+        {
+            return sceneId == 3134013429ul
+                || sceneId == 2659942399ul
+                || sceneId == 2676718428ul
+                || sceneId == 4227260384ul
+                || objectName == "IntroSequenceManager"
+                || objectName == "ResultRuntime"
+                || objectName == "ResultDecisionManager"
+                || objectName == "LeaderBoardManager";
         }
 
         /// <summary>

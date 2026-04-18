@@ -1,6 +1,8 @@
 
 using FishNet.Object;
 using Cinemachine;
+using NewBuddah.PredictionV2.Integration;
+using SteamMultiplayer.Network;
 using UnityEngine;
 
 public class PlayerCamera : NetworkBehaviour
@@ -50,6 +52,8 @@ public class PlayerCamera : NetworkBehaviour
     private bool _missingScaleEffectLogged;
     private Transform _followTargetOverride;
     private Rigidbody _followTargetOverrideRigidbody;
+    private BuddahPredictionCameraBridge _predictionCameraBridge;
+    private RaceBodyIntroStateController _introStateController;
     public CameraPresentationMode CurrentPresentationMode { get; private set; } = CameraPresentationMode.Normal;
 
     private void Awake()
@@ -59,6 +63,11 @@ public class PlayerCamera : NetworkBehaviour
 
         if (followTargetRigidbody == null)
             followTargetRigidbody = GetComponentInParent<Rigidbody>();
+
+        if (_predictionCameraBridge == null)
+            _predictionCameraBridge = GetComponent<BuddahPredictionCameraBridge>() ?? GetComponentInParent<BuddahPredictionCameraBridge>();
+        if (_introStateController == null)
+            _introStateController = GetComponent<RaceBodyIntroStateController>() ?? GetComponentInParent<RaceBodyIntroStateController>();
 
         _speedFieldOfView = baseFieldOfView;
     }
@@ -100,8 +109,16 @@ public class PlayerCamera : NetworkBehaviour
             _cinemachineCamera.Follow = activeFollowTarget;
 
         Rigidbody activeFollowRigidbody = GetActiveFollowRigidbody();
+        _predictionCameraBridge?.ReportFollowTarget(CurrentPresentationMode, activeFollowTarget, activeFollowRigidbody, "PlayerCamera.LateUpdate");
         if (activeFollowRigidbody == null)
             return;
+
+        if (ShouldUseStableIntroCamera())
+        {
+            ResetDynamicCameraOffsets();
+            ApplyStableCameraState();
+            return;
+        }
 
         Vector3 absoluteVelocity = activeFollowRigidbody.velocity;
         float absoluteSpeed = absoluteVelocity.magnitude;
@@ -264,6 +281,9 @@ public class PlayerCamera : NetworkBehaviour
 
         if (followTargetRigidbody == null)
             followTargetRigidbody = GetComponentInParent<Rigidbody>();
+
+        if (_introStateController == null)
+            _introStateController = GetComponent<RaceBodyIntroStateController>() ?? GetComponentInParent<RaceBodyIntroStateController>();
     }
 
     private float GetCameraScaleMultiplier()
@@ -355,13 +375,68 @@ public class PlayerCamera : NetworkBehaviour
             Debug.Log(message);
     }
 
+    private bool ShouldUseStableIntroCamera()
+    {
+        if (CurrentPresentationMode != CameraPresentationMode.Normal)
+            return false;
+
+        if (_introStateController != null && _introStateController.IsIntroActive)
+            return true;
+
+        RoomStateManager room = RoomStateManager.Instance;
+        return room != null && room.IsMatchPhaseActive && !room.IsGameplayMovementUnlocked;
+    }
+
+    private void ResetDynamicCameraOffsets()
+    {
+        _directionalOffset = Vector3.zero;
+        _runtimeOffsetDampVelocity = Vector3.zero;
+        _speedDistanceOffset = 0f;
+        _speedDistanceVelocity = 0f;
+        _speedFieldOfView = baseFieldOfView;
+        _speedFovVelocity = 0f;
+    }
+
+    private void ApplyStableCameraState()
+    {
+        if (transposer != null)
+            transposer.m_FollowOffset = baseFollowOffset + _runtimeOffset;
+        else if (framingTransposer != null)
+        {
+            framingTransposer.m_TrackedObjectOffset = baseTrackedOffset + _runtimeOffset;
+            framingTransposer.m_CameraDistance = Mathf.Max(0.01f, _baseFramingCameraDistance);
+        }
+
+        ApplyLensZoom(0f);
+    }
+
     private Transform GetActiveFollowTarget()
     {
-        return _followTargetOverride != null ? _followTargetOverride : transform;
+        if (_predictionCameraBridge != null)
+        {
+            bool hasBridgedTarget = _predictionCameraBridge.TryGetDefaultFollowTarget(out Transform bridgedTarget, out _);
+            if (_predictionCameraBridge.ForceDefaultFollowTargetForDiagnosis && hasBridgedTarget)
+                return bridgedTarget;
+        }
+
+        if (_followTargetOverride != null)
+            return _followTargetOverride;
+
+        if (_predictionCameraBridge != null && _predictionCameraBridge.TryGetDefaultFollowTarget(out Transform fallbackBridgedTarget, out _))
+            return fallbackBridgedTarget;
+
+        return transform;
     }
 
     private Rigidbody GetActiveFollowRigidbody()
     {
+        if (_predictionCameraBridge != null)
+        {
+            bool hasBridgedRigidbody = _predictionCameraBridge.TryGetDefaultFollowTarget(out _, out Rigidbody bridgedRigidbody);
+            if (_predictionCameraBridge.ForceDefaultFollowTargetForDiagnosis && hasBridgedRigidbody)
+                return bridgedRigidbody;
+        }
+
         if (_followTargetOverride != null)
         {
             if (_followTargetOverrideRigidbody == null)
@@ -372,6 +447,9 @@ public class PlayerCamera : NetworkBehaviour
 
         if (followTargetRigidbody == null)
             followTargetRigidbody = GetComponentInParent<Rigidbody>();
+
+        if (_predictionCameraBridge != null && _predictionCameraBridge.TryGetDefaultFollowTarget(out _, out Rigidbody fallbackBridgedRigidbody))
+            return fallbackBridgedRigidbody;
 
         return followTargetRigidbody;
     }

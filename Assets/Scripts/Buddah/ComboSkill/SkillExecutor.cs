@@ -1,5 +1,7 @@
 using FishNet.Connection;
 using FishNet.Object;
+using NewBuddah.PredictionV2.Bootstrap;
+using NewBuddah.PredictionV2.Integration;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
 using System;
@@ -41,6 +43,8 @@ public class SkillExecutor : NetworkBehaviour
     [SerializeField] private Animator characterAnimator;
     [SerializeField] private PlayerAccelerationTrail accelerationTrailController;
     [SerializeField] private PlayerCamera playerCamera;
+    [SerializeField] private BuddahPredictionBootstrap predictionBootstrap;
+    [SerializeField] private BuddahPredictionSkillMovementBridge predictionSkillMovementBridge;
 
     private float _castLockedUntil;
     private readonly Dictionary<string, int> _feelStopTokens = new();
@@ -57,6 +61,8 @@ public class SkillExecutor : NetworkBehaviour
         ResolveFeelRouter();
         ResolveCharacterAnimator();
         ResolvePlayerCamera();
+        if (predictionBootstrap == null) predictionBootstrap = GetComponent<BuddahPredictionBootstrap>();
+        if (predictionSkillMovementBridge == null) predictionSkillMovementBridge = GetComponent<BuddahPredictionSkillMovementBridge>();
     }
 
     public override void OnStartServer()
@@ -321,6 +327,9 @@ public class SkillExecutor : NetworkBehaviour
     {
         if (!IsServerInitialized) return;
 
+        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
+            predictionSkillMovementBridge.TryApplyAcceleration(extraForwardForce, extraMaxSpeed, durationSeconds, "SkillExecutor.Server");
+
         NetworkConnection conn = Owner;
         if (conn == null) return;
 
@@ -330,6 +339,19 @@ public class SkillExecutor : NetworkBehaviour
     [TargetRpc]
     private void ApplyAccelerationTargetRpc(NetworkConnection conn, float extraForwardForce, float extraMaxSpeed, float durationSeconds)
     {
+        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
+        {
+            if (!IsServerInitialized)
+                predictionSkillMovementBridge.TryApplyAcceleration(extraForwardForce, extraMaxSpeed, durationSeconds, "SkillExecutor.Target");
+            PlayFeelLocal("acceleration_local");
+
+            if (extraForwardForce > 0f || extraMaxSpeed > 0f)
+                ShowAccelerationTrail(durationSeconds);
+
+            Debug.Log($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed acceleration to PredictionV2 bridge.");
+            return;
+        }
+
         var move = GetComponent<BuddahMovement>();
         if (move == null)
         {
@@ -360,6 +382,9 @@ public class SkillExecutor : NetworkBehaviour
     {
         if (!IsServerInitialized) return;
 
+        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
+            predictionSkillMovementBridge.TryApplyRootThenAcceleration(rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds, "SkillExecutor.Server");
+
         NetworkConnection conn = Owner;
         if (conn == null) return;
 
@@ -369,6 +394,14 @@ public class SkillExecutor : NetworkBehaviour
     [TargetRpc]
     private void ApplyRootThenAccelerationTargetRpc(NetworkConnection conn, float rootDurationSeconds, float extraForwardForce, float extraMaxSpeed, float accelDurationSeconds)
     {
+        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
+        {
+            if (!IsServerInitialized)
+                predictionSkillMovementBridge.TryApplyRootThenAcceleration(rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds, "SkillExecutor.Target");
+            Debug.Log($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed root-then-acceleration to PredictionV2 bridge.");
+            return;
+        }
+
         var move = GetComponent<BuddahMovement>();
         if (move == null)
         {
@@ -389,6 +422,9 @@ public class SkillExecutor : NetworkBehaviour
     {
         if (!IsServerInitialized) return;
 
+        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
+            predictionSkillMovementBridge.TryApplyInvertTurn(durationSeconds, "SkillExecutor.Server");
+
         NetworkConnection conn = Owner;
         if (conn == null) return;
 
@@ -398,6 +434,14 @@ public class SkillExecutor : NetworkBehaviour
     [TargetRpc]
     private void ApplyInvertTurnInputTargetRpc(NetworkConnection conn, float durationSeconds)
     {
+        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
+        {
+            if (!IsServerInitialized)
+                predictionSkillMovementBridge.TryApplyInvertTurn(durationSeconds, "SkillExecutor.Target");
+            Debug.Log($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed invert-turn to PredictionV2 bridge.");
+            return;
+        }
+
         var move = GetComponent<BuddahMovement>();
         if (move == null)
         {
@@ -414,26 +458,54 @@ public class SkillExecutor : NetworkBehaviour
         Debug.Log($"[SkillExecutor][Target] InvertTurnInput for {durationSeconds}s");
     }
 
-    public void ApplyScaleToOwner(float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds)
+    public void ApplyScaleToOwner(float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds, float massMultiplier, float forwardForceMultiplier)
     {
         if (!IsServerInitialized) return;
+
+        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
+            predictionSkillMovementBridge.TryApplyScale(scaleMultiplier, durationSeconds, massMultiplier, forwardForceMultiplier, "SkillExecutor.Server");
 
         NetworkConnection conn = Owner;
         if (conn == null) return;
 
-        ApplyScaleTargetRpc(conn, scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds);
+        ApplyScaleTargetRpc(conn, scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
     }
 
     [TargetRpc]
-    private void ApplyScaleTargetRpc(NetworkConnection conn, float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds)
+    private void ApplyScaleTargetRpc(NetworkConnection conn, float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds, float massMultiplier, float forwardForceMultiplier)
     {
+        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
+        {
+            if (!IsServerInitialized)
+                predictionSkillMovementBridge.TryApplyScale(scaleMultiplier, durationSeconds, massMultiplier, forwardForceMultiplier, "SkillExecutor.Target");
+
+            var visualEffect = GetComponent<PlayerScaleEffect>();
+            if (visualEffect == null)
+                visualEffect = gameObject.AddComponent<PlayerScaleEffect>();
+
+            visualEffect.ApplyOrRefresh(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
+            Debug.Log($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed movement scale to PredictionV2 bridge and kept visual scale effect locally.");
+            return;
+        }
+
         var effect = GetComponent<PlayerScaleEffect>();
         if (effect == null)
             effect = gameObject.AddComponent<PlayerScaleEffect>();
 
-        effect.ApplyOrRefresh(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds);
+        effect.ApplyOrRefresh(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
 
         Debug.Log($"[SkillExecutor][Target] Scale x{scaleMultiplier:0.##} for {durationSeconds}s (enter={enterDurationSeconds:0.##}, restore={restoreDurationSeconds:0.##})");
+    }
+
+    private bool UsePredictionMovementBridge()
+    {
+        if (predictionBootstrap == null) predictionBootstrap = GetComponent<BuddahPredictionBootstrap>();
+        if (predictionSkillMovementBridge == null) predictionSkillMovementBridge = GetComponent<BuddahPredictionSkillMovementBridge>();
+
+        return predictionBootstrap != null
+               && predictionBootstrap.IsPredictionModeActive()
+               && predictionSkillMovementBridge != null
+               && predictionSkillMovementBridge.IsPredictionMovementActive();
     }
 
     private void ResolveObsessionFigure()

@@ -7,6 +7,7 @@ public class Skill_PushProjectileHands : SkillAction
     [Min(0.1f)] public float buffDurationSeconds = 8f;
     [Header("Charged Projectile")]
     [Min(0f)] public float buildUpSeconds = 0.5f;
+    [Min(0f)] public float chargedPushCooldownSeconds = 0.6f;
     [Min(0f)] public float delayedPushActionSeconds = 0f;
     [Tooltip("Extra forward offset added on top of the normal projectile spawn point.")]
     [Min(0f)] public float projectileForwardOffset = 0f;
@@ -54,6 +55,7 @@ public class Skill_PushProjectileHands : SkillAction
             projectileHeightOffset,
             chargedProjectileVfxPrefab,
             chargedProjectileProgressProperty,
+            chargedPushCooldownSeconds,
             true,
             ignoreSolidWorld);
 
@@ -75,6 +77,7 @@ public class Skill_PushProjectileHands : SkillAction
                 chargedProjectileLaunchEffectPrefab,
                 projectileForwardOffset,
                 projectileHeightOffset,
+                chargedPushCooldownSeconds,
                 true,
                 delayedPushActionSeconds);
         }

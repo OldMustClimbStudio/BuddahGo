@@ -15,7 +15,7 @@ public class Skill_Giant_Anti : SkillAction
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
-        caster.ApplyScaleToOwner(scaleMultiplier, durationSeconds, shrinkDurationSeconds, restoreDurationSeconds);
+        caster.ApplyScaleToOwner(scaleMultiplier, durationSeconds, shrinkDurationSeconds, restoreDurationSeconds, 1f, 1f);
         Debug.Log($"[Skill_Giant_Anti][Server] Apply x{scaleMultiplier:0.##} scale for {durationSeconds:0.##}s");
     }
 

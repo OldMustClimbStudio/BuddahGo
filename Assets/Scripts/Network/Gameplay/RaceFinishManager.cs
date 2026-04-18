@@ -53,10 +53,20 @@ public class RaceFinishManager : NetworkBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Destroy(gameObject);
+            Debug.LogWarning("[RaceFinishManager] Duplicate instance detected during Awake. Keeping scene NetworkObject alive and allowing network lifecycle to resolve the active instance.");
             return;
         }
+    }
 
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        Instance = this;
+    }
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
         Instance = this;
     }
 
@@ -85,6 +95,21 @@ public class RaceFinishManager : NetworkBehaviour
         isRaceForceEnded = false;
         _countdownStartServerTime = -1d;
         _matchEndTriggered = false;
+        if (Instance == this)
+            Instance = null;
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        if (Instance == this)
+            Instance = null;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     public bool TryRegisterFinish(RaceCompletionTracker completionTracker)

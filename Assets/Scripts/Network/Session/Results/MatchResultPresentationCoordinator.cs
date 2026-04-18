@@ -54,10 +54,20 @@ namespace SteamMultiplayer.Network.Results
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
+                Debug.LogWarning("[MatchResultPresentationCoordinator] Duplicate instance detected during Awake. Keeping scene NetworkObject alive and allowing network lifecycle to resolve the active instance.");
                 return;
             }
+        }
 
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            Instance = this;
+        }
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
             Instance = this;
         }
 
@@ -75,12 +85,16 @@ namespace SteamMultiplayer.Network.Results
             _revealTriggeredByTimeline = false;
             _pendingFinalResults = null;
             _presentationStage.Value = MatchResultPresentationStage.Racing;
+            if (Instance == this)
+                Instance = null;
         }
 
         public override void OnStopClient()
         {
             base.OnStopClient();
             ResultPresentationTimelineBridge.Instance?.ReleaseSharedPresentationCamera();
+            if (Instance == this)
+                Instance = null;
         }
 
         public void NotifyPlayerFinishedServer(int clientId, int finishOrder)

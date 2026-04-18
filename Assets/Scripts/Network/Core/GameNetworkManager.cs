@@ -1,6 +1,7 @@
 using System;
 using FishNet;
 using FishNet.Connection;
+using FishNet.Managing.Debugging;
 using FishNet.Managing;
 using FishNet.Managing.Client;
 using FishNet.Managing.Server;
@@ -212,6 +213,23 @@ namespace SteamMultiplayer.Network
             else
             {
                 NetLog.Dev($"NetworkManager resolved: {_networkManager.gameObject.name}");
+                ConfigureFishNetDiagnostics();
+            }
+        }
+
+        private void ConfigureFishNetDiagnostics()
+        {
+            if (_networkManager == null)
+                return;
+
+            DebugManager debugManager = _networkManager.DebugManager;
+            if (debugManager == null)
+                return;
+
+            if (!debugManager.WriteSceneObjectDetails)
+            {
+                debugManager.WriteSceneObjectDetails = true;
+                Debug.Log("[NetworkDiag] Enabled FishNet DebugManager.WriteSceneObjectDetails for scene object diagnostics.");
             }
         }
 

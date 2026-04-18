@@ -181,6 +181,8 @@ namespace FishNet.Managing.Client
             if (written == 0)
                 return;
 
+            List<CachedNetworkObject> deferredSceneObjects = new();
+
             try
             {
                 //Indexes which have already been processed.
@@ -272,8 +274,6 @@ namespace FishNet.Managing.Client
 
                 void ProcessObject(CachedNetworkObject cnob, bool spawn, int index)
                 {
-                    processedIndexes.Add(index);
-
                     /* If the NetworkObject is null on lookup then something happened in the retrieval. Exit early.
                      * This can be normal on clientHost when client side gets packets late. When
                      * clientHost this will fail silently.*/
@@ -283,6 +283,12 @@ namespace FishNet.Managing.Client
                         if (cnob.IsSceneObject)
                         {
                             cnob.NetworkObject = _clientObjects.GetSceneNetworkObject(cnob.SceneId, cnob.SceneName, cnob.ObjectName);
+                            if (cnob.NetworkObject == null)
+                            {
+                                deferredSceneObjects.Add(cnob);
+                                return;
+                            }
+
                             if (cnob.NetworkObject != null)
                                 SetParentAndTransformProperties(cnob);
                         }
@@ -315,6 +321,8 @@ namespace FishNet.Managing.Client
                         // if (!_networkManager.IsHostStarted && cnob.NetworkObject == null && !cnob.IsInitializedNested)
                         //     _networkManager.Log($"NetworkObject for ObjectId of {cnob.ObjectId} was found null. Unable to despawn object. This may occur if a nested NetworkObject had it's parent object unexpectedly destroyed. This incident is often safe to ignore.");
                     }
+
+                    processedIndexes.Add(index);
 
                     NetworkObject nob = cnob.NetworkObject;
                     //No need to error here, the other Gets above would have.
@@ -442,7 +450,7 @@ namespace FishNet.Managing.Client
             finally
             {
                 //Once all have been iterated reset.
-                Reset();
+                Reset(deferredSceneObjects);
             }
         }
 
@@ -511,16 +519,40 @@ namespace FishNet.Managing.Client
         /// <summary>
         /// Resets cache.
         /// </summary>
-        public void Reset()
+        public void Reset(List<CachedNetworkObject> retainedObjects = null)
         {
             _initializeOrderChanged = false;
-            foreach (CachedNetworkObject item in _cachedObjects)
-                ResettableObjectCaches<CachedNetworkObject>.Store(item);
+            bool hasRetainedObjects = retainedObjects != null && retainedObjects.Count > 0;
 
-            _cachedObjects.Clear();
+            if (hasRetainedObjects)
+            {
+                HashSet<CachedNetworkObject> retainedSet = new(retainedObjects);
+                foreach (CachedNetworkObject item in _cachedObjects)
+                {
+                    if (!retainedSet.Contains(item))
+                        ResettableObjectCaches<CachedNetworkObject>.Store(item);
+                }
+
+                _cachedObjects.Clear();
+                _cachedObjects.AddRange(retainedObjects);
+            }
+            else
+            {
+                foreach (CachedNetworkObject item in _cachedObjects)
+                    ResettableObjectCaches<CachedNetworkObject>.Store(item);
+
+                _cachedObjects.Clear();
+            }
+
             _iteratedSpawns.Clear();
             IteratedSpawningObjects.Clear();
             ReadSpawningObjects.Clear();
+
+            if (hasRetainedObjects)
+            {
+                foreach (CachedNetworkObject item in retainedObjects)
+                    ReadSpawningObjects.Add(item.ObjectId);
+            }
         }
     }
 

@@ -65,6 +65,7 @@ namespace SteamMultiplayer.UI
                 targetCanvasGroup.alpha = 0f;
 
             EnsurePlayableAsset();
+            RegisterFadeCarrier();
 
             playableDirector.Stop();
             playableDirector.time = 0d;
@@ -117,6 +118,30 @@ namespace SteamMultiplayer.UI
                 return new AnimationCurve(alphaCurve.keys);
 
             return AnimationCurve.EaseInOut(0f, 0f, Mathf.Max(0.01f, fallbackDurationSeconds), 1f);
+        }
+
+        private void RegisterFadeCarrier()
+        {
+            Animator boundAnimator = null;
+            CanvasGroup boundCanvasGroup = targetCanvasGroup;
+
+            if (playableDirector != null && playableDirector.playableAsset != null)
+            {
+                foreach (PlayableBinding output in playableDirector.playableAsset.outputs)
+                {
+                    Object binding = playableDirector.GetGenericBinding(output.sourceObject);
+                    if (binding is Animator animator)
+                    {
+                        boundAnimator = animator;
+                        break;
+                    }
+                }
+            }
+
+            if (boundCanvasGroup == null && boundAnimator != null)
+                boundCanvasGroup = boundAnimator.GetComponent<CanvasGroup>();
+
+            SceneFadeController.RegisterPersistentFadeCarrier(boundAnimator, boundCanvasGroup);
         }
     }
 }

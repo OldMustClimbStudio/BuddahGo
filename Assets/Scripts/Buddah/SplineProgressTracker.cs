@@ -5,6 +5,12 @@ using UnityEngine.Splines;
 
 public class SplineProgressTracker : NetworkBehaviour
 {
+    private const float ProjectionDiagnosticHeartbeatSeconds = 0.25f;
+    private const float ProjectionDiagnosticDeltaDifferenceMeters = 3f;
+    private const float IntroProjectionMinStepMeters = 4f;
+    private const float ModerateMovementProjectionMinStepMeters = 2.5f;
+    private const float FastMovementProjectionMinStepMeters = 3.5f;
+
     [Header("Read Only")]
     [Range(0f, 1f)] public float progress01;
     public float distanceOnTrack;
@@ -15,9 +21,13 @@ public class SplineProgressTracker : NetworkBehaviour
     [SerializeField] private bool wrappedFromEndToStartThisFrame;
 
     [SerializeField] private Rigidbody rb;
+    [SerializeField] private RaceBodyIntroStateController introStateController;
     private float _lastT01;
     private float _lastDistance;
     private bool _hasLast;
+    private float _lastProjectionDiagnosticLogTime = float.NegativeInfinity;
+    private float _lastChosenDeltaMeters;
+    private bool _hasLastChosenDeltaMeters;
 
     [SerializeField] private float jumpMetersThreshold = 8f;
     [SerializeField] private float windowRadiusT = 0.1f;
@@ -34,6 +44,8 @@ public class SplineProgressTracker : NetworkBehaviour
     private void Awake()
     {
         if (!rb) rb = GetComponent<Rigidbody>();
+        if (introStateController == null)
+            introStateController = GetComponent<RaceBodyIntroStateController>();
     }
 
     private void Update()
@@ -52,6 +64,13 @@ public class SplineProgressTracker : NetworkBehaviour
         float dt = Time.deltaTime;
         float speed = (rb != null) ? rb.velocity.magnitude : 0f;
         float maxStepMeters = Mathf.Max(2f, speed * dt * maxStepFactor);
+        bool introActive = introStateController != null && introStateController.IsIntroActive;
+        if (introActive)
+            maxStepMeters = Mathf.Max(maxStepMeters, IntroProjectionMinStepMeters);
+        else if (speed >= 25f)
+            maxStepMeters = Mathf.Max(maxStepMeters, FastMovementProjectionMinStepMeters);
+        else if (speed >= 15f)
+            maxStepMeters = Mathf.Max(maxStepMeters, ModerateMovementProjectionMinStepMeters);
 
         Vector3 posW = transform.position;
         Vector3 posLWorld = container.transform.InverseTransformPoint(posW);
@@ -118,6 +137,20 @@ public class SplineProgressTracker : NetworkBehaviour
 
         forwardDot = Vector3.Dot(vDir, tangentW);
         UpdateWrapFlags();
+        MaybeLogProjectionDiagnostics(
+            introActive,
+            speed,
+            maxStepMeters,
+            tGlobal,
+            dGlobal,
+            deltaGlobal,
+            tLocal,
+            dLocal,
+            deltaLocal,
+            chosenT,
+            chosenD,
+            chosenDelta,
+            globalLooksJump);
     }
 
     public void SnapToTrackProgress(float targetProgress01)
@@ -130,6 +163,22 @@ public class SplineProgressTracker : NetworkBehaviour
         float distance = targetProgress01 * track.TrackLength;
         float t = track.TAtProgress01(targetProgress01);
         ApplyProgressState(targetProgress01, distance, t);
+        forwardDot = 0f;
+        UpdateWrapFlags();
+    }
+
+    public void SnapToWorldPosition(Vector3 worldPosition)
+    {
+        TrackSplineRef track = TrackSplineRef.Instance;
+        if (track == null || track.container == null || track.TrackLength <= 1e-6f)
+            return;
+
+        SplineContainer container = track.container;
+        Vector3 localPosition = container.transform.InverseTransformPoint(worldPosition);
+        SplineUtility.GetNearestPoint(container.Spline, (float3)localPosition, out _, out float t);
+        float t01 = Mathf.Repeat(t, 1f);
+        float distance = track.DistanceAtT(t01);
+        ApplyProgressState(distance / track.TrackLength, distance, t01);
         forwardDot = 0f;
         UpdateWrapFlags();
     }
@@ -217,5 +266,54 @@ public class SplineProgressTracker : NetworkBehaviour
         }
 
         return bestT;
+    }
+
+    private void MaybeLogProjectionDiagnostics(
+        bool introActive,
+        float speed,
+        float maxStepMeters,
+        float tGlobal,
+        float dGlobal,
+        float deltaGlobal,
+        float tLocal,
+        float dLocal,
+        float deltaLocal,
+        float chosenT,
+        float chosenD,
+        float chosenDelta,
+        bool globalLooksJump)
+    {
+        if (!IsOwner)
+        {
+            _lastChosenDeltaMeters = chosenDelta;
+            _hasLastChosenDeltaMeters = true;
+            return;
+        }
+
+        bool signFlip = _hasLastChosenDeltaMeters
+                        && Mathf.Abs(chosenDelta) > 0.01f
+                        && Mathf.Abs(_lastChosenDeltaMeters) > 0.01f
+                        && Mathf.Sign(chosenDelta) != Mathf.Sign(_lastChosenDeltaMeters);
+        bool localGlobalDisagree = Mathf.Abs(deltaLocal - deltaGlobal) > ProjectionDiagnosticDeltaDifferenceMeters;
+        bool nearClamp = Mathf.Abs(chosenDelta) >= maxStepMeters * 0.95f;
+        bool periodic = introActive && (Time.unscaledTime - _lastProjectionDiagnosticLogTime) >= ProjectionDiagnosticHeartbeatSeconds;
+
+        if (!periodic && !globalLooksJump && !localGlobalDisagree && !nearClamp && !signFlip)
+        {
+            _lastChosenDeltaMeters = chosenDelta;
+            _hasLastChosenDeltaMeters = true;
+            return;
+        }
+
+        _lastProjectionDiagnosticLogTime = Time.unscaledTime;
+        Debug.Log(
+            $"[SplineDiag][Tracker:{name}] introActive={introActive} progress={progress01:0.000} prev={previousProgress01:0.000} " +
+            $"chosenDeltaM={chosenDelta:0.000} globalDeltaM={deltaGlobal:0.000} localDeltaM={deltaLocal:0.000} " +
+            $"chosenT={chosenT:0.000} globalT={tGlobal:0.000} localT={tLocal:0.000} " +
+            $"speed={speed:0.000} maxStep={maxStepMeters:0.000} forwardDot={forwardDot:0.000} " +
+            $"flags(globalJump={globalLooksJump}, localGlobalDisagree={localGlobalDisagree}, nearClamp={nearClamp}, signFlip={signFlip})");
+
+        _lastChosenDeltaMeters = chosenDelta;
+        _hasLastChosenDeltaMeters = true;
     }
 }

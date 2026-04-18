@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using FishNet.Object;
 using SteamMultiplayer.Network;
+using SteamMultiplayer.UI;
 using UnityEngine;
 using UnityEngine.Playables;
 
@@ -50,16 +51,29 @@ public class IntroSequenceManager : NetworkBehaviour
     private IntroAuthorityState _authorityState = IntroAuthorityState.Idle;
     private int _lastPreparedPlayerCount = -1;
     private int _activeSequenceId;
+    private bool _clientIntroVisualArmed;
+    private bool _clientIntroVisualStarted;
+    private double _clientIntroStartNetworkTime;
+    private double _clientAssignedGoNetworkTime;
+    private bool _serverIntroVisualsBroadcast;
+    private double _serverAssignedIntroStartNetworkTime;
+    private bool _serverGoIssued;
+    private double _serverAssignedGoNetworkTime;
+    private double _serverConfiguredIntroDurationSeconds;
+    private IntroRuntimeState _clientRuntimeState = IntroRuntimeState.Idle;
+    private IntroRuntimeState _serverRuntimeState = IntroRuntimeState.Idle;
 
     private void Start()
     {
         TryResolveRoomStateManager();
         EnsureIntroClientController();
+        ResetTimelineToIntroStart();
     }
 
     private void Update()
     {
         TryResolveRoomStateManager();
+        TryStartLocalIntroVisuals();
         if (roomStateManager == null)
             return;
 
@@ -76,19 +90,25 @@ public class IntroSequenceManager : NetworkBehaviour
         {
             if (_authorityState == IntroAuthorityState.Idle || _authorityState == IntroAuthorityState.Cancelled)
                 StartIntroFromRoomCountdown();
-
             return;
         }
 
-        if (roomStateManager.IsRaceStarted)
+        if (_authorityState == IntroAuthorityState.AssignmentsBroadcast && !_serverIntroVisualsBroadcast && IsReadyToScheduleVisualsServer())
         {
-            if (_authorityState == IntroAuthorityState.AssignmentsBroadcast)
-                TriggerGoAndHandoff();
-
-            return;
+            ScheduleAndBroadcastVisualStartServer();
         }
 
-        if (_authorityState == IntroAuthorityState.AssignmentsBroadcast)
+        if (_authorityState == IntroAuthorityState.AssignmentsBroadcast && _serverIntroVisualsBroadcast && !_serverGoIssued)
+        {
+            IntroSequenceTiming timing = new IntroSequenceTiming(_activeSequenceId, _serverAssignedIntroStartNetworkTime, _serverAssignedGoNetworkTime);
+            if (IntroTimeUtility.HasReachedGo(timing, IntroTimeUtility.GetNetworkTimeSeconds()))
+                TriggerGoAndHandoff();
+        }
+
+        if (_authorityState == IntroAuthorityState.AssignmentsBroadcast
+            && !_serverIntroVisualsBroadcast
+            && roomStateManager != null
+            && !roomStateManager.IsPregameCountdownCompleted)
             CancelIntroAndReleaseAssignments();
     }
 
@@ -141,11 +161,14 @@ public class IntroSequenceManager : NetworkBehaviour
 
         EnsureIntroClientController();
         _activeSequenceId++;
+        _serverGoIssued = false;
+        _serverIntroVisualsBroadcast = false;
+        _serverAssignedIntroStartNetworkTime = -1d;
+        _serverAssignedGoNetworkTime = -1d;
+        _serverConfiguredIntroDurationSeconds = GetConfiguredIntroDurationSecondsServer();
+        _serverRuntimeState = IntroRuntimeState.AssignmentsReceived;
 
         List<IntroAssignmentData> networkAssignments = new List<IntroAssignmentData>(_slotAssignments.Count);
-        double now = IntroTimeUtility.GetNetworkTimeSeconds();
-        double introStartTime = now + introLeadInSeconds;
-        double goTime = introStartTime + duration;
 
         for (int i = 0; i < _slotAssignments.Count; i++)
         {
@@ -153,22 +176,30 @@ public class IntroSequenceManager : NetworkBehaviour
             if (assignment.body == null || assignment.slot == null)
                 continue;
 
-            networkAssignments.Add(BuildAssignmentData(assignment.body, assignment.slot, introStartTime, goTime));
+            networkAssignments.Add(BuildAssignmentData(assignment.body, assignment.slot));
         }
 
         if (networkAssignments.Count == 0)
             return;
 
+        Debug.Log(
+            $"[IntroState][Server] Assignments broadcast seq={_activeSequenceId} introDuration={_serverConfiguredIntroDurationSeconds:0.000} " +
+            $"requestedDuration={duration:0.000} waitingForAllVisualPrepared=true");
         BroadcastAssignmentsObserversRpc(networkAssignments.ToArray());
         _authorityState = IntroAuthorityState.AssignmentsBroadcast;
     }
 
     public void TriggerGoAndHandoff()
     {
-        if (!IsServerInitialized || _authorityState != IntroAuthorityState.AssignmentsBroadcast)
+        if (!IsServerInitialized || _authorityState != IntroAuthorityState.AssignmentsBroadcast || !_serverIntroVisualsBroadcast)
             return;
 
-        NotifyGoObserversRpc(_activeSequenceId);
+        _serverGoIssued = true;
+        _serverRuntimeState = IntroRuntimeState.AuthoritativeGoIssued;
+        double goIssuedNow = IntroTimeUtility.GetNetworkTimeSeconds();
+        roomStateManager?.MarkAuthoritativeGoIssuedServer();
+        Debug.Log($"[IntroGo][Server] Authoritative go issued seq={_activeSequenceId} goIssuedNow={goIssuedNow:0.000} scheduledGoTime={_serverAssignedGoNetworkTime:0.000}");
+        NotifyGoObserversRpc(_activeSequenceId, _serverAssignedGoNetworkTime, goIssuedNow);
         _authorityState = IntroAuthorityState.GoBroadcast;
     }
 
@@ -206,13 +237,35 @@ public class IntroSequenceManager : NetworkBehaviour
             timelineDirector.Play();
     }
 
+    public bool TryPrepareLocalVisual(int sequenceId)
+    {
+        if (sequenceId < _activeSequenceId)
+        {
+            Debug.Log($"[SequenceGuard][Client] Ignored stale visual prepare seq={sequenceId} active={_activeSequenceId}");
+            return false;
+        }
+
+        _activeSequenceId = sequenceId;
+        _clientRuntimeState = IntroRuntimeState.VisualPrepared;
+
+        if (timelineDirector != null)
+        {
+            timelineDirector.time = 0d;
+            timelineDirector.Evaluate();
+            timelineDirector.Stop();
+            Debug.Log($"[IntroVisual][Client] Visual prepared seq={sequenceId} preload=timeline-reset-only");
+        }
+        else
+        {
+            Debug.Log($"[IntroVisual][Client] Visual prepared seq={sequenceId} without timeline");
+        }
+
+        return true;
+    }
+
     private void StartIntroFromRoomCountdown()
     {
-        float duration = Mathf.Max(0.1f, roomStateManager != null
-            ? roomStateManager.RaceCountdownSecondsRemaining
-            : fallbackIntroDuration);
-
-        BeginIntroSequence(duration);
+        BeginIntroSequence(fallbackIntroDuration);
     }
 
     private bool NeedsAssignmentRefresh()
@@ -241,6 +294,18 @@ public class IntroSequenceManager : NetworkBehaviour
         _authorityState = IntroAuthorityState.Idle;
         _lastPreparedPlayerCount = -1;
         _slotAssignments.Clear();
+        _clientIntroVisualArmed = false;
+        _clientIntroVisualStarted = false;
+        _clientIntroStartNetworkTime = -1d;
+        _clientAssignedGoNetworkTime = -1d;
+        _serverIntroVisualsBroadcast = false;
+        _serverAssignedIntroStartNetworkTime = -1d;
+        _serverAssignedGoNetworkTime = -1d;
+        _serverGoIssued = false;
+        _serverConfiguredIntroDurationSeconds = 0d;
+        _clientRuntimeState = IntroRuntimeState.Idle;
+        _serverRuntimeState = IntroRuntimeState.Idle;
+        ResetTimelineToIntroStart();
     }
 
     private IntroLayout ResolveLayout(int playerCount)
@@ -258,7 +323,7 @@ public class IntroSequenceManager : NetworkBehaviour
         return null;
     }
 
-    private IntroAssignmentData BuildAssignmentData(RaceBodyIntroStateController body, IntroSlot slot, double introStartTime, double goTime)
+    private IntroAssignmentData BuildAssignmentData(RaceBodyIntroStateController body, IntroSlot slot)
     {
         slot.BindPathToSlot();
         SplineIntroPath splinePath = slot.IntroPath as SplineIntroPath;
@@ -270,9 +335,9 @@ public class IntroSequenceManager : NetworkBehaviour
             playerObjectId = networkObject != null ? networkObject.ObjectId : -1,
             slotIndex = slot.SlotIndex,
             splineId = splinePath != null ? splinePath.SplineId : string.Empty,
-            introStartNetworkTime = introStartTime,
+            introStartNetworkTime = -1d,
             introSpeedMetersPerSecond = introSpeedMetersPerSecond,
-            goNetworkTime = goTime,
+            goNetworkTime = -1d,
             handoffLeadTime = handoffLeadSeconds
         };
     }
@@ -280,22 +345,67 @@ public class IntroSequenceManager : NetworkBehaviour
     [ObserversRpc(BufferLast = true)]
     private void BroadcastAssignmentsObserversRpc(IntroAssignmentData[] assignments)
     {
-        EnsureIntroClientController();
-        if (timelineDirector != null)
+        if (assignments == null || assignments.Length == 0)
+            return;
+
+        int sequenceId = assignments[0].sequenceId;
+        if (sequenceId < _activeSequenceId)
         {
-            timelineDirector.time = 0d;
-            timelineDirector.Evaluate();
-            timelineDirector.Play();
+            Debug.Log($"[SequenceGuard][Client] Ignored stale assignment broadcast seq={sequenceId} active={_activeSequenceId}");
+            return;
         }
+
+        EnsureIntroClientController();
+        _clientIntroVisualStarted = false;
+        _clientIntroVisualArmed = false;
+        _clientRuntimeState = IntroRuntimeState.AssignmentsReceived;
+        _activeSequenceId = sequenceId;
+        _clientIntroStartNetworkTime = -1d;
+        _clientAssignedGoNetworkTime = -1d;
+        ResetTimelineToIntroStart();
+        Debug.Log(
+            $"[IntroState][Client] Assignment broadcast accepted seq={sequenceId} count={assignments.Length}; " +
+            "bodies stay prepared-only until visual start.");
 
         introClientController?.ReceiveAssignments(assignments);
     }
 
-    [ObserversRpc]
-    private void NotifyGoObserversRpc(int sequenceId)
+    [ObserversRpc(BufferLast = true)]
+    private void BroadcastIntroVisualsStartObserversRpc(int sequenceId, double introStartNetworkTime, double goNetworkTime)
     {
+        if (sequenceId < _activeSequenceId)
+        {
+            Debug.Log($"[SequenceGuard][Client] Ignored stale visual start seq={sequenceId} active={_activeSequenceId}");
+            return;
+        }
+
+        _activeSequenceId = sequenceId;
+        _clientIntroVisualStarted = false;
+        _clientIntroVisualArmed = true;
+        _clientIntroStartNetworkTime = introStartNetworkTime;
+        _clientAssignedGoNetworkTime = goNetworkTime;
+        _clientRuntimeState = IntroRuntimeState.VisualStarted;
+        introClientController?.ApplyVisualStart(sequenceId, introStartNetworkTime, goNetworkTime);
+        Debug.Log($"[IntroVisual][Client] Visual start armed seq={sequenceId} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000}");
+    }
+
+    [ObserversRpc(BufferLast = true)]
+    private void NotifyGoObserversRpc(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)
+    {
+        if (sequenceId < _activeSequenceId)
+        {
+            Debug.Log($"[SequenceGuard][Client] Ignored stale authoritative go seq={sequenceId} active={_activeSequenceId}");
+            return;
+        }
+
         EnsureIntroClientController();
-        introClientController?.CompleteGoSequence(sequenceId);
+        _activeSequenceId = sequenceId;
+        _clientAssignedGoNetworkTime = scheduledGoNetworkTime;
+        Debug.Log(
+            $"[IntroGo][Client] Received authoritative go seq={sequenceId} goIssuedNow={goIssuedNetworkTime:0.000} " +
+            $"scheduledGoTime={scheduledGoNetworkTime:0.000} localNow={IntroTimeUtility.GetNetworkTimeSeconds():0.000}");
+        _clientRuntimeState = IntroRuntimeState.AuthoritativeGoIssued;
+        introClientController?.ApplyAuthoritativeGo(sequenceId, scheduledGoNetworkTime, goIssuedNetworkTime);
     }
 
     [ObserversRpc]
@@ -303,6 +413,62 @@ public class IntroSequenceManager : NetworkBehaviour
     {
         EnsureIntroClientController();
         introClientController?.CancelSequence(sequenceId);
+        _clientIntroVisualArmed = false;
+        _clientIntroVisualStarted = false;
+        _clientIntroStartNetworkTime = -1d;
+        _clientAssignedGoNetworkTime = -1d;
+        _clientRuntimeState = IntroRuntimeState.Cancelled;
+        ResetTimelineToIntroStart();
+    }
+
+    private bool IsReadyToScheduleVisualsServer()
+    {
+        return roomStateManager != null
+            && roomStateManager.IsPregameCountdownCompleted
+            && roomStateManager.AreAllClientsIntroVisualsReadyForSequenceServer(_activeSequenceId);
+    }
+
+    private void ScheduleAndBroadcastVisualStartServer()
+    {
+        double now = IntroTimeUtility.GetNetworkTimeSeconds();
+        double introDuration = Mathf.Max(0.1f, (float)(_serverConfiguredIntroDurationSeconds > 0d
+            ? _serverConfiguredIntroDurationSeconds
+            : GetConfiguredIntroDurationSecondsServer()));
+        double introStartTime = now + introLeadInSeconds;
+        double goTime = introStartTime + introDuration;
+        _serverAssignedIntroStartNetworkTime = introStartTime;
+        _serverAssignedGoNetworkTime = goTime;
+        _serverIntroVisualsBroadcast = true;
+        _serverRuntimeState = IntroRuntimeState.VisualStarted;
+        Debug.Log(
+            $"[IntroVisual][Server] Visual start issued seq={_activeSequenceId} introStart={introStartTime:0.000} " +
+            $"go={goTime:0.000} duration={introDuration:0.000}");
+        BroadcastIntroVisualsStartObserversRpc(_activeSequenceId, introStartTime, goTime);
+    }
+
+    private double GetConfiguredIntroDurationSecondsServer()
+    {
+        double timelineDuration = timelineDirector != null && timelineDirector.duration > 0d
+            ? timelineDirector.duration
+            : fallbackIntroDuration;
+        double pathDuration = GetLongestAssignedSplineDurationSecondsServer();
+        return System.Math.Max(timelineDuration, pathDuration);
+    }
+
+    private double GetLongestAssignedSplineDurationSecondsServer()
+    {
+        double longestDuration = 0d;
+        float speed = Mathf.Max(0.1f, introSpeedMetersPerSecond);
+        for (int i = 0; i < _slotAssignments.Count; i++)
+        {
+            SplineIntroPath splinePath = _slotAssignments[i].slot != null ? _slotAssignments[i].slot.IntroPath as SplineIntroPath : null;
+            if (splinePath == null)
+                continue;
+
+            longestDuration = System.Math.Max(longestDuration, splinePath.TotalLength / speed);
+        }
+
+        return longestDuration > 0d ? longestDuration : fallbackIntroDuration;
     }
 
     private RaceBodyIntroStateController[] FindIntroBodies()
@@ -341,5 +507,65 @@ public class IntroSequenceManager : NetworkBehaviour
             int swapIndex = random.Next(0, i + 1);
             (slots[i], slots[swapIndex]) = (slots[swapIndex], slots[i]);
         }
+    }
+
+    private void TryStartLocalIntroVisuals()
+    {
+        if (!_clientIntroVisualArmed || _clientIntroVisualStarted)
+            return;
+
+        IntroSequenceTiming timing = new IntroSequenceTiming(_activeSequenceId, _clientIntroStartNetworkTime, _clientAssignedGoNetworkTime);
+        if (!timing.IsValid)
+            return;
+
+        double now = IntroTimeUtility.GetNetworkTimeSeconds();
+        if (now < _clientIntroStartNetworkTime)
+            return;
+
+        _clientIntroVisualStarted = true;
+        bool hasReachedGo = IntroTimeUtility.HasReachedGo(timing, now);
+        _clientRuntimeState = hasReachedGo ? IntroRuntimeState.WaitingForGo : IntroRuntimeState.IntroRunning;
+        if (timelineDirector != null)
+        {
+            double seekTime = GetTimelineSeekTime(now);
+            timelineDirector.time = seekTime;
+            timelineDirector.Evaluate();
+            if (!hasReachedGo)
+            {
+                timelineDirector.Play();
+                Debug.Log($"[IntroVisual][Client] Timeline play seq={_activeSequenceId} now={now:0.000} seek={seekTime:0.000}");
+            }
+            else
+            {
+                timelineDirector.Stop();
+                Debug.Log($"[LateJoin][Client] Timeline skipped to end seq={_activeSequenceId} now={now:0.000} seek={seekTime:0.000} go={timing.GoNetworkTime:0.000}");
+            }
+        }
+
+        SceneFadeController.ReleaseHeldBlackScreen();
+    }
+
+    private void ResetTimelineToIntroStart()
+    {
+        if (timelineDirector == null)
+            return;
+
+        timelineDirector.Stop();
+        timelineDirector.time = 0d;
+        timelineDirector.Evaluate();
+    }
+
+    private double GetTimelineSeekTime(double networkTimeSeconds)
+    {
+        if (timelineDirector == null)
+            return 0d;
+
+        double resolvedGoTime = _serverAssignedGoNetworkTime > 0d ? _serverAssignedGoNetworkTime : _clientAssignedGoNetworkTime;
+        IntroSequenceTiming timing = new IntroSequenceTiming(_activeSequenceId, _clientIntroStartNetworkTime, resolvedGoTime);
+        if (!timing.IsValid)
+            return 0d;
+
+        double timelineDuration = timelineDirector.duration > 0d ? timelineDirector.duration : fallbackIntroDuration;
+        return IntroTimeUtility.GetTimelineSeekSeconds(timing, networkTimeSeconds, timelineDuration);
     }
 }

@@ -113,6 +113,27 @@ public class RaceBodyIntroStateController : MonoBehaviour
         DriveSplinePose(IntroTimeUtility.GetClampedIntroNetworkTime(timing, now));
     }
 
+    // Samples the spline pose at the current render-time network tick (sub-tick precise).
+    // Allows the visual root to render continuously while the rigidbody keeps its single-writer
+    // fixed-step position assignment in DriveSplinePose.
+    public bool TrySampleVisualPoseAtRenderTime(out Vector3 position, out Quaternion rotation)
+    {
+        position = default;
+        rotation = Quaternion.identity;
+
+        if (!_hasAssignment || _assignedPath == null || _goApplied || !_visualStarted)
+            return false;
+
+        if (!TryGetResolvedTiming(out IntroSequenceTiming timing))
+            return false;
+
+        double clampedTime = IntroTimeUtility.GetClampedIntroNetworkTime(timing, GetSmoothedNetworkTimeSeconds());
+        SampleSnapshotAtTime(clampedTime, out LaunchHandoffSnapshot snapshot);
+        position = snapshot.Position;
+        rotation = snapshot.Rotation;
+        return true;
+    }
+
     public void ApplyIntroAssignment(IntroAssignmentData assignment, SplineIntroPath splinePath)
     {
         ResolveReferences();

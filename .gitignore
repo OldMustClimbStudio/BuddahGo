@@ -70,3 +70,7 @@ Assets/Readme.asset.meta
 # Local UI font source kept out of git history.
 Assets/Sources/Font/
 Assets/Sources/Font.meta
+
+# Local-only agent/tool configs — may contain machine-specific paths or credentials.
+.mcp.json
+.claude/settings.local.json

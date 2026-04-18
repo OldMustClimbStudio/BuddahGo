@@ -130,7 +130,7 @@ public class BuddahHandControl : NetworkBehaviour
 
     private void Awake()
     {
-        animator = GetComponent<Animator>();
+        animator = GetComponentInChildren<Animator>(true);
 
         if (useGeneratedInputActions)
         {

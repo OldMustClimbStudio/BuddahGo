@@ -58,7 +58,8 @@ namespace SteamMultiplayer.Network.Results
             BlocksRaceProgression = true;
             ApplyPhysicsSuppression(false);
             SetCollidersEnabled(true);
-            TryPlayLocalLossOfControlTimeline();
+            if (!forcedByGlobalEnd)
+                TryPlayLocalLossOfControlTimeline();
             PlayDissolveOut(dissolveDurationSeconds);
             DebugLog($"ApplyFinishedPresentation forcedByGlobalEnd={forcedByGlobalEnd}");
         }

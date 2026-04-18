@@ -1,0 +1,436 @@
+{
+  "project": {
+    "name": "BuddahGo",
+    "engine": "Unity 2022.3.55f1c1",
+    "network": "FishNet 4.6.20 + FishyFacepunch",
+    "mcpPackage": "com.ivanmurzak.unity.mcp",
+    "mcpUrl": "http://localhost:23290"
+  },
+  "taskRouting": [
+    {
+      "intent": "debug",
+      "skill": "buddahgo-debug-bug",
+      "requiredDocs": [
+        "Docs/harness-manifest.json",
+        "Docs/architecture.md",
+        "Docs/system-map.md",
+        "Docs/workflow.md",
+        "Docs/safety.md",
+        "Docs/validation.md",
+        "Docs/lessons-log.md",
+        "skills/debug-bug.md"
+      ]
+    },
+    {
+      "intent": "refactor",
+      "skill": "buddahgo-safe-refactor",
+      "requiredDocs": [
+        "Docs/harness-manifest.json",
+        "Docs/architecture.md",
+        "Docs/workflow.md",
+        "Docs/safety.md",
+        "Docs/validation.md",
+        "Docs/lessons-log.md",
+        "skills/safe-refactor.md"
+      ]
+    },
+    {
+      "intent": "feature",
+      "skill": "buddahgo-feature-implementation",
+      "requiredDocs": [
+        "Docs/harness-manifest.json",
+        "Docs/architecture.md",
+        "Docs/system-map.md",
+        "Docs/workflow.md",
+        "Docs/safety.md",
+        "Docs/validation.md",
+        "Docs/lessons-log.md",
+        "skills/feature-implementation.md"
+      ]
+    }
+  ],
+  "validationSequences": {
+    "compile-console": [
+      "clear logs if needed",
+      "confirm no compile errors",
+      "confirm no new warnings that change runtime behavior"
+    ],
+    "scope-boundary": [
+      "confirm changed files match declared scope",
+      "confirm no protected file was touched accidentally",
+      "confirm no new cross-system dependency was added"
+    ],
+    "network-authority": [
+      "confirm server-owned state is still written from server authority paths",
+      "confirm RPC ownership and lifecycle assumptions remain valid"
+    ],
+    "prediction-integrity": [
+      "confirm reconcile data shape is unchanged unless explicitly intended",
+      "confirm gameplay forces still route through prediction when active",
+      "confirm no direct Rigidbody gameplay shortcut was introduced"
+    ],
+    "skill-pairing": [
+      "confirm base and anti skill resolution still works",
+      "confirm skill execution still routes through SkillExecutor",
+      "confirm prediction bridge routing still matches active movement mode"
+    ],
+    "config-runtime": [
+      "confirm ProjectConfigRuntime still initializes correctly",
+      "confirm repositories and validators still agree on IDs and rules"
+    ],
+    "scene-orchestration": [
+      "confirm scene ownership stayed with the documented orchestrator",
+      "confirm multiplayer scene flow does not call unsupported scene APIs directly"
+    ],
+    "scene-prefab": [
+      "inspect affected scenes or prefabs when serialized hooks changed",
+      "confirm references still resolve and no missing scripts appeared"
+    ],
+    "behavior": [
+      "state expected behavior in 1 or 2 sentences",
+      "confirm the behavior via logs, MCP inspection, or focused test",
+      "spot-check one adjacent flow from Docs/system-map.md"
+    ]
+  },
+  "conditionalValidations": [
+    {
+      "name": "scene-prefab",
+      "sequence": "scene-prefab",
+      "triggerDescription": "Apply when serialized fields, component references, scene hooks, prefab bindings, or scene assets changed.",
+      "queryKeywords": [
+        "serialized",
+        "serializefield",
+        "inspector",
+        "prefab",
+        "scene",
+        "missing script",
+        "component reference",
+        "scene hook",
+        "binding"
+      ],
+      "fileExtensions": [
+        ".unity",
+        ".prefab",
+        ".asset"
+      ],
+      "pathKeywords": [
+        "assets/scenes/",
+        "projectsettings/",
+        "assets/prefabs/"
+      ]
+    }
+  ],
+  "systems": [
+    {
+      "id": "room-session",
+      "name": "Room and Session Orchestration",
+      "layer": "server-orchestration",
+      "ownerSummary": "RoomStateManager owns room transitions and scene flow after connection setup",
+      "paths": [
+        "Assets/Scripts/Network/Core/",
+        "Assets/Scripts/Network/Room/"
+      ],
+      "entryPoints": [
+        "GameNetworkManager",
+        "ConnectionManager",
+        "RoomStateManager"
+      ],
+      "keywords": [
+        "room",
+        "scene transition",
+        "start game",
+        "return to menu",
+        "load scene",
+        "match phase"
+      ],
+      "requiredDocs": [
+        "Docs/architecture.md",
+        "Docs/system-map.md",
+        "Docs/safety.md",
+        "Docs/validation.md"
+      ],
+      "protectedFiles": [
+        "Assets/Scripts/Network/Core/GameNetworkManager.cs",
+        "Assets/Scripts/Network/Core/ConnectionManager.cs",
+        "Assets/Scripts/Network/Room/RoomStateManager.cs"
+      ],
+      "rules": [
+        "Scene changes for multiplayer flow stay inside documented orchestrators.",
+        "RoomStateManager remains the owner for room-to-selection and result return transitions.",
+        "Do not move transport or manager lifecycle into UI scripts."
+      ],
+      "validationSequence": [
+        "compile-console",
+        "scope-boundary",
+        "network-authority",
+        "scene-orchestration",
+        "behavior"
+      ],
+      "stopConditions": [
+        "Requires editing both connection setup and lobby ownership in one pass.",
+        "Requires renaming scene names used by orchestration."
+      ]
+    },
+    {
+      "id": "selection-loadout",
+      "name": "Property Selection and Loadout Sync",
+      "layer": "session-selection",
+      "ownerSummary": "PropertiesSelectionManager owns synchronized pre-game selection state",
+      "paths": [
+        "Assets/Scripts/Network/Lobby/",
+        "Assets/Scripts/Network/Session/PropertySelection/",
+        "Assets/Scripts/UI/MenusUI/"
+      ],
+      "entryPoints": [
+        "SteamLobbyManager",
+        "PropertiesSelectionManager"
+      ],
+      "keywords": [
+        "property selection",
+        "loadout",
+        "ready",
+        "lobby",
+        "character choice",
+        "skill choice"
+      ],
+      "requiredDocs": [
+        "Docs/architecture.md",
+        "Docs/system-map.md",
+        "Docs/safety.md",
+        "Docs/validation.md"
+      ],
+      "protectedFiles": [
+        "Assets/Scripts/Network/Lobby/SteamLobbyManager.cs",
+        "Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs"
+      ],
+      "rules": [
+        "Server validates all client submissions.",
+        "Selection legality comes from config repositories, not UI-only assumptions.",
+        "Selection state must be fully resolved before race load."
+      ],
+      "validationSequence": [
+        "compile-console",
+        "scope-boundary",
+        "network-authority",
+        "config-runtime",
+        "behavior"
+      ],
+      "stopConditions": [
+        "Would change both Steam lobby lifecycle and connection lifecycle together."
+      ]
+    },
+    {
+      "id": "prediction",
+      "name": "Prediction Core",
+      "layer": "prediction-core",
+      "ownerSummary": "BuddahPredictedMotor and bridges own predicted gameplay movement and reconcile state",
+      "paths": [
+        "Assets/Scripts/New_Buddah/"
+      ],
+      "entryPoints": [
+        "BuddahPredictionBootstrap",
+        "BuddahPredictedMotor"
+      ],
+      "keywords": [
+        "prediction",
+        "reconcile",
+        "rollback",
+        "tick",
+        "motor",
+        "force",
+        "impulse",
+        "bridge",
+        "desync"
+      ],
+      "requiredDocs": [
+        "Docs/architecture.md",
+        "Docs/system-map.md",
+        "Docs/safety.md",
+        "Docs/validation.md",
+        "Docs/prediction-refactor-plan/index.md"
+      ],
+      "protectedFiles": [
+        "Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs",
+        "Assets/Scripts/New_Buddah/Core/BuddahPredictedReconcileData.cs"
+      ],
+      "highRiskFiles": [
+        "Assets/Scripts/New_Buddah/Core/BuddahPredictedModifierResolver.cs",
+        "Assets/Scripts/New_Buddah/Integration/BuddahPredictionSkillMovementBridge.cs",
+        "Assets/Scripts/New_Buddah/Bootstrap/BuddahPredictionBootstrap.cs"
+      ],
+      "rules": [
+        "Server is authoritative for gameplay truth.",
+        "Clients may predict but cannot define truth.",
+        "All gameplay forces and movement modifiers must go through prediction when prediction is active.",
+        "Do not modify Rigidbody or transform gameplay state directly as a shortcut.",
+        "Client-only logic must not create gameplay divergence.",
+        "Prediction refactor planning and boundary decisions follow Docs/prediction-refactor-plan/index.md and its sub-files."
+      ],
+      "validationSequence": [
+        "compile-console",
+        "scope-boundary",
+        "prediction-integrity",
+        "network-authority",
+        "behavior"
+      ],
+      "stopConditions": [
+        "Error mentions reconcile, rollback, desync, or tick drift.",
+        "Fix would touch protected motor or reconcile files without explicit approval."
+      ]
+    },
+    {
+      "id": "skill-execution",
+      "name": "Skill Execution",
+      "layer": "skill-execution",
+      "ownerSummary": "SkillExecutor owns combo routing, cast dispatch, anti resolution, and movement-effect bridge calls",
+      "paths": [
+        "Assets/Scripts/Buddah/ComboSkill/"
+      ],
+      "entryPoints": [
+        "ComboSkillInput",
+        "SkillExecutor",
+        "SkillDataBase"
+      ],
+      "keywords": [
+        "skill",
+        "combo",
+        "anti",
+        "backfire",
+        "cast",
+        "cooldown",
+        "loadout"
+      ],
+      "requiredDocs": [
+        "Docs/architecture.md",
+        "Docs/system-map.md",
+        "Docs/safety.md",
+        "Docs/validation.md"
+      ],
+      "protectedFiles": [
+        "Assets/Scripts/Buddah/ComboSkill/SkillExecutor.cs"
+      ],
+      "rules": [
+        "SkillExecutor is the only supported runtime cast entry point.",
+        "Base and anti variants remain a pair when backfire behavior exists.",
+        "Skill metadata and runtime repositories must stay aligned."
+      ],
+      "validationSequence": [
+        "compile-console",
+        "scope-boundary",
+        "skill-pairing",
+        "config-runtime",
+        "behavior"
+      ],
+      "stopConditions": [
+        "Task is ambiguous about base or anti variant target.",
+        "Fix requires bypassing SkillExecutor."
+      ]
+    },
+    {
+      "id": "config-rules",
+      "name": "Config and Rules",
+      "layer": "config-rules",
+      "ownerSummary": "ProjectConfigRuntime and repositories own legal runtime skill and selection data",
+      "paths": [
+        "Assets/Scripts/Config/"
+      ],
+      "entryPoints": [
+        "ProjectConfigRuntime",
+        "ProjectConfigDatabase",
+        "ProjectConfigValidator"
+      ],
+      "keywords": [
+        "config",
+        "repository",
+        "rules",
+        "database",
+        "validation",
+        "selection rule"
+      ],
+      "requiredDocs": [
+        "Docs/architecture.md",
+        "Docs/safety.md",
+        "Docs/validation.md"
+      ],
+      "protectedFiles": [
+        "Assets/Scripts/Config/Runtime/ProjectConfigRuntime.cs"
+      ],
+      "highRiskFiles": [
+        "Assets/Scripts/Config/Definitions/ProjectConfigDatabase.cs",
+        "Assets/Scripts/Config/Validation/ProjectConfigValidator.cs"
+      ],
+      "rules": [
+        "Repositories are the supported runtime read path.",
+        "Validator and runtime behavior must stay compatible after config changes.",
+        "Do not invent fallback IDs or hardcoded legal choices as a shortcut."
+      ],
+      "validationSequence": [
+        "compile-console",
+        "scope-boundary",
+        "config-runtime",
+        "behavior"
+      ],
+      "stopConditions": [
+        "Config shape changes would require simultaneous gameplay code and asset migration."
+      ]
+    },
+    {
+      "id": "race-results",
+      "name": "Race Progress, Intro, and Results",
+      "layer": "race-and-results",
+      "ownerSummary": "Race intro timing, finish tracking, result presentation, and next-match voting live here",
+      "paths": [
+        "Assets/Scripts/RaceIntro/",
+        "Assets/Scripts/Network/Gameplay/",
+        "Assets/Scripts/Network/Session/Results/"
+      ],
+      "entryPoints": [
+        "IntroSequenceManager",
+        "RaceCompletionTracker",
+        "RaceFinishManager",
+        "ResultDecisionManager",
+        "MatchResultPresentationCoordinator"
+      ],
+      "keywords": [
+        "intro",
+        "result",
+        "result scene",
+        "race finish",
+        "leaderboard",
+        "results",
+        "next game",
+        "vote",
+        "finish order"
+      ],
+      "requiredDocs": [
+        "Docs/architecture.md",
+        "Docs/system-map.md",
+        "Docs/safety.md",
+        "Docs/validation.md"
+      ],
+      "protectedFiles": [
+        "Assets/Scripts/Network/Session/Results/ResultDecisionManager.cs"
+      ],
+      "highRiskFiles": [
+        "Assets/Scripts/RaceIntro/IntroSequenceManager.cs",
+        "Assets/Scripts/Network/Gameplay/RaceFinishManager.cs"
+      ],
+      "rules": [
+        "Server owns race progress, finish order, and result decisions.",
+        "ResultDecisionManager owns voting state but delegates scene transitions back to RoomStateManager.",
+        "Intro timing and movement unlock must stay consistent with room orchestration."
+      ],
+      "validationSequence": [
+        "compile-console",
+        "scope-boundary",
+        "network-authority",
+        "scene-orchestration",
+        "behavior"
+      ],
+      "stopConditions": [
+        "Task changes intro timing and prediction authority in the same pass.",
+        "Task moves scene ownership out of RoomStateManager."
+      ]
+    }
+  ]
+}

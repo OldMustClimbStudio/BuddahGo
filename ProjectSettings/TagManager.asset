@@ -9,6 +9,7 @@ TagManager:
   - MainLight
   - ScreenCamera
   - CinemachineTarget
+  - RespawnFloor
   layers:
   - Default
   - TransparentFX

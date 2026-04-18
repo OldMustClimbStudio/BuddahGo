@@ -16,6 +16,14 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## 2026-04-18 | refactor | prediction | med (Phase 4 watchpoint)
+
+**L7 - Lifecycle hooks can silently double-fire state-clearing calls**
+- **What happened**: Phase 2 V8 expected 2 `[CommandBus]:ClearAll` lines per Buddah spawn (one bus-internal, one bridge-wrap). Actual log showed 4 lines per spawn across all 3 runs. Cause: `BuddahMovementModeSwitcher.Awake()` and `BuddahMovementModeSwitcher.OnEnable()` both call `ApplyRuntimeMode(force:true)`, so `BuddahPredictionLegacyIsolationBridge.ApplyMode` runs twice on spawn, each producing a ClearAll pair. Harmless at Phase 2 because no adapter enqueues yet, so channels are empty both times.
+- **Cause**: Defensive duplication in a lifecycle-sensitive component. Awake and OnEnable normally fire sequentially on an enabled GameObject; the author hedged by calling ApplyMode from both.
+- **Rule**: When a component's role includes clearing or resetting state, audit every lifecycle hook (`Awake`, `OnEnable`, `OnNetworkStarted`, `Start`) for calls into that clear. Document whether double-fire is intended. For Phase 4: any adapter that enqueues into the CommandBus during init (`Awake`/`OnEnable`/`OnStartNetwork`) must either (a) enqueue AFTER Switcher's double-ApplyMode completes (e.g., defer to first `[Replicate]` tick), or (b) add an "init-complete" gate in the Switcher so ApplyMode short-circuits on repeat calls within one frame. Do not silently accept the double-fire, because the second ClearAll will nuke legitimate pending events.
+- **Promoted to**: log-only (low severity at Phase 2, revisit at Phase 4 with concrete adapter code).
+
 ## 2026-04-18 | refactor | prediction | high
 
 **L6 - Tests must match what the phase actually wires up**
@@ -42,11 +50,11 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ## 2026-04-17 | any | any | high
 
-**L3 - Never `rm` Perforce-controlled files**
-- **What happened**: `rm Assets/Scripts/Sandbox/PredictionApiSpike.cs` returned `Operation not permitted` because Perforce keeps tracked files read-only.
-- **Cause**: Reached for Linux `rm` instead of `p4 delete`.
-- **Rule**: Files under the Perforce workspace (everything in this repo) must be deleted via `p4 delete <path>`. If `p4 fstat` returns `session expired`, stop and ask the user to `p4 login` - do not attempt any rm fallback, do not chmod around it.
-- **Promoted to**: `Docs/safety.md` Absolutely Forbidden.
+**L3 - Delete tracked files through the VCS, not around it** *(updated 2026-04-18: repo migrated to git-only; Perforce is now decoration)*
+- **What happened**: `rm Assets/Scripts/Sandbox/PredictionApiSpike.cs` returned `Operation not permitted` because Perforce kept tracked files read-only at the time. On 2026-04-18 the user confirmed the project now runs on git; `p4` is not used for commits anymore even though the workspace path still contains "Perforce".
+- **Cause**: Agent reached for a bare `rm` without thinking about which VCS owns the index and how the deletion becomes a staged change.
+- **Rule**: This repo is git. Delete tracked files with `git rm <path>` so the deletion is staged automatically. If you used plain `rm` (allowed under git because files are writable), immediately follow with `git add -A` to stage the delete. Never commit a state where a tracked file is gone from disk but still present in the index. Do not run any `p4` command - it will either do nothing useful or create noise. The directory name "Perforce" in the absolute path is historical; trust git.
+- **Promoted to**: `Docs/safety.md` Absolutely Forbidden (rewritten 2026-04-18).
 
 ## 2026-04-17 | refactor | prediction | high
 

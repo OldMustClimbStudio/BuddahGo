@@ -513,6 +513,7 @@ GameObject:
   - component: {fileID: 8633058841083368909}
   - component: {fileID: 2639597811331696358}
   - component: {fileID: 4325890898878224255}
+  - component: {fileID: 4006809585340021479}
   m_Layer: 6
   m_Name: Buddah
   m_TagString: Untagged
@@ -1050,6 +1051,7 @@ MonoBehaviour:
   - {fileID: 3150940144239169832}
   - {fileID: -4746972721882065834}
   - {fileID: 912340000000000004}
+  - {fileID: 4006809585340021479}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -1192,6 +1194,7 @@ MonoBehaviour:
   presentationBridge: {fileID: 2639597811331696358}
   compatibilityRegistry: {fileID: 0}
   runtimeHealthReport: {fileID: 0}
+  commandBus: {fileID: 4006809585340021479}
   debugSettings:
     enableVerboseLogs: 0
     enableOnScreenDebug: 1
@@ -1481,6 +1484,21 @@ MonoBehaviour:
   firstBone: {fileID: 0}
   logEveryNFrames: 2
   heartbeatEveryNFrames: 120
+--- !u!114 &4006809585340021479
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8199f3e5a4c3b014997df7bb38c32ea9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 16
+  _addedNetworkObject: {fileID: 5961911359123562421}
+  _networkObjectCache: {fileID: 5961911359123562421}
 --- !u!1 &3577612813534418027
 GameObject:
   m_ObjectHideFlags: 0

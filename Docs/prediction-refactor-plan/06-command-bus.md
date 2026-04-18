@@ -41,7 +41,7 @@ Owner-side handler appends to local channel. Server still appends to its mirror 
 ## Threading and Allocation
 
 - All `TryEnqueueXxx` calls are main-thread only.
-- Cmd structs are `readonly struct` to prevent allocations.
+- Cmd structs are plain `public struct` with mutable public fields so FishNet auto-codegen can round-trip them over `[TargetRpc]`. Allocation is controlled by `in` parameter passing at call sites (`TryEnqueueXxx(in Cmd)` and the `Target_EnqueueXxx` RPCs receive-by-value then forward-by-`in`), so no heap allocation occurs despite the mutability. Do not revert to a struct marked `readonly` (or with readonly fields) unless a hand-written `Write`/`Read` is supplied - FishNet does not auto-generate constructors for fields that cannot be assigned outside a constructor.
 - Bus never calls into motor; motor pulls from bus during `[Replicate]`.
 
 ## Backpressure

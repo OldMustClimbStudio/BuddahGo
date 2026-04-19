@@ -16,6 +16,41 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L8 — Shadow parity must mirror motor's intermediate transformations, not idealized Euler (2026-04-18, Phase 3a V2 Run 1)
+
+Symptom: 99 [D-LOC] warnings on V2 Run 1. Two distinct patterns:
+  - fwd=7.5→5.0→2.5 three-tick ramp on T=3245-3247
+  - clamp-gate mismatch realClamp=True shadowClamp=False sustained across ~300 ticks
+
+Root cause 1: Shadow consumed raw input.Throttle / input.Steering. Motor applies
+ApplyLaunchHandoffInputScaling (motor.cs:1537) which decays these values during
+Blend/Inherit launch phases. Shadow was mathematically correct against idealized
+input but wrong against motor's actual input.
+
+Root cause 2: BuildTickContext read rb.velocity AFTER ClampPlanarSpeed ran.
+Motor's ClampPlanarSpeed writes via _predictionRigidbody.Velocity() which updates
+rb.velocity IMMEDIATELY (PredictionRigidbody.cs:363). Shadow saw post-clamp state
+and its ClampingApplied flag could never evaluate True when motor's did.
+
+Rule going forward:
+  (a) Shadow steps take the motor's POST-transformation values as inputs via
+      TickContext parameters — not raw replicate data. If motor transforms input
+      X into X' before consuming it, shadow must receive X', not X.
+  (b) Any motor state that is read during gate evaluation or formula execution
+      AND mutated later in the same tick must be snapshotted at the read-point,
+      not looked up live by shadow. Precedent: _shadowPreClampVelocity (state
+      timing). The earlier _shadowAuthHandoffSnapshot precedent was designed but
+      dropped once the motor's own early-return gate was deemed sufficient — see
+      Phase 3a commit "Gate mirror" section for details.
+  (c) "Independence gaps" (places where shadow still consumes motor's computed
+      value instead of recomputing) are acceptable as long as they are explicitly
+      called out in the commit message and deferred to a named later phase. 3a
+      defers resolver math to 3c and handoff scaling to 3d.
+
+Applies to: all subsequent shadow phases (3b Impulse+Teleport, 3c Modifier, 3d Handoff).
+
+---
+
 ## 2026-04-18 | refactor | prediction | med (Phase 4 watchpoint)
 
 **L7 - Lifecycle hooks can silently double-fire state-clearing calls**

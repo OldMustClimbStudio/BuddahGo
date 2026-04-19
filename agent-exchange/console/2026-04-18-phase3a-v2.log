@@ -1,0 +1,60 @@
+# Phase 3a V2 Host-Only Gate — Console Digest
+
+Date: 2026-04-18
+Branch: refactor/prediction-v2
+Gate: V2 (host-only 30s playtest). Pass = 0 [D-LOC], 0 [D-LOC FATAL], active-tick heartbeat divergences=0.
+
+## Run 1 — FAILED
+
+[D-LOC] warning count: 99
+Patterns observed:
+  - fwd=7.5→5.0→2.5 delta on T=3245-3247 (3 consecutive ticks) — launch-handoff blend throttle scaling not mirrored by shadow
+  - clamp-gate mismatch realClamp=True shadowClamp=False on T=3299+ (many ticks) — BuildTickContext read post-clamp rb.velocity
+
+Representative samples:
+  2026-04-18T16:12:00.489 | Warning | [D-LOC] T=3245 fwd=7.500000 trn=0.000000 vel=0.000000 clamp=False
+  2026-04-18T16:12:00.507 | Warning | [D-LOC] T=3246 fwd=5.000000 trn=0.000000 vel=0.000000 clamp=False
+  2026-04-18T16:12:00.526 | Warning | [D-LOC] T=3247 fwd=2.500000 trn=0.000000 vel=0.000000 clamp=False
+  2026-04-18T16:12:01.391 | Warning | [D-LOC] T=3299 clamp-gate mismatch: realClamp=True shadowClamp=False
+  2026-04-18T16:12:01.412 | Warning | [D-LOC] T=3300 clamp-gate mismatch: realClamp=True shadowClamp=False
+  2026-04-18T16:12:01.423 | Warning | [D-LOC] T=3301 clamp-gate mismatch: realClamp=True shadowClamp=False
+  2026-04-18T16:12:01.478 | Warning | [D-LOC] T=3304 clamp-gate mismatch: realClamp=True shadowClamp=False
+  2026-04-18T16:12:01.490 | Warning | [D-LOC] T=3305 clamp-gate mismatch: realClamp=True shadowClamp=False
+  ...
+  2026-04-18T16:12:06.644 | Warning | [D-LOC] T=3614 clamp-gate mismatch: realClamp=True shadowClamp=False
+  2026-04-18T16:12:06.655 | Warning | [D-LOC] T=3615 clamp-gate mismatch: realClamp=True shadowClamp=False
+  2026-04-18T16:12:06.674 | Warning | [D-LOC] T=3616 clamp-gate mismatch: realClamp=True shadowClamp=False
+  2026-04-18T16:12:14.908 | Warning | [D-LOC] T=4110 clamp-gate mismatch: realClamp=True shadowClamp=False
+
+Root cause diagnosis:
+  Bug 1: motor.ApplyLaunchHandoffInputScaling (motor.cs:1537) modifies resolvedThrottle during Blend/Inherit launch states; shadow used raw input.Throttle.
+  Bug 2: BuildTickContext reads rb.velocity AFTER motor.ClampPlanarSpeed wrote via _predictionRigidbody.Velocity(); shadow saw post-clamp velocity and could not detect the clamp condition.
+
+Fix applied (between Run 1 and Run 2):
+  - BuddahPredictionTickContext redesigned from 14 fields to 9 — carries ForwardDirection, ResolvedThrottle, ResolvedSteering (motor's post-scaling values) and RbVelocityPreTick (snapshot).
+  - BuddahLocomotionStep stripped of redundant gates (only called from motor's active path).
+  - Motor: added _shadowPreClampVelocity snapshot on the line immediately before ClampPlanarSpeed; BuildTickContext now receives forwardDirection/resolvedThrottle/resolvedSteering as parameters from the call site.
+
+## Run 2 — PASSED
+
+[D-LOC] warning count (non-heartbeat): 0
+[D-LOC HEARTBEAT] log count: 9
+[D-LOC FATAL] error count: 0
+
+All heartbeats:
+  2026-04-18T16:25:02.507 | [D-LOC HEARTBEAT] T=4281 active-ticks=961 skip-ticks=2277 divergences=0
+  2026-04-18T16:25:04.508 | [D-LOC HEARTBEAT] T=4401 active-ticks=1081 skip-ticks=2277 divergences=0
+  2026-04-18T16:25:06.506 | [D-LOC HEARTBEAT] T=4521 active-ticks=1201 skip-ticks=2277 divergences=0
+  2026-04-18T16:25:08.505 | [D-LOC HEARTBEAT] T=4641 active-ticks=1321 skip-ticks=2277 divergences=0
+  2026-04-18T16:25:10.507 | [D-LOC HEARTBEAT] T=4761 active-ticks=1441 skip-ticks=2277 divergences=0
+  2026-04-18T16:25:12.502 | [D-LOC HEARTBEAT] T=4881 active-ticks=1561 skip-ticks=2277 divergences=0
+  2026-04-18T16:25:14.502 | [D-LOC HEARTBEAT] T=5001 active-ticks=1681 skip-ticks=2277 divergences=0
+  2026-04-18T16:25:16.500 | [D-LOC HEARTBEAT] T=5121 active-ticks=1801 skip-ticks=2277 divergences=0
+  2026-04-18T16:25:18.510 | [D-LOC HEARTBEAT] T=5241 active-ticks=1921 skip-ticks=2277 divergences=0
+
+Active-tick ramp: earliest heartbeat active-ticks → latest — confirms shadow reached active locomotion for ~32 seconds at 60 Hz.
+divergences=0 on every heartbeat — shadow's computed CommandedForwardForce / CommandedTurnTorque / VelocityAfterClamp / ClampingApplied match motor's real path under 1e-4 tolerance across the entire active run.
+
+## Verdict
+V2 PASS. Phase 3a shadow formula is parity-correct on the host-only single-peer path.
+Next gate: V5 (2-peer 60s + acceleration skill cast) before Phase 3a close.

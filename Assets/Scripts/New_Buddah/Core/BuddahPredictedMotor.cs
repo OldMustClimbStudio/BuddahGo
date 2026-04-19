@@ -80,6 +80,13 @@ namespace NewBuddah.PredictionV2.Core
         // Cumulative consume counters (never reset — prove shadow steps actually consumed events).
         private uint _shadowImpulseConsumedCount;
         private uint _shadowTeleportConsumedCount;
+        // Phase 3c — modifier shadow state. Snapshot of _modifierState captured at the
+        // motor.cs:341 authoritative Resolve; fed into BuddahModifierStep for independent
+        // Resolve+compare. Cumulative counter obeys L13 (compared>0 gate); per-window
+        // divergence counter resets at heartbeat.
+        private BuddahPredictedModifierState _shadowModifierStateSnapshot;
+        private uint _shadowModifierConsumedCount;
+        private int _dLocModifierDivCount;
 #endif
 
         public bool IsLaunchHandoffActive => _handoffState.IsActive || _externalKinematicControlActive || _introControlActive;
@@ -339,6 +346,22 @@ namespace NewBuddah.PredictionV2.Core
             ConsumePendingImpulseEvents(currentTick);
             RefreshLaunchState(currentTick);
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            // Phase 3c — snapshot _modifierState at the authoritative post-consume moment
+            // (struct by value, independent of subsequent motor writes), then run the shadow
+            // Resolve on it. Real-side ShadowComputedStats mirrors the motor's just-written
+            // _computedStats so Shadow_CompareAndReport has a stable snapshot to compare
+            // against (sidesteps any mid-tick reconcile-replay _computedStats overwrite).
+            _shadowModifierStateSnapshot = _modifierState;
+            _realScratch.ShadowComputedStats = _computedStats;
+            _realScratch.ModifierRan = true;
+            {
+                BuddahPredictionTickContext modifierTickCtx = BuildTickContext(in data, Vector3.forward, 0f, 0f);
+                BuddahModifierStep.Run(in modifierTickCtx, in data, ref _shadowScratch);
+                if (_shadowScratch.ModifierRan)
+                    _shadowModifierConsumedCount++;
+            }
+#endif
             ApplyResolvedMassMultiplier();
 
             bool introControlActive = _introControlActive;
@@ -1217,14 +1240,17 @@ namespace NewBuddah.PredictionV2.Core
                 teleportFlag_ResetModifiers: _shadowPreTeleportEvent.ResetModifiers,
                 teleportFlag_ResetImpulseQueue: _shadowPreTeleportEvent.ResetImpulseQueue,
                 teleportFlag_ResetPushGrace: _shadowPreTeleportEvent.ResetPushGrace,
-                teleportFlag_RebaseTrails: _shadowPreTeleportEvent.RebaseTrails);
+                teleportFlag_RebaseTrails: _shadowPreTeleportEvent.RebaseTrails,
+                shadowModifierStateSnapshot: _shadowModifierStateSnapshot,
+                config: config);
         }
 
         private void Shadow_CompareAndReport()
         {
             bool anyRan = _realScratch.LocomotionRan || _shadowScratch.LocomotionRan
                           || _realScratch.ImpulseRan || _shadowScratch.ImpulseRan
-                          || _realScratch.TeleportRan || _shadowScratch.TeleportRan;
+                          || _realScratch.TeleportRan || _shadowScratch.TeleportRan
+                          || _realScratch.ModifierRan || _shadowScratch.ModifierRan;
             if (!anyRan)
             {
                 _dLocConsecutive = 0;
@@ -1232,10 +1258,11 @@ namespace NewBuddah.PredictionV2.Core
                 if ((_shadowSkipCompares % 300) == 1)
                 {
                     uint tickIdle = TimeManager != null ? TimeManager.LocalTick : 0u;
-                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} (both sides idle)");
+                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} (both sides idle)");
                     _dLocLocomotionDivCount = 0;
                     _dLocImpulseDivCount = 0;
                     _dLocTeleportDivCount = 0;
+                    _dLocModifierDivCount = 0;
                 }
                 return;
             }
@@ -1244,15 +1271,17 @@ namespace NewBuddah.PredictionV2.Core
             if ((_shadowActiveCompares % 120) == 1)
             {
                 uint tickHb = TimeManager != null ? TimeManager.LocalTick : 0u;
-                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount}");
+                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount}");
                 _dLocLocomotionDivCount = 0;
                 _dLocImpulseDivCount = 0;
                 _dLocTeleportDivCount = 0;
+                _dLocModifierDivCount = 0;
             }
 
             bool locDiverged = false;
             bool impDiverged = false;
             bool telDiverged = false;
+            bool modDiverged = false;
             uint tick = TimeManager != null ? TimeManager.LocalTick : 0u;
 
             // Locomotion compare (3a).
@@ -1362,11 +1391,107 @@ namespace NewBuddah.PredictionV2.Core
                 }
             }
 
+            // Modifier compare (3c) — 12 ComputedStats fields (4 floats + 5 bools + 3 floats).
+            // Real-side ModifierRan is set at the motor.cs:341 hook; shadow-side is set by
+            // BuddahModifierStep.Run. Resolver is pure-static, so any delta > 1e-4 on floats
+            // or any bool mismatch points to a divergent _modifierState input — NOT
+            // resolver floating-point drift (C# single-thread Resolve is bit-deterministic).
+            if (_realScratch.ModifierRan != _shadowScratch.ModifierRan)
+            {
+                Debug.LogWarning($"[D-LOC] T={tick} mod-ran gate mismatch: real={_realScratch.ModifierRan} shadow={_shadowScratch.ModifierRan}");
+                modDiverged = true;
+            }
+            else if (_realScratch.ModifierRan)
+            {
+                BuddahPredictedMotorComputedStats realStats = _realScratch.ShadowComputedStats;
+                BuddahPredictedMotorComputedStats shadowStats = _shadowScratch.ShadowComputedStats;
+
+                float fwdDelta = Mathf.Abs(realStats.FinalForwardForce - shadowStats.FinalForwardForce);
+                if (fwdDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-field delta: field=FinalForwardForce real={realStats.FinalForwardForce:F6} shadow={shadowStats.FinalForwardForce:F6} delta={fwdDelta:F6}");
+                    modDiverged = true;
+                }
+
+                float msDelta = Mathf.Abs(realStats.FinalMaxSpeed - shadowStats.FinalMaxSpeed);
+                if (msDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-field delta: field=FinalMaxSpeed real={realStats.FinalMaxSpeed:F6} shadow={shadowStats.FinalMaxSpeed:F6} delta={msDelta:F6}");
+                    modDiverged = true;
+                }
+
+                float ttDelta = Mathf.Abs(realStats.FinalTurnTorque - shadowStats.FinalTurnTorque);
+                if (ttDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-field delta: field=FinalTurnTorque real={realStats.FinalTurnTorque:F6} shadow={shadowStats.FinalTurnTorque:F6} delta={ttDelta:F6}");
+                    modDiverged = true;
+                }
+
+                float ssDelta = Mathf.Abs(realStats.FinalSteeringSign - shadowStats.FinalSteeringSign);
+                if (ssDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-field delta: field=FinalSteeringSign real={realStats.FinalSteeringSign:F6} shadow={shadowStats.FinalSteeringSign:F6} delta={ssDelta:F6}");
+                    modDiverged = true;
+                }
+
+                float smDelta = Mathf.Abs(realStats.ScaleMultiplier - shadowStats.ScaleMultiplier);
+                if (smDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-field delta: field=ScaleMultiplier real={realStats.ScaleMultiplier:F6} shadow={shadowStats.ScaleMultiplier:F6} delta={smDelta:F6}");
+                    modDiverged = true;
+                }
+
+                float smmDelta = Mathf.Abs(realStats.ScaleMassMultiplier - shadowStats.ScaleMassMultiplier);
+                if (smmDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-field delta: field=ScaleMassMultiplier real={realStats.ScaleMassMultiplier:F6} shadow={shadowStats.ScaleMassMultiplier:F6} delta={smmDelta:F6}");
+                    modDiverged = true;
+                }
+
+                float sffDelta = Mathf.Abs(realStats.ScaleForwardForceMultiplier - shadowStats.ScaleForwardForceMultiplier);
+                if (sffDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-field delta: field=ScaleForwardForceMultiplier real={realStats.ScaleForwardForceMultiplier:F6} shadow={shadowStats.ScaleForwardForceMultiplier:F6} delta={sffDelta:F6}");
+                    modDiverged = true;
+                }
+
+                if (realStats.IsRooted != shadowStats.IsRooted)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-flag mismatch: flag=IsRooted real={realStats.IsRooted} shadow={shadowStats.IsRooted}");
+                    modDiverged = true;
+                }
+
+                if (realStats.IsInvertTurnActive != shadowStats.IsInvertTurnActive)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-flag mismatch: flag=IsInvertTurnActive real={realStats.IsInvertTurnActive} shadow={shadowStats.IsInvertTurnActive}");
+                    modDiverged = true;
+                }
+
+                if (realStats.IsPushGraceActive != shadowStats.IsPushGraceActive)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-flag mismatch: flag=IsPushGraceActive real={realStats.IsPushGraceActive} shadow={shadowStats.IsPushGraceActive}");
+                    modDiverged = true;
+                }
+
+                if (realStats.IsSteeringSuppressed != shadowStats.IsSteeringSuppressed)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-flag mismatch: flag=IsSteeringSuppressed real={realStats.IsSteeringSuppressed} shadow={shadowStats.IsSteeringSuppressed}");
+                    modDiverged = true;
+                }
+
+                if (realStats.IsRoomBypassActive != shadowStats.IsRoomBypassActive)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-flag mismatch: flag=IsRoomBypassActive real={realStats.IsRoomBypassActive} shadow={shadowStats.IsRoomBypassActive}");
+                    modDiverged = true;
+                }
+            }
+
             if (locDiverged) _dLocLocomotionDivCount++;
             if (impDiverged) _dLocImpulseDivCount++;
             if (telDiverged) _dLocTeleportDivCount++;
+            if (modDiverged) _dLocModifierDivCount++;
 
-            bool anyDiverged = locDiverged || impDiverged || telDiverged;
+            bool anyDiverged = locDiverged || impDiverged || telDiverged || modDiverged;
             if (anyDiverged)
                 _dLocConsecutive++;
             else
@@ -1374,7 +1499,7 @@ namespace NewBuddah.PredictionV2.Core
 
             if (_dLocConsecutive >= 60)
             {
-                Debug.LogError($"[D-LOC FATAL] T={tick} 60 consecutive divergences. Phase 3b shadow formula out of sync. Abort cut-over.");
+                Debug.LogError($"[D-LOC FATAL] T={tick} 60 consecutive divergences. Phase 3c shadow formula out of sync. Abort cut-over.");
                 _dLocConsecutive = 0;
             }
         }

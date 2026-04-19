@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NewBuddah.PredictionV2.Config;
 using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Core
@@ -36,6 +37,12 @@ namespace NewBuddah.PredictionV2.Core
         public readonly bool TeleportFlag_ResetPushGrace;
         public readonly bool TeleportFlag_RebaseTrails;
 
+        // Phase 3c — modifier shadow inputs. Snapshot of motor's _modifierState taken
+        // immediately before the authoritative Resolve at motor.cs:341; Config is the
+        // same reference motor passes into its own Resolve call.
+        public readonly BuddahPredictedModifierState ShadowModifierStateSnapshot;
+        public readonly BuddahPredictedMotorConfig Config;
+
         public BuddahPredictionTickContext(
             Vector3 rbVelocityPreTick,
             float rbMass,
@@ -59,7 +66,9 @@ namespace NewBuddah.PredictionV2.Core
             bool teleportFlag_ResetModifiers,
             bool teleportFlag_ResetImpulseQueue,
             bool teleportFlag_ResetPushGrace,
-            bool teleportFlag_RebaseTrails)
+            bool teleportFlag_RebaseTrails,
+            BuddahPredictedModifierState shadowModifierStateSnapshot,
+            BuddahPredictedMotorConfig config)
         {
             RbVelocityPreTick = rbVelocityPreTick;
             RbMass = rbMass;
@@ -84,6 +93,8 @@ namespace NewBuddah.PredictionV2.Core
             TeleportFlag_ResetImpulseQueue = teleportFlag_ResetImpulseQueue;
             TeleportFlag_ResetPushGrace = teleportFlag_ResetPushGrace;
             TeleportFlag_RebaseTrails = teleportFlag_RebaseTrails;
+            ShadowModifierStateSnapshot = shadowModifierStateSnapshot;
+            Config = config;
         }
     }
 }

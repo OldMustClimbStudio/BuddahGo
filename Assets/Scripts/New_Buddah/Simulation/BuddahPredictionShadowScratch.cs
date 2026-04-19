@@ -1,3 +1,4 @@
+using NewBuddah.PredictionV2.Core;
 using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Simulation
@@ -13,6 +14,8 @@ namespace NewBuddah.PredictionV2.Simulation
 
         public uint ShadowLastConsumedImpulseId;
         public uint ShadowLastConsumedTeleportId;
+        // DEAD: Phase 0 design assumption superseded by Phase 3c (modifier is
+        // state-driven, not event-driven — no per-event cursor). Phase 8 cleanup removes.
         public uint ShadowLastConsumedModifierId;
         public uint ShadowLastConsumedHandoffId;
 
@@ -30,5 +33,11 @@ namespace NewBuddah.PredictionV2.Simulation
         public bool TeleportFlag_ResetImpulseQueue;
         public bool TeleportFlag_ResetPushGrace;
         public bool TeleportFlag_RebaseTrails;
+
+        // Phase 3c — modifier step. ShadowComputedStats is the output of running
+        // BuddahPredictedModifierResolver.Resolve on the snapshotted _modifierState;
+        // motor compares against its own _computedStats at same tick.
+        public bool ModifierRan;
+        public BuddahPredictedMotorComputedStats ShadowComputedStats;
     }
 }

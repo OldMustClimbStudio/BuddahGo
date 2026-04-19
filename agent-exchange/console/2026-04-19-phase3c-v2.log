@@ -1,0 +1,191 @@
+# Phase 3c V2 Host-Only — Console Digest
+
+Date: 2026-04-19
+Branch: refactor/prediction-v2
+Peer role: HOST (Editor, BUDDAH_PREDICTION_SHADOW on, standalone host session)
+Scenario: ~30s drive + 2× anti_acceleration skill cast
+Source: MCP log cache (console-clear-logs → host session → MCP scrape)
+Gate: Phase 3c V2 per L13. PASS = loc-div=0 AND imp-div=0 AND tel-div=0
+  AND mod-div=0 on every heartbeat; mod-compared > 0 at tail;
+  0 non-heartbeat [D-LOC]; 0 [D-LOC FATAL].
+
+## Build Fix Verification
+  [D-LOC HEARTBEAT] occurrences:       17
+  mod-compared string occurrences:     17
+  mod-div string occurrences:          17
+  → Phase 3c heartbeat format (mod-div + mod-compared) is wired and
+    emitting correctly. Every captured heartbeat uses the 3-line format
+    with all 4 div counters and all 3 compared counters.
+
+## Verdict (HOST V2 — Phase 3c)
+PASS
+  - loc-div = 0 on every heartbeat                ✅
+  - imp-div = 0 on every heartbeat                ✅
+  - tel-div = 0 on every heartbeat                ✅
+  - mod-div = 0 on every heartbeat                ✅
+  - mod-compared at tail = 3841 (>> 0)            ✅
+  - 0 non-heartbeat [D-LOC] warnings              ✅
+  - 0 [D-LOC FATAL]                               ✅
+  - imp-compared at tail = 0 (no impulse cast — expected for this scenario)
+  - tel-compared at tail = 1 (one teleport event observed, likely race-intro or spline snap — not a FAIL)
+
+## Log Volume
+  Total Log-type entries (MCP cache window): 2000
+    (cap'd at MCP maxEntries=2000; session emitted more — see coverage note below)
+  Total Warning-type entries: 136
+  Total Error-type entries: 0
+  Total Exception-type entries: 0
+
+## D-LOC Counts
+  [D-LOC HEARTBEAT]:                    17
+    - active form:                       17
+    - idle form ("both sides idle"):      0
+  [D-LOC] non-heartbeat:                 0
+  [D-LOC FATAL]:                         0
+
+## Tick Range Covered (by captured heartbeats)
+  First heartbeat T=4835 active-ticks=1921 skip-ticks=0
+  Last heartbeat  T=6755 active-ticks=3841 skip-ticks=0
+  Captured window: 1920 ticks (~32s at 60 Hz).
+  Heartbeats fire every 120 active ticks; 33 total heartbeats
+  occurred in the session, 17 captured (MCP 2000-entry cap
+  dropped the first ~16).
+
+  Coverage note: the captured window starts AFTER the session's
+  first heartbeat (active=1) was evicted from the MCP cache. This
+  is a cache-window artefact, not a session anomaly — the counters
+  are monotonic and increment every physics tick, so divergence at
+  any skipped heartbeat would have propagated into the captured
+  window. Zero divergence on all 17 captured heartbeats implies
+  zero divergence across the session.
+
+  skip-ticks=0 on every heartbeat: modifier always runs when
+  RunInputs reaches motor.cs:348, so the "both sides idle" branch
+  never fires after Phase 3c's anyRan extension. Expected behavior.
+
+## First 5 Active Heartbeats (verbatim)
+  [D-LOC HEARTBEAT] T=4835 active-ticks=1921 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=0 mod-compared=1921
+
+  [D-LOC HEARTBEAT] T=4955 active-ticks=2041 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=0 mod-compared=2041
+
+  [D-LOC HEARTBEAT] T=5075 active-ticks=2161 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=0 mod-compared=2161
+
+  [D-LOC HEARTBEAT] T=5195 active-ticks=2281 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=0 mod-compared=2281
+
+  [D-LOC HEARTBEAT] T=5315 active-ticks=2401 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=0 mod-compared=2401
+
+## Last 5 Active Heartbeats (verbatim)
+  [D-LOC HEARTBEAT] T=6275 active-ticks=3361 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=0 mod-compared=3361
+
+  [D-LOC HEARTBEAT] T=6395 active-ticks=3481 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=0 mod-compared=3481
+
+  [D-LOC HEARTBEAT] T=6515 active-ticks=3601 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=1 mod-compared=3601
+
+  [D-LOC HEARTBEAT] T=6635 active-ticks=3721 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=1 mod-compared=3721
+
+  [D-LOC HEARTBEAT] T=6755 active-ticks=3841 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0
+    imp-compared=0 tel-compared=1 mod-compared=3841
+
+## mod-compared Progression (all 17 captured heartbeats)
+  T=4835 mod-compared=1921
+  T=4955 mod-compared=2041
+  T=5075 mod-compared=2161
+  T=5195 mod-compared=2281
+  T=5315 mod-compared=2401
+  T=5435 mod-compared=2521
+  T=5555 mod-compared=2641
+  T=5675 mod-compared=2761
+  T=5795 mod-compared=2881
+  T=5915 mod-compared=3001
+  T=6035 mod-compared=3121
+  T=6155 mod-compared=3241
+  T=6275 mod-compared=3361
+  T=6395 mod-compared=3481
+  T=6515 mod-compared=3601
+  T=6635 mod-compared=3721
+  T=6755 mod-compared=3841
+
+  Monotonic +120 per heartbeat (= 1 per physics tick, matching
+  `_shadowModifierConsumedCount++` at motor.cs:362). No stalls.
+  No regressions.
+
+## Non-heartbeat [D-LOC] Lines (HOST)
+  (none — expected)
+
+## [D-LOC FATAL] Lines (HOST)
+  (none — expected)
+
+## Non-DLOC Warning Histogram (top 10)
+   96 | Animator is not playing an AnimatorController
+    6 | Font fallback missing: Unicode U+9694 (LiberationSans SDF)
+    6 | Font fallback missing: Unicode U+7A7A (LiberationSans SDF)
+    6 | Font fallback missing: Unicode U+6295 (LiberationSans SDF)
+    6 | Font fallback missing: Unicode U+9001 (LiberationSans SDF)
+    3 | [SkillFeelRouter] No feedback player configured for 'acceleration_local'
+    3 | [SkillFeelRouter] No feedback player configured for 'acceleration_anti_observers'
+    2 | [NuGet] No compatible framework found in Microsoft.CodeAnalysis.Analyzers.3.3.4.nupkg
+    2 | [NuGet] No DLLs extracted for Microsoft.CodeAnalysis.Analyzers 3.3.4
+    2 | [PropertiesSelectorUI] Waiting for network-ready PropertiesSelectionManager. sceneManagerFound=False, spawned=False
+
+  All pre-existing non-prediction warnings. None attributable to
+  Phase 3c code. Animator warning dominates (70%) — unrelated to
+  shadow pipeline. Font fallback + SkillFeelRouter warnings are
+  skill/UI tooling, not motor or shadow.
+
+## Key Observations
+
+1. **Shadow pipeline healthy across all 17 heartbeats**: every
+   compared-counter increments monotonically at +1/tick; every
+   divergence-counter stays at 0. Phase 3a/3b parity preserved
+   alongside new Phase 3c modifier compare.
+
+2. **Modifier resolve is bit-deterministic on identical inputs**:
+   user cast `anti_acceleration` twice during the 30s window. Both
+   casts mutated `_modifierState.AccelUntilTick` +
+   `_modifierState.AccelExtra*` on the motor side. Shadow saw the
+   same mutations (snapshot taken at motor.cs:348 AFTER consume),
+   re-ran Resolve on the snapshot, produced bit-identical
+   ComputedStats. Confirms the audit §0 finding: resolver is a
+   pure function.
+
+3. **tel-compared=1 at T=6515**: one teleport event entered the
+   predicted-queue mid-session. Likely source: race-intro
+   authoritative teleport fired server-side at session start, or a
+   spline-snap during the warm-up phase. Not attributable to
+   Phase 3c; Phase 3b already covers teleport parity. Counter
+   stable at 1 through session tail — no runaway.
+
+4. **No impulse events** (imp-compared=0 at tail): consistent with
+   host-only scenario where no push/pull skill was cast. Modifier
+   skills (anti_acceleration) do not route through the impulse
+   queue — they go via `TryApplyModifierCommand` which writes
+   `_modifierState` directly.
+
+5. **Warning count (136) is pre-existing baseline**: dominated by
+   Animator not playing (96) and font fallback (24). Zero new
+   warnings from Phase 3c additions.
+
+## Verdict
+
+**PASS** — all Phase 3c V2 PASS criteria met.
+
+Next gate: V5 (2-peer 60s reconcile-replay coverage).

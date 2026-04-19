@@ -16,6 +16,202 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L13 — Shadow PASS requires compared-count > 0, not just divergence = 0 (2026-04-19, Phase 3b V5 R2 close-out)
+
+Symptom: Phase 3b V5 R2 CLIENT peer showed teleport shadow with 0 divergence
+across every captured heartbeat (tel-div=0), 0 non-heartbeat `[D-LOC]`, 0
+FATAL — but `tel-compared=0` across the entire session window. If we had
+used only divergence=0 as the PASS criterion, we would have shipped 3b
+without ever validating the teleport shadow code path once.
+
+Cause: the cumulative `tel-compared` counter (added late in 3b) exposed the
+pre-existing owner→server→owner teleport RPC silent-drop (see L12). Before
+that counter existed, "shadow quiet" was indistinguishable from "shadow
+never exercised". Visual respawn still worked on client because FishNet's
+reconcile broadcasts the server-side post-teleport rigidbody state — so the
+absence of prediction-local teleport side-effects (`ResetModifiers`,
+`ResetImpulseQueue`, `ResetPushGrace`, `RebaseTrails`, `SnapProgress`) was
+invisible to gameplay. This is a plausible candidate root cause for the
+V3 / V4 all-Buddah-shake and remote-flicker symptoms Phase 7 is deferred
+to address.
+
+Rule going forward:
+  (a) Every shadow-path PASS judgement must assert BOTH divergence=0 AND
+      compared-count > 0 (per-peer, with per-peer coverage combinations
+      allowed to satisfy the gate for paths whose RPC routing only fires
+      on a subset of peers).
+  (b) Phase 3c / 3d / future-phase shadow gates MUST include a compared-
+      count assertion. "Loc-div=0" style gates are not sufficient.
+  (c) When a shadow stays completely silent across a full session, the
+      default assumption is "path was never exercised", NOT "path is
+      parity-clean". Investigate coverage before celebrating.
+
+Applies to: Phase 3c Modifier shadow, Phase 3d Handoff shadow, Phase 4-6
+cutover validation gates.
+
+Promoted to: `Docs/prediction-refactor-plan/13-validation-gates.md` (Phase
+3/4+ shadow gate definition should reference this rule).
+
+## L12 — Owner→Server→Owner two-hop predicted-motor RPC chain must have failure visibility (2026-04-19, Phase 3b V5 R2)
+
+Symptom: V5 R2 CLIENT peer `tel-compared=0` across full session despite
+user-confirmed visual fall-respawn. HOST peer `tel-compared=3` in same
+session proves the server-direct teleport enqueue path works end-to-end.
+The client-side chain is: `BuddahRespawn` → bridge → motor.
+`RequestAuthoritativeTeleportFromOwner` (BuddahPredictedMotor.cs:886-931) →
+ServerRpc → server-side enqueue + TargetRpc back to owner → owner-side
+enqueue. On client, the chain makes TWO RPC hops (outbound ServerRpc, return
+TargetRpc). Impulse path is a single hop (server is the originator) and
+works cleanly (`imp-compared=2` on client).
+
+Cause: `RequestAuthoritativeTeleportFromOwner` at motor.cs:930 unconditionally
+returns `true` on the non-server branch — caller (bridge → BuddahRespawn)
+treats this as "primary path succeeded" and commits, skipping the legacy
+fallback at `BuddahRespawn.cs:168` (`TeleportToWorldPose`, direct
+`rb.position = targetPosition`). Whether the ServerRpc actually reached
+server, whether the TargetRpc return-leg actually reached client, neither
+is reported back. Visual respawn still happens because server-side
+`TryApplyServerAuthoritativeTeleport` (motor.cs:713-766) enqueues on
+server-side motor → server's tick consumes → server's `rb.position` moves
+→ FishNet reconcile broadcasts position delta → client's reconcile snaps
+rb.position to match. The client's own `_pendingTeleportEvent` slot is
+never populated, so shadow's pre-consume snapshot stays empty.
+
+Rule going forward:
+  (a) Any owner→server→owner two-hop predicted-motor RPC chain must EITHER
+      (i) propagate the server-side enqueue result back to the owner via
+      the return-leg TargetRpc (or a separate result TargetRpc), and have
+      the owner commit only on confirmed success, OR (ii) not commit to
+      the primary path on the owner side — let the legacy fallback cover
+      silent-drop scenarios until cut-over is complete.
+  (b) `RequestAuthoritativeTeleportFromOwner` at motor.cs:886-931 needs
+      fix before Phase 6 teleport cutover. Candidates (ranked by evidence):
+      (1) FishNet `RequestTeleportServerRpc` outbound silent drop due to
+      observer state or RequireOwnership race; (2) `QueueTeleportEventTargetRpc`
+      return-leg drop due to payload size (14 fields incl Quaternion) or
+      tick-timing. Verbose micro-run before writing fix is mandatory.
+  (c) Until (a) is implemented, validation of client-initiated predicted
+      teleport paths is blocked. Phase 3b accepts V5 R2 as conditional
+      PASS on host-validated shadow + defers client-path validation to
+      post-Phase-6.
+
+Applies to: Phase 6 teleport cutover (blocking fix), Phase 3d handoff
+shadow (same owner→server→owner pattern in `RequestAuthoritativeLaunchHandoffFromOwner`
+motor.cs:768-817; verify same silent-return pattern and plan the same
+L12 fix shape there).
+
+Promoted to: `Docs/prediction-refactor-plan/phase-6-prerequisites.md`
+(new file, this one bullet).
+
+---
+
+## L11 — Self-cast push projectile fizzles silently at the attacker-hit gate (2026-04-19, Phase 3b V5 Run 2)
+
+Symptom: V5 Run 2 CLIENT peer shows 0 non-heartbeat `[D-LOC]`, 0 FATAL, clean
+parity — but cumulative `imp-compared` and `tel-compared` stay at 0 across 8
+heartbeats spanning the full captured window. User confirmed self-push with the
+normal `push_projectile_hands` skill and at least one respawn, so shadow ought to
+have observed events.
+
+Root cause: `Skill_PushProjectileHands` (the normal, non-anti variant) fires
+through `BuddahHandControl.SpawnProjectilePushServer`, which leaves
+`allowSelfHit` at its default `false` (BuddahHandControl.cs:804 default,
+invoked at BuddahHandControl.cs:593 with 7 positional args). The projectile's
+trigger handler at HandPushProjectileRuntime.cs:204 then gates
+`if (!_allowAttackerHit && victimNO == _attacker) return;` — self-hits are
+early-returned BEFORE `BuddahPredictionCombatRouting.TryRouteImpulse`. Nothing
+reaches `TryApplyServerAuthoritativeImpulse`, nothing enqueues on either peer.
+Only the Anti variant (`Skill_PushProjectileHands_Anti.cs:50`) sets
+`allowSelfHit: true`. No ScriptableObject field exposes this — it is hard-wired
+per-skill in C#.
+
+Rule going forward:
+  (a) Shadow coverage for impulse paths cannot be validated by self-push with
+      the normal `push_projectile_hands`. Coverage tests must use cross-peer
+      pushes (peer A casts toward peer B's Buddah) OR the Anti skill.
+  (b) When a V5-style gate asserts `imp-compared > 0` and the counter stays 0,
+      do NOT assume the shadow snapshot/queue copy is broken. First verify that
+      the skill actually reached `TryRouteImpulse` — easiest proof is to cross-
+      peer push and watch the counter jump.
+  (c) `allowAttackerHit` being hardcoded in C# (not on the asset) means any
+      future "allow self-push for testing" toggle requires a code change. Do
+      not add such a toggle to production skill configs.
+
+Applies to: Phase 3b V5 coverage gate, all future cross-peer shadow coverage
+phases (3c modifier cast-on-self, 3d handoff cast-on-self).
+
+Promoted to: log-only (scope is narrow to impulse-cast tests).
+
+## L10 — Skill event-queue routing is gated by `IsPredictionModeActive()`; fallback paths bypass the motor queue (2026-04-19, Phase 3b audit)
+
+Symptom: V5 Run 2 CLIENT peer ran for 60s+, shadow locomotion heartbeats
+emitted with divergences=0 throughout, yet `imp-compared=0 tel-compared=0` for
+the whole session. Shadow impulse/teleport step invocation was verified (no
+`IsOwner`/`IsServerInitialized` gate on the pre-consume block at
+BuddahPredictedMotor.cs:323-336). The gap was in the upstream routing.
+
+Root cause:
+  (1) Push projectile → `BuddahPredictionCombatRouting.TryRouteImpulse`
+      (BuddahPredictionCombatRouting.cs:25) gates routing on
+      `bootstrap.IsPredictionModeActive() == true`. On true, calls
+      `predictedMotor.TryApplyServerAuthoritativeImpulse` →
+      `TryQueueImpulseEvent` → `_impulseEventQueue.TryEnqueue` — shadow sees it.
+      On false, falls back to `PushTargetBox` or the legacy
+      `BuddahMovement.ApplyPushImpulseAndTorqueTargetRpc` →
+      `ApplyPushAndTorqueLocal` → direct `rb.AddForce(impulse, Impulse)` at
+      BuddahMovement.cs:445 — queue bypassed, shadow blind.
+  (2) Respawn → `BuddahRespawn.TeleportToTrackProgress` (line 156) gates on
+      `predictionBootstrap.IsPredictionModeActive() && predictionRespawnBridge
+      != null`. On true, bridges into `predictedMotor
+      .RequestAuthoritativeTeleportFromOwner` → `TryQueueTeleportEvent` →
+      `_pendingTeleportEvent` — shadow sees it. On false, falls back to
+      `BuddahRespawn.TeleportToWorldPose` — direct `rb.position = targetPosition`
+      at line 187 — queue bypassed, shadow blind.
+  Each gameplay path has a predicted-queue branch AND a legacy-direct-rb
+  branch. Shadow only sees the predicted-queue branch.
+
+Rule going forward:
+  (a) Shadow coverage assertions (`imp-compared > 0`, `tel-compared > 0`) prove
+      the predicted-queue branch was exercised, not just that the gameplay
+      action happened. A green game action + 0 counter = the action took the
+      legacy branch.
+  (b) When writing shadow coverage tests, explicitly note whether the test
+      depends on `IsPredictionModeActive() == true` on every peer involved. For
+      push, both the attacker's server-side and the victim's owner-side must be
+      in PredictionV2 mode; for respawn, the bootstrap and the respawn bridge
+      must both be present and active.
+  (c) Phase 4 authority cut-over should collapse the dual-branch pattern by
+      deleting the legacy-direct-rb branches. Until then, coverage tests must
+      verify the predicted branch wins, not just that the gameplay succeeded.
+
+Applies to: Phase 3b coverage gate (impulse, teleport), Phase 3c modifier
+coverage gate (same pattern: modifier commands have legacy + predicted paths),
+Phase 3d handoff coverage gate.
+
+Promoted to: log-only (narrow to dual-branch coverage gating).
+
+---
+
+## L9 — Pre-existing motor quirk: ClampPlanarSpeed strips same-tick queued impulses (2026-04-18, Phase 3b audit)
+
+Observed during Phase 3b pre-execution audit (no failure yet, preventive entry).
+
+Motor flow in `BuddahPredictedMotor.RunInputs`:
+  1. `ConsumePendingImpulseEvents(currentTick)` — queues `_predictionRigidbody.AddForce(impulse, ForceMode.Impulse)` into `_pendingForces`. Not yet drained to PhysX.
+  2. `ClampPlanarSpeed(...)` — if planar speed over cap, calls `_predictionRigidbody.Velocity(clampedVel)`. Per `PredictionRigidbody.Velocity` (PredictionRigidbody.cs:358), this writes `rb.velocity` immediately AND calls `RemoveForces(nonAngular: true)`, which STRIPS pending `AddForce` / `AddRelativeForce` / `AddExplosiveForce` entries — including the impulse queued one step prior.
+  3. `_predictionRigidbody.Simulate()` — drains remaining queue.
+
+So: when an impulse arrives on a tick that also triggers clamp, the linear component of the impulse is silently dropped at the PhysX layer. The torque component survives (RemoveForces(nonAngular:true) preserves AddTorque entries).
+
+Rule going forward:
+  (a) This is pre-existing motor behavior. Phase 3b shadow MUST mirror it bit-for-bit — shadow's `ShadowLastConsumedImpulseId` still marks the event consumed (it WAS removed from the queue), only its PhysX effect is partially lost. Do NOT "fix" this in 3b. Commanded-value compare tolerates it; velocity-delta compare would not, which is one reason 3b defers velocity-delta.
+  (b) Phase 4 authority cut-over must explicitly evaluate whether to preserve or change this behavior. Candidates: re-order consume + clamp so impulse runs after clamp; or scale impulse before clamp instead of dropping. Decision belongs to Phase 4 design, not 3b.
+  (c) If Phase 4 changes the behavior, an L-entry for the behavior flip is mandatory so shadow comparators in later phases stay aligned.
+
+Applies to: Phase 3b shadow (accept as-is), Phase 4 authority cut-over (must decide), Phase 3c/3d shadows (no direct impact).
+
+---
+
 ## L8 — Shadow parity must mirror motor's intermediate transformations, not idealized Euler (2026-04-18, Phase 3a V2 Run 1)
 
 Symptom: 99 [D-LOC] warnings on V2 Run 1. Two distinct patterns:

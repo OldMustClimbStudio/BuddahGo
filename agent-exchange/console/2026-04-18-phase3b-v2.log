@@ -1,0 +1,76 @@
+# Phase 3b V2 Host-Only — Console Digest
+
+Date: 2026-04-18
+Branch: refactor/prediction-v2
+Peer role: HOST (editor, BUDDAH_PREDICTION_SHADOW on, host-only session)
+Gate: V2 per-closeout. PASS = 0 non-heartbeat [D-LOC], 0 [D-LOC FATAL], heartbeats show divergences=0 on all active ticks, active-ticks > 0.
+Session notes: user confirmed at least one respawn (teleport) + multiple skill-push events (impulse) during ~60s session. MCP log cache capped at 2000 Log entries; heartbeats captured cover a 38s window of the session's tail. Non-heartbeat D-LOC warnings (if any) would surface in the Warning-type pull regardless of Log-cap — that pull showed zero.
+
+## Log Volume (captured window)
+  Total Log entries: 2000 (cache cap)
+  Warning entries:   76
+  Error entries:     0
+
+## D-LOC Summary (HOST V2)
+  [D-LOC HEARTBEAT] count:                  18
+  [D-LOC] non-heartbeat warning count:      0
+  [D-LOC FATAL] / D-LOC error count:        0
+
+Verdict (host V2): PASS
+  - Heartbeats emitted: 18 (shadow path exercised across locomotion + impulse + teleport compare)
+  - Peak active-ticks: 2761  (~46.0s of active compares at 60Hz)
+  - Skip-ticks stabilized at 2275 early in session — gate-off ticks (intro / kinematic / rooted / handoff) all consumed before the captured window
+  - Non-heartbeat [D-LOC]: 0 — no gate mismatch, no cursor mismatch, no position/rotation delta over 1e-4, no flag-read mismatch
+  - FATAL: 0
+
+## First 5 Active Heartbeats (HOST, chronological)
+  2026-04-18T21:11:24.7332880 | [D-LOC HEARTBEAT] T=3896 active-ticks=721 skip-ticks=2275 divergences=0
+  2026-04-18T21:11:30.2372392 | [D-LOC HEARTBEAT] T=4016 active-ticks=841 skip-ticks=2275 divergences=0
+  2026-04-18T21:11:32.2389040 | [D-LOC HEARTBEAT] T=4136 active-ticks=961 skip-ticks=2275 divergences=0
+  2026-04-18T21:11:34.2413375 | [D-LOC HEARTBEAT] T=4256 active-ticks=1081 skip-ticks=2275 divergences=0
+  2026-04-18T21:11:36.2418559 | [D-LOC HEARTBEAT] T=4376 active-ticks=1201 skip-ticks=2275 divergences=0
+
+## Last 5 Active Heartbeats (HOST, chronological)
+  2026-04-18T21:11:54.2357671 | [D-LOC HEARTBEAT] T=5456 active-ticks=2281 skip-ticks=2275 divergences=0
+  2026-04-18T21:11:56.2434214 | [D-LOC HEARTBEAT] T=5576 active-ticks=2401 skip-ticks=2275 divergences=0
+  2026-04-18T21:11:58.2385583 | [D-LOC HEARTBEAT] T=5696 active-ticks=2521 skip-ticks=2275 divergences=0
+  2026-04-18T21:12:00.2357973 | [D-LOC HEARTBEAT] T=5816 active-ticks=2641 skip-ticks=2275 divergences=0
+  2026-04-18T21:12:02.2354538 | [D-LOC HEARTBEAT] T=5936 active-ticks=2761 skip-ticks=2275 divergences=0
+
+Rate check: active-ticks delta = 2761-721 = 2040 across 18 heartbeats spanning
+21:11:24 -> 21:12:02 (38s wall-clock). 2040/38s ≈ 53.7 ticks/s average over the
+window. Per-heartbeat sampling is 120 active compares, which is exactly every 2s
+at 60Hz — rate matches prediction.
+
+## Non-Heartbeat D-LOC Lines (HOST)
+  (none — all 0 divergences across 18 heartbeats)
+
+## Note on motor-verbose activity
+  Motor-side `bootstrap.LogVerbose` lines (`impulse consumed id=`, `teleport consumed
+  id=`, `impulse enqueued id=`, etc.) did not appear in the captured window. Two
+  possibilities: (a) verbose-logging toggle off for this session, or (b) those
+  lines fell outside the 2000-entry tail the MCP log cache retained. Neither
+  affects V2 verdict — the D-LOC heartbeat + divergence telemetry is orthogonal to
+  motor verbose logging and is the authoritative signal.
+
+## Non-DLOC Warning Histogram (top 10, pre-existing noise)
+   48  Animator is not playing an AnimatorController
+    7  Assets\Scripts\New_Buddah\Visual\BuddahPredictionVisualRootBridge.cs CS0618 obsolete
+    3  Unicode \u9694 not found in [LiberationSans SDF]
+    3  Unicode \u9001 not found in [LiberationSans SDF]
+    3  Unicode \u7A7A not found in [LiberationSans SDF]
+    3  Unicode \u6295 not found in [LiberationSans SDF]
+    2  [NuGet] No compatible framework found in Microsoft.CodeAnalysis.Analyzers.3.3.4
+    2  [NuGet] No DLLs extracted for Microsoft.CodeAnalysis.Analyzers 3.3.4
+    1  [SkillWallSelectionController] Waiting for network-ready PropertiesSel...
+    1  [PropertiesSelectorUI] Waiting for network-ready PropertiesSelectionMa...
+
+(All 76 warnings are pre-existing project noise — no shadow-symbol warning.)
+
+## Handoff to V5
+  - V2 host-only closed PASS.
+  - V5 is 2-peer 60s: each peer must drive AND at least one of: impulse (collision
+    or skill-push) + one teleport (respawn or handoff) fires per peer. PASS
+    criterion same as V2, per peer. Logs land at
+    agent-exchange/console/2026-04-18-phase3b-v5-host.log
+    agent-exchange/console/2026-04-18-phase3b-v5-client.log

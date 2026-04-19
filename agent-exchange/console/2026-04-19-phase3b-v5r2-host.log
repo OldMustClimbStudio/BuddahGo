@@ -1,0 +1,198 @@
+# Phase 3b V5 Round 2 Host — Console Digest
+
+Date: 2026-04-19
+Branch: refactor/prediction-v2
+Peer role: HOST (Standalone Development Build, BUDDAH_PREDICTION_SHADOW on,
+  Steam lobby host)
+Source: `agent-exchange/console/raw/host-player-log-2026-04-19.log`
+  (off-session Player.log copied from the host machine;
+   not from MCP cache)
+Gate: V5 R2 per-peer. PASS = loc-div=0 AND imp-div=0 AND tel-div=0 AND
+  imp-compared >= 2 AND tel-compared >= 1 on the last captured heartbeat;
+  plus session-wide 0 non-heartbeat [D-LOC] and 0 [D-LOC FATAL].
+
+## Build Fix Verification
+  [D-LOC HEARTBEAT] occurrences:       61
+  imp-compared string occurrences:     61
+  tel-compared string occurrences:     61
+  loc-div / imp-div / tel-div lines:   61 each
+  → HOST build includes Phase 3b partition fix (imp/tel compared counters
+    + per-category div counters). Safe to evaluate PASS/FAIL.
+
+## Verdict (HOST V5 R2)
+PASS
+  - loc-div = 0                               ✅
+  - imp-div = 0                               ✅
+  - tel-div = 0                               ✅
+  - imp-compared last = 2  (>= 2)             ✅
+  - tel-compared last = 3  (>= 1)             ✅
+  - 0 non-heartbeat [D-LOC]                   ✅
+  - 0 [D-LOC FATAL]                           ✅
+
+## Log Volume
+  Total lines in Player.log: 819,912
+
+## D-LOC Counts
+  [D-LOC HEARTBEAT]:                    61
+    - active form:                       45
+    - idle form ("both sides idle"):     16
+  [D-LOC] non-heartbeat:                0
+  [D-LOC FATAL]:                        0
+
+## Tick Range Covered
+  First heartbeat T=2543, last heartbeat T=8018, tick delta=5475
+  Active compares captured: T=4898 → T=8018 (active-ticks 1 → 3121, ~52s at 60Hz).
+  Two motor instances observed: skip-ticks stabilize at both 2355 and 2372
+  across different heartbeats — consistent with two Buddah motors running
+  (host-owner motor + remote-client-observed motor), 17-tick spawn offset.
+
+## First 5 Active Heartbeats (verbatim)
+  [D-LOC HEARTBEAT] T=4898 active-ticks=1 skip-ticks=2355
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=4915 active-ticks=1 skip-ticks=2372
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5018 active-ticks=121 skip-ticks=2355
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5035 active-ticks=121 skip-ticks=2372
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5138 active-ticks=241 skip-ticks=2355
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+## Last 5 Active Heartbeats (verbatim)
+  [D-LOC HEARTBEAT] T=7538 active-ticks=2641 skip-ticks=2355
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=2 tel-compared=3
+
+  [D-LOC HEARTBEAT] T=7658 active-ticks=2761 skip-ticks=2355
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=2 tel-compared=3
+
+  [D-LOC HEARTBEAT] T=7778 active-ticks=2881 skip-ticks=2355
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=2 tel-compared=3
+
+  [D-LOC HEARTBEAT] T=7898 active-ticks=3001 skip-ticks=2355
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=2 tel-compared=3
+
+  [D-LOC HEARTBEAT] T=8018 active-ticks=3121 skip-ticks=2355
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=2 tel-compared=3
+
+Cumulative counters evolved to final: imp-compared=2 (≥2 required),
+tel-compared=3 (≥1 required). Both met during the ~52s captured active
+window. Counters stable at the tail — last impulse/teleport event entered
+the queue before T=7538, and no further activity up to T=8018.
+
+## Peak Cumulative Counters
+  imp-compared max:  2   (✅ meets >= 2)
+  tel-compared max:  3   (✅ meets >= 1)
+
+## Heartbeats Showing ANY Divergence
+  (none — all 61 heartbeats report loc-div=0 imp-div=0 tel-div=0)
+
+## Non-Heartbeat [D-LOC] Lines (HOST)
+  (none)
+
+## [D-LOC FATAL] Lines (HOST)
+  (none)
+
+## Motor-side Event Evidence (Player.log dump)
+  impulse consumed id=     0 occurrences (verbose off — cumulative counter is
+                                          authoritative; imp-compared=2 proves
+                                          2 impulse events entered host's queue)
+  teleport consumed id=    0 occurrences (verbose off — tel-compared=3 proves
+                                          3 teleport events entered host's
+                                          _pendingTeleportEvent slot)
+  impulse enqueued id=     0 occurrences (verbose off)
+  teleport enqueued id=    0 occurrences (verbose off)
+
+## Key Observation
+
+HOST's motor observed:
+  - 2 cross-peer impulses (from client's pushes) — matches V5 R2 plan: client
+    pushed host's Buddah x2.
+  - 3 teleport events enqueued into host's _pendingTeleportEvent slot. Plan
+    asked for host fall-respawn x1, so 3 > 1 indicates either (a) host fell
+    multiple times during session, (b) a race-intro teleport fired server-side
+    at session start, (c) spline-snapping or some other teleport source fired
+    in addition to fall-respawn, or (d) the two-motor architecture (host's own
+    motor + host's server-side replica of client's motor) aggregated events
+    across both. Regardless of exact source, count >= 1 satisfies V5 R2 gate.
+
+All 61 heartbeats report clean parity (loc-div=imp-div=tel-div=0). No
+non-heartbeat divergence warnings, no FATAL escalations.
+
+## Cross-Peer Per-Peer Verdict Summary
+
+| Peer   | imp-compared | tel-compared | loc/imp/tel div | D-LOC warnings | FATAL | Verdict |
+|--------|--------------|--------------|-----------------|----------------|-------|---------|
+| HOST   | 2 (>= 2)     | 3 (>= 1)     | all 0           | 0              | 0     | PASS    |
+| CLIENT | 2 (>= 2)     | 0 (need >= 1)| all 0           | 0              | 0     | FAIL    |
+
+V5 R2 overall: FAIL (client-side teleport coverage not met).
+Parity: clean on both peers — no divergence between shadow and motor on any
+category.
+
+## Diagnosis for Client-side tel-compared=0 (cross-referencing host data)
+
+User confirmed client fall-respawn fired visually during the V5 R2 session.
+Host tel-compared=3 confirms host's predictionRespawnBridge is wired and
+functional (respawn events enter host's queue). If the same Buddah prefab is
+used for both peers (standard Unity instantiation), predictionRespawnBridge
+is wired on both prefab instances.
+
+Therefore client's tel-compared=0 with confirmed visual respawn points to
+one of the BuddahRespawn.cs:156 gate conditions failing on CLIENT's instance
+at call time, even though the component wiring is present:
+
+  (a) `predictionBootstrap.IsPredictionModeActive()` — returns false on client
+      when respawn fires. BUT: client's imp-compared=2 proves the same
+      bootstrap returned TRUE for impulse routing in the same session. So
+      either the respawn fires at a moment when the bootstrap has
+      transiently flipped to Legacy, OR a different bootstrap instance is
+      being checked.
+  (b) `predictionRespawnBridge != null` — the bridge is present on host's
+      prefab (tel-compared=3 proves). Awake() at BuddahRespawn.cs:43-45 auto-
+      creates the bridge if missing. Shouldn't be null at runtime. But if
+      `ResolveReferences()` inside TeleportToTrackProgress was not called
+      yet when the early gate runs, or if the serialized field is null AND
+      Awake hasn't resolved it yet, the check could fail transiently.
+  (c) Bridge routing internally returns false on client — see
+      `TryRespawnToTrackProgress` at BuddahPredictionRespawnBridge.cs:26.
+      That calls `predictedMotor.RequestAuthoritativeTeleportFromOwner`
+      (motor.cs:886). If motor is client-side (IsServerInitialized=false),
+      it fires `RequestTeleportServerRpc` to server. If the ServerRpc
+      requires ownership (RequireOwnership=true on the ServerRpc attribute),
+      client must own the Buddah — which it does. Need to verify the actual
+      ServerRpc signature and whether it enqueues server-side.
+  (d) Client's respawn took the LEGACY path (TeleportToWorldPose at line 168)
+      because the primary path's gate returned false. Visual teleport
+      happens either way (rb.position = targetPosition), so user sees the
+      respawn — but it never goes through the predicted queue.
+
+Most likely (c) — the client-owner path needs the ServerRpc hop, which has
+more failure modes than host's in-server direct enqueue. A code-trace of
+BuddahPredictedMotor.RequestAuthoritativeTeleportFromOwner (motor.cs:886)
+and RequestTeleportServerRpc (motor.cs:974) is the next diagnostic step.
+
+## Next Step
+
+Per user direction: await follow-up. Options on the table:
+  1. Code-trace the owner-side respawn path (client → ServerRpc → server
+     enqueue → TargetRpc back to owner) to find the gate that silently
+     drops the teleport enqueue on client-owner motors.
+  2. Targeted micro-run: client-only plays, falls off track once, captures
+     heartbeat window. If still tel-compared=0 on client, confirms the
+     owner-side path always fails. If tel-compared>=1 in the micro-run,
+     implies a session-state interaction in the V5 R2 session was the
+     cause.

@@ -50,6 +50,13 @@ namespace NewBuddah.PredictionV2.Core
             return consumedCount;
         }
 
+        public void CopyPendingSnapshot(List<BuddahPredictedImpulseEventData> destination)
+        {
+            destination.Clear();
+            for (int i = 0; i < _pending.Count; i++)
+                destination.Add(_pending[i]);
+        }
+
         public string BuildPendingSummary()
         {
             if (_pending.Count == 0)

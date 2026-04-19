@@ -1,6 +1,7 @@
 #if BUDDAH_PREDICTION_VISUAL_PROBE
 using System;
 using FishNet.Object;
+using NewBuddah.PredictionV2.Visual;
 using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Debugging
@@ -65,6 +66,29 @@ namespace NewBuddah.PredictionV2.Debugging
             _samplesCollected = 0;
             _hasLastSample = false;
             _framesSinceHeartbeat = 0;
+
+            // Runtime fallback resolution (wiring PR):
+            // When this probe is attached at runtime by BuddahPredictionBootstrap
+            // (AddComponent path), the SerializeField refs are null. Resolve them
+            // from the same Buddah's existing wiring:
+            //   - _visualRoot: via BuddahPredictionVisualRootBridge.GetVisualRoot()
+            //     — same Transform the prediction stack already treats as the visual
+            //     layer; cleanest marker-component resolution in this repo.
+            //   - _networkObject: via GetComponentInParent<NetworkObject> — the
+            //     Buddah's NetworkObject sits on the same GameObject as the motor
+            //     (required component per BuddahPredictedMotor.cs:21-23), so the
+            //     parent/self search always resolves.
+            // Inspector pinning still wins if present — these fallbacks only fire
+            // on null. Reviewer V3 inspector-pin bind preserved for prefab-
+            // committed probe cases.
+            if (_visualRoot == null)
+            {
+                var bridge = GetComponentInParent<BuddahPredictionVisualRootBridge>();
+                if (bridge != null)
+                    _visualRoot = bridge.GetVisualRoot();
+            }
+            if (_networkObject == null)
+                _networkObject = GetComponentInParent<NetworkObject>();
         }
 
         private void LateUpdate()

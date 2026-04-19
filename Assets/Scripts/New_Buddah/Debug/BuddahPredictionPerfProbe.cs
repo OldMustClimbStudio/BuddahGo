@@ -42,6 +42,22 @@ namespace NewBuddah.PredictionV2.Debugging
         public const string MotorReplicateMarkerName = "BuddahPredictedMotor.RunInputs";
         private const string GcAllocMarkerName = "GC.Alloc";
 
+        // Runtime auto-instantiate (scene-singleton). Unity invokes this static
+        // hook on every scene load in editor + standalone playmode. No manual
+        // placement in scene/prefab required; no committed scene state change.
+        // Gated inside the existing #if BUDDAH_PREDICTION_PERF_PROBE top-level
+        // guard — compiles out when the define is undefined.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AutoInstantiate()
+        {
+            if (FindObjectOfType<BuddahPredictionPerfProbe>() != null)
+                return;
+
+            var go = new GameObject("[Auto] BuddahPredictionPerfProbe");
+            go.AddComponent<BuddahPredictionPerfProbe>();
+            DontDestroyOnLoad(go);
+        }
+
         [Header("Capture cadence")]
         [Tooltip("Frames per heartbeat emit. Also the ring-buffer window for p99 computation.")]
         [SerializeField, Min(16)] private int _heartbeatFrames = 60;

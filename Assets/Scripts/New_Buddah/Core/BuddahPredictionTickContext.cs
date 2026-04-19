@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Core
@@ -17,6 +18,24 @@ namespace NewBuddah.PredictionV2.Core
         public readonly float PushGraceExtraSpeed;
         public readonly float PushGraceRemaining;
 
+        // Phase 3b — impulse snapshot (pre-consume pending list, in enqueue order).
+        // Shadow walks this in REVERSE to match motor's LIFO ConsumeReady (motor.cs:1304).
+        public readonly IReadOnlyList<BuddahPredictedImpulseEventData> ImpulsePendingSnapshot;
+
+        // Phase 3b — teleport snapshot (single-slot; snapshotted before ConsumePendingTeleportEvent).
+        public readonly bool HasPendingTeleportPreConsume;
+        public readonly uint PendingTeleportEventId;
+        public readonly uint PendingTeleportEventTick;
+        public readonly Vector3 TeleportTargetPosition;
+        public readonly Quaternion TeleportTargetRotation;
+        public readonly bool TeleportFlag_SnapProgress;
+        public readonly bool TeleportFlag_ZeroLinearVelocity;
+        public readonly bool TeleportFlag_ZeroAngularVelocity;
+        public readonly bool TeleportFlag_ResetModifiers;
+        public readonly bool TeleportFlag_ResetImpulseQueue;
+        public readonly bool TeleportFlag_ResetPushGrace;
+        public readonly bool TeleportFlag_RebaseTrails;
+
         public BuddahPredictionTickContext(
             Vector3 rbVelocityPreTick,
             float rbMass,
@@ -27,7 +46,20 @@ namespace NewBuddah.PredictionV2.Core
             float resolvedSteering,
             BuddahPredictedMotorComputedStats computedStats,
             float pushGraceExtraSpeed,
-            float pushGraceRemaining)
+            float pushGraceRemaining,
+            IReadOnlyList<BuddahPredictedImpulseEventData> impulsePendingSnapshot,
+            bool hasPendingTeleportPreConsume,
+            uint pendingTeleportEventId,
+            uint pendingTeleportEventTick,
+            Vector3 teleportTargetPosition,
+            Quaternion teleportTargetRotation,
+            bool teleportFlag_SnapProgress,
+            bool teleportFlag_ZeroLinearVelocity,
+            bool teleportFlag_ZeroAngularVelocity,
+            bool teleportFlag_ResetModifiers,
+            bool teleportFlag_ResetImpulseQueue,
+            bool teleportFlag_ResetPushGrace,
+            bool teleportFlag_RebaseTrails)
         {
             RbVelocityPreTick = rbVelocityPreTick;
             RbMass = rbMass;
@@ -39,6 +71,19 @@ namespace NewBuddah.PredictionV2.Core
             ComputedStats = computedStats;
             PushGraceExtraSpeed = pushGraceExtraSpeed;
             PushGraceRemaining = pushGraceRemaining;
+            ImpulsePendingSnapshot = impulsePendingSnapshot;
+            HasPendingTeleportPreConsume = hasPendingTeleportPreConsume;
+            PendingTeleportEventId = pendingTeleportEventId;
+            PendingTeleportEventTick = pendingTeleportEventTick;
+            TeleportTargetPosition = teleportTargetPosition;
+            TeleportTargetRotation = teleportTargetRotation;
+            TeleportFlag_SnapProgress = teleportFlag_SnapProgress;
+            TeleportFlag_ZeroLinearVelocity = teleportFlag_ZeroLinearVelocity;
+            TeleportFlag_ZeroAngularVelocity = teleportFlag_ZeroAngularVelocity;
+            TeleportFlag_ResetModifiers = teleportFlag_ResetModifiers;
+            TeleportFlag_ResetImpulseQueue = teleportFlag_ResetImpulseQueue;
+            TeleportFlag_ResetPushGrace = teleportFlag_ResetPushGrace;
+            TeleportFlag_RebaseTrails = teleportFlag_RebaseTrails;
         }
     }
 }

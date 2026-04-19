@@ -1,0 +1,164 @@
+# Phase 3b V5 Round 2 Client — Console Digest
+
+Date: 2026-04-19
+Branch: refactor/prediction-v2
+Peer role: CLIENT (Editor, MCP-connected)
+Gate: V5 R2 per-peer. PASS = loc-div=0 AND imp-div=0 AND tel-div=0 AND
+  imp-compared >= 2 AND tel-compared >= 1 on the last captured heartbeat;
+  plus session-wide 0 non-heartbeat [D-LOC] and 0 [D-LOC FATAL].
+
+## Verdict (CLIENT V5 R2)
+PARTIAL FAIL
+  - loc-div = 0                               ✅
+  - imp-div = 0                               ✅
+  - tel-div = 0                               ✅
+  - imp-compared last = 2  (>= 2)             ✅
+  - tel-compared last = 0  (need >= 1)        ❌
+  - 0 non-heartbeat [D-LOC]                   ✅
+  - 0 [D-LOC FATAL]                           ✅
+
+Impulse coverage met (2 cross-peer pushes landed in client's motor queue).
+Teleport coverage missed — no teleport event ever entered client's
+_pendingTeleportEvent this session. Parity on paths that DID run is clean;
+no divergence, no fatal.
+
+## Log Volume (captured window)
+  Warning entries: 500
+  Error entries:   100
+  Log entries:     2000
+
+## D-LOC Counts
+  [D-LOC HEARTBEAT] (Log-type):               9
+  [D-LOC] non-heartbeat (Warning):            0
+  [D-LOC FATAL] (Error):                      0
+
+## Tick Range Covered
+  First heartbeat T=4690, last heartbeat T=5650, tick delta=960 active ticks
+  (~16s of shadow compare at 60Hz). Skip-ticks stable at 2341 across all
+  9 heartbeats — intro/kinematic gate-off period fully consumed before first
+  captured heartbeat.
+
+## First 5 Active Heartbeats (verbatim)
+  [D-LOC HEARTBEAT] T=4690 active-ticks=1081 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=4810 active-ticks=1201 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=4930 active-ticks=1321 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5050 active-ticks=1441 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5170 active-ticks=1561 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+## Last 5 Active Heartbeats (verbatim)
+  [D-LOC HEARTBEAT] T=5170 active-ticks=1561 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5290 active-ticks=1681 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5410 active-ticks=1801 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=1 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5530 active-ticks=1921 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=2 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5650 active-ticks=2041 skip-ticks=2341
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=2 tel-compared=0
+
+Cumulative counter progression: imp-compared 0 at T=4690 → 1 at T=5410 →
+2 at T=5530 → held at 2 through T=5650. Two cross-peer impulses consumed
+by client's motor within the captured window. tel-compared stays at 0
+across every heartbeat — cumulative and monotonic, so this rules out a
+cache-window miss. No teleport ever entered client's _pendingTeleportEvent
+during this session.
+
+## Peak Cumulative Counters
+  imp-compared max:   2  (✅ meets >= 2)
+  tel-compared max:   0  (❌ needs >= 1)
+
+## Non-Heartbeat [D-LOC] Lines (CLIENT)
+  (none)
+
+## [D-LOC FATAL] Lines (CLIENT)
+  (none)
+
+## Motor-side Event Evidence (Log dump)
+  impulse consumed id=     0 occurrences (verbose off — cumulative counter is authoritative; 2 impulses did consume per imp-compared telemetry)
+  teleport consumed id=    0 occurrences (consistent with tel-compared=0)
+  impulse enqueued id=     0 occurrences (verbose off)
+  teleport enqueued id=    0 occurrences (consistent with tel-compared=0)
+
+## Non-D-LOC Warning Histogram (top 10, pre-existing noise)
+  108  Unicode \u817E (\u817E) not found in [NotoSerifSC-Bold SDF]
+  108  Unicode \u8BAF (\u8BAF) not found in [NotoSerifSC-Bold SDF]
+  108  Unicode \u4F1A (\u4F1A) not found in [NotoSerifSC-Bold SDF]
+  108  Unicode \u8BAE (\u8BAE) not found in [NotoSerifSC-Bold SDF]
+   48  Animator is not playing an AnimatorController
+    4  Unicode \u817E not found in [LiberationSans SDF]
+    4  Unicode \u8BAF not found in [LiberationSans SDF]
+    4  Unicode \u4F1A not found in [LiberationSans SDF]
+    4  Unicode \u8BAE not found in [LiberationSans SDF]
+    2  [SkillWallSelectionController] Waiting for network-ready PropertiesSel...
+  (All pre-existing; no shadow-symbol warning.)
+
+## Diagnosis: tel-compared=0 on CLIENT
+
+The counter stays at 0 across every heartbeat. Since the counter is cumulative
+and never reset, this is NOT a cache-window miss — no teleport event ever
+entered the client's _pendingTeleportEvent slot during the session.
+
+Three candidate causes (no code change; user-side triage):
+
+  (1) Client's fall-respawn never actually fired.
+      The V5 R2 plan required client to fall off the track at least once.
+      If the session never triggered a fall (user stayed on the track), the
+      bridge is never called and the queue stays empty. Confirm by checking
+      whether the client's Buddah visually respawned during the session.
+
+  (2) Fall-respawn fired but routed through the LEGACY fallback.
+      BuddahRespawn.cs:156 requires predictionBootstrap.IsPredictionModeActive()
+      AND predictionRespawnBridge != null. If either fails, BuddahRespawn
+      falls back to TeleportToWorldPose at line 168 which does direct
+      rb.position = targetPosition — no queue event, shadow blind.
+      Since imp-compared=2 proves prediction mode IS active on client (impulse
+      path used the predicted-queue branch), the likely culprit inside this
+      candidate is predictionRespawnBridge being null on the Buddah prefab
+      instance. Requires inspecting the instantiated Buddah NetworkObject in
+      the scene to confirm the BuddahPredictionRespawnBridge component is
+      wired up with predictedMotor reference set.
+
+  (3) Client fell BEFORE the first captured heartbeat (T=4690).
+      Ruled out — cumulative counters are monotonic. If respawn had happened
+      before T=4690, tel-compared would read >=1 from T=4690 onward. It reads
+      0 at T=4690 and stays there.
+
+Most likely (1) — user either didn't fall this session, or the fall-respawn
+was triggered on the HOST's Buddah rather than the CLIENT's Buddah. Host log
+will clarify: if host peer shows tel-compared >= 1, then the fall that
+happened belonged to host's Buddah, not client's. V5 R2 would still need
+client-side teleport coverage, so a targeted re-run with a client-fall is
+needed.
+
+## Next Step
+Scrape HOST console next. If host shows tel-compared >= 1, the fall happened
+on host's side — we need a follow-up micro-run where client specifically
+falls off the track (host can stay idle or drive normally) so that
+client-side tel-compared also reaches >= 1. If host ALSO shows tel-compared=0,
+it's candidate (2) — the predictionRespawnBridge wiring needs inspection.
+
+Per V5 protocol: no auto-fix. Report diagnosis and wait.

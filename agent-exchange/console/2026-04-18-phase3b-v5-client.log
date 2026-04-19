@@ -1,0 +1,113 @@
+# Phase 3b V5 Client — Console Digest
+
+Date: 2026-04-18
+Branch: refactor/prediction-v2
+Peer role: CLIENT (Editor, MCP-connected)
+Run: V5 run 2 (user re-ran after run 1 showed 0 compared counters; asked for a wider window; same telemetry pattern observed)
+Gate: V5 per-peer. PASS = 0 non-heartbeat [D-LOC], 0 [D-LOC FATAL], loc-div=imp-div=tel-div=0 on every heartbeat, AND imp-compared > 0 AND tel-compared > 0.
+
+## Verdict (CLIENT)
+COVERAGE FAIL — shadow parity is clean (0 divergence across 8 heartbeats), but the impulse/teleport paths were not exercised on this peer for the entire session.
+
+  - 0 non-heartbeat [D-LOC]              ✅
+  - 0 [D-LOC FATAL]                       ✅
+  - loc-div=imp-div=tel-div=0 across all 8 heartbeats   ✅
+  - imp-compared > 0                      ❌  (stayed at 0 across all 8 heartbeats)
+  - tel-compared > 0                      ❌  (stayed at 0 across all 8 heartbeats)
+
+## Log Volume
+  Warning entries: 500
+  Error entries:   100
+  Log entries:     2000
+
+## D-LOC Counts
+  [D-LOC HEARTBEAT] (Log-type):           8
+  [D-LOC] non-heartbeat (Warning):        0
+  [D-LOC FATAL] (Error):                  0
+
+## First and Last 3 Heartbeats
+  [first]
+  [D-LOC HEARTBEAT] T=4759 active-ticks=721 skip-ticks=2343
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=4879 active-ticks=841 skip-ticks=2343
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=4999 active-ticks=961 skip-ticks=2343
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [last]
+  [D-LOC HEARTBEAT] T=5359 active-ticks=1321 skip-ticks=2343
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5479 active-ticks=1441 skip-ticks=2343
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+  [D-LOC HEARTBEAT] T=5599 active-ticks=1561 skip-ticks=2343
+    loc-div=0 imp-div=0 tel-div=0
+    imp-compared=0 tel-compared=0
+
+## Tick Range Covered
+  First heartbeat T=4759, last heartbeat T=5599, delta=840 active ticks captured.
+  Skip-ticks stable at 2343 across all heartbeats — intro/kinematic/rooted gate-off period
+  fully consumed before T=4759. Total session (on client side) covered at least
+  2343 + 1561 = 3904 ticks ≈ 65s.
+
+## Diagnosis: why compared counters are 0
+
+The critical signal is that imp-compared and tel-compared are CUMULATIVE counters
+that NEVER RESET. If any impulse or teleport had been consumed on this peer's
+Buddah at any tick during the session, the counter would have incremented and
+remained >0 forever. Across 8 captured heartbeats, both stay at exactly 0.
+
+Therefore: the client peer's Buddah never had an impulse or teleport event in
+its queue for the entire session. This is NOT a cache-window-miss artifact —
+cumulative counters survive log rotation.
+
+Event routing analysis (confirms diagnosis):
+  - TryApplyServerAuthoritativeImpulse (motor.cs:663) runs on SERVER.
+  - Server enqueues locally (on server-side replica) AND fires
+    QueueImpulseEventTargetRpc(Owner, ...) — targets the Owner connection only.
+  - Owner is the client process that owns that specific Buddah.
+  - If host's skill push targeted HOST's own Buddah, the client process never
+    receives the RPC and never enqueues on its client-owned Buddah motor.
+  - Same routing for teleport via QueueTeleportEventTargetRpc.
+
+User-reported events during V5 run 2: 1 respawn + 2 push-impulses. These
+events must have targeted HOST's Buddah (not CLIENT's), so the client
+peer saw none of them on its own motor.
+
+## Motor-side Event Evidence (Log dump, CLIENT)
+  impulse consumed id=     0 occurrences
+  teleport consumed id=    0 occurrences
+  impulse enqueued id=     0 occurrences
+  teleport enqueued id=    0 occurrences
+
+Consistent with compared-counter diagnosis — no events ever entered this
+peer's impulse/teleport queue.
+
+## Path to close V5
+
+Option A (preferred): re-run V5 with push/respawn targeting BOTH peers' Buddahs.
+  - Host pushes CLIENT Buddah (client = owner) → client's motor will consume.
+  - Client pushes HOST Buddah → host's motor will consume.
+  - Ensure at least one respawn per peer (if possible — respawn routing depends
+    on who triggers the death condition).
+  - Each peer's cumulative counters should end > 0.
+
+Option B: pull the HOST peer's log (Standalone Development Build's Player.log
+or similar). Parity verdict for V5 must be per-peer; host may have passed on
+its side.
+
+## Shadow Parity Confirmation
+
+Despite the coverage miss, shadow parity on the paths that DID run (locomotion
+only, on this peer) is clean: 8 heartbeats, loc-div=0 throughout, 0 fatal, 0
+non-heartbeat D-LOC. Phase 3a locomotion shadow is re-confirmed working under
+the new heartbeat format. Phase 3b impulse/teleport shadow was never exercised
+on this peer and thus neither confirmed nor refuted.

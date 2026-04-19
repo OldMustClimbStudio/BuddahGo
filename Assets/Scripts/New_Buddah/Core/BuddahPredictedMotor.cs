@@ -9,6 +9,7 @@ using NewBuddah.PredictionV2.Bootstrap;
 using NewBuddah.PredictionV2.Config;
 using NewBuddah.PredictionV2.Integration;
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+using System.Collections.Generic;
 using NewBuddah.PredictionV2.Simulation;
 #endif
 using UnityEngine;
@@ -69,6 +70,16 @@ namespace NewBuddah.PredictionV2.Core
         private int _shadowActiveCompares;
         private int _shadowSkipCompares;
         private Vector3 _shadowPreClampVelocity;
+        private readonly List<BuddahPredictedImpulseEventData> _shadowPreImpulsePendingSnapshot = new List<BuddahPredictedImpulseEventData>();
+        private bool _shadowPreTeleportHasPending;
+        private BuddahPredictedTeleportEventData _shadowPreTeleportEvent;
+        // Per-window divergence counters (reset at heartbeat).
+        private int _dLocLocomotionDivCount;
+        private int _dLocImpulseDivCount;
+        private int _dLocTeleportDivCount;
+        // Cumulative consume counters (never reset — prove shadow steps actually consumed events).
+        private uint _shadowImpulseConsumedCount;
+        private uint _shadowTeleportConsumedCount;
 #endif
 
         public bool IsLaunchHandoffActive => _handoffState.IsActive || _externalKinematicControlActive || _introControlActive;
@@ -309,6 +320,20 @@ namespace NewBuddah.PredictionV2.Core
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
             ApplyResolvedMassMultiplier();
             _impulseConsumedThisTick = false;
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            _shadowPreTeleportHasPending = _hasPendingTeleportEvent;
+            _shadowPreTeleportEvent = _pendingTeleportEvent;
+            _impulseEventQueue.CopyPendingSnapshot(_shadowPreImpulsePendingSnapshot);
+            {
+                BuddahPredictionTickContext earlyTickCtx = BuildTickContext(in data, Vector3.forward, 0f, 0f);
+                BuddahTeleportStep.Run(in earlyTickCtx, in data, ref _shadowScratch);
+                if (_shadowScratch.TeleportRan)
+                    _shadowTeleportConsumedCount++;
+                BuddahImpulseStep.Run(in earlyTickCtx, in data, ref _shadowScratch);
+                if (_shadowScratch.ImpulseRan)
+                    _shadowImpulseConsumedCount++;
+            }
+#endif
             ConsumePendingTeleportEvent(currentTick);
             ConsumePendingLaunchHandoffEvent(currentTick);
             ConsumePendingImpulseEvents(currentTick);
@@ -398,7 +423,6 @@ namespace NewBuddah.PredictionV2.Core
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             {
-                _shadowScratch = default;
                 BuddahPredictionTickContext tickCtx = BuildTickContext(in data, forwardDirection, resolvedThrottle, resolvedSteering);
                 BuddahLocomotionStep.Run(in tickCtx, in data, ref _shadowScratch);
             }
@@ -1180,60 +1204,177 @@ namespace NewBuddah.PredictionV2.Core
                 resolvedSteering: resolvedSteering,
                 computedStats: _computedStats,
                 pushGraceExtraSpeed: pushExtra,
-                pushGraceRemaining: pushGraceRemaining);
+                pushGraceRemaining: pushGraceRemaining,
+                impulsePendingSnapshot: _shadowPreImpulsePendingSnapshot,
+                hasPendingTeleportPreConsume: _shadowPreTeleportHasPending,
+                pendingTeleportEventId: _shadowPreTeleportEvent.EventId,
+                pendingTeleportEventTick: _shadowPreTeleportEvent.EventTick,
+                teleportTargetPosition: _shadowPreTeleportEvent.TargetPosition,
+                teleportTargetRotation: _shadowPreTeleportEvent.TargetRotation,
+                teleportFlag_SnapProgress: _shadowPreTeleportEvent.SnapProgress,
+                teleportFlag_ZeroLinearVelocity: _shadowPreTeleportEvent.ZeroLinearVelocity,
+                teleportFlag_ZeroAngularVelocity: _shadowPreTeleportEvent.ZeroAngularVelocity,
+                teleportFlag_ResetModifiers: _shadowPreTeleportEvent.ResetModifiers,
+                teleportFlag_ResetImpulseQueue: _shadowPreTeleportEvent.ResetImpulseQueue,
+                teleportFlag_ResetPushGrace: _shadowPreTeleportEvent.ResetPushGrace,
+                teleportFlag_RebaseTrails: _shadowPreTeleportEvent.RebaseTrails);
         }
 
         private void Shadow_CompareAndReport()
         {
-            if (!_realScratch.LocomotionRan && !_shadowScratch.LocomotionRan)
+            bool anyRan = _realScratch.LocomotionRan || _shadowScratch.LocomotionRan
+                          || _realScratch.ImpulseRan || _shadowScratch.ImpulseRan
+                          || _realScratch.TeleportRan || _shadowScratch.TeleportRan;
+            if (!anyRan)
             {
                 _dLocConsecutive = 0;
                 _shadowSkipCompares++;
                 if ((_shadowSkipCompares % 300) == 1)
-                    Debug.Log($"[D-LOC HEARTBEAT] T={(TimeManager != null ? TimeManager.LocalTick : 0u)} skip-ticks={_shadowSkipCompares} active-ticks={_shadowActiveCompares} (both sides idle)");
+                {
+                    uint tickIdle = TimeManager != null ? TimeManager.LocalTick : 0u;
+                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} (both sides idle)");
+                    _dLocLocomotionDivCount = 0;
+                    _dLocImpulseDivCount = 0;
+                    _dLocTeleportDivCount = 0;
+                }
                 return;
             }
 
             _shadowActiveCompares++;
             if ((_shadowActiveCompares % 120) == 1)
-                Debug.Log($"[D-LOC HEARTBEAT] T={(TimeManager != null ? TimeManager.LocalTick : 0u)} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares} divergences={_dLocConsecutive}");
+            {
+                uint tickHb = TimeManager != null ? TimeManager.LocalTick : 0u;
+                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount}");
+                _dLocLocomotionDivCount = 0;
+                _dLocImpulseDivCount = 0;
+                _dLocTeleportDivCount = 0;
+            }
 
-            bool diverged = false;
+            bool locDiverged = false;
+            bool impDiverged = false;
+            bool telDiverged = false;
             uint tick = TimeManager != null ? TimeManager.LocalTick : 0u;
 
+            // Locomotion compare (3a).
             if (_realScratch.LocomotionRan != _shadowScratch.LocomotionRan)
             {
-                Debug.LogWarning($"[D-LOC] T={tick} gate mismatch: realRan={_realScratch.LocomotionRan} shadowRan={_shadowScratch.LocomotionRan}");
-                diverged = true;
+                Debug.LogWarning($"[D-LOC] T={tick} loc gate mismatch: realRan={_realScratch.LocomotionRan} shadowRan={_shadowScratch.LocomotionRan}");
+                locDiverged = true;
             }
-            else if (_realScratch.ClampingApplied != _shadowScratch.ClampingApplied)
+            else if (_realScratch.LocomotionRan)
             {
-                Debug.LogWarning($"[D-LOC] T={tick} clamp-gate mismatch: realClamp={_realScratch.ClampingApplied} shadowClamp={_shadowScratch.ClampingApplied}");
-                diverged = true;
-            }
-            else
-            {
-                float fwdDelta = (_realScratch.CommandedForwardForce - _shadowScratch.CommandedForwardForce).magnitude;
-                float trnDelta = Mathf.Abs(_realScratch.CommandedTurnTorque - _shadowScratch.CommandedTurnTorque);
-                float velDelta = _realScratch.ClampingApplied
-                    ? (_realScratch.VelocityAfterClamp - _shadowScratch.VelocityAfterClamp).magnitude
-                    : 0f;
-
-                if (fwdDelta > 1e-4f || trnDelta > 1e-4f || velDelta > 1e-4f)
+                if (_realScratch.ClampingApplied != _shadowScratch.ClampingApplied)
                 {
-                    Debug.LogWarning($"[D-LOC] T={tick} fwd={fwdDelta:F6} trn={trnDelta:F6} vel={velDelta:F6} clamp={_realScratch.ClampingApplied}");
-                    diverged = true;
+                    Debug.LogWarning($"[D-LOC] T={tick} clamp-gate mismatch: realClamp={_realScratch.ClampingApplied} shadowClamp={_shadowScratch.ClampingApplied}");
+                    locDiverged = true;
+                }
+                else
+                {
+                    float fwdDelta = (_realScratch.CommandedForwardForce - _shadowScratch.CommandedForwardForce).magnitude;
+                    float trnDelta = Mathf.Abs(_realScratch.CommandedTurnTorque - _shadowScratch.CommandedTurnTorque);
+                    float velDelta = _realScratch.ClampingApplied
+                        ? (_realScratch.VelocityAfterClamp - _shadowScratch.VelocityAfterClamp).magnitude
+                        : 0f;
+
+                    if (fwdDelta > 1e-4f || trnDelta > 1e-4f || velDelta > 1e-4f)
+                    {
+                        Debug.LogWarning($"[D-LOC] T={tick} fwd={fwdDelta:F6} trn={trnDelta:F6} vel={velDelta:F6} clamp={_realScratch.ClampingApplied}");
+                        locDiverged = true;
+                    }
                 }
             }
 
-            if (diverged)
+            // Impulse compare (3b) — cursor + ran flag.
+            if (_realScratch.ImpulseRan != _shadowScratch.ImpulseRan)
+            {
+                Debug.LogWarning($"[D-LOC] T={tick} impulse-ran gate mismatch: real={_realScratch.ImpulseRan} shadow={_shadowScratch.ImpulseRan}");
+                impDiverged = true;
+            }
+            else if (_realScratch.ImpulseRan
+                     && _realScratch.ShadowLastConsumedImpulseId != _shadowScratch.ShadowLastConsumedImpulseId)
+            {
+                Debug.LogWarning($"[D-LOC] T={tick} impulse-consume cursor mismatch: realId={_realScratch.ShadowLastConsumedImpulseId} shadowId={_shadowScratch.ShadowLastConsumedImpulseId}");
+                impDiverged = true;
+            }
+
+            // Teleport compare (3b) — ran flag + cursor + target pose + 7 flag reads.
+            if (_realScratch.TeleportRan != _shadowScratch.TeleportRan)
+            {
+                Debug.LogWarning($"[D-LOC] T={tick} teleport-ran gate mismatch: real={_realScratch.TeleportRan} shadow={_shadowScratch.TeleportRan}");
+                telDiverged = true;
+            }
+            else if (_realScratch.TeleportRan)
+            {
+                if (_realScratch.ShadowLastConsumedTeleportId != _shadowScratch.ShadowLastConsumedTeleportId)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-consume cursor mismatch: realId={_realScratch.ShadowLastConsumedTeleportId} shadowId={_shadowScratch.ShadowLastConsumedTeleportId}");
+                    telDiverged = true;
+                }
+
+                float posDelta = (_realScratch.PostTeleportPosition - _shadowScratch.PostTeleportPosition).magnitude;
+                if (posDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-position delta={posDelta:F6}");
+                    telDiverged = true;
+                }
+
+                float rotDelta = Quaternion.Angle(_realScratch.PostTeleportRotation, _shadowScratch.PostTeleportRotation);
+                if (rotDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-rotation angular-delta-deg={rotDelta:F6}");
+                    telDiverged = true;
+                }
+
+                if (_realScratch.TeleportFlag_SnapProgress != _shadowScratch.TeleportFlag_SnapProgress)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-flag mismatch: flag=SnapProgress real={_realScratch.TeleportFlag_SnapProgress} shadow={_shadowScratch.TeleportFlag_SnapProgress}");
+                    telDiverged = true;
+                }
+                if (_realScratch.TeleportFlag_ZeroLinearVelocity != _shadowScratch.TeleportFlag_ZeroLinearVelocity)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-flag mismatch: flag=ZeroLinearVelocity real={_realScratch.TeleportFlag_ZeroLinearVelocity} shadow={_shadowScratch.TeleportFlag_ZeroLinearVelocity}");
+                    telDiverged = true;
+                }
+                if (_realScratch.TeleportFlag_ZeroAngularVelocity != _shadowScratch.TeleportFlag_ZeroAngularVelocity)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-flag mismatch: flag=ZeroAngularVelocity real={_realScratch.TeleportFlag_ZeroAngularVelocity} shadow={_shadowScratch.TeleportFlag_ZeroAngularVelocity}");
+                    telDiverged = true;
+                }
+                if (_realScratch.TeleportFlag_ResetModifiers != _shadowScratch.TeleportFlag_ResetModifiers)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-flag mismatch: flag=ResetModifiers real={_realScratch.TeleportFlag_ResetModifiers} shadow={_shadowScratch.TeleportFlag_ResetModifiers}");
+                    telDiverged = true;
+                }
+                if (_realScratch.TeleportFlag_ResetImpulseQueue != _shadowScratch.TeleportFlag_ResetImpulseQueue)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-flag mismatch: flag=ResetImpulseQueue real={_realScratch.TeleportFlag_ResetImpulseQueue} shadow={_shadowScratch.TeleportFlag_ResetImpulseQueue}");
+                    telDiverged = true;
+                }
+                if (_realScratch.TeleportFlag_ResetPushGrace != _shadowScratch.TeleportFlag_ResetPushGrace)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-flag mismatch: flag=ResetPushGrace real={_realScratch.TeleportFlag_ResetPushGrace} shadow={_shadowScratch.TeleportFlag_ResetPushGrace}");
+                    telDiverged = true;
+                }
+                if (_realScratch.TeleportFlag_RebaseTrails != _shadowScratch.TeleportFlag_RebaseTrails)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} teleport-flag mismatch: flag=RebaseTrails real={_realScratch.TeleportFlag_RebaseTrails} shadow={_shadowScratch.TeleportFlag_RebaseTrails}");
+                    telDiverged = true;
+                }
+            }
+
+            if (locDiverged) _dLocLocomotionDivCount++;
+            if (impDiverged) _dLocImpulseDivCount++;
+            if (telDiverged) _dLocTeleportDivCount++;
+
+            bool anyDiverged = locDiverged || impDiverged || telDiverged;
+            if (anyDiverged)
                 _dLocConsecutive++;
             else
                 _dLocConsecutive = 0;
 
             if (_dLocConsecutive >= 60)
             {
-                Debug.LogError($"[D-LOC FATAL] T={tick} 60 consecutive divergences. Phase 3a shadow formula out of sync. Abort cut-over.");
+                Debug.LogError($"[D-LOC FATAL] T={tick} 60 consecutive divergences. Phase 3b shadow formula out of sync. Abort cut-over.");
                 _dLocConsecutive = 0;
             }
         }
@@ -1319,6 +1460,11 @@ namespace NewBuddah.PredictionV2.Core
                 bootstrap.DebugState.lastImpulseTurnTorque = eventData.TurnTorqueImpulse;
                 bootstrap.DebugState.lastImpulseConsumed = true;
                 _impulseConsumedThisTick = true;
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+                _realScratch.ImpulseRan = true;
+                if (eventData.EventId > _realScratch.ShadowLastConsumedImpulseId)
+                    _realScratch.ShadowLastConsumedImpulseId = eventData.EventId;
+#endif
 
                 rb.WakeUp();
                 if (eventData.Impulse.sqrMagnitude > 0f)
@@ -1351,6 +1497,19 @@ namespace NewBuddah.PredictionV2.Core
             BuddahPredictedTeleportEventData eventData = _pendingTeleportEvent;
             _hasPendingTeleportEvent = false;
             _lastConsumedTeleportEventId = eventData.EventId;
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            _realScratch.TeleportRan = true;
+            _realScratch.ShadowLastConsumedTeleportId = eventData.EventId;
+            _realScratch.PostTeleportPosition = eventData.TargetPosition;
+            _realScratch.PostTeleportRotation = eventData.TargetRotation;
+            _realScratch.TeleportFlag_SnapProgress = eventData.SnapProgress;
+            _realScratch.TeleportFlag_ZeroLinearVelocity = eventData.ZeroLinearVelocity;
+            _realScratch.TeleportFlag_ZeroAngularVelocity = eventData.ZeroAngularVelocity;
+            _realScratch.TeleportFlag_ResetModifiers = eventData.ResetModifiers;
+            _realScratch.TeleportFlag_ResetImpulseQueue = eventData.ResetImpulseQueue;
+            _realScratch.TeleportFlag_ResetPushGrace = eventData.ResetPushGrace;
+            _realScratch.TeleportFlag_RebaseTrails = eventData.RebaseTrails;
+#endif
 
             Vector3 prePosition = rb.position;
             Vector3 preVelocity = rb.velocity;

@@ -39,5 +39,16 @@ namespace NewBuddah.PredictionV2.Simulation
         // motor compares against its own _computedStats at same tick.
         public bool ModifierRan;
         public BuddahPredictedMotorComputedStats ShadowComputedStats;
+
+        // Phase 3d — handoff step. HandoffRan marks whether the shadow step
+        // consumed the pending handoff slot on this tick (gate parity with motor's
+        // ConsumePendingLaunchHandoffEvent). ShadowHandoffState is the post-advance
+        // state produced by BuddahHandoffStep — compared against motor's _handoffState
+        // after motor.cs post-consume RefreshLaunchState. ShadowLastConsumedHandoffId
+        // (declared above alongside the Phase 0 cursors) is now live in 3d — its
+        // Phase 0 per-event cursor assumption was wrong for modifier (DP6 tag retained
+        // above), but correct for handoff since handoff is genuinely event-queued.
+        public bool HandoffRan;
+        public BuddahPredictedLaunchHandoffState ShadowHandoffState;
     }
 }

@@ -1,0 +1,188 @@
+Phase 3d V2 RERUN — Prediction Shadow Parity Digest
+Generated: 2026-04-19
+
+====================================================================
+§1 Session meta
+====================================================================
+- Timestamp: 2026-04-19
+- Playtest flow: Editor Host-only, intro -> gameplay ~2-3s -> stop
+- Log source: **Editor.log** is authoritative.
+  - MCP cache was truncated: both cache files (warning + error) together contained
+    only 535 unique D-LOC entries spanning ticks 527..2746 (500-entry cap evicted
+    heartbeats entirely — 0 heartbeats in MCP cache).
+  - Editor.log (C:\Users\dwh88\AppData\Local\Unity\Editor\Editor.log, 11.6 MB)
+    contained 4685 D-LOC entries spanning ticks 468..4110, including all
+    heartbeats and both the earliest and latest warning/FATAL entries.
+- Captured window: first tick = 468, last tick = 4110 (D-LOC stream).
+- Heartbeat count: 61 (every 120 active ticks, active range 1..3601).
+- Total [D-LOC] warning count: 4550 (all single-field — SnapshotRotation only).
+- Total [D-LOC FATAL] count: 74.
+- NEW SESSION confirmed: first observed tick = 468 (not continuing from prior
+  V2 run's T=2070+). Heartbeat T=630 shows active-ticks=1 — literally the first
+  heartbeat this session.
+
+====================================================================
+§2 Per-field divergence stats (all 15 handoff fields)
+====================================================================
+
+| Field                    | Div count | Sample real     | Sample shadow   | Delta pattern                                                                      |
+|--------------------------|-----------|-----------------|-----------------|------------------------------------------------------------------------------------|
+| IsActive                 |         0 |  —              |  —              | always equal                                                                       |
+| CurrentState             |         0 |  —              |  —              | always equal                                                                       |
+| EventId                  |         0 |  —              |  —              | always equal                                                                       |
+| EventTick                |         0 |  —              |  —              | always equal                                                                       |
+| StartTick                |         0 |  —              |  —              | always equal                                                                       |
+| InheritEndTick           |         0 |  —              |  —              | always equal                                                                       |
+| BlendEndTick             |         0 |  —              |  —              | always equal                                                                       |
+| SuppressSteeringUntilTick|         0 |  —              |  —              | always equal                                                                       |
+| RoomBypassUntilTick      |         0 |  —              |  —              | always equal                                                                       |
+| BlendAlpha               |         0 |  —              |  —              | always equal                                                                       |
+| SnapshotPosition         |         0 |  —              |  —              | always equal                                                                       |
+| SnapshotRotation         |      4550 | default(Quat)   | default(Quat)   | **FIXED 180.000000 deg — COMPARATOR FALSE POSITIVE** (see §4/§5)                   |
+| SnapshotVelocity         |         0 |  —              |  —              | always equal                                                                       |
+| SnapshotAngularVelocity  |         0 |  —              |  —              | always equal                                                                       |
+| SnapshotForward          |         0 |  —              |  —              | always equal                                                                       |
+
+Representative SnapshotRotation warnings (verbatim, identical across all 4550):
+  [D-LOC] T=630 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=1500 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2900 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+
+SnapshotRotation warning analysis:
+- Unique angle-deg values observed: **1** (exactly 180.000000, zero variance).
+- Tick gap histogram: {gap=1: 2432, gap=0: 2117}. gap=0 means two motors (Host
+  player + Host-authoritative other-player) both report at the same tick. gap=1
+  means the warning fires every consecutive tick — no intermittency.
+- First warning tick: 468. Last warning tick: 2900.
+- No warnings after T=2900 — coincides with the real side's first hof-consume.
+
+Other [D-LOC] categories (loc / imp / tel / mod / hof-flag / hof-field-mismatch /
+hof-ran / hof-consume): **0 occurrences.** 3a/3b/3c shadow parity preserved.
+
+[D-LOC FATAL] format: all 74 FATALs are the phase-agnostic shape
+  [D-LOC FATAL] T=<tick> shadow formula divergence: {hof}
+FATAL tick range: 527..2849. Gap histogram: {60:4, 42:35, 18:34} — dominant
+60-tick throttle split across two motors (18+42=60, 42+18=60 interleaved).
+
+====================================================================
+§3 Consume transition tick-by-tick
+====================================================================
+
+The only hof-compared 0 -> 1 transition in the run is at heartbeat T=2910.
+Heartbeat (verbatim):
+  [D-LOC HEARTBEAT] T=2790 active-ticks=2161 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=120
+    imp-compared=0 tel-compared=0 mod-compared=2161 hof-compared=0
+  [D-LOC HEARTBEAT] T=2910 active-ticks=2281 skip-ticks=0      <-- transition
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=111
+    imp-compared=0 tel-compared=0 mod-compared=2281 hof-compared=1
+  [D-LOC HEARTBEAT] T=3030 active-ticks=2401 skip-ticks=0      <-- fully clean
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=0
+    imp-compared=0 tel-compared=0 mod-compared=2401 hof-compared=1
+
+Warnings in +-10 ticks of the last transition-window warning (T=2900):
+  [D-LOC] T=2891 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2892 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2893 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2894 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2895 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2896 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2897 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2898 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2899 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  [D-LOC] T=2900 hof-field delta: field=SnapshotRotation angle-deg=180.000000
+  (no further SnapshotRotation warnings after T=2900)
+
+Annotation: exactly at the consume (somewhere in T=2790..2910), the SnapshotRotation
+divergence flips from "always diverging by 180 deg" -> "never divergent". No other
+field changes state at the transition (all were 0-div before and remain 0-div after).
+The FATAL throttle stops at T=2849 — its last emission precedes the post-consume
+quiescence by 51..61 ticks (consistent with 60-tick throttle).
+
+====================================================================
+§4 Flag-type field diagnosis
+====================================================================
+
+- IsActive: **NO divergence in pre-consume window.** 0 warnings total.
+- CurrentState: **NO divergence.** 0 warnings total.
+- EventId, EventTick, StartTick, InheritEndTick, BlendEndTick,
+  SuppressSteeringUntilTick, RoomBypassUntilTick: **all 0 warnings.**
+
+Both sides agree that handoff is inactive for the entire pre-consume window
+(IsActive=false, CurrentState=Normal, EventId=0, all tick fields=0). The
+ONLY divergent field is SnapshotRotation, and only by exactly 180.000000 deg —
+a fixed, value-independent constant. This is NOT a populated-vs-default
+mismatch; both sides hold default(Quaternion) = (0,0,0,0).
+
+Root cause is NOT in the _handoffState pre-populate path — no _handoffState
+field ever disagrees. Root cause is in the SnapshotRotation comparator:
+
+  float rotDelta = Quaternion.Angle(realHof.SnapshotRotation, shadowHof.SnapshotRotation);
+  (BuddahPredictedMotor.cs:1599-1603)
+
+Quaternion.Angle(default, default) returns exactly 180 deg because the Unity
+formula is approximately 2*acos(clamp(|dot|,0,1)), and dot((0,0,0,0),(0,0,0,0))=0
+=> 2*acos(0) = 180. Both sides store (0,0,0,0) (struct-default), so the values
+are bit-identical; the comparator simply mis-scores bit-identical default quats
+as "180 deg apart". Once a real handoff consume runs (T~=2790..2910), both sides
+receive a real projected quaternion (not default) and Quaternion.Angle correctly
+returns 0.
+
+====================================================================
+§5 VERDICT + hypothesis ranking
+====================================================================
+
+VERDICT: **Comparator false positive. No actual shadow divergence.**
+
+Evidence: single-field divergence with exactly one observed angle-deg value
+(180.000000, zero variance, zero dependence on tick / input / state), occurring
+uniformly from the first comparison tick, and vanishing the instant a real
+handoff consume fires on both sides. All 14 sibling fields (including the
+IsActive/CurrentState flags that would gate a legitimate populate/default split)
+are bit-identical. This is the canonical signature of the Quaternion.Angle
+default-quaternion bug — NOT a state-capture-timing bug.
+
+Hypothesis ranking:
+
+1. (CONFIRMED) Quaternion.Angle default-vs-default false positive.
+   Evidence:
+   - Exactly 180.000000 deg, zero variance, 4550 samples.
+   - All other 14 handoff fields exhibit 0 divergences — including IsActive,
+     which would have to mismatch if the state-capture path differed between
+     real and shadow.
+   - Divergence vanishes at the first hof-consume (T~=2910 heartbeat) because
+     both sides then hold real quaternions, not default ones.
+   - motor.cs:373 assigns _realScratch.ShadowHandoffState = _handoffState (a
+     default struct while inactive) and BuddahHandoffStep.cs:30-44 likewise
+     returns state built from ctx.ShadowPreHandoffState (default) through
+     Advance(...) which never writes SnapshotRotation. Both end up with
+     default(Quaternion) = (0,0,0,0).
+
+2. (REJECTED) Pre-populate path timing bug. Would require at least IsActive
+   or one tick-field to also diverge — observed count is 0 on every such field.
+
+3. (REJECTED) Transient-at-consume-only. Warnings are continuous across 2432
+   ticks, not transient; they actually STOP at the consume.
+
+Recommendation: **direct fix — no Step 3 outside-RunInputs audit needed.**
+
+Proposed fix site (non-binding, no .cs change performed): in
+BuddahPredictedMotor.cs around line 1599, guard Quaternion.Angle against
+default quaternions. Options (pick one during implementation):
+  a) Skip the comparison when both sides are default:
+       if (realHof.SnapshotRotation != default && shadowHof.SnapshotRotation != default) { ... }
+  b) Gate on IsActive (both sides agree it's false already):
+       if (realHof.IsActive || shadowHof.IsActive) { ... Quaternion.Angle ... }
+  c) Compare components directly with tolerance:
+       Vector4 dq = new Vector4(r.x-s.x, r.y-s.y, r.z-s.z, r.w-s.w);
+       if (dq.sqrMagnitude > 1e-8f) { ... }
+Option (b) is cleanest and aligns with the semantic "SnapshotRotation is only
+defined when handoff is active."
+
+Confirmation: 74 FATAL emissions and 4550 warnings are noise from this one
+comparator site. Once the guard lands, phase 3d parity audit will be clean
+end-to-end (loc/imp/tel/mod/hof all equal).
+
+====================================================================
+End of digest.
+====================================================================

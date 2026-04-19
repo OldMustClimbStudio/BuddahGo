@@ -87,6 +87,15 @@ namespace NewBuddah.PredictionV2.Core
         private BuddahPredictedModifierState _shadowModifierStateSnapshot;
         private uint _shadowModifierConsumedCount;
         private int _dLocModifierDivCount;
+        // Phase 3d — handoff shadow state. Snapshots pre-consume (before motor.cs
+        // ConsumePendingLaunchHandoffEvent) so BuddahHandoffStep can parity-mirror
+        // the consume → FromData → Advance pipeline. Cumulative counter obeys L13
+        // (compared>0 gate); per-window divergence counter resets at heartbeat.
+        private bool _shadowPreHandoffHasPending;
+        private BuddahPredictedLaunchHandoffData _shadowPreHandoffEvent;
+        private BuddahPredictedLaunchHandoffState _shadowPreHandoffState;
+        private uint _shadowHandoffConsumedCount;
+        private int _dLocHandoffDivCount;
 #endif
 
         public bool IsLaunchHandoffActive => _handoffState.IsActive || _externalKinematicControlActive || _introControlActive;
@@ -331,6 +340,9 @@ namespace NewBuddah.PredictionV2.Core
             _shadowPreTeleportHasPending = _hasPendingTeleportEvent;
             _shadowPreTeleportEvent = _pendingTeleportEvent;
             _impulseEventQueue.CopyPendingSnapshot(_shadowPreImpulsePendingSnapshot);
+            _shadowPreHandoffHasPending = _hasPendingLaunchHandoffEvent;
+            _shadowPreHandoffEvent = _pendingLaunchHandoffEvent;
+            _shadowPreHandoffState = _handoffState;
             {
                 BuddahPredictionTickContext earlyTickCtx = BuildTickContext(in data, Vector3.forward, 0f, 0f);
                 BuddahTeleportStep.Run(in earlyTickCtx, in data, ref _shadowScratch);
@@ -355,11 +367,18 @@ namespace NewBuddah.PredictionV2.Core
             _shadowModifierStateSnapshot = _modifierState;
             _realScratch.ShadowComputedStats = _computedStats;
             _realScratch.ModifierRan = true;
+            // Real-side handoff mirror: _handoffState after motor.cs RefreshLaunchState at
+            // line above is the post-consume authoritative state. HandoffRan and the cursor
+            // are set inside ConsumePendingLaunchHandoffEvent when consume actually fires.
+            _realScratch.ShadowHandoffState = _handoffState;
             {
                 BuddahPredictionTickContext modifierTickCtx = BuildTickContext(in data, Vector3.forward, 0f, 0f);
                 BuddahModifierStep.Run(in modifierTickCtx, in data, ref _shadowScratch);
                 if (_shadowScratch.ModifierRan)
                     _shadowModifierConsumedCount++;
+                BuddahHandoffStep.Run(in modifierTickCtx, in data, ref _shadowScratch);
+                if (_shadowScratch.HandoffRan)
+                    _shadowHandoffConsumedCount++;
             }
 #endif
             ApplyResolvedMassMultiplier();
@@ -1242,7 +1261,10 @@ namespace NewBuddah.PredictionV2.Core
                 teleportFlag_ResetPushGrace: _shadowPreTeleportEvent.ResetPushGrace,
                 teleportFlag_RebaseTrails: _shadowPreTeleportEvent.RebaseTrails,
                 shadowModifierStateSnapshot: _shadowModifierStateSnapshot,
-                config: config);
+                config: config,
+                shadowPreHandoffHasPending: _shadowPreHandoffHasPending,
+                shadowPreHandoffEvent: _shadowPreHandoffEvent,
+                shadowPreHandoffState: _shadowPreHandoffState);
         }
 
         private void Shadow_CompareAndReport()
@@ -1250,7 +1272,8 @@ namespace NewBuddah.PredictionV2.Core
             bool anyRan = _realScratch.LocomotionRan || _shadowScratch.LocomotionRan
                           || _realScratch.ImpulseRan || _shadowScratch.ImpulseRan
                           || _realScratch.TeleportRan || _shadowScratch.TeleportRan
-                          || _realScratch.ModifierRan || _shadowScratch.ModifierRan;
+                          || _realScratch.ModifierRan || _shadowScratch.ModifierRan
+                          || _realScratch.HandoffRan || _shadowScratch.HandoffRan;
             if (!anyRan)
             {
                 _dLocConsecutive = 0;
@@ -1258,11 +1281,12 @@ namespace NewBuddah.PredictionV2.Core
                 if ((_shadowSkipCompares % 300) == 1)
                 {
                     uint tickIdle = TimeManager != null ? TimeManager.LocalTick : 0u;
-                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} (both sides idle)");
+                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} (both sides idle)");
                     _dLocLocomotionDivCount = 0;
                     _dLocImpulseDivCount = 0;
                     _dLocTeleportDivCount = 0;
                     _dLocModifierDivCount = 0;
+                    _dLocHandoffDivCount = 0;
                 }
                 return;
             }
@@ -1271,17 +1295,19 @@ namespace NewBuddah.PredictionV2.Core
             if ((_shadowActiveCompares % 120) == 1)
             {
                 uint tickHb = TimeManager != null ? TimeManager.LocalTick : 0u;
-                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount}");
+                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount}");
                 _dLocLocomotionDivCount = 0;
                 _dLocImpulseDivCount = 0;
                 _dLocTeleportDivCount = 0;
                 _dLocModifierDivCount = 0;
+                _dLocHandoffDivCount = 0;
             }
 
             bool locDiverged = false;
             bool impDiverged = false;
             bool telDiverged = false;
             bool modDiverged = false;
+            bool hofDiverged = false;
             uint tick = TimeManager != null ? TimeManager.LocalTick : 0u;
 
             // Locomotion compare (3a).
@@ -1486,12 +1512,138 @@ namespace NewBuddah.PredictionV2.Core
                 }
             }
 
+            // Handoff compare (3d) — 15 LaunchHandoffState fields. Real side mirrors
+            // motor's _handoffState after the post-consume RefreshLaunchState; shadow
+            // side re-runs Advance / ProjectForArrivalTick / FromData on snapshotted
+            // pre-consume state via BuddahHandoffStep. Both paths call
+            // BuddahPredictedLaunchHandoffResolver, so output is bit-identical by
+            // construction — any delta > 1e-4 or flag mismatch points to divergent
+            // input state (snapshot timing drift, serializer precision, etc.), NOT
+            // resolver noise.
+            if (_realScratch.HandoffRan != _shadowScratch.HandoffRan)
+            {
+                Debug.LogWarning($"[D-LOC] T={tick} hof-ran gate mismatch: real={_realScratch.HandoffRan} shadow={_shadowScratch.HandoffRan}");
+                hofDiverged = true;
+            }
+            else if (_realScratch.HandoffRan
+                     && _realScratch.ShadowLastConsumedHandoffId != _shadowScratch.ShadowLastConsumedHandoffId)
+            {
+                Debug.LogWarning($"[D-LOC] T={tick} hof-consume cursor mismatch: realId={_realScratch.ShadowLastConsumedHandoffId} shadowId={_shadowScratch.ShadowLastConsumedHandoffId}");
+                hofDiverged = true;
+            }
+
+            {
+                BuddahPredictedLaunchHandoffState realHof = _realScratch.ShadowHandoffState;
+                BuddahPredictedLaunchHandoffState shadowHof = _shadowScratch.ShadowHandoffState;
+
+                if (realHof.IsActive != shadowHof.IsActive)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-flag mismatch: flag=IsActive real={realHof.IsActive} shadow={shadowHof.IsActive}");
+                    hofDiverged = true;
+                }
+                if (realHof.CurrentState != shadowHof.CurrentState)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-flag mismatch: flag=CurrentState real={realHof.CurrentState} shadow={shadowHof.CurrentState}");
+                    hofDiverged = true;
+                }
+                if (realHof.EventId != shadowHof.EventId)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=EventId real={realHof.EventId} shadow={shadowHof.EventId}");
+                    hofDiverged = true;
+                }
+                if (realHof.EventTick != shadowHof.EventTick)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=EventTick real={realHof.EventTick} shadow={shadowHof.EventTick}");
+                    hofDiverged = true;
+                }
+                if (realHof.StartTick != shadowHof.StartTick)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=StartTick real={realHof.StartTick} shadow={shadowHof.StartTick}");
+                    hofDiverged = true;
+                }
+                if (realHof.InheritEndTick != shadowHof.InheritEndTick)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=InheritEndTick real={realHof.InheritEndTick} shadow={shadowHof.InheritEndTick}");
+                    hofDiverged = true;
+                }
+                if (realHof.BlendEndTick != shadowHof.BlendEndTick)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=BlendEndTick real={realHof.BlendEndTick} shadow={shadowHof.BlendEndTick}");
+                    hofDiverged = true;
+                }
+                if (realHof.SuppressSteeringUntilTick != shadowHof.SuppressSteeringUntilTick)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=SuppressSteeringUntilTick real={realHof.SuppressSteeringUntilTick} shadow={shadowHof.SuppressSteeringUntilTick}");
+                    hofDiverged = true;
+                }
+                if (realHof.RoomBypassUntilTick != shadowHof.RoomBypassUntilTick)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=RoomBypassUntilTick real={realHof.RoomBypassUntilTick} shadow={shadowHof.RoomBypassUntilTick}");
+                    hofDiverged = true;
+                }
+
+                float alphaDelta = Mathf.Abs(realHof.BlendAlpha - shadowHof.BlendAlpha);
+                if (alphaDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field delta: field=BlendAlpha real={realHof.BlendAlpha:F6} shadow={shadowHof.BlendAlpha:F6} delta={alphaDelta:F6}");
+                    hofDiverged = true;
+                }
+
+                float posDelta = (realHof.SnapshotPosition - shadowHof.SnapshotPosition).magnitude;
+                if (posDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field delta: field=SnapshotPosition magnitude={posDelta:F6}");
+                    hofDiverged = true;
+                }
+
+                // Normalize default(Quaternion)=(0,0,0,0) to Quaternion.identity before Angle compare.
+                // Quaternion.Angle(default, default) returns 180° (dot=0, 2*acos(0)=180°), producing
+                // a false-positive divergence when both sides hold uninitialized quaternion (typical
+                // pre-consume steady state with IsActive=false). Both default quaternions ARE equal;
+                // only the compare tool misreports. Normalizing preserves divergence detection for
+                // any non-zero rotation. See Docs/lessons-log.md L15.
+                Quaternion realRot = realHof.SnapshotRotation;
+                Quaternion shadowRot = shadowHof.SnapshotRotation;
+                if (realRot.x == 0f && realRot.y == 0f && realRot.z == 0f && realRot.w == 0f)
+                    realRot = Quaternion.identity;
+                if (shadowRot.x == 0f && shadowRot.y == 0f && shadowRot.z == 0f && shadowRot.w == 0f)
+                    shadowRot = Quaternion.identity;
+                float rotDelta = Quaternion.Angle(realRot, shadowRot);
+                if (rotDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field delta: field=SnapshotRotation angle-deg={rotDelta:F6}");
+                    hofDiverged = true;
+                }
+
+                float velDelta = (realHof.SnapshotVelocity - shadowHof.SnapshotVelocity).magnitude;
+                if (velDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field delta: field=SnapshotVelocity magnitude={velDelta:F6}");
+                    hofDiverged = true;
+                }
+
+                float angDelta = (realHof.SnapshotAngularVelocity - shadowHof.SnapshotAngularVelocity).magnitude;
+                if (angDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field delta: field=SnapshotAngularVelocity magnitude={angDelta:F6}");
+                    hofDiverged = true;
+                }
+
+                float fwdDelta = (realHof.SnapshotForward - shadowHof.SnapshotForward).magnitude;
+                if (fwdDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field delta: field=SnapshotForward magnitude={fwdDelta:F6}");
+                    hofDiverged = true;
+                }
+            }
+
             if (locDiverged) _dLocLocomotionDivCount++;
             if (impDiverged) _dLocImpulseDivCount++;
             if (telDiverged) _dLocTeleportDivCount++;
             if (modDiverged) _dLocModifierDivCount++;
+            if (hofDiverged) _dLocHandoffDivCount++;
 
-            bool anyDiverged = locDiverged || impDiverged || telDiverged || modDiverged;
+            bool anyDiverged = locDiverged || impDiverged || telDiverged || modDiverged || hofDiverged;
             if (anyDiverged)
                 _dLocConsecutive++;
             else
@@ -1499,7 +1651,20 @@ namespace NewBuddah.PredictionV2.Core
 
             if (_dLocConsecutive >= 60)
             {
-                Debug.LogError($"[D-LOC FATAL] T={tick} 60 consecutive divergences. Phase 3c shadow formula out of sync. Abort cut-over.");
+                // Phase-agnostic FATAL: lists the diverged categories present this
+                // window instead of naming a specific phase. Easier to maintain across
+                // future shadow phases without per-phase text churn.
+                string categories;
+                {
+                    var sb = new StringBuilder();
+                    if (locDiverged) sb.Append(sb.Length > 0 ? ",loc" : "loc");
+                    if (impDiverged) sb.Append(sb.Length > 0 ? ",imp" : "imp");
+                    if (telDiverged) sb.Append(sb.Length > 0 ? ",tel" : "tel");
+                    if (modDiverged) sb.Append(sb.Length > 0 ? ",mod" : "mod");
+                    if (hofDiverged) sb.Append(sb.Length > 0 ? ",hof" : "hof");
+                    categories = sb.ToString();
+                }
+                Debug.LogError($"[D-LOC FATAL] T={tick} shadow formula divergence: {{{categories}}}");
                 _dLocConsecutive = 0;
             }
         }
@@ -1722,12 +1887,25 @@ namespace NewBuddah.PredictionV2.Core
             _hasPendingLaunchHandoffEvent = false;
             _awaitingAuthoritativeLaunchHandoff = false;
             _localPreHandoffBypassUntilTick = currentTick;
-            eventData = AdjustLaunchHandoffForArrivalTick(eventData, currentTick);
+            uint preAdjustStartTick = eventData.StartTick;
+            float tickDeltaSeconds = TimeManager != null ? (float)TimeManager.TickDelta : 0f;
+            eventData = BuddahPredictedLaunchHandoffResolver.ProjectForArrivalTick(eventData, currentTick, tickDeltaSeconds);
+            if (bootstrap != null && eventData.StartTick != preAdjustStartTick)
+            {
+                uint staleTicks = currentTick - preAdjustStartTick;
+                bootstrap.LogVerbose(
+                    $"[HandoffDebug] stale handoff adjusted eventId={eventData.EventId} staleTicks={staleTicks} " +
+                    $"oldStart={preAdjustStartTick} newStart={currentTick} projectedPos={eventData.SnapshotPosition}");
+            }
             bootstrap?.LogVerbose(
                 $"[HandoffDebug] consuming queued handoff eventId={eventData.EventId} currentTick={currentTick} startTick={eventData.StartTick} " +
                 $"speed={eventData.SnapshotVelocity.magnitude:0.00}");
             _lastConsumedLaunchHandoffEventId = eventData.EventId;
             _handoffState = BuddahPredictedLaunchHandoffState.FromData(eventData);
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            _realScratch.HandoffRan = true;
+            _realScratch.ShadowLastConsumedHandoffId = eventData.EventId;
+#endif
 
             Vector3 preVelocity = rb.velocity;
             if (bootstrap != null)
@@ -1761,66 +1939,16 @@ namespace NewBuddah.PredictionV2.Core
                 $"speed={eventData.SnapshotVelocity.magnitude:0.00} suppressUntil={_handoffState.SuppressSteeringUntilTick} bypassUntil={_handoffState.RoomBypassUntilTick}");
         }
 
-        private BuddahPredictedLaunchHandoffData AdjustLaunchHandoffForArrivalTick(BuddahPredictedLaunchHandoffData eventData, uint currentTick)
-        {
-            if (currentTick <= eventData.StartTick)
-                return eventData;
-
-            uint staleTicks = currentTick - eventData.StartTick;
-            float elapsedSeconds = GetElapsedSeconds(staleTicks);
-            Vector3 projectedPosition = eventData.SnapshotPosition + (eventData.SnapshotVelocity * elapsedSeconds);
-            Quaternion projectedRotation = ProjectRotationForward(eventData.SnapshotRotation, eventData.SnapshotAngularVelocity, elapsedSeconds);
-            Vector3 projectedForward = projectedRotation * Vector3.forward;
-            projectedForward.y = 0f;
-            if (projectedForward.sqrMagnitude < 0.0001f)
-                projectedForward = eventData.SnapshotForward;
-            if (projectedForward.sqrMagnitude < 0.0001f)
-                projectedForward = Vector3.forward;
-            projectedForward.Normalize();
-
-            bootstrap?.LogVerbose(
-                $"[HandoffDebug] stale handoff adjusted eventId={eventData.EventId} staleTicks={staleTicks} " +
-                $"oldStart={eventData.StartTick} newStart={currentTick} projectedPos={projectedPosition}");
-
-            eventData.StartTick = currentTick;
-            eventData.SnapshotPosition = projectedPosition;
-            eventData.SnapshotRotation = projectedRotation;
-            eventData.SnapshotForward = projectedForward;
-            return eventData;
-        }
-
+        // Phase 3d — thin wrapper over BuddahPredictedLaunchHandoffResolver.Advance.
+        // Motor owns the verbose-log side effect (resolver stays pure). The in-place
+        // previousState capture is preserved by reading _handoffState.CurrentState
+        // BEFORE the assignment below. Behavior-neutral vs the prior in-place impl.
         private void RefreshLaunchState(uint currentTick)
         {
-            if (!_handoffState.IsActive)
-            {
-                _handoffState.CurrentState = BuddahPredictedLaunchState.Normal;
-                _handoffState.BlendAlpha = 1f;
-                return;
-            }
-
-            BuddahPredictedLaunchState previousState = _handoffState.CurrentState;
-
-            if (_handoffState.InheritEndTick > currentTick && _handoffState.InheritEndTick > _handoffState.StartTick)
-            {
-                _handoffState.CurrentState = BuddahPredictedLaunchState.Inherit;
-                _handoffState.BlendAlpha = 0f;
-            }
-            else if (_handoffState.BlendEndTick > currentTick && _handoffState.BlendEndTick > _handoffState.InheritEndTick)
-            {
-                _handoffState.CurrentState = BuddahPredictedLaunchState.Blend;
-                uint blendTicks = _handoffState.BlendEndTick - _handoffState.InheritEndTick;
-                uint elapsedBlendTicks = currentTick > _handoffState.InheritEndTick ? currentTick - _handoffState.InheritEndTick : 0u;
-                _handoffState.BlendAlpha = blendTicks > 0u ? Mathf.Clamp01((float)elapsedBlendTicks / blendTicks) : 1f;
-            }
-            else
-            {
-                _handoffState.CurrentState = BuddahPredictedLaunchState.Normal;
-                _handoffState.BlendAlpha = 1f;
-                _handoffState.IsActive = false;
-            }
-
-            if (bootstrap != null && previousState != _handoffState.CurrentState)
-                bootstrap.LogVerbose($"handoff state transition {previousState} -> {_handoffState.CurrentState} tick={currentTick} id={_handoffState.EventId}");
+            BuddahPredictedLaunchHandoffState advanced = BuddahPredictedLaunchHandoffResolver.Advance(_handoffState, currentTick);
+            if (bootstrap != null && _handoffState.IsActive && _handoffState.CurrentState != advanced.CurrentState)
+                bootstrap.LogVerbose($"handoff state transition {_handoffState.CurrentState} -> {advanced.CurrentState} tick={currentTick} id={_handoffState.EventId}");
+            _handoffState = advanced;
         }
 
         private void ApplyLaunchHandoffInputScaling(uint currentTick, ref float throttle, ref float steering)
@@ -1896,25 +2024,6 @@ namespace NewBuddah.PredictionV2.Core
                 return 0u;
 
             return (uint)Mathf.CeilToInt(durationSeconds / Mathf.Max(0.0001f, (float)TimeManager.TickDelta));
-        }
-
-        private float GetElapsedSeconds(uint durationTicks)
-        {
-            if (TimeManager == null || durationTicks == 0u)
-                return 0f;
-
-            return durationTicks * Mathf.Max(0.0001f, (float)TimeManager.TickDelta);
-        }
-
-        private static Quaternion ProjectRotationForward(Quaternion rotation, Vector3 angularVelocity, float elapsedSeconds)
-        {
-            float angularSpeed = angularVelocity.magnitude;
-            if (angularSpeed <= 0.0001f || elapsedSeconds <= 0f)
-                return rotation;
-
-            Vector3 axis = angularVelocity / angularSpeed;
-            float angleDegrees = angularSpeed * elapsedSeconds * Mathf.Rad2Deg;
-            return Quaternion.AngleAxis(angleDegrees, axis) * rotation;
         }
 
         private bool IsLocalPreHandoffBypassActive(uint currentTick)

@@ -1,0 +1,358 @@
+# Phase 3d V2 Host-Only — Console Digest
+
+Date: 2026-04-19
+Branch: refactor/prediction-v2 (Phase 3d V1 implementation, uncommitted)
+Peer role: HOST (Editor, BUDDAH_PREDICTION_SHADOW on, standalone host session)
+Scenario: host-only intro → gameplay transition, ~60s+ active window
+Source: MCP log cache (scraped via console-get-logs post-stop)
+Gate: Phase 3d V2 PASS per reviewer spec —
+  hof-div=0 on every heartbeat AND hof-compared>=1 at tail AND
+  loc-div/imp-div/tel-div/mod-div=0 AND 0 non-hb [D-LOC] AND 0 [D-LOC FATAL].
+
+## Verdict (HOST V2 — Phase 3d)
+**FAIL**
+  - loc-div = 0 on every heartbeat                ✅
+  - imp-div = 0 on every heartbeat                ✅
+  - tel-div = 0 on every heartbeat                ✅
+  - mod-div = 0 on every heartbeat                ✅
+  - hof-div = **120 on 7 heartbeats**, 111 on 1, 0 on 10   ❌
+  - hof-compared at tail = 1 (>=1)                ✅
+  - mod-compared tail = 3481                      ✅
+  - 0 non-heartbeat [D-LOC] warnings              ⚠ (see §Anomaly below)
+  - [D-LOC FATAL] fired **repeatedly** across ~36 emissions  ❌
+
+Overall: shadow handoff parity FAILS during the pre-consume window.
+Divergence resolves to zero the moment the handoff event actually
+consumes. Phase 3d implementation has a real bug that must be fixed
+before V2 re-run.
+
+## Build Fix Verification
+  [D-LOC HEARTBEAT] occurrences:       18 (captured window)
+  hof-div + hof-compared present:      18/18
+  → Phase 3d heartbeat format (4-line compares, 4 compared counters)
+    is wired and emitting correctly.
+  [D-LOC FATAL] **phase-agnostic format** confirmed:
+    every FATAL line reads:
+      `[D-LOC FATAL] T=<tick> shadow formula divergence: {hof}`
+    NOT the old `Phase 3c/3d shadow formula out of sync` text.
+    #8 FATAL format change is live and functioning correctly.
+
+## D-LOC Counts
+  [D-LOC HEARTBEAT]:                    18
+    - active form:                       18
+    - idle form ("both sides idle"):      0
+  [D-LOC] non-heartbeat (Warning):       0  (anomaly — see §Anomaly)
+  [D-LOC FATAL]:                        ~36 captured (Error-log window
+                                         capped at 200; first at T=689,
+                                         last observed T=2849; fires
+                                         approximately every 60 ticks
+                                         where `_dLocConsecutive >= 60`)
+
+## Tick Range Covered (by captured heartbeats)
+  First heartbeat T=2070 active-ticks=1441 skip-ticks=0
+  Last  heartbeat T=4110 active-ticks=3481 skip-ticks=0
+  Captured window: 2040 active ticks (~34s @ 60Hz).
+  Earlier heartbeats from the session's first ~24s evicted from the
+  MCP 2000-entry cache window. `[D-LOC FATAL]` emissions first seen
+  at T=689 (the minimum observed in the Error window) confirm the
+  divergence began ~23s BEFORE the captured heartbeat window — i.e.,
+  divergence began at session start, not mid-session.
+
+## Tail Cumulative Counters
+  imp-compared: 0 (no impulses cast — consistent with scenario)
+  tel-compared: 0 (no teleports — consistent with scenario)
+  mod-compared: 3481
+  hof-compared: 1 (handoff consumed exactly once, at intro→gameplay
+                   transition; plateau behavior is expected)
+
+## Ratio Check
+  mod-compared delta (first→last): 3481 - 1441 = 2040
+  active-ticks delta   (first→last): 3481 - 1441 = 2040
+  Ratio: **1.00** — HOST 1:1 as expected (no reconcile-replay on
+  server). Ratio verifies 3c parity preserved.
+
+## First 5 Active Heartbeats (verbatim)
+  [D-LOC HEARTBEAT] T=2070 active-ticks=1441 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=120
+    imp-compared=0 tel-compared=0 mod-compared=1441 hof-compared=0
+
+  [D-LOC HEARTBEAT] T=2190 active-ticks=1561 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=120
+    imp-compared=0 tel-compared=0 mod-compared=1561 hof-compared=0
+
+  [D-LOC HEARTBEAT] T=2310 active-ticks=1681 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=120
+    imp-compared=0 tel-compared=0 mod-compared=1681 hof-compared=0
+
+  [D-LOC HEARTBEAT] T=2430 active-ticks=1801 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=120
+    imp-compared=0 tel-compared=0 mod-compared=1801 hof-compared=0
+
+  [D-LOC HEARTBEAT] T=2550 active-ticks=1921 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=120
+    imp-compared=0 tel-compared=0 mod-compared=1921 hof-compared=0
+
+## Last 5 Active Heartbeats (verbatim)
+  [D-LOC HEARTBEAT] T=3630 active-ticks=3001 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=0
+    imp-compared=0 tel-compared=0 mod-compared=3001 hof-compared=1
+
+  [D-LOC HEARTBEAT] T=3750 active-ticks=3121 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=0
+    imp-compared=0 tel-compared=0 mod-compared=3121 hof-compared=1
+
+  [D-LOC HEARTBEAT] T=3870 active-ticks=3241 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=0
+    imp-compared=0 tel-compared=0 mod-compared=3241 hof-compared=1
+
+  [D-LOC HEARTBEAT] T=3990 active-ticks=3361 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=0
+    imp-compared=0 tel-compared=0 mod-compared=3361 hof-compared=1
+
+  [D-LOC HEARTBEAT] T=4110 active-ticks=3481 skip-ticks=0
+    loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=0
+    imp-compared=0 tel-compared=0 mod-compared=3481 hof-compared=1
+
+## Full Heartbeat Progression (18 heartbeats, all categories = 0 where not listed)
+  idx  T      active  hof-div  hof-compared  mod-compared
+    1  2070   1441    120      0             1441
+    2  2190   1561    120      0             1561
+    3  2310   1681    120      0             1681
+    4  2430   1801    120      0             1801
+    5  2550   1921    120      0             1921
+    6  2670   2041    120      0             2041
+    7  2790   2161    120      0             2161   ← hof divergence still active
+    8  2910   2281    111      1             2281   ← handoff consumed mid-window;
+                                                      9 trailing ticks converged
+    9  3030   2401      0      1             2401   ← converged
+   10  3150   2521      0      1             2521
+   11  3270   2641      0      1             2641
+   12  3390   2761      0      1             2761
+   13  3510   2881      0      1             2881
+   14  3630   3001      0      1             3001
+   15  3750   3121      0      1             3121
+   16  3870   3241      0      1             3241
+   17  3990   3361      0      1             3361
+   18  4110   3481      0      1             3481
+
+## Sample [D-LOC FATAL] Lines (verbatim, first 5 from Error-log window)
+  [D-LOC FATAL] T=689 shadow formula divergence: {hof}
+  [D-LOC FATAL] T=749 shadow formula divergence: {hof}
+  [D-LOC FATAL] T=809 shadow formula divergence: {hof}
+  [D-LOC FATAL] T=869 shadow formula divergence: {hof}
+  [D-LOC FATAL] T=929 shadow formula divergence: {hof}
+
+  All 36+ captured FATAL entries have identical shape: only `{hof}`
+  in the category list. Confirms:
+  (a) 3a/3b/3c parity preserved (loc/imp/tel/mod never diverged);
+  (b) #8 phase-agnostic FATAL format works (lists categories, not
+      phase number).
+
+## §Anomaly — Missing [D-LOC] non-heartbeat warnings
+
+hof-div=120 per heartbeat window implies up to 120 LogWarning emissions
+per window (each divergent tick emits per-field warnings inside the
+compare block). Yet the Warning-log query returned 0 `[D-LOC]` lines
+(the 200 captured Warning entries are all `NullReferenceException` from
+`FishNet.Managing.Predicting.PredictionManager.ReconcileToStates:551`
+— pre-existing FishNet noise, unrelated to 3d).
+
+Likely explanations:
+  (a) MCP cache eviction — heavy LogWarning volume from shadow compare
+      may have rolled out of the 2000-entry window as the session
+      progressed. FATAL lines survived because they're Error-type, not
+      Warning-type, and eviction rolls each type independently.
+  (b) Unity editor console collapse — identical LogWarning messages
+      (same field, same delta) may collapse to a single entry which MCP
+      reports once.
+
+**Diagnostic pathway** for follow-up: either
+  (i) run V2 again with console-clear-logs right before a ~5-second
+      playtest window, so the cache doesn't evict pre-handoff
+      warnings; or
+  (ii) read raw Editor.log (`%LOCALAPPDATA%\Unity\Editor\Editor.log`)
+      which carries the full uncut stream.
+
+This anomaly does NOT change the VERDICT (FAIL is established by
+hof-div counter alone — incrementation of `_dLocHandoffDivCount`
+happens only when `hofDiverged=true` at least once per tick, which
+requires at least one LogWarning to have fired).
+
+## Root-Cause Hints (for the fix pass — NOT implemented)
+
+**Shape of failure**: divergence is **sustained for the entire
+pre-consume window** (hof-compared=0) and **resolves instantly** upon
+handoff consume (hof-compared transitions 0→1 mid-heartbeat-window;
+subsequent ticks show hof-div=0).
+
+**What this rules out**:
+  - Snapshot staleness (snapshot would diverge identically pre- and
+    post-consume).
+  - Resolver non-determinism (would show random drift, not a clean
+    before/after split).
+  - FishNet reconcile-replay race (HOST ratio 1:1 confirms no replay
+    on this peer).
+
+**What this implicates**: something DIFFERENT between motor's
+`_realScratch.ShadowHandoffState` (= `_handoffState` after motor's
+line 347 post-consume RefreshLaunchState) and shadow's
+`_shadowScratch.ShadowHandoffState` (= `BuddahHandoffStep.Run` output
+on snapshotted pre-consume state) **specifically during the
+pre-handoff intro window** where `_handoffState` should be default-ish
+on both sides.
+
+**Diagnostic hypothesis #1 — writer-relinquish skips motor's line 347
+advance on intro ticks, but shadow always advances**:
+
+Motor's RunInputs at line 367 (approx; drifted by 3d insertions)
+returns early when `ShouldRelinquishPredictionWriterDuringIntroOrPending`
+detects intro-control-active. The early-return path is AFTER the shadow
+hook at line 349-364 (good — `_realScratch.ShadowHandoffState` is
+written). BUT — the shadow hook runs `BuddahHandoffStep.Run` which
+ALSO advances state, using the pre-line-345 snapshot. Motor's state at
+line 356 has been through line 326's RefreshLaunchState AND line 347's
+RefreshLaunchState (two advances, idempotent for default state).
+Shadow's Run advances the pre-line-345 snapshot once more (third
+advance, same idempotent result).
+
+This SHOULD produce identical states for default `_handoffState`, and
+does — unless something writes to `_handoffState` between line 336
+snapshot and line 356 real-scratch assignment. The likely culprits:
+
+  1. `_handoffState` may not actually be default at session start.
+     `SetPredictionIntroControlActive(true)` is called by intro
+     orchestration, which does NOT reset `_handoffState`. But some
+     other code path may have written to `_handoffState.SnapshotPosition`
+     etc. before the first RunInputs tick (e.g., pre-warm by intro
+     snapshot). Shadow's Advance branches on IsActive only — it treats
+     non-default Snapshot* fields as pass-through. Both sides should
+     still match.
+
+  2. More likely: the pre-handoff motor state may be deliberately
+     populated by `IsAuthoritativeLaunchHandoffPending` / related
+     intro-prep code. If motor's `_awaitingAuthoritativeLaunchHandoff`
+     is set and triggers a pre-populated `_handoffState`, shadow's
+     snapshot captures that — should still match.
+
+  3. **Most likely**: a code path outside RunInputs mutates
+     `_handoffState` BETWEEN line 336 snapshot capture and line 356
+     real-scratch write. Candidates:
+     - Line 667-678 `SetPredictionIntroControlActive(bool active)`:
+       if called with `active=false`, calls `RefreshLaunchState` at
+       line 671. If this executes between RunInputs line 342 and line
+       356 (mid-tick, from another thread or callback), motor's
+       `_handoffState` changes; shadow's snapshot is stale.
+     - Line 680-708 `SetPredictionExternalKinematicControlActive(bool
+       active)`: if called with `active=true`, line 686 sets
+       `_handoffState = default`. Mid-tick race possible.
+     - Reconcile path at motor.cs:489 `_handoffState = data.HandoffState`
+       — on HOST this is driven by `CreateReconcile(data)` → direct
+       `ReconcileState(data)` call at motor.cs:231. The server-side
+       reconcile fires via `TimeManager_OnPostTick` at motor.cs:197
+       AFTER Shadow_CompareAndReport at line 186. So this shouldn't
+       race within the same tick's shadow pass.
+
+  Recommend: add a diagnostic probe (verbose log) at
+  `_realScratch.ShadowHandoffState` assignment showing field-by-field
+  values, then compare against shadow's output next tick. OR add a
+  temporary in-RunInputs invariant assertion
+  `Debug.Assert(_handoffState == _shadowPreHandoffState)` immediately
+  before line 356 on pre-consume ticks to localize where the states
+  diverge.
+
+**Diagnostic hypothesis #2 — thin-wrapper refactor for RefreshLaunchState
+lost a side effect**:
+
+The Phase 3d DP-8 refactor replaced motor's in-place
+`RefreshLaunchState` body with a thin wrapper calling
+`BuddahPredictedLaunchHandoffResolver.Advance`. Audit Addendum A Q1
+argued behavior-neutrality. If the wrapper subtly differs in the
+!IsActive early-return shape — e.g., the original `return;` after
+setting CurrentState=Normal + BlendAlpha=1 had a side effect the
+wrapper missed — that could produce divergence.
+
+Re-inspecting motor's post-refactor RefreshLaunchState:
+
+```csharp
+BuddahPredictedLaunchHandoffState advanced = Resolver.Advance(_handoffState, currentTick);
+if (bootstrap != null && _handoffState.IsActive && _handoffState.CurrentState != advanced.CurrentState)
+    bootstrap.LogVerbose(...);
+_handoffState = advanced;
+```
+
+vs resolver's Advance:
+```csharp
+if (!state.IsActive) {
+    state.CurrentState = Normal;
+    state.BlendAlpha = 1f;
+    return state;
+}
+```
+
+The wrapper always assigns `_handoffState = advanced`, even if
+`!advanced.IsActive`. The original in-place body did the same (just
+via direct field writes). These should be behaviorally identical.
+
+**Unless**: the `!IsActive` branch in Advance only sets CurrentState
+and BlendAlpha — leaving other fields UNCHANGED. If `_handoffState`
+previously had non-zero Snapshot* fields (from some earlier
+pre-populate), Advance leaves them intact. Shadow's Advance also
+leaves them intact. Same values.
+
+I don't see a behavioral difference from the refactor alone. But a
+closer inspection of the bodies side-by-side (3d commit diff) is
+warranted during the fix pass.
+
+**Diagnostic hypothesis #3 — motor's hook reads `_handoffState`
+BEFORE line 347's post-consume RefreshLaunchState, or shadow Run's
+input has wrong value**:
+
+The real-scratch write is at line 356 (`_realScratch.ShadowHandoffState
+= _handoffState`). This is AFTER line 347's RefreshLaunchState. So
+motor captures post-advance state.
+
+Shadow's snapshot at line 336 (`_shadowPreHandoffState = _handoffState`)
+is AFTER line 326's pre-consume RefreshLaunchState (first advance) but
+BEFORE any consume or second advance.
+
+Shadow's Run does its own `Advance(snapshot, tick)` once. So shadow
+output = Advance(post-line-326 state, tick).
+
+For idempotent Advance, this equals post-line-326 state equals
+post-line-347 state (two advances, idempotent).
+
+Should match.
+
+UNLESS shadow's Run is running on a STALE `ShadowPreHandoffState` field
+because TickContext is `readonly struct` passed `in` — a snapshot-at-
+construction pattern. If the struct was constructed at line 358
+BuildTickContext call, it captures `_shadowPreHandoffState` value at
+that moment. Earlier snapshot at line 336 wrote that value. So the
+value in `modifierTickCtx.ShadowPreHandoffState` equals
+`_shadowPreHandoffState` at line 336 time. Same as direct field read.
+
+No stale issue here.
+
+I am stuck localizing the root cause from the log alone. Field-level
+[D-LOC] warnings would pinpoint which of the 15 handoff fields is
+diverging. Those warnings are emitted but not captured by MCP cache
+this session (see §Anomaly).
+
+## Next Step (per reviewer's "no auto-fix" directive)
+
+Report FAIL to reviewer. Await directive on whether to:
+  (a) Re-run V2 with Editor.log raw capture + MCP cache pre-clear, so
+      the [D-LOC] per-field warnings identify which specific handoff
+      field(s) diverge. This localizes the bug without code changes.
+  (b) Write a diagnostic patch (add verbose logging inside motor's
+      hook + shadow step body) to trace the state at each assignment
+      moment. Revert after diagnosis.
+  (c) Do a pure code audit — re-inspect motor's handoff-touching code
+      paths outside RunInputs (SetPredictionIntroControlActive,
+      SetPredictionExternalKinematicControlActive, reconcile) for
+      mid-tick mutations of `_handoffState`.
+  (d) Inspect Phase 3d DP-8 refactor diff for an accidental behavior
+      change in the RefreshLaunchState thin-wrapper.
+
+My lean: (a) first — cheap, high-information. Then (c) if (a) data
+doesn't localize.

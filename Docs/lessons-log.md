@@ -16,6 +16,69 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L15 — Shadow comparators must defend against `Compare(default, default) != equals` foot-guns (2026-04-19, Phase 3d V2 rerun)
+
+Symptom: Phase 3d V2 host-only rerun produced 4550 `[D-LOC]` per-field
+warnings + 74 `[D-LOC FATAL]` emissions, ALL concentrated on a single
+field (`SnapshotRotation`) with a fixed 180.000000° delta. All 14 other
+handoff fields were bit-identical. Divergence vanished exactly the
+instant `hof-compared` flipped 0→1 (real handoff consume fires on both
+sides). Raw Editor.log scrape confirmed zero variance in the delta value
+— every warning reported `angle-deg=180.000000`.
+
+Cause: the shadow compare at `BuddahPredictedMotor.cs:1599` used
+`Quaternion.Angle(realHof.SnapshotRotation, shadowHof.SnapshotRotation)`.
+C# / Unity's `default(Quaternion)` is `(0, 0, 0, 0)` — NOT the identity
+quaternion `(0, 0, 0, 1)`. When both sides hold the uninitialized zero
+quaternion (the typical steady state while `_handoffState.IsActive ==
+false`, since `BuddahPredictedLaunchHandoffResolver.Advance` only writes
+`CurrentState` / `BlendAlpha` / `IsActive` and never touches
+`SnapshotRotation`), the dot product is `0`, so `Quaternion.Angle`
+returns `2 * acos(0) * Rad2Deg = 180°`. Both quaternions ARE equal. Only
+the compare tool misreports. The underlying shadow math (resolver +
+snapshot flow) was correct — DP-8 refactor was behavior-neutral, all
+3a/3b/3c parity still held.
+
+Rule going forward:
+  (a) Before `Quaternion.Angle(a, b)` in any shadow or parity compare,
+      normalize zero-quaternions to identity — or verify the compared
+      slot is gated such that `default(Quaternion)` is structurally
+      impossible. The minimal fix shape is:
+      ```csharp
+      if (a.x == 0f && a.y == 0f && a.z == 0f && a.w == 0f) a = Quaternion.identity;
+      if (b.x == 0f && b.y == 0f && b.z == 0f && b.w == 0f) b = Quaternion.identity;
+      float delta = Quaternion.Angle(a, b);
+      ```
+  (b) Do NOT fix this by gating the compare on an `IsActive` flag alone.
+      That masks potential real divergence when the state is legitimately
+      uninitialized on only one side (asymmetric init bugs). The
+      normalization fix preserves divergence detection for any non-zero
+      mismatch while defusing the zero-vs-zero foot-gun.
+  (c) Audit every `Quaternion.Angle` / `Quaternion.Dot` / `Quaternion.Lerp`
+      used in shadow compare or parity validation paths for the same
+      vulnerability before the next shadow phase lands.
+  (d) This foot-gun generalizes: any `Compare(default, default) !=
+      "equals"` shape is a candidate false-positive generator. Examples
+      beyond Quaternion: custom `Distance(Color, Color)` implementations
+      that divide by magnitude, serialized-field hash functions that
+      special-case zero, etc. Add an explicit "is populated" check OR a
+      normalize step at the comparator boundary.
+
+Applies to: Phase 3d handoff shadow SnapshotRotation compare (fixed in
+this patch), Phase 3b teleport rotation compare (`motor.cs:1376`,
+structurally vulnerable — `eventData.TargetRotation = default(Quaternion)`
+would trigger the same false positive; gate at motor.cs:1361 requires
+`TeleportRan=true` which makes real-session occurrence improbable but
+not impossible — tracked as
+`agent-exchange/handoff/phase-8-cleanup-queue.md` Entry 2), future
+Phase 4-6 reconcile-delivery compare paths.
+
+Promoted to: `log-only` (phase-specific compare fixes are localized).
+`agent-exchange/handoff/phase-8-cleanup-queue.md` Entry 2 carries the
+3b teleport normalization task. If a broader audit finds additional
+sites, promote to `Docs/prediction-refactor-plan/13-validation-gates.md`
+as a general shadow-comparator hygiene rule.
+
 ## L13 — Shadow PASS requires compared-count > 0, not just divergence = 0 (2026-04-19, Phase 3b V5 R2 close-out)
 
 Symptom: Phase 3b V5 R2 CLIENT peer showed teleport shadow with 0 divergence

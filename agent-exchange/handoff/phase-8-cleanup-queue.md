@@ -97,3 +97,134 @@ reports `180° false-positive` if a teleport event with
 probably overkill; diff-and-build confirms.
 
 ---
+
+## Entry 3 — Migrate locomotion decay branch from motor to step (contingent on Phase 3a scope extension)
+
+**Source**: `agent-exchange/handoff/2026-04-19-phase4-audit.md` Addendum A
+(DP-6 R2 torque-decay equivalence proof, reviewer decision 2026-04-19
+selecting Option Z2 hybrid-4a).
+
+**Target**: [BuddahPredictedMotor.cs:459-463](../../Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs#L459-L463)
+— the decay branch that reads `rb.angularVelocity`, applies
+`Mathf.MoveTowards(angularVelocity.y, 0f, config.TurnDecayPerSecond *
+TickDelta)`, and writes back via `_predictionRigidbody.AngularVelocity(...)`.
+Retained inline in Phase 4a per Z2 scope boundary; this entry tracks
+the eventual migration.
+
+**Why deferred**: Phase 3a shadow's `BuddahLocomotionStep` was
+deliberately scope-reduced to commanded-scalar observation only
+(`CommandedForwardForce` + `CommandedTurnTorque`). The step's own
+comment at [BuddahLocomotionStep.cs:54](../../Assets/Scripts/New_Buddah/Simulation/BuddahLocomotionStep.cs#L54)
+documents `"decay branch leaves scratch at zero"`. Phase 3a's
+`loc-div=0` correctly certifies commanded-scalar parity within that
+scope but does NOT certify the decay-side-effect path. Phase 4a
+delete-immediately on the decay branch would silently drop the
+`AngularVelocity(...)` write and produce observable V3 regression
+(post-steering-release spin persists indefinitely instead of damping
+at `config.TurnDecayPerSecond` rad/s/sec).
+
+**Contingency note (VERBATIM, do not rewrite)**:
+
+> Cannot be implemented as a Phase 8 trivial deletion. Requires: (a)
+> Phase 3a scope extension to add `CommandedAngularVelocityAfterDecay`
+> step field, (b) re-verification V5 2-peer playtest on the
+> extended-scope shadow, (c) only then migrate the decay branch out of
+> motor. If these prerequisites are not met, leave the decay branch
+> inline permanently.
+
+**Implementation sketch (if prerequisites met)**: add
+`Vector3 CommandedAngularVelocityAfterDecay` (or
+`float AngularYAfterDecay`) field on
+`BuddahPredictionShadowScratch`. Extend `BuddahLocomotionStep.Run` to
+mirror `Mathf.MoveTowards(ctx.RbAngularVelocityPreTick.y, 0f,
+ctx.Config.TurnDecayPerSecond * ctx.TickDeltaSeconds)` when
+`!hasActiveSteering && config.TurnDecayPerSecond > 0f`. Requires
+`RbAngularVelocityPreTick` snapshot on `BuddahPredictionTickContext`
+captured at motor.cs entry to `RunInputs` (pre-decay read-point). Add
+a 4th locomotion compare slot in `Shadow_CompareAndReport` (epsilon
+1e-4 on y-axis). Re-validate Phase 3a V2 + V5 before migrating the
+motor decay branch out.
+
+**Acceptance criterion (contingent)**: (a) Phase 3a extended-scope
+V2 + V5 PASS with `loc-div = 0` on the new slot across heartbeats;
+(b) motor.cs:459-463 decay block deleted; (c) step's commanded
+angular-velocity-after-decay becomes the authority, motor applies it
+via `_predictionRigidbody.AngularVelocity(computed)` at an apply-only
+callsite; (d) V3 gameplay-shake regression test confirms
+post-steering-release spin damping behavior is preserved.
+
+**Do NOT delete the motor decay branch without completing (a)(b)(c)(d)
+above in order.** Reason: prevent a future Phase 8 agent from
+deleting the motor decay branch as part of a cleanup pass without
+understanding the scope-contract implications documented in
+Phase 4 audit Addendum A.
+
+---
+
+## Entry 4 — Remove V3 + V13 probes after full refactor cutover
+
+**Source**: `agent-exchange/handoff/2026-04-19-phase4-probes-closeout.md`
+(Phase 4-probes PR observational-instrumentation ship).
+
+**Targets**:
+- `Assets/Scripts/New_Buddah/Debug/BuddahPredictionVisualShakeProbe.cs`
+- `Assets/Scripts/New_Buddah/Debug/BuddahPredictionPerfProbe.cs`
+- `Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs` — three `#if BUDDAH_PREDICTION_PERF_PROBE` islands added by the probes PR (using directive, ProfilerMarker field, `using var markerScope = s_runInputsMarker.Auto();` at RunInputs entry)
+- `ProjectSettings/ProjectSettings.asset` scripting defines — `BUDDAH_PREDICTION_VISUAL_PROBE` + `BUDDAH_PREDICTION_PERF_PROBE` (only if added to a per-environment target; probes PR documents them in audit Addendum B §B.4 but does NOT enable by default in main Player Settings)
+
+**Contingency note (VERBATIM, do not rewrite)**:
+
+> Only remove once all phases are merged and no observational
+> requirement remains. Probes may remain indefinitely if they prove
+> useful for regression monitoring.
+
+**Why deferred**: the probes are observational-only, gated entirely
+behind scripting defines, and produce byte-identical release builds
+to pre-probes code when defines are undefined (reviewer G1 bind, see
+Phase 4-probes closeout §Appendix A). There is no strict cleanup
+obligation unless the probe infrastructure itself becomes a
+maintenance burden OR Unity's `ProfilerRecorder` / `ProfilerMarker`
+APIs change shape in a future Unity LTS that breaks the probe's
+implementation without a trivial repair.
+
+**Acceptance criterion (when applied)**: (a) every Phase 4/5/6/7
+phase has merged; (b) no outstanding regression-monitoring task
+references `[D-VIS HEARTBEAT]` or `[D-PERF HEARTBEAT]`; (c) removal
+PR deletes the two probe `.cs` + `.meta` files, the motor's three
+`#if BUDDAH_PREDICTION_PERF_PROBE` islands, and any ProjectSettings
+define lines carrying the two symbols; (d) post-removal build
+confirms release binary unchanged from pre-probe-PR commit hash OR
+has only whitespace / unused-import differences.
+
+**Do NOT remove the probes as part of a bundled cleanup sweep
+without satisfying (a)(b)(c)(d).** The observational value may
+outlast the Phase 8 window if Phase 9+ regression monitoring
+continues.
+
+---
+
+## Entry 5 — Debug multi-spawn for perf profile stress testing
+
+Background: V13 baseline was captured at 2-peer 2-Buddah due to absence of
+single-peer multi-spawn path. Real match load is 4-8 Buddahs; V13 gate at
+2 Buddahs has blind spot for concurrency-sensitive regressions.
+
+Task: Add a debug-only Assets/Scripts/Debug/DebugBuddahSpawner.cs that
+
+(a) is server-authoritative behind an editor-only [Server] RPC,
+
+(b) spawns N configurable non-player-owned Buddahs for perf testing,
+
+(c) is gated behind a new BUDDAH_DEBUG_SPAWN define,
+
+(d) has its own mini-audit before merge.
+
+Once available, re-run Phase 4 V13 baseline + Phase 4a V13 post at 4 / 8
+Buddah counts; if pre-vs-post delta exceeds threshold at higher counts but
+passed at 2, treat as post-hoc regression discovery and issue Phase 4
+regression fix.
+
+Priority: Medium. Not blocking current phase completion but closes out
+V13 scope gap before Phase 7/8 sign-off.
+
+---

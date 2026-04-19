@@ -12,6 +12,9 @@ using NewBuddah.PredictionV2.Integration;
 using System.Collections.Generic;
 using NewBuddah.PredictionV2.Simulation;
 #endif
+#if BUDDAH_PREDICTION_PERF_PROBE
+using Unity.Profiling;
+#endif
 using UnityEngine;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
@@ -62,6 +65,14 @@ namespace NewBuddah.PredictionV2.Core
         private SplineProgressTracker _splineProgressTracker;
         private SkillExecutor _skillExecutor;
         private float _baseMass = 1f;
+
+#if BUDDAH_PREDICTION_PERF_PROBE
+        // V13 perf probe — ProfilerMarker consumed by BuddahPredictionPerfProbe.
+        // Marker name must match BuddahPredictionPerfProbe.MotorReplicateMarkerName.
+        // Compiles out when BUDDAH_PREDICTION_PERF_PROBE is undefined -> release
+        // builds carry zero marker overhead. Reviewer G1 bind.
+        private static readonly ProfilerMarker s_runInputsMarker = new ProfilerMarker("BuddahPredictedMotor.RunInputs");
+#endif
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
         private BuddahPredictionShadowScratch _realScratch;
@@ -315,6 +326,9 @@ namespace NewBuddah.PredictionV2.Core
         [Replicate]
         private void RunInputs(BuddahPredictedInputData data, ReplicateState state = ReplicateState.Invalid, Channel channel = Channel.Unreliable)
         {
+#if BUDDAH_PREDICTION_PERF_PROBE
+            using var markerScope = s_runInputsMarker.Auto();
+#endif
             if (!ShouldRunPrediction() || _predictionRigidbody == null)
                 return;
 

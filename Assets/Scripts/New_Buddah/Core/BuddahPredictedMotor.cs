@@ -8,6 +8,9 @@ using System.Text;
 using NewBuddah.PredictionV2.Bootstrap;
 using NewBuddah.PredictionV2.Config;
 using NewBuddah.PredictionV2.Integration;
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+using NewBuddah.PredictionV2.Simulation;
+#endif
 using UnityEngine;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
@@ -58,6 +61,15 @@ namespace NewBuddah.PredictionV2.Core
         private SplineProgressTracker _splineProgressTracker;
         private SkillExecutor _skillExecutor;
         private float _baseMass = 1f;
+
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+        private BuddahPredictionShadowScratch _realScratch;
+        private BuddahPredictionShadowScratch _shadowScratch;
+        private int _dLocConsecutive;
+        private int _shadowActiveCompares;
+        private int _shadowSkipCompares;
+        private Vector3 _shadowPreClampVelocity;
+#endif
 
         public bool IsLaunchHandoffActive => _handoffState.IsActive || _externalKinematicControlActive || _introControlActive;
         public float CurrentScaleMultiplier => _computedStats.ScaleMultiplier > 0f ? _computedStats.ScaleMultiplier : 1f;
@@ -155,7 +167,17 @@ namespace NewBuddah.PredictionV2.Core
 
         protected override void TimeManager_OnPostTick()
         {
-            if (!ShouldRunPrediction() || !IsServerInitialized)
+            if (!ShouldRunPrediction())
+                return;
+
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            if (IsOwner || IsServerInitialized)
+                Shadow_CompareAndReport();
+            _realScratch = default;
+            _shadowScratch = default;
+#endif
+
+            if (!IsServerInitialized)
                 return;
 
             CreateReconcile();
@@ -269,6 +291,11 @@ namespace NewBuddah.PredictionV2.Core
             if (!ShouldRunPrediction() || _predictionRigidbody == null)
                 return;
 
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            _realScratch = default;
+            _shadowScratch = default;
+#endif
+
             InitializePredictionRigidbody();
             uint currentTick = TimeManager != null ? TimeManager.LocalTick : data.GetTick();
 
@@ -318,6 +345,9 @@ namespace NewBuddah.PredictionV2.Core
                 return;
             }
 
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            _shadowPreClampVelocity = rb != null ? rb.velocity : Vector3.zero;
+#endif
             ClampPlanarSpeed(_computedStats.FinalMaxSpeed + (_computedStats.IsPushGraceActive ? config.PushExtraMaxSpeed : 0f));
 
             if (_computedStats.IsRooted)
@@ -341,14 +371,23 @@ namespace NewBuddah.PredictionV2.Core
             ApplyLaunchHandoffInputScaling(currentTick, ref resolvedThrottle, ref resolvedSteering);
             ApplyLaunchInheritedVelocity(currentTick);
 
-            _predictionRigidbody.AddForce(forwardDirection * (_computedStats.FinalForwardForce * resolvedThrottle), ForceMode.Force);
+            Vector3 forwardForce = forwardDirection * (_computedStats.FinalForwardForce * resolvedThrottle);
+            _predictionRigidbody.AddForce(forwardForce, ForceMode.Force);
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            _realScratch.CommandedForwardForce = forwardForce;
+            _realScratch.LocomotionRan = true;
+#endif
 
             if (_computedStats.IsSteeringSuppressed)
                 resolvedSteering = 0f;
 
             if (Mathf.Abs(resolvedSteering) > 0.001f)
             {
-                _predictionRigidbody.AddTorque(Vector3.up * (resolvedSteering * _computedStats.FinalTurnTorque), ForceMode.Force);
+                float turnTorque = resolvedSteering * _computedStats.FinalTurnTorque;
+                _predictionRigidbody.AddTorque(Vector3.up * turnTorque, ForceMode.Force);
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+                _realScratch.CommandedTurnTorque = turnTorque;
+#endif
             }
             else if (config.TurnDecayPerSecond > 0f)
             {
@@ -356,6 +395,14 @@ namespace NewBuddah.PredictionV2.Core
                 angularVelocity.y = Mathf.MoveTowards(angularVelocity.y, 0f, config.TurnDecayPerSecond * (float)TimeManager.TickDelta);
                 _predictionRigidbody.AngularVelocity(angularVelocity);
             }
+
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            {
+                _shadowScratch = default;
+                BuddahPredictionTickContext tickCtx = BuildTickContext(in data, forwardDirection, resolvedThrottle, resolvedSteering);
+                BuddahLocomotionStep.Run(in tickCtx, in data, ref _shadowScratch);
+            }
+#endif
 
             _predictionRigidbody.Simulate();
             FinalizeImpulseDebugAfterSimulate();
@@ -1101,8 +1148,96 @@ namespace NewBuddah.PredictionV2.Core
                 return;
 
             Vector3 clampedPlanar = planarVelocity.normalized * maxSpeed;
-            _predictionRigidbody.Velocity(new Vector3(clampedPlanar.x, velocity.y, clampedPlanar.z));
+            Vector3 clampedVel = new Vector3(clampedPlanar.x, velocity.y, clampedPlanar.z);
+            _predictionRigidbody.Velocity(clampedVel);
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            _realScratch.VelocityAfterClamp = clampedVel;
+            _realScratch.ClampingApplied = true;
+#endif
         }
+
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+        private BuddahPredictionTickContext BuildTickContext(
+            in BuddahPredictedInputData data,
+            Vector3 forwardDirection,
+            float resolvedThrottle,
+            float resolvedSteering)
+        {
+            uint tick = TimeManager != null ? TimeManager.LocalTick : data.GetTick();
+            float dt = TimeManager != null ? (float)TimeManager.TickDelta : Time.fixedDeltaTime;
+            float pushExtra = config != null ? config.PushExtraMaxSpeed : 0f;
+            float pushGraceRemaining = _modifierState.PushGraceUntilTick > tick
+                ? (_modifierState.PushGraceUntilTick - tick) * dt
+                : 0f;
+
+            return new BuddahPredictionTickContext(
+                rbVelocityPreTick: _shadowPreClampVelocity,
+                rbMass: rb != null ? rb.mass : 1f,
+                fixedDeltaTime: dt,
+                tick: tick,
+                forwardDirection: forwardDirection,
+                resolvedThrottle: resolvedThrottle,
+                resolvedSteering: resolvedSteering,
+                computedStats: _computedStats,
+                pushGraceExtraSpeed: pushExtra,
+                pushGraceRemaining: pushGraceRemaining);
+        }
+
+        private void Shadow_CompareAndReport()
+        {
+            if (!_realScratch.LocomotionRan && !_shadowScratch.LocomotionRan)
+            {
+                _dLocConsecutive = 0;
+                _shadowSkipCompares++;
+                if ((_shadowSkipCompares % 300) == 1)
+                    Debug.Log($"[D-LOC HEARTBEAT] T={(TimeManager != null ? TimeManager.LocalTick : 0u)} skip-ticks={_shadowSkipCompares} active-ticks={_shadowActiveCompares} (both sides idle)");
+                return;
+            }
+
+            _shadowActiveCompares++;
+            if ((_shadowActiveCompares % 120) == 1)
+                Debug.Log($"[D-LOC HEARTBEAT] T={(TimeManager != null ? TimeManager.LocalTick : 0u)} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares} divergences={_dLocConsecutive}");
+
+            bool diverged = false;
+            uint tick = TimeManager != null ? TimeManager.LocalTick : 0u;
+
+            if (_realScratch.LocomotionRan != _shadowScratch.LocomotionRan)
+            {
+                Debug.LogWarning($"[D-LOC] T={tick} gate mismatch: realRan={_realScratch.LocomotionRan} shadowRan={_shadowScratch.LocomotionRan}");
+                diverged = true;
+            }
+            else if (_realScratch.ClampingApplied != _shadowScratch.ClampingApplied)
+            {
+                Debug.LogWarning($"[D-LOC] T={tick} clamp-gate mismatch: realClamp={_realScratch.ClampingApplied} shadowClamp={_shadowScratch.ClampingApplied}");
+                diverged = true;
+            }
+            else
+            {
+                float fwdDelta = (_realScratch.CommandedForwardForce - _shadowScratch.CommandedForwardForce).magnitude;
+                float trnDelta = Mathf.Abs(_realScratch.CommandedTurnTorque - _shadowScratch.CommandedTurnTorque);
+                float velDelta = _realScratch.ClampingApplied
+                    ? (_realScratch.VelocityAfterClamp - _shadowScratch.VelocityAfterClamp).magnitude
+                    : 0f;
+
+                if (fwdDelta > 1e-4f || trnDelta > 1e-4f || velDelta > 1e-4f)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} fwd={fwdDelta:F6} trn={trnDelta:F6} vel={velDelta:F6} clamp={_realScratch.ClampingApplied}");
+                    diverged = true;
+                }
+            }
+
+            if (diverged)
+                _dLocConsecutive++;
+            else
+                _dLocConsecutive = 0;
+
+            if (_dLocConsecutive >= 60)
+            {
+                Debug.LogError($"[D-LOC FATAL] T={tick} 60 consecutive divergences. Phase 3a shadow formula out of sync. Abort cut-over.");
+                _dLocConsecutive = 0;
+            }
+        }
+#endif
 
         public bool TryApplyModifierCommand(BuddahPredictedModifierCommandData command)
         {

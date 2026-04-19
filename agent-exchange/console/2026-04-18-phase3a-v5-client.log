@@ -1,0 +1,66 @@
+# Phase 3a V5 Client-Side — Console Digest
+
+Date: 2026-04-18
+Branch: refactor/prediction-v2
+Peer role: CLIENT (editor, MCP-connected instance, ran as non-host peer)
+Gate: V5 per-peer. Pass = 0 non-heartbeat [D-LOC], 0 [D-LOC FATAL], heartbeats show divergences=0 on all active ticks.
+Note: this file OVERWRITES the previous client digest (user re-ran the client session).
+
+Host-side result captured separately in 2026-04-18-phase3a-v5-host.log.
+
+## Log Volume
+  Total entries: 2000
+  By type: {'Log': 2000}
+  Warnings pulled: 185
+  Errors pulled:   50
+
+## D-LOC Summary (CLIENT)
+  [D-LOC HEARTBEAT] count:                  17
+  [D-LOC] non-heartbeat warning count:      0
+  [D-LOC FATAL] / D-LOC error count:        0
+
+Verdict (client-side): PASS
+  - Heartbeats emitted: 17 (shadow path exercised)
+  - Peak active-ticks reached: 1681  (~28.0s of active locomotion at 60Hz)
+  - Non-heartbeat [D-LOC]: 0
+  - FATAL: 0
+
+## All Heartbeats (CLIENT, chronological)
+  2026-04-18T19:30:07.243 | [D-LOC HEARTBEAT] T=3345 skip-ticks=1801 active-ticks=0 (both sides idle)
+  2026-04-18T19:30:12.273 | [D-LOC HEARTBEAT] T=3645 skip-ticks=2101 active-ticks=0 (both sides idle)
+  2026-04-18T19:30:15.788 | [D-LOC HEARTBEAT] T=3856 active-ticks=1 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:17.949 | [D-LOC HEARTBEAT] T=3976 active-ticks=121 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:19.964 | [D-LOC HEARTBEAT] T=4096 active-ticks=241 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:21.953 | [D-LOC HEARTBEAT] T=4216 active-ticks=361 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:23.965 | [D-LOC HEARTBEAT] T=4336 active-ticks=481 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:26.025 | [D-LOC HEARTBEAT] T=4456 active-ticks=601 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:28.006 | [D-LOC HEARTBEAT] T=4576 active-ticks=721 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:30.012 | [D-LOC HEARTBEAT] T=4696 active-ticks=841 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:31.982 | [D-LOC HEARTBEAT] T=4816 active-ticks=961 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:33.979 | [D-LOC HEARTBEAT] T=4936 active-ticks=1081 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:35.963 | [D-LOC HEARTBEAT] T=5056 active-ticks=1201 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:37.956 | [D-LOC HEARTBEAT] T=5176 active-ticks=1321 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:39.959 | [D-LOC HEARTBEAT] T=5296 active-ticks=1441 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:41.966 | [D-LOC HEARTBEAT] T=5416 active-ticks=1561 skip-ticks=2311 divergences=0
+  2026-04-18T19:30:43.970 | [D-LOC HEARTBEAT] T=5536 active-ticks=1681 skip-ticks=2311 divergences=0
+
+## Non-Shadow Error Histogram (pre-existing noise, unrelated to Phase 3a)
+   25  [FishNetSceneDiag]
+    7  SceneId of 4227260384 not found in SceneObjects. S
+    6  SceneId of 3134013429 not found in SceneObjects. S
+    6  SceneId of 2659942399 not found in SceneObjects. S
+    6  SceneId of 2676718428 not found in SceneObjects. S
+  (No error entry references Shadow / Locomotion / TickContext / Prediction.)
+
+## Sample Non-D-LOC Warnings (first 5)
+  2026-04-18T19:28:18.759 | [NuGet] No compatible framework found in Microsoft.CodeAnalysis.Analyzers.3.3.4.nupkg. Available: 
+  2026-04-18T19:28:18.760 | [NuGet] No DLLs extracted for Microsoft.CodeAnalysis.Analyzers 3.3.4
+  2026-04-18T19:29:04.935 | [NuGet] No compatible framework found in Microsoft.CodeAnalysis.Analyzers.3.3.4.nupkg. Available: 
+  2026-04-18T19:29:04.936 | [NuGet] No DLLs extracted for Microsoft.CodeAnalysis.Analyzers 3.3.4
+  2026-04-18T19:29:11.370 | The character with Unicode value \u6C50 was not found in the [NotoSerifSC-Bold SDF] font asset or any potential fallbacks. It was replaced by Unicode character 
+  ... 180 more non-DLOC warnings (all pre-existing) ...
+
+## Handoff to Host Capture
+  - Client run confirmed. Shadow ran on client peer with no divergence.
+  - V5 closes only after host-side capture arrives at 2026-04-18-phase3a-v5-host.log showing the same pattern.
+  - On host-side run: drive >=60s, cast at least one acceleration skill to exercise the modifier path.

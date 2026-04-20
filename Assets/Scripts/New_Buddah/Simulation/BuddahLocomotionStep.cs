@@ -19,13 +19,41 @@ namespace NewBuddah.PredictionV2.Simulation
     // the motor's post-scaling values (after ApplyLaunchHandoffInputScaling and
     // IsSteeringSuppressed zero-out). Shadow does not reproduce those transforms -
     // it reads what the motor already produced.
+    //
+    // Phase 4a Z2 (2026-04-19): `Compute` exposes the commanded-force/turn-torque
+    // math as a pure-static overload that both motor's real path and shadow `Run`
+    // delegate to. Motor applies the returned values via AddForce / AddTorque at
+    // BuddahPredictedMotor.cs:441-463; shadow `Run` additionally writes scratch for
+    // the parity-by-construction compare. Decay branch at motor.cs:459-463 is
+    // retained inline (Z2 hybrid scope; Phase 8 Entry 3 covers the deferred
+    // decay-branch migration contingent on Phase 3a scope extension).
     public static class BuddahLocomotionStep
     {
+        // Phase 4a Z2: commanded-value math lifted out of motor's inline locomotion
+        // block so motor and shadow call the SAME body. Bit-identical output under
+        // identical inputs in single-threaded C# / Mono / IL2CPP. Motor uses the out
+        // params directly; shadow `Run` wraps this call and also captures into scratch.
+        // Pure — zero Unity API calls beyond Vector3 math + Mathf.Abs.
+        public static void Compute(
+            Vector3 forwardDirection,
+            float resolvedThrottle,
+            float resolvedSteering,
+            BuddahPredictedMotorComputedStats computedStats,
+            out Vector3 commandedForwardForce,
+            out float commandedTurnTorque)
+        {
+            commandedForwardForce = forwardDirection * (computedStats.FinalForwardForce * resolvedThrottle);
+            commandedTurnTorque = Mathf.Abs(resolvedSteering) > 0.001f
+                ? resolvedSteering * computedStats.FinalTurnTorque
+                : 0f;
+        }
+
         public static void Run(
             in BuddahPredictionTickContext ctx,
             in BuddahPredictedInputData input,
             ref BuddahPredictionShadowScratch scratch)
         {
+            _ = input;
             scratch.LocomotionRan = true;
 
             // Pre-force planar xz clamp - mirrors BuddahPredictedMotor.ClampPlanarSpeed
@@ -43,16 +71,18 @@ namespace NewBuddah.PredictionV2.Simulation
                 scratch.ClampingApplied = true;
             }
 
-            // Forward force - mirrors motor line 370.
-            scratch.CommandedForwardForce =
-                ctx.ForwardDirection * (ctx.ComputedStats.FinalForwardForce * ctx.ResolvedThrottle);
-
-            // Torque - mirrors motor line 378-383 branch: only sets torque when
-            // |resolvedSteering| > 0.001f (decay branch leaves scratch at zero).
-            scratch.CommandedTurnTorque =
-                Mathf.Abs(ctx.ResolvedSteering) > 0.001f
-                    ? ctx.ResolvedSteering * ctx.ComputedStats.FinalTurnTorque
-                    : 0f;
+            // Phase 4a Z2: delegate commanded math to Compute so motor's real path
+            // and this shadow invocation run through identical code. Decay-branch
+            // output is NOT produced here (decay stays motor-inline).
+            Compute(
+                ctx.ForwardDirection,
+                ctx.ResolvedThrottle,
+                ctx.ResolvedSteering,
+                ctx.ComputedStats,
+                out Vector3 fwd,
+                out float turn);
+            scratch.CommandedForwardForce = fwd;
+            scratch.CommandedTurnTorque = turn;
         }
     }
 }

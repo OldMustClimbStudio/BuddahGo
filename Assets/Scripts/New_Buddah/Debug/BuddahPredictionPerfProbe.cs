@@ -1,46 +1,51 @@
 #if BUDDAH_PREDICTION_PERF_PROBE
 using System;
+using NewBuddah.PredictionV2.Core;
 using Unity.Profiling;
 using UnityEngine;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace NewBuddah.PredictionV2.Debugging
 {
     // Phase 4 V13 perf-budget probe — observation only, gated behind
-    // BUDDAH_PREDICTION_PERF_PROBE. Attaches two ProfilerRecorders:
-    //   1. ProfilerCategory.Scripts, marker "BuddahPredictedMotor.RunInputs"
-    //      -> nanoseconds spent inside Replicate-tick body per physics tick.
-    //   2. ProfilerCategory.Memory, marker "GC.Alloc" -> bytes allocated
-    //      per frame (aggregate across the whole frame, not motor-specific
-    //      alone; still useful for detecting step struct-copy regressions).
+    // BUDDAH_PREDICTION_PERF_PROBE. Two measurement paths:
+    //   1. rep-*-ms — per-frame Stopwatch ticks accumulated inside
+    //      BuddahPredictedMotor.RunInputs (forward + replay). Probe reads +
+    //      zeros the static accumulator each Update. Phase 8 Entry 7 M2:
+    //      replaces the earlier ProfilerMarker/ProfilerRecorder path, which
+    //      required an active Profiler recording session to sample custom
+    //      markers (standalone Player.log runs read 0). Stopwatch is
+    //      Profiler-independent, stdlib-only, release-safe.
+    //   2. gc-alloc-*-b — ProfilerRecorder on the built-in "GC.Alloc" marker
+    //      under ProfilerCategory.Memory. Always captured by Unity's runtime;
+    //      unchanged by Entry 7.
     //
-    // Samples every Update; reads per-frame values from recorder into a
-    // pre-allocated ring buffer; emits [D-PERF HEARTBEAT] every
-    // _heartbeatFrames frames with avg / p99 / max aggregates. All sort /
-    // aggregation buffers are pre-allocated at Awake -> no per-frame alloc.
+    // Samples every Update; writes per-frame values into a pre-allocated ring
+    // buffer; emits [D-PERF HEARTBEAT] every _heartbeatFrames frames with
+    // avg / p99 / max aggregates. All sort / aggregation buffers are
+    // pre-allocated at Awake -> no per-frame alloc.
     //
-    // The motor's ProfilerMarker is created inside BuddahPredictedMotor.cs
-    // behind the SAME #if BUDDAH_PREDICTION_PERF_PROBE guard. When the define
-    // is undefined, the marker + this probe both compile out -> real path is
-    // byte-identical. Reviewer G1 bind.
-    //
-    // Pre-refactor baseline capture: define enabled, run 60-120s @ N Buddahs
-    // on 3d-tip, save digest to agent-exchange/console/2026-04-19-phase4-
-    // baseline-v13.log. Post-4a rerun under identical scene + input; compare
-    // rep-avg-ms, rep-p99-ms, gc-alloc-avg-b across runs. PASS thresholds in
-    // audit Addendum B §B.3.4.
+    // The motor's PerfProbeScope + s_runInputsTicksThisFrame live inside
+    // BuddahPredictedMotor.cs behind the SAME #if BUDDAH_PREDICTION_PERF_PROBE
+    // guard. When the define is undefined, both the motor wrap and this probe
+    // compile out -> real path is byte-identical. Reviewer G1 bind.
     //
     // IMPORTANT — singleton discipline (reviewer Clarification 1):
-    // ProfilerRecorder with SumAllSamplesInFrame returns the sum of ALL motor
-    // instances' marker time in the frame. Attaching this probe per-Buddah
-    // would produce duplicate heartbeat lines with the same sum value and no
-    // added information. This probe MUST be scene-singleton. The Awake guard
-    // below aborts any secondary instance with an error log so misplacement
-    // surfaces loudly in the first playmode session after placement.
+    // The motor's static accumulator sums EVERY motor instance's RunInputs
+    // time per frame. Attaching this probe per-Buddah would produce duplicate
+    // heartbeat lines with the same sum value and no added information. This
+    // probe MUST be scene-singleton. The Awake guard below aborts any
+    // secondary instance with an error log so misplacement surfaces loudly
+    // in the first playmode session after placement.
     [DisallowMultipleComponent]
     public sealed class BuddahPredictionPerfProbe : MonoBehaviour
     {
-        public const string MotorReplicateMarkerName = "BuddahPredictedMotor.RunInputs";
         private const string GcAllocMarkerName = "GC.Alloc";
+
+        // Entry 7 M2: cache ns-per-Stopwatch-tick once. Stopwatch.Frequency is
+        // platform-dependent (10 MHz Windows, 1 GHz Linux/Mac typical) so the
+        // divisor cannot be hard-coded. Computed once at type-init.
+        private static readonly double s_nsPerTick = 1_000_000_000.0 / Stopwatch.Frequency;
 
         // Runtime auto-instantiate (scene-singleton). Unity invokes this static
         // hook on every scene load in editor + standalone playmode. No manual
@@ -66,12 +71,10 @@ namespace NewBuddah.PredictionV2.Debugging
         [Tooltip("Prefix for emitted lines. Keep as [D-PERF HEARTBEAT] so existing digest tooling can grep alongside [D-LOC] / [D-VIS].")]
         [SerializeField] private string _logPrefix = "[D-PERF HEARTBEAT]";
 
-        private ProfilerRecorder _motorReplicateRecorder;
         private ProfilerRecorder _gcAllocRecorder;
 
         // Pre-allocated ring + sort buffers. Replicate ticks are nanoseconds
-        // (long); GC.Alloc are bytes (long). Both long[] for ProfilerRecorder
-        // sample values.
+        // (long, converted from Stopwatch ticks); GC.Alloc are bytes (long).
         private long[] _repNsBuffer;
         private long[] _gcBytesBuffer;
         private long[] _sortBuffer;
@@ -113,11 +116,10 @@ namespace NewBuddah.PredictionV2.Debugging
             if (_repNsBuffer == null || _gcBytesBuffer == null)
                 return;
 
-            _motorReplicateRecorder = ProfilerRecorder.StartNew(
-                ProfilerCategory.Scripts,
-                MotorReplicateMarkerName,
-                _repNsBuffer.Length,
-                ProfilerRecorderOptions.SumAllSamplesInFrame);
+            // Entry 7 M2: zero the motor's per-frame accumulator so the first
+            // heartbeat doesn't read any ticks that happened between domain
+            // reload and probe enable.
+            BuddahPredictedMotor.s_runInputsTicksThisFrame = 0L;
 
             _gcAllocRecorder = ProfilerRecorder.StartNew(
                 ProfilerCategory.Memory,
@@ -128,8 +130,6 @@ namespace NewBuddah.PredictionV2.Debugging
 
         private void OnDisable()
         {
-            if (_motorReplicateRecorder.Valid)
-                _motorReplicateRecorder.Dispose();
             if (_gcAllocRecorder.Valid)
                 _gcAllocRecorder.Dispose();
         }
@@ -140,15 +140,14 @@ namespace NewBuddah.PredictionV2.Debugging
             if (_repNsBuffer == null || _gcBytesBuffer == null)
                 return;
 
-            // ProfilerRecorder.LastValue returns the value for the most recently
-            // completed profiler frame. With SumAllSamplesInFrame, this sums
-            // every Begin/End pair of the marker within that frame — which for
-            // the motor marker aggregates all Replicate calls (forward + any
-            // replay re-runs in the same frame) into one number.
-            if (_motorReplicateRecorder.Valid)
-                _repNsBuffer[_bufferIndex] = _motorReplicateRecorder.LastValue;
-            else
-                _repNsBuffer[_bufferIndex] = 0L;
+            // Entry 7 M2: read + zero the motor's per-frame Stopwatch-ticks
+            // accumulator. Sums every RunInputs body (forward + reconcile
+            // replays) since the previous Update read. Same-thread (main) so
+            // no atomics needed — see main-thread invariant on the motor's
+            // s_runInputsTicksThisFrame field.
+            long repTicks = BuddahPredictedMotor.s_runInputsTicksThisFrame;
+            BuddahPredictedMotor.s_runInputsTicksThisFrame = 0L;
+            _repNsBuffer[_bufferIndex] = (long)(repTicks * s_nsPerTick);
 
             if (_gcAllocRecorder.Valid)
                 _gcBytesBuffer[_bufferIndex] = _gcAllocRecorder.LastValue;

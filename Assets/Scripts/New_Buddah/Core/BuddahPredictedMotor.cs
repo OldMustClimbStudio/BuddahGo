@@ -13,7 +13,7 @@ using NewBuddah.PredictionV2.Simulation;
 using System.Collections.Generic;
 #endif
 #if BUDDAH_PREDICTION_PERF_PROBE
-using Unity.Profiling;
+using Stopwatch = System.Diagnostics.Stopwatch;
 #endif
 using UnityEngine;
 using SteamMultiplayer.Network;
@@ -67,11 +67,26 @@ namespace NewBuddah.PredictionV2.Core
         private float _baseMass = 1f;
 
 #if BUDDAH_PREDICTION_PERF_PROBE
-        // V13 perf probe — ProfilerMarker consumed by BuddahPredictionPerfProbe.
-        // Marker name must match BuddahPredictionPerfProbe.MotorReplicateMarkerName.
-        // Compiles out when BUDDAH_PREDICTION_PERF_PROBE is undefined -> release
-        // builds carry zero marker overhead. Reviewer G1 bind.
-        private static readonly ProfilerMarker s_runInputsMarker = new ProfilerMarker("BuddahPredictedMotor.RunInputs");
+        // V13 perf probe — Stopwatch-backed per-frame accumulator consumed by
+        // BuddahPredictionPerfProbe. Replaces Phase 4 ProfilerMarker path (which
+        // required active Profiler recording to sample custom markers; Entry 7 M2
+        // switches to System.Diagnostics.Stopwatch so standalone Player.log runs
+        // produce valid rep-*-ms). Compiles out when the define is undefined ->
+        // release builds carry zero timing overhead. Reviewer G1 bind.
+        //
+        // Main-thread invariant: every RunInputs invocation (forward tick +
+        // FishNet reconcile replays) originates from TimeManager.TickUpdate on
+        // the main thread; the probe reads + zeros this field from its own
+        // Update (also main thread). Safe without atomics.
+        internal static long s_runInputsTicksThisFrame;
+
+        internal readonly ref struct PerfProbeScope
+        {
+            private readonly long _startTicks;
+            private PerfProbeScope(long startTicks) { _startTicks = startTicks; }
+            public static PerfProbeScope Auto() => new PerfProbeScope(Stopwatch.GetTimestamp());
+            public void Dispose() => s_runInputsTicksThisFrame += Stopwatch.GetTimestamp() - _startTicks;
+        }
 #endif
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
@@ -327,7 +342,7 @@ namespace NewBuddah.PredictionV2.Core
         private void RunInputs(BuddahPredictedInputData data, ReplicateState state = ReplicateState.Invalid, Channel channel = Channel.Unreliable)
         {
 #if BUDDAH_PREDICTION_PERF_PROBE
-            using var markerScope = s_runInputsMarker.Auto();
+            using var markerScope = PerfProbeScope.Auto();
 #endif
             if (!ShouldRunPrediction() || _predictionRigidbody == null)
                 return;

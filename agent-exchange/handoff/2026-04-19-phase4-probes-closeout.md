@@ -442,3 +442,124 @@ is undefined. Motor's compiled assembly is unchanged.
 
 End of packet. Awaiting Unity editor import verification + reviewer
 green-light before PR open.
+
+---
+
+## §5 — Post-merge wiring micro-PR (`feat/phase4-probes-wiring`)
+
+Date: 2026-04-19
+Scope: wiring-only follow-up. Zero new probe logic, zero real-path
+behavior change. Adds the runtime-instantiation paths the first
+probes PR deliberately left for a separate scope.
+
+### §5.1 — Problem
+
+The probes PR landed the classes but did NOT place them on any
+prefab/scene GameObject (reviewer directive: prefabs stay clean,
+scene state unmodified). Post-merge verification revealed that
+without manual placement during baseline capture, probes never
+instantiate → no heartbeats → baseline capture procedure depends
+on human-in-the-loop component placement on both peers before each
+session.
+
+### §5.2 — Wiring approach
+
+**V13 (scene-singleton)** — `BuddahPredictionPerfProbe.AutoInstantiate()`
+with `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]`.
+Unity invokes this static hook on every scene load. Creates a
+`DontDestroyOnLoad` GameObject with the probe component if one
+doesn't already exist. Entire method inside the existing
+`#if BUDDAH_PREDICTION_PERF_PROBE` top-level guard — compiles out
+when the define is undefined (reviewer G1 preserved).
+
+**V3 (per-Buddah)** — hook moved from reviewer's suggested
+`MatchSpawnManager.TrySpawnPlayer` to
+`BuddahPredictionBootstrap.Awake`. Rationale:
+
+- `MatchSpawnManager` is server-only (`InstanceFinder.IsServerStarted`
+  gate at line 105). Adding the probe there only attaches on the
+  HOST peer's local Buddah copy; FishNet's prefab replication does
+  NOT carry runtime-added components to CLIENT-side copies. A V5
+  2-peer baseline needs probes running on BOTH peers, so
+  `MatchSpawnManager` alone leaves CLIENT blind.
+- `BuddahPredictionBootstrap` is a `MonoBehaviour` on the Buddah
+  prefab. Its `Awake()` fires on every peer's locally-instantiated
+  copy (HOST instantiates + replicates; CLIENT receives via FishNet
+  and runs Awake on its local copy). Result: probe attaches on BOTH
+  peers per-Buddah automatically.
+- This keeps the wiring inside the `prediction` manifest system
+  (`Assets/Scripts/New_Buddah/`). Reviewer's cross-manifest
+  justification note ("observational wiring only, does not affect
+  spawn logic when define is off") is not needed because no
+  cross-manifest edit occurs.
+
+**V3 runtime fallback resolution** — probe's `Awake` now resolves
+`_visualRoot` via `GetComponentInParent<BuddahPredictionVisualRootBridge>()?.GetVisualRoot()`
+and `_networkObject` via `GetComponentInParent<NetworkObject>()`.
+Inspector pinning still wins when present; fallbacks only fire on
+null. This accommodates BOTH the prefab-committed probe case (V3
+bind preserved) and the runtime-attached case (Bootstrap AddComponent
+path).
+
+### §5.3 — Files touched
+
+- `Assets/Scripts/New_Buddah/Debug/BuddahPredictionPerfProbe.cs`:
+  +~15 lines inside `#if BUDDAH_PREDICTION_PERF_PROBE` —
+  `AutoInstantiate` static method.
+- `Assets/Scripts/New_Buddah/Debug/BuddahPredictionVisualShakeProbe.cs`:
+  +~20 lines inside `#if BUDDAH_PREDICTION_VISUAL_PROBE` —
+  `using NewBuddah.PredictionV2.Visual;` directive + runtime
+  fallback block in `Awake` after buffer init.
+- `Assets/Scripts/New_Buddah/Bootstrap/BuddahPredictionBootstrap.cs`:
+  +~10 lines inside `#if BUDDAH_PREDICTION_VISUAL_PROBE` inside
+  `Awake()` — `AddComponent<BuddahPredictionVisualShakeProbe>`
+  call after `ResolveReferences()`. Single gated island; zero
+  non-gated change.
+- This closeout packet (§5 appended).
+
+No new `.meta` files. No motor.cs edit. No MatchSpawnManager edit.
+No scene/prefab state change.
+
+### §5.4 — Reviewer G1 re-assertion (wiring-level)
+
+When `BUDDAH_PREDICTION_VISUAL_PROBE` and
+`BUDDAH_PREDICTION_PERF_PROBE` are undefined:
+
+- `BuddahPredictionPerfProbe.AutoInstantiate` is inside the probe's
+  top-level `#if` — method does not exist. No
+  `RuntimeInitializeOnLoadMethod` hook registered.
+- `BuddahPredictionVisualShakeProbe.Awake` fallback block is inside
+  the probe's top-level `#if` — code does not exist.
+- `BuddahPredictionBootstrap.Awake` has a one-island `#if
+  BUDDAH_PREDICTION_VISUAL_PROBE` guard. When the define is
+  undefined, Bootstrap's Awake is byte-identical to the wiring-PR-
+  merge state.
+- Release binary identical to pre-wiring-PR commit with probes
+  define undefined.
+
+### §5.5 — Updated baseline procedure
+
+Post-wiring-PR merge, baseline capture procedure simplifies
+significantly. Replace §3.2 manual placement steps 2 + 3 with:
+
+> "Probes auto-attach: V13 as a `[Auto] BuddahPredictionPerfProbe`
+> scene-singleton GameObject created via `RuntimeInitializeOnLoadMethod`;
+> V3 as a component on each Buddah prefab instance, added by
+> `BuddahPredictionBootstrap.Awake`. No manual inspector placement
+> needed. Confirm heartbeat streams after intro completes on both
+> peers."
+
+Steps 1 (define enable) and 4-8 (session content + save + revert)
+remain unchanged.
+
+### §5.6 — PR stacking
+
+Branch `feat/phase4-probes-wiring` is stacked on `feat/phase4-probes`.
+When the first probes PR merges, rebase this wiring PR on the new
+`refactor/prediction-v2` tip (or use "Squash and merge" on both in
+sequence). Both PRs target `refactor/prediction-v2`.
+
+---
+
+End of §5. Wiring PR awaits first probes PR merge OR can be reviewed
+in stacked form before the probes PR resolves.

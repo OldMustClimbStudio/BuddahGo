@@ -1,0 +1,135 @@
+# Phase 4 V3 CLIENT Baseline — Pre-4a Visual Shake Probe Digest
+
+## §1 Session meta
+
+- Date: 2026-04-19
+- Playtest shape: 2-peer, Editor = CLIENT (this log) + Build = HOST (peer-2 Player.log pending)
+- Tip: Phase 3d merge (commit `3763aa0`) + probes PR `feat/phase4-probes` + wiring PR `feat/phase4-probes-wiring` stacked
+- Defines enabled locally: `BUDDAH_PREDICTION_VISUAL_PROBE`, `BUDDAH_PREDICTION_PERF_PROBE`, `BUDDAH_PREDICTION_SHADOW`
+- Log source: `C:\Users\dwh88\AppData\Local\Unity\Editor\Editor.log`
+- Current-session boundary: line 144908 (PERF frame-reset 12000 → 60; same PlayMode session for both probes)
+- V3 frame range: 4955 → 12215 (7260 frames ≈ 121 seconds at 60fps)
+- V3 heartbeat count: **244 total** (122 `owner=True` CLIENT-local-Buddah + 122 `owner=False` HOST-remote-Buddah)
+- Emission cadence: every 60 frames per-owner-stream, 2 Buddahs → two interleaved streams
+
+## §2 Heartbeat stream (head + tail samples, full stream in Editor.log)
+
+### First 5 heartbeats per stream (intro idle period)
+```
+[D-VIS HEARTBEAT] frame=4955 owner=False window=60
+  pos-dmax=0.33333 pos-dp99=0.33333 pos-davg=0.01027
+  rot-dmax=0.392 rot-dp99=0.392 rot-davg=0.007
+[D-VIS HEARTBEAT] frame=4955 owner=True window=60
+  pos-dmax=0.84966 pos-dp99=0.84966 pos-davg=0.02617
+  rot-dmax=0.299 rot-dp99=0.299 rot-davg=0.005
+[D-VIS HEARTBEAT] frame=5015 owner=False window=60
+  pos-dmax=0.00000 pos-dp99=0.00000 pos-davg=0.00000
+  rot-dmax=0.000 rot-dp99=0.000 rot-davg=0.000
+[D-VIS HEARTBEAT] frame=5015 owner=True window=60
+  pos-dmax=0.00000 pos-dp99=0.00000 pos-davg=0.00000
+  rot-dmax=0.000 rot-dp99=0.000 rot-davg=0.000
+... (pre-intro idle continues — both Buddahs stationary) ...
+```
+
+### Last 5 heartbeats per stream (active locomotion)
+```
+[D-VIS HEARTBEAT] frame=12155 owner=False window=60
+  pos-dmax=2.35733 pos-dp99=2.35733 pos-davg=1.18143
+  rot-dmax=0.978 rot-dp99=0.978 rot-davg=0.119
+[D-VIS HEARTBEAT] frame=12155 owner=True window=60
+  pos-dmax=0.59432 pos-dp99=0.59432 pos-davg=0.38740
+  rot-dmax=2.232 rot-dp99=2.232 rot-davg=1.112
+[D-VIS HEARTBEAT] frame=12215 owner=False window=60
+  pos-dmax=2.35853 pos-dp99=2.35853 pos-davg=1.15695
+  rot-dmax=2.644 rot-dp99=2.644 rot-davg=0.955
+[D-VIS HEARTBEAT] frame=12215 owner=True window=60
+  pos-dmax=0.76638 pos-dp99=0.76638 pos-davg=0.50814
+  rot-dmax=2.111 rot-dp99=2.111 rot-davg=0.244
+```
+
+## §3 Per-stream aggregates (session-wide)
+
+### `owner=True` — CLIENT-local Buddah (the Editor peer's own Buddah, visible locally)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| heartbeats | 122 | frame 4955 → 12215 |
+| pos-dmax (max over session) | **45.62101 m/frame** | outlier — see §4 anomaly 1 |
+| pos-dp99 (max over session) | 45.62101 m/frame | equals pos-dmax (window=60 p99 ≡ dmax, §4 anomaly 3) |
+| pos-davg (mean over session) | 0.51109 m/frame | ~30.7 m/s render-rate mean = normal racing cruise |
+| rot-dmax (max over session) | 7.593 deg/frame | single-frame spike; consistent with intro handoff snap |
+| rot-dp99 (max over session) | 7.593 deg/frame | equals rot-dmax (same window=60 p99 degenerate) |
+| rot-davg (mean over session) | 0.354 deg/frame | 21 deg/s mean = gentle steering |
+
+### `owner=False` — HOST-remote Buddah (the peer-2 Buddah, rendered locally via FishNet sync)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| heartbeats | 122 | frame 4955 → 12215 |
+| pos-dmax (max over session) | **20.50405 m/frame** | outlier — see §4 anomaly 1 |
+| pos-dp99 (max over session) | 20.50405 m/frame | equals pos-dmax |
+| pos-davg (mean over session) | 0.68479 m/frame | ~41 m/s mean, slightly higher than local |
+| rot-dmax (max over session) | **11.789 deg/frame** | higher than local; remote interpolation artifact possible |
+| rot-dp99 (max over session) | 11.789 deg/frame | equals rot-dmax |
+| rot-davg (mean over session) | 0.270 deg/frame | 16 deg/s mean |
+
+## §4 Anomalies
+
+### Anomaly 1 — pos-dmax outliers ~45m / ~20m per frame
+
+Both streams contain a single-frame position delta two orders of magnitude above the session mean. At 60fps, 45 m/frame = 2700 m/s — physically impossible for racing gameplay. Candidate explanations:
+
+- **Intro handoff snap**: prediction hands off from the intro-spline pose to live-gameplay pose at race start; visual root pose is teleported in one frame. Consistent with the timing (spike appears within the first few active-locomotion heartbeats once the session warms up).
+- **Scene / camera activation boundary**: if a camera cut or disabled-GameObject-reactivation places the visual root at a different absolute position for one frame, the delta reports as huge.
+- **One-time respawn / teleport**: `tel-compared=0` on shadow heartbeat (§5 shadow parity) rules out a gameplay teleport event. Unlikely but not impossible for a pre-intro reset.
+
+The outliers are **single-frame events**, not sustained shake. Mean rate of ~0.5 m/frame is cruise-speed-typical and does NOT indicate gameplay shake in the V3 spec sense. This anomaly is expected in a raw-transform probe — V3 post-4a compare should apply an outlier filter (e.g., ignore frame deltas > 10m) OR gate on a `ShouldLockVisualRootDuringIntroOrPresentation` equivalent before declaring a regression.
+
+### Anomaly 2 — rot-dmax 11.8° on remote > 7.6° on local
+
+Owner=False (remote) rotation deltas are systematically ~50% larger than owner=True (local). Candidates:
+
+- **FishNet prediction smoother on remote**: remote Buddah pose is interpolated from server snapshots; per-frame remote rotation deltas reflect interpolation catch-up more than local pose smoothing.
+- **Non-owner intro stabilization is disabled** per Phase 2 commit (BuddahPredictionVisualRootBridge rewrite) — remote intro may jitter more than local intro.
+
+Non-blocking for baseline; expected divergence between local (authoritative) and remote (synced) streams. Post-4a compare should track per-owner-stream independently, not average them.
+
+### Anomaly 3 — dp99 always equals dmax (window=60 p99 degenerate)
+
+With `_heartbeatFrames=60` (default), the per-window p99 index is `floor(60 * 0.99) = floor(59.4) = 59`, which is the same as the max index. Per-window `pos-dp99` therefore mirrors `pos-dmax` in every heartbeat. This is a probe-design limitation visible across all 244 rows.
+
+**Mitigation for future runs**: increase `_heartbeatFrames` to 100+ (p99 → index 98, distinct from max at 99) OR aggregate session-wide p99 across all per-frame samples (~7260 samples). For this baseline, `pos-dp99-max` is effectively `pos-dmax-max` — acceptable as a delta reference but reduces the metric's informational value.
+
+**Action item for Phase 4a V1 prep**: consider bumping the heartbeat window before running the 4a-post comparison, OR shift PASS gate emphasis to pos-davg-mean (which remains meaningful) + pos-dmax (captures true tail).
+
+## §5 Shadow parity preserved (D-LOC spot-check)
+
+`[D-LOC HEARTBEAT]` stream in the SAME current session: **42 heartbeats, tick 1204 → 6124, all div counters = 0** (loc-div / imp-div / tel-div / mod-div / hof-div all zero across every row). Tail compared counters: `imp-compared=2 tel-compared=0 mod-compared=31409 hof-compared=1`. Zero non-heartbeat `[D-LOC]`, zero `[D-LOC FATAL]`.
+
+Interpretation: **Phase 3d shadow parity fully preserved** with V3 + V13 probes enabled. The probes do not perturb the predicted gameplay loop in any way observable to the shadow-compare harness. Reviewer G1 observational-neutrality claim holds at runtime.
+
+## §6 Baseline metrics (pinned for post-4a comparison)
+
+```
+V3_BASELINE_CLIENT_OWNER_POS_DMAX     = 45.62101 m/frame (outlier; see §4)
+V3_BASELINE_CLIENT_OWNER_POS_DP99     = 45.62101 m/frame (degenerate; see §4)
+V3_BASELINE_CLIENT_OWNER_POS_DAVG     = 0.51109  m/frame
+V3_BASELINE_CLIENT_OWNER_ROT_DMAX     = 7.593    deg/frame
+V3_BASELINE_CLIENT_OWNER_ROT_DP99     = 7.593    deg/frame (degenerate)
+V3_BASELINE_CLIENT_OWNER_ROT_DAVG     = 0.354    deg/frame
+V3_BASELINE_CLIENT_SPECTATOR_POS_DMAX = 20.50405 m/frame (outlier)
+V3_BASELINE_CLIENT_SPECTATOR_POS_DP99 = 20.50405 m/frame (degenerate)
+V3_BASELINE_CLIENT_SPECTATOR_POS_DAVG = 0.68479  m/frame
+V3_BASELINE_CLIENT_SPECTATOR_ROT_DMAX = 11.789   deg/frame
+V3_BASELINE_CLIENT_SPECTATOR_ROT_DP99 = 11.789   deg/frame (degenerate)
+V3_BASELINE_CLIENT_SPECTATOR_ROT_DAVG = 0.270    deg/frame
+```
+
+## §7 Verdict
+
+**CAPTURED (CLIENT-only)**. Session duration 121s exceeds 90s minimum per audit Addendum B §B.1.3. Shadow parity intact. Two actionable findings:
+
+1. **§4 anomaly 3 (p99 degenerate)**: decide whether to bump `_heartbeatFrames` before the 4a-post comparison, or accept pos-davg-mean as the primary V3 comparator.
+2. **§4 anomaly 1 (single-frame outliers)**: decide whether V3 post-4a compare applies an outlier filter OR whether baseline dmax is used as-is (risk: outlier may shift between sessions, inflating false-pass tolerance).
+
+HOST-side counterpart (`2026-04-19-phase4-baseline-v3-host.log`) **PENDING** — requires peer-2 Player.log scrape from the same 2-peer session. Full Option B coverage not achievable until HOST file lands.

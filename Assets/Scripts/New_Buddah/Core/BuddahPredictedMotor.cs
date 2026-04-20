@@ -8,9 +8,9 @@ using System.Text;
 using NewBuddah.PredictionV2.Bootstrap;
 using NewBuddah.PredictionV2.Config;
 using NewBuddah.PredictionV2.Integration;
+using NewBuddah.PredictionV2.Simulation;
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
 using System.Collections.Generic;
-using NewBuddah.PredictionV2.Simulation;
 #endif
 #if BUDDAH_PREDICTION_PERF_PROBE
 using Unity.Profiling;
@@ -452,19 +452,34 @@ namespace NewBuddah.PredictionV2.Core
             ApplyLaunchHandoffInputScaling(currentTick, ref resolvedThrottle, ref resolvedSteering);
             ApplyLaunchInheritedVelocity(currentTick);
 
-            Vector3 forwardForce = forwardDirection * (_computedStats.FinalForwardForce * resolvedThrottle);
+            // Phase 4a Z2 (2026-04-19): apply IsSteeringSuppressed BEFORE Compute so
+            // commanded turn torque is derived from the zeroed-steering value. Forward
+            // force is unaffected by steering so the ordering swap is behavior-neutral.
+            if (_computedStats.IsSteeringSuppressed)
+                resolvedSteering = 0f;
+
+            // Phase 4a Z2: migrate CommandedForwardForce + CommandedTurnTorque
+            // computation to BuddahLocomotionStep.Compute so motor real path and
+            // shadow step share the exact same body (parity-by-construction).
+            // Decay branch below is RETAINED inline per Z2 hybrid scope —
+            // phase-8-cleanup-queue.md Entry 3 tracks the deferred decay-branch
+            // migration contingent on Phase 3a shadow scope extension.
+            BuddahLocomotionStep.Compute(
+                forwardDirection,
+                resolvedThrottle,
+                resolvedSteering,
+                _computedStats,
+                out Vector3 forwardForce,
+                out float turnTorque);
+
             _predictionRigidbody.AddForce(forwardForce, ForceMode.Force);
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _realScratch.CommandedForwardForce = forwardForce;
             _realScratch.LocomotionRan = true;
 #endif
 
-            if (_computedStats.IsSteeringSuppressed)
-                resolvedSteering = 0f;
-
             if (Mathf.Abs(resolvedSteering) > 0.001f)
             {
-                float turnTorque = resolvedSteering * _computedStats.FinalTurnTorque;
                 _predictionRigidbody.AddTorque(Vector3.up * turnTorque, ForceMode.Force);
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
                 _realScratch.CommandedTurnTorque = turnTorque;

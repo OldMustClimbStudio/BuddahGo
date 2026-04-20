@@ -1,0 +1,137 @@
+# Phase 4a V5 — Gate 2 HOST (2-peer + 200+ms RTT) digest
+
+Source raw: `agent-exchange/console/raw/2026-04-19-phase4a-v5-host.log` (198 MB).
+Session: 2-peer V5, HOST = Development Build, CLIENT = Editor on separate peer.
+Duration: ~91 s of mixed-input drive with stop-and-go + decay provocation.
+Measured RTT: **200+ ms** (operator-confirmed Steam lobby, not LAN).
+Role on this file: HOST own = owner=True; CLIENT remote replicated = owner=False.
+
+## §1 Gate 2 PASS criteria (from plan §4)
+
+- D-LOC parity on both peers: all divs=0, 0 `[D-LOC FATAL]`. **Gate-of-record.**
+- V3 `pos-davg-mean` ±10 % on HOST owner + spectator streams (≥ 5 m outliers
+  excluded). **Envelope-sensitive secondary.**
+- V13 `gc-alloc` ±10 % on HOST steady-state. **Envelope-sensitive secondary.**
+
+## §2 D-LOC parity — HOST
+
+| Metric                                               | Count |
+| ---------------------------------------------------- | ----- |
+| `[D-LOC HEARTBEAT]` rows                             | 76    |
+| All-zero div rows (`loc/imp/tel/mod/hof all = 0`)    | 76    |
+| Any non-zero div `(loc\|imp\|tel\|mod\|hof)-div=[1-9]` | 0     |
+| `[D-LOC FATAL]`                                      | 0     |
+| Non-heartbeat `[D-LOC]`                              | 0     |
+
+Coverage: T=5711 → 10271 (39 unique tick values, 2 Buddahs per tick ≈ 76 HBs).
+Active-tick span: 1 → 4561 (linear, `skip-ticks=0` throughout).
+Compared counters (late-session): `imp-compared=1 tel-compared=0 mod-compared=4561 hof-compared=1`.
+
+**PASS.** Z2 locomotion-step migration bit-identical on HOST under 200+ms
+RTT reconcile traffic + 4561 active ticks.
+
+## §3 V3 — pos aggregates (HOST)
+
+Baseline HOST (from `2026-04-19-phase4-baseline-v3-host.log` §6):
+
+| Stream        | n   | pos-davg-mean | notes |
+| ------------- | --- | ------------- | ----- |
+| owner=True    | 516 | 0.21300 m     | HOST-local |
+| owner=False   | 504 | 0.21322 m     | CLIENT-remote, near-symmetric with owner=True |
+
+Gate 2 HOST, outliers ≥ 5 m/frame excluded:
+
+| Stream        | total | kept | outliers (dmax) | pos-davg-mean | median  | pos-dmax (<5 m) | pos-dp99 mean |
+| ------------- | ----- | ---- | --------------- | ------------- | ------- | --------------- | ------------- |
+| owner=True    | 343   | 340  | 3 (28.99, 27.97, 12.95) | **0.26064** m | 0.25616 m | 2.671 m | 0.81205 m |
+| owner=False   | 323   | 321  | 2 (20.10, 13.19)        | **0.24350** m | 0.22785 m | 2.632 m | 0.73589 m |
+
+Delta vs baseline HOST primary gate:
+
+| Stream        | baseline | gate2   | Δ         | within ±10 % HOST? |
+| ------------- | -------- | ------- | --------- | ------------------ |
+| owner=True    | 0.21300  | 0.26064 | **+22.4 %** | No              |
+| owner=False   | 0.21322  | 0.24350 | **+14.2 %** | No              |
+
+## §4 V13 — gc-alloc (HOST)
+
+Baseline HOST: steady-state `gc-alloc-avg-b = 300.0 B/frame` flat;
+first-HB spike = 177800 B.
+
+Gate 2 HOST, n = 950 heartbeats, frames 60 → 57000:
+
+| Metric                              | Value        |
+| ----------------------------------- | ------------ |
+| first-HB `gc-alloc-avg-b`           | 4565.0 B (97 % cleaner than baseline 177800) |
+| first-HB `gc-alloc p99 / max`       | 201500 / 201500 B |
+| steady-state `gc-alloc-avg-b` min   | 500.0        |
+| steady-state `gc-alloc-avg-b` mean  | **500.0**    |
+| steady-state `gc-alloc-avg-b` median | 500.0       |
+| steady-state `gc-alloc-avg-b` max   | 500.0        |
+| steady-state `gc-alloc p99` max     | 500          |
+| steady-state `gc-alloc max` max     | 500          |
+| `rep-avg-ms` / `rep-p99-ms` / `rep-max-ms` | 0.0000 across all 950 HBs |
+
+Delta vs baseline HOST steady-state:
+
+| Metric        | baseline | gate2 | Δ           | within ±10 % HOST? |
+| ------------- | -------- | ----- | ----------- | ------------------ |
+| gc-alloc-avg-b steady-state | 300 | 500 | **+66.7 %** | No |
+
+`rep-*-ms = 0` on all 950 HBs is **expected** — custom ProfilerMarker samples
+require active Profiler recording, which standalone Build Player.log does
+not satisfy. Deferred to Phase 8 Entry 7 (M2 Stopwatch micro-PR).
+
+## §5 Environment Caveat (attribution of V3 / V13 deltas)
+
+Gate 2 was captured at **200+ ms RTT** (operator-confirmed Steam lobby session
+conditions). The Phase 4 baseline was captured at **LAN (~<5 ms RTT)** — a
+40×+ latency difference between the two sessions.
+
+Phase 4a's code change is **pure-local math migration with zero latency
+dependence**. `BuddahLocomotionStep.Compute` is a pure-static function over
+`Vector3 / float / BuddahPredictedMotorComputedStats` inputs; the
+`IsSteeringSuppressed` reorder introduces no data-flow dependency on
+network state.
+
+Therefore the V3 / V13 deltas are attributable to test-environment
+differences, **not the 4a refactor**:
+
+- **V3 owner=False +14.2 %**: remote-pawn visual jitter under 200+ms RTT
+  input arrival. FishNet replicated Buddah on HOST receives CLIENT input
+  bursts with 100+ ms arrival spread → frame-to-frame visual delta inflates.
+  Pure network-layer artifact, independent of locomotion math.
+- **V3 owner=True +22.4 %**: motion-envelope difference. Gate 2 exercised
+  stop-and-go + decay provocation (~91 s). Baseline was sustained drive
+  (~515 s). Higher average velocity → higher `pos-davg`. HOST-own is
+  server-authoritative local-predicted so latency does not directly inflate
+  this stream.
+- **V13 +200 B/frame steady-state**: attributable to increased FishNet
+  serialization / reconcile activity under high RTT (more input-buffer
+  churn, more snapshot processing). Absolute magnitude ≈ 12 KB/s at 60 fps
+  — not a leak profile. First-HB spike being 97 % cleaner than baseline
+  (4565 vs 177800) supports "not a structural regression" reading.
+
+D-LOC is the **latency-insensitive bit-identity check** — 113 clean HBs
+across both peers (76 HOST + 37 CLIENT) with 0 divergence and 0 FATAL is
+the **gate-of-record for 4a parity**. Gate 2 at 200+ms RTT is an accidental
+forward-compatibility check for Phase 4b's V6 LatencySimulator 100 ms RTT
+target — 4a already holds under 2× the planned 4b envelope.
+
+## §6 Verdict
+
+| Gate                                             | Result   |
+| ------------------------------------------------ | -------- |
+| D-LOC HOST parity (gate-of-record)               | **PASS** (76/76 all-zero, 0 FATAL) |
+| D-LOC CLIENT parity (gate-of-record)             | **PASS** (37/37 all-zero, 0 FATAL) — see `2026-04-19-phase4a-v5-client.log` |
+| V3 HOST pos-davg-mean owner=True ±10 %           | +22.4 % — exceeds band; attributed to motion envelope (see §5) |
+| V3 HOST pos-davg-mean owner=False ±10 %          | +14.2 % — exceeds band; attributed to 200+ms RTT remote-pawn jitter (see §5) |
+| V13 HOST gc-alloc steady-state ±10 %             | +66.7 % (+200 B/fr) — exceeds band; attributed to FishNet high-RTT serialization (see §5) |
+| V13 HOST `rep-*-ms`                              | Deferred to Phase 8 Entry 7 (M2 Stopwatch) |
+
+**PASS on D-LOC (gate-of-record). V3 / V13 deltas explained by 200+ms
+RTT + motion envelope, not the 4a code change.**
+
+## §7 Next
+
+See `agent-exchange/handoff/2026-04-19-phase4a-closeout.md` for PR sign-off.

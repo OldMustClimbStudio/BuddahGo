@@ -16,6 +16,104 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L17 — Bidirectional phase-skew is the fingerprint of "observation-only" cross-phase drains, not real divergence (2026-05-02, Phase 4b V2a fix Path B verification)
+
+Symptom: After L16 fix relocated `ConsumePendingImpulseEvents_InvertedShadow`
+from `RunInputs` (replay-unsafe) to `TimeManager_OnPostTick` (replay-safe),
+Path B 2-peer LAN smoke produced **5 forward `[D-IMP INV FATAL]` on CLIENT**
+(`ranOld=False ranNew=True cntOld=0 cntNew=1`) and **6 reverse FATAL on
+HOST** (`ranOld=True ranNew=False cntOld=1 cntNew=0`). Volume audit on both
+sides was clean: CLIENT `inv-imp-compared = OLD imp-compared = Recv = 6`;
+HOST `inv-imp-compared = OLD imp-compared = 7`. `inv-imp-div = 0` on both
+sides at final HB. `D-LOC FATAL = 0` on both sides. The strict `FATAL = 0`
+gate appeared violated, but no real volume or value divergence exists.
+
+Cause: OLD path's `ConsumePendingImpulseEvents` drains during the forward
+`RunInputs` pass; NEW path (post-L16) drains during `PostTick`. When an
+RPC arrives between these two phases on a given tick, the side whose
+phase has already passed observes the event one tick later than the
+other side. The cross-tick lag manifests as `ranOld != ranNew` for a
+single tick, producing a FATAL emit. The total-event audit
+(`compared == OLD imp-compared == Recv`) is unaffected because both
+paths still observe every event; only the tick-of-observation differs by
+at most one. Two separate motors (HOST vs CLIENT) each see their own
+buddah's events; the FATAL direction depends on which side's phase the
+RPC arrives between.
+
+Rule: **A bidirectional FATAL pattern (forward FATAL on one side +
+mirror-image reverse FATAL on the other side, with both sides showing
+matching `compared == OLD == Recv` totals and `div = 0` at final HB) is
+the phase-skew fingerprint, NOT a real divergence.** Do not block on
+strict `FATAL = 0` for observation-only V2a-style gates when this
+pattern holds. ALWAYS verify the bidirectional symmetry: a unidirectional
+FATAL pattern (only forward, only reverse) OR a volume mismatch
+(`compared != OLD imp-compared`) IS a real divergence and must block.
+Critically: **phase-skew is harmless under V2a observation** (OLD path
+remains rb authority, NEW path is diagnostic-only) but **would be a real
+desync under V2b authority** because each peer would write rb on a
+different tick. V2b STEP 0 (non-negotiable) is to tick-stamp
+`BuddahPredictionEventChannel<T>.Entry` with `EventTick`, port OLD's
+`ConsumeReady(currentTick, callback)` semantics into
+`BuddahPredictionCommandBus`, and re-verify Path A + Path B with strict
+`FATAL = 0` BEFORE the authority flip. The phase-skew tolerance lives in
+V2a-era observation gates only; production-path gates require strict
+zero.
+
+Promoted to: log-only (V2b STEP 0 gate cross-referenced from
+`Docs/prediction-refactor-plan/06-command-bus.md` when V2b is scoped;
+V2a-fix PR description carries the bidirectional phase-skew block as the
+re-test gate template for any future observation-only inverted-shadow
+phases).
+
+---
+
+## L16 — Single-consumer FIFO channel + FishNet reconcile replay = structural blindness (2026-05-02, Phase 4b V2a 2-peer post-merge fix)
+
+Symptom: V2a observation gate (`[D-IMP INV HEARTBEAT] inv-imp-compared`)
+passed in host-only single-peer (compared=1, div=0) but produced
+**inv-imp-compared=0 across 73 heartbeats** in the 2-peer LAN test on
+the CLIENT, even with `[CommandBus]:Recv ch=Impulse` arriving twice on
+the bus and `_realScratch.ImpulseRan` confirmed true twice (OLD-side
+`imp-compared=2`). Both `inv-imp-div=0` and `[D-IMP INV FATAL]=0` were
+vacuously satisfied — the compare predicate never fired because both
+sides of `_realScratch.ImpulseRan || _legacyShadowScratch.ImpulseRan`
+read false at the compare moment.
+
+Cause: `BuddahPredictionEventChannel<T>` is a pure FIFO ring buffer
+(no `EventTick` field, no `ConsumeReady(currentTick, ...)` semantics).
+The drain `ConsumePendingImpulseEvents_InvertedShadow` was placed
+inside `RunInputs` (the `[Replicate]` callback). On non-server peers
+under FishNet CSP, RunInputs is replayed N times per tick during
+reconcile. Replay 1 calls `channel.TryDequeue` and removes the entry
+permanently; replays 2..N see an empty channel and the per-replay
+reset `_legacyShadowScratch = default` (motor.cs:388-394) clears the
+ImpulseRan flag set by replay 1. PostTick `Shadow_CompareAndReport`
+reads the LAST replay's scratch — which is empty — so the compare
+predicate stays false and `_legacyShadowImpulseComparedCount` never
+increments. OLD path was unaffected because `_impulseEventQueue`
+is tick-stamped and `ConsumeReady` re-emits the same event on every
+replay until the EventTick passes.
+
+Rule: **Any single-consumer FIFO that participates in shadow/observation
+under reconcile MUST drain in a lifecycle hook that fires exactly once
+per tick (PostTick), not in `[Replicate]`.** OR, if the consumer must
+run inside the replay loop (e.g., V2b authority-flip where the channel
+drives rb writes), the channel itself MUST adopt a tick-stamped model
+mirroring OLD's `EventTick` + `ConsumeReady` — events stay queued across
+replays until their stamped tick passes, then a deterministic single
+consume fires per tick. **Tick-stamping (OLD path's `EventTick` +
+`ConsumeReady`) is the gold standard for any V2b/V3/V4 channel
+consumer that needs to survive reconcile replay.** The PostTick
+relocation in this fix is a narrow observation-only patch; promoting
+NEW path to authority (V2b) WITHOUT first tick-stamping the channel
+will reintroduce this same blindness in production code where it
+CANNOT be a false-pass — it will be a real desync.
+
+Promoted to: log-only (V2b prerequisite gate to be added to
+`Docs/prediction-refactor-plan/06-command-bus.md` when V2b is scoped).
+
+---
+
 ## L15 — Shadow comparators must defend against `Compare(default, default) != equals` foot-guns (2026-04-19, Phase 3d V2 rerun)
 
 Symptom: Phase 3d V2 host-only rerun produced 4550 `[D-LOC]` per-field

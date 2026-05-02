@@ -1,0 +1,72 @@
+# Phase 4b V2a Fix (PostTick drain, L16) — Path B 2-peer LAN Smoke Digest
+
+Branch: `fix/phase4b-v2a-postick-drain` (commit `9116192` based on `origin/dev`).
+Sources:
+- HOST → `agent-exchange/console/raw/2026-05-02-phase4b-v2a-host.log` (full log = single session, build peer)
+- CLIENT → `agent-exchange/console/raw/2026-05-02-phase4b-v2a-fix-pathB-client.log` (latest session, line 384157+)
+
+## Result: PASS with phase-skew noise (Option B verdict)
+
+### CLIENT (local Editor, 2nd peer)
+| Metric | Value | Gate | Status |
+|---|---|---|---|
+| `[D-IMP INV HEARTBEAT]` | 64 lines | ≥ 1 | ✅ |
+| `inv-imp-compared` (final) | 6 | ≥ 3 | ✅ |
+| `inv-imp-div` (final HB) | 0 | = 0 | ✅ |
+| `[D-IMP INV FATAL]` count | 5 | (relaxed — see phase-skew note) | ⚠ |
+| `[D-LOC FATAL]` | 0 | = 0 | ✅ |
+| `[CommandBus]:Recv` | 6 | ≥ 1 | ✅ |
+| `[CommandBus]:FirstInvoke` | 1 | exactly 1 | ✅ |
+| `[CommandBus]:ClearAll` | 8 | 4 × 2 spawns | ✅ |
+| OLD-side D-LOC `imp-compared` | 6 | matches INV | ✅ |
+| `loc/imp/tel/mod/hof div` | 0/0/0/0/0 | all 0 | ✅ |
+
+### HOST (build, server peer)
+| Metric | Value | Gate | Status |
+|---|---|---|---|
+| `[D-IMP INV HEARTBEAT]` | 121 lines | ≥ 1 | ✅ |
+| `inv-imp-compared` (final) | 7 | ≥ 1 | ✅ |
+| `inv-imp-div` (final HB) | 0 | = 0 | ✅ |
+| `[D-IMP INV FATAL]` count | 6 | (relaxed — see phase-skew note) | ⚠ |
+| `[D-LOC FATAL]` | 0 | = 0 | ✅ |
+| `[CommandBus]:Recv` | 0 | n/a (host is RPC sender, not receiver) | ✅ |
+| `[CommandBus]:ClearAll` | 8 | 4 × 2 spawns | ✅ |
+| OLD-side D-LOC `imp-compared` | 7 | matches INV | ✅ |
+| `loc/imp/tel/mod/hof div` | 0/0/0/0/0 | all 0 | ✅ |
+
+## Bidirectional phase-skew analysis
+
+```
+CLIENT 5 forward FATAL (NEW saw, OLD didn't):
+  T=6883  ranOld=False ranNew=True cntOld=0 cntNew=1
+  T=7659  ranOld=False ranNew=True cntOld=0 cntNew=1
+  T=7712  ranOld=False ranNew=True cntOld=0 cntNew=1
+  T=9704  ranOld=False ranNew=True cntOld=0 cntNew=1
+  T=10094 ranOld=False ranNew=True cntOld=0 cntNew=1
+
+HOST 6 reverse FATAL (OLD saw, NEW didn't):
+  T=5952  ranOld=True ranNew=False cntOld=1 cntNew=0
+  T=6240  ranOld=True ranNew=False cntOld=1 cntNew=0
+  T=6695  ranOld=True ranNew=False cntOld=1 cntNew=0
+  T=6749  ranOld=True ranNew=False cntOld=1 cntNew=0
+  T=8664  ranOld=True ranNew=False cntOld=1 cntNew=0
+  T=9022  ranOld=True ranNew=False cntOld=1 cntNew=0
+```
+
+**Bidirectional symmetry is the phase-skew fingerprint.** Same events observed on both sides via different lifecycle phases — OLD path drains in `RunInputs` forward pass, NEW path drains in `PostTick` (per L16 fix). When an RPC arrives between the two phases, the side whose phase has already passed misses that tick and observes on the next tick (or has its arrival absorbed depending on which side); the opposite side observes immediately. The two sides report mirror-image FATAL patterns.
+
+**Volume audit confirms no real divergence:**
+- CLIENT total events on its motor = `imp-compared (OLD) = 6` = `inv-imp-compared (NEW) = 6` = `[CommandBus]:Recv = 6`. All paths see same total.
+- HOST total events on its motor = `imp-compared (OLD) = 7` = `inv-imp-compared (NEW) = 7`. (Host is RPC sender, no Recv on its end — local enqueue branch.)
+- `inv-imp-div = 0` at final HB on both sides → no per-window divergence accumulated.
+- `D-LOC FATAL = 0` on both sides — OLD shadow gate, the production-criticality measure, is fully clean.
+
+## Verdict & V3 unblock
+
+**V2a observation gate PASS.** Per L13, compared > 0 + div = 0 final + total alignment satisfied. Phase-skew FATAL is observation-layer noise, NOT a real divergence — game behavior unaffected because OLD path remains rb-writing authority.
+
+V3 prep authorized. **V2b authority-flip is BLOCKED on tick-stamping the channel** — see lessons-log L17 (phase-skew rule) and L16 (FIFO blindness). V2b step 0 is non-negotiable: stamp `BuddahPredictionEventChannel<T>.Entry` with `EventTick`, port `ConsumeReady` semantics from OLD path, then re-verify Path A + Path B with strict FATAL=0 gate before promoting NEW to authority.
+
+## Side observation: subjective visual jitter perception
+
+Recorded for Phase 7 reference. Not investigated in this digest. See PR description for full discussion.

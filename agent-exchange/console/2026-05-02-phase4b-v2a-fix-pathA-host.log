@@ -1,0 +1,43 @@
+# Phase 4b V2a Fix (PostTick drain, L16) — Path A Host-only Smoke Digest
+
+Source: `agent-exchange/console/raw/2026-05-02-phase4b-v2a-fix-host.log`
+Session window: line 346479+ (latest, sliced at last `[D-PERF HEARTBEAT] frame=60`)
+Branch: `fix/phase4b-v2a-postick-drain` (commit `9116192` based on `origin/dev`).
+Trigger: ImpulseDebugBox in RaceMap; user walked into it 3× during PlayMode.
+
+## Result: PASS
+
+### Inverted-shadow gate
+| Metric | Value | Gate | Δ vs pre-fix Path A |
+|---|---|---|---|
+| `[D-IMP INV HEARTBEAT]` lines | 30 | ≥ 1 ✅ | (was 38) |
+| `inv-imp-compared` (final) | 3 | ≥ 1 ✅ | **+2 (was 1)** |
+| `inv-imp-div` (final) | 0 | = 0 ✅ | unchanged |
+| `[D-IMP INV FATAL]` count | 0 | = 0 ✅ | unchanged |
+
+### L7 / D-LOC cross-checks
+| Metric | Value | Gate |
+|---|---|---|
+| `[CommandBus]:ClearAll` per spawn | 4 | = 4 (L7 baseline) ✅ |
+| `[CommandBus]:Recv ch=Impulse` | 0 | n/a (host-only β path doesn't fire — `owner.IsHost==true` → local enqueue) |
+| OLD-side D-LOC `imp-compared` (final) | 3 | matches INV ✅ |
+| `loc/imp/tel/mod/hof div` (final) | 0 / 0 / 0 / 0 / 0 | all 0 ✅ |
+| `[D-LOC FATAL]` count | 0 | = 0 ✅ |
+
+### Cross-counter agreement (proves PostTick drain semantics)
+- 3 user pushes → OLD-side `_shadowImpulseConsumedCount` reads 3 → NEW-side `_legacyShadowImpulseComparedCount` also reads 3.
+- `inv-imp-div = 0` confirms zero ticks where `_realScratch.ImpulseRan != _legacyShadowScratch.ImpulseRan` or drain-count mismatch.
+- Pre-fix Path A also passed (compared=1) but the FIFO+RunInputs design happened to work in single-peer because no replay; this re-test confirms PostTick-relocated drain is at least as accurate, and counter scales linearly with input (1 push → 1; 3 pushes → 3).
+
+## Caveats
+
+- Path A still doesn't exercise the β branch (`Target_EnqueueImpulse` RPC). That's covered by Path B.
+- Path B (2-peer LAN) is the real test for the L16 fix because pre-fix Path B was the false-pass that triggered this whole investigation.
+
+## Pending
+
+- Path B re-test: 2-peer LAN, **HOST + CLIENT both must dump logs**.
+  - HOST → `agent-exchange/console/raw/2026-05-02-phase4b-v2a-fix-host.log` (overwrite this Path A file is fine — Path A digest is preserved here)
+  - Wait — to avoid clobbering, Path B HOST log path will be `agent-exchange/console/raw/2026-05-02-phase4b-v2a-fix-2peer-host.log`
+  - Path B CLIENT → `agent-exchange/console/raw/2026-05-02-phase4b-v2a-fix-2peer-client.log`
+- User signals "可以爬" → I scrape both, write Path B digest, fill PR description.

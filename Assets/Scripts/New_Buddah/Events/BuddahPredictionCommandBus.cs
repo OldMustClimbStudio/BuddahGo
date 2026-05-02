@@ -16,11 +16,19 @@ namespace NewBuddah.PredictionV2.Events
     // Phase 4b V2b Step 0: TryEnqueue* signatures take a uint currentTick (server-canonical clock).
     // RPC handlers stamp via cmd.EventTick verbatim — the cmd carries the server's tick across the
     // wire. See agent-exchange/handoff/2026-05-02-phase4b-v2b-step0-design.md Q2 for rationale.
+    //
+    // Phase 4b V2b Step 1: TryEnqueue* signatures take an additional uint logicalId (Q0 dedup).
+    // RPC handlers extract cmd.LogicalId and pass through. Recv log lines include logicalId for
+    // wire-format verification at smoke-gate level.
     [DisallowMultipleComponent]
     public sealed class BuddahPredictionCommandBus : NetworkBehaviour
     {
         public const string LogPrefix = "[CommandBus]";
         private const int DefaultChannelCapacity = 64;
+        // Sentinel LogicalId for the editor-only A4 probe path. Real adapter LogicalIds start at 1u
+        // and increment per call; the probe uses a fixed sentinel so its dedup behavior is observable
+        // (re-firing the probe twice in a row will [Channel]:DupReject the second one — expected).
+        private const uint A4ProbeLogicalId = uint.MaxValue;
 
         private readonly BuddahPredictionEventChannel<ImpulseCmd> _impulse = new(DefaultChannelCapacity);
         private readonly BuddahPredictionEventChannel<TeleportCmd> _teleport = new(DefaultChannelCapacity);
@@ -37,33 +45,33 @@ namespace NewBuddah.PredictionV2.Events
         public BuddahPredictionEventChannel<ModifierCmd> ModifierChannel => _modifier;
         public BuddahPredictionEventChannel<HandoffCmd> HandoffChannel => _handoff;
 
-        public bool TryEnqueueImpulse(in ImpulseCmd cmd, uint eventTick)
+        public bool TryEnqueueImpulse(in ImpulseCmd cmd, uint eventTick, uint logicalId)
         {
-            if (_impulse.TryEnqueue(cmd, eventTick, out _))
+            if (_impulse.TryEnqueue(cmd, eventTick, logicalId, out _))
                 return true;
             Debug.LogWarning($"{LogPrefix}:DropFull ch=Impulse capacity={_impulse.Capacity}", this);
             return false;
         }
 
-        public bool TryEnqueueTeleport(in TeleportCmd cmd, uint eventTick)
+        public bool TryEnqueueTeleport(in TeleportCmd cmd, uint eventTick, uint logicalId)
         {
-            if (_teleport.TryEnqueue(cmd, eventTick, out _))
+            if (_teleport.TryEnqueue(cmd, eventTick, logicalId, out _))
                 return true;
             Debug.LogWarning($"{LogPrefix}:DropFull ch=Teleport capacity={_teleport.Capacity}", this);
             return false;
         }
 
-        public bool TryEnqueueModifier(in ModifierCmd cmd, uint eventTick)
+        public bool TryEnqueueModifier(in ModifierCmd cmd, uint eventTick, uint logicalId)
         {
-            if (_modifier.TryEnqueue(cmd, eventTick, out _))
+            if (_modifier.TryEnqueue(cmd, eventTick, logicalId, out _))
                 return true;
             Debug.LogWarning($"{LogPrefix}:DropFull ch=Modifier capacity={_modifier.Capacity}", this);
             return false;
         }
 
-        public bool TryEnqueueHandoff(in HandoffCmd cmd, uint eventTick)
+        public bool TryEnqueueHandoff(in HandoffCmd cmd, uint eventTick, uint logicalId)
         {
-            if (_handoff.TryEnqueue(cmd, eventTick, out _))
+            if (_handoff.TryEnqueue(cmd, eventTick, logicalId, out _))
                 return true;
             Debug.LogWarning($"{LogPrefix}:DropFull ch=Handoff capacity={_handoff.Capacity}", this);
             return false;
@@ -95,6 +103,10 @@ namespace NewBuddah.PredictionV2.Events
         //
         // V2b Step 0: cmd carries server-stamped EventTick. Handler passes it verbatim to
         // TryEnqueueImpulse — no client-local stamping (see L17 phase-skew root cause).
+        // V2b Step 1: cmd also carries server-stamped LogicalId. Recv log line includes it for
+        // wire-format verification (smoke gate). [TargetRpc] default channel is Reliable+Ordered
+        // (FishNet 4.6.20 docs); duplicate arrivals would only happen via reconnect/retransmit
+        // edge cases — Q0 dedup HashSet handles those silently.
         [TargetRpc(RunLocally = false, ExcludeServer = false)]
         public void Target_EnqueueImpulse(NetworkConnection target, ImpulseCmd cmd)
         {
@@ -104,9 +116,9 @@ namespace NewBuddah.PredictionV2.Events
                 Debug.Log($"{LogPrefix}:FirstInvoke ch=Impulse", this);
             }
             Debug.Log(
-                $"{LogPrefix}:Recv ch=Impulse linear={cmd.LinearImpulse} turn={cmd.TurnImpulse} srcType={cmd.SourceType} srcObj={cmd.SourceObjectId} eventTick={cmd.EventTick}",
+                $"{LogPrefix}:Recv ch=Impulse linear={cmd.LinearImpulse} turn={cmd.TurnImpulse} srcType={cmd.SourceType} srcObj={cmd.SourceObjectId} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
                 this);
-            TryEnqueueImpulse(cmd, cmd.EventTick);
+            TryEnqueueImpulse(cmd, cmd.EventTick, cmd.LogicalId);
         }
 
         // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once. See comment above Target_EnqueueImpulse.
@@ -119,9 +131,9 @@ namespace NewBuddah.PredictionV2.Events
                 Debug.Log($"{LogPrefix}:FirstInvoke ch=Teleport", this);
             }
             Debug.Log(
-                $"{LogPrefix}:Recv ch=Teleport pos={cmd.Pos} rot={cmd.Rot.eulerAngles} prog={cmd.Progress01:F3} src={cmd.Source} flags={cmd.Flags} eventTick={cmd.EventTick}",
+                $"{LogPrefix}:Recv ch=Teleport pos={cmd.Pos} rot={cmd.Rot.eulerAngles} prog={cmd.Progress01:F3} src={cmd.Source} flags={cmd.Flags} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
                 this);
-            TryEnqueueTeleport(cmd, cmd.EventTick);
+            TryEnqueueTeleport(cmd, cmd.EventTick, cmd.LogicalId);
         }
 
         // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once. See comment above Target_EnqueueImpulse.
@@ -134,9 +146,9 @@ namespace NewBuddah.PredictionV2.Events
                 Debug.Log($"{LogPrefix}:FirstInvoke ch=Modifier", this);
             }
             Debug.Log(
-                $"{LogPrefix}:Recv ch=Modifier kind={cmd.Kind} mag={cmd.Magnitude:F3} dur={cmd.Duration:F3} stack={cmd.StackPolicy} eventTick={cmd.EventTick}",
+                $"{LogPrefix}:Recv ch=Modifier kind={cmd.Kind} mag={cmd.Magnitude:F3} dur={cmd.Duration:F3} stack={cmd.StackPolicy} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
                 this);
-            TryEnqueueModifier(cmd, cmd.EventTick);
+            TryEnqueueModifier(cmd, cmd.EventTick, cmd.LogicalId);
         }
 
         // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once. See comment above Target_EnqueueImpulse.
@@ -149,9 +161,9 @@ namespace NewBuddah.PredictionV2.Events
                 Debug.Log($"{LogPrefix}:FirstInvoke ch=Handoff", this);
             }
             Debug.Log(
-                $"{LogPrefix}:Recv ch=Handoff pos={cmd.SnapshotPosition} inherit={cmd.Inherit:F3} blend={cmd.Blend:F3} bypass={cmd.Bypass:F3} suppressTurn={cmd.SuppressTurn:F3} flags={cmd.Flags} eventTick={cmd.EventTick}",
+                $"{LogPrefix}:Recv ch=Handoff pos={cmd.SnapshotPosition} inherit={cmd.Inherit:F3} blend={cmd.Blend:F3} bypass={cmd.Bypass:F3} suppressTurn={cmd.SuppressTurn:F3} flags={cmd.Flags} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
                 this);
-            TryEnqueueHandoff(cmd, cmd.EventTick);
+            TryEnqueueHandoff(cmd, cmd.EventTick, cmd.LogicalId);
         }
 
 #if UNITY_EDITOR
@@ -178,8 +190,9 @@ namespace NewBuddah.PredictionV2.Events
                 turnImpulse: 0f,
                 sourceType: 0,
                 sourceObjectId: 0,
-                eventTick: stampTick);
-            Debug.Log($"{LogPrefix}:A4Probe fire Target_EnqueueImpulse -> ownerClientId={Owner.ClientId} eventTick={stampTick}", this);
+                eventTick: stampTick,
+                logicalId: A4ProbeLogicalId);
+            Debug.Log($"{LogPrefix}:A4Probe fire Target_EnqueueImpulse -> ownerClientId={Owner.ClientId} eventTick={stampTick} logicalId={A4ProbeLogicalId}", this);
             Target_EnqueueImpulse(Owner, cmd);
         }
 #endif

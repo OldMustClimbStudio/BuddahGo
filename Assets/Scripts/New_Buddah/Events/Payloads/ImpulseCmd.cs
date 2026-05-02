@@ -10,6 +10,12 @@ namespace NewBuddah.PredictionV2.Events.Payloads
     // construction; client uses cmd-supplied tick verbatim for ConsumeReady gate. Resolves L17
     // phase-skew at the protocol level — both OLD and NEW paths now compare against the same
     // canonical clock for the same logical event.
+    //
+    // Phase 4b V2b Step 1: LogicalId added (Q0 hybrid dedup belt-and-braces). Adapter stamps via
+    // its per-instance _nextLogicalId monotonic counter at cmd construction. Channel TryEnqueue
+    // checks recent-IDs against LogicalId, drops duplicates with [Channel]:DupReject warning
+    // (not FATAL — single-emit invariant remains the convention; dedup catches future-fault
+    // double-fire). +4 bytes wire format change vs Step 0.
     public struct ImpulseCmd
     {
         public Vector3 LinearImpulse;
@@ -17,14 +23,16 @@ namespace NewBuddah.PredictionV2.Events.Payloads
         public byte SourceType;
         public int SourceObjectId;
         public uint EventTick;
+        public uint LogicalId;
 
-        public ImpulseCmd(Vector3 linearImpulse, float turnImpulse, byte sourceType, int sourceObjectId, uint eventTick)
+        public ImpulseCmd(Vector3 linearImpulse, float turnImpulse, byte sourceType, int sourceObjectId, uint eventTick, uint logicalId)
         {
             LinearImpulse = linearImpulse;
             TurnImpulse = turnImpulse;
             SourceType = sourceType;
             SourceObjectId = sourceObjectId;
             EventTick = eventTick;
+            LogicalId = logicalId;
         }
     }
 }

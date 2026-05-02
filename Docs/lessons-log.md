@@ -16,7 +16,58 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L19 — Authority-flip retest gates compare LEG axis only; pre-flip per-axis D-LOC impulse compare becomes structurally dead and must be removed (not gated) to avoid spurious warnings (2026-05-02, Phase 4b V2b Step 1 implementation)
+
+Symptom: at the design phase of V2b Step 1 authority flip (NEW = rb-writing
+authority, OLD = legacy shadow), the existing Phase 3b D-LOC impulse compare
+at motor.cs:1481-1494 (`_realScratch.ImpulseRan != _shadowScratch.ImpulseRan`
++ `_realScratch.ShadowLastConsumedImpulseId != _shadowScratch.ShadowLastConsumedImpulseId`)
+would fire spurious `[D-LOC] T=... impulse-` warnings on every consumed event
+under post-flip semantics. Pre-flip, both `_realScratch` (OLD/authority) and
+`_shadowScratch` (early-step pure-functional shadow) read OLD's
+`_impulseEventQueue` with the same `eventData.EventId` space → cursor compare
+was meaningful. Post-flip, `_realScratch` reads NEW's `CommandBus.ImpulseChannel`
+with channel-internal `entry.Id` (and orthogonal cmd `LogicalId`); `_shadowScratch`
+would still be OLD-driven → different ID spaces, cursor would always mismatch.
+
+Cause: the early-shadow `BuddahImpulseStep.Run(...ref _shadowScratch)` call at
+motor.cs:426-428 was Phase 3b's pure-functional determinism check on OLD's
+impulse step function. NEW path's drain (channel ConsumeReady) is custom rb-
+writing code that does NOT route through `BuddahImpulseStep.Run`. The early-
+shadow's purpose evaporates once the authority is flipped — there's no NEW
+counterpart to compare it against. Half-stripping (keep early-shadow but only
+fire FATAL on `ImpulseRan` mismatch, not cursor) leaves dead code reachable
+from the diff, which invites confusion.
+
+Rule: any phase that flips authority (or otherwise repoints which side a
+shadow scratch reads) must remove dead per-axis compare paths, not gate them
+behind feature flags. Specifically: if the cursor space changes (different
+ID generator), drop the cursor compare entirely. If the cross-state
+identifier was only meaningful pre-flip, drop it. The replacement compare
+(post-flip: `_realScratch` vs `_legacyShadowScratch` ran-flag + count) is
+the sole authority for that axis going forward.
+
+**Phase 4b applicability**: V2b Step 1 (this commit) removes
+`BuddahImpulseStep.Run` early-shadow + `_shadowImpulseConsumedCount` counter
++ `_dLocImpulseDivCount` window counter + the D-LOC impulse compare block
++ the `imp-div=` / `imp-compared=` fields from `[D-LOC HEARTBEAT]`. Impulse
+correctness verified exclusively via `[D-IMP LEG FATAL]` / `[D-IMP LEG HEARTBEAT]`
+post-flip. Full session strict gate: `leg-imp-div = 0`, `[D-IMP LEG FATAL] = 0`,
+`leg-imp-compared > 0`, no `[D-LOC] T=... impulse-` warnings (proves removal landed).
+
+Promoted to: `Docs/phase-gates/active/v2b-step1-contract.md` Q4 amendment
+(strict gate added "Zero spurious `[D-LOC] T=... impulse-` warnings"). Future
+authority-flip phases must include explicit "dead-compare audit" in their
+recon report.
+
+---
+
 ## L18 — Dual-path migration must mirror OLD's full side-effect surface before tightening strict FATAL gate (2026-05-02, Phase 4b V2b Step 0 closeout)
+
+(Naming note — V2b Step 1: HEARTBEAT prefix renamed `inv-imp-*` → `leg-imp-*`
+and FATAL renamed `[D-IMP INV FATAL]` → `[D-IMP LEG FATAL]` to reflect the
+post-flip semantics where OLD path = legacy shadow. Quoted strings below
+preserved as the V2b Step 0 wire format for historical fidelity.)
 
 Symptom: V2b Step 0 channel tick-stamping landed cleanly (`fb9d055` + fix-2
 `0e67d2e`); Path A host-only passed strict (FATAL=0). Path B 2-peer fresh

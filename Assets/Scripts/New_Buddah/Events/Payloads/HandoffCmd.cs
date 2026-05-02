@@ -8,6 +8,8 @@ namespace NewBuddah.PredictionV2.Events.Payloads
     //
     // Phase 4b V2b Step 0: EventTick added for cross-channel API uniformity. No consumer wired yet
     // (V2b Step 1+ migrates Handoff drain). See agent-exchange/handoff/2026-05-02-phase4b-v2b-step0-design.md.
+    // Phase 4b V2b Step 1: LogicalId added for cross-channel API uniformity (forward consistency
+    // with ImpulseCmd's Q0 dedup mechanism). No consumer wired on Handoff yet.
     public struct HandoffCmd
     {
         public Vector3 SnapshotPosition;
@@ -21,5 +23,6 @@ namespace NewBuddah.PredictionV2.Events.Payloads
         public float SuppressTurn;
         public byte Flags;
         public uint EventTick;
+        public uint LogicalId;
     }
 }

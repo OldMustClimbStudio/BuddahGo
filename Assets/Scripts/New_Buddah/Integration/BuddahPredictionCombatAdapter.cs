@@ -31,6 +31,12 @@ namespace NewBuddah.PredictionV2.Integration
     {
         private BuddahPredictionCommandBus _commandBus;
         private bool _initialized;
+        // V2b Step 1 — Q0 hybrid dedup. Per-adapter monotonic counter; stamped on each cmd
+        // construction, transported through TargetRpc, used by channel as dedup key. Per-adapter
+        // (not per-channel-instance) so that the same logical event has the same LogicalId across
+        // server-local + RPC fire paths — the channel instances are still independent (separate
+        // _recentLogicalIds), but if a future caller double-fires on ONE peer, dedup catches it.
+        private uint _nextLogicalId;
 
         public bool IsReady => _initialized;
 
@@ -71,29 +77,33 @@ namespace NewBuddah.PredictionV2.Integration
             // OLD/NEW clock drift). Adapter only runs server-side, so TimeManager.LocalTick here is
             // always the canonical server tick.
             uint stampTick = _commandBus.TimeManager != null ? _commandBus.TimeManager.LocalTick : 0u;
-            ImpulseCmd cmd = new ImpulseCmd(impulse, turnTorqueImpulse, (byte)sourceType, sourceObjectId, stampTick);
+            // V2b Step 1 — pre-increment so first cmd has LogicalId=1u (0u reserved as "unset"
+            // sentinel for default-init structs that haven't gone through this path).
+            uint stampLogicalId = ++_nextLogicalId;
+            ImpulseCmd cmd = new ImpulseCmd(impulse, turnTorqueImpulse, (byte)sourceType, sourceObjectId, stampTick, stampLogicalId);
 
             // Owner-aware enqueue (Q2 answer β):
             //   - owner null / invalid / IsHost (victim's owner is the host running
             //     this server-side code) → local TryEnqueueImpulse, no RPC needed.
             //   - else (remote-owner client) → Target_EnqueueImpulse RPC to the owner.
-            // RPC failures (owner disconnected, etc.) silent-drop. No FATAL — the
-            // OLD CombatRouting path is authority and is unaffected.
+            // RPC failures (owner disconnected, etc.) silent-drop. The post-Step-1 NEW path is now
+            // rb-writing authority (drains channel, applies forces); OLD CombatRouting path remains
+            // wired through V4 as observation shadow under BUDDAH_PREDICTION_LEGACY_SHADOW.
             NetworkConnection owner = victimNetworkObject.Owner;
             if (owner == null || !owner.IsValid || owner.IsHost)
             {
-                return _commandBus.TryEnqueueImpulse(cmd, cmd.EventTick);
+                return _commandBus.TryEnqueueImpulse(cmd, cmd.EventTick, cmd.LogicalId);
             }
 
             // V2b Step 0 fix-3: dual-emit (server-local + RPC) to mirror OLD path's
             // TryApplyServerAuthoritativeImpulse (TryQueueImpulseEvent + TargetRpc).
             // Server-local enqueue ensures HOST's serverside replica of the remote victim
-            // observes the event in its own CommandBus.ImpulseChannel, matching OLD's
-            // host-side _impulseEventQueue entry. Without this, HOST sees reverse FATAL
-            // (ranOld=True ranNew=False) on every β-path push. The two channel instances
-            // (host serverside vs remote owner) have independent _nextSequence counters
-            // so no dedup collision. See lessons-log L18.
-            _commandBus.TryEnqueueImpulse(cmd, cmd.EventTick);
+            // observes the event in its own CommandBus.ImpulseChannel. The two channel instances
+            // (host serverside vs remote owner) have independent _recentLogicalIds sets, so the
+            // SAME LogicalId travels to both peers without dedup collision (V2b Step 1 Q0). If a
+            // future fault double-fires on the SAME peer, dedup catches it via [Channel]:DupReject.
+            // See lessons-log L18.
+            _commandBus.TryEnqueueImpulse(cmd, cmd.EventTick, cmd.LogicalId);
             _commandBus.Target_EnqueueImpulse(owner, cmd);
             return true;
         }

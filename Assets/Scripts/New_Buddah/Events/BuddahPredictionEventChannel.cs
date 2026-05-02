@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Events
 {
@@ -8,8 +9,14 @@ namespace NewBuddah.PredictionV2.Events
     // Phase 4b V2b Step 0 redesign — mirrors Assets/Scripts/New_Buddah/Core/BuddahPredictedImpulseEventQueue.cs
     // (the OLD-path canonical model). Storage is a List<Entry>; entries carry server-stamped EventTick;
     // ConsumeReady drains entries with EventTick <= currentTick via a callback-driven pattern; consumed
-    // event IDs are remembered in _recentEventIds (size 64) for retransmit dedupe. Replay-safe by
+    // events are remembered in _recentLogicalIds (size 64) for retransmit dedupe. Replay-safe by
     // construction: events removed from _pending only when callback returns true on a forward pass.
+    //
+    // Phase 4b V2b Step 1 — Q0 hybrid dedup: TryEnqueue takes server-stamped LogicalId (per-adapter
+    // monotonic counter). Channel checks LogicalId against _recentLogicalIds AND linear-scans _pending;
+    // dup hit returns false + LogWarning [Channel]:DupReject (NOT FATAL — single-emit invariant remains
+    // the convention, this is belt-and-braces defense for future-fault double-fire). The old "dedup
+    // against _nextSequence" code was structurally dead (monotonic counter cannot collide) and is removed.
     //
     // Why this design (vs the V2a-era ring + TryDequeue): see lessons-log L16 (single-consumer FIFO +
     // FishNet reconcile replay = structural blindness) and L17 (cross-phase observation drain = bidirectional
@@ -20,17 +27,19 @@ namespace NewBuddah.PredictionV2.Events
         {
             public uint Id;
             public uint EventTick;
+            public uint LogicalId;
             public T Payload;
         }
 
         public delegate bool ConsumeCallback(in Entry entry);
 
+        public const string LogPrefix = "[Channel]";
         public const int DefaultCapacity = 64;
         private const int MaxRecentIds = 64;
 
         private readonly List<Entry> _pending;
-        private readonly HashSet<uint> _recentEventIds = new();
-        private readonly Queue<uint> _recentEventOrder = new();
+        private readonly HashSet<uint> _recentLogicalIds = new();
+        private readonly Queue<uint> _recentLogicalIdOrder = new();
         private readonly int _capacity;
         private uint _nextSequence;
         private uint _lastConsumedId;
@@ -54,8 +63,32 @@ namespace NewBuddah.PredictionV2.Events
         // V2b Step 0 — tick-stamped enqueue. eventTick is the server-canonical clock for this event
         // (set by adapter at server-side cmd construction; transported through TargetRpc; client uses
         // cmd-supplied tick verbatim). See Q2 in design Q&A archive.
-        public bool TryEnqueue(in T payload, uint eventTick, out uint id)
+        //
+        // V2b Step 1 — Q0 dedup: logicalId is the server-stamped per-adapter monotonic ID. Duplicates
+        // are dropped silently with [Channel]:DupReject warning (LogWarning, not LogError). Distinct
+        // from the channel-internal Id which is _nextSequence-based and per-channel-instance monotonic.
+        public bool TryEnqueue(in T payload, uint eventTick, uint logicalId, out uint id)
         {
+            // Belt-and-braces dedup: covers retransmit / reorder / future-fault double-fire on same
+            // peer-instance channel. Single-emit invariant remains the convention; this guards against
+            // convention breaks (e.g., a future RPC turning RunLocally=true while keeping server-local).
+            if (_recentLogicalIds.Contains(logicalId))
+            {
+                Debug.LogWarning($"{LogPrefix}:DupReject reason=recent logicalId={logicalId}");
+                id = 0u;
+                return false;
+            }
+
+            for (int i = 0; i < _pending.Count; i++)
+            {
+                if (_pending[i].LogicalId == logicalId)
+                {
+                    Debug.LogWarning($"{LogPrefix}:DupReject reason=pending logicalId={logicalId}");
+                    id = 0u;
+                    return false;
+                }
+            }
+
             if (_pending.Count >= _capacity)
             {
                 id = 0u;
@@ -63,18 +96,13 @@ namespace NewBuddah.PredictionV2.Events
             }
 
             id = _nextSequence++;
-            // Belt-and-braces: id is monotonic per-channel so collision is impossible in practice;
-            // recent-IDs check is here in case future code reuses IDs across channels.
-            if (_recentEventIds.Contains(id))
-                return false;
-
-            _pending.Add(new Entry { Id = id, EventTick = eventTick, Payload = payload });
+            _pending.Add(new Entry { Id = id, EventTick = eventTick, LogicalId = logicalId, Payload = payload });
             return true;
         }
 
         // V2b Step 0 — replay-safe drain. Mirrors BuddahPredictedImpulseEventQueue.ConsumeReady.
         // Entries with EventTick <= currentTick are presented to the callback. Returning true consumes
-        // the entry (RemoveAt + RememberEventId). Returning false leaves the entry pending for the next
+        // the entry (RemoveAt + RememberLogicalId). Returning false leaves the entry pending for the next
         // tick. Iteration is forward (FIFO order) — V2b Step 1 may introduce conditional callback
         // returns for filter-driven apply ordering.
         public int ConsumeReady(uint currentTick, ConsumeCallback callback)
@@ -95,7 +123,7 @@ namespace NewBuddah.PredictionV2.Events
                 }
 
                 _pending.RemoveAt(i);
-                RememberEventId(entry.Id);
+                RememberLogicalId(entry.LogicalId);
                 _lastConsumedId = entry.Id;
                 consumed++;
                 // do not increment i: List shifted left
@@ -104,7 +132,7 @@ namespace NewBuddah.PredictionV2.Events
         }
 
         // V2a era. Replay-unsafe (drains exactly once and entries vanish). Retained as a transitional
-        // shim; no callsite remains in V2b Step 0 (motor's InvertedShadow drain rewritten to ConsumeReady).
+        // shim; no callsite remains in V2b Step 0/1 (motor's drains rewritten to ConsumeReady).
         // Will be deleted at V4 when CombatRouting + legacy fallback is removed.
         [Obsolete("Use ConsumeReady. TryDequeue is replay-unsafe — see lessons-log L16.")]
         public bool TryDequeue(out Entry entry)
@@ -118,27 +146,27 @@ namespace NewBuddah.PredictionV2.Events
             entry = _pending[0];
             _pending.RemoveAt(0);
             _lastConsumedId = entry.Id;
-            RememberEventId(entry.Id);
+            RememberLogicalId(entry.LogicalId);
             return true;
         }
 
         public void Clear()
         {
             _pending.Clear();
-            _recentEventIds.Clear();
-            _recentEventOrder.Clear();
+            _recentLogicalIds.Clear();
+            _recentLogicalIdOrder.Clear();
         }
 
-        private void RememberEventId(uint eventId)
+        private void RememberLogicalId(uint logicalId)
         {
-            if (!_recentEventIds.Add(eventId))
+            if (!_recentLogicalIds.Add(logicalId))
                 return;
 
-            _recentEventOrder.Enqueue(eventId);
-            while (_recentEventOrder.Count > MaxRecentIds)
+            _recentLogicalIdOrder.Enqueue(logicalId);
+            while (_recentLogicalIdOrder.Count > MaxRecentIds)
             {
-                uint expired = _recentEventOrder.Dequeue();
-                _recentEventIds.Remove(expired);
+                uint expired = _recentLogicalIdOrder.Dequeue();
+                _recentLogicalIds.Remove(expired);
             }
         }
     }

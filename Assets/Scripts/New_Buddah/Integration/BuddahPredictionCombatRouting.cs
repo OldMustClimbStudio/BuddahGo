@@ -59,7 +59,7 @@ namespace NewBuddah.PredictionV2.Integration
                 }
                 catch (Exception fanoutEx)
                 {
-                    Debug.LogError($"[D-IMP INV FATAL] CombatAdapter fan-out threw: {fanoutEx.GetType().Name}: {fanoutEx.Message}");
+                    Debug.LogError($"[D-IMP LEG FATAL] CombatAdapter fan-out threw: {fanoutEx.GetType().Name}: {fanoutEx.Message}");
                 }
             }
 #endif

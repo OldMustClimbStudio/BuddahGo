@@ -32,6 +32,23 @@ Reviewer MUST verify session boundary before reporting metrics. If digest
 cites a session-scoping window, reviewer's independent grep MUST honor the
 same scope.
 
+**Post-smoke event sanity check — sub-rule (D) (added 2026-05-02 from V3 Path A first-attempt finding):**
+Before dumping the raw log to `raw/`, implementer/user MUST self-verify that
+expected events actually landed in the session. Spawn-only artifacts (e.g.,
+`[PushHitbox] Spawn` without `[PushHitbox] Hit`, or `[ProjectileSpawned]` without
+contact) DO NOT count as test coverage.
+
+Self-check pattern:
+- Find a downstream marker confirming real event consumption (e.g., for Step 1+
+  smoke: `[D-IMP LEG HEARTBEAT]` showing `leg-imp-compared >= contract minimum`).
+- If marker absent or counter is 0, test is invalid — re-run, do NOT dump.
+- "I ran PlayMode for 30s" is not enough. "I observed N events processed in
+  console + visual confirmation of effect" is the bar.
+
+Reviewer enforcement: if smoke digest claims "compared=N" but session has no
+downstream evidence of N actual fires, halt verify and ask for re-run. Do NOT
+proceed with strict-gate analysis on a session where 0 events landed.
+
 The raw log is the immutable session record. The digest is derivative.
 
 ## Rule 2 — Independent verification
@@ -48,6 +65,30 @@ Mandatory greps per smoke (adjust prefix per active contract):
 - `DropFull` count (must be 0)
 
 If any digest value disagrees with grep, reviewer halts the PR until reconciled.
+
+**Trust hierarchy — downstream evidence over upstream stack (added 2026-05-02 from V3 Path A first-attempt finding):**
+Stack frame absence in `Editor.log` does NOT prove code-path absence. Code paths
+without explicit `Debug.Log/Error` calls (e.g., silent dispatch in
+`BuddahPredictionRouter.RouteImpulse`) will never produce stack frames even
+when actively executing — Unity only emits stack traces alongside log calls.
+
+Reviewer's verification MUST prefer **downstream observable side effects** over
+upstream stack-frame counts:
+- Counter increments (e.g., `leg-imp-compared++`)
+- HEARTBEAT field deltas across the session
+- DebugState field writes
+- rb position / velocity / WakeUp evidence
+- Channel `[CommandBus]:Recv` events
+- Visual smoke (cube actually moves)
+
+**Anti-pattern**: "Router stack=0 in session window → router not called → test
+invalid". This was the V3 Path A first-attempt false negative. The router has
+zero log calls by design (silent dispatch decided in V3 Q1 sub-decision); stack
+frame absence is the EXPECTED state of a working V3, not a failure mode.
+
+**Correct pattern**: grep `leg-imp-compared` across HBs; if monotonic increase
+matches expected event count, code path was active regardless of stack frame
+visibility. Cross-confirm with at least one other downstream metric.
 
 ## Rule 3 — Strict gate definition lives in the contract
 

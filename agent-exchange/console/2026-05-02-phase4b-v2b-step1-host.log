@@ -1,0 +1,50 @@
+# Phase 4b V2b Step 1 — Path B HOST Strict Digest
+
+Source: `agent-exchange/console/raw/2026-05-02-phase4b-v2b-step1-host.log` (24 MB Build Player.log)
+Branch: `feat/phase4b-v2b-step1-authority-flip` (commit `5c46002`)
+Role: HOST (Build), 2-peer LAN with Editor as CLIENT, 60s, no LatencySim.
+
+## Result: STRICT PASS (FATAL=0, all 123 LEG HBs clean across 7320 active ticks)
+
+### LEG axis (post-flip)
+| Metric | Value | Gate |
+|---|---|---|
+| `[D-IMP LEG HEARTBEAT]` count | 123 | full session ✅ |
+| `leg-imp-compared` (final, T=8986) | **5** | ≥3 ✅ |
+| `leg-imp-div` (across all 123 HBs) | 0 | =0 strict ✅ |
+| `[D-IMP LEG FATAL]` | **0** | =0 strict ✅ |
+| First LEG HB | T=1666 active=1 div=0 compared=0 | clean start ✅ |
+| Last LEG HB | T=8986 active=7321 div=0 compared=5 | tail clean ✅ |
+
+### Q3 / Q4 implementation property verification
+| Property | Value | Gate |
+|---|---|---|
+| `[D-IMP INV HEARTBEAT]` / `inv-imp-*` leakage | 0 | =0 ✅ |
+| `[D-LOC] T=... impulse-` warnings | 0 | =0 ✅ |
+| `[D-LOC HB]` carries `imp-` fields | NO | dropped ✅ |
+
+### CommandBus
+| Metric | Value | Gate |
+|---|---|---|
+| `[CommandBus]:ClearAll` | **8** | = 4 × 2 spawns ✅ L7 latch on 2 buddahs |
+| First ClearAll | `mask=All total=0 ...` | spawn-window ✅ |
+| Last ClearAll | `triggeredBy=ModeSwitch ...` | normal mode toggle ✅ |
+| `[CommandBus]:Recv ch=Impulse` | 0 | EXPECTED — host is server, β TargetRpc targets remote owner, host-self excluded ✅ |
+| `[CommandBus]:DropFull` | 0 | =0 ✅ |
+| `[Channel]:DupReject` | 0 | =0 baseline ✅ Q0 invariant |
+| `Read position beyond buffer` errors | 0 | =0 ✅ wire format step1 OK |
+| LogError-equivalents | 0 | – ✅ |
+
+### Tick coverage
+- First tick: T=1666 (active=1, session start)
+- Last tick: T=8986 (active=7321, ~146s of physics-time)
+- 5 events compared linearly across the full window. No drift, no FATAL emit at any HB row.
+
+## Counter alignment audit
+- HOST `leg-imp-compared=5` represents server-side observation of:
+  - α-branch: HOST own buddah pushed (when HOST walks into ImpulseDebugBox) → adapter local enqueue → drains on host
+  - β-branch (server-local, fix-3): events targeting CLIENT-owned victim → server-local TryEnqueueImpulse on host's serverside replica + RPC to CLIENT
+- 5 events on HOST channel matched OLD-side `_impulseEventQueue` drain count linearly across all 123 HB windows. `leg-imp-div=0` cumulative.
+
+## Verdict (HOST)
+**Strict PASS across full 7320-active-tick session.** Authority flip correct, no rb-write authority gap, no spurious legacy/dead warnings, wire format Step 1 confirmed.

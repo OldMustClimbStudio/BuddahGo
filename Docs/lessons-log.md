@@ -16,6 +16,53 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L18 — Dual-path migration must mirror OLD's full side-effect surface before tightening strict FATAL gate (2026-05-02, Phase 4b V2b Step 0 closeout)
+
+Symptom: V2b Step 0 channel tick-stamping landed cleanly (`fb9d055` + fix-2
+`0e67d2e`); Path A host-only passed strict (FATAL=0). Path B 2-peer fresh
+build: CLIENT clean (compared=11, FATAL=0), HOST 11 reverse FATAL
+(`ranOld=True ranNew=False`). Volume audit: HOST OLD `imp-compared=9`, NEW
+`inv-imp-compared=9` — counter-aligned, but FATAL-per-tick because the
+HOST-side serverside replica of the CLIENT-owned victim never received a
+NEW-channel entry. OLD path on host enqueued via `TryQueueImpulseEvent`
+(server-local) AND `QueueImpulseEventTargetRpc` (to remote owner). NEW
+adapter β-branch only emitted the RPC.
+
+Cause: V2a → V2b migration audited the rb-affecting drain semantics
+(replay safety, tick gate) but NOT the **enqueue-site side-effect
+surface**. OLD's `TryApplyServerAuthoritativeImpulse` does six things
+unconditionally beyond constructing the event:
+1. server-local `TryQueueImpulseEvent` (peer-instance #1 entry)
+2. `QueueImpulseEventTargetRpc` to Owner (peer-instance #2 entry, dedup'd
+   on host-owner case via EventId)
+3. `IsPredictionModeActive()` gate (early-bail on Legacy mode)
+4. cmd-side `_nextImpulseEventId++` (cross-peer Id alignment)
+5. 6 DebugState field writes (Inspector/HUD observation)
+6. 3 `LogVerbose` lines (audit trail)
+
+NEW adapter mirrored only #2. Items #1 and #3 produce real cross-peer
+divergence under strict FATAL gate. Items #4-#6 are observation-only and
+can defer, but must be tracked. V2a's tolerant gate hid all of this; V2b
+strict gate exposed it as the FATAL volume the audit assumed was
+phase-skew residue.
+
+Rule: any dual-path migration must perform a line-by-line OLD-side
+side-effect audit before tightening strict gate. Categorize each item as
+(a) compare-relevant — mirror in NEW immediately, (b) observation-only —
+mirror or document drop with explicit justification, (c) architecturally
+moot — explain why NEW design makes it irrelevant. "Looks unrelated" is
+not a category. Per-peer enqueue topology asymmetry is THE most common
+failure mode in this category — always verify both peer instances of the
+target channel see the right entries.
+
+Promoted to: `Docs/prediction-refactor-plan/07-side-effect-migration.md`
+will be updated to require this audit as a phase-gate checklist item.
+V2b Step 1 PRE-WORK: cross-fire dedup decision (dead `_recentEventIds`
+check + cmd-side EventId field). V3 PRE-WORK: DebugState mirror or
+audit-and-drop decision.
+
+---
+
 ## L17 — Bidirectional phase-skew is the fingerprint of "observation-only" cross-phase drains, not real divergence (2026-05-02, Phase 4b V2a fix Path B verification)
 
 Symptom: After L16 fix relocated `ConsumePendingImpulseEvents_InvertedShadow`

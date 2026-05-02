@@ -12,6 +12,10 @@ namespace NewBuddah.PredictionV2.Events
     // Phase 2 scope: bus exists on the Buddah prefab and owns 4 channels + 4 owner-side TryEnqueue
     // entry points + 4 server->owner Target_ relays + TryClearChannels. No adapter calls into this
     // bus yet; the motor still uses old paths. Phase 3/4/5/6 cut adapters over.
+    //
+    // Phase 4b V2b Step 0: TryEnqueue* signatures take a uint currentTick (server-canonical clock).
+    // RPC handlers stamp via cmd.EventTick verbatim — the cmd carries the server's tick across the
+    // wire. See agent-exchange/handoff/2026-05-02-phase4b-v2b-step0-design.md Q2 for rationale.
     [DisallowMultipleComponent]
     public sealed class BuddahPredictionCommandBus : NetworkBehaviour
     {
@@ -33,33 +37,33 @@ namespace NewBuddah.PredictionV2.Events
         public BuddahPredictionEventChannel<ModifierCmd> ModifierChannel => _modifier;
         public BuddahPredictionEventChannel<HandoffCmd> HandoffChannel => _handoff;
 
-        public bool TryEnqueueImpulse(in ImpulseCmd cmd)
+        public bool TryEnqueueImpulse(in ImpulseCmd cmd, uint eventTick)
         {
-            if (_impulse.TryEnqueue(cmd, out _))
+            if (_impulse.TryEnqueue(cmd, eventTick, out _))
                 return true;
             Debug.LogWarning($"{LogPrefix}:DropFull ch=Impulse capacity={_impulse.Capacity}", this);
             return false;
         }
 
-        public bool TryEnqueueTeleport(in TeleportCmd cmd)
+        public bool TryEnqueueTeleport(in TeleportCmd cmd, uint eventTick)
         {
-            if (_teleport.TryEnqueue(cmd, out _))
+            if (_teleport.TryEnqueue(cmd, eventTick, out _))
                 return true;
             Debug.LogWarning($"{LogPrefix}:DropFull ch=Teleport capacity={_teleport.Capacity}", this);
             return false;
         }
 
-        public bool TryEnqueueModifier(in ModifierCmd cmd)
+        public bool TryEnqueueModifier(in ModifierCmd cmd, uint eventTick)
         {
-            if (_modifier.TryEnqueue(cmd, out _))
+            if (_modifier.TryEnqueue(cmd, eventTick, out _))
                 return true;
             Debug.LogWarning($"{LogPrefix}:DropFull ch=Modifier capacity={_modifier.Capacity}", this);
             return false;
         }
 
-        public bool TryEnqueueHandoff(in HandoffCmd cmd)
+        public bool TryEnqueueHandoff(in HandoffCmd cmd, uint eventTick)
         {
-            if (_handoff.TryEnqueue(cmd, out _))
+            if (_handoff.TryEnqueue(cmd, eventTick, out _))
                 return true;
             Debug.LogWarning($"{LogPrefix}:DropFull ch=Handoff capacity={_handoff.Capacity}", this);
             return false;
@@ -88,6 +92,9 @@ namespace NewBuddah.PredictionV2.Events
         // First-invoke log below lets us catch double-fire / miss early.
         // If host observes [CommandBus:Recv] twice for one enqueue or never,
         // see Docs/prediction-refactor-plan/16-api-spike-checklist.md A4 contingency.
+        //
+        // V2b Step 0: cmd carries server-stamped EventTick. Handler passes it verbatim to
+        // TryEnqueueImpulse — no client-local stamping (see L17 phase-skew root cause).
         [TargetRpc(RunLocally = false, ExcludeServer = false)]
         public void Target_EnqueueImpulse(NetworkConnection target, ImpulseCmd cmd)
         {
@@ -97,9 +104,9 @@ namespace NewBuddah.PredictionV2.Events
                 Debug.Log($"{LogPrefix}:FirstInvoke ch=Impulse", this);
             }
             Debug.Log(
-                $"{LogPrefix}:Recv ch=Impulse linear={cmd.LinearImpulse} turn={cmd.TurnImpulse} srcType={cmd.SourceType} srcObj={cmd.SourceObjectId}",
+                $"{LogPrefix}:Recv ch=Impulse linear={cmd.LinearImpulse} turn={cmd.TurnImpulse} srcType={cmd.SourceType} srcObj={cmd.SourceObjectId} eventTick={cmd.EventTick}",
                 this);
-            TryEnqueueImpulse(cmd);
+            TryEnqueueImpulse(cmd, cmd.EventTick);
         }
 
         // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once. See comment above Target_EnqueueImpulse.
@@ -112,9 +119,9 @@ namespace NewBuddah.PredictionV2.Events
                 Debug.Log($"{LogPrefix}:FirstInvoke ch=Teleport", this);
             }
             Debug.Log(
-                $"{LogPrefix}:Recv ch=Teleport pos={cmd.Pos} rot={cmd.Rot.eulerAngles} prog={cmd.Progress01:F3} src={cmd.Source} flags={cmd.Flags}",
+                $"{LogPrefix}:Recv ch=Teleport pos={cmd.Pos} rot={cmd.Rot.eulerAngles} prog={cmd.Progress01:F3} src={cmd.Source} flags={cmd.Flags} eventTick={cmd.EventTick}",
                 this);
-            TryEnqueueTeleport(cmd);
+            TryEnqueueTeleport(cmd, cmd.EventTick);
         }
 
         // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once. See comment above Target_EnqueueImpulse.
@@ -127,9 +134,9 @@ namespace NewBuddah.PredictionV2.Events
                 Debug.Log($"{LogPrefix}:FirstInvoke ch=Modifier", this);
             }
             Debug.Log(
-                $"{LogPrefix}:Recv ch=Modifier kind={cmd.Kind} mag={cmd.Magnitude:F3} dur={cmd.Duration:F3} stack={cmd.StackPolicy}",
+                $"{LogPrefix}:Recv ch=Modifier kind={cmd.Kind} mag={cmd.Magnitude:F3} dur={cmd.Duration:F3} stack={cmd.StackPolicy} eventTick={cmd.EventTick}",
                 this);
-            TryEnqueueModifier(cmd);
+            TryEnqueueModifier(cmd, cmd.EventTick);
         }
 
         // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once. See comment above Target_EnqueueImpulse.
@@ -142,9 +149,9 @@ namespace NewBuddah.PredictionV2.Events
                 Debug.Log($"{LogPrefix}:FirstInvoke ch=Handoff", this);
             }
             Debug.Log(
-                $"{LogPrefix}:Recv ch=Handoff pos={cmd.SnapshotPosition} inherit={cmd.Inherit:F3} blend={cmd.Blend:F3} bypass={cmd.Bypass:F3} suppressTurn={cmd.SuppressTurn:F3} flags={cmd.Flags}",
+                $"{LogPrefix}:Recv ch=Handoff pos={cmd.SnapshotPosition} inherit={cmd.Inherit:F3} blend={cmd.Blend:F3} bypass={cmd.Bypass:F3} suppressTurn={cmd.SuppressTurn:F3} flags={cmd.Flags} eventTick={cmd.EventTick}",
                 this);
-            TryEnqueueHandoff(cmd);
+            TryEnqueueHandoff(cmd, cmd.EventTick);
         }
 
 #if UNITY_EDITOR
@@ -165,12 +172,14 @@ namespace NewBuddah.PredictionV2.Events
                 Debug.LogWarning($"{LogPrefix}:A4Probe rejected - no active owner on NetworkObject", this);
                 return;
             }
+            uint stampTick = TimeManager != null ? TimeManager.LocalTick : 0u;
             var cmd = new ImpulseCmd(
                 linearImpulse: new Vector3(0f, 1f, 0f),
                 turnImpulse: 0f,
                 sourceType: 0,
-                sourceObjectId: 0);
-            Debug.Log($"{LogPrefix}:A4Probe fire Target_EnqueueImpulse -> ownerClientId={Owner.ClientId}", this);
+                sourceObjectId: 0,
+                eventTick: stampTick);
+            Debug.Log($"{LogPrefix}:A4Probe fire Target_EnqueueImpulse -> ownerClientId={Owner.ClientId} eventTick={stampTick}", this);
             Target_EnqueueImpulse(Owner, cmd);
         }
 #endif

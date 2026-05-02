@@ -1,0 +1,51 @@
+# Phase 4b V3 Stage 6 Verification Digest
+## Path A — Host-only single peer
+
+- **Raw**: `agent-exchange/console/raw/2026-05-02-phase4b-v3-single.log` (37,956 lines, 3.0 MB)
+- **Test method**: user fired ChargedHandProjectile at `DebugboxCanPush` instances (self-push proxy — only available single-peer victim)
+- **Editor.log**: cleared before PlayMode (Methodology Rule 1 sub-rule satisfied — single clean session)
+
+## Strict-Gate Counts
+
+| Marker | Count | Pass/Fail |
+|---|---|---|
+| `[D-IMP LEG FATAL]` | 0 | ✅ PASS |
+| `[D-IMP INV FATAL]` | 0 | ✅ PASS |
+| `Parser Failure at line 11` (Router.cs.meta YAML) | 0 | ✅ PASS (fixed by `9ab64f5`) |
+| Compile errors / Exceptions | 0 / 0 | ✅ PASS |
+| `[Channel]:DupReject` | 0 | ✅ PASS |
+
+## Router Dispatch Evidence
+
+- `BuddahPredictionRouter:RouteImpulse` stack frames: **7**
+- `BuddahPredictionCombatRouting:TryRouteImpulse` stack frames: **0** (legacy dead post-V3 — strict gate, met)
+- All 7 Router invocations resolved to **Tier 2 (PushTargetBox)** dispatch:
+  - Caller: `ChargedHandProjectileRuntime:Update (line 236)`
+  - Router: `BuddahPredictionRouter:RouteImpulse (line 71)`
+  - Sink: `BuddahPredictionPushTargetBox:TryApplyServerImpulse (line 48)`
+- Sample log: `[BuddahPredictionV2] push-target hit name=DebugboxCanPush (2) source=ChargedProjectile sourceId=2 impulse=(598.05, 0.00, -48.33) torque=50.00`
+
+## HEARTBEAT Summary
+
+- `[D-IMP LEG HEARTBEAT]` rows: **40**
+- First / last: `T=479 active-ticks=1` → `T=5159 active-ticks=4681` (~4.7k tick session)
+- `leg-imp-div` MAX across all rows: **0** (zero OLD-vs-NEW divergence — authority-flip clean)
+
+## Side Activity (orthogonal to V3 router scope)
+
+- `[PushHitbox] Spawn`: 13 (melee push hitbox spawns — independent of projectile self-push test)
+- `[PushHitbox] Hit / Routed`: 0 / 0 (no melee victim overlap during session — expected single-peer behavior)
+
+## Anomalies
+
+None. Single clean session. Meta YAML error from prior run is gone after the `9ab64f5` fix.
+
+## Verdict
+
+**✅ PASS** — All Path A V3 strict gates met:
+- 0 LEG/INV FATAL
+- 0 CombatRouting legacy invocations
+- 7 Router dispatches resolving correctly to Tier 2 PushTargetBox
+- leg-imp-div max = 0
+- Meta YAML clean
+- No exceptions / compile errors

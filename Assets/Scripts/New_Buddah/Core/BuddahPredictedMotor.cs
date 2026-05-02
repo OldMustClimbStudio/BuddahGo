@@ -101,10 +101,13 @@ namespace NewBuddah.PredictionV2.Core
         private BuddahPredictedTeleportEventData _shadowPreTeleportEvent;
         // Per-window divergence counters (reset at heartbeat).
         private int _dLocLocomotionDivCount;
-        private int _dLocImpulseDivCount;
+        // Phase 4b V2b Step 1 — Q4 amendment: impulse axis dropped from D-LOC compare. Early-shadow
+        // BuddahImpulseStep.Run was killed; cursor compare against _shadowScratch is dead post-flip
+        // (different ID space). Impulse divergence is now reported on the LEG axis exclusively
+        // (_legacyImpulseDivCount / [D-IMP LEG FATAL]). The _dLocImpulseDivCount field is removed.
         private int _dLocTeleportDivCount;
         // Cumulative consume counters (never reset — prove shadow steps actually consumed events).
-        private uint _shadowImpulseConsumedCount;
+        // V2b Step 1: _shadowImpulseConsumedCount removed alongside the early-shadow impulse step.
         private uint _shadowTeleportConsumedCount;
         // Phase 3c — modifier shadow state. Snapshot of _modifierState captured at the
         // motor.cs:341 authoritative Resolve; fed into BuddahModifierStep for independent
@@ -125,16 +128,16 @@ namespace NewBuddah.PredictionV2.Core
 #endif
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
-        // Phase 4b V2a — inverted shadow scratch. NEW path's drain
-        // (ConsumePendingImpulseEvents_InvertedShadow) writes here without
-        // touching rb. Compared against _realScratch's impulse fields each
-        // tick; divergence emits [D-IMP INV FATAL] + bumps _legacyShadowImpulseDivCount.
-        // Named "_legacyShadowScratch" per audit Option II convention — V2b
-        // flips authority, after which OLD path (still observed in this scratch)
-        // becomes the legacy shadow.
+        // Phase 4b V2b Step 1 — legacy shadow scratch (post authority-flip). OLD path's drain
+        // (ConsumePendingImpulseEvents_LegacyShadow) writes here without touching rb. Compared
+        // against _realScratch's impulse fields each tick; divergence emits [D-IMP LEG FATAL] +
+        // bumps _legacyImpulseDivCount. Pre-Step-1 (V2a/V2b Step 0) this scratch was driven by NEW
+        // path's drain as inverted-shadow — OLD was authority. Roles flipped at Step 1; struct
+        // field name kept for minimal Step 1 churn (rename deferred to V4 alongside LEGACY_SHADOW
+        // define retirement).
         private BuddahPredictionShadowScratch _legacyShadowScratch;
-        private int _legacyShadowImpulseDivCount;
-        private uint _legacyShadowImpulseComparedCount;
+        private int _legacyImpulseDivCount;
+        private uint _legacyImpulseComparedCount;
 #endif
 
 #if BUDDAH_PREDICTION_LEGACY_SHADOW
@@ -423,45 +426,48 @@ namespace NewBuddah.PredictionV2.Core
                 BuddahTeleportStep.Run(in earlyTickCtx, in data, ref _shadowScratch);
                 if (_shadowScratch.TeleportRan)
                     _shadowTeleportConsumedCount++;
-                BuddahImpulseStep.Run(in earlyTickCtx, in data, ref _shadowScratch);
-                if (_shadowScratch.ImpulseRan)
-                    _shadowImpulseConsumedCount++;
+                // Phase 4b V2b Step 1 — Q4 amendment: BuddahImpulseStep.Run early-shadow call
+                // removed. Post-flip _realScratch is NEW-driven (channel) and _shadowScratch was
+                // OLD-driven (queue) — different ID spaces would make cursor compare always
+                // mismatch (L19). Impulse correctness is now verified on the LEG axis only
+                // (_realScratch vs _legacyShadowScratch via [D-IMP LEG FATAL] block below).
             }
 #endif
             ConsumePendingTeleportEvent(currentTick);
             ConsumePendingLaunchHandoffEvent(currentTick);
-            ConsumePendingImpulseEvents(currentTick);
+            // Phase 4b V2b Step 1 — authority flip. NEW path (CommandBus.ImpulseChannel ConsumeReady)
+            // is now the rb-writing authority for impulse application. OLD path (_impulseEventQueue
+            // drain) demoted to legacy shadow under BUDDAH_PREDICTION_LEGACY_SHADOW (counter only,
+            // no rb writes, no _modifierState mutation, no _impulseConsumedThisTick — all moved to
+            // _Authoritative). [D-IMP LEG FATAL] gate guards count + ran-flag alignment between the
+            // two drains; cnt mismatch or ran mismatch = stop.
+            ConsumePendingImpulseEvents_Authoritative(currentTick);
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
-            // Phase 4b V2b Step 0 — inverted-shadow drain runs in RunInputs at the same lifecycle
-            // phase as OLD's ConsumePendingImpulseEvents. Channel is tick-stamped + ConsumeReady
-            // replay-safe (entries with EventTick > currentTick stay queued; consumed entries are
-            // removed and remembered in recent-IDs). Eliminates V2a-fix's PostTick phase-skew
-            // (L17) by drain-time alignment + tick-stamp protocol clock alignment (L17 + L16).
-            ConsumePendingImpulseEvents_InvertedShadow(currentTick);
+            ConsumePendingImpulseEvents_LegacyShadow(currentTick);
 
-            // Phase 4b V2b Step 0 fix-2 — INV compare runs in RunInputs (here), NOT PostTick.
-            // Both drains have just run with the same currentTick against the same channel/queue
-            // gate. _realScratch and _legacyShadowScratch reflect THIS tick's truth — read them
-            // here while the data is fresh. Mirror OLD's _shadowImpulseConsumedCount++ at line
-            // 423 (which lives in this same RunInputs body). Replay-safe because forward T sets
-            // ImpulseRan=true and counter increments here; reconcile replays of T-N drain empty
-            // channel/queue, neither side sets ImpulseRan, this block is a no-op (no spurious
-            // increment, no spurious FATAL).
+            // Phase 4b V2b Step 1 — LEG compare. NEW = authority (writes _realScratch via channel
+            // drain), LEG = legacy shadow (writes _legacyShadowScratch via queue drain). Same
+            // lifecycle phase + same currentTick + replay-safe-by-construction (both sides drain
+            // tick-stamped queues whose consumed entries don't re-emit on reconcile replay).
             //
             // FATAL semantics:
-            //   ranOld=true  ranNew=false : OLD enqueued but NEW didn't (CombatRouting bypass
-            //                               or adapter not _initialized).
-            //   ranOld=false ranNew=true  : NEW enqueued but OLD didn't (bus has entry, motor
-            //                               queue does not — likely a fan-out routing bug).
-            //   cntOld != cntNew          : both ran but drained different volumes this tick.
-            bool invImpRanMismatch = _realScratch.ImpulseRan != _legacyShadowScratch.ImpulseRan;
-            bool invImpCountMismatch = _realScratch.ImpulseDrainCount != _legacyShadowScratch.ImpulseDrainCount;
+            //   ranNew=true  ranLeg=false : NEW (channel) drained but OLD (queue) didn't.
+            //                               Likely cause: CombatRouting fan-out bypassed (skill
+            //                               site cut-over leak) or OLD enqueue path broken.
+            //   ranNew=false ranLeg=true  : OLD (queue) drained but NEW (channel) didn't.
+            //                               Likely cause: adapter not _initialized or
+            //                               IsPredictionModeActive false at routing time.
+            //   cntNew != cntLeg          : both ran but drained different volumes this tick
+            //                               (single-emit invariant break OR Q0 dedup hit on one side
+            //                               but not the other — investigate [Channel]:DupReject).
+            bool legImpRanMismatch = _realScratch.ImpulseRan != _legacyShadowScratch.ImpulseRan;
+            bool legImpCountMismatch = _realScratch.ImpulseDrainCount != _legacyShadowScratch.ImpulseDrainCount;
             if (_realScratch.ImpulseRan || _legacyShadowScratch.ImpulseRan)
-                _legacyShadowImpulseComparedCount++;
-            if (invImpRanMismatch || invImpCountMismatch)
+                _legacyImpulseComparedCount++;
+            if (legImpRanMismatch || legImpCountMismatch)
             {
-                Debug.LogError($"[D-IMP INV FATAL] T={currentTick} ranOld={_realScratch.ImpulseRan} ranNew={_legacyShadowScratch.ImpulseRan} cntOld={_realScratch.ImpulseDrainCount} cntNew={_legacyShadowScratch.ImpulseDrainCount}");
-                _legacyShadowImpulseDivCount++;
+                Debug.LogError($"[D-IMP LEG FATAL] T={currentTick} ranNew={_realScratch.ImpulseRan} ranLeg={_legacyShadowScratch.ImpulseRan} cntNew={_realScratch.ImpulseDrainCount} cntLeg={_legacyShadowScratch.ImpulseDrainCount}");
+                _legacyImpulseDivCount++;
             }
 #endif
             RefreshLaunchState(currentTick);
@@ -1393,14 +1399,17 @@ namespace NewBuddah.PredictionV2.Core
         private void Shadow_CompareAndReport()
         {
             bool anyRan = _realScratch.LocomotionRan || _shadowScratch.LocomotionRan
-                          || _realScratch.ImpulseRan || _shadowScratch.ImpulseRan
+                          // Phase 4b V2b Step 1 — _shadowScratch.ImpulseRan dropped (Q4 amendment:
+                          // early-shadow impulse step removed). _realScratch.ImpulseRan is now
+                          // NEW-driven (channel drain authority).
+                          || _realScratch.ImpulseRan
                           || _realScratch.TeleportRan || _shadowScratch.TeleportRan
                           || _realScratch.ModifierRan || _shadowScratch.ModifierRan
                           || _realScratch.HandoffRan || _shadowScratch.HandoffRan
 #if BUDDAH_PREDICTION_LEGACY_SHADOW
-                          // Phase 4b V2a — also flip into "active" for inverted-shadow-only ticks
-                          // (NEW dequeued events that OLD did not consume — fan-out vs. queue-dedupe
-                          // mismatch surfaces here even when forward shadow is idle).
+                          // Phase 4b V2b Step 1 — flip into "active" for legacy-shadow-only ticks
+                          // (OLD drained but NEW did not, or vice versa — surfaced via [D-IMP LEG
+                          // FATAL] gate when cnt or ranFlag mismatch).
                           || _legacyShadowScratch.ImpulseRan
 #endif
                           ;
@@ -1411,15 +1420,16 @@ namespace NewBuddah.PredictionV2.Core
                 if ((_shadowSkipCompares % 300) == 1)
                 {
                     uint tickIdle = TimeManager != null ? TimeManager.LocalTick : 0u;
-                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} (both sides idle)");
+                    // V2b Step 1 — imp-div / imp-compared dropped from D-LOC HEARTBEAT (Q4
+                    // amendment: impulse axis owned exclusively by [D-IMP LEG HEARTBEAT] post-flip).
+                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} (both sides idle)");
                     _dLocLocomotionDivCount = 0;
-                    _dLocImpulseDivCount = 0;
                     _dLocTeleportDivCount = 0;
                     _dLocModifierDivCount = 0;
                     _dLocHandoffDivCount = 0;
 #if BUDDAH_PREDICTION_LEGACY_SHADOW
-                    Debug.Log($"[D-IMP INV HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares}\n  inv-imp-div={_legacyShadowImpulseDivCount} inv-imp-compared={_legacyShadowImpulseComparedCount} (both sides idle)");
-                    _legacyShadowImpulseDivCount = 0;
+                    Debug.Log($"[D-IMP LEG HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares}\n  leg-imp-div={_legacyImpulseDivCount} leg-imp-compared={_legacyImpulseComparedCount} (both sides idle)");
+                    _legacyImpulseDivCount = 0;
 #endif
                 }
                 return;
@@ -1429,20 +1439,19 @@ namespace NewBuddah.PredictionV2.Core
             if ((_shadowActiveCompares % 120) == 1)
             {
                 uint tickHb = TimeManager != null ? TimeManager.LocalTick : 0u;
-                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} imp-div={_dLocImpulseDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  imp-compared={_shadowImpulseConsumedCount} tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount}");
+                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount}");
                 _dLocLocomotionDivCount = 0;
-                _dLocImpulseDivCount = 0;
                 _dLocTeleportDivCount = 0;
                 _dLocModifierDivCount = 0;
                 _dLocHandoffDivCount = 0;
 #if BUDDAH_PREDICTION_LEGACY_SHADOW
-                Debug.Log($"[D-IMP INV HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares}\n  inv-imp-div={_legacyShadowImpulseDivCount} inv-imp-compared={_legacyShadowImpulseComparedCount}");
-                _legacyShadowImpulseDivCount = 0;
+                Debug.Log($"[D-IMP LEG HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares}\n  leg-imp-div={_legacyImpulseDivCount} leg-imp-compared={_legacyImpulseComparedCount}");
+                _legacyImpulseDivCount = 0;
 #endif
             }
 
             bool locDiverged = false;
-            bool impDiverged = false;
+            // Phase 4b V2b Step 1 — impDiverged removed (Q4 amendment: D-LOC impulse compare killed).
             bool telDiverged = false;
             bool modDiverged = false;
             bool hofDiverged = false;
@@ -1477,18 +1486,12 @@ namespace NewBuddah.PredictionV2.Core
                 }
             }
 
-            // Impulse compare (3b) — cursor + ran flag.
-            if (_realScratch.ImpulseRan != _shadowScratch.ImpulseRan)
-            {
-                Debug.LogWarning($"[D-LOC] T={tick} impulse-ran gate mismatch: real={_realScratch.ImpulseRan} shadow={_shadowScratch.ImpulseRan}");
-                impDiverged = true;
-            }
-            else if (_realScratch.ImpulseRan
-                     && _realScratch.ShadowLastConsumedImpulseId != _shadowScratch.ShadowLastConsumedImpulseId)
-            {
-                Debug.LogWarning($"[D-LOC] T={tick} impulse-consume cursor mismatch: realId={_realScratch.ShadowLastConsumedImpulseId} shadowId={_shadowScratch.ShadowLastConsumedImpulseId}");
-                impDiverged = true;
-            }
+            // Phase 4b V2b Step 1 — D-LOC impulse compare REMOVED (Q4 amendment + L19). Pre-flip
+            // _realScratch and _shadowScratch both read OLD's _impulseEventQueue (same EventId
+            // space) — cursor compare was meaningful. Post-flip _realScratch reads NEW's channel
+            // (entry.Id) and _shadowScratch was OLD-driven (eventData.EventId) — different ID
+            // spaces would make cursor always mismatch + spurious warnings. Impulse correctness
+            // verified exclusively via [D-IMP LEG FATAL] (NEW vs OLD-as-shadow ran-flag + cnt).
 
             // Teleport compare (3b) — ran flag + cursor + target pose + 7 flag reads.
             if (_realScratch.TeleportRan != _shadowScratch.TeleportRan)
@@ -1776,22 +1779,19 @@ namespace NewBuddah.PredictionV2.Core
             }
 
             if (locDiverged) _dLocLocomotionDivCount++;
-            if (impDiverged) _dLocImpulseDivCount++;
+            // V2b Step 1 — _dLocImpulseDivCount removed (Q4 amendment).
             if (telDiverged) _dLocTeleportDivCount++;
             if (modDiverged) _dLocModifierDivCount++;
             if (hofDiverged) _dLocHandoffDivCount++;
 
-            // Phase 4b V2b Step 0 fix-2 — INV compare block (compared/div counters + FATAL emit)
-            // moved to RunInputs (after both drains, before _legacyShadowScratch reset). Reading
-            // scratches at PostTick is replay-lossy on non-server peers: forward T's drain sets
-            // ImpulseRan=true, then reconcile replays of T-N..T reset _legacyShadowScratch to
-            // default at line 388-394 and re-drain an empty channel (forward already consumed),
-            // so the LAST replay's scratch is false. PostTick read of false → counter never
-            // increments + FATAL never fires (vacuous pass under reconcile). Mirror OLD's
-            // _shadowImpulseConsumedCount++ at motor.cs:423 — same lifecycle phase, same
-            // replay-safety property.
+            // Phase 4b V2b Step 0 fix-2 / V2b Step 1 — LEG compare block moved into RunInputs
+            // (after both drains, before _legacyShadowScratch reset). Reading scratches at PostTick
+            // would be replay-lossy on non-server peers: forward T's drain sets ImpulseRan=true,
+            // then reconcile replays reset scratch and re-drain empty queues; PostTick read
+            // captures the last (vacuous) replay state. Counter increment + FATAL emit live
+            // alongside the drains so they observe the forward-pass truth.
 
-            bool anyDiverged = locDiverged || impDiverged || telDiverged || modDiverged || hofDiverged;
+            bool anyDiverged = locDiverged || telDiverged || modDiverged || hofDiverged;
             if (anyDiverged)
                 _dLocConsecutive++;
             else
@@ -1806,7 +1806,7 @@ namespace NewBuddah.PredictionV2.Core
                 {
                     var sb = new StringBuilder();
                     if (locDiverged) sb.Append(sb.Length > 0 ? ",loc" : "loc");
-                    if (impDiverged) sb.Append(sb.Length > 0 ? ",imp" : "imp");
+                    // V2b Step 1 — imp axis dropped from D-LOC composite FATAL string (Q4 amendment).
                     if (telDiverged) sb.Append(sb.Length > 0 ? ",tel" : "tel");
                     if (modDiverged) sb.Append(sb.Length > 0 ? ",mod" : "mod");
                     if (hofDiverged) sb.Append(sb.Length > 0 ? ",hof" : "hof");
@@ -1880,77 +1880,18 @@ namespace NewBuddah.PredictionV2.Core
             return true;
         }
 
-        private void ConsumePendingImpulseEvents(uint currentTick)
+        // Phase 4b V2b Step 1 — NEW = rb-writing authority. Drains
+        // bootstrap.CommandBus.ImpulseChannel (tick-stamped, ConsumeReady-gated) and applies the
+        // 4 gameplay actions per entry: rb.WakeUp + _predictionRigidbody.AddForce/AddTorque +
+        // ApplyPushGraceFromImpulse + _impulseConsumedThisTick = true. PredictionRigidbody
+        // integrity (Methodology Rule 7): all force/torque writes go through _predictionRigidbody,
+        // NEVER direct rb. Replay-safe by construction (channel removes consumed entries; reconcile
+        // replay sees empty pending → no re-apply; reconcile state captures impulse-applied rb).
+        // _realScratch counter writes power the [D-IMP LEG FATAL] gate.
+        private void ConsumePendingImpulseEvents_Authoritative(uint currentTick)
         {
             if (_predictionRigidbody == null || rb == null)
                 return;
-
-            _impulseEventQueue.ConsumeReady(currentTick, eventData =>
-            {
-                Vector3 planarVelocity = rb.velocity;
-                planarVelocity.y = 0f;
-
-                bootstrap.DebugState.preImpulseSpeed = planarVelocity.magnitude;
-                bootstrap.DebugState.lastImpulseEventId = eventData.EventId;
-                bootstrap.DebugState.lastImpulseEventTick = eventData.EventTick;
-                bootstrap.DebugState.lastImpulseSourceType = eventData.SourceType.ToString();
-                bootstrap.DebugState.lastImpulseVector = eventData.Impulse;
-                bootstrap.DebugState.lastImpulseTurnTorque = eventData.TurnTorqueImpulse;
-                bootstrap.DebugState.lastImpulseConsumed = true;
-                _impulseConsumedThisTick = true;
-#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
-                _realScratch.ImpulseRan = true;
-                _realScratch.ImpulseDrainCount++;
-                if (eventData.EventId > _realScratch.ShadowLastConsumedImpulseId)
-                    _realScratch.ShadowLastConsumedImpulseId = eventData.EventId;
-#endif
-
-                rb.WakeUp();
-                if (eventData.Impulse.sqrMagnitude > 0f)
-                    _predictionRigidbody.AddForce(eventData.Impulse, ForceMode.Impulse);
-                if (Mathf.Abs(eventData.TurnTorqueImpulse) > 0.001f)
-                    _predictionRigidbody.AddTorque(Vector3.up * eventData.TurnTorqueImpulse, ForceMode.Impulse);
-
-                ApplyPushGraceFromImpulse(currentTick, eventData);
-                bootstrap.LogVerbose(
-                    $"impulse consumed id={eventData.EventId} source={eventData.SourceType} tick={currentTick} " +
-                    $"impulse={eventData.Impulse} torque={eventData.TurnTorqueImpulse:0.00}");
-                return true;
-            });
-
-            if (bootstrap != null)
-            {
-                bootstrap.DebugState.pendingImpulseCount = _impulseEventQueue.PendingCount;
-                bootstrap.DebugState.pendingImpulseSummary = _impulseEventQueue.BuildPendingSummary();
-            }
-        }
-
-#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
-        // Phase 4b V2a/V2b Step 0 — inverted-shadow drain. NEW path observation only:
-        // ConsumeReady-drains entries on bootstrap.CommandBus.ImpulseChannel that satisfy
-        // EventTick <= currentTick, writes into _legacyShadowScratch. Does NOT touch rb.
-        // OLD path (ConsumePendingImpulseEvents) remains the rb-writing authority.
-        // V2b Step 1 will swap roles: this drain becomes the rb writer, the OLD path moves
-        // under #if to become the legacy shadow.
-        //
-        // V2b Step 0 lifecycle: called from RunInputs immediately after ConsumePendingImpulseEvents
-        // (OLD drain). Replay-safe by construction now that the channel uses tick-stamped
-        // EventTick + ConsumeReady — entries with EventTick > currentTick stay queued; entries
-        // satisfying the gate are removed from _pending and recorded in recent-IDs.
-        // Per-replay safety: forward pass at tick T removes the entry; reconcile replay of T-N
-        // sees an empty pending and does not re-emit (correct behavior — the event already happened
-        // logically at T). Mirror of OLD path's BuddahPredictedImpulseEventQueue.ConsumeReady.
-        //
-        // V2a (pre-fix) called this from RunInputs but with TryDequeue (single-pass FIFO, no
-        // tick gate) — replay 1 drained, replays 2..N saw empty channel, scratch reset between
-        // replays produced inv-imp-compared = 0 (lessons-log L16).
-        // V2a (post-L16-fix) moved drain to PostTick to dodge replay; that fixed L16 but
-        // introduced lifecycle phase-skew vs OLD path's RunInputs drain → bidirectional FATAL
-        // false positives (lessons-log L17).
-        // V2b Step 0 (this commit) restores RunInputs lifecycle parity AND replay safety
-        // simultaneously by tick-stamping the channel.
-        private void ConsumePendingImpulseEvents_InvertedShadow(uint currentTick)
-        {
             if (bootstrap == null || bootstrap.CommandBus == null)
                 return;
 
@@ -1958,18 +1899,93 @@ namespace NewBuddah.PredictionV2.Core
             if (channel == null)
                 return;
 
-            channel.ConsumeReady(currentTick, ConsumeImpulseInvertedShadowEntry);
+            channel.ConsumeReady(currentTick, ConsumeImpulseAuthoritativeEntry);
+
+            if (bootstrap != null)
+            {
+                bootstrap.DebugState.pendingImpulseCount = channel.Count;
+                // pendingImpulseSummary kept on legacy queue path until V4 cleanup; channel does
+                // not currently expose a summary builder. Inspector value reflects OLD queue
+                // contents only — acceptable transitional staleness.
+            }
         }
 
-        // Helper for ConsumePendingImpulseEvents_InvertedShadow's ConsumeReady callback.
+        // Helper for ConsumePendingImpulseEvents_Authoritative's ConsumeReady callback.
         // Method form (vs lambda) to avoid `in` parameter capture quirks and keep the
         // hot path allocation-free across reconcile replays.
-        private bool ConsumeImpulseInvertedShadowEntry(in NewBuddah.PredictionV2.Events.BuddahPredictionEventChannel<NewBuddah.PredictionV2.Events.Payloads.ImpulseCmd>.Entry entry)
+        private bool ConsumeImpulseAuthoritativeEntry(in NewBuddah.PredictionV2.Events.BuddahPredictionEventChannel<NewBuddah.PredictionV2.Events.Payloads.ImpulseCmd>.Entry entry)
+        {
+            NewBuddah.PredictionV2.Events.Payloads.ImpulseCmd cmd = entry.Payload;
+
+            Vector3 planarVelocity = rb.velocity;
+            planarVelocity.y = 0f;
+
+            bootstrap.DebugState.preImpulseSpeed = planarVelocity.magnitude;
+            bootstrap.DebugState.lastImpulseEventId = entry.Id;
+            bootstrap.DebugState.lastImpulseEventTick = entry.EventTick;
+            bootstrap.DebugState.lastImpulseSourceType = ((BuddahPredictedImpulseSourceType)cmd.SourceType).ToString();
+            bootstrap.DebugState.lastImpulseVector = cmd.LinearImpulse;
+            bootstrap.DebugState.lastImpulseTurnTorque = cmd.TurnImpulse;
+            bootstrap.DebugState.lastImpulseConsumed = true;
+            _impulseConsumedThisTick = true;
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            _realScratch.ImpulseRan = true;
+            _realScratch.ImpulseDrainCount++;
+            if (entry.Id > _realScratch.ShadowLastConsumedImpulseId)
+                _realScratch.ShadowLastConsumedImpulseId = entry.Id;
+#endif
+
+            rb.WakeUp();
+            if (cmd.LinearImpulse.sqrMagnitude > 0f)
+                _predictionRigidbody.AddForce(cmd.LinearImpulse, ForceMode.Impulse);
+            if (Mathf.Abs(cmd.TurnImpulse) > 0.001f)
+                _predictionRigidbody.AddTorque(Vector3.up * cmd.TurnImpulse, ForceMode.Impulse);
+
+            // Synthesize ALL fields per Q1 risk note. ApplyPushGraceFromImpulse currently reads
+            // EventId + SourceType for log only, but populate every field to forward-proof against
+            // future helper signature growth without re-touching this synthesis site.
+            uint currentTick = TimeManager != null ? TimeManager.LocalTick : 0u;
+            BuddahPredictedImpulseEventData syntheticEventData = new BuddahPredictedImpulseEventData(
+                eventId: entry.Id,
+                eventTick: entry.EventTick,
+                impulse: cmd.LinearImpulse,
+                turnTorqueImpulse: cmd.TurnImpulse,
+                sourceType: (BuddahPredictedImpulseSourceType)cmd.SourceType,
+                sourceObjectId: cmd.SourceObjectId);
+            ApplyPushGraceFromImpulse(currentTick, syntheticEventData);
+
+            bootstrap.LogVerbose(
+                $"impulse consumed (NEW authoritative) entryId={entry.Id} logicalId={entry.LogicalId} source={(BuddahPredictedImpulseSourceType)cmd.SourceType} tick={currentTick} " +
+                $"impulse={cmd.LinearImpulse} torque={cmd.TurnImpulse:0.00}");
+            return true;
+        }
+
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
+        // Phase 4b V2b Step 1 — OLD = legacy shadow (post authority-flip). Drains
+        // _impulseEventQueue (still RPC-fed by motor's QueueImpulseEventTargetRpc and
+        // TryQueueImpulseEvent — those code paths kept until V4). Writes _legacyShadowScratch
+        // counter only. NO rb writes (NEW is authority). NO ApplyPushGraceFromImpulse (NEW writes
+        // _modifierState.PushGraceUntilTick). NO _impulseConsumedThisTick (NEW gates that flag).
+        // NO DebugState writes (NEW writes them; Update() refreshes pending count next frame).
+        // Pure observation — the [D-IMP LEG FATAL] gate compares _realScratch (NEW authority)
+        // against _legacyShadowScratch (this) for ran-flag and count alignment.
+        //
+        // V4 retires LEGACY_SHADOW define: this body, _impulseEventQueue, TryQueueImpulseEvent,
+        // QueueImpulseEventTargetRpc, BuddahPredictedImpulseEventQueue type all delete together.
+        private void ConsumePendingImpulseEvents_LegacyShadow(uint currentTick)
+        {
+            _impulseEventQueue.ConsumeReady(currentTick, ConsumeImpulseLegacyShadowEntry);
+        }
+
+        // Helper for ConsumePendingImpulseEvents_LegacyShadow's ConsumeReady callback.
+        // Func<...,bool> signature dictated by BuddahPredictedImpulseEventQueue.ConsumeReady's
+        // System.Func<BuddahPredictedImpulseEventData, bool> contract.
+        private bool ConsumeImpulseLegacyShadowEntry(BuddahPredictedImpulseEventData eventData)
         {
             _legacyShadowScratch.ImpulseRan = true;
             _legacyShadowScratch.ImpulseDrainCount++;
-            if (entry.Id > _legacyShadowScratch.ShadowLastConsumedImpulseId)
-                _legacyShadowScratch.ShadowLastConsumedImpulseId = entry.Id;
+            if (eventData.EventId > _legacyShadowScratch.ShadowLastConsumedImpulseId)
+                _legacyShadowScratch.ShadowLastConsumedImpulseId = eventData.EventId;
             return true;
         }
 #endif

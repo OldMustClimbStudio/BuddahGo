@@ -7,6 +7,8 @@ namespace NewBuddah.PredictionV2.Events.Payloads
     //
     // Phase 4b V2b Step 0: EventTick added for cross-channel API uniformity. No consumer wired yet
     // (V2b Step 1+ migrates Teleport drain). See agent-exchange/handoff/2026-05-02-phase4b-v2b-step0-design.md.
+    // Phase 4b V2b Step 1: LogicalId added for cross-channel API uniformity (forward consistency
+    // with ImpulseCmd's Q0 dedup mechanism). No consumer wired on Teleport yet.
     public struct TeleportCmd
     {
         public Vector3 Pos;
@@ -15,8 +17,9 @@ namespace NewBuddah.PredictionV2.Events.Payloads
         public byte Source;
         public byte Flags;
         public uint EventTick;
+        public uint LogicalId;
 
-        public TeleportCmd(Vector3 pos, Quaternion rot, float progress01, byte source, byte flags, uint eventTick)
+        public TeleportCmd(Vector3 pos, Quaternion rot, float progress01, byte source, byte flags, uint eventTick, uint logicalId)
         {
             Pos = pos;
             Rot = rot;
@@ -24,6 +27,7 @@ namespace NewBuddah.PredictionV2.Events.Payloads
             Source = source;
             Flags = flags;
             EventTick = eventTick;
+            LogicalId = logicalId;
         }
     }
 }

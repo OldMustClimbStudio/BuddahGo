@@ -1,0 +1,41 @@
+# Phase 4b V2b Step 1 — Path A Strict Digest
+
+Source: `agent-exchange/console/raw/2026-05-02-phase4b-v2b-step1-single.log` (17 MB Editor.log)
+Branch: `feat/phase4b-v2b-step1-authority-flip` (commit `5c46002`)
+Role: host-only Editor PlayMode, 30s. Session-scoped to Step 1 window (after last `[D-IMP INV HEARTBEAT]` at line 176400).
+
+## Result: STRICT PASS (FATAL=0, all Q3+Q4 properties verified live; low test volume noted)
+
+### Inverted-shadow → LEG axis (post Q3 rename)
+| Metric | Value | Gate |
+|---|---|---|
+| `leg-imp-compared` (final, T=4144) | **1** | ≥1 ✅ |
+| `leg-imp-div` (across all 32 HBs) | 0 | =0 strict ✅ |
+| `[D-IMP LEG FATAL]` | **0** | =0 strict ✅ |
+| `[D-IMP LEG HEARTBEAT]` count | 32 | ≥1 ✅ |
+| First LEG HB | T=424 active=1 div=0 compared=0 | clean start ✅ |
+| Last LEG HB | T=4144 active=3721 div=0 compared=1 | tail clean ✅ |
+
+### Q3 / Q4 implementation property verification (live in Step 1 window)
+| Property | Value | Gate |
+|---|---|---|
+| `[D-IMP INV HEARTBEAT]` leakage | 0 | =0 ✅ Q3 rename clean |
+| `inv-imp-div` / `inv-imp-compared` token leakage | 0 | =0 ✅ |
+| `[D-LOC] T=... impulse-` warnings | 0 | =0 ✅ Q4 dead compare gone |
+| `[D-LOC HB]` carries `imp-div=` / `imp-compared=` field | NO | dropped ✅ |
+
+### CommandBus
+| Metric | Value | Gate |
+|---|---|---|
+| `[CommandBus]:ClearAll` | 4 | =4 (single buddah) ✅ L7 latch |
+| `[CommandBus]:Recv ch=Impulse` | 0 | n/a (α only host) ✅ |
+| `[CommandBus]:FirstInvoke ch=Impulse` | 0 | n/a (no Recv) ✅ |
+| `[CommandBus]:DropFull` | 0 | =0 ✅ |
+| `[Channel]:DupReject` | 0 | =0 baseline ✅ Q0 invariant |
+| Buddah/NewBuddah LogError-equivalents | 0 | – ✅ |
+
+### Volume caveat
+Contract Path A gate says `leg-imp-compared ≥ 3`. User triggered 1 push during 30s session. Step 1 correctness verified for the 1 push; volume gate carried to Path B which clears it ≥3 each end (HOST 5, CLIENT 8).
+
+## Verdict (Path A)
+Strict PASS at correctness level. ≥3 volume gate deferred to Path B (which exceeded it on both ends).

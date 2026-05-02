@@ -5,6 +5,8 @@ namespace NewBuddah.PredictionV2.Events.Payloads
     //
     // Phase 4b V2b Step 0: EventTick added for cross-channel API uniformity. No consumer wired yet
     // (V2b Step 1+ migrates Modifier drain). See agent-exchange/handoff/2026-05-02-phase4b-v2b-step0-design.md.
+    // Phase 4b V2b Step 1: LogicalId added for cross-channel API uniformity (forward consistency
+    // with ImpulseCmd's Q0 dedup mechanism). No consumer wired on Modifier yet.
     public struct ModifierCmd
     {
         public byte Kind;
@@ -12,14 +14,16 @@ namespace NewBuddah.PredictionV2.Events.Payloads
         public float Duration;
         public byte StackPolicy;
         public uint EventTick;
+        public uint LogicalId;
 
-        public ModifierCmd(byte kind, float magnitude, float duration, byte stackPolicy, uint eventTick)
+        public ModifierCmd(byte kind, float magnitude, float duration, byte stackPolicy, uint eventTick, uint logicalId)
         {
             Kind = kind;
             Magnitude = magnitude;
             Duration = duration;
             StackPolicy = stackPolicy;
             EventTick = eventTick;
+            LogicalId = logicalId;
         }
     }
 }

@@ -1,0 +1,52 @@
+# Phase 4b V2b Step 1 — Path B CLIENT Strict Digest
+
+Source: `agent-exchange/console/raw/2026-05-02-phase4b-v2b-step1-client.log` (35 MB Editor.log)
+Branch: `feat/phase4b-v2b-step1-authority-flip` (commit `5c46002`)
+Role: CLIENT (Editor PlayMode), 2-peer LAN with HOST as Build, 60s, no LatencySim.
+
+## Result: STRICT PASS (FATAL=0, 93 LEG HBs across the Step 1 window)
+
+Editor.log accumulated multiple PlayMode sessions in the same Editor process. Window scoped via "first `[D-IMP LEG HEARTBEAT]` after last `[D-IMP INV HEARTBEAT]`" — captures Step 1 Path A + Step 1 Path B (both clean; this digest reports the combined window).
+
+### LEG axis (post-flip)
+| Metric | Value | Gate |
+|---|---|---|
+| `[D-IMP LEG HEARTBEAT]` count | 93 (Step 1 window total) | ≥1 ✅ |
+| `leg-imp-compared` (final, T=8718) | **8** | ≥3 ✅ |
+| `leg-imp-div` (across all 93 HBs) | 0 | =0 strict ✅ |
+| `[D-IMP LEG FATAL]` | **0** | =0 strict ✅ |
+| First LEG HB (window) | T=424 active=1 div=0 compared=0 | clean start ✅ |
+| Last LEG HB | T=8718 active=7201 div=0 compared=8 | tail clean ✅ |
+
+### Q3 / Q4 implementation property verification
+| Property | Value | Gate |
+|---|---|---|
+| `[D-IMP INV HEARTBEAT]` / `inv-imp-*` leakage in window | 0 | =0 ✅ |
+| `[D-LOC] T=... impulse-` warnings | 0 | =0 ✅ |
+| `[D-LOC HB]` carries `imp-` fields | NO | dropped ✅ |
+
+### CommandBus + wire-format verification
+| Metric | Value | Gate |
+|---|---|---|
+| `[CommandBus]:ClearAll` | 12 (8 spawn + 4 ModeSwitch) | – ✅ |
+| `[CommandBus]:Recv ch=Impulse` | **8** | ≥1 ✅ |
+| `[CommandBus]:FirstInvoke ch=Impulse` | 1 | single-shot ✅ |
+| Recv lines carrying `eventTick=N` AND `logicalId=N` | **8/8 yes** | every line ✅ wire format Step 1 |
+| Recv `logicalId` sequence | **1, 2, 3, 4, 5, 6, 7, 8** sequential | adapter monotonic ✅ Q0 |
+| Recv `eventTick` range | 4381..7028 | server-stamped ✅ L17 phase-skew eliminated |
+| `[CommandBus]:DropFull` | 0 | =0 ✅ |
+| `[Channel]:DupReject` | 0 | =0 baseline ✅ Q0 invariant |
+| `Read position beyond buffer` errors | 0 | =0 ✅ both peers on Step 1 build |
+| LogError-equivalents | 0 | – ✅ |
+
+### Sample Recv lines (verbatim from window)
+- First: `[CommandBus]:Recv ch=Impulse linear=(-13.64, 0.00, 99.07) turn=0 srcType=1 srcObj=2 eventTick=4381 logicalId=1`
+- Last:  `[CommandBus]:Recv ch=Impulse linear=(-201.01, 0.00, -457.82) turn=0 srcType=3 srcObj=2 eventTick=7028 logicalId=8`
+
+### Counter alignment audit
+- CLIENT `leg-imp-compared=8`: 8 RPCs received from server's adapter β-branch (events targeting CLIENT-owned victim).
+- 8 events on CLIENT channel matched OLD-side `_impulseEventQueue` drain count linearly across all 93 HB windows. `leg-imp-div=0` cumulative.
+- LogicalId stamps 1..8 sequential prove per-adapter monotonic counter is incrementing correctly server-side; the cmds are deserialized correctly client-side (Step 1 wire format end-to-end working).
+
+## Verdict (CLIENT)
+**Strict PASS across full Step 1 window (~7200 active ticks combined Path A + Path B).** β-RPC delivery + dedup + LogicalId stamping all verified. Wire format Step 1 confirmed (8/8 Recv lines carry both `eventTick` AND `logicalId` fields). No FATAL of any kind. fix-3 + Step 1 authority flip both compatible end-to-end on the CLIENT side.

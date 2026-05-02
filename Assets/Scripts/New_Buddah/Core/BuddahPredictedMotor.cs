@@ -124,6 +124,27 @@ namespace NewBuddah.PredictionV2.Core
         private int _dLocHandoffDivCount;
 #endif
 
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
+        // Phase 4b V2a — inverted shadow scratch. NEW path's drain
+        // (ConsumePendingImpulseEvents_InvertedShadow) writes here without
+        // touching rb. Compared against _realScratch's impulse fields each
+        // tick; divergence emits [D-IMP INV FATAL] + bumps _legacyShadowImpulseDivCount.
+        // Named "_legacyShadowScratch" per audit Option II convention — V2b
+        // flips authority, after which OLD path (still observed in this scratch)
+        // becomes the legacy shadow.
+        private BuddahPredictionShadowScratch _legacyShadowScratch;
+        private int _legacyShadowImpulseDivCount;
+        private uint _legacyShadowImpulseComparedCount;
+#endif
+
+#if BUDDAH_PREDICTION_LEGACY_SHADOW
+        // L7 latch tracker. Flipped to true on the first RunInputs tick where
+        // ShouldRunPrediction passes — guarantees BuddahMovementModeSwitcher's
+        // double-ApplyMode + its 4 [CommandBus]:ClearAll lines have all landed
+        // before the adapter's MarkReady() fires (lessons-log L7 rule b).
+        private bool _combatAdapterInitialized;
+#endif
+
         public bool IsLaunchHandoffActive => _handoffState.IsActive || _externalKinematicControlActive || _introControlActive;
         public float CurrentScaleMultiplier => _computedStats.ScaleMultiplier > 0f ? _computedStats.ScaleMultiplier : 1f;
         public bool IsPredictionIntroControlActive => _introControlActive;
@@ -228,6 +249,9 @@ namespace NewBuddah.PredictionV2.Core
                 Shadow_CompareAndReport();
             _realScratch = default;
             _shadowScratch = default;
+#if BUDDAH_PREDICTION_LEGACY_SHADOW
+            _legacyShadowScratch = default;
+#endif
 #endif
 
             if (!IsServerInitialized)
@@ -347,9 +371,26 @@ namespace NewBuddah.PredictionV2.Core
             if (!ShouldRunPrediction() || _predictionRigidbody == null)
                 return;
 
+#if BUDDAH_PREDICTION_LEGACY_SHADOW
+            // Phase 4b V2a — L7 late-bind for the CombatAdapter. ShouldRunPrediction()
+            // returning true here proves we're past BuddahMovementModeSwitcher's
+            // double-ApplyMode (Awake + OnEnable both fire ApplyMode → 4
+            // [CommandBus]:ClearAll lines per spawn). MarkReady() runs exactly
+            // once per motor instance; subsequent enqueues from CombatAdapter
+            // will not be wiped by a second ClearAll. Per L7 rule (b).
+            if (!_combatAdapterInitialized && bootstrap != null && bootstrap.CombatAdapter != null)
+            {
+                bootstrap.CombatAdapter.MarkReady();
+                _combatAdapterInitialized = true;
+            }
+#endif
+
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _realScratch = default;
             _shadowScratch = default;
+#if BUDDAH_PREDICTION_LEGACY_SHADOW
+            _legacyShadowScratch = default;
+#endif
 #endif
 
             InitializePredictionRigidbody();
@@ -385,6 +426,12 @@ namespace NewBuddah.PredictionV2.Core
             ConsumePendingTeleportEvent(currentTick);
             ConsumePendingLaunchHandoffEvent(currentTick);
             ConsumePendingImpulseEvents(currentTick);
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
+            // Phase 4b V2a — observation-only drain of CommandBus.ImpulseChannel.
+            // Runs after OLD drain so both paths see the same tick-bounded
+            // fan-out window. Writes _legacyShadowScratch only; rb untouched.
+            ConsumePendingImpulseEvents_InvertedShadow(currentTick);
+#endif
             RefreshLaunchState(currentTick);
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
@@ -1317,7 +1364,14 @@ namespace NewBuddah.PredictionV2.Core
                           || _realScratch.ImpulseRan || _shadowScratch.ImpulseRan
                           || _realScratch.TeleportRan || _shadowScratch.TeleportRan
                           || _realScratch.ModifierRan || _shadowScratch.ModifierRan
-                          || _realScratch.HandoffRan || _shadowScratch.HandoffRan;
+                          || _realScratch.HandoffRan || _shadowScratch.HandoffRan
+#if BUDDAH_PREDICTION_LEGACY_SHADOW
+                          // Phase 4b V2a — also flip into "active" for inverted-shadow-only ticks
+                          // (NEW dequeued events that OLD did not consume — fan-out vs. queue-dedupe
+                          // mismatch surfaces here even when forward shadow is idle).
+                          || _legacyShadowScratch.ImpulseRan
+#endif
+                          ;
             if (!anyRan)
             {
                 _dLocConsecutive = 0;
@@ -1331,6 +1385,10 @@ namespace NewBuddah.PredictionV2.Core
                     _dLocTeleportDivCount = 0;
                     _dLocModifierDivCount = 0;
                     _dLocHandoffDivCount = 0;
+#if BUDDAH_PREDICTION_LEGACY_SHADOW
+                    Debug.Log($"[D-IMP INV HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares}\n  inv-imp-div={_legacyShadowImpulseDivCount} inv-imp-compared={_legacyShadowImpulseComparedCount} (both sides idle)");
+                    _legacyShadowImpulseDivCount = 0;
+#endif
                 }
                 return;
             }
@@ -1345,6 +1403,10 @@ namespace NewBuddah.PredictionV2.Core
                 _dLocTeleportDivCount = 0;
                 _dLocModifierDivCount = 0;
                 _dLocHandoffDivCount = 0;
+#if BUDDAH_PREDICTION_LEGACY_SHADOW
+                Debug.Log($"[D-IMP INV HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares}\n  inv-imp-div={_legacyShadowImpulseDivCount} inv-imp-compared={_legacyShadowImpulseComparedCount}");
+                _legacyShadowImpulseDivCount = 0;
+#endif
             }
 
             bool locDiverged = false;
@@ -1687,6 +1749,31 @@ namespace NewBuddah.PredictionV2.Core
             if (modDiverged) _dLocModifierDivCount++;
             if (hofDiverged) _dLocHandoffDivCount++;
 
+#if BUDDAH_PREDICTION_LEGACY_SHADOW
+            // Phase 4b V2a — inverted-shadow per-tick compare. OLD path
+            // (_realScratch) is authority; NEW path (_legacyShadowScratch)
+            // observes via CommandBus drain. Compared / divergence counters
+            // are window-scoped and reset by [D-IMP INV HEARTBEAT].
+            //
+            // RAN-flag mismatch covers the asymmetric cases:
+            //   OLD ran but NEW didn't  → fan-out missed; CombatRouting OR
+            //                             adapter dropped the event.
+            //   NEW ran but OLD didn't  → bus enqueued without OLD seeing
+            //                             (e.g., dedupe divergence between
+            //                             motor queue and bus channel).
+            // Drain-count mismatch surfaces volume divergences when both
+            // sides ran but processed different numbers of events on this tick.
+            bool invImpRanMismatch = _realScratch.ImpulseRan != _legacyShadowScratch.ImpulseRan;
+            bool invImpCountMismatch = _realScratch.ImpulseDrainCount != _legacyShadowScratch.ImpulseDrainCount;
+            if (_realScratch.ImpulseRan || _legacyShadowScratch.ImpulseRan)
+                _legacyShadowImpulseComparedCount++;
+            if (invImpRanMismatch || invImpCountMismatch)
+            {
+                Debug.LogError($"[D-IMP INV FATAL] T={tick} ranOld={_realScratch.ImpulseRan} ranNew={_legacyShadowScratch.ImpulseRan} cntOld={_realScratch.ImpulseDrainCount} cntNew={_legacyShadowScratch.ImpulseDrainCount}");
+                _legacyShadowImpulseDivCount++;
+            }
+#endif
+
             bool anyDiverged = locDiverged || impDiverged || telDiverged || modDiverged || hofDiverged;
             if (anyDiverged)
                 _dLocConsecutive++;
@@ -1796,6 +1883,7 @@ namespace NewBuddah.PredictionV2.Core
                 _impulseConsumedThisTick = true;
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
                 _realScratch.ImpulseRan = true;
+                _realScratch.ImpulseDrainCount++;
                 if (eventData.EventId > _realScratch.ShadowLastConsumedImpulseId)
                     _realScratch.ShadowLastConsumedImpulseId = eventData.EventId;
 #endif
@@ -1819,6 +1907,35 @@ namespace NewBuddah.PredictionV2.Core
                 bootstrap.DebugState.pendingImpulseSummary = _impulseEventQueue.BuildPendingSummary();
             }
         }
+
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
+        // Phase 4b V2a — inverted-shadow drain. NEW path observation only:
+        // pulls every pending entry off bootstrap.CommandBus.ImpulseChannel
+        // and writes into _legacyShadowScratch. Does NOT touch rb. OLD path
+        // (ConsumePendingImpulseEvents) remains the rb-writing authority.
+        // V2b will swap roles: this drain becomes the rb writer, the OLD
+        // path moves under #if to become the legacy shadow.
+        // Called from RunInputs immediately after ConsumePendingImpulseEvents
+        // so both paths see the same tick-bounded fan-out window.
+        private void ConsumePendingImpulseEvents_InvertedShadow(uint currentTick)
+        {
+            _ = currentTick;
+            if (bootstrap == null || bootstrap.CommandBus == null)
+                return;
+
+            var channel = bootstrap.CommandBus.ImpulseChannel;
+            if (channel == null)
+                return;
+
+            while (channel.TryDequeue(out var entry))
+            {
+                _legacyShadowScratch.ImpulseRan = true;
+                _legacyShadowScratch.ImpulseDrainCount++;
+                if (entry.Id > _legacyShadowScratch.ShadowLastConsumedImpulseId)
+                    _legacyShadowScratch.ShadowLastConsumedImpulseId = entry.Id;
+            }
+        }
+#endif
 
         private void ConsumePendingTeleportEvent(uint currentTick)
         {

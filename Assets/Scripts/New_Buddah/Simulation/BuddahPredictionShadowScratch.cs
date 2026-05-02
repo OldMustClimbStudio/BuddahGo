@@ -21,6 +21,12 @@ namespace NewBuddah.PredictionV2.Simulation
 
         // Phase 3b — impulse step.
         public bool ImpulseRan;
+        // Phase 4b V2a — count of events drained per tick. _realScratch
+        // increments inside the OLD ConsumePendingImpulseEvents callback;
+        // _legacyShadowScratch increments inside the NEW
+        // ConsumePendingImpulseEvents_InvertedShadow drain. Compared at
+        // tick-end for the [D-IMP INV HEARTBEAT] gate.
+        public int ImpulseDrainCount;
 
         // Phase 3b — teleport step.
         public bool TeleportRan;

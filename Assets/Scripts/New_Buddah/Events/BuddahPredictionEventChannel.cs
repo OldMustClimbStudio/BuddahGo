@@ -50,6 +50,26 @@ namespace NewBuddah.PredictionV2.Events
             return true;
         }
 
+        // Phase 4b V2a: FIFO consume. Inverted-shadow drain in
+        // BuddahPredictedMotor.ConsumePendingImpulseEvents_InvertedShadow loops
+        // this until it returns false. Updates LastConsumedId so observers can
+        // gate on monotonic progression.
+        public bool TryDequeue(out Entry entry)
+        {
+            if (_count == 0)
+            {
+                entry = default;
+                return false;
+            }
+
+            int head = (_tail - _count + _ring.Length) % _ring.Length;
+            entry = _ring[head];
+            _ring[head] = default;
+            _count--;
+            _lastConsumedId = entry.Id;
+            return true;
+        }
+
         public void Clear()
         {
             for (int i = 0; i < _ring.Length; i++)

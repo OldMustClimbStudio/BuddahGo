@@ -25,6 +25,11 @@ namespace NewBuddah.PredictionV2.Bootstrap
         [SerializeField] private BuddahPredictionCompatibilityRegistry compatibilityRegistry;
         [SerializeField] private BuddahPredictionRuntimeHealthReport runtimeHealthReport;
         [SerializeField] private BuddahPredictionCommandBus commandBus;
+        // Phase 4b V2a — pure-C# adapter (not a UnityEngine.Object ref).
+        // Field initializer runs before Awake; the bus reference is wired via
+        // Initialize(commandBus) in Awake; the L7 latch (MarkReady) is flipped
+        // later from BuddahPredictedMotor.RunInputs's first post-spawn tick.
+        private readonly BuddahPredictionCombatAdapter _combatAdapter = new();
         [SerializeField] private BuddahPredictionDebugSettings debugSettings = new();
         [SerializeField] private BuddahLegacyComponentRefs legacyComponentRefs = new();
         [SerializeField] private BuddahPredictionDebugState debugState = new();
@@ -47,6 +52,7 @@ namespace NewBuddah.PredictionV2.Bootstrap
         public BuddahPredictionCompatibilityRegistry CompatibilityRegistry => compatibilityRegistry;
         public BuddahPredictionRuntimeHealthReport RuntimeHealthReport => runtimeHealthReport;
         public BuddahPredictionCommandBus CommandBus => commandBus;
+        public BuddahPredictionCombatAdapter CombatAdapter => _combatAdapter;
         public BuddahPredictionDebugSettings DebugSettings => debugSettings;
         public BuddahLegacyComponentRefs LegacyComponentRefs => legacyComponentRefs;
         public BuddahPredictionDebugState DebugState => debugState;
@@ -60,6 +66,14 @@ namespace NewBuddah.PredictionV2.Bootstrap
         private void Awake()
         {
             ResolveReferences();
+            // Phase 4b V2a — wire the bus reference into the adapter. The L7
+            // contract (lessons-log L7) FORBIDS adapter enqueues during
+            // Awake/OnEnable/OnStartNetwork; Initialize(bus) only stores the
+            // reference and does NOT flip the L7 latch. The motor calls
+            // _combatAdapter.MarkReady() from its first [Replicate] tick (after
+            // BuddahMovementModeSwitcher's double-ApplyMode and its 4
+            // [CommandBus]:ClearAll lines have all landed).
+            _combatAdapter.Initialize(commandBus);
 #if BUDDAH_PREDICTION_VISUAL_PROBE
             // Phase 4-probes wiring: attach the V3 visual-shake probe per-Buddah.
             // Runs on every peer (this MonoBehaviour lives on the replicated

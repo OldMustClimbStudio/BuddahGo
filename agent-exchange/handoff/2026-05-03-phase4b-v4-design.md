@@ -1,8 +1,13 @@
-# phase4b-v4 — Design Q&A
+# phase4b-v4 — Design Q&A (v2 — amended after Stage 3 deep-verify revoke)
 
 **Recon reference:** [`agent-exchange/handoff/2026-05-03-phase4b-v4-recon.md`](agent-exchange/handoff/2026-05-03-phase4b-v4-recon.md) (v2 — Stage 2 SIGN-OFF 2026-05-03)
 **Status:** DESIGN PROPOSAL — no code changes yet
 **Branch:** feat/phase4b-v4-cleanup (cut from dev @ 06882bb)
+
+**v2 amendments (3 fixes per reviewer trust-but-verify second pass):**
+1. Q3.1 added second BEFORE/AFTER snippet for `motor.cs:143-149` region (`_combatAdapterInitialized` field decl is itself inside a LEGACY_SHADOW block — design v1 wrongly stated otherwise).
+2. Q3.1 parenthetical at the `_combatAdapterInitialized` field reference corrected.
+3. Q3.3 step 5 expanded to cover Item 1.2 top-level deletions explicitly (`_impulseEventQueue` field, `TryApplyServerAuthoritativeImpulse`, `TryQueueImpulseEvent`, `QueueImpulseEventTargetRpc`); steps 1 + 4 wording fix ("Compile fails" → "Compile clean").
 
 ---
 
@@ -115,11 +120,38 @@
             }
 ```
 
-**Diff intent:**
+**Diff intent (`:382-396` block):**
 - DELETE 2 lines: `#if BUDDAH_PREDICTION_LEGACY_SHADOW` (line 382) + `#endif` (line 396).
 - KEEP 13 lines unchanged: comment block (383-388) + if-block (389-393) + closing brace.
-- KEEP `_combatAdapterInitialized` field decl at `motor.cs:148` (NOT in any LEGACY_SHADOW block).
+- KEEP `_combatAdapterInitialized` field decl at `motor.cs:148` (currently inside `#if` block at `:143-149` — strip wrapper per the second BEFORE/AFTER below).
 - Comment edit: drop "Phase 4b V2a" → "Phase 4b" (the V2a-era reason for the wrapper is gone; the latch itself spans all of 4b).
+
+#### `BuddahPredictedMotor.cs:143-149` — BEFORE (current state)
+
+```csharp
+#if BUDDAH_PREDICTION_LEGACY_SHADOW
+        // L7 latch tracker. Flipped to true on the first RunInputs tick where
+        // ShouldRunPrediction passes — guarantees BuddahMovementModeSwitcher's
+        // double-ApplyMode + its 4 [CommandBus]:ClearAll lines have all landed
+        // before the adapter's MarkReady() fires (lessons-log L7 rule b).
+        private bool _combatAdapterInitialized;
+#endif
+```
+
+#### `BuddahPredictedMotor.cs:143-149` — AFTER (Q3 design)
+
+```csharp
+        // L7 latch tracker. Flipped to true on the first RunInputs tick where
+        // ShouldRunPrediction passes — guarantees BuddahMovementModeSwitcher's
+        // double-ApplyMode + its 4 [CommandBus]:ClearAll lines have all landed
+        // before the adapter's MarkReady() fires (lessons-log L7 rule b).
+        private bool _combatAdapterInitialized;
+```
+
+**Diff intent (`:143-149` field decl region):**
+- DELETE 2 lines: `#if BUDDAH_PREDICTION_LEGACY_SHADOW` (line 143) + `#endif` (line 149).
+- KEEP 5 lines unchanged: comment block (144-147) + field decl (148).
+- Field is referenced unconditionally from `:382` if-block body (now also unconditional after the `:382-396` strip). Both regions must strip together — leaving `:143-149` wrapper while stripping `:382-396` would compile-fail at Q3.3 step 9 (ProjectSettings strip → field gets conditional-compiled out → :389/:392 references break).
 
 **Why this matters (failure mode if implementer follows v1's wrong "delete with #if" suggestion):**
 - `bootstrap.CombatAdapter.MarkReady()` never fires.
@@ -155,11 +187,11 @@ Implementer follows this exact order to keep the codebase compile-clean at each 
 
 | Step | Action | Compile target |
 |---|---|---|
-| 1 | Delete `BuddahImpulseStep.cs` + `.meta` | Compile fails: motor.cs:105/:429 comments still reference (only comments, fine) but TickContext.cs:24/:65/:94 still has `ImpulsePendingSnapshot` field/param — compiles clean (unused but valid). |
-| 2 | Delete `BuddahPredictionTickContext.ImpulsePendingSnapshot` field (`.cs:24`), ctor param (`.cs:65`), ctor body assign (`.cs:94`) | Compile fails: motor.cs:1379 still passes `impulsePendingSnapshot:` named arg → expected. |
+| 1 | Delete `BuddahImpulseStep.cs` + `.meta` | **Compile clean.** motor.cs:105/:429 comments are text-only references; no other type references `BuddahImpulseStep` from outside the file. TickContext fields/params still declared (unused, valid). |
+| 2 | Delete `BuddahPredictionTickContext.ImpulsePendingSnapshot` field (`.cs:24`), ctor param (`.cs:65`), ctor body assign (`.cs:94`) | Compile fails: motor.cs:1379 still passes `impulsePendingSnapshot:` named arg → expected (proceed immediately to step 3). |
 | 3 | Delete motor.cs:1379 named-arg line `impulsePendingSnapshot: _shadowPreImpulsePendingSnapshot,` | Compile clean: 3 BuildTickContext callers (`:425/:489/:597`) pass via `BuildTickContext()` helper which now has 1 fewer param. |
-| 4 | Delete motor.cs:99 field `_shadowPreImpulsePendingSnapshot` + motor.cs:420 write `_impulseEventQueue.CopyPendingSnapshot(_shadowPreImpulsePendingSnapshot);` | Compile fails: line 420 references `_impulseEventQueue` which is the V4 main-deletion target → covered by main motor cleanup. |
-| 5 | Main motor LEGACY_SHADOW deletion pass (Item 2.2 block map) | Compile clean. |
+| 4 | Delete motor.cs:99 field `_shadowPreImpulsePendingSnapshot` + motor.cs:420 write `_impulseEventQueue.CopyPendingSnapshot(_shadowPreImpulsePendingSnapshot);` | **Compile clean.** Both the field decl AND its sole writer line are removed together. `_impulseEventQueue` is still alive at decl `:40` and used at other sites (`:231/:1316/:1329/:1977/:2040/:2397`); those survive step 4 and die in step 5. |
+| 5 | **Main motor LEGACY_SHADOW + top-level deletion pass.** Covers Item 2.2 block map (12 `#if` regions on motor) AND Item 1.2 top-level non-conditional deletions: <br>• `_impulseEventQueue` field decl at `motor.cs:40` <br>• 6 remaining `_impulseEventQueue` references at `:231/:1316/:1329/:1977/:2040/:2397` <br>• `TryApplyServerAuthoritativeImpulse` method at `motor.cs:858` (callers: Router.cs:58 line gone in step 5's Router #if strip, plus CombatRouting.cs deleted in step 10) <br>• `TryQueueImpulseEvent` method at `motor.cs:1311` (callers: motor :875 + :1308, both inside deletion-targeted methods) <br>• `QueueImpulseEventTargetRpc` method at `motor.cs:1291` (sole caller motor :876, gone with parent method) <br>• `_legacyShadowScratch` / `_legacyImpulseDivCount` / `_legacyImpulseComparedCount` fields + all writers <br>• `ConsumePendingImpulseEvents_LegacyShadow` + `ConsumeImpulseLegacyShadowEntry` helper <br>• `[D-IMP LEG FATAL]` + `[D-IMP LEG HEARTBEAT]` emit code <br>• L7 latch wrapper strip at `:143-149` AND `:382-396` per Q3.1 (KEEP body) | Compile clean. |
 | 6 | Delete `BuddahPredictedImpulseEventQueue.cs` + `.meta` | Compile clean (motor field already gone in step 5). |
 | 7 | Delete `BuddahPredictedReconcileData.ImpulseQueueState` field + motor.cs:303 writer + motor.cs:649/:683 readers | Compile clean. |
 | 8 | Delete `BuddahPredictedImpulseRingSnapshot.cs` + `.meta` | Compile clean (sole consumer field already gone). |

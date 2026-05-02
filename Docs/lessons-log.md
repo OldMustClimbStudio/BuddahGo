@@ -16,6 +16,57 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L17 — Bidirectional phase-skew is the fingerprint of "observation-only" cross-phase drains, not real divergence (2026-05-02, Phase 4b V2a fix Path B verification)
+
+Symptom: After L16 fix relocated `ConsumePendingImpulseEvents_InvertedShadow`
+from `RunInputs` (replay-unsafe) to `TimeManager_OnPostTick` (replay-safe),
+Path B 2-peer LAN smoke produced **5 forward `[D-IMP INV FATAL]` on CLIENT**
+(`ranOld=False ranNew=True cntOld=0 cntNew=1`) and **6 reverse FATAL on
+HOST** (`ranOld=True ranNew=False cntOld=1 cntNew=0`). Volume audit on both
+sides was clean: CLIENT `inv-imp-compared = OLD imp-compared = Recv = 6`;
+HOST `inv-imp-compared = OLD imp-compared = 7`. `inv-imp-div = 0` on both
+sides at final HB. `D-LOC FATAL = 0` on both sides. The strict `FATAL = 0`
+gate appeared violated, but no real volume or value divergence exists.
+
+Cause: OLD path's `ConsumePendingImpulseEvents` drains during the forward
+`RunInputs` pass; NEW path (post-L16) drains during `PostTick`. When an
+RPC arrives between these two phases on a given tick, the side whose
+phase has already passed observes the event one tick later than the
+other side. The cross-tick lag manifests as `ranOld != ranNew` for a
+single tick, producing a FATAL emit. The total-event audit
+(`compared == OLD imp-compared == Recv`) is unaffected because both
+paths still observe every event; only the tick-of-observation differs by
+at most one. Two separate motors (HOST vs CLIENT) each see their own
+buddah's events; the FATAL direction depends on which side's phase the
+RPC arrives between.
+
+Rule: **A bidirectional FATAL pattern (forward FATAL on one side +
+mirror-image reverse FATAL on the other side, with both sides showing
+matching `compared == OLD == Recv` totals and `div = 0` at final HB) is
+the phase-skew fingerprint, NOT a real divergence.** Do not block on
+strict `FATAL = 0` for observation-only V2a-style gates when this
+pattern holds. ALWAYS verify the bidirectional symmetry: a unidirectional
+FATAL pattern (only forward, only reverse) OR a volume mismatch
+(`compared != OLD imp-compared`) IS a real divergence and must block.
+Critically: **phase-skew is harmless under V2a observation** (OLD path
+remains rb authority, NEW path is diagnostic-only) but **would be a real
+desync under V2b authority** because each peer would write rb on a
+different tick. V2b STEP 0 (non-negotiable) is to tick-stamp
+`BuddahPredictionEventChannel<T>.Entry` with `EventTick`, port OLD's
+`ConsumeReady(currentTick, callback)` semantics into
+`BuddahPredictionCommandBus`, and re-verify Path A + Path B with strict
+`FATAL = 0` BEFORE the authority flip. The phase-skew tolerance lives in
+V2a-era observation gates only; production-path gates require strict
+zero.
+
+Promoted to: log-only (V2b STEP 0 gate cross-referenced from
+`Docs/prediction-refactor-plan/06-command-bus.md` when V2b is scoped;
+V2a-fix PR description carries the bidirectional phase-skew block as the
+re-test gate template for any future observation-only inverted-shadow
+phases).
+
+---
+
 ## L16 — Single-consumer FIFO channel + FishNet reconcile replay = structural blindness (2026-05-02, Phase 4b V2a 2-peer post-merge fix)
 
 Symptom: V2a observation gate (`[D-IMP INV HEARTBEAT] inv-imp-compared`)

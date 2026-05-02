@@ -91,11 +91,11 @@ V3 inherits Step 1's strict gates because LEG axis is still active until V4. Rou
 1. ✅ Recon report — `agent-exchange/handoff/2026-05-02-phase4b-v3-recon.md`
 2. ✅ Design Q&A — `agent-exchange/handoff/2026-05-02-phase4b-v3-design.md`
 3. ✅ Implementation — PR #36 commit `6e736e1` on `feat/phase4b-v3-skill-site-migrate` (7 production files +109/-40)
-4. ⏸ Path A raw log — `agent-exchange/console/raw/<date>-phase4b-v3-single.log`
-5. ⏸ Path B raw logs — `<date>-phase4b-v3-host.log` + `<date>-phase4b-v3-client.log`
-6. ⏸ Independent verification report — `agent-exchange/handoff/<date>-phase4b-v3-verify.md`
-7. ⏸ PR description updated with metric tables per Template 3
-8. ⏸ Lessons-log: probably 0 new entries (mechanical refactor)
+4. ✅ Path A raw log — `agent-exchange/console/raw/2026-05-02-phase4b-v3-single.log` (40 HBs, 0 FATAL, leg-imp-compared max=4)
+5. ✅ Path B raw logs — `2026-05-02-phase4b-v3-host.log` (101 HBs, 0 FATAL) + `2026-05-02-phase4b-v3-client.log` (132 HBs, 0 FATAL, 3 Recv with logicalId)
+6. ✅ Independent verification report — `agent-exchange/handoff/2026-05-02-phase4b-v3-verify.md` (273 HBs total, 100% match vs implementer digest)
+7. ✅ PR #36 description updated with metric tables per Template 3
+8. ✅ Lessons-log: 0 new entries (mechanical refactor as expected). 2 methodology sub-rules added from V3 Path A first-attempt teachings (Rule 1 sub-rule D + Rule 2 trust hierarchy).
 
 ---
 

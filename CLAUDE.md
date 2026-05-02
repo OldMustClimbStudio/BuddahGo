@@ -37,6 +37,24 @@ Read these on demand after routing, not all at once:
 | [skills/safe-refactor.md](skills/safe-refactor.md) | Detailed refactor playbook used by project skills |
 | [skills/feature-implementation.md](skills/feature-implementation.md) | Detailed feature playbook used by project skills |
 
+## Phase Gate System
+
+The phase gate system governs how multi-agent phase work is scoped, executed,
+and verified for the Phase 4b prediction refactor.
+
+**Before starting work on any phase, read in order:**
+1. [Docs/phase-gates/README.md](Docs/phase-gates/README.md) — system overview + active phase
+2. [Docs/phase-gates/methodology.md](Docs/phase-gates/methodology.md) — process discipline rules (raw log on disk, independent verification, etc.)
+3. [Docs/phase-gates/process-flow.md](Docs/phase-gates/process-flow.md) — 7-stage pipeline (kickoff → recon → design → implement → test → verify → merge)
+4. `Docs/phase-gates/active/<current-phase>-contract.md` — stamped contract (scope, gates, PRE-WORK)
+
+**Use [Docs/phase-gates/templates.md](Docs/phase-gates/templates.md) for ALL outputs:**
+recon report, design Q&A, PR description, smoke verification report.
+
+**Process discipline is non-negotiable.** Sign-off boundaries cannot be skipped.
+Lessons-log updates land in the same commit as the implementation that exposed
+the lesson.
+
 ## Registered Project Skills
 - `buddahgo-debug-bug`
 - `buddahgo-safe-refactor`

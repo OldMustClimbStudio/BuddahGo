@@ -50,3 +50,15 @@ If you do not know the system yet, provide `-Files` or `-Query` and let the help
 - Run any conditional validations returned by the helper, especially `scene-prefab` when serialized hooks or scene assets are involved.
 - If compile or log validation fails, switch to [Docs/recovery.md](Docs/recovery.md) before changing more code.
 - Do not report success until the validation plan is complete.
+
+## Phase Gate System integration
+
+For Phase 4b onwards, all phase work follows the contract-driven workflow
+defined in `Docs/phase-gates/`. The phase gate system codifies scope, strict
+gates, PRE-WORK questions, and sign-off boundaries that previously lived only
+in chat history. Refer to `Docs/phase-gates/README.md` for the system overview
+and current active contract.
+
+The 7-stage pipeline (kickoff → recon → design-qa → implement → test → verify
+→ merge) is canonical for 4b. The harness helper script will be updated to
+surface the current active contract path in a future iteration.

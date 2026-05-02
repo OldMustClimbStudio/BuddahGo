@@ -228,8 +228,9 @@ namespace NewBuddah.PredictionV2.Core
             RefreshInputBridge();
             bootstrap.DebugState.inputBridgeEnabled = _ownerInputBridge.IsEnabled;
             bootstrap.DebugState.predictionBlockReason = GetPredictionBlockReason();
-            bootstrap.DebugState.pendingImpulseCount = _impulseEventQueue.PendingCount;
-            bootstrap.DebugState.pendingImpulseSummary = _impulseEventQueue.BuildPendingSummary();
+            var impulseChannel = bootstrap.CommandBus != null ? bootstrap.CommandBus.ImpulseChannel : null;
+            bootstrap.DebugState.pendingImpulseCount = impulseChannel != null ? impulseChannel.Count : 0;
+            bootstrap.DebugState.pendingImpulseSummary = impulseChannel != null ? impulseChannel.BuildPendingSummary() : "none";
             bootstrap.DebugState.introControlActive = _introControlActive;
             bootstrap.DebugState.externalKinematicControlActive = _externalKinematicControlActive;
         }
@@ -1904,9 +1905,7 @@ namespace NewBuddah.PredictionV2.Core
             if (bootstrap != null)
             {
                 bootstrap.DebugState.pendingImpulseCount = channel.Count;
-                // pendingImpulseSummary kept on legacy queue path until V4 cleanup; channel does
-                // not currently expose a summary builder. Inspector value reflects OLD queue
-                // contents only — acceptable transitional staleness.
+                bootstrap.DebugState.pendingImpulseSummary = channel.BuildPendingSummary();
             }
         }
 
@@ -2394,8 +2393,9 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.suppressSteeringUntilTick = _modifierState.SuppressSteeringUntilTick;
             bootstrap.DebugState.roomBypassUntilTick = _modifierState.RoomBypassUntilTick;
             bootstrap.DebugState.activeModifiers = BuildModifierSummary(tick);
-            bootstrap.DebugState.pendingImpulseCount = _impulseEventQueue.PendingCount;
-            bootstrap.DebugState.pendingImpulseSummary = _impulseEventQueue.BuildPendingSummary();
+            var impulseChannelDbg = bootstrap.CommandBus != null ? bootstrap.CommandBus.ImpulseChannel : null;
+            bootstrap.DebugState.pendingImpulseCount = impulseChannelDbg != null ? impulseChannelDbg.Count : 0;
+            bootstrap.DebugState.pendingImpulseSummary = impulseChannelDbg != null ? impulseChannelDbg.BuildPendingSummary() : "none";
             UpdateHandoffDebug(tick);
         }
 

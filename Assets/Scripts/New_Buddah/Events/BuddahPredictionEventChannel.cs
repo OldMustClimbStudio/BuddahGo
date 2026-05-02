@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Events
@@ -155,6 +156,30 @@ namespace NewBuddah.PredictionV2.Events
             _pending.Clear();
             _recentLogicalIds.Clear();
             _recentLogicalIdOrder.Clear();
+        }
+
+        // Phase 4b V4 — DebugOverlay diagnostic. Mirrors retired BuddahPredictedImpulseEventQueue.BuildPendingSummary
+        // shape: "none" when empty, otherwise "#<id> @<eventTick> log=<logicalId>" per entry joined by " | ".
+        // Generic-safe: payload-specific data omitted (devs correlate logicalId with adapter logs).
+        public string BuildPendingSummary()
+        {
+            if (_pending.Count == 0)
+                return "none";
+
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < _pending.Count; i++)
+            {
+                Entry entry = _pending[i];
+                if (i > 0)
+                    sb.Append(" | ");
+                sb.Append('#');
+                sb.Append(entry.Id);
+                sb.Append(" @");
+                sb.Append(entry.EventTick);
+                sb.Append(" log=");
+                sb.Append(entry.LogicalId);
+            }
+            return sb.ToString();
         }
 
         private void RememberLogicalId(uint logicalId)

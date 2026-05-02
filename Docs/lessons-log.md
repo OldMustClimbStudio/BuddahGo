@@ -16,6 +16,53 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L16 — Single-consumer FIFO channel + FishNet reconcile replay = structural blindness (2026-05-02, Phase 4b V2a 2-peer post-merge fix)
+
+Symptom: V2a observation gate (`[D-IMP INV HEARTBEAT] inv-imp-compared`)
+passed in host-only single-peer (compared=1, div=0) but produced
+**inv-imp-compared=0 across 73 heartbeats** in the 2-peer LAN test on
+the CLIENT, even with `[CommandBus]:Recv ch=Impulse` arriving twice on
+the bus and `_realScratch.ImpulseRan` confirmed true twice (OLD-side
+`imp-compared=2`). Both `inv-imp-div=0` and `[D-IMP INV FATAL]=0` were
+vacuously satisfied — the compare predicate never fired because both
+sides of `_realScratch.ImpulseRan || _legacyShadowScratch.ImpulseRan`
+read false at the compare moment.
+
+Cause: `BuddahPredictionEventChannel<T>` is a pure FIFO ring buffer
+(no `EventTick` field, no `ConsumeReady(currentTick, ...)` semantics).
+The drain `ConsumePendingImpulseEvents_InvertedShadow` was placed
+inside `RunInputs` (the `[Replicate]` callback). On non-server peers
+under FishNet CSP, RunInputs is replayed N times per tick during
+reconcile. Replay 1 calls `channel.TryDequeue` and removes the entry
+permanently; replays 2..N see an empty channel and the per-replay
+reset `_legacyShadowScratch = default` (motor.cs:388-394) clears the
+ImpulseRan flag set by replay 1. PostTick `Shadow_CompareAndReport`
+reads the LAST replay's scratch — which is empty — so the compare
+predicate stays false and `_legacyShadowImpulseComparedCount` never
+increments. OLD path was unaffected because `_impulseEventQueue`
+is tick-stamped and `ConsumeReady` re-emits the same event on every
+replay until the EventTick passes.
+
+Rule: **Any single-consumer FIFO that participates in shadow/observation
+under reconcile MUST drain in a lifecycle hook that fires exactly once
+per tick (PostTick), not in `[Replicate]`.** OR, if the consumer must
+run inside the replay loop (e.g., V2b authority-flip where the channel
+drives rb writes), the channel itself MUST adopt a tick-stamped model
+mirroring OLD's `EventTick` + `ConsumeReady` — events stay queued across
+replays until their stamped tick passes, then a deterministic single
+consume fires per tick. **Tick-stamping (OLD path's `EventTick` +
+`ConsumeReady`) is the gold standard for any V2b/V3/V4 channel
+consumer that needs to survive reconcile replay.** The PostTick
+relocation in this fix is a narrow observation-only patch; promoting
+NEW path to authority (V2b) WITHOUT first tick-stamping the channel
+will reintroduce this same blindness in production code where it
+CANNOT be a false-pass — it will be a real desync.
+
+Promoted to: log-only (V2b prerequisite gate to be added to
+`Docs/prediction-refactor-plan/06-command-bus.md` when V2b is scoped).
+
+---
+
 ## L15 — Shadow comparators must defend against `Compare(default, default) != equals` foot-guns (2026-04-19, Phase 3d V2 rerun)
 
 Symptom: Phase 3d V2 host-only rerun produced 4550 `[D-LOC]` per-field

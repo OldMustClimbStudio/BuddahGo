@@ -1,0 +1,38 @@
+# Phase 4b V3 Stage 6 Verification Digest — Path B CLIENT
+
+- **Raw**: `agent-exchange/console/raw/2026-05-02-phase4b-v3-client.log` (248,121 lines, 20 MB)
+- **Role**: 2-peer LAN CLIENT (Editor on local machine acting as joining peer)
+- **Editor.log cleared**: yes (single Initialize block)
+
+## Strict-Gate Counts
+
+| Marker | Count | Pass/Fail |
+|---|---|---|
+| `[D-IMP LEG FATAL]` | 0 | ✅ PASS |
+| `[D-IMP INV FATAL]` | 0 | ✅ PASS |
+| `BuddahPredictionCombatRouting:TryRouteImpulse` (legacy dead) | 0 | ✅ PASS |
+| `Parser Failure at line 11` (Router.cs.meta) | 0 | ✅ PASS |
+| `[Channel]:DupReject` | 0 | ✅ PASS |
+| Exceptions | 0 | ✅ PASS |
+| Compile errors | 0 | ✅ PASS |
+
+## HEARTBEAT Summary
+
+- `[D-IMP LEG HEARTBEAT]` rows: **132**
+- First / last: `T=479 active-ticks=1` → `T=12647 active-ticks=10921` (~10.9k tick session — longer than host)
+- `leg-imp-div` MAX: **0**
+
+## Router Dispatch Evidence
+
+- `BuddahPredictionRouter:RouteImpulse` stack frames captured: **7**
+- `[BuddahPredictionV2] push-target hit` lines: **7** (Tier 2 PushTargetBox)
+
+## PushHitbox Activity
+
+- Spawn: 13 (client side spawns local previews; server-only Hit detection gated on `IsServerStarted`)
+- Hit: **0** (correct — `OnTriggerEnter` returns early on non-server peer per `PushHitbox.cs:130`)
+- Routed: 0
+
+## Verdict
+
+**✅ PASS** — Client strict gates all met. Tier 2 evidence visible (7 push-target hits). Note: client peer does not run server-side hit detection; CombatAdapter Tier 1 dispatches happen on server then propagate via channel reconciliation — already validated by host log + leg-imp-div=0 cross-peer.

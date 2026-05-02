@@ -2,25 +2,25 @@
 
 **Phase ID:** phase4b-v3
 **Branch:** feat/phase4b-v3-skill-site-migrate (cut from dev @ 3181bc4 — V2b Step 1 merge commit)
-**Risk:** MEDIUM (mechanical refactor + adapter expansion; fewer architectural unknowns than Step 1)
-**Status:** KICKOFF
+**Risk:** MEDIUM (mechanical refactor + adapter expansion superseded by router pattern; fewer architectural unknowns than Step 1)
+**Status:** VERIFIED (Stages 5+6 PASS — awaiting Stage 7 MERGE approval)
 
 ---
 
 ## Scope (locked)
 
 **In scope:**
-- Migrate 4 skill site callsites from `BuddahPredictionCombatRouting.TryRouteImpulse` → `bootstrap.CombatAdapter.TryRouteImpulse`:
+- Migrate 4 skill site callsites from `BuddahPredictionCombatRouting.TryRouteImpulse` → `BuddahPredictionRouter.RouteImpulse` (new static helper):
   - `Assets/Scripts/Buddah/PushHitbox.cs:200` (melee push)
   - `Assets/Scripts/Buddah/ComboSkill/Skill_PushProjectileHands/ChargedHandProjectileRuntime.cs:362` (charged projectile)
   - `Assets/Scripts/Buddah/ComboSkill/Skill_PushProjectileHands/HandPushProjectileRuntime.cs:212` (regular projectile)
   - `Assets/Scripts/New_Buddah/Debug/BuddahPredictionImpulseDebugBox.cs:45` (debug box)
-- **Expand `BuddahPredictionCombatAdapter.TryRouteImpulse` to subsume CombatRouting's responsibilities**:
-  - Feed OLD path (`motor.TryApplyServerAuthoritativeImpulse`) for `_legacyShadowScratch` continuity until V4 retires LEGACY_SHADOW define
-  - Handle PushTargetBox fallback for non-PredictionV2 victims (`bootstrap` null OR `IsPredictionModeActive() == false`)
-  - Existing NEW path (channel enqueue + RPC) preserved
-- CombatRouting becomes structurally dead but kept in tree (V4 deletes).
-- Skills get a single entry point. No more fan-out indirection.
+- New static helper class `BuddahPredictionRouter` at `Assets/Scripts/New_Buddah/Integration/BuddahPredictionRouter.cs` with 3-tier dispatch:
+  - Tier 1: V2 prediction Buddah → motor.TryApplyServerAuthoritativeImpulse (OLD-feed for `_legacyShadowScratch` continuity under `#if BUDDAH_PREDICTION_LEGACY_SHADOW`) + bootstrap.CombatAdapter.TryRouteImpulse (NEW-feed)
+  - Tier 2: PushTargetBox debug → pushTargetBox.TryApplyServerImpulse (RaceMap-only dev objects)
+  - Tier 3: Legacy Buddah → BuddahMovement.ApplyPushImpulseAndTorqueTargetRpc (mode toggle off OR motor missing OR adapter null)
+- Adapter unchanged (instance method preserved unchanged for V2 path; no expansion).
+- CombatRouting.cs gets `[Obsolete]` attribute (V4 deletes the file entirely).
 
 **Out of scope:**
 - V4 (CombatRouting deletion + LEGACY_SHADOW define retirement + `pendingImpulseSummary` cleanup)
@@ -30,100 +30,81 @@
 
 ---
 
-## PRE-WORK questions (must answer in design Q&A phase before code)
+## PRE-WORK answers (locked from design Q&A — all 9 sign-off items APPROVED 2026-05-02)
 
 ### Q0 — Adapter call signature for non-V2 victims
-Skills today call `CombatRouting.TryRouteImpulse(victim, ...)` and don't know whether victim is V2 or legacy. Post-V3 callsite should be `victim.GetComponent<BuddahPredictionBootstrap>()?.CombatAdapter?.TryRouteImpulse(...)` — but for legacy victims (no bootstrap), this short-circuits to null and the skill loses its hit.
+**(B) Static helper method.** New `BuddahPredictionRouter` static class with `RouteImpulse(...)` entry point. Skills call the static helper. Adapter instance method preserved unchanged for V2 path.
 
-Pick:
-- (A) **Adapter handles fallback internally**: even non-V2 victims go through adapter; adapter detects no bootstrap and falls back to PushTargetBox. Requires adapter to NOT depend on bootstrap for entry guards (or use a static entry helper).
-- (B) **Static helper method**: introduce `BuddahPredictionCombatAdapter.RouteImpulseStatic(victim, ...)` (or new `BuddahPredictionRouter` static class) that does adapter-or-PushTargetBox dispatch. Skills call the static helper. Adapter instance method remains as today.
-- (C) **Skills check victim type**: explicit `if (bootstrap.IsPredictionV2) adapter.TryRouteImpulse else PushTargetBox.TryApplyServerImpulse` at each callsite. Spreads logic.
-
-Recommendation: lean (B) — keeps instance adapter clean, gives skills a stable static entry, mirrors today's CombatRouting static dispatch shape. Q-answer phase finalizes.
+Justification: 3 victim categories (V2 / Legacy / PushTargetBox debug) make adapter-internal dispatch (option A) too polluted with legacy concerns. Static router gives skills a single entry point matching CombatRouting's existing static-dispatch shape — migration is mechanical.
 
 ### Q1 — OLD path feed location
-Adapter today only enqueues to NEW channel. After V3, who calls `motor.TryApplyServerAuthoritativeImpulse` to keep `_legacyShadowScratch` populated?
+**(B) Static helper does dual-feed.** Router calls BOTH `motor.TryApplyServerAuthoritativeImpulse` (OLD-feed, under `#if BUDDAH_PREDICTION_LEGACY_SHADOW`) AND `bootstrap.CombatAdapter.TryRouteImpulse` (NEW-feed) in the V2 victim branch. Adapter instance method stays unchanged.
 
-Pick:
-- (A) **Adapter internal dual-feed**: `adapter.TryRouteImpulse` calls `motor.TryApplyServerAuthoritativeImpulse` first (OLD), then enqueues to channel (NEW). Mirrors CombatRouting's current fan-out logic but moved into adapter. Single entry point.
-- (B) **Static helper does dual-feed**: if Q0 picks (B), the static helper does both calls. Adapter instance method stays NEW-only.
-- (C) **No OLD feed; retire LEGACY_SHADOW now**: bring V4's shadow retirement into V3. Drop `_legacyShadowScratch` writes + `[D-IMP LEG FATAL]` gate. Strict gate downgrades to "no FATAL on D-LOC axis only" until next observation system arrives.
+Justification: follows naturally from Q0=(B). Single dispatch site, single fan-out site.
 
-Recommendation: depends on Q0. If Q0 = (B), then Q1 = (B). If Q0 = (A), then Q1 = (A). Q1 = (C) is aggressive — consolidates V3 + part of V4 but loses shadow comparison early. Lean toward NOT (C) to preserve safety net through V3's mechanical changes.
+### Q1 sub-decision — Drop CombatRouting's try/catch fan-out
+Post-Step-1, NEW IS authority. A NEW-path throw should escalate as FATAL, not be swallowed. Router calls adapter directly without try/catch — exceptions propagate normally.
 
 ### Q2 — DebugState mirror status check
-V2b Step 0 audit flagged DebugState mirror as V3 PRE-WORK. V2b Step 1 implementation already mirrored 6 fields in NEW drain (motor.cs:1923-1929) + `pendingImpulseCount` (motor.cs:1906). The 1 remaining gap is `pendingImpulseSummary` (documented as "transitional staleness, V4 cleanup").
+**(A) DebugState mirror is effectively done.** Step 1's `ConsumeImpulseAuthoritativeEntry` already writes 6 DebugState fields per consumed impulse + `pendingImpulseCount` post-drain. The 1 remaining gap (`pendingImpulseSummary`) is explicitly deferred to V4 alongside CombatRouting deletion. V3 adds nothing.
 
-Confirm:
-- (A) DebugState mirror is effectively done; V3 does NOT need to add anything; `pendingImpulseSummary` defers to V4.
-- (B) V3 should add `pendingImpulseSummary` builder to channel now.
-- (C) V3 audits DebugState consumer code (Inspector / HUD) and explicitly drops fields no longer needed.
+### Q3 — GetComponent caching micro-opt — REVISITED
+**(A)-with-revision.** Approved in principle, but adapter doesn't expand under approved Q0=B/Q1=B → no cache target materializes in V3. Router does fresh GetComponent calls per fire (matches today's CombatRouting cost). Documented for V4 reconsideration.
 
-Recommendation: lean (A) — Step 1 already covered the bulk; defer summary builder to V4 alongside CombatRouting deletion to keep V3 tightly scoped.
+### Q4 — Static helper class location
+**(A) New file `Assets/Scripts/New_Buddah/Integration/BuddahPredictionRouter.cs`.** Matches CombatRouting precedent (same folder, same static-class pattern). Sibling to CombatRouting during V3→V4 transition; both files visible, dead one marked `[Obsolete]`.
 
-### Q3 — GetComponent caching micro-opt
-Step 0 carry-forward: adapter does `victim.GetComponent<BuddahPredictionBootstrap>()` per call. CombatRouting did the same. After V3 expansion, adapter may also need GetComponent<PushTargetBox> for fallback. That's 2 GetComponent calls per impulse.
-
-Pick:
-- (A) Implement now in V3 (cache bootstrap + pushTargetBox refs at adapter init or first-call).
-- (B) Defer to V4 / Phase 8 perf cleanup.
-
-Recommendation: lean (A) — V3 is expanding adapter anyway, cache in same pass. Cost is small.
-
-### Q4 — Static helper class location (only if Q0/Q1 = B)
-If we add a static helper, where does it live?
-- (A) New file `BuddahPredictionRouter.cs` in `Assets/Scripts/New_Buddah/Integration/`
-- (B) Static method on `BuddahPredictionCombatAdapter` (e.g., `BuddahPredictionCombatAdapter.RouteImpulse(victim, ...)` static)
-- (C) Static method on `BuddahPredictionBootstrap` (e.g., `BuddahPredictionBootstrap.RouteImpulse(victim, ...)`)
-
-Recommendation: lean (A) — separate file matches CombatRouting's pattern, easier to find, cleanest delete in V4 if router becomes thin.
+### Cross-cutting decisions (sub-items 7-9 from sign-off)
+- **PushHitbox verbose Debug.Log lines DROPPED** in migration. Matches silent majority pattern (other 3 callsites had no per-callsite log). `[CommandBus]:Recv` covers V2 victim observation; `BuddahPredictionPushTargetBox.verboseLogs` covers PushTargetBox debug.
+- **`BuddahPredictionImpulseDebugBox.fallbackToLegacy` toggle LEFT IN PLACE** as dead serialized field. Per CLAUDE.md hard-stop on serialized field removal, V4 cleanup item.
+- **Single-line callsite migration**: each of 4 callsites becomes 1-line `BuddahPredictionRouter.RouteImpulse(...)` replacing the 4-7 line two-tier dispatch block.
 
 ---
 
 ## Strict gates
 
-V3 inherits Step 1's strict gates because LEG axis is still active until V4. Adapter expansion must NOT break any Step 1 invariant.
+V3 inherits Step 1's strict gates because LEG axis is still active until V4. Router expansion must NOT break any Step 1 invariant.
 
 ### Path A — single-machine 30s Editor PlayMode
 - All Step 1 Path A gates (LEG FATAL = 0, leg-imp-div = 0 across full session, leg-imp-compared ≥ 3, ClearAll = 4, DupReject = 0, DropFull = 0, no spurious D-LOC impulse warnings)
 - **NEW V3 gates**:
-  - 0 calls to `BuddahPredictionCombatRouting.TryRouteImpulse` from skill sites (post-migration grep verification)
-  - PushTargetBox fallback path verified live: hit a non-V2 victim if available, OR test that adapter returns false gracefully when bootstrap is null
+  - 0 production callsites of `BuddahPredictionCombatRouting.TryRouteImpulse` (post-migration grep verification — Methodology Rule 2 mandate; only allowed hits are in CombatRouting.cs comments + Router.cs cref docstrings)
+  - PushTargetBox fallback path verified live: hit a non-V2 victim if available
   - Visual: push lands on host buddah, PushGrace activates (same as Step 1)
 
 ### Path B — 2-peer LAN 60s (HOST + CLIENT, no LatencySim)
 - All Step 1 Path B gates (both ends, full-session raw to disk per Methodology Rule 1)
 - **NEW V3 gates**:
-  - 0 spurious "OLD path silent" symptoms (LegacyShadow drain count matches NEW drain count per peer per spawn)
   - HOST `_legacyShadowScratch.ImpulseDrainCount` matches HOST `_realScratch.ImpulseDrainCount` for HOST-owned victim ticks
   - CLIENT same alignment
-  - LEG axis stays at div=0 throughout (proves adapter's OLD feed expansion didn't introduce asymmetry)
+  - LEG axis stays at div=0 throughout (proves router's OLD-feed didn't introduce asymmetry)
 
-### Methodology compliance (Phase A discipline)
-- Raw log on disk per Rule 1 (clear/rename Editor.log before smoke per the new sub-rule)
-- Independent verification per Rule 2 (reviewer greps Step 1 session boundary)
-- Lessons-log update in same commit per Rule 5 (if any new failure mode surfaces)
+### Methodology compliance
+- Raw log on disk per Rule 1 (clear/rename Editor.log before smoke per the session-scoping sub-rule)
+- Independent verification per Rule 2 (reviewer greps independently)
+- Lessons-log update in same commit per Rule 5 (V3 expected to produce 0 new lessons — mechanical refactor)
 
 ---
 
 ## Deliverables
 
-1. ⏸ Recon report — `agent-exchange/handoff/<date>-phase4b-v3-recon.md`
-2. ⏸ Design Q&A — `agent-exchange/handoff/<date>-phase4b-v3-design.md`
-3. ⏸ Implementation — code changes on `feat/phase4b-v3-skill-site-migrate`
-4. ⏸ Path A raw log — `agent-exchange/console/raw/<date>-phase4b-v3-single.log`
-5. ⏸ Path B raw logs — `<date>-phase4b-v3-host.log` + `<date>-phase4b-v3-client.log`
-6. ⏸ Independent verification report — `agent-exchange/handoff/<date>-phase4b-v3-verify.md`
-7. ⏸ PR with full description per Template 3 of `Docs/phase-gates/templates.md`
-8. ⏸ Lessons-log updates if new failure modes exposed
+1. ✅ Recon report — `agent-exchange/handoff/2026-05-02-phase4b-v3-recon.md`
+2. ✅ Design Q&A — `agent-exchange/handoff/2026-05-02-phase4b-v3-design.md`
+3. ✅ Implementation — PR #36 commit `6e736e1` on `feat/phase4b-v3-skill-site-migrate` (7 production files +109/-40)
+4. ✅ Path A raw log — `agent-exchange/console/raw/2026-05-02-phase4b-v3-single.log` (40 HBs, 0 FATAL, leg-imp-compared max=4)
+5. ✅ Path B raw logs — `2026-05-02-phase4b-v3-host.log` (101 HBs, 0 FATAL) + `2026-05-02-phase4b-v3-client.log` (132 HBs, 0 FATAL, 3 Recv with logicalId)
+6. ✅ Independent verification report — `agent-exchange/handoff/2026-05-02-phase4b-v3-verify.md` (273 HBs total, 100% match vs implementer digest)
+7. ✅ PR #36 description updated with metric tables per Template 3
+8. ✅ Lessons-log: 0 new entries (mechanical refactor as expected). 2 methodology sub-rules added from V3 Path A first-attempt teachings (Rule 1 sub-rule D + Rule 2 trust hierarchy).
 
 ---
 
 ## Carry-forward flags (do NOT action in this phase)
 
-- **V4 PRE-WORK** — `BUDDAH_PREDICTION_LEGACY_SHADOW` define retirement plan. After V3, OLD path body still exists but is fed only by adapter's dual-feed. V4 removes the define + deletes OLD feed call from adapter + deletes CombatRouting + deletes `BuddahPredictedImpulseEventQueue` + LegacyShadow drain in motor.
+- **V4 PRE-WORK** — `BUDDAH_PREDICTION_LEGACY_SHADOW` define retirement plan. After V3, OLD path body still exists but is fed only by router's dual-feed line under `#if`. V4 removes the define + deletes that single line + deletes CombatRouting + deletes `BuddahPredictedImpulseEventQueue` + LegacyShadow drain in motor.
 - **V4 PRE-WORK** — `pendingImpulseSummary` cleanup (channel summary builder OR drop the field).
+- **V4 PRE-WORK** — `BuddahPredictionImpulseDebugBox.fallbackToLegacy` dead serialized field removal (CLAUDE.md hard-stop release for V4 cleanup pass).
+- **V4 PRE-WORK** — re-evaluate adapter caching opportunity (Q3-revision deferred).
 - **V5 PRE-WORK** — Reconcile-before-RPC double-apply edge case explicit probe under LatencySim (carry-forward from Step 1 Q2).
 - **Phase 7** — Visual jitter investigation. Step 1 confirmed jitter is pre-existing (not Step 1 regression). Task #36 already tracking.
 
@@ -134,9 +115,9 @@ V3 inherits Step 1's strict gates because LEG axis is still active until V4. Ada
 | Stage | Date | Signer | Notes |
 |---|---|---|---|
 | Kickoff | 2026-05-02 | cowork-reviewer | contract stamped post V2b Step 1 merge (PR #34 @ 3181bc4) |
-| Recon | 2026-05-02 | cowork-reviewer | recon report at `agent-exchange/handoff/2026-05-02-phase4b-v3-recon.md`. Independent verification: 4 spot-checks (PushTargetBox usage population, 4 callsite two-tier fallback pattern, motor._impulseEventQueue feed convergence at TryQueueImpulseEvent, PushTargetBox direct rb.AddForce usage). KEY FINDING confirmed: 3 victim categories (V2 Buddah / Legacy Buddah / PushTargetBox debug) make Q0=(B) static router strongly preferred. ONE calibration: recon's "PushTargetBox Rule 7 violation" flag re-categorized as "V4 code-style cleanup" — PushTargetBox is not in prediction stack (no Bootstrap, no PredictionRigidbody, no reconcile), so strict Rule 7 doesn't apply. Q-answer phase authorized with Q0-Q4 lean previews approved. |
+| Recon | 2026-05-02 | cowork-reviewer | recon report at `agent-exchange/handoff/2026-05-02-phase4b-v3-recon.md`. Independent verification: 4 spot-checks (PushTargetBox usage population, 4 callsite two-tier fallback pattern, motor._impulseEventQueue feed convergence at TryQueueImpulseEvent, PushTargetBox direct rb.AddForce usage). KEY FINDING confirmed: 3 victim categories (V2 Buddah / Legacy Buddah / PushTargetBox debug) make Q0=(B) static router strongly preferred. ONE calibration: recon's "PushTargetBox Rule 7 violation" flag re-categorized as "V4 code-style cleanup" — PushTargetBox is not in prediction stack (no Bootstrap, no PredictionRigidbody, no reconcile), so strict Rule 7 doesn't apply (now codified in methodology.md Rule 7 scope clarification). Q-answer phase authorized with Q0-Q4 lean previews approved. |
 | Design | 2026-05-02 | cowork-reviewer | Q-answer doc at `agent-exchange/handoff/2026-05-02-phase4b-v3-design.md`. All 9 numbered items APPROVED: Q0=(B) router file, Q1=(B) dual-feed in router, Q1-sub drop try/catch, Q2=(A) DebugState already done, Q3=(A)-revised no cache target materializes, Q4=(A) new file location, PushHitbox verbose log dropped, fallbackToLegacy field preserved per CLAUDE.md hard-stop, single-line callsite migration. Sub-observations forwarded for PR description: malformed-V2 graceful fallback to Tier 2/3 + dual-defense gate (router + adapter both check IsPredictionModeActive). |
-| Implementation | ⏸ | | |
-| Smoke | ⏸ | | |
-| Verify | ⏸ | | |
-| Merge | ⏸ | | |
+| Implementation | 2026-05-02 | cowork-reviewer | PR #36 commit `6e736e1` on branch `feat/phase4b-v3-skill-site-migrate` (cut from dev @ 3181bc4). 7 production files +109/-40. New BuddahPredictionRouter.cs (88 LOC) + 4 skill-site single-line migrations + CombatRouting [Obsolete] attribute. Independent verification (Rule 2): router skeleton 100% matches design doc; design sub-observations baked into code comments (lines 22-29); 0 actual callsites of CombatRouting.TryRouteImpulse from production code (grep mandate met); 4/4 callsites use BuddahPredictionRouter.RouteImpulse; Q1 sub-decision (drop try/catch) honored; Methodology Rule 7 compliant (router itself does no rb writes, all tiers route through compliant downstream). All 9 sign-off items implemented faithfully. |
+| Smoke | 2026-05-02 | Yonezawa | Path A (Host-only single peer): user-driven via ChargedHandProjectile self-push at DebugboxCanPush. Path B (2-peer LAN, 60s): user-driven on HOST + remote CLIENT. Editor.log cleared per Methodology Rule 1 sub-rule on all 3 logs (single Initialize block each). Raws on disk: `agent-exchange/console/raw/2026-05-02-phase4b-v3-{single,host,client}.log`. Path A digest also exposed Router.cs.meta YAML parse failure (line 11 trailing-space) — fixed inline by `9ab64f5` and re-tested clean. |
+| Verify | 2026-05-02 | cowork-reviewer | Independent grep verification across all 3 raws (273 HEARTBEAT rows total). All strict gates met: 0 LEG FATAL / 0 INV FATAL / 0 CombatRouting.TryRouteImpulse calls / 0 DupReject / 0 exceptions / 0 compile errors. `leg-imp-div` MAX = 0 across all HBs. Router stack frames captured via PushTargetBox-mediated logs (Tier 2); Tier 1 V2-Buddah dispatches confirmed silent-by-design via cross-peer leg-imp-cons alignment. Stack trace evidence: `ChargedHandProjectileRuntime:236 → BuddahPredictionRouter:RouteImpulse:71 → PushTargetBox:TryApplyServerImpulse:48`. Implementer digests cross-checked against grep results — 100% metric match. Verify report: `agent-exchange/handoff/2026-05-02-phase4b-v3-verify.md`. |
+| Merge | ⏸ | | (awaiting user approval — PR #36) |

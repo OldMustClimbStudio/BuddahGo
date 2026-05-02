@@ -1,0 +1,39 @@
+# Phase 4b V3 Stage 6 Verification Digest — Path B HOST
+
+- **Raw**: `agent-exchange/console/raw/2026-05-02-phase4b-v3-host.log` (97,851 lines, 11 MB)
+- **Role**: 2-peer LAN HOST (server + local client)
+- **Editor.log cleared**: yes (single Initialize block)
+
+## Strict-Gate Counts
+
+| Marker | Count | Pass/Fail |
+|---|---|---|
+| `[D-IMP LEG FATAL]` | 0 | ✅ PASS |
+| `[D-IMP INV FATAL]` | 0 | ✅ PASS |
+| `BuddahPredictionCombatRouting:TryRouteImpulse` (legacy dead) | 0 | ✅ PASS |
+| `Parser Failure at line 11` (Router.cs.meta) | 0 | ✅ PASS |
+| `[Channel]:DupReject` | 0 | ✅ PASS |
+| Exceptions | 0 | ✅ PASS |
+| Compile errors | 0 | ✅ PASS |
+
+## HEARTBEAT Summary
+
+- `[D-IMP LEG HEARTBEAT]` rows: **101**
+- First / last: `T=1537 active-ticks=1` → `T=7657 active-ticks=6121` (~6.1k tick session)
+- `leg-imp-div` MAX: **0**
+
+## Router Dispatch Evidence
+
+- `BuddahPredictionRouter:RouteImpulse` stack frames captured: **1** (Tier 2 mediated)
+- `[BuddahPredictionV2] push-target hit` lines: **1** (DebugboxCanPush, Tier 2)
+
+## PushHitbox Activity (server-only, melee)
+
+- Spawn: 13
+- Hit: **5** (1× DebugboxCanPush + 4× Buddah(Clone))
+  - 1× owner=-1 (debug box) → Tier 2 PushTargetBox dispatch (logged)
+  - 2× owner=0 + 2× owner=32767 (real buddahs) → **Tier 1 V2 prediction Buddah** dispatch (silent channel enqueue per CombatAdapter design — no Debug.Log)
+
+## Verdict
+
+**✅ PASS** — Host strict gates all met. Tier 1 (silent) + Tier 2 (logged) both exercised; Tier 3 (Legacy buddah) not present in test scene (expected — race uses V2 prediction buddahs).

@@ -49,15 +49,10 @@ namespace NewBuddah.PredictionV2.Integration
             BuddahPredictionBootstrap bootstrap = victimNetworkObject.GetComponent<BuddahPredictionBootstrap>();
             if (bootstrap != null && bootstrap.IsPredictionModeActive())
             {
-                BuddahPredictedMotor motor = victimNetworkObject.GetComponent<BuddahPredictedMotor>();
-                if (motor != null && bootstrap.CombatAdapter != null)
+                if (bootstrap.CombatAdapter != null)
                 {
-                    int sourceObjectId = sourceObject != null ? sourceObject.ObjectId : 0;
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
-                    // OLD-feed for _legacyShadowScratch continuity through V4 retirement of LEGACY_SHADOW define.
-                    motor.TryApplyServerAuthoritativeImpulse(impulse, turnTorqueImpulse, sourceType, sourceObjectId);
-#endif
-                    // NEW-feed (post-V2b-Step-1 rb-writing authority): channel enqueue + LogicalId stamp + RPC.
+                    // NEW-path (post-V2b-Step-1 rb-writing authority): channel enqueue + LogicalId stamp + RPC.
+                    // Phase 4b V4: motor reference + OLD-feed call retired alongside LEGACY_SHADOW define.
                     return bootstrap.CombatAdapter.TryRouteImpulse(victimNetworkObject, impulse, turnTorqueImpulse, sourceType, sourceObject);
                 }
                 // Malformed V2 (bootstrap + mode active but motor/adapter null) -> fall through to Tier 2/3.

@@ -60,6 +60,17 @@ namespace NewBuddah.PredictionV2.Bootstrap
         private void Awake()
         {
             ResolveReferences();
+#if BUDDAH_PREDICTION_VISUAL_PROBE
+            // Phase 4-probes wiring: attach the V3 visual-shake probe per-Buddah.
+            // Runs on every peer (this MonoBehaviour lives on the replicated
+            // Buddah prefab, so Awake fires on both HOST-instantiated and
+            // CLIENT-replicated copies). The probe's own Awake resolves
+            // _visualRoot via visualRootBridge and _networkObject via the
+            // Buddah's own NetworkObject. Gated behind the probe define —
+            // compiles out in release builds.
+            if (GetComponent<BuddahPredictionVisualShakeProbe>() == null)
+                gameObject.AddComponent<BuddahPredictionVisualShakeProbe>();
+#endif
             RefreshDebugBanner("bootstrap initialized");
             LogVerbose($"bootstrap initialized. mode={RuntimeMode}");
         }

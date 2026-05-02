@@ -1,0 +1,117 @@
+# Phase 4 V3 HOST Baseline — Pre-4a Visual Shake Probe Digest
+
+## §1 Session meta
+
+- Date: 2026-04-19
+- Playtest shape: 2-peer, Editor = CLIENT + Build (Development) = HOST (this log)
+- Tip: Phase 3d merge (`3763aa0`) + probes PR + wiring PR stacked (same commit as CLIENT)
+- Defines enabled: `BUDDAH_PREDICTION_VISUAL_PROBE`, `BUDDAH_PREDICTION_PERF_PROBE`, `BUDDAH_PREDICTION_SHADOW`
+- Log source: raw `agent-exchange/console/raw/2026-04-19-phase4-baseline-host.log` (41.5 MB)
+- V3 frame range: 12413 → 43313 (30900 frames ≈ 515 seconds at 60fps)
+- V3 heartbeat count: **1020 total** (516 `owner=True` HOST-local Buddah + 504 `owner=False` CLIENT-remote Buddah)
+- Build type: Development Build (has `ENABLE_PROFILER`, but ProfilerRecorder on custom markers still requires Profiler recording — see V13 digest)
+
+## §2 Heartbeat stream (head + tail samples)
+
+### First heartbeats (post-spawn warm-up)
+```
+[D-VIS HEARTBEAT] frame=12413 owner=True window=60
+  pos-dmax=0.16667 pos-dp99=0.16667 pos-davg=0.01299
+  rot-dmax=0.000 rot-dp99=0.000 rot-davg=0.000
+[D-VIS HEARTBEAT] frame=12413 owner=False window=60
+  pos-dmax=0.00000 pos-dp99=0.00000 pos-davg=0.00000
+  rot-dmax=0.000 rot-dp99=0.000 rot-davg=0.000
+```
+
+### Tail heartbeats (active locomotion)
+```
+[D-VIS HEARTBEAT] frame=43253 owner=True window=60
+  pos-dmax=... pos-davg=0.22832
+[D-VIS HEARTBEAT] frame=43313 owner=True window=60
+  pos-dmax=... pos-davg=0.23302
+[D-VIS HEARTBEAT] frame=43253 owner=False window=60
+  pos-dmax=... pos-davg=0.26941
+[D-VIS HEARTBEAT] frame=43313 owner=False window=60
+  pos-dmax=... pos-davg=0.28001
+```
+
+## §3 Per-stream aggregates (session-wide)
+
+### `owner=True` — HOST-local Buddah (this Build peer's own Buddah)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| heartbeats | 516 | frame 12413 → 43313 |
+| pos-dmax (max over session) | **55.31577 m/frame** | outlier — see §4 anomaly 1 |
+| pos-dp99 (max over session) | 55.31577 m/frame | equals pos-dmax (window=60 p99 ≡ dmax) |
+| pos-davg (mean over session) | **0.21300 m/frame** | cleaner than Editor-CLIENT's 0.51109 |
+| rot-dmax (max over session) | 7.358 deg/frame | intro-handoff snap |
+| rot-dmax (non-outlier typical) | ~3-4 deg/frame | steering |
+| rot-davg (mean over session) | **0.0761 deg/frame** | lower than CLIENT 0.354 (Build smoother) |
+
+### `owner=False` — CLIENT-remote Buddah (peer-2 Buddah as rendered on HOST Build)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| heartbeats | 504 | frame 12413 → 43313 |
+| pos-dmax (max over session) | **21.63069 m/frame** | outlier |
+| pos-dp99 (max over session) | 21.63069 m/frame | equals pos-dmax |
+| pos-davg (mean over session) | **0.21322 m/frame** | near-identical to owner=True (symmetric!) |
+| rot-dmax (max over session) | 3.448 deg/frame | tighter than CLIENT's 11.789 — FishNet smoothing effective on Build |
+| rot-davg (mean over session) | **0.1099 deg/frame** | lower than CLIENT 0.270 |
+
+## §4 Anomalies
+
+### Anomaly 1 — pos-dmax outliers ~55m / ~22m per frame
+
+Same class of outlier as CLIENT digest §4 anomaly 1. Two single-frame events per stream:
+- owner=True: `55.31577 m/frame` + `9.07466 m/frame` (2 events ≥ 5m)
+- owner=False: `21.63069 m/frame` + `13.86837 m/frame` (2 events ≥ 5m)
+
+Interpretation: intro-handoff pose snap at race start. Single-frame, not sustained shake. Not a gameplay quality regression — pos-davg-mean (~0.21 m/frame on both streams) is the truthful signal.
+
+### Anomaly 2 — HOST symmetry, CLIENT asymmetry
+
+HOST shows near-identical pos-davg across both owner streams (0.213 ≈ 0.213). CLIENT showed owner=True 0.511 < owner=False 0.685. Root cause: **Editor frame hitches affect both streams on CLIENT-Editor, non-uniformly amplifying remote interpolation deltas**. Build (HOST) runs smooth 60fps → both streams converge.
+
+Implication for Phase 4a delta comparison: HOST is the cleaner reference. **Use HOST baseline as primary 4a PASS/FAIL gate; CLIENT baseline as secondary integrity check**.
+
+### Anomaly 3 — dp99 always equals dmax (same window=60 p99 degenerate)
+
+Same as CLIENT anomaly 3. `floor(60 * 0.99) = 59 = max index` → per-window p99 mirrors max. dp99 metric carries no independent info at current `_heartbeatFrames=60`.
+
+Decision: **accept pos-davg-mean as primary V3 comparator**. No baseline re-run required; in 4a-post evaluation, emphasis shifts to davg-mean delta. If dp99 becomes interesting later, bump `_heartbeatFrames` to 120 in a follow-up micro-PR (no code impact to motor/step logic).
+
+## §5 Shadow parity preserved (D-LOC)
+
+**85 `[D-LOC HEARTBEAT]` rows** spanning T=1481 → T=6521 (43 unique ticks, dual-emit pattern consistent with Phase 3d V5 HOST). Counter progression:
+- `loc-div / imp-div / tel-div / mod-div / hof-div` — **all 0 across every row** (1 unique div line)
+- `imp-compared`: 0 → 1 → 2
+- `mod-compared`: 1 → 5041 (linear growth)
+- `hof-compared`: 0 → 1 (transition around mod-compared=2401)
+- `tel-compared`: 0 (no teleport events)
+
+Zero `[D-LOC FATAL]`, zero non-heartbeat `[D-LOC]`. **Phase 3d shadow parity fully preserved** on HOST Build with V3 + V13 probes active. Reviewer G1 observational-neutrality holds at runtime on both ends of the 2-peer session.
+
+## §6 Baseline metrics (pinned for post-4a comparison)
+
+```
+V3_BASELINE_HOST_OWNER_POS_DMAX     = 55.31577 m/frame (outlier; see §4)
+V3_BASELINE_HOST_OWNER_POS_DP99     = 55.31577 m/frame (degenerate; see §4)
+V3_BASELINE_HOST_OWNER_POS_DAVG     = 0.21300  m/frame  ← PRIMARY GATE
+V3_BASELINE_HOST_OWNER_ROT_DMAX     = 7.358    deg/frame
+V3_BASELINE_HOST_OWNER_ROT_DP99     = 7.358    deg/frame (degenerate)
+V3_BASELINE_HOST_OWNER_ROT_DAVG     = 0.0761   deg/frame
+V3_BASELINE_HOST_SPECTATOR_POS_DMAX = 21.63069 m/frame (outlier)
+V3_BASELINE_HOST_SPECTATOR_POS_DP99 = 21.63069 m/frame (degenerate)
+V3_BASELINE_HOST_SPECTATOR_POS_DAVG = 0.21322  m/frame  ← PRIMARY GATE
+V3_BASELINE_HOST_SPECTATOR_ROT_DMAX = 3.448    deg/frame
+V3_BASELINE_HOST_SPECTATOR_ROT_DP99 = 3.448    deg/frame (degenerate)
+V3_BASELINE_HOST_SPECTATOR_ROT_DAVG = 0.1099   deg/frame
+```
+
+## §7 Verdict
+
+**CAPTURED**. Session duration 515s (post-spawn) far exceeds 90s minimum. Shadow parity intact. HOST baseline is the **cleaner reference** of the 2-peer pair due to Build smoothness — recommend using HOST as primary 4a post-delta gate.
+
+Paired with CLIENT digest `2026-04-19-phase4-baseline-v3-client.log`. Combined decision document in `2026-04-19-phase4-baseline-digest.md`.

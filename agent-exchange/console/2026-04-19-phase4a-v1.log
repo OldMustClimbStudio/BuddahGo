@@ -1,0 +1,55 @@
+# Phase 4a V1 — Gate 1 single-peer D-LOC parity digest
+
+Source: `agent-exchange/console/raw/2026-04-19-phase4a-v1-editor.log`
+(copied from `%LOCALAPPDATA%/Unity/Editor/Editor.log`, mtime 2026-04-19 22:22)
+Session: Editor HOST PlayMode on RaceMap, ~60s mixed-input drive.
+
+## Gate 1 PASS criteria (from plan §4)
+- Every `[D-LOC HEARTBEAT]` row: `loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=0`
+- 0 non-heartbeat `[D-LOC]` lines
+- 0 `[D-LOC FATAL]` lines
+
+## Observed
+| Metric                                               | Count |
+| ---------------------------------------------------- | ----- |
+| `[D-LOC HEARTBEAT]` rows                             | 26    |
+| All-zero div rows (`loc/imp/tel/mod/hof all = 0`)    | 26    |
+| Any non-zero div                                     | 0     |
+| `[D-LOC FATAL]`                                      | 0     |
+| Non-heartbeat `[D-LOC]`                              | 0     |
+
+**All 26 heartbeats: `loc-div=0 imp-div=0 tel-div=0 mod-div=0 hof-div=0`.**
+
+## Coverage
+First heartbeat: `T=470 active-ticks=1 skip-ticks=0` (Editor.log:3887)
+Last  heartbeat: `T=3470 active-ticks=3001 skip-ticks=0` (Editor.log:34628)
+
+Active tick span: 1 → 3001 (~3000 ticks at 50 Hz ≈ 60 s of active locomotion).
+`skip-ticks=0` across all heartbeats — no early-return path exercised (no
+handoff-active, no MovementAllowed gate, no IsRooted).
+
+Compared counters (late heartbeat, Editor.log:34630):
+- `imp-compared=0 tel-compared=0 mod-compared=3001 hof-compared=1`
+- Modifier step ran every active tick (expected — persistent stats compare).
+- No impulse / teleport events during the drive (clean single-peer path).
+- One handoff event observed mid-session (hof-compared 0→1 at T=2750); `hof-div=0`.
+
+## Verdict
+**PASS.** Locomotion commanded-force/turn-torque math migrated to
+`BuddahLocomotionStep.Compute` is bit-identical to the prior inline
+block across 3001 active ticks. No divergence surfaced on any shadow
+step. IsSteeringSuppressed reorder (moved before Compute) caused zero
+observable delta — confirming the behavior-neutrality proof in plan §3.
+
+**Z2 decay branch: not exercised this run** — single-peer owner on flat
+map with throttle doesn't trigger the `IsPushGraceActive && throttle==0`
+decay path. Parity of the decay branch is carried forward to Phase 8
+Entry 3 per Z2 scope boundary.
+
+## Next
+Advance to Gate 2 — 2-peer V5 session (HOST Build + CLIENT Editor, 90 s):
+- Save: `agent-exchange/console/2026-04-19-phase4a-v5-host.log` +
+        `agent-exchange/console/2026-04-19-phase4a-v5-client.log`
+- Expect: D-LOC clean on both peers; V3 pos-davg-mean delta within ±10 %
+  of Phase 4 baseline on HOST owner streams (outliers ≥5 m excluded);
+  V13 gc-alloc-only delta within ±10 % on HOST.

@@ -8,9 +8,12 @@ using System.Text;
 using NewBuddah.PredictionV2.Bootstrap;
 using NewBuddah.PredictionV2.Config;
 using NewBuddah.PredictionV2.Integration;
+using NewBuddah.PredictionV2.Simulation;
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
 using System.Collections.Generic;
-using NewBuddah.PredictionV2.Simulation;
+#endif
+#if BUDDAH_PREDICTION_PERF_PROBE
+using Stopwatch = System.Diagnostics.Stopwatch;
 #endif
 using UnityEngine;
 using SteamMultiplayer.Network;
@@ -62,6 +65,29 @@ namespace NewBuddah.PredictionV2.Core
         private SplineProgressTracker _splineProgressTracker;
         private SkillExecutor _skillExecutor;
         private float _baseMass = 1f;
+
+#if BUDDAH_PREDICTION_PERF_PROBE
+        // V13 perf probe — Stopwatch-backed per-frame accumulator consumed by
+        // BuddahPredictionPerfProbe. Replaces Phase 4 ProfilerMarker path (which
+        // required active Profiler recording to sample custom markers; Entry 7 M2
+        // switches to System.Diagnostics.Stopwatch so standalone Player.log runs
+        // produce valid rep-*-ms). Compiles out when the define is undefined ->
+        // release builds carry zero timing overhead. Reviewer G1 bind.
+        //
+        // Main-thread invariant: every RunInputs invocation (forward tick +
+        // FishNet reconcile replays) originates from TimeManager.TickUpdate on
+        // the main thread; the probe reads + zeros this field from its own
+        // Update (also main thread). Safe without atomics.
+        internal static long s_runInputsTicksThisFrame;
+
+        internal readonly ref struct PerfProbeScope
+        {
+            private readonly long _startTicks;
+            private PerfProbeScope(long startTicks) { _startTicks = startTicks; }
+            public static PerfProbeScope Auto() => new PerfProbeScope(Stopwatch.GetTimestamp());
+            public void Dispose() => s_runInputsTicksThisFrame += Stopwatch.GetTimestamp() - _startTicks;
+        }
+#endif
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
         private BuddahPredictionShadowScratch _realScratch;
@@ -315,6 +341,9 @@ namespace NewBuddah.PredictionV2.Core
         [Replicate]
         private void RunInputs(BuddahPredictedInputData data, ReplicateState state = ReplicateState.Invalid, Channel channel = Channel.Unreliable)
         {
+#if BUDDAH_PREDICTION_PERF_PROBE
+            using var markerScope = PerfProbeScope.Auto();
+#endif
             if (!ShouldRunPrediction() || _predictionRigidbody == null)
                 return;
 
@@ -438,19 +467,34 @@ namespace NewBuddah.PredictionV2.Core
             ApplyLaunchHandoffInputScaling(currentTick, ref resolvedThrottle, ref resolvedSteering);
             ApplyLaunchInheritedVelocity(currentTick);
 
-            Vector3 forwardForce = forwardDirection * (_computedStats.FinalForwardForce * resolvedThrottle);
+            // Phase 4a Z2 (2026-04-19): apply IsSteeringSuppressed BEFORE Compute so
+            // commanded turn torque is derived from the zeroed-steering value. Forward
+            // force is unaffected by steering so the ordering swap is behavior-neutral.
+            if (_computedStats.IsSteeringSuppressed)
+                resolvedSteering = 0f;
+
+            // Phase 4a Z2: migrate CommandedForwardForce + CommandedTurnTorque
+            // computation to BuddahLocomotionStep.Compute so motor real path and
+            // shadow step share the exact same body (parity-by-construction).
+            // Decay branch below is RETAINED inline per Z2 hybrid scope —
+            // phase-8-cleanup-queue.md Entry 3 tracks the deferred decay-branch
+            // migration contingent on Phase 3a shadow scope extension.
+            BuddahLocomotionStep.Compute(
+                forwardDirection,
+                resolvedThrottle,
+                resolvedSteering,
+                _computedStats,
+                out Vector3 forwardForce,
+                out float turnTorque);
+
             _predictionRigidbody.AddForce(forwardForce, ForceMode.Force);
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _realScratch.CommandedForwardForce = forwardForce;
             _realScratch.LocomotionRan = true;
 #endif
 
-            if (_computedStats.IsSteeringSuppressed)
-                resolvedSteering = 0f;
-
             if (Mathf.Abs(resolvedSteering) > 0.001f)
             {
-                float turnTorque = resolvedSteering * _computedStats.FinalTurnTorque;
                 _predictionRigidbody.AddTorque(Vector3.up * turnTorque, ForceMode.Force);
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
                 _realScratch.CommandedTurnTorque = turnTorque;

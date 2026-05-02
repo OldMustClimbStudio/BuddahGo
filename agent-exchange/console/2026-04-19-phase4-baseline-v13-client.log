@@ -1,0 +1,136 @@
+# Phase 4 V13 CLIENT Baseline — Pre-4a Perf Probe Digest
+
+## §1 Session meta
+
+- Date: 2026-04-19
+- Playtest shape: 2-peer, Editor = CLIENT (this log) + Build = HOST (peer-2 Player.log pending)
+- Tip: Phase 3d merge (`3763aa0`) + probes PR + wiring PR stacked
+- Defines enabled locally: `BUDDAH_PREDICTION_VISUAL_PROBE`, `BUDDAH_PREDICTION_PERF_PROBE`, `BUDDAH_PREDICTION_SHADOW`
+- Log source: `C:\Users\dwh88\AppData\Local\Unity\Editor\Editor.log`
+- Current-session boundary: line 144908 (PERF frame-reset 12000 → 60)
+- V13 frame range: 60 → 12240 (12180 frames ≈ 203 seconds at 60fps)
+- V13 heartbeat count: **204** (scene-singleton, single stream)
+
+## §2 Heartbeat stream (head + tail samples)
+
+### First 5 heartbeats (initial session load)
+```
+[D-PERF HEARTBEAT] frame=60 window=60
+  rep-avg-ms=0.0000 rep-p99-ms=0.0000 rep-max-ms=0.0000
+  gc-alloc-avg-b=267070.0 gc-alloc-p99-b=13018500 gc-alloc-max-b=13018500
+[D-PERF HEARTBEAT] frame=120 window=60
+  rep-avg-ms=0.0000 rep-p99-ms=0.0000 rep-max-ms=0.0000
+  gc-alloc-avg-b=7600.0 gc-alloc-p99-b=7600 gc-alloc-max-b=7600
+[D-PERF HEARTBEAT] frame=180 window=60
+  rep-avg-ms=0.0000 rep-p99-ms=0.0000 rep-max-ms=0.0000
+  gc-alloc-avg-b=7600.0 gc-alloc-p99-b=7600 gc-alloc-max-b=7600
+... (remaining pre-spawn heartbeats show identical gc-alloc=7600 flat) ...
+```
+
+### Last 5 heartbeats (post-intro active gameplay)
+```
+[D-PERF HEARTBEAT] frame=12060 window=60
+  rep-avg-ms=0.0000 rep-p99-ms=0.0000 rep-max-ms=0.0000
+  gc-alloc-avg-b=7600.0 gc-alloc-p99-b=7600 gc-alloc-max-b=7600
+[D-PERF HEARTBEAT] frame=12120 window=60
+  rep-avg-ms=0.0000 rep-p99-ms=0.0000 rep-max-ms=0.0000
+  gc-alloc-avg-b=7600.0 gc-alloc-p99-b=7600 gc-alloc-max-b=7600
+[D-PERF HEARTBEAT] frame=12180 window=60
+  rep-avg-ms=0.0000 rep-p99-ms=0.0000 rep-max-ms=0.0000
+  gc-alloc-avg-b=7600.0 gc-alloc-p99-b=7600 gc-alloc-max-b=7600
+[D-PERF HEARTBEAT] frame=12240 window=60
+  rep-avg-ms=0.0000 rep-p99-ms=0.0000 rep-max-ms=0.0000
+  gc-alloc-avg-b=7600.0 gc-alloc-p99-b=7600 gc-alloc-max-b=7600
+```
+
+## §3 Aggregates
+
+### Replicate tick time (`BuddahPredictedMotor.RunInputs` ProfilerMarker)
+
+| Metric | Value |
+|--------|-------|
+| heartbeats | 204 |
+| rep-avg-ms (mean over session) | **0.0000 ms** |
+| rep-avg-ms (max over session) | **0.0000 ms** |
+| rep-p99-ms (max over session) | **0.0000 ms** |
+| rep-max-ms (max over session) | **0.0000 ms** |
+
+**All four rep-*-ms metrics read 0.0000 across every heartbeat. See §4 anomaly 1 — Editor `ProfilerRecorder` gotcha.**
+
+### GC.Alloc (built-in `ProfilerCategory.Memory` marker)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| gc-alloc-avg-b (mean over session) | 8871.9 bytes/frame | steady-state typical |
+| gc-alloc-avg-b (max over session) | 267070.0 bytes/frame | first heartbeat (frame=60), scene-load spike |
+| gc-alloc-p99-b (max over session) | 13018500 bytes | first heartbeat only |
+| gc-alloc-max-b (max over session) | 13018500 bytes (≈ 12.4 MB) | first heartbeat only |
+| gc-alloc steady-state (post-frame-60) | **7600 bytes/frame flat** | 203 heartbeats report exactly 7600 |
+
+GC.Alloc data is captured cleanly. Post-spawn steady-state is remarkably stable at 7600 bytes/frame — a clean baseline for post-4a comparison.
+
+## §4 Anomalies
+
+### Anomaly 1 — rep-*-ms = 0 across all 204 heartbeats (BLOCKING for V13 rep-* gates)
+
+**Observation**: the `BuddahPredictedMotor.RunInputs` custom ProfilerMarker records 0 ns per frame on the CLIENT Editor peer.
+
+**Root cause (most likely)**: Unity Editor's `ProfilerRecorder` on a **custom** `ProfilerMarker` requires the **Profiler window to be actively recording** to capture timing samples. Without Profiler Recording ON, custom markers report 0 ns — a documented Unity 2022.3 limitation. Built-in markers (like `GC.Alloc` under `ProfilerCategory.Memory`) are always captured because Unity's runtime tracks them for its own telemetry.
+
+Evidence:
+- `rep-avg-ms=0.0000` identical across every heartbeat from session start to session end (not a warm-up artifact).
+- `gc-alloc-*-b` values are non-zero and vary plausibly (scene-load spike at frame=60, steady-state 7600 after) — proves `ProfilerRecorder` infrastructure itself works for built-in markers.
+- The motor marker IS being encountered at runtime: `using var markerScope = s_runInputsMarker.Auto();` wraps the Replicate body every tick. The marker fires; the recorder just isn't sampling it.
+
+**Mitigation options for reviewer**:
+
+- **M1 — Enable Profiler Recording during baseline + post-4a capture**: open `Window > Analysis > Profiler`, ensure "Record" toggle is ON before entering PlayMode. Custom markers then report real ns. Simplest; no code change. Caveat: Profiler overhead itself slightly inflates the numbers (consistently, so pre/post delta remains valid).
+- **M2 — Switch motor timing to `System.Diagnostics.Stopwatch`**: replace the ProfilerMarker with a stopwatch around RunInputs, still gated by `#if BUDDAH_PREDICTION_PERF_PROBE`, emit ticks from a static field the probe reads each frame. More invasive; makes the perf probe independent of Profiler state. Reviewer G1 still preserved (compiles out).
+- **M3 — Build-time capture instead of Editor**: Standalone Development Build emits ProfilerRecorder data without needing a Profiler window. If the CLIENT peer is always the Editor (for debugging convenience), this is asymmetric; HOST Build's `rep-*-ms` may be non-zero while CLIENT's is zero. Would need dual comparison protocols.
+
+**Recommendation**: **M1 for this baseline** (re-run with Profiler Recording on, no code change), **M2 as a follow-up** if M1 produces noisy numbers. Current `rep-*-ms=0` data is **not usable for V13 PASS evaluation** of the rep-*-ms gates.
+
+### Anomaly 2 — GC.Alloc first-heartbeat spike (12.4 MB)
+
+The first heartbeat emitted (frame=60) reports `gc-alloc-max-b=13018500 bytes ≈ 12.4 MB` and `gc-alloc-avg-b=267070 bytes/frame`. Every subsequent heartbeat (frame≥120) drops to a flat 7600 bytes/frame. The spike is the one-time scene-load / domain-reload / probe-self-instantiation allocation and is **not a per-frame steady-state cost**.
+
+For post-4a comparison, exclude the first heartbeat from the gc-alloc average OR compute the median instead of the mean to suppress the one-time outlier.
+
+### Anomaly 3 — 7600 bytes/frame steady-state
+
+Every non-first heartbeat reports exactly `7600 bytes/frame` — suspiciously flat. Candidate sources:
+- Unity Editor's own per-frame UI / inspector updates.
+- Built-in allocations from FishNet's per-tick packet construction.
+- String allocation from `[D-VIS HEARTBEAT]` / `[D-PERF HEARTBEAT]` logging (1 line/heartbeat = 1/60 frames; shouldn't amortize to 7600/frame but could if Debug.Log allocations are tracked cumulatively).
+
+Flatness suggests a deterministic per-frame allocation path. Post-4a compare should treat any deviation from 7600 as signal (either regression or improvement). **If post-4a `gc-alloc-avg-b` stays at 7600 bytes/frame steady-state, V13 GC passes**.
+
+## §5 Shadow parity preserved
+
+Same as V3 digest §5: `[D-LOC HEARTBEAT]` in the current session shows all div counters = 0 across 42 heartbeats. Probes produce zero observable perturbation on the Phase 3d shadow-compare harness.
+
+## §6 Baseline metrics (pinned for post-4a comparison, with caveats)
+
+```
+# Replicate tick timing — UNUSABLE, ProfilerRecorder returned 0
+V13_BASELINE_CLIENT_REP_AVG_MS     = 0.0000  (INVALID — see §4 anomaly 1)
+V13_BASELINE_CLIENT_REP_P99_MS     = 0.0000  (INVALID)
+V13_BASELINE_CLIENT_REP_MAX_MS     = 0.0000  (INVALID)
+
+# GC.Alloc — USABLE (steady-state), exclude first heartbeat outlier
+V13_BASELINE_CLIENT_GC_AVG_B       = 7600    (bytes/frame, steady-state post-frame=120)
+V13_BASELINE_CLIENT_GC_P99_B       = 7600    (bytes/frame, steady-state)
+V13_BASELINE_CLIENT_GC_MAX_B       = 7600    (bytes/frame, steady-state; first-heartbeat spike excluded)
+V13_BASELINE_CLIENT_GC_MAX_B_INCL_SPIKE = 13018500  (kept for reference; one-shot scene-load cost)
+```
+
+## §7 Verdict
+
+**PARTIALLY CAPTURED**. GC.Alloc baseline is clean and usable. Replicate-tick-timing baseline is **INVALID** due to Editor ProfilerRecorder gotcha (§4 anomaly 1).
+
+**Required decision before Phase 4a V1 starts**:
+- Re-capture V13 CLIENT baseline with Profiler Recording enabled (M1), OR
+- Accept a gc-alloc-only V13 gate for Phase 4a and defer rep-*-ms gates to Phase 4b / post-refactor (M2), OR
+- Switch to Stopwatch timing (M2 code change, minor scope addition to probes PR or a follow-up micro-PR).
+
+HOST-side counterpart (`2026-04-19-phase4-baseline-v13-host.log`) **PENDING** — requires peer-2 Player.log scrape. HOST is a Standalone Build, so `ProfilerRecorder` on custom markers is expected to work without Profiler Recording (per Unity doc). If HOST baseline shows non-zero `rep-*-ms`, that confirms the Editor-only gotcha and makes M1 the minimum intervention.

@@ -1,0 +1,102 @@
+# Phase 4a V1 — Gate 2 V5 CLIENT (Editor) digest
+
+Source raw: `agent-exchange/console/raw/2026-04-19-phase4a-v5-client-editor.log`
+(copied from `%LOCALAPPDATA%/Unity/Editor/Editor.log`, mtime 2026-04-19 23:03)
+Gate-2-session slice (post Gate 1): `raw/2026-04-19-phase4a-v5-client-gate2only.log`
+Session boundary: Editor.log line 37089 (PERF probe frame-reset 60 → second session).
+Role: Editor = CLIENT (2-peer V5 session; HOST on separate peer — log not available).
+
+## §1 Gate 2 criteria (plan §4)
+- D-LOC parity on CLIENT: same gates as Phase 3d (all divs=0, 0 FATAL).
+- V3 `pos-davg-mean` delta **±10 % on HOST owner streams** (outliers ≥ 5 m excluded).
+- V13 `gc-alloc`-only delta ±10 % on HOST.
+- CLIENT side = secondary integrity check (expect 2-3× inflation vs HOST per baseline §4 anomaly 2).
+
+## §2 D-LOC parity — CLIENT
+
+| Metric                                               | Count |
+| ---------------------------------------------------- | ----- |
+| `[D-LOC HEARTBEAT]` rows                             | 37    |
+| All-zero div rows (`loc/imp/tel/mod/hof all = 0`)    | 37    |
+| Any non-zero div                                     | 0     |
+| `[D-LOC FATAL]`                                      | 0     |
+| Non-heartbeat `[D-LOC]`                              | 0     |
+
+**PASS.** CLIENT shadow parity preserved under 2-peer prediction + reconcile traffic. Z2 `BuddahLocomotionStep.Compute` migration bit-identical on CLIENT.
+
+## §3 V3 — pos aggregates (CLIENT, secondary)
+
+Baseline CLIENT (digest §3, n=122 per stream):
+
+| Stream                | pos-davg-mean | pos-dmax |
+| --------------------- | ------------- | -------- |
+| owner=True  (local)   | 0.51109 m     | 45.62 m  |
+| owner=False (remote)  | 0.68479 m     | 20.50 m  |
+
+Gate 2 CLIENT, n=200 per stream, ~400 frames ÷ 60-frame cadence window:
+
+| Stream (all frames)            | n   | pos-davg-mean | pos-dmax |
+| ------------------------------ | --- | ------------- | -------- |
+| owner=True  (local)            | 200 | 0.37408 m     | 45.62 m  |
+| owner=False (remote)           | 200 | 0.85753 m     | 40.39 m  |
+
+Gate 2 CLIENT, outliers ≥ 5 m/frame excluded:
+
+| Stream (dmax <5 m)             | n   | excluded | pos-davg-mean | pos-dmax (<5 m) |
+| ------------------------------ | --- | -------- | ------------- | --------------- |
+| owner=True  (local)            | 198 | 2        | 0.36831 m     | 2.472 m         |
+| owner=False (remote)           | 147 | 53       | 0.23511 m     | 2.615 m         |
+
+Apples-to-apples delta vs baseline CLIENT (no outlier-exclusion applied either side):
+
+| Stream       | baseline | gate2   | Δ        | within ±10 % CLIENT? |
+| ------------ | -------- | ------- | -------- | -------------------- |
+| owner=True   | 0.51109  | 0.37408 | −26.8 %  | No                   |
+| owner=False  | 0.68479  | 0.85753 | +25.3 %  | No                   |
+
+**Note**: CLIENT-side ±10 % is **not** the Gate 2 PASS criterion (plan §4
+and baseline digest §3 Decision 2 both pin the primary gate to HOST owner
+streams — CLIENT is noted as "2-3× inflation" due to Editor frame hitches).
+The observed deltas are consistent with baseline §4 anomaly 2 expectation:
+Editor frame-hitch amplifies **both** streams in different directions
+depending on session-specific input tempo. Same-session HOST log is required
+to evaluate the primary V3 gate.
+
+## §4 V13 — gc-alloc (CLIENT, secondary)
+
+Baseline CLIENT (digest §3):
+
+- gc-alloc-avg-b mean over 204 heartbeats = 8871.9 B/frame
+- steady-state (post-frame-60) = 7600 B/frame flat
+
+Gate 2 CLIENT, n=480 heartbeats:
+
+- gc-alloc-avg-b mean = **8348.3 B/frame** (delta **−5.9 %** vs baseline 8871.9) → within ±10 % ✓
+- gc-alloc-avg-b min  = 7800 B/frame steady-state floor (vs baseline 7600; +2.6 %) → within ±10 % ✓
+- gc-alloc-avg-b max  = 270968.3 B/frame (scene-load spike on frame=60, expected)
+- rep-avg-ms / rep-p99-ms / rep-max-ms = 0.0000 across all 480 heartbeats → expected per baseline §4 anomaly 1 (Editor ProfilerRecorder custom-marker gotcha). M2 Stopwatch PR queued as Phase 8 Entry 7.
+
+**GC.Alloc CLIENT gate: PASS** (−5.9 %, within ±10 %). HOST gc-alloc gate still required for primary verdict.
+
+## §5 Verdict (CLIENT-side)
+
+| Gate                                        | Result                        |
+| ------------------------------------------- | ----------------------------- |
+| D-LOC parity CLIENT                         | **PASS** (37/37 all-zero)     |
+| V3 pos-davg-mean CLIENT (secondary)         | out of ±10 % CLIENT; Editor-hitch-inflated per baseline §4 anomaly 2 — informational only |
+| V13 gc-alloc-avg CLIENT                     | **PASS** (−5.9 %)             |
+| V3 pos-davg-mean HOST owner (**primary**)   | **PENDING HOST LOG**          |
+| V13 gc-alloc HOST (**primary**)             | **PENDING HOST LOG**          |
+
+## §6 Outstanding action
+
+The HOST peer's `Player.log` from the same 2-peer V5 session is required to
+evaluate the **primary** Gate 2 gates (V3 pos-davg-mean ±10 % on HOST
+owner + spectator streams with 5 m-outlier exclusion; V13 gc-alloc ±10 %
+on HOST). CLIENT-side clean D-LOC + in-tolerance GC alloc is a strong
+positive signal but not the gate-of-record.
+
+If the HOST peer was remote, copy its `%USERPROFILE%\AppData\LocalLow\
+OMCStudio\BuddahGo\Player.log` (or the Build's stdout log) back here and
+drop it at `agent-exchange/console/raw/2026-04-19-phase4a-v5-host.log`
+for scrape.

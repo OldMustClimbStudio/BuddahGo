@@ -359,12 +359,8 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
 
         _hitVictims.Add(victimNO);
 
-        if (BuddahPredictionCombatRouting.TryRouteImpulse(victimNO, _impulse, _hitTurnTorqueImpulse, BuddahPredictedImpulseSourceType.ChargedProjectile, _attacker))
-            return;
-
-        BuddahMovement victimMove = victimNO.GetComponent<BuddahMovement>();
-        if (victimMove != null)
-            victimMove.ApplyPushImpulseAndTorqueTargetRpc(victimNO.Owner, _impulse, _hitTurnTorqueImpulse);
+        // Phase 4b V3 — single dispatch entry (router internalizes V2 / PushTargetBox / Legacy fallback).
+        BuddahPredictionRouter.RouteImpulse(victimNO, _impulse, _hitTurnTorqueImpulse, BuddahPredictedImpulseSourceType.ChargedProjectile, _attacker);
     }
 
     private bool TryStopAtSolidWorld(float moveDistance)

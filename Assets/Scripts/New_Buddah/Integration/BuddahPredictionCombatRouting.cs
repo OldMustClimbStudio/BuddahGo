@@ -7,8 +7,13 @@ using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Integration
 {
+    // Phase 4b V3 — structurally dead post-skill-site migration. All 4 production callsites
+    // (PushHitbox, ChargedHandProjectileRuntime, HandPushProjectileRuntime,
+    // BuddahPredictionImpulseDebugBox) now route through BuddahPredictionRouter.RouteImpulse.
+    // V4 deletes this file entirely alongside LEGACY_SHADOW define retirement.
     public static class BuddahPredictionCombatRouting
     {
+        [Obsolete("Use BuddahPredictionRouter.RouteImpulse. CombatRouting is structurally dead post-V3 and will be deleted in V4 alongside LEGACY_SHADOW define retirement.", error: false)]
         public static bool TryRouteImpulse(
             NetworkObject victimNetworkObject,
             Vector3 impulse,

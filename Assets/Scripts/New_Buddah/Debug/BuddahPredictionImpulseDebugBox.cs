@@ -42,22 +42,16 @@ namespace NewBuddah.PredictionV2.Debugging
             if (triggerOncePerVictim)
                 _triggeredVictims.Add(victimNetworkObject);
 
-            if (BuddahPredictionCombatRouting.TryRouteImpulse(
-                    victimNetworkObject,
-                    impulse,
-                    turnTorqueImpulse,
-                    BuddahPredictedImpulseSourceType.DebugBox,
-                    null))
-            {
-                return;
-            }
-
-            if (!fallbackToLegacy)
-                return;
-
-            BuddahMovement movement = victimNetworkObject.GetComponent<BuddahMovement>();
-            if (movement != null)
-                movement.ApplyPushImpulseAndTorqueTargetRpc(victimNetworkObject.Owner, impulse, turnTorqueImpulse);
+            // Phase 4b V3 — single dispatch entry (router internalizes V2 / PushTargetBox / Legacy fallback).
+            // Note: 'fallbackToLegacy' serialized field is now ignored — router unconditionally falls back
+            // to BuddahMovement RPC for Legacy buddah victims. Field kept per CLAUDE.md hard-stop on
+            // serialized field removal; V4 cleanup will drop the field.
+            BuddahPredictionRouter.RouteImpulse(
+                victimNetworkObject,
+                impulse,
+                turnTorqueImpulse,
+                BuddahPredictedImpulseSourceType.DebugBox,
+                null);
         }
 
         private void OnDrawGizmos()

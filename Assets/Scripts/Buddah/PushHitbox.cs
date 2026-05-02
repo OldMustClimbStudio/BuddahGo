@@ -197,17 +197,9 @@ public class PushHitbox : MonoBehaviour
 
         Debug.Log($"[PushHitbox] Hit mode={detectionMode} victim={victimNO.name} owner={victimNO.OwnerId} attacker={_attacker?.name} impulse={_impulse}");
 
-        if (BuddahPredictionCombatRouting.TryRouteImpulse(victimNO, _impulse, 0f, BuddahPredictedImpulseSourceType.MeleePush, _attacker))
-        {
-            Debug.Log($"[PushHitbox] Routed to PredictionV2 victim={victimNO.name} mode={detectionMode}");
-            return;
-        }
-
-        BuddahMovement victimMove = victimNO.GetComponent<BuddahMovement>();
-        if (victimMove != null)
-        {
-            Debug.Log($"[PushHitbox] Routed to Legacy victim={victimNO.name} mode={detectionMode}");
-            victimMove.ApplyPushImpulseTargetRpc(victimNO.Owner, _impulse);
-        }
+        // Phase 4b V3 — single dispatch entry. Router internally handles V2-prediction Buddah,
+        // PushTargetBox debug, and Legacy Buddah BuddahMovement RPC fallback. Replaces the
+        // pre-V3 two-tier dispatch (CombatRouting + per-callsite BuddahMovement.ApplyPushImpulseTargetRpc).
+        BuddahPredictionRouter.RouteImpulse(victimNO, _impulse, 0f, BuddahPredictedImpulseSourceType.MeleePush, _attacker);
     }
 }

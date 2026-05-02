@@ -14,7 +14,6 @@ namespace NewBuddah.PredictionV2.Debugging
         [SerializeField] private Vector3 impulse = new Vector3(0f, 0f, 16f);
         [SerializeField] private float turnTorqueImpulse = 8f;
         [SerializeField] private bool triggerOncePerVictim = true;
-        [SerializeField] private bool fallbackToLegacy = true;
         [SerializeField] private Color gizmoColor = new Color(1f, 0.45f, 0.1f, 0.25f);
 
         private readonly HashSet<NetworkObject> _triggeredVictims = new();
@@ -43,9 +42,6 @@ namespace NewBuddah.PredictionV2.Debugging
                 _triggeredVictims.Add(victimNetworkObject);
 
             // Phase 4b V3 — single dispatch entry (router internalizes V2 / PushTargetBox / Legacy fallback).
-            // Note: 'fallbackToLegacy' serialized field is now ignored — router unconditionally falls back
-            // to BuddahMovement RPC for Legacy buddah victims. Field kept per CLAUDE.md hard-stop on
-            // serialized field removal; V4 cleanup will drop the field.
             BuddahPredictionRouter.RouteImpulse(
                 victimNetworkObject,
                 impulse,

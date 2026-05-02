@@ -96,7 +96,6 @@ namespace NewBuddah.PredictionV2.Core
         private int _shadowActiveCompares;
         private int _shadowSkipCompares;
         private Vector3 _shadowPreClampVelocity;
-        private readonly List<BuddahPredictedImpulseEventData> _shadowPreImpulsePendingSnapshot = new List<BuddahPredictedImpulseEventData>();
         private bool _shadowPreTeleportHasPending;
         private BuddahPredictedTeleportEventData _shadowPreTeleportEvent;
         // Per-window divergence counters (reset at heartbeat).
@@ -418,7 +417,6 @@ namespace NewBuddah.PredictionV2.Core
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _shadowPreTeleportHasPending = _hasPendingTeleportEvent;
             _shadowPreTeleportEvent = _pendingTeleportEvent;
-            _impulseEventQueue.CopyPendingSnapshot(_shadowPreImpulsePendingSnapshot);
             _shadowPreHandoffHasPending = _hasPendingLaunchHandoffEvent;
             _shadowPreHandoffEvent = _pendingLaunchHandoffEvent;
             _shadowPreHandoffState = _handoffState;
@@ -1377,7 +1375,6 @@ namespace NewBuddah.PredictionV2.Core
                 computedStats: _computedStats,
                 pushGraceExtraSpeed: pushExtra,
                 pushGraceRemaining: pushGraceRemaining,
-                impulsePendingSnapshot: _shadowPreImpulsePendingSnapshot,
                 hasPendingTeleportPreConsume: _shadowPreTeleportHasPending,
                 pendingTeleportEventId: _shadowPreTeleportEvent.EventId,
                 pendingTeleportEventTick: _shadowPreTeleportEvent.EventTick,

@@ -438,6 +438,31 @@ namespace NewBuddah.PredictionV2.Core
             // removed and remembered in recent-IDs). Eliminates V2a-fix's PostTick phase-skew
             // (L17) by drain-time alignment + tick-stamp protocol clock alignment (L17 + L16).
             ConsumePendingImpulseEvents_InvertedShadow(currentTick);
+
+            // Phase 4b V2b Step 0 fix-2 — INV compare runs in RunInputs (here), NOT PostTick.
+            // Both drains have just run with the same currentTick against the same channel/queue
+            // gate. _realScratch and _legacyShadowScratch reflect THIS tick's truth — read them
+            // here while the data is fresh. Mirror OLD's _shadowImpulseConsumedCount++ at line
+            // 423 (which lives in this same RunInputs body). Replay-safe because forward T sets
+            // ImpulseRan=true and counter increments here; reconcile replays of T-N drain empty
+            // channel/queue, neither side sets ImpulseRan, this block is a no-op (no spurious
+            // increment, no spurious FATAL).
+            //
+            // FATAL semantics:
+            //   ranOld=true  ranNew=false : OLD enqueued but NEW didn't (CombatRouting bypass
+            //                               or adapter not _initialized).
+            //   ranOld=false ranNew=true  : NEW enqueued but OLD didn't (bus has entry, motor
+            //                               queue does not — likely a fan-out routing bug).
+            //   cntOld != cntNew          : both ran but drained different volumes this tick.
+            bool invImpRanMismatch = _realScratch.ImpulseRan != _legacyShadowScratch.ImpulseRan;
+            bool invImpCountMismatch = _realScratch.ImpulseDrainCount != _legacyShadowScratch.ImpulseDrainCount;
+            if (_realScratch.ImpulseRan || _legacyShadowScratch.ImpulseRan)
+                _legacyShadowImpulseComparedCount++;
+            if (invImpRanMismatch || invImpCountMismatch)
+            {
+                Debug.LogError($"[D-IMP INV FATAL] T={currentTick} ranOld={_realScratch.ImpulseRan} ranNew={_legacyShadowScratch.ImpulseRan} cntOld={_realScratch.ImpulseDrainCount} cntNew={_legacyShadowScratch.ImpulseDrainCount}");
+                _legacyShadowImpulseDivCount++;
+            }
 #endif
             RefreshLaunchState(currentTick);
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
@@ -1756,30 +1781,15 @@ namespace NewBuddah.PredictionV2.Core
             if (modDiverged) _dLocModifierDivCount++;
             if (hofDiverged) _dLocHandoffDivCount++;
 
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
-            // Phase 4b V2a — inverted-shadow per-tick compare. OLD path
-            // (_realScratch) is authority; NEW path (_legacyShadowScratch)
-            // observes via CommandBus drain. Compared / divergence counters
-            // are window-scoped and reset by [D-IMP INV HEARTBEAT].
-            //
-            // RAN-flag mismatch covers the asymmetric cases:
-            //   OLD ran but NEW didn't  → fan-out missed; CombatRouting OR
-            //                             adapter dropped the event.
-            //   NEW ran but OLD didn't  → bus enqueued without OLD seeing
-            //                             (e.g., dedupe divergence between
-            //                             motor queue and bus channel).
-            // Drain-count mismatch surfaces volume divergences when both
-            // sides ran but processed different numbers of events on this tick.
-            bool invImpRanMismatch = _realScratch.ImpulseRan != _legacyShadowScratch.ImpulseRan;
-            bool invImpCountMismatch = _realScratch.ImpulseDrainCount != _legacyShadowScratch.ImpulseDrainCount;
-            if (_realScratch.ImpulseRan || _legacyShadowScratch.ImpulseRan)
-                _legacyShadowImpulseComparedCount++;
-            if (invImpRanMismatch || invImpCountMismatch)
-            {
-                Debug.LogError($"[D-IMP INV FATAL] T={tick} ranOld={_realScratch.ImpulseRan} ranNew={_legacyShadowScratch.ImpulseRan} cntOld={_realScratch.ImpulseDrainCount} cntNew={_legacyShadowScratch.ImpulseDrainCount}");
-                _legacyShadowImpulseDivCount++;
-            }
-#endif
+            // Phase 4b V2b Step 0 fix-2 — INV compare block (compared/div counters + FATAL emit)
+            // moved to RunInputs (after both drains, before _legacyShadowScratch reset). Reading
+            // scratches at PostTick is replay-lossy on non-server peers: forward T's drain sets
+            // ImpulseRan=true, then reconcile replays of T-N..T reset _legacyShadowScratch to
+            // default at line 388-394 and re-drain an empty channel (forward already consumed),
+            // so the LAST replay's scratch is false. PostTick read of false → counter never
+            // increments + FATAL never fires (vacuous pass under reconcile). Mirror OLD's
+            // _shadowImpulseConsumedCount++ at motor.cs:423 — same lifecycle phase, same
+            // replay-safety property.
 
             bool anyDiverged = locDiverged || impDiverged || telDiverged || modDiverged || hofDiverged;
             if (anyDiverged)

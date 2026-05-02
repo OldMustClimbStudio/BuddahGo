@@ -245,20 +245,13 @@ namespace NewBuddah.PredictionV2.Core
                 return;
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
+            // Phase 4b V2b Step 0 — drain relocated back to RunInputs (alongside OLD's
+            // ConsumePendingImpulseEvents) now that the channel is tick-stamped + replay-safe via
+            // ConsumeReady. PostTick now only does compare+reset, matching the V2a-pre-fix structure.
+            // L17 phase-skew is eliminated at the call-site level: OLD and NEW drains run at the
+            // same lifecycle phase against the same currentTick.
             if (IsOwner || IsServerInitialized)
-            {
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
-                // Phase 4b V2a fix (L11) — drain CommandBus.ImpulseChannel here, NOT
-                // in RunInputs. PostTick fires exactly once per tick (FishNet's
-                // OnPostTick is post-replay), so the FIFO drain isn't replayed and
-                // _legacyShadowScratch.ImpulseRan survives to the compare below.
-                // Gate matches Shadow_CompareAndReport (IsOwner || IsServerInitialized)
-                // so the drain only runs on peers that will compare.
-                uint invDrainTick = TimeManager != null ? TimeManager.LocalTick : 0u;
-                ConsumePendingImpulseEvents_InvertedShadow(invDrainTick);
-#endif
                 Shadow_CompareAndReport();
-            }
             _realScratch = default;
             _shadowScratch = default;
 #if BUDDAH_PREDICTION_LEGACY_SHADOW
@@ -438,14 +431,14 @@ namespace NewBuddah.PredictionV2.Core
             ConsumePendingTeleportEvent(currentTick);
             ConsumePendingLaunchHandoffEvent(currentTick);
             ConsumePendingImpulseEvents(currentTick);
-            // Phase 4b V2a — Inverted-shadow drain MOVED to TimeManager_OnPostTick
-            // (see lessons-log L11). Single-consumer FIFO + FishNet reconcile replay
-            // = structural blindness if drained inside RunInputs: replay 1 dequeues
-            // the entry, replays 2..N see empty channel and reset _legacyShadowScratch
-            // to default, PostTick compare reads false. Drain at PostTick (once per
-            // tick) eliminates the replay race. _legacyShadowScratch reset stays in
-            // RunInputs at line ~388 to keep symmetry with _realScratch / _shadowScratch
-            // resets (OLD's tick-stamped queue model).
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
+            // Phase 4b V2b Step 0 — inverted-shadow drain runs in RunInputs at the same lifecycle
+            // phase as OLD's ConsumePendingImpulseEvents. Channel is tick-stamped + ConsumeReady
+            // replay-safe (entries with EventTick > currentTick stay queued; consumed entries are
+            // removed and remembered in recent-IDs). Eliminates V2a-fix's PostTick phase-skew
+            // (L17) by drain-time alignment + tick-stamp protocol clock alignment (L17 + L16).
+            ConsumePendingImpulseEvents_InvertedShadow(currentTick);
+#endif
             RefreshLaunchState(currentTick);
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
@@ -1923,27 +1916,31 @@ namespace NewBuddah.PredictionV2.Core
         }
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
-        // Phase 4b V2a — inverted-shadow drain. NEW path observation only:
-        // pulls every pending entry off bootstrap.CommandBus.ImpulseChannel
-        // and writes into _legacyShadowScratch. Does NOT touch rb. OLD path
-        // (ConsumePendingImpulseEvents) remains the rb-writing authority.
-        // V2b will swap roles: this drain becomes the rb writer, the OLD
-        // path moves under #if to become the legacy shadow.
+        // Phase 4b V2a/V2b Step 0 — inverted-shadow drain. NEW path observation only:
+        // ConsumeReady-drains entries on bootstrap.CommandBus.ImpulseChannel that satisfy
+        // EventTick <= currentTick, writes into _legacyShadowScratch. Does NOT touch rb.
+        // OLD path (ConsumePendingImpulseEvents) remains the rb-writing authority.
+        // V2b Step 1 will swap roles: this drain becomes the rb writer, the OLD path moves
+        // under #if to become the legacy shadow.
         //
-        // L11: Called from TimeManager_OnPostTick (NOT RunInputs). PostTick
-        // fires exactly once per tick after FishNet's reconcile replays
-        // settle, so the single-consumer FIFO is drained once and the result
-        // survives to Shadow_CompareAndReport. Calling from RunInputs would
-        // cause replay-N to drain entries that replays N+1..M cannot re-see,
-        // resetting _legacyShadowScratch to default before compare reads it.
-        // V2b authority-flip will need to either tick-stamp the channel
-        // (mirror OLD path's EventTick + ConsumeReady model) or relocate the
-        // drain into a replay-safe lifecycle hook before promoting NEW path
-        // to rb writer. PostTick observation alone is NOT replay-safe enough
-        // for authority writes.
+        // V2b Step 0 lifecycle: called from RunInputs immediately after ConsumePendingImpulseEvents
+        // (OLD drain). Replay-safe by construction now that the channel uses tick-stamped
+        // EventTick + ConsumeReady — entries with EventTick > currentTick stay queued; entries
+        // satisfying the gate are removed from _pending and recorded in recent-IDs.
+        // Per-replay safety: forward pass at tick T removes the entry; reconcile replay of T-N
+        // sees an empty pending and does not re-emit (correct behavior — the event already happened
+        // logically at T). Mirror of OLD path's BuddahPredictedImpulseEventQueue.ConsumeReady.
+        //
+        // V2a (pre-fix) called this from RunInputs but with TryDequeue (single-pass FIFO, no
+        // tick gate) — replay 1 drained, replays 2..N saw empty channel, scratch reset between
+        // replays produced inv-imp-compared = 0 (lessons-log L16).
+        // V2a (post-L16-fix) moved drain to PostTick to dodge replay; that fixed L16 but
+        // introduced lifecycle phase-skew vs OLD path's RunInputs drain → bidirectional FATAL
+        // false positives (lessons-log L17).
+        // V2b Step 0 (this commit) restores RunInputs lifecycle parity AND replay safety
+        // simultaneously by tick-stamping the channel.
         private void ConsumePendingImpulseEvents_InvertedShadow(uint currentTick)
         {
-            _ = currentTick;
             if (bootstrap == null || bootstrap.CommandBus == null)
                 return;
 
@@ -1951,13 +1948,19 @@ namespace NewBuddah.PredictionV2.Core
             if (channel == null)
                 return;
 
-            while (channel.TryDequeue(out var entry))
-            {
-                _legacyShadowScratch.ImpulseRan = true;
-                _legacyShadowScratch.ImpulseDrainCount++;
-                if (entry.Id > _legacyShadowScratch.ShadowLastConsumedImpulseId)
-                    _legacyShadowScratch.ShadowLastConsumedImpulseId = entry.Id;
-            }
+            channel.ConsumeReady(currentTick, ConsumeImpulseInvertedShadowEntry);
+        }
+
+        // Helper for ConsumePendingImpulseEvents_InvertedShadow's ConsumeReady callback.
+        // Method form (vs lambda) to avoid `in` parameter capture quirks and keep the
+        // hot path allocation-free across reconcile replays.
+        private bool ConsumeImpulseInvertedShadowEntry(in NewBuddah.PredictionV2.Events.BuddahPredictionEventChannel<NewBuddah.PredictionV2.Events.Payloads.ImpulseCmd>.Entry entry)
+        {
+            _legacyShadowScratch.ImpulseRan = true;
+            _legacyShadowScratch.ImpulseDrainCount++;
+            if (entry.Id > _legacyShadowScratch.ShadowLastConsumedImpulseId)
+                _legacyShadowScratch.ShadowLastConsumedImpulseId = entry.Id;
+            return true;
         }
 #endif
 

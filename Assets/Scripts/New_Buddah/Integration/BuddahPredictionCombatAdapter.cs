@@ -54,7 +54,15 @@ namespace NewBuddah.PredictionV2.Integration
                 return false;
 
             int sourceObjectId = sourceObject != null ? sourceObject.ObjectId : 0;
-            ImpulseCmd cmd = new ImpulseCmd(impulse, turnTorqueImpulse, (byte)sourceType, sourceObjectId);
+
+            // V2b Step 0 — stamp EventTick with the server's TimeManager.LocalTick. CommandBus is a
+            // NetworkBehaviour so its TimeManager is wired by FishNet on spawn. The cmd carries this
+            // tick across TargetRpc; the client uses cmd.EventTick verbatim for ConsumeReady gate
+            // (see lessons-log L17 phase-skew: client-local stamping at RPC arrival creates per-event
+            // OLD/NEW clock drift). Adapter only runs server-side, so TimeManager.LocalTick here is
+            // always the canonical server tick.
+            uint stampTick = _commandBus.TimeManager != null ? _commandBus.TimeManager.LocalTick : 0u;
+            ImpulseCmd cmd = new ImpulseCmd(impulse, turnTorqueImpulse, (byte)sourceType, sourceObjectId, stampTick);
 
             // Owner-aware enqueue (Q2 answer β):
             //   - owner null / invalid / IsHost (victim's owner is the host running
@@ -65,7 +73,7 @@ namespace NewBuddah.PredictionV2.Integration
             NetworkConnection owner = victimNetworkObject.Owner;
             if (owner == null || !owner.IsValid || owner.IsHost)
             {
-                return _commandBus.TryEnqueueImpulse(cmd);
+                return _commandBus.TryEnqueueImpulse(cmd, cmd.EventTick);
             }
 
             _commandBus.Target_EnqueueImpulse(owner, cmd);

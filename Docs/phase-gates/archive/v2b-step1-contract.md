@@ -47,7 +47,7 @@ Original contract direction (cross-system cursor via LogicalId) was rejected dur
 - That requires CombatRouting refactor to generate one shared ID at routing entry point — explicitly out of scope per V3
 - LogicalId on cmd payload is per-peer-channel-instance dedup mechanism (Q0), not cross-path cursor
 
-**Additionally REMOVE early-shadow impulse compare** at motor.cs:426-428 (`BuddahImpulseStep.Run` early call) + motor.cs:1481-1494 (D-LOC impulse cursor + ran-flag compare). Phase 3b's pure-functional determinism check on OLD step function; post-flip `_realScratch` is NEW-driven and `_shadowScratch` reads OLD `_impulseEventQueue` with different ID space → cursor would always mismatch → spurious warnings. Kill the dead compare instead of half-stripping. `_shadowImpulseConsumedCount` counter and `_shadowScratch.ImpulseRan/ShadowLastConsumedImpulseId` writes also drop. LEG axis (`_realScratch` vs `_legacyShadowScratch` count + ranFlag) replaces it as sole impulse-correctness signal.
+**Additionally REMOVE early-shadow impulse compare** at motor.cs:426-428 (`BuddahImpulseStep.Run` early call) + motor.cs:1481-1494 (D-LOC impulse cursor + ran-flag compare). These were Phase 3b's pure-functional determinism check on OLD step function; post-flip `_realScratch` is NEW-driven and `_shadowScratch` reads OLD `_impulseEventQueue` with different ID space → cursor would always mismatch → spurious warnings. Kill the dead compare instead of half-stripping. `_shadowImpulseConsumedCount` counter and `_shadowScratch.ImpulseRan/ShadowLastConsumedImpulseId` writes also drop. LEG axis (`_realScratch` vs `_legacyShadowScratch` count + ranFlag) replaces it as sole impulse-correctness signal.
 
 ---
 

@@ -37,11 +37,9 @@ namespace NewBuddah.PredictionV2.Core
 
         private readonly BuddahPredictionOwnerInputBridge _ownerInputBridge = new();
         private readonly BuddahPredictionMovementGateBridge _movementGateBridge = new();
-        private readonly BuddahPredictedImpulseEventQueue _impulseEventQueue = new();
         private PredictionRigidbody _predictionRigidbody;
         private BuddahPredictedModifierState _modifierState;
         private BuddahPredictedMotorComputedStats _computedStats;
-        private uint _nextImpulseEventId = 1u;
         private uint _nextTeleportEventId = 1u;
         private uint _nextLaunchHandoffEventId = 1u;
         private bool _impulseConsumedThisTick;
@@ -96,7 +94,6 @@ namespace NewBuddah.PredictionV2.Core
         private int _shadowActiveCompares;
         private int _shadowSkipCompares;
         private Vector3 _shadowPreClampVelocity;
-        private readonly List<BuddahPredictedImpulseEventData> _shadowPreImpulsePendingSnapshot = new List<BuddahPredictedImpulseEventData>();
         private bool _shadowPreTeleportHasPending;
         private BuddahPredictedTeleportEventData _shadowPreTeleportEvent;
         // Per-window divergence counters (reset at heartbeat).
@@ -127,26 +124,11 @@ namespace NewBuddah.PredictionV2.Core
         private int _dLocHandoffDivCount;
 #endif
 
-#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
-        // Phase 4b V2b Step 1 — legacy shadow scratch (post authority-flip). OLD path's drain
-        // (ConsumePendingImpulseEvents_LegacyShadow) writes here without touching rb. Compared
-        // against _realScratch's impulse fields each tick; divergence emits [D-IMP LEG FATAL] +
-        // bumps _legacyImpulseDivCount. Pre-Step-1 (V2a/V2b Step 0) this scratch was driven by NEW
-        // path's drain as inverted-shadow — OLD was authority. Roles flipped at Step 1; struct
-        // field name kept for minimal Step 1 churn (rename deferred to V4 alongside LEGACY_SHADOW
-        // define retirement).
-        private BuddahPredictionShadowScratch _legacyShadowScratch;
-        private int _legacyImpulseDivCount;
-        private uint _legacyImpulseComparedCount;
-#endif
-
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
         // L7 latch tracker. Flipped to true on the first RunInputs tick where
         // ShouldRunPrediction passes — guarantees BuddahMovementModeSwitcher's
         // double-ApplyMode + its 4 [CommandBus]:ClearAll lines have all landed
         // before the adapter's MarkReady() fires (lessons-log L7 rule b).
         private bool _combatAdapterInitialized;
-#endif
 
         public bool IsLaunchHandoffActive => _handoffState.IsActive || _externalKinematicControlActive || _introControlActive;
         public float CurrentScaleMultiplier => _computedStats.ScaleMultiplier > 0f ? _computedStats.ScaleMultiplier : 1f;
@@ -228,8 +210,9 @@ namespace NewBuddah.PredictionV2.Core
             RefreshInputBridge();
             bootstrap.DebugState.inputBridgeEnabled = _ownerInputBridge.IsEnabled;
             bootstrap.DebugState.predictionBlockReason = GetPredictionBlockReason();
-            bootstrap.DebugState.pendingImpulseCount = _impulseEventQueue.PendingCount;
-            bootstrap.DebugState.pendingImpulseSummary = _impulseEventQueue.BuildPendingSummary();
+            var impulseChannel = bootstrap.CommandBus != null ? bootstrap.CommandBus.ImpulseChannel : null;
+            bootstrap.DebugState.pendingImpulseCount = impulseChannel != null ? impulseChannel.Count : 0;
+            bootstrap.DebugState.pendingImpulseSummary = impulseChannel != null ? impulseChannel.BuildPendingSummary() : "none";
             bootstrap.DebugState.introControlActive = _introControlActive;
             bootstrap.DebugState.externalKinematicControlActive = _externalKinematicControlActive;
         }
@@ -257,9 +240,6 @@ namespace NewBuddah.PredictionV2.Core
                 Shadow_CompareAndReport();
             _realScratch = default;
             _shadowScratch = default;
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
-            _legacyShadowScratch = default;
-#endif
 #endif
 
             if (!IsServerInitialized)
@@ -379,8 +359,7 @@ namespace NewBuddah.PredictionV2.Core
             if (!ShouldRunPrediction() || _predictionRigidbody == null)
                 return;
 
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
-            // Phase 4b V2a — L7 late-bind for the CombatAdapter. ShouldRunPrediction()
+            // Phase 4b — L7 late-bind for the CombatAdapter. ShouldRunPrediction()
             // returning true here proves we're past BuddahMovementModeSwitcher's
             // double-ApplyMode (Awake + OnEnable both fire ApplyMode → 4
             // [CommandBus]:ClearAll lines per spawn). MarkReady() runs exactly
@@ -391,14 +370,10 @@ namespace NewBuddah.PredictionV2.Core
                 bootstrap.CombatAdapter.MarkReady();
                 _combatAdapterInitialized = true;
             }
-#endif
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _realScratch = default;
             _shadowScratch = default;
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
-            _legacyShadowScratch = default;
-#endif
 #endif
 
             InitializePredictionRigidbody();
@@ -417,7 +392,6 @@ namespace NewBuddah.PredictionV2.Core
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _shadowPreTeleportHasPending = _hasPendingTeleportEvent;
             _shadowPreTeleportEvent = _pendingTeleportEvent;
-            _impulseEventQueue.CopyPendingSnapshot(_shadowPreImpulsePendingSnapshot);
             _shadowPreHandoffHasPending = _hasPendingLaunchHandoffEvent;
             _shadowPreHandoffEvent = _pendingLaunchHandoffEvent;
             _shadowPreHandoffState = _handoffState;
@@ -435,41 +409,9 @@ namespace NewBuddah.PredictionV2.Core
 #endif
             ConsumePendingTeleportEvent(currentTick);
             ConsumePendingLaunchHandoffEvent(currentTick);
-            // Phase 4b V2b Step 1 — authority flip. NEW path (CommandBus.ImpulseChannel ConsumeReady)
-            // is now the rb-writing authority for impulse application. OLD path (_impulseEventQueue
-            // drain) demoted to legacy shadow under BUDDAH_PREDICTION_LEGACY_SHADOW (counter only,
-            // no rb writes, no _modifierState mutation, no _impulseConsumedThisTick — all moved to
-            // _Authoritative). [D-IMP LEG FATAL] gate guards count + ran-flag alignment between the
-            // two drains; cnt mismatch or ran mismatch = stop.
+            // Phase 4b V2b Step 1 / V4 — sole impulse drain path. NEW (CommandBus.ImpulseChannel
+            // ConsumeReady) is rb-writing authority. OLD queue + LEG shadow compare retired in V4.
             ConsumePendingImpulseEvents_Authoritative(currentTick);
-#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
-            ConsumePendingImpulseEvents_LegacyShadow(currentTick);
-
-            // Phase 4b V2b Step 1 — LEG compare. NEW = authority (writes _realScratch via channel
-            // drain), LEG = legacy shadow (writes _legacyShadowScratch via queue drain). Same
-            // lifecycle phase + same currentTick + replay-safe-by-construction (both sides drain
-            // tick-stamped queues whose consumed entries don't re-emit on reconcile replay).
-            //
-            // FATAL semantics:
-            //   ranNew=true  ranLeg=false : NEW (channel) drained but OLD (queue) didn't.
-            //                               Likely cause: CombatRouting fan-out bypassed (skill
-            //                               site cut-over leak) or OLD enqueue path broken.
-            //   ranNew=false ranLeg=true  : OLD (queue) drained but NEW (channel) didn't.
-            //                               Likely cause: adapter not _initialized or
-            //                               IsPredictionModeActive false at routing time.
-            //   cntNew != cntLeg          : both ran but drained different volumes this tick
-            //                               (single-emit invariant break OR Q0 dedup hit on one side
-            //                               but not the other — investigate [Channel]:DupReject).
-            bool legImpRanMismatch = _realScratch.ImpulseRan != _legacyShadowScratch.ImpulseRan;
-            bool legImpCountMismatch = _realScratch.ImpulseDrainCount != _legacyShadowScratch.ImpulseDrainCount;
-            if (_realScratch.ImpulseRan || _legacyShadowScratch.ImpulseRan)
-                _legacyImpulseComparedCount++;
-            if (legImpRanMismatch || legImpCountMismatch)
-            {
-                Debug.LogError($"[D-IMP LEG FATAL] T={currentTick} ranNew={_realScratch.ImpulseRan} ranLeg={_legacyShadowScratch.ImpulseRan} cntNew={_realScratch.ImpulseDrainCount} cntLeg={_legacyShadowScratch.ImpulseDrainCount}");
-                _legacyImpulseDivCount++;
-            }
-#endif
             RefreshLaunchState(currentTick);
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
@@ -853,32 +795,6 @@ namespace NewBuddah.PredictionV2.Core
                 bootstrap.DebugState.externalKinematicControlActive = _externalKinematicControlActive;
                 bootstrap.LogVerbose($"external kinematic control active={active}");
             }
-        }
-
-        public bool TryApplyServerAuthoritativeImpulse(
-            Vector3 impulse,
-            float turnTorqueImpulse,
-            BuddahPredictedImpulseSourceType sourceType,
-            int sourceObjectId)
-        {
-            if (!IsServerInitialized || TimeManager == null)
-                return false;
-
-            BuddahPredictedImpulseEventData eventData = new(
-                _nextImpulseEventId++,
-                TimeManager.LocalTick,
-                impulse,
-                turnTorqueImpulse,
-                sourceType,
-                sourceObjectId);
-
-            bool queuedOnServer = TryQueueImpulseEvent(eventData);
-            QueueImpulseEventTargetRpc(Owner, eventData.EventId, eventData.EventTick, impulse, turnTorqueImpulse, sourceType, sourceObjectId);
-
-            bootstrap?.LogVerbose(
-                $"impulse authoritative create id={eventData.EventId} tick={eventData.EventTick} source={sourceType} " +
-                $"sourceId={sourceObjectId} queuedServer={queuedOnServer} impulse={impulse} torque={turnTorqueImpulse:0.00}");
-            return queuedOnServer;
         }
 
         public bool TryApplyServerAuthoritativeTeleport(
@@ -1287,54 +1203,6 @@ namespace NewBuddah.PredictionV2.Core
             return true;
         }
 
-        [TargetRpc]
-        private void QueueImpulseEventTargetRpc(
-            NetworkConnection conn,
-            uint eventId,
-            uint eventTick,
-            Vector3 impulse,
-            float turnTorqueImpulse,
-            BuddahPredictedImpulseSourceType sourceType,
-            int sourceObjectId)
-        {
-            BuddahPredictedImpulseEventData eventData = new(
-                eventId,
-                eventTick,
-                impulse,
-                turnTorqueImpulse,
-                sourceType,
-                sourceObjectId);
-
-            TryQueueImpulseEvent(eventData);
-        }
-
-        public bool TryQueueImpulseEvent(BuddahPredictedImpulseEventData eventData)
-        {
-            if (bootstrap == null || !bootstrap.IsPredictionModeActive())
-                return false;
-
-            bool enqueued = _impulseEventQueue.TryEnqueue(eventData);
-            if (!enqueued)
-            {
-                bootstrap.LogVerbose($"impulse duplicate ignored id={eventData.EventId} source={eventData.SourceType} tick={eventData.EventTick}");
-                return false;
-            }
-
-            bootstrap.DebugState.lastImpulseEventId = eventData.EventId;
-            bootstrap.DebugState.lastImpulseEventTick = eventData.EventTick;
-            bootstrap.DebugState.lastImpulseSourceType = eventData.SourceType.ToString();
-            bootstrap.DebugState.lastImpulseVector = eventData.Impulse;
-            bootstrap.DebugState.lastImpulseTurnTorque = eventData.TurnTorqueImpulse;
-            bootstrap.DebugState.lastImpulseConsumed = false;
-            bootstrap.DebugState.pendingImpulseCount = _impulseEventQueue.PendingCount;
-            bootstrap.DebugState.pendingImpulseSummary = _impulseEventQueue.BuildPendingSummary();
-
-            bootstrap.LogVerbose(
-                $"impulse enqueued id={eventData.EventId} tick={eventData.EventTick} source={eventData.SourceType} " +
-                $"sourceId={eventData.SourceObjectId} impulse={eventData.Impulse} torque={eventData.TurnTorqueImpulse:0.00}");
-            return true;
-        }
-
         private void ClampPlanarSpeed(float maxSpeed)
         {
             Vector3 velocity = rb.velocity;
@@ -1376,7 +1244,6 @@ namespace NewBuddah.PredictionV2.Core
                 computedStats: _computedStats,
                 pushGraceExtraSpeed: pushExtra,
                 pushGraceRemaining: pushGraceRemaining,
-                impulsePendingSnapshot: _shadowPreImpulsePendingSnapshot,
                 hasPendingTeleportPreConsume: _shadowPreTeleportHasPending,
                 pendingTeleportEventId: _shadowPreTeleportEvent.EventId,
                 pendingTeleportEventTick: _shadowPreTeleportEvent.EventTick,
@@ -1405,14 +1272,7 @@ namespace NewBuddah.PredictionV2.Core
                           || _realScratch.ImpulseRan
                           || _realScratch.TeleportRan || _shadowScratch.TeleportRan
                           || _realScratch.ModifierRan || _shadowScratch.ModifierRan
-                          || _realScratch.HandoffRan || _shadowScratch.HandoffRan
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
-                          // Phase 4b V2b Step 1 — flip into "active" for legacy-shadow-only ticks
-                          // (OLD drained but NEW did not, or vice versa — surfaced via [D-IMP LEG
-                          // FATAL] gate when cnt or ranFlag mismatch).
-                          || _legacyShadowScratch.ImpulseRan
-#endif
-                          ;
+                          || _realScratch.HandoffRan || _shadowScratch.HandoffRan;
             if (!anyRan)
             {
                 _dLocConsecutive = 0;
@@ -1427,10 +1287,6 @@ namespace NewBuddah.PredictionV2.Core
                     _dLocTeleportDivCount = 0;
                     _dLocModifierDivCount = 0;
                     _dLocHandoffDivCount = 0;
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
-                    Debug.Log($"[D-IMP LEG HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares}\n  leg-imp-div={_legacyImpulseDivCount} leg-imp-compared={_legacyImpulseComparedCount} (both sides idle)");
-                    _legacyImpulseDivCount = 0;
-#endif
                 }
                 return;
             }
@@ -1444,10 +1300,6 @@ namespace NewBuddah.PredictionV2.Core
                 _dLocTeleportDivCount = 0;
                 _dLocModifierDivCount = 0;
                 _dLocHandoffDivCount = 0;
-#if BUDDAH_PREDICTION_LEGACY_SHADOW
-                Debug.Log($"[D-IMP LEG HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares}\n  leg-imp-div={_legacyImpulseDivCount} leg-imp-compared={_legacyImpulseComparedCount}");
-                _legacyImpulseDivCount = 0;
-#endif
             }
 
             bool locDiverged = false;
@@ -1904,9 +1756,7 @@ namespace NewBuddah.PredictionV2.Core
             if (bootstrap != null)
             {
                 bootstrap.DebugState.pendingImpulseCount = channel.Count;
-                // pendingImpulseSummary kept on legacy queue path until V4 cleanup; channel does
-                // not currently expose a summary builder. Inspector value reflects OLD queue
-                // contents only — acceptable transitional staleness.
+                bootstrap.DebugState.pendingImpulseSummary = channel.BuildPendingSummary();
             }
         }
 
@@ -1960,36 +1810,6 @@ namespace NewBuddah.PredictionV2.Core
             return true;
         }
 
-#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW && BUDDAH_PREDICTION_LEGACY_SHADOW
-        // Phase 4b V2b Step 1 — OLD = legacy shadow (post authority-flip). Drains
-        // _impulseEventQueue (still RPC-fed by motor's QueueImpulseEventTargetRpc and
-        // TryQueueImpulseEvent — those code paths kept until V4). Writes _legacyShadowScratch
-        // counter only. NO rb writes (NEW is authority). NO ApplyPushGraceFromImpulse (NEW writes
-        // _modifierState.PushGraceUntilTick). NO _impulseConsumedThisTick (NEW gates that flag).
-        // NO DebugState writes (NEW writes them; Update() refreshes pending count next frame).
-        // Pure observation — the [D-IMP LEG FATAL] gate compares _realScratch (NEW authority)
-        // against _legacyShadowScratch (this) for ran-flag and count alignment.
-        //
-        // V4 retires LEGACY_SHADOW define: this body, _impulseEventQueue, TryQueueImpulseEvent,
-        // QueueImpulseEventTargetRpc, BuddahPredictedImpulseEventQueue type all delete together.
-        private void ConsumePendingImpulseEvents_LegacyShadow(uint currentTick)
-        {
-            _impulseEventQueue.ConsumeReady(currentTick, ConsumeImpulseLegacyShadowEntry);
-        }
-
-        // Helper for ConsumePendingImpulseEvents_LegacyShadow's ConsumeReady callback.
-        // Func<...,bool> signature dictated by BuddahPredictedImpulseEventQueue.ConsumeReady's
-        // System.Func<BuddahPredictedImpulseEventData, bool> contract.
-        private bool ConsumeImpulseLegacyShadowEntry(BuddahPredictedImpulseEventData eventData)
-        {
-            _legacyShadowScratch.ImpulseRan = true;
-            _legacyShadowScratch.ImpulseDrainCount++;
-            if (eventData.EventId > _legacyShadowScratch.ShadowLastConsumedImpulseId)
-                _legacyShadowScratch.ShadowLastConsumedImpulseId = eventData.EventId;
-            return true;
-        }
-#endif
-
         private void ConsumePendingTeleportEvent(uint currentTick)
         {
             if (!_hasPendingTeleportEvent || rb == null)
@@ -2037,7 +1857,7 @@ namespace NewBuddah.PredictionV2.Core
 
             if (eventData.ResetImpulseQueue)
             {
-                _impulseEventQueue.Clear();
+                bootstrap?.CommandBus?.ImpulseChannel?.Clear();
                 if (bootstrap != null)
                     bootstrap.DebugState.impulseQueueClearedByTeleport = true;
             }
@@ -2394,8 +2214,9 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.suppressSteeringUntilTick = _modifierState.SuppressSteeringUntilTick;
             bootstrap.DebugState.roomBypassUntilTick = _modifierState.RoomBypassUntilTick;
             bootstrap.DebugState.activeModifiers = BuildModifierSummary(tick);
-            bootstrap.DebugState.pendingImpulseCount = _impulseEventQueue.PendingCount;
-            bootstrap.DebugState.pendingImpulseSummary = _impulseEventQueue.BuildPendingSummary();
+            var impulseChannelDbg = bootstrap.CommandBus != null ? bootstrap.CommandBus.ImpulseChannel : null;
+            bootstrap.DebugState.pendingImpulseCount = impulseChannelDbg != null ? impulseChannelDbg.Count : 0;
+            bootstrap.DebugState.pendingImpulseSummary = impulseChannelDbg != null ? impulseChannelDbg.BuildPendingSummary() : "none";
             UpdateHandoffDebug(tick);
         }
 

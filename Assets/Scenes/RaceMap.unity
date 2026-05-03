@@ -3867,6 +3867,11 @@ PrefabInstance:
       propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: d16a1212491b840468f60aa80e134ded, type: 2}
+    - target: {fileID: 4269900605184349933, guid: eed43fce88059ab489967ad03a04edf6,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4418303095965887071, guid: eed43fce88059ab489967ad03a04edf6,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -10947,7 +10952,6 @@ MonoBehaviour:
   impulse: {x: 0, y: 0, z: 50}
   turnTorqueImpulse: 10
   triggerOncePerVictim: 1
-  fallbackToLegacy: 1
   gizmoColor: {r: 1, g: 0.45, b: 0.1, a: 0.25}
 --- !u!65 &1634060313
 BoxCollider:
@@ -11050,7 +11054,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1652075194
 Transform:
   m_ObjectHideFlags: 0

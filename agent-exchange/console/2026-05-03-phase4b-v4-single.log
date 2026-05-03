@@ -1,0 +1,71 @@
+# Phase 4b V4 Stage 6 Verification Digest — Path A
+
+- **Raw**: `agent-exchange/console/raw/2026-05-03-phase4b-v4-single.log` (45,493 lines, 3.6 MB)
+- **Role**: Host-only single peer
+- **Editor.log cleared**: yes (single `Initialize engine version` block — Rule 1 sub-rule A satisfied)
+- **Test method**: ChargedHandProjectile fired at `DebugboxCanPush` instances
+
+## Strict-Gate Counts
+
+| Marker | Count | Gate | Pass/Fail |
+|---|---|---|---|
+| `[D-LOC FATAL]` | 0 | =0 strict | ✅ PASS |
+| `[D-IMP LEG ...]` (any LEG-prefix log) | **0** | =0 (proves emit code retired) | ✅ PASS |
+| `[CommandBus]:ClearAll` | 4 | =4 (single buddah, Switcher's double-ApplyMode) | ✅ PASS |
+| `[CommandBus]:DropFull` | 0 | =0 | ✅ PASS |
+| `[Channel]:DupReject` | 0 | =0 baseline | ✅ PASS |
+| Compile errors | 0 | =0 | ✅ PASS |
+| Exceptions (NRE / UnityEngine.Exception) | 0 | =0 | ✅ PASS |
+| `[D-LOC HEARTBEAT]` rows | 40 | cadence sanity | ✅ |
+
+## Dead-Symbol Verification (post-V4 grep mandate)
+
+| Identifier | Stack frame count in log | Pass/Fail |
+|---|---|---|
+| `BuddahPredictionCombatRouting` | 0 | ✅ |
+| `TryApplyServerAuthoritativeImpulse` | 0 | ✅ |
+| `ConsumePendingImpulseEvents_LegacyShadow` | 0 | ✅ |
+
+All retired symbols absent from runtime stack traces. Confirms V4 deletion took effect after recompile.
+
+## Router Dispatch Evidence (Tier 2 — PushTargetBox)
+
+- `BuddahPredictionRouter:RouteImpulse` stack frames: **6**
+- `[BuddahPredictionV2] push-target hit` log lines: **6** (all `DebugboxCanPush` victims)
+- Sample dispatch: `ChargedHandProjectileRuntime → BuddahPredictionRouter.RouteImpulse → BuddahPredictionPushTargetBox.TryApplyServerImpulse`
+
+## HEARTBEAT Summary
+
+- Span: `T=474` → `T=5154` (~4.7k tick session, ~80s)
+- 40 `[D-LOC HEARTBEAT]` rows; format unchanged — `loc-div / tel-div / mod-div / hof-div / *-compared` (impulse axis dropped per Q4 amendment, confirmed in production)
+
+## Spawn-Window L7 Probe — DEFERRED to Path B
+
+**Cannot verify from Path A.** Path A topology limits the test:
+- Available single-peer victim = `DebugboxCanPush` (Tier 2 — `PushTargetBox.TryApplyServerImpulse`).
+- Self-push via projectile lands on `DebugboxCanPush`, NOT on a V2-prediction-buddah.
+- Tier 2 dispatch bypasses `bootstrap.CombatAdapter.TryRouteImpulse` (the L7 latch's downstream consumer).
+- `[CommandBus]:Recv ch=Impulse` = 0 (Recv is the remote-target side, absent in host-only single-peer).
+- `MarkReady()` log signal not emitted by code (silent latch).
+
+**Coverage path:** Path B (2-peer LAN) exercises Tier 1 — CLIENT-side `[CommandBus]:Recv ch=Impulse` count + first-Recv-tick vs spawn-tick distance verifies L7 latch survived the V4 #if/#endif strip correctly.
+
+## Side Activity (orthogonal to V4 scope)
+
+- `[PushHitbox] Spawn`: 15 (melee push hitbox spawns; user pushed projectile-flavor instead of melee — server-side gating means melee Hits silent in Path A)
+- `[PushHitbox] Hit`: 0 (no melee victim overlap during session)
+
+## Anomalies
+
+None. Single clean session, all measurable Path A gates passed.
+
+## Verdict
+
+**✅ PASS (Path A measurable scope)** — all V4 strict gates met for single-peer topology:
+- Zero LEG/LOC FATAL
+- Zero retired-symbol stack frames
+- Zero dedup/drop/exception/compile noise
+- Router → Tier 2 dispatch confirmed live (6 hits)
+- 4 ClearAll = exact spawn-window expectation
+
+**Spawn-window L7 probe** carries forward to Path B (Tier 1 only exercises in 2-peer topology with V2-prediction-buddah victims).

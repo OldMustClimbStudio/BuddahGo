@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using NewBuddah.PredictionV2.Config;
 using UnityEngine;
 
@@ -18,10 +17,6 @@ namespace NewBuddah.PredictionV2.Core
         public readonly BuddahPredictedMotorComputedStats ComputedStats;
         public readonly float PushGraceExtraSpeed;
         public readonly float PushGraceRemaining;
-
-        // Phase 3b — impulse snapshot (pre-consume pending list, in enqueue order).
-        // Shadow walks this in REVERSE to match motor's LIFO ConsumeReady (motor.cs:1304).
-        public readonly IReadOnlyList<BuddahPredictedImpulseEventData> ImpulsePendingSnapshot;
 
         // Phase 3b — teleport snapshot (single-slot; snapshotted before ConsumePendingTeleportEvent).
         public readonly bool HasPendingTeleportPreConsume;
@@ -62,7 +57,6 @@ namespace NewBuddah.PredictionV2.Core
             BuddahPredictedMotorComputedStats computedStats,
             float pushGraceExtraSpeed,
             float pushGraceRemaining,
-            IReadOnlyList<BuddahPredictedImpulseEventData> impulsePendingSnapshot,
             bool hasPendingTeleportPreConsume,
             uint pendingTeleportEventId,
             uint pendingTeleportEventTick,
@@ -91,7 +85,6 @@ namespace NewBuddah.PredictionV2.Core
             ComputedStats = computedStats;
             PushGraceExtraSpeed = pushGraceExtraSpeed;
             PushGraceRemaining = pushGraceRemaining;
-            ImpulsePendingSnapshot = impulsePendingSnapshot;
             HasPendingTeleportPreConsume = hasPendingTeleportPreConsume;
             PendingTeleportEventId = pendingTeleportEventId;
             PendingTeleportEventTick = pendingTeleportEventTick;

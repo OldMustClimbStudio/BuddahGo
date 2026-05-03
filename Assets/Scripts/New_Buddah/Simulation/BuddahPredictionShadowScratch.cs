@@ -20,14 +20,10 @@ namespace NewBuddah.PredictionV2.Simulation
         public uint ShadowLastConsumedHandoffId;
 
         // Phase 3b — impulse step.
-        // Phase 4b V2b Step 1: post authority-flip, _realScratch is NEW-driven (channel
-        // ConsumePendingImpulseEvents_Authoritative writes here) and _legacyShadowScratch is
-        // OLD-driven (queue ConsumePendingImpulseEvents_LegacyShadow writes here, observation
-        // only — no rb writes). Compared at tick-end for the [D-IMP LEG HEARTBEAT] gate.
-        // Note: _shadowScratch.ImpulseRan / ShadowLastConsumedImpulseId / ImpulseDrainCount were
-        // removed from production write sites in Step 1 (Q4 amendment — early-shadow impulse step
-        // killed); fields kept on struct for the other axes (Locomotion / Teleport / Modifier /
-        // Handoff still use _shadowScratch).
+        // Phase 4b V2b Step 1 / V4: _realScratch is NEW-driven (channel
+        // ConsumePendingImpulseEvents_Authoritative writes here). LEG axis retired in V4;
+        // _shadowScratch impulse fields no longer participate in compare. Fields kept on struct
+        // for the other axes (Locomotion / Teleport / Modifier / Handoff still use _shadowScratch).
         public bool ImpulseRan;
         public int ImpulseDrainCount;
 

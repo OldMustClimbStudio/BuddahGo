@@ -97,14 +97,10 @@ namespace NewBuddah.PredictionV2.Core
         private bool _shadowPreTeleportHasPending;
         private BuddahPredictedTeleportEventData _shadowPreTeleportEvent;
         // Per-window divergence counters (reset at heartbeat).
+        // V2b Step 1 Q4 + V4: impulse axis fully retired; only loc/tel/mod/hof divergence tracked.
         private int _dLocLocomotionDivCount;
-        // Phase 4b V2b Step 1 — Q4 amendment: impulse axis dropped from D-LOC compare. Early-shadow
-        // BuddahImpulseStep.Run was killed; cursor compare against _shadowScratch is dead post-flip
-        // (different ID space). Impulse divergence is now reported on the LEG axis exclusively
-        // (_legacyImpulseDivCount / [D-IMP LEG FATAL]). The _dLocImpulseDivCount field is removed.
         private int _dLocTeleportDivCount;
         // Cumulative consume counters (never reset — prove shadow steps actually consumed events).
-        // V2b Step 1: _shadowImpulseConsumedCount removed alongside the early-shadow impulse step.
         private uint _shadowTeleportConsumedCount;
         // Phase 3c — modifier shadow state. Snapshot of _modifierState captured at the
         // motor.cs:341 authoritative Resolve; fed into BuddahModifierStep for independent
@@ -280,7 +276,6 @@ namespace NewBuddah.PredictionV2.Core
             data.LastConsumedHandoffId = 0u;
             data.AwaitingAuthoritativeLaunchHandoff = false;
             data.LocalPreHandoffBypassUntilTick = 0u;
-            data.ImpulseQueueState = default;
 
             ReconcileState(data);
         }
@@ -400,11 +395,8 @@ namespace NewBuddah.PredictionV2.Core
                 BuddahTeleportStep.Run(in earlyTickCtx, in data, ref _shadowScratch);
                 if (_shadowScratch.TeleportRan)
                     _shadowTeleportConsumedCount++;
-                // Phase 4b V2b Step 1 — Q4 amendment: BuddahImpulseStep.Run early-shadow call
-                // removed. Post-flip _realScratch is NEW-driven (channel) and _shadowScratch was
-                // OLD-driven (queue) — different ID spaces would make cursor compare always
-                // mismatch (L19). Impulse correctness is now verified on the LEG axis only
-                // (_realScratch vs _legacyShadowScratch via [D-IMP LEG FATAL] block below).
+                // V2b Step 1 Q4 / V4: BuddahImpulseStep early-shadow call retired (L19);
+                // impulse axis no longer participates in D-LOC compare.
             }
 #endif
             ConsumePendingTeleportEvent(currentTick);
@@ -588,7 +580,6 @@ namespace NewBuddah.PredictionV2.Core
             _ = data.LastConsumedHandoffId;
             _ = data.AwaitingAuthoritativeLaunchHandoff;
             _ = data.LocalPreHandoffBypassUntilTick;
-            _ = data.ImpulseQueueState;
 
             if (rb != null && (IsOwner || IsServerInitialized))
                 rb.isKinematic = _externalKinematicControlActive;
@@ -621,8 +612,7 @@ namespace NewBuddah.PredictionV2.Core
             Debug.Log($"[SerGate] T={data.GetTick()} isOwner={IsOwner} " +
                       $"preHoTick={data.LocalPreHandoffBypassUntilTick} " +
                       $"awaitHo={data.AwaitingAuthoritativeLaunchHandoff} " +
-                      $"pendingTp={data.HasPendingTeleport} tpPos={data.PendingTeleport.TargetPosition} " +
-                      $"impHead={data.ImpulseQueueState.Head} impCount={data.ImpulseQueueState.Count}");
+                      $"pendingTp={data.HasPendingTeleport} tpPos={data.PendingTeleport.TargetPosition}");
 #endif
         }
 
@@ -1280,8 +1270,7 @@ namespace NewBuddah.PredictionV2.Core
                 if ((_shadowSkipCompares % 300) == 1)
                 {
                     uint tickIdle = TimeManager != null ? TimeManager.LocalTick : 0u;
-                    // V2b Step 1 — imp-div / imp-compared dropped from D-LOC HEARTBEAT (Q4
-                    // amendment: impulse axis owned exclusively by [D-IMP LEG HEARTBEAT] post-flip).
+                    // V2b Step 1 Q4 / V4: impulse axis dropped from D-LOC HEARTBEAT (LEG axis retired).
                     Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} (both sides idle)");
                     _dLocLocomotionDivCount = 0;
                     _dLocTeleportDivCount = 0;
@@ -1338,12 +1327,8 @@ namespace NewBuddah.PredictionV2.Core
                 }
             }
 
-            // Phase 4b V2b Step 1 — D-LOC impulse compare REMOVED (Q4 amendment + L19). Pre-flip
-            // _realScratch and _shadowScratch both read OLD's _impulseEventQueue (same EventId
-            // space) — cursor compare was meaningful. Post-flip _realScratch reads NEW's channel
-            // (entry.Id) and _shadowScratch was OLD-driven (eventData.EventId) — different ID
-            // spaces would make cursor always mismatch + spurious warnings. Impulse correctness
-            // verified exclusively via [D-IMP LEG FATAL] (NEW vs OLD-as-shadow ran-flag + cnt).
+            // V2b Step 1 Q4 + L19 + V4: D-LOC impulse compare retired. NEW (CommandBus.ImpulseChannel)
+            // is sole impulse drain authority post-V4; no shadow comparison needed.
 
             // Teleport compare (3b) — ran flag + cursor + target pose + 7 flag reads.
             if (_realScratch.TeleportRan != _shadowScratch.TeleportRan)
@@ -1631,17 +1616,9 @@ namespace NewBuddah.PredictionV2.Core
             }
 
             if (locDiverged) _dLocLocomotionDivCount++;
-            // V2b Step 1 — _dLocImpulseDivCount removed (Q4 amendment).
             if (telDiverged) _dLocTeleportDivCount++;
             if (modDiverged) _dLocModifierDivCount++;
             if (hofDiverged) _dLocHandoffDivCount++;
-
-            // Phase 4b V2b Step 0 fix-2 / V2b Step 1 — LEG compare block moved into RunInputs
-            // (after both drains, before _legacyShadowScratch reset). Reading scratches at PostTick
-            // would be replay-lossy on non-server peers: forward T's drain sets ImpulseRan=true,
-            // then reconcile replays reset scratch and re-drain empty queues; PostTick read
-            // captures the last (vacuous) replay state. Counter increment + FATAL emit live
-            // alongside the drains so they observe the forward-pass truth.
 
             bool anyDiverged = locDiverged || telDiverged || modDiverged || hofDiverged;
             if (anyDiverged)
@@ -1739,7 +1716,9 @@ namespace NewBuddah.PredictionV2.Core
         // integrity (Methodology Rule 7): all force/torque writes go through _predictionRigidbody,
         // NEVER direct rb. Replay-safe by construction (channel removes consumed entries; reconcile
         // replay sees empty pending → no re-apply; reconcile state captures impulse-applied rb).
-        // _realScratch counter writes power the [D-IMP LEG FATAL] gate.
+        // _realScratch counter writes preserved as the sole remaining D-LOC impulse-axis signal
+        // (post-V4: LEG axis retired; impulse correctness verified by visual smoke + spawn-window
+        // L7 probe + counter sanity rather than dual-drain compare).
         private void ConsumePendingImpulseEvents_Authoritative(uint currentTick)
         {
             if (_predictionRigidbody == null || rb == null)

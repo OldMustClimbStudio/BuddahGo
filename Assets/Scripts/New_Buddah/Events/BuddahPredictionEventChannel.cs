@@ -7,8 +7,7 @@ namespace NewBuddah.PredictionV2.Events
 {
     // Tick-stamped event channel per effect family. See Docs/prediction-refactor-plan/05-event-channel.md.
     //
-    // Phase 4b V2b Step 0 redesign — mirrors Assets/Scripts/New_Buddah/Core/BuddahPredictedImpulseEventQueue.cs
-    // (the OLD-path canonical model). Storage is a List<Entry>; entries carry server-stamped EventTick;
+    // Storage is a List<Entry>; entries carry server-stamped EventTick;
     // ConsumeReady drains entries with EventTick <= currentTick via a callback-driven pattern; consumed
     // events are remembered in _recentLogicalIds (size 64) for retransmit dedupe. Replay-safe by
     // construction: events removed from _pending only when callback returns true on a forward pass.
@@ -101,8 +100,7 @@ namespace NewBuddah.PredictionV2.Events
             return true;
         }
 
-        // V2b Step 0 — replay-safe drain. Mirrors BuddahPredictedImpulseEventQueue.ConsumeReady.
-        // Entries with EventTick <= currentTick are presented to the callback. Returning true consumes
+        // V2b Step 0 — replay-safe drain. Entries with EventTick <= currentTick are presented to the callback. Returning true consumes
         // the entry (RemoveAt + RememberLogicalId). Returning false leaves the entry pending for the next
         // tick. Iteration is forward (FIFO order) — V2b Step 1 may introduce conditional callback
         // returns for filter-driven apply ordering.
@@ -158,8 +156,8 @@ namespace NewBuddah.PredictionV2.Events
             _recentLogicalIdOrder.Clear();
         }
 
-        // Phase 4b V4 — DebugOverlay diagnostic. Mirrors retired BuddahPredictedImpulseEventQueue.BuildPendingSummary
-        // shape: "none" when empty, otherwise "#<id> @<eventTick> log=<logicalId>" per entry joined by " | ".
+        // Phase 4b V4 — DebugOverlay diagnostic. Format: "none" when empty, otherwise
+        // "#<id> @<eventTick> log=<logicalId>" per entry joined by " | ".
         // Generic-safe: payload-specific data omitted (devs correlate logicalId with adapter logs).
         public string BuildPendingSummary()
         {

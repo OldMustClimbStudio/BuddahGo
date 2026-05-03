@@ -40,6 +40,15 @@ When a targeted diagnostic component is deployed and its output is being
 captured via `console-get-logs`, first silence every debug tag that is not
 part of the current investigation. See [debug-log-isolation.md](debug-log-isolation.md).
 
+## Verification Discipline (post Phase 4b lessons)
+When verifying claims about code state — especially negative claims like "X was removed", "Y has 0 references", or "Z is no longer called" — apply these rules:
+
+- **L21** — Risk:HIGH = full claim-by-claim grep, not sampled spot-check. For changes that touch authority, data flow, or wire format, grep every claim individually.
+- **L22** — Negative claims = `git show HEAD:<path>` + `git status --short` + `git diff origin/<base>`, NOT Read/Grep on working tree. Working tree may include unstaged edits or mount artifacts that misrepresent the merged state. Stage 6 pre-grep gate: `git status --short` filtered to scope must be clean before sign-off.
+- **Rule 1-D** — Downstream evidence (counter increments, HEARTBEAT field deltas, rb writes) > upstream stack frames. Code paths without `Debug.Log` calls produce no stack frames even when actively executing.
+
+See `Docs/lessons-log.md` L20-L22 + `Docs/phase-gates/methodology.md` Rule 1-D + Rule 2 sub-clauses for full context.
+
 ## Hard Stops
 - The fix needs two manifest systems in one pass.
 - The root cause points at a protected file and the task did not explicitly authorize it.

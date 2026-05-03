@@ -18,6 +18,8 @@
         "Docs/safety.md",
         "Docs/validation.md",
         "Docs/lessons-log.md",
+        "Docs/phase-gates/README.md",
+        "Docs/phase-gates/methodology.md",
         "skills/debug-bug.md"
       ]
     },
@@ -31,6 +33,8 @@
         "Docs/safety.md",
         "Docs/validation.md",
         "Docs/lessons-log.md",
+        "Docs/phase-gates/README.md",
+        "Docs/phase-gates/methodology.md",
         "skills/safe-refactor.md"
       ]
     },
@@ -45,10 +49,37 @@
         "Docs/safety.md",
         "Docs/validation.md",
         "Docs/lessons-log.md",
+        "Docs/phase-gates/README.md",
+        "Docs/phase-gates/methodology.md",
         "skills/feature-implementation.md"
       ]
     }
   ],
+  "phaseGates": {
+    "description": "Phase Gate System governs multi-agent phase work for the Phase 4b prediction refactor. Helper script auto-surfaces the active contract under 'Active Phase Gate' section.",
+    "systemDocs": [
+      "Docs/phase-gates/README.md",
+      "Docs/phase-gates/methodology.md",
+      "Docs/phase-gates/process-flow.md",
+      "Docs/phase-gates/templates.md"
+    ],
+    "activeContractGlob": "Docs/phase-gates/active/*-contract.md",
+    "archiveContractGlob": "Docs/phase-gates/archive/*-contract.md",
+    "stages": [
+      "1. KICKOFF",
+      "2. RECON",
+      "3. DESIGN-QA",
+      "4. IMPLEMENT",
+      "5. TEST",
+      "6. VERIFY",
+      "7. MERGE"
+    ],
+    "verifyDiscipline": {
+      "negativeClaimsTarget": "git plumbing (git show HEAD:<path>, git status --short, git diff origin/<base>) — NOT Read/Grep on working tree (per L22 + methodology Rule 2 sub-clause)",
+      "preGrepGate": "Stage 6 first command MUST be `git status --short` filtered to phase scope; drift discrimination per methodology Rule 2 mount-artifact sub-clause",
+      "templateRef": "Template 4 in Docs/phase-gates/templates.md"
+    }
+  },
   "validationSequences": {
     "compile-console": [
       "clear logs if needed",

@@ -18,6 +18,14 @@ Use this playbook when adding new gameplay behavior, a new flow, or a new UI cap
 - Selection or loadout features must respect config repositories and legality checks.
 - Result or scene-flow features must keep ownership with the documented orchestration systems.
 
+## Verification Discipline (post Phase 4b lessons)
+When integrating a new feature with existing systems:
+
+- **L22** — When asserting "feature does NOT touch X" or "X behavior unchanged", verify via `git diff origin/<base> -- <X path>` returns empty, NOT Read on working tree. For new files, confirm they actually reach HEAD via `git ls-files` after staging — Edit-tool changes only affect working tree until `git add` lands them.
+- **Rule 1-D** — Verify the feature actually executes in test sessions via downstream evidence (counter increments, HEARTBEAT field deltas, observable state writes), not just by stack-frame presence in logs. Silent dispatch paths (no `Debug.Log` calls) produce 0 stack frames even when running correctly.
+
+See `Docs/lessons-log.md` L21+L22 + `Docs/phase-gates/methodology.md` Rule 1-D + Rule 2.
+
 ## Hard Stops
 - The feature needs two manifest systems in one pass.
 - The insertion point is a protected file and no explicit approval was given.

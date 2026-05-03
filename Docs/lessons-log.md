@@ -1,6 +1,6 @@
 # Lessons Log
 
-Append-only record of agent failures and the rule each one created. New entries at top. When file approaches 90 lines, split: keep recent entries here, move older to `lessons-archive-YYYY-MM.md`.
+Append-only record of agent failures and the rule each one created. New entries at top. When file approaches 800 lines or 20 entries, split: keep most recent 10 entries here, move older to `lessons-archive-YYYY-MM.md`. (Original 90-line threshold raised 2026-05-03 during Phase 4b retrospective; lessons-log corpus naturally runs 30-60 lines per entry, so 90 lines was a single-entry threshold and pushed premature archiving that hurt cross-reference recall.)
 
 ## How to Use This File
 

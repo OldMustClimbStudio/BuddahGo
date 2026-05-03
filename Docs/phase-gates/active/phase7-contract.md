@@ -1,0 +1,166 @@
+# Phase 7 — Visual Jitter Quantitative Re-evaluation Contract
+
+**Phase ID:** phase7-visual-jitter
+**Branch:** `feat/phase7-visual-jitter-evaluation` (to be cut from dev tip post Phase 4b CLOSEOUT — dev tip should include PR #41 + #42 + #43 merges)
+**Risk:** LOW (observation-only by default; escalates only if regression is uncovered)
+**Status:** KICKOFF (Stage 1 stamped 2026-05-03; Stage 2 RECON authorized)
+**Predecessor:** Phase 4b (V1→V5) DONE per dev tip after PR #43 merge (archive backfill closeout — full Phase 4b documentation closure)
+**Unblocked by:** task #36 + V5 closeout (PR #41) + retrospective housekeeping (PR #42) + archive backfill (PR #43)
+
+> Promoted from `agent-exchange/handoff/2026-05-03-phase7-kickoff-draft.md`
+> on 2026-05-03 by Yonezawa explicit trigger ("开phase7"). Kickoff stamp
+> applied by cowork-reviewer per process-flow Stage 1 protocol. Companion
+> process flow doc remains at `agent-exchange/handoff/2026-05-03-phase7-process-flow.md`.
+
+---
+
+## Scope (locked)
+
+**In scope:**
+- Define a quantitative jitter metric for the BuddahPredicted character on screen during 2-peer LAN play (baseline + 100ms LatencySim)
+- Implement a `JitterCapture.cs` Editor utility that logs `(tick, transform.position, transform.rotation, Time.unscaledDeltaTime)` per rendered frame to a per-session file
+- Run a 3-path smoke: Path A single, Path B 2-peer no-LatencySim, Path B 2-peer 100ms LatencySim — capture jitter file per peer per path
+- Build a small offline analyzer script (PowerShell preferred) that ingests the jitter files and produces metric values (per Q0 definition)
+- Compare metrics across paths to (a) detect regression vs Phase 4b expectations and (b) quantify reconcile-replay visual cost under LatencySim
+- Document findings in a Phase 7 verify report (per templates Template 4 post-L22)
+
+**Out of scope:**
+- Any code change to `BuddahPredictedMotor.cs` / `BuddahPredictedReconcileData.cs` / channel layer / RPC pathways (Phase 4b is final on these)
+- Phase 6 teleport + handoff cut-over (separate phase, but findings here MAY inform Phase 6 design; handoff via PRE-WORK section)
+- Phase 8 cleanup (Roslyn analyzer + adapter caching + L9 ClampPlanarSpeed)
+- ParticleSystem / sound effect timing under reconcile (separate concern; can be Phase 7.5 if surfaced)
+
+---
+
+## PRE-WORK questions (must answer in design Q&A phase before implementation)
+
+### Q0 — Jitter metric definition
+
+What single number constitutes "jitter" for this phase's PASS/FAIL gate? Pick:
+- (A) **RMS frame-to-frame Δ position** (over a sliding window, e.g., last 60 frames). Cleanest single number; sensitive to small consistent wiggles + large infrequent snaps.
+- (B) **Frame fraction with Δv > threshold** (e.g., percentage of frames where instantaneous velocity delta exceeds 5 m/s). Better for catching reconcile snaps; less sensitive to consistent micro-wiggles.
+- (C) **Both** — report (A) for trend tracking + (B) for snap-event count. Two numbers per session.
+
+Recommendation lean: **(C)** — they measure different failure modes. (A) catches reconcile-replay smoothness erosion (e.g., constant micro-corrections). (B) catches discrete rollback snaps (e.g., reconcile invalidating predicted position by >X meters).
+
+### Q1 — Capture mechanism
+
+How is the per-frame data captured? Pick:
+- (A) **Editor-only `JitterCapture.cs` MonoBehaviour** attached to the BuddahPredicted character; logs to file in `OnEnable` → `LateUpdate` → `OnDisable`. Simple; only captures Editor PlayMode runs.
+- (B) **Conditional-compile capture in `BuddahPredictedRepresentation.cs`** (or whatever interpolates rendered position) under `#if BUDDAH_PREDICTION_JITTER_CAPTURE` define. Captures runtime + Editor. More integration risk; requires touching prediction-stack files.
+- (C) **External screen-recording + post-process video analysis**. No code change; very high analysis burden; not reproducible.
+
+Recommendation lean: **(A)** — keeps Phase 7 strictly observation-only (no #if defines bleeding into prediction stack). 30 LOC. PlayMode-Editor coverage is sufficient for the comparison study; production runtime jitter is a separate concern best handled at Phase 7.5 if needed.
+
+### Q2 — Comparison baseline
+
+What is the reference state to compare against?
+- (A) **Pre-Phase 4b SHA** (whatever the dev tip was before V1 merged). Tests whether Phase 4b *as a whole* changed visual fidelity.
+- (B) **Phase 4b post-V5 only** (Path A vs Path B baseline vs Path B LatencySim). Tests whether LatencySim itself introduces visible regression vs no-latency baseline.
+- (C) **Both** — full Phase 4b regression check + LatencySim cost characterization.
+
+Recommendation lean: **(C)**, but if (A) requires unworkable git checkout / scene compatibility issues, drop to **(B)** — the LatencySim-vs-baseline delta is the more actionable measurement (ties directly to Phase 4b's wire-format + reconcile-callback work).
+
+### Q3 — Pass criteria
+
+What is the PASS/FAIL gate?
+- (A) **No regression vs baseline** (chosen via Q2). Specific: post-V5 metric ≤ 110% of baseline metric (10% tolerance).
+- (B) **Absolute perceptual threshold** met (e.g., RMS Δposition < 5cm/frame; snap-event count < 1 per 30s session).
+- (C) **No regression AND absolute threshold met** (both must pass).
+
+Recommendation lean: **(B) primary + (A) secondary** — absolute is the user-facing concern; regression is the dev-process check. If absolute fails, gate fails regardless of regression. If absolute passes but regression > 110%, raise as Phase 7.5 retrofit candidate (don't block Phase 7 close).
+
+### Q4 — Reconcile snap behavior characterization
+
+V5 measured `rec-cb=2595` callbacks per 53 HBs on the CLIENT under 100ms LatencySim — i.e., reconcile fires VERY frequently. Each reconcile resnap'd the predicted state to authoritative. Did each one cause a visible snap? Pick:
+
+- (A) **Add `rec-snap-distance` field to JitterCapture** — record distance between pre-reconcile predicted position and post-reconcile authoritative position per [Reconcile] callback. Measure 95th percentile snap distance + max.
+- (B) **Defer** — Phase 7 Q4 measurement is out of scope; rely on Q3 absolute threshold to catch any visible snap regardless of cause.
+- (C) **Add probe AND deferred analyzer** — capture the field (cheap); analyze only if Q3 absolute fails.
+
+Recommendation lean: **(C)** — capturing the field is low cost (~5 LOC) and the analyzer can be skipped if Q3 passes. If Q3 fails, having `rec-snap-distance` already in the data set saves a re-run.
+
+### Q5 — Escalation path if regression observed
+
+If Phase 7 verify finds visual regression, what happens?
+- (A) **Escalate to Phase 7.5 retrofit** — open a follow-up phase to fix; Phase 7 closes as "regression found, retrofit scheduled"
+- (B) **Block Phase 7 merge** — Phase 7 stays open until fix lands inline
+- (C) **Document + accept** — Phase 4b traded jitter for correctness; document the trade and close
+
+Recommendation lean: **(A)** — Phase 7 is a measurement phase, not a fix phase. If it finds regression, the fix scope is unknown and deserves its own phase contract. Phase 7 closes on completion of measurement, not on resolution.
+
+---
+
+## Strict gates (preliminary — finalized after Q0 + Q3 + Q4 design)
+
+### Path A — single-machine 30s Editor PlayMode (no LatencySim, baseline)
+- JitterCapture file landed at `agent-exchange/console/raw/<date>-phase7-single-jitter.csv` with non-trivial size
+- Q0-defined metric values computed and reported
+- Q3 absolute threshold met for Path A (sets the no-LatencySim floor)
+
+### Path B — 2-peer LAN 60s no LatencySim
+- JitterCapture files for HOST + CLIENT
+- Q0 metric values per peer
+- Both peers meet Q3 absolute threshold (no peer-specific anomalies)
+
+### Path B — 2-peer LAN 60s with LatencySim 100ms RTT symmetric
+- JitterCapture files for HOST + CLIENT
+- Q0 metric values per peer + Q4 rec-snap-distance distribution
+- Q3 absolute threshold met for both peers
+- Q3 secondary regression check: Path-B-LatencySim metric ≤ 110% of Path-B-no-LatencySim metric per peer
+
+---
+
+## Deliverables
+
+1. ⏸ Recon report — `agent-exchange/handoff/<date>-phase7-recon.md`
+2. ⏸ Design Q&A — `agent-exchange/handoff/<date>-phase7-design.md`
+3. ⏸ Implementation — `Assets/Scripts/New_Buddah/Debug/JitterCapture.cs` (~50 LOC) + offline analyzer in `Tools/Analysis/AnalyzeJitter.ps1` (~80 LOC) — both Editor-only / dev-only, no production runtime impact
+4. ⏸ Path A jitter capture — `agent-exchange/console/raw/<date>-phase7-single-jitter.csv`
+5. ⏸ Path B no-LatencySim jitter captures — `<date>-phase7-host-jitter.csv` + `<date>-phase7-client-jitter.csv`
+6. ⏸ Path B 100ms LatencySim jitter captures — `<date>-phase7-host-100ms-jitter.csv` + `<date>-phase7-client-100ms-jitter.csv`
+7. ⏸ Independent verify report — `agent-exchange/handoff/<date>-phase7-verify.md` (Template 4 post-L22 form)
+8. ⏸ PR description with Q0 metric tables per Template 3
+9. ⏸ Lessons-log entries (if any new failure modes — observation phases often surface unexpected things)
+10. ⏸ Phase 7 closeout summary in PR body (close task #27 + task #36; if regression found, file Phase 7.5 contract draft)
+
+---
+
+## Carry-forward flags (do NOT action in this phase)
+
+- **Phase 6 — Teleport + Handoff cut-over (task #26)** — Phase 7's findings about reconcile snap behavior under LatencySim MAY inform Phase 6 design (specifically whether the teleport-snap-vs-smooth tradeoff Phase 6 must make has visual evidence). Document Phase 7 Q4 findings in Phase 6 contract PRE-WORK section when Phase 6 kicks off.
+- **Phase 8 — L9 ClampPlanarSpeed + Roslyn analyzer + adapter caching** — Phase 7 may incidentally surface ClampPlanarSpeed visual artifacts (since it strips same-tick queued impulses, predicted vs replayed velocity may diverge visibly). Note in Phase 8 contract.
+- **Phase 7.5 (conditional) — Visual jitter retrofit** — only created if Phase 7 verify finds regression per Q5-A; else this flag is dropped at Phase 7 closeout.
+
+---
+
+## Sign-off ledger
+
+| Stage | Date | Signer | Notes |
+|---|---|---|---|
+| Kickoff | 2026-05-03 | cowork-reviewer | Contract stamped post Phase 4b CLOSEOUT (PR #41 V5 closeout + PR #42 retrospective housekeeping + PR #43 archive backfill all merged to dev). 6 PRE-WORK Q seeded with leans (Q0=C, Q1=A, Q2=C with B fallback, Q3=B-primary+A-secondary, Q4=C, Q5=A) per kickoff draft companion at `agent-exchange/handoff/2026-05-03-phase7-kickoff-draft.md`. Process flow + dependency map at `agent-exchange/handoff/2026-05-03-phase7-process-flow.md` (~280 lines, 7 stages × concrete checklist + RECON target inventory + Q answer dependency tree + IMPLEMENT file scaffold + SMOKE per-path procedure + VERIFY 5-stage list + closeout decision tree + Rules→Stages mapping). Implementer (Claude Code) authorized to cut `feat/phase7-visual-jitter-evaluation` from dev tip + begin Stage 2 RECON. Helper script (`Tools/Harness/Get-BuddahGoHarnessContext.ps1`) should now surface this contract automatically per V5 housekeeping addition — implementer should run helper before RECON to confirm. |
+| Recon | ⏸ | | |
+| Design | ⏸ | | |
+| Implementation | ⏸ | | |
+| Smoke | ⏸ | | |
+| Verify | ⏸ | | |
+| Merge | ⏸ | | |
+
+---
+
+## Notes for the implementer (when Phase 7 actually starts)
+
+1. **Helper script will surface this contract automatically** once `git mv`/`git rm` lands — per the V5 closeout housekeeping addition to `Get-BuddahGoHarnessContext.ps1`. Run the helper before Stage 2 RECON to confirm the contract is being read correctly.
+
+2. **Recon Stage 2 should specifically include:**
+   - Inventory: where does the visible character actually render? (BuddahPredictedRepresentation? FishNet TickSmoother? Both?) This determines where JitterCapture attaches.
+   - Inventory: does the existing FishNet `NetworkTickSmoother` already do interpolation between predicted ticks? If yes, capture should be at the *visible transform* (after smoother), not the rb position.
+   - Cross-ref: V5 verify report's `rec-cb=2595` finding — what does that callback frequency translate to in 60Hz frame terms?
+
+3. **Recon should use git plumbing per L22 + Rule 2** — verify "no project-side custom representation/interpolation file exists" via `git ls-files | grep -i representation` (this preliminary draft did that grep — only FishNet built-ins surfaced; project may have its own that the grep missed; recon must confirm).
+
+4. **Q5 escalation — be conservative.** If Phase 7 finds even mild regression (5-10% over baseline), file Phase 7.5 immediately rather than rationalizing as "within tolerance." Visual jitter is the user-facing fidelity gate; tolerances should be set BEFORE measurement (in Q3), not after seeing the numbers.
+
+5. **Rule 11 SMOKE driver discipline applies:** Phase 7 SMOKE has no time-sensitive probes per current draft (jitter accumulates over 60s, not within a 1.2s window), so Rule 11 is moot here. But if Q4 Phase 7.5 ends up needing reconcile-snap-onset timing measurement, Rule 11 becomes mandatory.
+
+6. **Rule 12 reviewer-sign-off-row discipline applies:** implementer SHOULD NOT pre-fill the Recon / Design / Verify rows in this contract. Implementer pre-fills are limited to Implementation + Smoke rows (own-authorship). Reviewer authors all reviewer-signed rows independently after the relevant stage completes.

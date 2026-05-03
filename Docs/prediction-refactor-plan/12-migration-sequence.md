@@ -71,3 +71,14 @@ The refactor ships in 8 phases over an estimated 15-20 working days. Each phase 
 Each phase is rebasable independently because Phases 0-2 add only no-op state and Phase 3 runs in shadow mode. Phases 4+ are the real cuts; if any fails validation, revert to the prior phase commit.
 
 See [13-validation-gates.md](13-validation-gates.md) for what passes/fails each phase.
+
+---
+
+> **Historical note (Phase 4b V4, 2026-05-03):** This chapter references symbols
+> retired during Phase 4b V4 cleanup, including `BuddahPredictionCombatRouting`,
+> `BuddahPredictedImpulseEventQueue`, and the `BUDDAH_PREDICTION_LEGACY_SHADOW`
+> define. The original architectural rationale captured here remains valid for
+> understanding the design history; for current-state code paths, see
+> [`Docs/phase-gates/active/v4-contract.md`](../phase-gates/active/v4-contract.md)
+> (or `archive/v4-contract.md` post-merge) and the live router at
+> [`Assets/Scripts/New_Buddah/Integration/BuddahPredictionRouter.cs`](../../Assets/Scripts/New_Buddah/Integration/BuddahPredictionRouter.cs).

@@ -16,6 +16,83 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L21 — Risk:HIGH phases require FULL claim-by-claim grep verification, not sampled spot-check; negative claims ("X is NOT in Y") demand independent positive verification (2026-05-03, Phase 4b V4 design Q&A second-pass)
+
+Symptom: V4 design Q&A v1 contained MEDIUM-severity factual error at Q3.1
+line 121 ("`_combatAdapterInitialized` field at motor.cs:148 is NOT in any
+LEGACY_SHADOW block"). Independent grep confirmed field IS inside
+`#if BUDDAH_PREDICTION_LEGACY_SHADOW` block (motor.cs:143-149). Reviewer's
+first-pass sign-off accepted the claim on faith because the wording sounded
+confident. Second-pass deep-verify (triggered by user's "trust but verify"
+follow-up) caught the error before IMPLEMENT phase. If first-pass had been
+final, implementer following design literally would have only stripped
+:382-396 wrapper, leaving :143-149 wrapper intact → post-define-strip
+compile failure at :389/:392 (recoverable but doc-misleading; ~30min lost
+debugging).
+
+Cause: spot-check sampling sufficient for normal phases but insufficient
+for risk:HIGH phases that touch atomic delete + race-condition-sensitive
+code. Reviewer's trust-but-verify defaulted to "verify what the design
+asserts is present" rather than "verify what the design asserts is
+absent". Confident negative claims are structurally harder to invalidate
+because they require exhaustive search to disprove.
+
+Rule:
+1. **Risk:HIGH phases (authority-flip, atomic-delete, wire-format-change,
+   race-condition-sensitive) require FULL claim-by-claim grep verification
+   at every sign-off boundary.** Spot-check sampling is forbidden.
+2. **Negative claims demand positive verification.** Any "X is NOT in Y"
+   statement in recon, design, or PR description must be independently
+   grep-verified before sign-off accepts it. Reviewer cannot defer to
+   implementer confidence; the absence-claim is the easier-to-miss class.
+3. **Apply trust-hierarchy (Rule 2 sub-clause)** also to negative claims:
+   downstream-evidence absence (no log line, no metric increment) does
+   NOT prove upstream-state absence — verify the upstream directly.
+
+Promoted to: `Docs/phase-gates/methodology.md` Rule 2 — "Independent
+verification" sub-clauses (full-grep mandate + negative-claim verification).
+
+---
+
+## L20 — `git rm` of source files produces transient CS2001 "Source file could not be found" compile errors that recover automatically; these are downstream evidence of successful deletion, NOT runtime live references (2026-05-03, Phase 4b V4 smoke verify)
+
+Symptom: V4 CLIENT smoke log contained 6 grep hits for symbols-supposed-to-be-deleted
+(`BuddahPredictionCombatRouting`, `BuddahImpulseStep`, `BuddahPredictedImpulseEventQueue`)
+at lines 46198/46232/46248 (file-path mentions) + 46357/46359/46361
+(CS2001 errors: "Source file '...' could not be found"). Initial reviewer
+grep `count` returned 6 hits — appeared to violate the V4 "0 dead-symbol
+references in production logs" gate.
+
+Cause: Unity's incremental compiler caches asset metadata between PlayMode
+sessions. When `git rm` removes .cs files mid-checkout-cycle, the compiler
+tries the cached path on next refresh, fails with CS2001, then re-scans
+the asset database and recovers (Tundra ExitCode: 0). The error mentions
+the deleted symbol's file path in the diagnostic, producing log hits that
+look identical to runtime stack frames at grep level.
+
+Rule:
+1. **Distinguish compile-time evidence from runtime live references.**
+   Grep hits in raw logs may be EITHER:
+   - (a) Live runtime stack frames → real evidence of dead-code execution
+         (BAD; merge blocker)
+   - (b) Compile-time error context strings (CS2001 file-not-found,
+         pre-recompile metadata cache stale-state) → downstream evidence
+         that deletion succeeded (NEUTRAL; expected during transitions)
+   - (c) Pre-deletion historical session data → multi-session pollution
+         (covered by Methodology Rule 1 sub-rule on session-scoping)
+2. Reviewer must inspect each hit's CONTEXT (line content, not just count)
+   before flagging as gate violation. CS2001 + file-path-mention pattern
+   is a compile-cache transient, not a runtime violation.
+3. Cross-validate by checking cold-start recovery indicators (Tundra
+   ExitCode: 0, subsequent successful PlayMode tick, wire format
+   compatibility holding). Self-recovery within same session = benign.
+
+Promoted to: `Docs/phase-gates/methodology.md` Rule 2 — "Independent
+verification" should add a sub-clause on grep hit context inspection
+for risk:HIGH cleanup phases.
+
+---
+
 ## L19 — Authority-flip retest gates compare LEG axis only; pre-flip per-axis D-LOC impulse compare becomes structurally dead and must be removed (not gated) to avoid spurious warnings (2026-05-02, Phase 4b V2b Step 1 implementation)
 
 Symptom: at the design phase of V2b Step 1 authority flip (NEW = rb-writing

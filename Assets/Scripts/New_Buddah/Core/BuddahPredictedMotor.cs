@@ -98,6 +98,14 @@ namespace NewBuddah.PredictionV2.Core
         // simulated latency, FishNet fires reconcile more often → growth rate proportional.
         // 0 callbacks across a session under LatencySim = simulator not engaged.
         private uint _reconcileCallbackCount;
+#if UNITY_EDITOR && BUDDAH_PREDICTION_RECONCILE_PROBE
+        // Phase 7 Q4 sibling-probe hook: fires once per [Reconcile] callback after
+        // state restoration with (preReconcilePosition, postReconcilePosition).
+        // BuddahPredictionReconcileSnapProbe subscribes; magnitude of the pair is
+        // recorded into a per-event ring buffer for [D-REC HEARTBEAT] aggregates.
+        // UNITY_EDITOR + define gated; compiles out of production builds.
+        internal static event Action<Vector3, Vector3> OnReconcileSampled;
+#endif
         private Vector3 _shadowPreClampVelocity;
         private bool _shadowPreTeleportHasPending;
         private BuddahPredictedTeleportEventData _shadowPreTeleportEvent;
@@ -560,6 +568,9 @@ namespace NewBuddah.PredictionV2.Core
                 _predictionRigidbody.Reconcile(data.RigidbodyState);
             Vector3 postReconcilePosition = rb != null ? rb.position : Vector3.zero;
             Vector3 postReconcileVelocity = rb != null ? rb.velocity : Vector3.zero;
+#if UNITY_EDITOR && BUDDAH_PREDICTION_RECONCILE_PROBE
+            OnReconcileSampled?.Invoke(preReconcilePosition, postReconcilePosition);
+#endif
             LogPredictionIntroReconcileState(
                 data.GetTick(),
                 skipOwnerIntroReconcile,

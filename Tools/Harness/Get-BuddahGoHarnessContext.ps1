@@ -357,7 +357,7 @@ if (Test-Path $activeContractDir) {
                 # Last non-empty sign-off ledger row (table row starting with "|")
                 # that has a non-empty Date cell. Skips header + separator rows.
                 $ledgerRows = $contractContent | Where-Object { $_ -match '^\| ' -and $_ -notmatch '^\|---' -and $_ -notmatch '^\| Stage \|' }
-                $lastSignedRow = $ledgerRows | Where-Object { $_ -notmatch '^\| [A-Za-z]+ \| ⏸' } | Select-Object -Last 1
+                $lastSignedRow = $ledgerRows | Where-Object { $_ -match '^\| [A-Za-z]+ \| [0-9]{4}-' } | Select-Object -Last 1
                 if ($lastSignedRow) {
                     # Truncate ledger row to first 200 chars to keep helper output readable.
                     $rowDisplay = $lastSignedRow.Trim()

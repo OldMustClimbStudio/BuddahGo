@@ -136,6 +136,54 @@ content drift from environment artifacts before halting:
 
 **Cross-ref:** L22 in `Docs/lessons-log.md`.
 
+**Tooling change execution-test (added 2026-05-03 from L23, Phase 7 RECON pre-flight; PR #42 helper regression post-mortem):**
+For ANY PR that touches harness tooling, CI scripts, hooks, or any
+invocable executable file, Stage 6 VERIFY MUST execute the changed file
+end-to-end under the same shell + environment the harness uses, and confirm
+exit code 0 + the expected stdout sections. Content-pattern review of the
+diff ("the new lines look right") is necessary but NOT sufficient — only
+end-to-end execution exposes encoding regressions, runtime-environment
+incompatibilities, and silent dead-code blocks. The L23 incident: PR #42
+added a Where-Object filter using `⏸` (U+23F8) inside a single-quoted regex
+in a `.ps1` file saved as UTF-8 without BOM. Windows PowerShell 5.1 reads
+non-BOM `.ps1` using OEM cp936; the multi-byte UTF-8 sequence decoded into
+garbage bytes that broke the string terminator, and the entire phase-gate-
+awareness block became unreachable. PR review verified content but never
+ran the script.
+
+**Scope (this sub-clause applies):**
+- `Tools/`, `Tools/Harness/`
+- `.github/workflows/`
+- `.claude/hooks/`, `.claude/settings*.json` (when behaviorally consequential)
+- Any standalone `*.ps1`, `*.sh`, `*.py`, `*.js`, `*.bat`, `*.cmd` not part
+  of the Unity asset pipeline
+
+**Scope (does NOT apply — these are gated by other phases):**
+- `*.cs` (Unity compile + smoke gate)
+- `*.meta`, `*.prefab`, `*.unity`, `*.asset`, `*.controller`, `*.anim`
+  (Unity asset pipeline + smoke gate)
+
+**Verification protocol:**
+1. **Author-side self-execution before PR open:** PR author runs the changed
+   tool once on the harness target environment (Windows PS 5.1 for `.ps1`,
+   bash for `.sh`, etc.) and confirms exit 0 + expected output. Different
+   OS / different shell does NOT count.
+2. **Reviewer cross-execution at Stage 6:** for harness scripts and
+   rule-encoding files downstream phases rely on, reviewer reproduces
+   execution independently and pastes actual stdout + exit code into the
+   verify report's Stage A pre-grep gate section.
+3. **Encoding self-check for `.ps1` / `.sh`:** any non-ASCII glyph in the
+   file → either save as UTF-8 with BOM (preferred for cross-platform PS
+   5.1+) or replace the glyph with an ASCII sentinel and update matching
+   producers in the same PR. Avoid silent UTF-8-no-BOM `.ps1` containing
+   multi-byte chars on Windows.
+4. **Output-shape spot-check:** if the script's purpose is to surface
+   specific named sections (e.g., the helper's "Active Phase Gate:" block),
+   the verify protocol MUST grep for that section header in the captured
+   stdout, not just trust exit-code-0.
+
+**Cross-ref:** L23 in `Docs/lessons-log.md`.
+
 ## Rule 3 — Strict gate definition lives in the contract
 
 "FATAL=0" means different things in different phases. Active contract

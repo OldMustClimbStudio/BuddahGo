@@ -16,6 +16,68 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L23 — Tooling/CI changes need execution-test verification, not just content-pattern verification (2026-05-03, Phase 7 RECON pre-flight; PR #42 retrospective housekeeping post-mortem)
+
+Symptom: Phase 7 RECON began with `Tools/Harness/Get-BuddahGoHarnessContext.ps1`
+per Step 3 of Mandatory Execution Order. The script aborted with a Windows
+PowerShell 5.1 parser error at line 360 ("string is missing the terminator: '")
+BEFORE emitting the "Active Phase Gate:" section that PR #42 (V5 closeout
+retrospective housekeeping) had added. None of the phase-gate awareness
+output was reachable; the entire active-contract surfacing block was dead.
+Implementer's first reaction was correctly to STOP and report (per the
+contract's "if no Active Phase Gate section, report bug" stop-rule), but the
+discovery itself happened only because Phase 7 KICKOFF told the implementer
+to actually run the helper and look for that output. Had Phase 7 RECON gone
+straight to grep without the mandatory helper run, the regression would have
+shipped silently into N more sessions.
+
+Cause: PR #42 added a Where-Object filter at line 360 using the literal pause
+glyph `⏸` (U+23F8) inside a single-quoted regex string. The .ps1 was saved
+as UTF-8 without BOM. Windows PowerShell 5.1 on this machine reads non-BOM
+.ps1 files using the OEM/ANSI code page (cp936 here); the 3-byte UTF-8
+sequence for `⏸` is decoded as garbage bytes that include an unbalanced
+single-quote partner, and the parser fails before the Active-Phase-Gate
+block can run. PR #42's review verified the script's content pattern looked
+right, but did NOT execute the script under the actual harness environment
+(Windows PS 5.1, OEM cp936). Content-pattern review is necessary but not
+sufficient for tooling changes; only end-to-end execution exposes encoding
++ runtime-environment regressions.
+
+Rule:
+1. **Stage 6 VERIFY for any PR that touches harness tooling, CI scripts, or
+   any invocable executable file MUST execute the changed file end-to-end
+   under the same environment the harness uses (Windows PowerShell 5.1 for
+   `.ps1`, bash for `.sh`, etc.) and confirm exit code 0 + expected stdout.**
+   Reading the diff and confirming "the new lines look right" is NOT
+   sufficient.
+2. **Scope of "tooling" for this rule:** `Tools/`, `Tools/Harness/`,
+   `.github/workflows/`, `.claude/hooks/`, any standalone `*.ps1`, `*.sh`,
+   `*.py`, `*.js`, `*.bat`, `*.cmd` not part of the Unity asset pipeline.
+   It does NOT cover `*.cs` / `*.meta` / `*.prefab` / `*.unity` / `*.asset`
+   — those are exercised by the Unity compile + smoke phases and the
+   methodology already gates on those.
+3. **Author-side self-execution before PR open:** the PR author MUST run the
+   changed tool once on the harness target environment before pushing.
+   Running it on a different OS, or running a syntactically-equivalent
+   substitute, does not count.
+4. **Reviewer cross-execution if stakes are high:** for changes to the
+   helper script or any rule-encoding file that downstream phases will rely
+   on, reviewer reproduces the execution independently (different working
+   tree clone if needed) and pastes the actual stdout/exit-code into the
+   Stage 6 verify report's Stage A pre-grep gate.
+5. **Encoding + line-ending self-check:** for any `.ps1` / `.sh` change,
+   author confirms file encoding is appropriate for the target shell. Quick
+   discriminator: if the script contains any non-ASCII glyph, either save
+   as UTF-8 with BOM (preferred for cross-platform PowerShell 5.1+) or
+   replace the glyph with an ASCII sentinel and update the matching
+   producer in the same PR.
+
+Promoted to: `Docs/phase-gates/methodology.md` Rule 2 sub-clause "Tooling
+change execution-test" (covers item 1-5 above with explicit scope and quick
+self-check checklist).
+
+---
+
 ## L22 — Negative-claim verification MUST query `git show HEAD:<path>` / `git status --short` / `git diff origin/<base>` — NOT Read/Grep on working tree (2026-05-03, Phase 4b V4 closeout post-mortem)
 
 Symptom: V4 verify report ("17 dead identifier strings: 0 hits in

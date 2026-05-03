@@ -1,0 +1,79 @@
+# Phase 4b V5 Stage 5 SMOKE Digest — Path A baseline (HOST role)
+
+- **Raw**: `agent-exchange/console/raw/2026-05-03-phase4b-v5-single.log` (278,072 lines, 22 MB)
+- **Role**: HOST in 2-peer baseline (NO LatencySim) — `GameNetworkManager:StartHost` confirmed
+- **Editor.log**: single `Initialize engine version` block at :158 — Rule 1 sub-rule A satisfied
+- **Build**: V5 IMPLEMENT (commit `4b60773`) — confirmed via `rec-cb` field present in HEARTBEAT format
+
+> **NOTE** — Path A in V5 contract is defined as "single-machine 30s baseline (no LatencySim)". User ran 2-peer locally to get a HOST-side baseline (StartHost + 4 cross-peer Recvs visible). The label "Path A" is interpreted here as "Path-A-equivalent baseline (no LatencySim)" with HOST role; CLIENT-side baseline + Path B 100ms LatencySim still pending.
+
+## Strict-Gate Counts
+
+| Marker | Count | Gate | Pass/Fail |
+|---|---|---|---|
+| `[D-LOC FATAL]` | 0 | =0 strict | ✅ PASS |
+| `[D-IMP LEG ...]` | 0 | =0 (LEG retired V4) | ✅ PASS |
+| `[CommandBus]:ClearAll` | 16 | 4 × N spawns → N=4 | ✅ |
+| `[CommandBus]:DropFull` | 0 | =0 | ✅ PASS |
+| `[Channel]:DupReject` | 0 | =0 baseline | ✅ PASS |
+| `[CommandBus]:Recv ch=Impulse` | 4 | n/a (host role; remote-owner case fired via dual-emit RPC return-leg) | ⚠ unexpected for "single-peer Path A" but consistent with 2-peer HOST topology |
+| Recv carries `eventTick=N` AND `logicalId=N` | 4/4 | every line | ✅ PASS |
+| Monotonic logicalId 1→2→3→4 | clean | per gate | ✅ |
+| `[D-LOC HEARTBEAT]` rows | 142 | cadence sanity | ✅ |
+| **rec-cb field in HEARTBEAT (Q3-B insertion landed)** | 35 emit-sites | ≥1 | ✅ Q3-B FIELD CONFIRMED |
+| rec-cb cumulative VALUE | **0 across all 142 HBs** | host-only baseline (FishNet [Reconcile] semantics) | ✅ EXPECTED — see analysis |
+| Compile errors during runtime | **4** (CS2001 :46357-46363) | =0 expected | ⚠ A1 pattern (see Anomaly) |
+| Exceptions | 0 | =0 | ✅ PASS |
+| PushHitbox Hit | 1 | ≥1 visual smoke | ✅ |
+| Router stack frames | 12 | ≥1 evidence | ✅ |
+| BuddahPredictionV2 push-target hit | 12 | matches Router | ✅ |
+
+## Recv cross-peer alignment (Tier 1 verification — host-side observation of remote-owner enqueue)
+
+| # | logicalId | eventTick | linear impulse | srcType | Source |
+|---|---|---|---|---|---|
+| 1 | 1 | 6460 | (66.00, 0.00, 75.13) | 1 (PushHitbox) | melee push to remote-owner victim |
+| 2 | 2 | 6910 | (0.00, 0.00, 50.00) | 4 (DebugBox) | DebugBox push (Tier 1 V2-buddah victim) |
+| 3 | 3 | 7466 | (578.37, 0.00, -159.65) | 3 (ChargedProjectile) | charged projectile hit |
+| 4 | 4 | 7466 | (578.37, 0.00, -159.65) | 3 (ChargedProjectile) | charged projectile hit (different victim instance) |
+
+- Wire format includes `eventTick` + `logicalId` = V4 wire format gate satisfied (V5 inherits)
+- `predictionProtocolVersion = 1` handshake worked (CLIENT joined HOST successfully — would have been hard-rejected if Q1 was broken)
+
+## Q3-B reconcile-callback-count probe — INSERTION CONFIRMED, baseline NULL on host
+
+**Field present in HEARTBEAT format:** ✅ — sample line: `tel-compared=0 mod-compared=4081 hof-compared=1 rec-cb=0`
+
+**Cumulative value across 142 HBs: 0** (expected on HOST role).
+
+Per FishNet 4 `[Reconcile]` semantics, `ReconcileState` callback fires on **non-server peers** when server's reconcile data delivers. On the HOST peer (server), `ReconcileState` does NOT fire on itself — server creates reconcile data via `CreateReconcile` producer, sends to clients, but does not invoke its own ReconcileState. Hence `_reconcileCallbackCount` stays 0 on HOST.
+
+**Implication for Path B:** under LatencySim 100ms, the **CLIENT** log (not HOST) is where `rec-cb > 0` should manifest. Path A baseline (HOST role) gives us the value 0. Path B CLIENT under 100ms LatencySim must show `rec-cb >> 0` to satisfy Q3-B engagement gate.
+
+This refines V5 design Q3-B language: gate is **per-peer** — HOST baseline = 0 expected; CLIENT baseline (no LatencySim) = small non-zero; CLIENT under LatencySim 100ms = ≥2× CLIENT baseline OR ≥5 callbacks (whichever greater). The HOST-side `rec-cb=0` is structurally enforced and is NOT a Q3-B failure signal.
+
+## Anomalies (all documented / accepted)
+
+### A1 — CS2001 cold-start at lines 46357-46363 (V4 A1 pattern recurring)
+
+**Symptom:** 4 CS2001 errors complaining about deleted files (`BuddahPredictionCombatRouting.cs`, `BuddahImpulseStep.cs`, `BuddahPredictedImpulseEventQueue.cs`, `BuddahPredictedImpulseRingSnapshot.cs`).
+
+**Root cause (per L20):** Unity's incremental compiler caches asset metadata between PlayMode sessions. After `git rm` deleted these files in V4 PR #37 (and previously had been merged/tracked), the Library/ + .csproj cache pointed to deleted paths on this Editor cold-start. First compile pass failed CS2001; Tundra detected mismatch and ran additional pass: `*** Tundra requires additional run (2.08 seconds), 5 items updated, 562 evaluated; ExitCode: 0`. Recompile succeeded; PlayMode entered V5 build.
+
+**V5 cross-validation that runtime ran V5 code (not stale V4):**
+- `rec-cb` field appears in HEARTBEAT (Q3-B insertion landed) — pre-V5 build wouldn't have this field
+- `[D-IMP LEG ...]` = 0 — LEG axis already retired in V4
+- 0 schema mismatch across 142 HEARTBEAT rows
+
+**Verdict (per L20):** non-issue. NOT a violation.
+
+## Verdict — Path A baseline HOST
+
+**✅ PASS as HOST baseline.** All applicable strict gates met. Q3-B `rec-cb` field landed; HOST-role baseline value = 0 as structurally expected per FishNet [Reconcile] semantics.
+
+**Stage 5 next steps:**
+1. **Path A CLIENT-side baseline** (optional, for direct comparison): same 2-peer setup, copy CLIENT Editor.log → expect `rec-cb` non-zero (small, no LatencySim)
+2. **Path B 100ms LatencySim**: Inspector toggle ON `_enabled=true _latency=50 _simulateHost=true` → 60s 2-peer LAN → both HOST + CLIENT logs scraped → CLIENT `rec-cb` should EXCEED Path A baseline by ≥2× OR ≥5 callbacks
+3. **Spawn-window remediation**: peer-2 push CLIENT buddah within 3-5s of CLIENT spawn (V4 partial-pass fix)
+
+**HOST log this run is the baseline-no-LatencySim reference.** CLIENT log + Path B 100ms still pending.

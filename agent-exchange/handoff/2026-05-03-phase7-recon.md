@@ -230,6 +230,133 @@ No KEY FINDING — Q1=A lean preserved (capture is independent; overlay is
 not a viable shared data source). Implementation can optionally piggyback
 DebugState scalar reads to enrich CSV columns at zero plumbing cost.
 
+> **⚠ AMENDMENT — original Surface 5 grep was scope-incomplete.** See
+> Section 5b below; the targeted "DebugOverlay" grep missed 4 of 6 Debug/
+> files including `BuddahPredictionVisualShakeProbe.cs`, which is a
+> material discovery for Q0 + Q1 design.
+
+---
+
+## 5b. Surface 5 amendment — full Debug/ directory inventory (post reviewer verify)
+
+**Cause of original miss:** Section 5 used a targeted grep
+(`git ls-files | grep -iE "DebugOverlay|PredictionDebug|DebugDraw"`) that
+matched on file-name substrings. Files in the same directory whose names
+do not contain "DebugOverlay" or "DebugDraw" — and whose top-level word is
+"BuddahPredictionImpulse..." / "BuddahPredictionPerf..." / "BuddahPrediction
+Push..." / "BuddahPredictionVisual..." — were NOT surfaced. Per L22, RECON
+must use directory-level git plumbing for completeness, not name-pattern
+greps.
+
+**Corrected listing:**
+```
+git ls-tree -r --name-only HEAD:Assets/Scripts/New_Buddah/Debug/
+→
+BuddahPredictionDebugOverlay.cs           (covered in Section 5)
+BuddahPredictionDebugOverlay.cs.meta
+BuddahPredictionDebugState.cs             (covered in Section 5)
+BuddahPredictionDebugState.cs.meta
+BuddahPredictionImpulseDebugBox.cs        (gameplay debug box; out of Phase 7 scope)
+BuddahPredictionImpulseDebugBox.cs.meta
+BuddahPredictionPerfProbe.cs              (perf probe; out of Phase 7 scope)
+BuddahPredictionPerfProbe.cs.meta
+BuddahPredictionPushTargetBox.cs          (push debug box; out of Phase 7 scope per project_phase7_jitter memory)
+BuddahPredictionPushTargetBox.cs.meta
+BuddahPredictionVisualShakeProbe.cs       *** MATERIAL — see analysis below ***
+BuddahPredictionVisualShakeProbe.cs.meta
+```
+
+### Section 5b.1 — `BuddahPredictionVisualShakeProbe.cs` analysis
+
+**Source:** `git show HEAD:Assets/Scripts/New_Buddah/Debug/BuddahPredictionVisualShakeProbe.cs`
+**File size:** 176 lines.
+
+**Header docstring (lines 1-26 paraphrased):**
+- Authored as "Phase 4 V3 gameplay-shake probe — observation only".
+- Gated behind `#if BUDDAH_PREDICTION_VISUAL_PROBE` define. When undefined the entire file compiles out → real-path byte-identical (reviewer "G1 bind").
+- Samples the **pinned visual root's world-space pose every LateUpdate** (post-animation, post-camera).
+- Maintains a **pre-allocated ring buffer** of per-frame deltas; emits `[D-VIS HEARTBEAT]` line every `_heartbeatFrames` frames with **dmax / dp99 / davg aggregates** for both position (meters) and rotation (degrees).
+- Owner/spectator tagging via serialized `NetworkObject` reference.
+- Visual root pinned in inspector (reviewer "V3 bind"; runtime fallback resolves via `BuddahPredictionVisualRootBridge.GetVisualRoot()` and `GetComponentInParent<NetworkObject>()` if SerializeField refs are null — preserves the inspector-pin contract while supporting `AddComponent` runtime attach by `BuddahPredictionBootstrap`).
+- L15 defensive normalize for zero-quaternion → identity (per `Docs/lessons-log.md` L15).
+
+**Public/serialized fields:**
+```csharp
+[SerializeField] Transform _visualRoot;                       // visual capture target
+[SerializeField] NetworkObject _networkObject;                // owner/spectator tag
+[SerializeField, Min(16)] int _heartbeatFrames = 60;          // emit cadence + ring window
+[SerializeField] string _logPrefix = "[D-VIS HEARTBEAT]";     // log line prefix
+```
+
+**Private state:**
+```csharp
+float[] _posDeltaBuffer; float[] _rotDeltaBuffer; float[] _sortBuffer;
+int _bufferIndex; int _samplesCollected;
+Vector3 _lastPos; Quaternion _lastRot; bool _hasLastSample;
+int _framesSinceHeartbeat;
+```
+
+**Hot-path (LateUpdate, lines 100-138):** one `Vector3` mag + one
+`Quaternion.Angle` + two ring-buffer slot writes + counter bumps. No
+per-frame allocation (G1 compliant). Heartbeat emit (every N frames) does
+two `Array.Copy` + two `Array.Sort` of length-N buffer + one `Debug.Log`
+of formatted string.
+
+**Aggregate output format (`EmitHeartbeat` lines 140-164):**
+```
+[D-VIS HEARTBEAT] frame=<N> owner=<bool> window=<W>
+  pos-dmax=<F5> pos-dp99=<F5> pos-davg=<F5>
+  rot-dmax=<F3> rot-dp99=<F3> rot-davg=<F3>
+```
+
+**Reuse vs build-new evaluation (for Phase 7 Q0/Q1/Q4):**
+
+| Aspect | VisualShakeProbe status | Phase 7 fit |
+|---|---|---|
+| Capture target | pinned visual root via `BuddahPredictionVisualRootBridge.GetVisualRoot()` (or inspector pin) | ✅ Matches Q1 KEY FINDING from Section 2 — captures POST-smoother visual transform |
+| Capture cadence | `LateUpdate` post-animation + post-camera | ✅ Correct cadence for "what player sees" jitter |
+| Position metric | per-frame `(currentPos - _lastPos).magnitude` + ring buffer + dmax / dp99 / davg | ✅ Aligns with Q0=C "(A) RMS Δposition trend" — `pos-davg` is per-frame Δ-position avg, equivalent to a moving-window mean (NOT RMS, but trivially convertible) |
+| Rotation metric | per-frame `Quaternion.Angle` (degrees) + ring buffer + dmax/dp99/davg | ➕ Bonus: Phase 7 contract Q0 lean (C) defines metric in position only; rotation aggregates are a pre-existing extra channel |
+| Snap-event metric | NOT TRACKED — buffer is rolling all-frame, no high-Δv-frame fraction | ⚠ Q0=C "(B) frame fraction with Δv > threshold" not directly emitted; would need analyzer post-process on the (currently) aggregated digest, OR an additional ring-buffer-sweep field |
+| Output mechanism | `Debug.Log` with `[D-VIS HEARTBEAT]` prefix → Editor.log per-frame digest | ✅ Same channel + same scrape model as `[D-LOC HEARTBEAT]`; Phase 7 analyzer can grep `[D-VIS HEARTBEAT]` lines from the existing raw-log infrastructure (no CSV format change needed) |
+| Per-tick reconcile snap distance | NOT TRACKED — probe is frame-domain, not reconcile-event-domain | ⚠ Q4 rec-snap-distance is a separate concern; cannot be retrofitted into the rolling ring buffer cleanly |
+| Build/runtime cost | gated by `BUDDAH_PREDICTION_VISUAL_PROBE` define; zero cost when undefined | ✅ Matches Q1=A "no production runtime impact" requirement |
+| Wiring already exists | runtime-attach path via `BuddahPredictionBootstrap` (motor.cs:111 `gameObject.AddComponent<BuddahPredictionVisualRootBridge>()` + Bridge resolution) | ✅ Probe is plug-and-play if `BUDDAH_PREDICTION_VISUAL_PROBE` is added to scripting-define-symbols for Phase 7 SMOKE |
+
+**Reuse options for Q1 capture mechanism:**
+
+- **(a) Reuse VisualShakeProbe directly.** Define `BUDDAH_PREDICTION_VISUAL_PROBE` for Phase 7 SMOKE runs (3 paths × per-peer); zero new code; Phase 7 analyzer ingests `[D-VIS HEARTBEAT]` lines from Editor.log per peer. Q0=C primary metric (`pos-davg`) reads off the existing emit. Q0=C secondary "snap-event count" can be derived offline by re-grepping `pos-dmax` outliers across heartbeats (lossier than per-frame snap detection but adequate for trend tracking). **Trade-off:** Q0=C "(B) frame fraction" is approximated, not exact; if Q3 design wants strict frame-fraction precision, see (b).
+- **(b) Extract a shared base + add a JitterCapture variant for Q4.** Refactor `VisualShakeProbe` into a shared capture base class + extend with a Phase-7-specific subclass that adds: (1) per-frame Δv threshold counting (exact Q0=C "(B)" metric), (2) reconcile-event hook receiving rec-snap-distance (Q4=C). Keeps existing V3 probe untouched (reviewer V3 bind preserved); adds ~30-40 LOC to a sibling class. **Trade-off:** Phase 7 IMPLEMENT scope grows from "create new file" to "refactor + create"; risk of breaking V3 binds.
+- **(c) Build new JitterCapture parallel to VisualShakeProbe.** Per original Q1=A lean. Eats duplication of LateUpdate sampling / ring buffer / `[D-VIS]`-style emit. **Not recommended** — VisualShakeProbe already nails the post-smoother capture target, the L15 normalize, the G1 zero-allocation contract, and the runtime-attach plumbing. Reproducing that risks introducing new bugs (e.g., the L15 zero-quat lesson) that have already been solved here.
+
+**Q4 rec-snap-distance** is orthogonal to the buffer-vs-event capture
+distinction: it's a per-`[Reconcile]`-callback observable, attached at
+motor.cs:550 (per Section 3) under `#if UNITY_EDITOR` (or a sibling
+`BUDDAH_PREDICTION_RECONCILE_PROBE` define). Q4 still needs new
+instrumentation but does NOT need to live inside JitterCapture — a small
+sibling probe (`BuddahPredictionReconcileSnapProbe.cs`?) attaches to the
+motor + emits `[D-REC HEARTBEAT]` with snap-distance distribution per
+heartbeat window. Pattern matches VisualShakeProbe's design exactly.
+
+### 🔑 KEY FINDING — affects Q0 + Q1 lean and Phase 7 IMPLEMENT scope
+
+1. **Q0 metric naming:** VisualShakeProbe already emits `pos-dmax / pos-dp99 / pos-davg` and `rot-dmax / rot-dp99 / rot-davg`. Q0 design Q&A MUST decide whether Phase 7's metric vocabulary aligns with these existing emitted names (analyzer ingests `[D-VIS HEARTBEAT]` directly) or invents new names (analyzer gets stuck doing field-rename mapping). Recommend: **align**; the existing names are sane (dmax = max in window, dp99 = 99th percentile, davg = arithmetic mean) and reusing them keeps the Phase 4b digest-line vocabulary consistent.
+2. **Q1 capture mechanism re-evaluation:** original Q1=A "build new JitterCapture" lean was based on Section 1's incorrect inference that no project-side visual probe existed. Corrected: option (a) — reuse VisualShakeProbe — is the dominant choice. Phase 7 IMPLEMENT can drop from ~50 LOC `JitterCapture.cs` to ~0 LOC code + `BUDDAH_PREDICTION_VISUAL_PROBE` define addition + analyzer that reads `[D-VIS HEARTBEAT]` lines from Editor.log. **Recommend lean revision: Q1=A → Q1=A'(reuse-existing-probe)** if reviewer accepts.
+3. **Q4 rec-snap-distance scope:** unchanged in spirit (still need new instrumentation), but pattern is "sibling probe matching VisualShakeProbe's shape", not "extension of JitterCapture". Q4 IMPLEMENT becomes "add `BuddahPredictionReconcileSnapProbe.cs` + matching `[D-REC HEARTBEAT]` analyzer pass", ~40 LOC, motor.cs:550 hook under a separate define. Pattern reuse keeps both probes architecturally consistent.
+
+**Implementer note re Section 1 in light of this finding:** Section 1's
+KEY FINDING ("no project-side visual layer") was correct in the strict
+sense (no `BuddahPredictedRepresentation` class), but missed the broader
+project visual indirection — `Assets/Scripts/New_Buddah/Visual/BuddahPredictionVisualRootBridge.cs`
+provides `GetVisualRoot()` as the canonical visual-root resolver, used by
+VisualShakeProbe + CameraBridge + CompatibilityRegistry. The Q1 capture-
+target sub-decision from Section 2 (graphical-object child) is unchanged
+in conclusion — `VisualRootBridge.GetVisualRoot()` is the resolver that
+returns the same transform — but the Section 1 wording could be read as
+"no project visual indirection at all" which is misleading. Reviewer may
+want to clarify Section 1 in a follow-up amendment if the wording matters
+beyond the design Q&A scope.
+
 ---
 
 ## 6. Pre-Phase 4b SHA candidate (recon item #6, Q2-A conditional)
@@ -311,11 +438,11 @@ absolute thresholds are used.
 
 ## Summary — what Q0–Q5 must answer (preview, not answers)
 
-- **Q0 — metric definition:** lean (C) preserved (RMS Δposition + Δv-threshold frame-fraction). Add explicit note: metric computed against graphical-object position (see item #2), not motor.transform.
-- **Q1 — capture mechanism:** lean (A) preserved (Editor-only MonoBehaviour). **Sub-decision required (item #1 + #2 KEY FINDINGs):** capture target = `_graphicalObject` child for Q0 jitter metric; consider second optional probe at motor.transform for Q4 rec-snap-distance.
+- **Q0 — metric definition:** lean (C) preserved on substance (per-frame Δposition aggregate + snap-event metric). **Section 5b KEY FINDING:** existing `VisualShakeProbe` already emits `pos-dmax / pos-dp99 / pos-davg` (+ rotation aggregates) — Q0 design MUST decide whether Phase 7 vocabulary aligns with these names (recommended: align) or invents new ones. Note: existing emit is Δ-position arithmetic mean, not strict RMS — convertible offline if Q0 wants RMS specifically.
+- **Q1 — capture mechanism:** **LEAN REVISED.** Original Q1=A "build new ~50 LOC JitterCapture" was based on Section 1's incomplete inference. **Section 5b corrects this**: `BuddahPredictionVisualShakeProbe.cs` (176 LOC, gated by `BUDDAH_PREDICTION_VISUAL_PROBE` define) already implements Phase 7's capture-mechanism core (pinned visual-root LateUpdate sampling, ring-buffer Δposition+Δrotation, dmax/dp99/davg aggregates, L15 normalize, runtime-attach via `BuddahPredictionVisualRootBridge`). **Recommend Q1=A' (reuse-existing-probe)** — option (a) in Section 5b. Phase 7 IMPLEMENT drops from "~50 LOC new file" to "~0 LOC + define addition + analyzer reads `[D-VIS HEARTBEAT]` lines from Editor.log". Sub-decision from Section 2 (capture-target = visual-root post-smoother) is satisfied by the existing probe's `_visualRoot` pinning via `VisualRootBridge.GetVisualRoot()`.
 - **Q2 — comparison baseline:** lean (C with B fallback) preserved. **Risk to address in design:** legacy-path baseline (Q2-A SHA = `2c63bc5`) is apples-to-oranges vs post-V5 prediction-stack — design must justify or fall back to (B).
 - **Q3 — pass criteria:** lean (B-primary + A-secondary) preserved. **Threshold derivation must use graphical-frame time + smoothed position** (item #4) — Q3 design Q&A MUST cite explicit cm/frame value derived against ~16ms render frame, not 20ms tick.
-- **Q4 — reconcile snap probe:** lean (C) preserved (capture + defer analyzer). Insertion point: post `_reconcileCallbackCount++` at motor.cs:550 under `UNITY_EDITOR` guard (item #3).
+- **Q4 — reconcile snap probe:** lean (C) preserved on substance. **Section 5b refinement:** Q4 implementation pattern shifts from "extend JitterCapture" to "add sibling probe `BuddahPredictionReconcileSnapProbe.cs` matching VisualShakeProbe's shape" — ~40 LOC, hooks motor.cs:550 post `_reconcileCallbackCount++` under a sibling define (e.g., `BUDDAH_PREDICTION_RECONCILE_PROBE`). Architectural consistency with the V3 probe.
 - **Q5 — escalation path:** lean (A) preserved (Phase 7.5 retrofit). No recon evidence affects this Q.
 
 Awaiting Stage 2 reviewer SIGN-OFF (independent verification of items #1-#6

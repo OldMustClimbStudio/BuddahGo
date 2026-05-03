@@ -93,6 +93,11 @@ namespace NewBuddah.PredictionV2.Core
         private int _dLocConsecutive;
         private int _shadowActiveCompares;
         private int _shadowSkipCompares;
+        // Phase 4b V5 Q3-B — reconcile-callback count. Cumulative-since-spawn; emitted in
+        // [D-LOC HEARTBEAT] as rec-cb. Used as LatencySim engagement sanity check: under
+        // simulated latency, FishNet fires reconcile more often → growth rate proportional.
+        // 0 callbacks across a session under LatencySim = simulator not engaged.
+        private uint _reconcileCallbackCount;
         private Vector3 _shadowPreClampVelocity;
         private bool _shadowPreTeleportHasPending;
         private BuddahPredictedTeleportEventData _shadowPreTeleportEvent;
@@ -542,6 +547,7 @@ namespace NewBuddah.PredictionV2.Core
         [Reconcile]
         private void ReconcileState(BuddahPredictedReconcileData data, Channel channel = Channel.Unreliable)
         {
+            _reconcileCallbackCount++;
             if (_predictionRigidbody == null || data.RigidbodyState == null)
                 return;
 
@@ -1271,7 +1277,7 @@ namespace NewBuddah.PredictionV2.Core
                 {
                     uint tickIdle = TimeManager != null ? TimeManager.LocalTick : 0u;
                     // V2b Step 1 Q4 / V4: impulse axis dropped from D-LOC HEARTBEAT (LEG axis retired).
-                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} (both sides idle)");
+                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} rec-cb={_reconcileCallbackCount} (both sides idle)");
                     _dLocLocomotionDivCount = 0;
                     _dLocTeleportDivCount = 0;
                     _dLocModifierDivCount = 0;
@@ -1284,7 +1290,7 @@ namespace NewBuddah.PredictionV2.Core
             if ((_shadowActiveCompares % 120) == 1)
             {
                 uint tickHb = TimeManager != null ? TimeManager.LocalTick : 0u;
-                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount}");
+                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} rec-cb={_reconcileCallbackCount}");
                 _dLocLocomotionDivCount = 0;
                 _dLocTeleportDivCount = 0;
                 _dLocModifierDivCount = 0;

@@ -1,0 +1,48 @@
+# Phase 4b V5 Stage 5 SMOKE Digest — Path B HOST (100ms LatencySim)
+
+> ⚠️ **FILE-NAME / ROLE NOTE**: this digest reports the **HOST** role. The raw log file labeled `2026-05-03-phase4b-v5-host-100ms.log` actually contains the **CLIENT** session per role markers (rec-cb=2595, 16 Recv events, StartClient=4, 0 PushHitbox Hit). The raw log file labeled `2026-05-03-phase4b-v5-client-100ms.log` actually contains the **HOST** session (rec-cb=0, 0 Recv, 13 PushHitbox Hit, 14 Router stack frames, StartHost=11). Recommendation: **swap the two raw filenames** to match content. This digest is named per role-content (HOST), pointing at raw log `client-100ms.log`.
+
+- **Raw**: `agent-exchange/console/raw/2026-05-03-phase4b-v5-client-100ms.log` (57 MB) — HOST role per content markers
+- **Role**: HOST (server, FishNet authority side)
+- **LatencySim**: ON (100ms RTT, host-loopback doubles per FishNet docstring)
+- **Editor.log**: 1 `Initialize engine version` block — Rule 1 sub-rule A satisfied
+- **Build**: V5 IMPLEMENT (commit `4b60773`)
+
+## Strict-Gate Counts
+
+| Marker | Count | Gate | Pass/Fail |
+|---|---|---|---|
+| `[D-LOC FATAL]` | 0 | =0 strict | ✅ PASS |
+| `[D-IMP LEG ...]` | 0 | =0 (LEG retired V4) | ✅ PASS |
+| `[CommandBus]:ClearAll` | 8 | 4 × N spawns → N=2 buddahs | ✅ |
+| `[CommandBus]:DropFull` | 0 | =0 | ✅ PASS |
+| `[Channel]:DupReject` | 0 | =0 baseline | ✅ PASS |
+| `[CommandBus]:Recv ch=Impulse` | 0 | n/a (HOST role; server originates impulses, doesn't receive own RPCs) | ✅ EXPECTED |
+| `[D-LOC HEARTBEAT]` rows | 212 | cadence sanity | ✅ |
+| **rec-cb cumulative VALUE** | **0 across all 212 HBs** | HOST baseline (FishNet [Reconcile] doesn't fire on server-self) | ✅ EXPECTED — Q3-B per-peer semantics confirmed |
+| Compile errors during runtime | 0 | =0 | ✅ PASS |
+| Exceptions | 0 | =0 | ✅ PASS |
+| `[PushHitbox] Hit` (server-only) | 13 | host>0 | ✅ Tier 1 server authority active |
+| Router stack frames | 14 | ≥1 evidence | ✅ Tier 2 dispatch |
+| StartHost call frames | 11 | ≥1 host init evidence | ✅ |
+
+## Tier 1 server-side hit chain (HOST observation)
+
+13 `[PushHitbox] Hit` events fired server-side over the session. Sample first 3:
+```
+[PushHitbox] Hit mode=overlap-box victim=Buddah(Clone) owner=0 attacker=Buddah(Clone) impulse=(83.34, 0.00, -55.27)
+[PushHitbox] Hit mode=overlap-box victim=Buddah(Clone) owner=0 attacker=Buddah(Clone) impulse=(-67.63, 0.00, 73.67)
+[PushHitbox] Hit mode=overlap-box victim=Buddah(Clone) owner=0 attacker=Buddah(Clone) impulse=(-68.67, 0.00, 72.69)
+```
+
+All hits show `owner=0` = remote-CLIENT-owned victim → triggered Target_EnqueueImpulse RPC dispatch through `BuddahPredictionRouter.RouteImpulse` → `bootstrap.CombatAdapter.TryRouteImpulse`. CLIENT-side Recv evidence in companion digest.
+
+## Q1 protocol-version handshake — LIVE VERIFIED
+
+CLIENT successfully joined this HOST under LatencySim 100ms. Both peers fresh-built from V5 branch HEAD (commit `4b60773`) → both report `PredictionProtocol.Version = 1`. Handshake at `SteamLobbyManager.JoinLobbyAsync:457-466` did not hard-reject. 16 cross-peer impulse Recvs landed CLIENT-side (companion digest) — would be 0 if Q1 had broken connection.
+
+## Verdict — Path B HOST
+
+**✅ PASS** — All HOST strict gates met under LatencySim 100ms. Server-side authority intact (13 PushHitbox Hits routed via Router/CombatAdapter). Wire format stable (zero schema mismatch across 212 HBs). Q1 handshake live-verified.
+
+Cross-peer Tier 1 chain proof: see companion CLIENT digest for exact impulse-vector + eventTick + logicalId match.

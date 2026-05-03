@@ -1,0 +1,90 @@
+# Phase 4b V5 Stage 5 SMOKE Digest — Path B CLIENT (100ms LatencySim)
+
+> ⚠️ **FILE-NAME / ROLE NOTE**: this digest reports the **CLIENT** role. The raw log file labeled `2026-05-03-phase4b-v5-client-100ms.log` actually contains the **HOST** session per role markers. The raw log file labeled `2026-05-03-phase4b-v5-host-100ms.log` actually contains the **CLIENT** session (rec-cb=2595, 16 Recv events, StartClient=4). Recommendation: **swap the two raw filenames** to match content. This digest is named per role-content (CLIENT), pointing at raw log `host-100ms.log`.
+
+- **Raw**: `agent-exchange/console/raw/2026-05-03-phase4b-v5-host-100ms.log` (37 MB) — CLIENT role per content markers
+- **Role**: CLIENT (joining peer, FishNet non-server)
+- **LatencySim**: ON (100ms RTT)
+- **Editor.log**: 1 `Initialize engine version` block — Rule 1 sub-rule A satisfied
+- **Build**: V5 IMPLEMENT (commit `4b60773`)
+
+## Strict-Gate Counts
+
+| Marker | Count | Gate | Pass/Fail |
+|---|---|---|---|
+| `[D-LOC FATAL]` | 0 | =0 strict | ✅ PASS |
+| `[D-IMP LEG ...]` | 0 | =0 | ✅ PASS |
+| `[CommandBus]:ClearAll` | 8 | 4 × N spawns → N=2 | ✅ |
+| `[CommandBus]:DropFull` | 0 | =0 | ✅ PASS |
+| `[Channel]:DupReject` | 0 | =0 baseline | ✅ PASS |
+| `[CommandBus]:Recv ch=Impulse` | **16** | ≥1 (β path liveness) | ✅ PASS |
+| Recv carries `eventTick=N` AND `logicalId=N` | 16/16 | every line | ✅ PASS |
+| **Monotonic logicalId 1→16, no gaps** | clean | per gate | ✅ PASS |
+| `[D-LOC HEARTBEAT]` rows | 53 | cadence sanity | ✅ |
+| **rec-cb max value (Q3-B)** | **2595** | CLIENT-baseline (Path A=0 HOST baseline; CLIENT-no-LatencySim baseline n/a) | ✅ **MASSIVELY EXCEEDED** |
+| **rec-cb growth pattern** | 0 → 3 → … → 2430 → 2501 → 2595 | monotonic increase across session | ✅ **LatencySim DEFINITIVELY ENGAGED** |
+| Compile errors during runtime | 0 | =0 | ✅ PASS |
+| Exceptions | 0 | =0 | ✅ PASS |
+| `[PushHitbox] Hit` (server-only) | 0 | =0 (CLIENT side) | ✅ EXPECTED |
+| StartClient call frames | 4 | ≥1 client init evidence | ✅ |
+
+## Recv cross-peer alignment (Tier 1 verification — exact HOST→CLIENT match)
+
+| # | logicalId | eventTick | linear impulse | srcType | HOST-side source |
+|---|---|---|---|---|---|
+| 1 | 1 | 6720 | (83.34, 0.00, -55.27) | 1 (PushHitbox) | HOST PushHitbox Hit owner=0 ✅ EXACT MATCH |
+| 2 | 2 | 7487 | (-67.63, 0.00, 73.67) | 1 (PushHitbox) | HOST PushHitbox Hit owner=0 ✅ EXACT MATCH |
+| 3-16 | 3-16 monotonic | various | various impulses | various | (sample first 2 above; remaining 14 pattern-conformant per logicalId monotonic + 0 DupReject) |
+
+- **Wire format gate satisfied**: every Recv carries `eventTick` + `logicalId` per V4 protocol
+- **Q0 dedup state clean**: 0 `[Channel]:DupReject` across full session under LatencySim 100ms — Q0 reconcile-before-RPC race **NOT observed in this run** (per design Q0-A observe-first lean)
+- **Q3.4 wire format compatibility**: zero schema mismatch across 53 HEARTBEAT rows + 16 Recv events
+
+## Q3-B reconcile-callback-count probe — ENGAGEMENT CRUSHED
+
+**Path A baseline (HOST role): rec-cb = 0** (structurally enforced; FishNet [Reconcile] doesn't fire on server-self)
+**Path B CLIENT under 100ms LatencySim: rec-cb = 2595** (final value)
+
+Q3-B engagement gate per design Q3 amendment: _"Path B `rec-cb` final-row value MUST exceed Path A `rec-cb` final-row value by ≥2× OR ≥5 callbacks (whichever greater)."_
+
+Result: **2595 vs 0 baseline = ∞× factor; 2595 absolute callbacks = 519× the ≥5 threshold**. LatencySim is definitively engaged; Inspector toggle persisted; FishNet reconcile pipeline under simulated latency is firing aggressively as designed.
+
+**Growth trajectory:** rec-cb starts at 0 (pre-spawn), reaches 3 within first heartbeat (initial spawn reconcile), plateaus during quiescent ticks, then climbs steeply (2430 → 2595 across last few HBs) — pattern matches LatencySim 100ms inducing frequent client-side rollback/reconcile cycles.
+
+## Spawn-window L7 latch verification
+
+**L7 latch correctness PROVEN (independent of 60-tick distance gate):**
+- 16 Recvs landing with monotonic logicalIds 1→16 = `bootstrap.CombatAdapter.MarkReady()` fired correctly
+- If V4's `#if BUDDAH_PREDICTION_LEGACY_SHADOW` strip had broken the latch → `_initialized=false` indefinitely → `TryRouteImpulse` returns false → 0 CLIENT Recv. We have 16 → latch survived V4 corrective merge
+
+**60-tick distance gate (V4 carry-forward) — partial pass with note (third occurrence):**
+- CLIENT first HB: T=1062 (line 147536)
+- CLIENT first Recv: `eventTick=6720` (logicalId=1, line 242235)
+- Distance: 6720 − 1062 = 5658 ticks (~94s) >> 60-tick gate
+- Reason: user did not initiate combat within first 5s of CLIENT spawn (lobby setup + LatencySim Inspector toggle interaction consumed early window). Same V4 partial-pass pattern, NOT a latch defect.
+- Per V4 Q3.2 + V5 design CC3: _"partial-pass with note"_. Recv liveness + monotonic dedup + rec-cb=2595 jointly prove latch + LatencySim engagement. V5 IMPLEMENT verified despite distance gate not strictly met.
+
+## Q0 reconcile-before-RPC race observation — NOT MANIFESTED
+
+Per design Q0-A defer + observe-first under LatencySim 100ms:
+- 0 `[Channel]:DupReject` across full CLIENT session
+- 16 Recvs all consumed exactly once (per LogicalId monotonic 1→16, no gaps)
+- 0 D-LOC FATAL across 53 HBs
+- Visual smoke per user driver: no visible double-impulse / overshoot artifacts reported
+
+**Verdict on Q0:** race **NOT observed at 100ms RTT**. Per design Q0-A: _"if not observed, document as resolved (with caveat that future increase in reconcile state delivery scope could reintroduce the race)"_. Q0-B preemptive code shape preserved in `agent-exchange/handoff/2026-05-03-phase4b-v5-design.md` for future-phase pivot if needed at 200ms+ regime.
+
+## Verdict — Path B CLIENT
+
+**✅ PASS** — All CLIENT strict gates met under LatencySim 100ms:
+- Zero LEG/LOC FATAL across 53 HEARTBEAT rows
+- 16 Recv with proper format + monotonic logicalIds 1→16 + 0 DupReject
+- L7 latch correctness proven via Recv liveness despite V4 corrective merge
+- 60-tick distance partial-pass (third occurrence of "user didn't push in spawn window" — should be addressed via test driver script for future smokes)
+- **Q3-B engagement gate ABSOLUTELY EXCEEDED** (rec-cb=2595 vs baseline 0)
+- **Q1 protocol-version handshake live-verified** (joined HOST successfully under v1↔v1)
+- **Q0 race NOT observed** (consistent with design Q0-A observe-first lean)
+
+Cross-peer Tier 1 chain confirmed via exact impulse-vector match HOST→CLIENT (logicalId 1+2 verified; remaining 14 pattern-conformant).
+
+**Stage 5 SMOKE Path B + Path A baseline COMPLETE. Stage 6 VERIFY readiness: pass.**

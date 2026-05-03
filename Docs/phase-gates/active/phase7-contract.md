@@ -93,21 +93,30 @@ Recommendation lean: **(A)** — Phase 7 is a measurement phase, not a fix phase
 
 ## Strict gates (preliminary — finalized after Q0 + Q3 + Q4 design)
 
-### Path A — single-machine 30s Editor PlayMode (no LatencySim, baseline)
-- JitterCapture file landed at `agent-exchange/console/raw/<date>-phase7-single-jitter.csv` with non-trivial size
-- Q0-defined metric values computed and reported
-- Q3 absolute threshold met for Path A (sets the no-LatencySim floor)
+### Path A — single-machine 30s Editor PlayMode (wiring sanity only, NOT a comparison reference)
 
-### Path B — 2-peer LAN 60s no LatencySim
-- JitterCapture files for HOST + CLIENT
-- Q0 metric values per peer
-- Both peers meet Q3 absolute threshold (no peer-specific anomalies)
+> **Amended 2026-05-03 per Stage 3 Q2 disposition (OQ2.1 resolved → amend now per Rule 3 strict-gate-in-contract):** Path A demoted from "baseline comparison reference" to "probe wiring sanity only". Q2 fall-back to (B) Path-B-no-LatencySim vs Path-B-100ms-LatencySim only — Q1=A' delivers `[D-VIS HEARTBEAT]` lines into Editor.log (NOT `.csv` per the original scaffold), and the legacy-vs-post-V5 framing is rejected because V1-V5's stated goal was correctness, not visual fidelity (retroactively grading Phase 4b on a target it never claimed produces a misleading number).
 
-### Path B — 2-peer LAN 60s with LatencySim 100ms RTT symmetric
-- JitterCapture files for HOST + CLIENT
-- Q0 metric values per peer + Q4 rec-snap-distance distribution
-- Q3 absolute threshold met for both peers
-- Q3 secondary regression check: Path-B-LatencySim metric ≤ 110% of Path-B-no-LatencySim metric per peer
+- Editor.log captured at `agent-exchange/console/raw/<date>-phase7-single-jitter.log` with non-trivial size
+- At least 1 `[D-VIS HEARTBEAT]` line AND at least 1 `[D-REC HEARTBEAT]` line emitted within first 5 seconds of PlayMode (confirms BOTH probes wire correctly via `BuddahPredictionVisualRootBridge.GetVisualRoot()` + motor.cs:550 hook respectively)
+- NO Q3 absolute threshold gate applied to Path A — passes are tabulated for transparency but do NOT pass/fail the run
+
+If either heartbeat line is missing, abort SMOKE + inspect probe attachment before proceeding to Path B (per design SMOKE plan annotations). This is a Rule 1-D post-smoke event sanity check.
+
+### Path B — 2-peer LAN 60s no LatencySim (primary baseline per Q2=B)
+- Editor.log files for HOST + CLIENT at `agent-exchange/console/raw/<date>-phase7-{host,client}-jitter.log`
+- Q0 metric values per peer per `owner=true/false` flag (R0.2 — owner/spectator interp differ; gates evaluated per-flag, not aggregated)
+- Q3 absolute thresholds (G3.1-G3.6 per design) met per peer per `owner=` flag
+- Q4 `rec-snap-{max,p99,avg}` per peer recorded; if non-trivial on no-LatencySim path, flag as informational finding (per OQ3.2 disposition — gate applies, near-zero expected)
+- SUCCESS CRITERIA SC.1/SC.2/SC.3 driver observations annotated in SMOKE digest
+
+### Path B — 2-peer LAN 60s with LatencySim 100ms RTT symmetric (primary characterization per Q2=B)
+- Editor.log files for HOST + CLIENT at `agent-exchange/console/raw/<date>-phase7-{host,client}-100ms-jitter.log`
+- Q0 metric values per peer per `owner=` flag + Q4 rec-snap distribution per peer
+- Q3 absolute thresholds (G3.1-G3.6) met per peer per `owner=` flag
+- Q3 secondary regression check: G3.SEC.1 `pos-dp99` Path-B-100ms ≤ **110%** of Path-B-no-LatencySim per peer per `owner=` flag; G3.SEC.2 `rec-snap-p99` Path-B-100ms ≤ **300%** of Path-B-no-LatencySim per peer (higher tolerance because no-LatencySim baseline is near-zero, so % comparison noisier)
+- SUCCESS CRITERIA SC.1/SC.2/SC.3 driver observations annotated; reviewer cross-references with numerics at Stage 6
+- Define-symbols cleanup confirmed post-SMOKE: `BUDDAH_PREDICTION_VISUAL_PROBE` AND `BUDDAH_PREDICTION_RECONCILE_PROBE` removed from Project Settings → Player → Scripting Define Symbols before VERIFY
 
 ---
 
@@ -140,7 +149,7 @@ Recommendation lean: **(A)** — Phase 7 is a measurement phase, not a fix phase
 |---|---|---|---|
 | Kickoff | 2026-05-03 | cowork-reviewer | Contract stamped post Phase 4b CLOSEOUT (PR #41 V5 closeout + PR #42 retrospective housekeeping + PR #43 archive backfill all merged to dev). 6 PRE-WORK Q seeded with leans (Q0=C, Q1=A, Q2=C with B fallback, Q3=B-primary+A-secondary, Q4=C, Q5=A) per kickoff draft companion at `agent-exchange/handoff/2026-05-03-phase7-kickoff-draft.md`. Process flow + dependency map at `agent-exchange/handoff/2026-05-03-phase7-process-flow.md` (~280 lines, 7 stages × concrete checklist + RECON target inventory + Q answer dependency tree + IMPLEMENT file scaffold + SMOKE per-path procedure + VERIFY 5-stage list + closeout decision tree + Rules→Stages mapping). Implementer (Claude Code) authorized to cut `feat/phase7-visual-jitter-evaluation` from dev tip + begin Stage 2 RECON. Helper script (`Tools/Harness/Get-BuddahGoHarnessContext.ps1`) should now surface this contract automatically per V5 housekeeping addition — implementer should run helper before RECON to confirm. |
 | Recon | 2026-05-03 | cowork-reviewer | RECON delivered as commit `edd55ce`, Surface 5 amended in `fea8a40` post reviewer follow-up (PR #44 branch tip). 6 inventory items + 4 KEY FINDINGs (initial 2 from edd55ce: KF1 _graphicalObject smoother target / KF2 pre-4b SHA `2c63bc5` apples-to-oranges; amendment 2 from fea8a40: Q0+Q1 reuse-VisualShakeProbe / Q4 sibling-probe pattern). Pre-flight blocker (helper PS 5.1 parser fail at line 360 due to U+23F8 in regex string) caught by implementer at Stage 2 entry per stop rule, fixed via Option 3 (regex changed to date-pattern match, pure ASCII), validated end-to-end. **Q1 lean revision DECIDED: Q1=A'(reuse-existing-probe)** — option (a) in Section 5b. Phase 7 IMPLEMENT scope drops from "~50 LOC new file" to "~0 LOC code + `BUDDAH_PREDICTION_VISUAL_PROBE` define + analyzer reads `[D-VIS HEARTBEAT]` lines". Q0=C metric vocabulary aligns with existing `pos-dmax / pos-dp99 / pos-davg` + `rot-dmax / rot-dp99 / rot-davg` emit. Q0=B "frame fraction with Δv > threshold" approximation accepted: heartbeat-window `pos-dmax` outlier counting at ~1-second granularity matches user-perception timescale; primary snap-event detection delegated to Q4 dedicated sibling probe. **Q4 sibling-probe pattern ACCEPTED:** new `BuddahPredictionReconcileSnapProbe.cs` ~40 LOC under separate `BUDDAH_PREDICTION_RECONCILE_PROBE` define, hooks motor.cs:550 post `_reconcileCallbackCount++`. **Q2 apples-to-oranges:** still preserved as design Q&A risk to address. **Section 1 self-correction:** no further amendment needed — original wording strictly correct (no `*Representation` class); Sections 2 + 5b together establish `BuddahPredictionVisualRootBridge.GetVisualRoot()` as the canonical resolver, sufficient via cross-reference. **L23 + Rule 2 "Tooling change execution-test" sub-clause:** first application held under stress test (author-side execution test passed; reviewer cross-execution fell back to grep semantic-equivalence due to no-pwsh-in-Linux-container). **Rule 12 honored:** zero pre-fill of reviewer-signed rows. Verify reports at `agent-exchange/handoff/2026-05-03-phase7-recon-verify.md` (initial) + this Recon row stamp paraphrases the Surface 5 follow-up disposition. **Stage 3 DESIGN-QA AUTHORIZED.** |
-| Design | ⏸ | | |
+| Design | 2026-05-03 | cowork-reviewer | Design Q&A delivered as commit `c409618` at `agent-exchange/handoff/2026-05-03-phase7-design.md` (284 lines, Template 2 form). All 6 Q answered in dependency order Q1→Q2→Q0→Q4→Q3→Q5 with rationale + scope + risks + open questions. **Reviewer disposition of all 5 open questions:** **OQ2.1** = AMEND NOW per Rule 3 (strict-gate-in-contract); contract Path A demoted to "wiring sanity only" + Path B sections updated to specify Editor.log capture (not .csv) + per-`owner=` flag evaluation + define-cleanup gate — applied via this same commit's contract edit. **OQ0.1** = ACCEPT — `pos-dp99` primary gate (sustained-jitter detector) + `pos-dmax` secondary spike-cap; both already in design G3.1+G3.2. **OQ3.1** = ACCEPT implementer-proposed thresholds as-is — reviewer's earlier "what is good" table was calibrated against an INCORRECT max-speed assumption (~6 m/s vs actual 80 m/s per `BuddahPredictedMotorConfig.cs:12`); when scaled to actual speed, reviewer numbers converge with implementer first-principles (G3.1 ~30cm at 22% of nominal per-frame Δp = 1.33 m/frame at 80 m/s steady-state). Implementer thresholds stand as design baseline; if Path-B-no-LatencySim itself fails any gate, that surfaces pre-existing visible jitter as a measurement → Phase 7.5 fires per Q5-A even though Phase 7 is "just measurement". **OQ3.2** = ACCEPT — gate G3.5/G3.6 applied to BOTH B-paths; near-zero rec-snap expected on no-LatencySim (reconciles vanishingly rare absent latency); non-trivial rec-snap on no-LatencySim is itself a flagged finding. **OQ4.1** = ACCEPT `internal static event` — single-event single-subscriber pattern matches "one Buddah motor per Editor session" reality and avoids per-instance reference threading through Bootstrap. **Q1=A' / Q2=B / Q0=C-with-B-delegate / Q4 sibling-probe / Q3 anchor / Q5=A** all confirmed; SUCCESS CRITERIA SC.1/SC.2/SC.3 (rubber-banding / push recoil / hitbox-visual desync) folded into SMOKE driver workflow. **R1.3 + define-symbol cleanup discipline** ratified as Stage 6 verify gate: `BUDDAH_PREDICTION_VISUAL_PROBE` AND `BUDDAH_PREDICTION_RECONCILE_PROBE` MUST be removed from `ProjectSettings/ProjectSettings.asset` Scripting Define Symbols before merge; verify confirms via `git diff origin/dev -- ProjectSettings/ProjectSettings.asset` showing no scripting-define-symbol residue. Rule 12 honored — implementer pre-filled none of Recon/Design/Verify rows; this Design row is reviewer-original. **Stage 4 IMPLEMENT AUTHORIZED.** Implementer cuts: (1) `Assets/Scripts/New_Buddah/Debug/BuddahPredictionReconcileSnapProbe.cs` ~40 LOC under `#if BUDDAH_PREDICTION_RECONCILE_PROBE`, (2) single `UNITY_EDITOR`-guarded `internal static event Action<Vector3,Vector3>? OnReconcileSampled` declaration + invoke at motor.cs:550 area (the ONLY motor.cs touch authorized in Phase 7), (3) `Tools/Analysis/AnalyzeJitter.ps1` ~80 LOC PowerShell ASCII-only ingester for `[D-VIS HEARTBEAT]` + `[D-REC HEARTBEAT]` lines. R1.2 grep confirms `BUDDAH_PREDICTION_VISUAL_PROBE` only references the V3 probe — to be re-confirmed at Stage 4 IMPLEMENT step 1. |
 | Implementation | ⏸ | | |
 | Smoke | ⏸ | | |
 | Verify | ⏸ | | |

@@ -188,6 +188,48 @@ If a phase audit identifies a question affecting future phases, document it:
 Carry-forward flags MUST NOT be silently actioned in the current PR. Each
 flag is its own future decision.
 
+## Rule 11 — SMOKE driver hard-precondition for time-sensitive probes (added 2026-05-03 from V5 closeout, A2 third occurrence)
+
+When a strict gate's pass criterion is **time-sensitive** — i.e., depends on
+the user-driver doing a specific action within a narrow window after PlayMode
+entry — the SMOKE driver MUST verify the precondition is achievable BEFORE
+entering PlayMode, and ABORT the run if it is not.
+
+**Canonical example — V5 spawn-window 60-tick L7 latch probe:**
+- Gate: CLIENT first Recv `eventTick - first HB tick < 60` (~1 second)
+- Driver precondition: peer-2 must push CLIENT buddah within ~3-5s of CLIENT
+  spawn, or the spawn-window race condition is not actually stress-tested
+- Failure mode: partial-pass with note (latch correctness can still be proven
+  via Recv liveness + monotonic logicalId), BUT the gate becomes vacuous
+
+**Why a rule and not just a checklist item:**
+The V5 closeout review surfaced this gate has now partial-passed **3 times in
+a row** (V4 Path B + V5 Path A baseline + V5 Path B). Each time the latch
+correctness was independently provable from other evidence, so the run was
+accepted. But the spawn-window stress-test was never actually applied. A
+gate that never fails is not protecting against the failure mode it claims to.
+
+**Driver action protocol (mandatory for time-sensitive probes):**
+1. Before entering PlayMode, driver MUST be ready to execute the precondition
+   action (e.g., finger on push key) — NOT in the middle of lobby setup
+2. If lobby setup or LatencySim toggle interaction would consume the window,
+   PlayMode entry MUST be deferred until setup is complete and driver is
+   action-ready
+3. If the driver realizes mid-run the window was missed, ABORT the run, do
+   NOT dump the log, retry from clean state
+4. Reviewer verifies precondition was met by checking first-action timestamp
+   vs spawn timestamp at SMOKE digest stage; if not met, escalates to
+   driver-rerun, NOT acceptance via "other evidence"
+
+**Scope:** applies to spawn-window probes, race-condition probes, latency-
+sensitive RPC ordering tests, any gate citing a specific tick or millisecond
+window. Does NOT apply to long-window cumulative gates (e.g., counter
+HEARTBEAT cadence, cumulative FATAL=0 across full session).
+
+**Tradeoff acknowledged:** stricter driver discipline means more aborts and
+reruns. Acceptable cost. The alternative — accepting partial-pass via
+"other evidence" three runs in a row — is the failure mode this rule fixes.
+
 ## Rule 10 — Working tree commit hygiene (added 2026-05-02 from incident)
 
 Phase Gate System docs and contracts in this folder MUST be committed to git

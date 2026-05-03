@@ -34,7 +34,13 @@ param(
     [Parameter(Mandatory=$true)][string[]] $LogPaths,
     [string] $BaselineLatencyTag = 'no-latency',
     [string] $LatencySimTag = '100ms',
-    [string] $OutputJson
+    [string] $OutputJson,
+    # Stage 4 extension (Path C): frame-time stutter threshold in milliseconds.
+    # 25.0 ms = 1.5x the 16.67 ms 60fps baseline. Per FrameTimeProbe: dt-p99 above
+    # this within a heartbeat window flags that window as Confounded by Editor
+    # stutter. >50% Confounded HBs across the session triggers the
+    # STUTTER-CONFOUNDED banner downgrading data to upper bound only.
+    [double] $StutterThreshold = 25.0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -80,10 +86,23 @@ function Parse-Heartbeats {
                 Type = 'REC'
                 Frame = [int]$Matches[1]
                 Window = [int]$Matches[2]
-                RecSnapMax = [double]$Matches[3].Value
-                RecSnapP99 = [double]$Matches[4].Value
-                RecSnapAvg = [double]$Matches[5].Value
+                RecSnapMax = [double]$Matches[3]
+                RecSnapP99 = [double]$Matches[4]
+                RecSnapAvg = [double]$Matches[5]
                 Owner = ($Matches[6] -ieq 'true' -or $Matches[6] -ieq 'True')
+            })
+            continue
+        }
+        # [D-FT HEARTBEAT] is single-line. Stage 4 extension (Path C frame-time probe).
+        # No Owner field (frame-time is machine-global, not per-Buddah).
+        if ($line -match '\[D-FT HEARTBEAT\] frame=(\d+) dt-min=([0-9.E+-]+) dt-p99=([0-9.E+-]+) dt-max=([0-9.E+-]+) dt-avg=([0-9.E+-]+)') {
+            [void]$result.Add([PSCustomObject]@{
+                Type = 'FT'
+                Frame = [int]$Matches[1]
+                DtMin = [double]$Matches[2]
+                DtP99 = [double]$Matches[3]
+                DtMax = [double]$Matches[4]
+                DtAvg = [double]$Matches[5]
             })
         }
     }
@@ -145,9 +164,9 @@ if ($allEvents.Count -eq 0) {
     Write-Output ''
     Write-Output '# Phase 7 jitter analysis -- NO heartbeat events parsed'
     Write-Output ''
-    Write-Output 'No [D-VIS HEARTBEAT] or [D-REC HEARTBEAT] lines found. Confirm:'
-    Write-Output '  1. SMOKE was run with BUDDAH_PREDICTION_VISUAL_PROBE + BUDDAH_PREDICTION_RECONCILE_PROBE both defined.'
-    Write-Output '  2. Probes were attached (per Bootstrap.cs:77 wiring for VIS; manual or future Bootstrap wiring for REC).'
+    Write-Output 'No [D-VIS HEARTBEAT] / [D-REC HEARTBEAT] / [D-FT HEARTBEAT] lines found. Confirm:'
+    Write-Output '  1. SMOKE was run with BUDDAH_PREDICTION_VISUAL_PROBE + BUDDAH_PREDICTION_RECONCILE_PROBE (and Path C: BUDDAH_PREDICTION_FRAMETIME_PROBE) both/all defined.'
+    Write-Output '  2. Probes were attached (per Bootstrap.cs:77 wiring for VIS; manual AddComponent on Buddah prefab instance for REC and FT).'
     Write-Output '  3. PlayMode actually ran for >= heartbeat-window worth of frames/events.'
     return
 }
@@ -159,8 +178,29 @@ Write-Output ''
 Write-Output '# Phase 7 jitter analysis'
 Write-Output ''
 Write-Output ('Files ingested: ' + ($LogPaths | ForEach-Object { [System.IO.Path]::GetFileName($_) } | Sort-Object -Unique) -join ', ')
-Write-Output ('Total heartbeats parsed: ' + $allEvents.Count + ' (VIS=' + (@($allEvents | Where-Object { $_.Type -eq 'VIS' })).Count + ', REC=' + (@($allEvents | Where-Object { $_.Type -eq 'REC' })).Count + ')')
+$visCount = (@($allEvents | Where-Object { $_.Type -eq 'VIS' })).Count
+$recCount = (@($allEvents | Where-Object { $_.Type -eq 'REC' })).Count
+$ftCount  = (@($allEvents | Where-Object { $_.Type -eq 'FT'  })).Count
+Write-Output ('Total heartbeats parsed: ' + $allEvents.Count + ' (VIS=' + $visCount + ', REC=' + $recCount + ', FT=' + $ftCount + ')')
 Write-Output ''
+
+# Stage 4 extension: STUTTER-CONFOUNDED session banner.
+# If [D-FT HEARTBEAT] events present and >50% have dt-p99 > $StutterThreshold,
+# downgrade entire session data to upper-bound only. If no FT events present,
+# no banner (user did not run Path C / FrameTimeProbe -- silent skip).
+if ($ftCount -gt 0) {
+    $ftEvents = @($allEvents | Where-Object { $_.Type -eq 'FT' })
+    $confoundedCount = (@($ftEvents | Where-Object { $_.DtP99 -gt $StutterThreshold })).Count
+    $confoundedPct = [math]::Round(100.0 * $confoundedCount / $ftEvents.Count, 1)
+    if ($confoundedCount -gt ($ftEvents.Count / 2)) {
+        Write-Output ('STUTTER-CONFOUNDED RUN: ' + $confoundedCount + '/' + $ftEvents.Count + ' (' + $confoundedPct + '%) FT heartbeats exceeded dt-p99 > ' + $StutterThreshold + ' ms.')
+        Write-Output 'Treat all VIS / REC metrics as UPPER BOUND only; real visual jitter cannot be cleanly separated from Editor stutter on this run.'
+        Write-Output ''
+    } else {
+        Write-Output ('Frame-time clean: ' + $confoundedCount + '/' + $ftEvents.Count + ' (' + $confoundedPct + '%) FT heartbeats above stutter threshold (threshold=' + $StutterThreshold + ' ms).')
+        Write-Output ''
+    }
+}
 
 # Q3 absolute gates per (PathTag, PeerTag, Owner) -- VIS metrics.
 Write-Output '## Q3 absolute gates -- visual-shake (VIS) metrics'
@@ -195,6 +235,21 @@ foreach ($g in ($groups | Where-Object { $_.Group[0].Type -eq 'REC' } | Sort-Obj
     $g35 = if ($recP99 -lt $Gate_RecSnapP99) { 'PASS' } else { 'FAIL' }
     $g36 = if ($recMax -lt $Gate_RecSnapMax) { 'PASS' } else { 'FAIL' }
     Write-Output ("| {0} | {1} | {2} | {3:F4} | {4:F4} | {5:F4} | {6} | {7} | {8} |" -f $events[0].PathTag, $events[0].PeerTag, $events[0].Owner, $recAvg, $recP99, $recMax, $window, $g35, $g36)
+}
+
+# Stage 4 extension: per-heartbeat frame-time table (Path C FrameTimeProbe).
+# Per HB: dt-min / dt-p99 / dt-max / dt-avg in milliseconds + FrameStability column.
+# Skips silently if no FT events parsed (V5 logs / non-Path-C runs).
+if ($ftCount -gt 0) {
+    Write-Output ''
+    Write-Output ('## Frame-time per heartbeat (Path C FrameTimeProbe; stutter threshold=' + $StutterThreshold + ' ms)')
+    Write-Output ''
+    Write-Output '| SourceFile | PathTag | Peer | Frame | dt-min | dt-p99 | dt-max | dt-avg | FrameStability |'
+    Write-Output '|---|---|---|---:|---:|---:|---:|---:|:---:|'
+    foreach ($e in (@($allEvents | Where-Object { $_.Type -eq 'FT' }) | Sort-Object SourceFile, Frame)) {
+        $stability = if ($e.DtP99 -lt $StutterThreshold) { 'Clean' } else { 'Confounded' }
+        Write-Output ("| {0} | {1} | {2} | {3} | {4:F3} | {5:F3} | {6:F3} | {7:F3} | {8} |" -f $e.SourceFile, $e.PathTag, $e.PeerTag, $e.Frame, $e.DtMin, $e.DtP99, $e.DtMax, $e.DtAvg, $stability)
+    }
 }
 
 # Secondary regression checks: 100ms vs no-latency, per (peer, owner).

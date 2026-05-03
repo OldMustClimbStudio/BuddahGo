@@ -106,6 +106,28 @@ Recommendation lean: **(A)** — Phase 7 is a measurement phase, not a fix phase
 
 If either heartbeat line is missing, abort SMOKE + inspect probe attachment before proceeding to Path B (per design SMOKE plan annotations). This is a Rule 1-D post-smoke event sanity check.
 
+### Path C — host-only 90s active play (NEW per Yonezawa Stage 5 amendment 2026-05-03)
+
+> **Scope amendment:** Yonezawa disclosed that the V5 SMOKE CLIENT machine experienced severe frame drops, so V5 client data is confounded by Editor stutter. Yonezawa proposes a host-only run to bypass network + peer variables — visible jitter is also observable on host-only. Path C is this new baseline. Stage 4 extension adds `BuddahPredictionFrameTimeProbe` so the analyzer can flag stutter-confounded windows and downgrade their data to upper-bound only.
+
+- Editor PlayMode, host-mode start (server + client in same process; no peer joins)
+- 90 seconds of continuous movement (driving) + random skill cast (no idle phase — game mechanic constraint per Yonezawa: standing still is not a valid play state)
+- Editor.log captured at `agent-exchange/console/raw/<date>-phase7-host-only-jitter.log`
+- Pre-PlayMode: add to `ProjectSettings/ProjectSettings.asset` Standalone scripting-define-symbols both:
+  - `BUDDAH_PREDICTION_RECONCILE_PROBE` (Phase 7 Stage 4 deliverable)
+  - `BUDDAH_PREDICTION_FRAMETIME_PROBE` (Phase 7 Stage 4 extension deliverable)
+  Both symbols removed before push per α discipline (zero net residue verified by `git diff origin/dev -- ProjectSettings/ProjectSettings.asset`).
+- Manual `AddComponent<BuddahPredictionReconcileSnapProbe>()` + `AddComponent<BuddahPredictionFrameTimeProbe>()` on the Buddah prefab instance after PlayMode entry (per α — no Bootstrap runtime-attach plumbing for these probes; deferred to Phase 7.6).
+- Driver SC.1 (rubber-banding) observed continuously throughout the 90s segment. SC.2 (push recoil) and SC.3 (hitbox-visual desync) are **N/A** for Path C — host-only has no peer to push or collide with.
+- **Frame-time gate:** session `dt-p99` < 25 ms across the 90s window. If any heartbeat exceeds the threshold, that window is flagged Confounded by the analyzer; if >50% of FT heartbeats are Confounded, the analyzer emits a session-level `STUTTER-CONFOUNDED RUN` banner and all VIS/REC metrics are interpreted as upper bound only.
+- Q3 absolute thresholds G3.1-G3.6 apply ONLY to FT-Clean heartbeats. G3.5/G3.6 (rec-snap) still expected to fire on host-only because the host's local-client predicts vs the same-process server — even at 0 latency, FishNet's prediction stack runs reconciliation.
+
+**Why this path matters (rationale for adding to scope):**
+- Discriminates LatencySim-induced jitter (Path B 100ms only) vs baseline prediction-stack jitter (Path C zero network).
+- If Path C jitter is observed → Layer 3 hard-snap is a structural problem; Phase 7.5-A FishNet smooth-reconciliation + `_enableTeleport: 0 → 1` retrofit is the right scope.
+- If Path C jitter is absent → jitter only manifests under network conditions; Phase 7.5 design Q&A pivots to a different retrofit branch (e.g., R7.5-D narrow Layer-6 desync).
+- Surface 7 hypothesis ranking pre-bias: host-side reconcile rate ~49 Hz (Surface 7.5 corrected attribution) is structurally tight against 60 Hz tick / 120 fps render even at 0 network latency, so Path C is expected to surface jitter and confirm hypothesis #1.
+
 ### Path B — 2-peer LAN 60s no LatencySim (primary baseline per Q2=B)
 - Editor.log files for HOST + CLIENT at `agent-exchange/console/raw/<date>-phase7-{host,client}-jitter.log`
 - Q0 metric values per peer per `owner=true/false` flag (R0.2 — owner/spectator interp differ; gates evaluated per-flag, not aggregated)

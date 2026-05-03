@@ -115,6 +115,25 @@ halt VERIFY and escalate to IMPLEMENT for completion before any smoke /
 grep / sign-off. The L22 incident (V4 PR #37 merged with 6 files of
 unstaged deletions) is the canonical failure mode.
 
+**Pre-grep gate drift discrimination (added 2026-05-03 from V5 verify):** if
+`git status --short` flags drift in scope, reviewer MUST discriminate real
+content drift from environment artifacts before halting:
+- **CRLF-only drift** (Windows working tree LF vs CR-LF in HEAD blob, or
+  vice versa): run `git diff --ignore-all-space HEAD -- <path>`; empty diff
+  + `sha256` of file with `\r` stripped == `sha256` of `git show HEAD:<path>`
+  with `\r` stripped → drift is line-ending only, NOT a real edit.
+- **Mount-layer truncation** (Linux container reading large Windows-mounted
+  files may truncate; symptom: file ends mid-token like `private void Handl`
+  while HEAD blob ends with proper closing brace): compare `wc -c` of
+  working tree vs `git cat-file -s <ref>:<path>`; if working tree size < HEAD
+  size and HEAD content has correct termination, working tree view is the
+  artifact, NOT a real edit.
+- Both classes do NOT block sign-off, BUT reviewer MUST document the
+  discrimination evidence in the verify report (cite which discriminator
+  command + output proved the drift was an artifact).
+- Real content drift (sha after CRLF-strip differs, not size truncation)
+  STILL halts VERIFY and escalates to IMPLEMENT per the original gate.
+
 **Cross-ref:** L22 in `Docs/lessons-log.md`.
 
 ## Rule 3 — Strict gate definition lives in the contract
@@ -241,3 +260,36 @@ After contract edit / phase doc creation, commit immediately. Do NOT defer
 commits to a "polish PR later" — that pattern caused total loss of Phase A
 docs + V3 contract during V3 IMPLEMENT phase. Recovery cost: full re-write
 from chat memory, plus integration churn into the active feature PR.
+
+## Rule 12 — Reviewer sign-off rows: independent authorship (added 2026-05-03 from V5 closeout retrospective)
+
+**Implementer SHOULD NOT pre-fill reviewer-signed rows in the active contract
+sign-off ledger.** The Recon / Design / Verify rows belong to the reviewer's
+independent investigation; pre-filling them — even with intended-correct
+content — inverts the sign-off direction (reviewer becomes validator of
+pre-written claims rather than author of an independent finding) and creates
+confirmation-bias risk: the reviewer reads the pre-filled "STRICT PASS"
+before running their own grep, anchoring their judgment to a positive
+expectation.
+
+**If the implementer pre-fills a reviewer row out of communication
+convenience** (e.g., to give the reviewer a starting structure), the reviewer
+MUST:
+1. Author an independent verify report at `agent-exchange/handoff/<date>-<phase>-verify.md` (or PR-specific equivalent) with raw verification commands + outputs
+2. Revise the contract row's first sentence to point at that report as the
+   source-of-truth: "see `<path>` for independent grep evidence; this row
+   paraphrases that report"
+3. NOT silently accept the pre-filled content even if it agrees with the
+   independent finding — the audit trail must show the verify happened
+   AFTER the implementer claim, not concurrent with it
+
+**Why this matters:** the V5 contract `b53c383` commit pre-filled the Verify
+row with "STRICT PASS" before reviewer ran independent grep. The pre-fill
+content turned out factually correct (rec-cb=2595, cross-peer Tier 1 chain
+exact-match), but the audit chain is muddied — a third party reading the
+contract cannot tell whether the reviewer independently arrived at "STRICT
+PASS" or merely accepted the claim. Confirmation-bias risk + audit-trail
+ambiguity are both real costs even when the substantive finding agrees.
+
+**Cross-ref:** L22 (working tree vs HEAD verification target) + Rule 2
+(independent verification) + V5 closeout retrospective notes.

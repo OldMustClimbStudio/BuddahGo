@@ -329,3 +329,50 @@ Write-Output "Stop conditions:"
 foreach ($stop in $summary.stopConditions) {
     Write-Output ("- {0}" -f $stop)
 }
+
+# Active Phase Gate surface (added 2026-05-03 from V5 closeout retrospective).
+# Auto-discovers active phase contract(s) and prints status + last ledger row.
+# Helps any new session immediately know which phase + stage is in flight,
+# without having to read the full contract upfront.
+$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$activeContractDir = Join-Path $repoRoot "Docs/phase-gates/active"
+
+if (Test-Path $activeContractDir) {
+    $activeContracts = @(Get-ChildItem -Path $activeContractDir -Filter "*-contract.md" -ErrorAction SilentlyContinue)
+
+    if ($activeContracts.Count -gt 0) {
+        Write-Output ""
+        Write-Output "Active Phase Gate:"
+        foreach ($contract in $activeContracts) {
+            $relativePath = $contract.FullName.Substring($repoRoot.Length).TrimStart('\', '/').Replace('\', '/')
+            Write-Output ("- contract: {0}" -f $relativePath)
+
+            $contractContent = Get-Content -Path $contract.FullName -ErrorAction SilentlyContinue
+            if ($contractContent) {
+                $statusLine = $contractContent | Where-Object { $_ -match '^\*\*Status:\*\*' } | Select-Object -First 1
+                if ($statusLine) {
+                    Write-Output ("  * {0}" -f $statusLine.Trim())
+                }
+
+                # Last non-empty sign-off ledger row (table row starting with "|")
+                # that has a non-empty Date cell. Skips header + separator rows.
+                $ledgerRows = $contractContent | Where-Object { $_ -match '^\| ' -and $_ -notmatch '^\|---' -and $_ -notmatch '^\| Stage \|' }
+                $lastSignedRow = $ledgerRows | Where-Object { $_ -notmatch '^\| [A-Za-z]+ \| ⏸' } | Select-Object -Last 1
+                if ($lastSignedRow) {
+                    # Truncate ledger row to first 200 chars to keep helper output readable.
+                    $rowDisplay = $lastSignedRow.Trim()
+                    if ($rowDisplay.Length -gt 200) {
+                        $rowDisplay = $rowDisplay.Substring(0, 197) + "..."
+                    }
+                    Write-Output ("  * last signed: {0}" -f $rowDisplay)
+                }
+            }
+        }
+
+        Write-Output ""
+        Write-Output "Verify discipline (Phase Gate System):"
+        Write-Output "- Negative claims: use git plumbing (git show HEAD:<path>, git status --short, git diff origin/<base>) — NOT Read/Grep on working tree (per L22 + methodology Rule 2)"
+        Write-Output "- Stage 6 first command: git status --short filtered to phase scope; discriminate CRLF/mount-truncation drift before halting"
+        Write-Output "- Verify report template: Docs/phase-gates/templates.md Template 4 (post-L22)"
+    }
+}

@@ -127,34 +127,140 @@ Used in GitHub PR description body.
 
 ---
 
-## Template 4 — Smoke Verification Report
+## Template 4 — Stage 6 Independent Verify Report (post-L22)
 
-Filename: `agent-exchange/handoff/<YYYY-MM-DD>-<phase-id>-verify.md`
+Filename: `agent-exchange/handoff/<YYYY-MM-DD>-<pr#-or-phase-id>-verify.md`
+
+This template subsumes the older "Smoke Verification Report" form and adds
+git-plumbing verification (Stage A) + sign-off matrix + reflective lesson
+section. Use this for ALL Stage 6 verify passes; the old form is deprecated.
 
 ```
-# <Phase ID> — Independent Verification
+# PR #<NN> — <phase-id> — Independent Stage 6 VERIFY
 
-**Raw log paths:** <list>
+**Date:** <YYYY-MM-DD>
 **Reviewer:** <agent-name>
-**Verification date:** <YYYY-MM-DD>
+**Branch:** <branch-name> @ <SHA>
+**Base:** <base-branch> (post any prerequisite merges)
+**Verify discipline:** L22-compliant — `git show <ref>:<path>` + raw-log
+independent grep (NOT trust-digest, NOT Read on working tree as primary)
+**Reviewer note:** [if contract has pre-filled reviewer rows per Rule 12,
+state that this report is the actual independent verify; the contract row
+content is a claim to validate, not a sign-off provided.]
 
 ---
 
-## Path A grep results
-[actual grep output, line counts, sample lines]
+## Result: ✅ STRICT PASS / ❌ FAIL / ⚠ PASS WITH CAVEATS
 
-## Path B HOST grep results
+[1-2 paragraph executive summary. State the headline finding + any non-
+blocking action items.]
 
-## Path B CLIENT grep results
+---
 
-## Cross-check vs implementer's digest
-[each metric: digest value vs reviewer grep value, must match]
+## Stage A — git plumbing verify of IMPLEMENT (commit `<SHA>`)
 
-## Anomalies
-[anything unexpected, even if within gate]
+### A.1 <First implementation deliverable, e.g., new file>
+```
+git show <ref>:<path>
+→ [content snippet or summary]
+```
+✓/✗ Matches design <Q-ref>.
 
-## Verdict
-[PASS / FAIL / PASS WITH CAVEATS, with explicit reasoning]
+### A.2 <Second deliverable, e.g., insertion sites in existing file>
+```
+git show <ref>:<path> | grep -n "<token>"
+→ :<line>  <code>
+```
+✓/✗ All N design-spec sites present.
+
+### A.3 <Third deliverable>
+[same pattern]
+
+### A.4 Stage 6 pre-grep gate (L22 self-application)
+```
+git status --short -- <phase scope files>
+→ <output>
+```
+[Discriminate any drift per methodology Rule 2 mount-artifact discrimination
+sub-clause: CRLF-only? Mount truncation? Real edit?]
+[Conclude: gate PASSES / FAILS]
+
+---
+
+## Stage B — Independent raw-log grep (V4-inherited gates)
+
+| Gate | Path A | Path B HOST | Path B CLIENT | Pass? |
+|---|---:|---:|---:|:---:|
+| `D-LOC FATAL` | | | | |
+| `D-IMP LEG/INV FATAL` | | | | |
+| `leg-imp-div=[1-9]` (or inv-) | | | | |
+| `DropFull` | | | | |
+| `DupReject` | | | | |
+| `[CommandBus]:ClearAll` | | | | |
+| `FirstInvoke` | | | | |
+| `schema mismatch` | | | | |
+
+[Add or remove rows per active contract's strict-gate definitions.]
+
+---
+
+## Stage C — Phase-specific gate verification
+
+### C.1 <First phase-specific gate, e.g., Q3-B engagement metric>
+[evidence + threshold comparison]
+
+### C.2 <Second phase-specific gate>
+[evidence]
+
+### C.3 Cross-peer Tier 1 chain (if 2-peer test)
+[exact byte-level match evidence between HOST emit and CLIENT recv]
+
+---
+
+## Stage D — Anomaly resolution
+
+### D.1 <Anomaly ID, e.g., A1>
+[describe + disposition: ACCEPTED / DOCUMENTED / RETROFIT]
+
+### D.2 <...>
+
+[If any contract anomaly note is itself wrong upon investigation, document
+the correction here and propose a contract amendment in pre-merge actions.]
+
+---
+
+## Stage E — Sign-off matrix
+
+| Check | Method (L22-compliant) | Result |
+|---|---|---|
+| Branch tip = expected SHA | `git rev-parse origin/<branch>` | ✓/✗ |
+| PR diff matches expected file count + LOC | `git diff --stat <base> <branch>` | ✓/✗ |
+| Each implementation deliverable at HEAD | `git show <ref>:<path>` | ✓/✗ |
+| Stage 6 pre-grep gate | `git status --short` filtered + drift discrimination | ✓/✗ |
+| Strict gates × paths | independent grep (NOT trust digest) | N/M cells clean |
+| Phase-specific gates | independent grep | ✓/✗ |
+| Anomaly dispositions | manual reasoning | ✓/✗ |
+
+**STRICT PASS / FAIL confirmed via L22-compliant git plumbing + independent
+raw-log grep.** [Authorize or block merge.]
+
+---
+
+## Pre-merge action items (none block merge unless flagged)
+
+1. [Document corrections, e.g., A3 anomaly correction in contract Smoke row]
+2. [PR description amendments]
+3. [Wire-format / atomic-deployment coordination reminders]
+4. [Contract Verify-row source-of-truth pointer per Rule 12 if applicable]
+
+---
+
+## Reflective lesson on this verify pass
+
+[1-3 short observations on what the verify discipline caught or missed this
+time. Particularly: were any L21+L22+Rule 1-D rules exercised? Did any
+methodology amendment surface from this verify? Any candidate L# entry?
+This section is not optional — it's where the methodology stays alive.]
 ```
 
 ---

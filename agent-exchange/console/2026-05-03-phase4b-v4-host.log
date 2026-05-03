@@ -1,0 +1,49 @@
+# Phase 4b V4 Stage 6 Verification Digest — Path B HOST
+
+- **Raw**: `agent-exchange/console/raw/2026-05-03-phase4b-v4-host.log` (497,784 lines, 55 MB)
+- **Role**: 2-peer LAN HOST (server)
+- **Editor.log**: single `Initialize engine version` block — Rule 1 sub-rule A satisfied
+- **Test method**: bidirectional pushes (PushHitbox + ChargedHandProjectile + DebugBox)
+
+## Strict-Gate Counts
+
+| Marker | Count | Gate | Pass/Fail |
+|---|---|---|---|
+| `[D-LOC FATAL]` | 0 | =0 strict | ✅ PASS |
+| `[D-IMP LEG ...]` | **0** | =0 (LEG axis retired) | ✅ PASS |
+| `[CommandBus]:ClearAll` | 8 | 4 × N spawns (2 buddahs spawned over session) | ✅ PASS |
+| `[CommandBus]:DropFull` | 0 | =0 | ✅ PASS |
+| `[Channel]:DupReject` | 0 | =0 baseline | ✅ PASS |
+| Compile errors | 0 | =0 | ✅ PASS |
+| Exceptions | 0 | =0 | ✅ PASS |
+| `[D-LOC HEARTBEAT]` rows | 132 | cadence sanity | ✅ |
+| HB span | T=3523 → T=11443 (~7.9k ticks) | active session | ✅ |
+
+## Dead-Symbol Verification
+
+| Identifier | Count in log | Status |
+|---|---|---|
+| `BuddahPredictionCombatRouting` | 0 | ✅ |
+| `TryApplyServerAuthoritativeImpulse` | 0 | ✅ |
+| `ConsumePendingImpulseEvents_LegacyShadow` | 0 | ✅ |
+
+## Router + Tier Dispatch
+
+- `BuddahPredictionRouter:RouteImpulse` stack frames: **11**
+- `[BuddahPredictionV2] push-target hit` lines: **11** (Tier 2 dispatch — DebugBox + projectile)
+- `[PushHitbox] Hit`: **4** (server-side melee Hits — all on V2-prediction-Buddah victims)
+  - 1× owner=0 (remote CLIENT-owned buddah)
+  - 3× owner=32767 (HOST-owned buddah)
+  - All 4 → Tier 1 silent CombatAdapter dispatch (no per-hit log; correctness verified cross-peer below)
+
+## Cross-peer Tier 1 verification (HOST → CLIENT alignment)
+
+HOST hit #2: `impulse=(66.00, 0.00, 75.13)` victim=Buddah(Clone) owner=0
+↓ via CombatAdapter.TryRouteImpulse → Target_EnqueueImpulse RPC
+CLIENT Recv #1: `linear=(66.00, 0.00, 75.13) eventTick=6460 logicalId=1` ✅ EXACT MATCH
+
+L7 latch correctness proven: if latch broken, `_initialized=false` → all `TryRouteImpulse` return false → 0 CLIENT Recvs. **4 CLIENT Recvs land with monotonic logicalIds = latch survived V4 #if/#endif strip correctly.**
+
+## Verdict
+
+**✅ PASS** — All HOST strict gates met. Tier 1 dispatch chain verified cross-peer via impulse-vector match. LEG axis fully retired (0 LEG logs across 132 HBs).

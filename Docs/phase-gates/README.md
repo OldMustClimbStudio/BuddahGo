@@ -27,7 +27,7 @@ recon report, design Q&A, PR description, smoke verification report.
 
 | Phase | Contract | Branch | Status |
 |---|---|---|---|
-| V3 — Skill Site Migration to CombatAdapter | [active/v3-contract.md](active/v3-contract.md) | feat/phase4b-v3-skill-site-migrate | TEST (Stage 5 — Implementation merged at PR #36) |
+| V5 — LatencySimulator Terminal Gate + Carry-forward Resolution | [active/v5-contract.md](active/v5-contract.md) | feat/phase4b-v5-latency-terminal-gate (to-be-cut) | KICKOFF |
 
 Note: `active/v2b-step1-contract.md` is also present in this folder as a
 historical record preserved by the user (full original contract with sign-off
@@ -44,6 +44,8 @@ serve different purposes; do not delete either without explicit user direction.
 | V2a fix — PostTick relocate | (pending Phase B backfill) | merged | L17 (phase-skew bidirectional) |
 | V2b Step 0 — Tick-stamp | (pending Phase B backfill) | merged | L18 (side-effect mirror) |
 | V2b Step 1 — Authority Flip | [archive/v2b-step1-contract.md](archive/v2b-step1-contract.md) | [#34](https://github.com/OldMustClimbStudio/BuddahGo/pull/34) merged @ `3181bc4` | L19 (authority-flip dead-compare removal) |
+| V3 — Skill Site Migration | [archive/v3-contract.md](archive/v3-contract.md) | [#36](https://github.com/OldMustClimbStudio/BuddahGo/pull/36) merged | 0 new lessons + Methodology Rule 1-D / Rule 2 trust-hierarchy / Rule 10 commit hygiene |
+| V4 — CombatRouting Deletion + LEGACY_SHADOW Retirement | [archive/v4-contract.md](archive/v4-contract.md) | [#37](https://github.com/OldMustClimbStudio/BuddahGo/pull/37) merged | L20 (CS2001 cold-start vs runtime live refs) + L21 (risk:HIGH full-grep mandate + negative-claim positive verification) |
 
 ## Project Roadmap — Phase 4b in context
 
@@ -63,9 +65,9 @@ Phase 4 🔄  Locomotion + Impulse cut over  ← we are here
    ├─ V2a fix       ✅  PostTick relocate (L16, L17 lessons)
    ├─ V2b Step 0    ✅  Tick-stamp channel + ConsumeReady (L18)
    ├─ V2b Step 1    ✅  Authority flip (L19, PR #34 @ 3181bc4)
-   ├─ V3            🔄  Skill site migration (PR #36 — Stage 5 TEST pending)
-   ├─ V4            ⏸  CombatRouting deletion + LEGACY_SHADOW retirement
-   └─ V5            ⏸  LatencySim 100ms RTT terminal gate
+   ├─ V3            ✅  Skill site migration (PR #36 — Methodology Rule 1-D / 2-trust-hierarchy / 10 born here)
+   ├─ V4            ✅  CombatRouting deletion + LEGACY_SHADOW retirement (PR #37 — L20 CS2001 / L21 risk:HIGH full-grep)
+   └─ V5            🔄  LatencySim 100ms RTT terminal gate + V4 carry-forward resolution (KICKOFF — active contract)
 Phase 5 ⏸  Skill adapter cut over  ← scope overlap with V3/V4, reconcile post-V4
 Phase 6 ⏸  Teleport + Handoff cut over (channels exist, no consumer yet)
 Phase 7 ⏸  Visual layer + PredictionSmoother migration (jitter root cause)

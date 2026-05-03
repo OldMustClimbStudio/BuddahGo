@@ -33,10 +33,10 @@ Note: `active/v2b-step1-contract.md` is preserved here as a historical record by
 
 | Phase | Contract | PR | Key lesson(s) |
 |---|---|---|---|
-| V1 — Adapter scaffold | (pending Phase B backfill) | merged | L7 latch contract |
-| V2a — Dual-feed | (pending Phase B backfill) | merged | L11 (FIFO/replay blindness) |
-| V2a fix — PostTick relocate | (pending Phase B backfill) | merged | L17 (phase-skew bidirectional) |
-| V2b Step 0 — Tick-stamp | (pending Phase B backfill) | merged | L18 (side-effect mirror) |
+| V1 — Adapter scaffold | [archive/v1-contract.md](archive/v1-contract.md) | [#29](https://github.com/OldMustClimbStudio/BuddahGo/pull/29) merged @ `39c5217` | L7 (lifecycle hooks double-fire; latch contract) |
+| V2a — Dual-feed | [archive/v2a-contract.md](archive/v2a-contract.md) | [#31](https://github.com/OldMustClimbStudio/BuddahGo/pull/31) merged @ `fe17418` | 0 new lessons during V2a; observation gap surfaced post-merge → L16 (FIFO/replay blindness) born in V2a-fix |
+| V2a fix — PostTick relocate | [archive/v2a-fix-contract.md](archive/v2a-fix-contract.md) | [#32](https://github.com/OldMustClimbStudio/BuddahGo/pull/32) merged @ `bd47f04` | L16 (FIFO/replay blindness) + L17 (phase-skew bidirectional) |
+| V2b Step 0 — Tick-stamp | [archive/v2b-step0-contract.md](archive/v2b-step0-contract.md) | [#33](https://github.com/OldMustClimbStudio/BuddahGo/pull/33) merged @ `49e3c2f` | L18 (dual-path side-effect mirror audit) |
 | V2b Step 1 — Authority Flip | [archive/v2b-step1-contract.md](archive/v2b-step1-contract.md) | [#34](https://github.com/OldMustClimbStudio/BuddahGo/pull/34) merged @ `3181bc4` | L19 (authority-flip dead-compare removal) |
 | V3 — Skill Site Migration | [archive/v3-contract.md](archive/v3-contract.md) | [#36](https://github.com/OldMustClimbStudio/BuddahGo/pull/36) merged | 0 new lessons + Methodology Rule 1-D / Rule 2 trust-hierarchy / Rule 10 commit hygiene |
 | V4 — CombatRouting Deletion + LEGACY_SHADOW Retirement | [archive/v4-contract.md](archive/v4-contract.md) | [#37](https://github.com/OldMustClimbStudio/BuddahGo/pull/37) merged + corrective [#39](https://github.com/OldMustClimbStudio/BuddahGo/pull/39) | L20 (CS2001 cold-start vs runtime live refs) + L21 (risk:HIGH full-grep mandate + negative-claim positive verification) + L22 (git plumbing over working tree for negative-claim verification) |

@@ -85,6 +85,24 @@ namespace NewBuddah.PredictionV2.Bootstrap
             if (GetComponent<BuddahPredictionVisualShakeProbe>() == null)
                 gameObject.AddComponent<BuddahPredictionVisualShakeProbe>();
 #endif
+#if UNITY_EDITOR && BUDDAH_PREDICTION_RECONCILE_PROBE
+            // Phase 7 Stage 4 extension2 wiring (per Yonezawa workflow simplification):
+            // attach Q4 reconcile-snap probe per-Buddah. Probe self-resolves NetworkObject
+            // via GetComponentInParent fallback. UNITY_EDITOR + define gated; compiles out
+            // of production builds.
+            if (GetComponent<BuddahPredictionReconcileSnapProbe>() == null)
+                gameObject.AddComponent<BuddahPredictionReconcileSnapProbe>();
+#endif
+#if UNITY_EDITOR && BUDDAH_PREDICTION_FRAMETIME_PROBE
+            // Phase 7 Stage 4 extension2 wiring: attach machine-global frame-time probe.
+            // No NetworkObject ref needed (machine-global); attached on each Buddah is
+            // harmless because [DisallowMultipleComponent] dedupes within a GameObject and
+            // Time.unscaledDeltaTime is the same across all instances on the same machine
+            // (multiple emits per HB across N Buddahs is acceptable extra signal at the
+            // analyzer's per-(SourceFile, Owner) cadence groupby).
+            if (GetComponent<BuddahPredictionFrameTimeProbe>() == null)
+                gameObject.AddComponent<BuddahPredictionFrameTimeProbe>();
+#endif
             RefreshDebugBanner("bootstrap initialized");
             LogVerbose($"bootstrap initialized. mode={RuntimeMode}");
         }

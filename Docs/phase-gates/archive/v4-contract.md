@@ -47,13 +47,49 @@
 
 ## Final outcome
 
-✅ **STRICT PASS, MERGED.**
+✅ **STRICT PASS, MERGED.** ⚠️ **AMENDED 2026-05-03 — partial-merge state corrected via fix/phase4b-v4-corrective.**
 
 - PR #37 → `dev` (2026-05-03)
 - 4 implementation commits + 1 closeout commit (`ed34937`)
 - 17 dead identifier strings: 0 hits in Assets/* runtime code (1 historical breadcrumb comment at motor.cs:398, harmless)
 - Q3.1 L7 latch CRITICAL verification PASSED at runtime via cross-peer Tier 1 chain (CLIENT log :144885 — `linear=(66.00, 0.00, 75.13) eventTick=6460 logicalId=1` — exact triple-field match with HOST hit)
 - Wire format change (`ImpulseQueueState` removed from reconcile struct) deployed atomically per Q3.4
+
+### ⚠️ Partial-merge amendment (2026-05-03 post-mortem)
+
+PR #37 merged with V4 commits present BUT 6 files of intended deletions
+were never staged and never reached git HEAD:
+
+| File | Intended V4 change | Status pre-corrective |
+|---|---|---|
+| `Assets/Scripts/New_Buddah/Core/BuddahPredictedReconcileData.cs` | Step 7 — delete `ImpulseQueueState` field | Field present on dev |
+| `Assets/Scripts/New_Buddah/Events/BuddahPredictionEventChannel.cs` | Q3.5 comment cleanup | Stale comment on dev |
+| `Assets/Scripts/New_Buddah/Integration/BuddahPredictionCombatAdapter.cs` | Comment cleanup post LEGACY_SHADOW retire | Stale comment on dev |
+| `Assets/Scripts/New_Buddah/Simulation/BuddahPredictionShadowScratch.cs` | Comment cleanup | Stale comment on dev |
+| `Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs` | Residual comment cleanup | Stale on dev |
+| `ProjectSettings/ProjectSettings.asset` | Step 8 — `BUDDAH_PREDICTION_LEGACY_SHADOW` define removal | Define still present on dev |
+
+**Root cause:** verify methodology read Read/Grep on working tree, which
+contained the unstaged deletions. Working tree showed "absent" → verify
+passed → PR merged with HEAD lacking the deletions. The discrepancy
+remained latent because:
+1. Define is on but no `#if` blocks remain (motor/Router strips DID land in committed cascade) → harmless dead define
+2. `ImpulseQueueState` is unused but still in struct → vestigial wire bytes (~16-32 bytes per reconcile message)
+3. Stale comments → documentation drift, not behavioral
+
+**No runtime defect.** V4 SMOKE results were valid because the SMOKE was
+run against the working tree (which had the deletions). The dev branch
+state was structurally sound but documentationally + wire-bandwidth-
+suboptimal.
+
+**Corrective action:** PR `fix/phase4b-v4-corrective` → `dev` restores
+the 6 missed deletions + adds lesson L22 (negative-claim verification
+must use git plumbing not working tree) + methodology Rule 2 sub-clause
++ Stage 6 VERIFY pre-grep gate. After corrective merges, dev matches
+the V4-as-verified state.
+
+**Cross-ref:** lesson L22 in `Docs/lessons-log.md` + methodology Rule 2
+amendment + corrective PR (link inserted post-PR-open).
 
 ### Smoke results (3 sessions, 279 HEARTBEAT rows, 100% digest match)
 

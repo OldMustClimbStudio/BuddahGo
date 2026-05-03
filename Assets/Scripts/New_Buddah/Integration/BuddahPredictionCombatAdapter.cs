@@ -10,14 +10,9 @@ namespace NewBuddah.PredictionV2.Integration
 {
     /// <summary>
     /// Phase 4b adapter for server-authoritative impulse routing.
-    /// V1: empty pass-through scaffold + Initialize() one-shot latch.
-    /// V2a: dual-feed inverted shadow. Adapter enqueues into the victim's
-    /// CommandBus.ImpulseChannel (owner-local) or relays via Target_EnqueueImpulse
-    /// when the victim's owner is remote. The motor drains this channel as an
-    /// observation-only inverted shadow under BUDDAH_PREDICTION_LEGACY_SHADOW.
-    /// OLD CombatRouting path is still authority — adapter return value is
-    /// discarded by the fan-out site (see BuddahPredictionCombatRouting).
-    /// V2b will flip authority. V4 deletes CombatRouting + the legacy pre-guard.
+    /// Post-V4 (CombatRouting + LEGACY_SHADOW retired): NEW path is sole rb-writing authority.
+    /// Adapter enqueues into the victim's CommandBus.ImpulseChannel (owner-local) or relays via
+    /// Target_EnqueueImpulse when the victim's owner is remote.
     ///
     /// L7 contract (lessons-log): no enqueue during Awake/OnEnable/OnStartNetwork.
     /// Initialize(bus) wires the bus reference (called from Bootstrap.Awake).
@@ -60,10 +55,9 @@ namespace NewBuddah.PredictionV2.Integration
             if (!_initialized || _commandBus == null || victimNetworkObject == null)
                 return false;
 
-            // Defensive: mirror OLD path's IsPredictionModeActive() gate
-            // (TryApplyServerAuthoritativeImpulse early-bails on this). Without this,
-            // a mode toggle PredictionV2 -> Legacy mid-game would leave _initialized=true
-            // but OLD path bypassed via PushTargetBox, producing reverse FATAL.
+            // Defensive IsPredictionModeActive() gate (Step 0 fix-3). A mode toggle
+            // PredictionV2 -> Legacy mid-game would leave _initialized=true but the V2 victim
+            // would no longer accept channel enqueues; gate prevents stale state divergence.
             BuddahPredictionBootstrap bootstrap = victimNetworkObject.GetComponent<BuddahPredictionBootstrap>();
             if (bootstrap == null || !bootstrap.IsPredictionModeActive())
                 return false;
@@ -86,23 +80,20 @@ namespace NewBuddah.PredictionV2.Integration
             //   - owner null / invalid / IsHost (victim's owner is the host running
             //     this server-side code) → local TryEnqueueImpulse, no RPC needed.
             //   - else (remote-owner client) → Target_EnqueueImpulse RPC to the owner.
-            // RPC failures (owner disconnected, etc.) silent-drop. The post-Step-1 NEW path is now
-            // rb-writing authority (drains channel, applies forces); OLD CombatRouting path remains
-            // wired through V4 as observation shadow under BUDDAH_PREDICTION_LEGACY_SHADOW.
+            // RPC failures (owner disconnected, etc.) silent-drop. NEW path is sole rb-writing
+            // authority post-V4 (drains channel, applies forces).
             NetworkConnection owner = victimNetworkObject.Owner;
             if (owner == null || !owner.IsValid || owner.IsHost)
             {
                 return _commandBus.TryEnqueueImpulse(cmd, cmd.EventTick, cmd.LogicalId);
             }
 
-            // V2b Step 0 fix-3: dual-emit (server-local + RPC) to mirror OLD path's
-            // TryApplyServerAuthoritativeImpulse (TryQueueImpulseEvent + TargetRpc).
-            // Server-local enqueue ensures HOST's serverside replica of the remote victim
-            // observes the event in its own CommandBus.ImpulseChannel. The two channel instances
-            // (host serverside vs remote owner) have independent _recentLogicalIds sets, so the
-            // SAME LogicalId travels to both peers without dedup collision (V2b Step 1 Q0). If a
-            // future fault double-fires on the SAME peer, dedup catches it via [Channel]:DupReject.
-            // See lessons-log L18.
+            // V2b Step 0 fix-3: dual-emit (server-local + RPC). Server-local enqueue ensures
+            // HOST's serverside replica of the remote victim observes the event in its own
+            // CommandBus.ImpulseChannel. The two channel instances (host serverside vs remote
+            // owner) have independent _recentLogicalIds sets, so the SAME LogicalId travels to
+            // both peers without dedup collision (V2b Step 1 Q0). If a future fault double-fires
+            // on the SAME peer, dedup catches it via [Channel]:DupReject. See lessons-log L18.
             _commandBus.TryEnqueueImpulse(cmd, cmd.EventTick, cmd.LogicalId);
             _commandBus.Target_EnqueueImpulse(owner, cmd);
             return true;

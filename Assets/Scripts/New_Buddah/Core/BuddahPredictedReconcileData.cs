@@ -28,8 +28,6 @@ namespace NewBuddah.PredictionV2.Core
         public bool AwaitingAuthoritativeLaunchHandoff;
         public uint LocalPreHandoffBypassUntilTick;
 
-        public BuddahPredictedImpulseRingSnapshot ImpulseQueueState;
-
         public BuddahPredictedReconcileData(
             PredictionRigidbody rigidbodyState,
             BuddahPredictedModifierState modifierState,

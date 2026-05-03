@@ -16,6 +16,62 @@ If you are about to do something covered by a rule below, follow the rule. If yo
 
 ---
 
+## L22 — Negative-claim verification MUST query `git show HEAD:<path>` / `git status --short` / `git diff origin/<base>` — NOT Read/Grep on working tree (2026-05-03, Phase 4b V4 closeout post-mortem)
+
+Symptom: V4 verify report ("17 dead identifier strings: 0 hits in
+Assets/* runtime code") + V5 recon Surface 3 ("ImpulseQueueState
+confirmed absent post-V4 deletion") both built on Read/Grep tool
+inspection of working tree. PR #37 was merged into dev with V4 commits
+present, BUT several intended deletions (`BuddahPredictedReconcileData
+.ImpulseQueueState` field, `ProjectSettings/ProjectSettings.asset`
+LEGACY_SHADOW define removal, comment cleanup in CombatAdapter +
+ShadowScratch + EventChannel + Motor) were never staged and never made
+it into the merged PR. Working tree had the deletions → Read showed
+the deleted state → verify "0 references" passed. dev branch retained
+the field/define + stale comments. The discrepancy was discovered post
+V5 IMPLEMENT staging when `git diff HEAD` showed 6 source/asset files
+modified that should have been committed weeks earlier.
+
+Cause: implementer applied V4 deletions via Edit tool (which modify
+working tree only). `git add` step was incomplete — some files staged,
+some not. Multi-file deletion-heavy phase + manual staging = staging
+error mode is silent (no compile error; file just doesn't get added).
+Verify methodology then read working tree as the "current state of the
+codebase" — but working tree includes UNSTAGED edits + UNTRACKED files
+on top of what's actually committed. L21 said "negative claims demand
+positive verification" but didn't specify the verification target —
+defaulted to Read/Grep on working tree, which is the wrong source-of-
+truth for "is X present in the merged codebase".
+
+Rule:
+1. **Negative-claim verification MUST use git plumbing as primary
+   source-of-truth.** Canonical commands:
+   - `git show HEAD:<path>` — exact committed file content at branch tip
+   - `git status --short` — working tree drift from HEAD
+   - `git diff origin/<base> -- <path>` — what this branch will land
+     vs. base when PR merges
+   - `git log --oneline -- <path>` — confirms file's last-touched commit
+2. **Read/Grep on working tree is FORBIDDEN as primary verification on
+   deletion-heavy phases.** Working tree may include unstaged edits that
+   misrepresent the merged codebase. Read/Grep can be used for navigation
+   but not for "X was successfully removed" sign-off claims.
+3. **Pre-grep gate for Stage 6 VERIFY:** reviewer MUST run
+   `git status --short` for the phase's declared scope. Any `M` or `??`
+   line in scope = phase is NOT complete; halt VERIFY and escalate to
+   IMPLEMENT for completion before re-running smoke.
+4. **PR diff vs base is the ground truth for what gets merged.** Before
+   sign-off, reviewer should `gh pr diff <pr#>` or `git diff <base>...
+   <branch>` to see the actual change set. If a file declared in scope
+   does not appear in the PR diff, the deletion/edit didn't land.
+
+Promoted to: `Docs/phase-gates/methodology.md` Rule 2 sub-clause
+(verification command targets) + Stage 6 VERIFY checklist amendment
+(pre-grep `git status --short` gate). Applies retroactively: V4 archive
+contract receives a "partial-merge state" amendment + corrective PR
+restores the missed deletions.
+
+---
+
 ## L21 — Risk:HIGH phases require FULL claim-by-claim grep verification, not sampled spot-check; negative claims ("X is NOT in Y") demand independent positive verification (2026-05-03, Phase 4b V4 design Q&A second-pass)
 
 Symptom: V4 design Q&A v1 contained MEDIUM-severity factual error at Q3.1

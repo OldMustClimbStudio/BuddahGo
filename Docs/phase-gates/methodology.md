@@ -90,6 +90,33 @@ frame absence is the EXPECTED state of a working V3, not a failure mode.
 matches expected event count, code path was active regardless of stack frame
 visibility. Cross-confirm with at least one other downstream metric.
 
+**Verification target — git plumbing over working tree (added 2026-05-03 from V4 closeout post-mortem, lesson L22):**
+For ANY deletion-heavy phase (or any phase with negative claims of the form
+"X was removed", "X has 0 references", "X is absent"), reviewer's verification
+MUST use git plumbing as the source-of-truth, NOT Read/Grep on working tree.
+
+Canonical commands (use these for negative-claim sign-off):
+- `git show HEAD:<path>` — exact committed file content at branch tip
+- `git status --short` — working tree drift from HEAD (any `M`/`??` in scope = phase NOT complete)
+- `git diff origin/<base> -- <path>` — what this branch will land vs base when PR merges
+- `git log --oneline -- <path>` — confirms file's last-touched commit
+- `gh pr diff <pr#>` — exact change set the merge will introduce
+
+**FORBIDDEN as primary negative-claim verification:** Read tool on working tree,
+Grep tool with default path (which scans working tree). Working tree may
+include unstaged edits that misrepresent the merged codebase. Read/Grep are
+fine for navigation; they are NOT fine for "X was successfully removed"
+sign-off.
+
+**Stage 6 VERIFY pre-grep gate:** reviewer's first command in any deletion-
+heavy verify pass MUST be `git status --short` filtered to phase scope. Any
+`M` or `??` line in scope means the phase implementation is incomplete —
+halt VERIFY and escalate to IMPLEMENT for completion before any smoke /
+grep / sign-off. The L22 incident (V4 PR #37 merged with 6 files of
+unstaged deletions) is the canonical failure mode.
+
+**Cross-ref:** L22 in `Docs/lessons-log.md`.
+
 ## Rule 3 — Strict gate definition lives in the contract
 
 "FATAL=0" means different things in different phases. Active contract

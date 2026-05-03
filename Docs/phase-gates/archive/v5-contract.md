@@ -1,9 +1,9 @@
-# V5 — LatencySimulator Terminal Gate + V4 Carry-forward Resolution Contract
+# V5 — LatencySimulator Terminal Gate + V4 Carry-forward Resolution Contract (ARCHIVED)
 
 **Phase ID:** phase4b-v5
-**Branch:** feat/phase4b-v5-latency-terminal-gate (to be cut from dev @ V4 merge commit)
-**Risk:** MEDIUM (LatencySim probe may surface edge cases; lobby handshake adds new wire surface)
-**Status:** KICKOFF
+**Branch:** feat/phase4b-v5-latency-terminal-gate (cut from V4-corrective HEAD; rebased on dev post PR #38 + #39 merge)
+**Risk:** MEDIUM (LatencySim probe + lobby handshake wire surface)
+**Status:** ✅ MERGED — PR #40 to dev (2026-05-03). **Phase 4b sub-phase chain (V1 → V5) COMPLETE.**
 
 ---
 
@@ -119,8 +119,62 @@ Recommendation: V5 closeout PR description must list all checkbox items + explic
 ## Carry-forward flags (do NOT action in this phase)
 
 - **Phase 6** — Teleport + Handoff channel cut-over (replicate Impulse path's V2b Step 0 → V2b Step 1 pattern for these 2 channels)
-- **Phase 7** — Visual jitter quantitative re-evaluation (task #36) — **unblocked when V5 merges**
+- **Phase 7** — Visual jitter quantitative re-evaluation (task #36) — **unblocked, awaits user trigger**
 - **Phase 8** — L9 ClampPlanarSpeed fix + Roslyn analyzer + adapter caching (Q2 deferred from V4)
+- **V6 / Phase 7 prep candidate** — Q2 200ms LatencySim broader observation (eligible per Q2-B trigger; deferred per user direction at V5 closeout)
+- **Q0-B retrofit** — preemptive code shape preserved in `agent-exchange/handoff/2026-05-03-phase4b-v5-design.md` for if-observed pivot (race NOT observed at 100ms, but future regimes may surface it)
+
+---
+
+## Final outcome
+
+✅ **STRICT PASS, MERGED. Phase 4b CLOSEOUT complete.**
+
+- PR #40 → `dev` (2026-05-03), commit `4b60773` (IMPLEMENT) + `b53c383` (SMOKE+VERIFY+ledger)
+- 4 IMPLEMENT files +43/-4 LOC: PredictionProtocol.cs new + SteamLobbyManager.cs Q1 inserts + BuddahPredictedMotor.cs Q3-B (field + ReconcileState `++` + 2 HEARTBEAT format updates) + ledger
+- 407 HEARTBEAT rows clean across 3 sessions (142 Path A + 212 Path B HOST + 53 Path B CLIENT)
+- Cross-peer Tier 1 chain verified via exact impulse-vector match HOST→CLIENT for logicalId 1+2
+
+### Smoke results (3 sessions, 0 metric divergence vs digests)
+
+| Path | HBs | LOC FATAL | LEG | ClearAll | Recv (CLIENT) | rec-cb max | Notes |
+|---|---|---|---|---|---|---|---|
+| Path A baseline (HOST role) | 142 | 0 | 0 | 16 | 4 (HOST observation) | 0 | structurally enforced HOST baseline |
+| Path B HOST (100ms LatencySim) | 212 | 0 | 0 | 8 | 0 | 0 | 13 PushHitbox Hit / 14 Router stack |
+| Path B CLIENT (100ms LatencySim) | 53 | 0 | 0 | 8 | **16** monotonic 1→16 | **2595** | **Q3-B engagement gate 519× exceeded** |
+
+### Q gate verdicts
+
+- **Q0** — reconcile-before-RPC race NOT observed at 100ms (per Q0-A defer); Q0-B preemptive blueprint preserved for future-regime pivot
+- **Q1** — lobby protocol-version handshake LIVE verified (v1↔v1 join + 16 cross-peer Recvs); pre-V5 builds hard-rejected by design
+- **Q2** — 100ms baseline STRICT PASS; 200ms expansion eligible but deferred per user direction at closeout
+- **Q3** — Q3-B reconcile-callback-count probe DECISIVELY validated (rec-cb=2595 vs HOST baseline 0). Q3-C DROPPED per RECON KEY FINDING 5 (channel-internal LogicalId tracking structurally cannot detect cross-peer Q0 race)
+- **Q4** — Phase 4b closeout actions executed at this contract's archival commit
+
+### Anomalies (all documented / accepted)
+
+- **A1**: 4 CS2001 cold-start errors at lines 46357-46363 → Tundra recompile `ExitCode: 0`. Per L20: non-issue.
+- **A2**: Spawn-window 60-tick L7 distance gate partial-pass (5658 ticks vs 60-tick gate) — third occurrence (V4 Path B + V5 Path A + V5 Path B). Recv liveness + monotonic logicalId + rec-cb=2595 jointly prove latch correctness. Promoted to methodology.md Rule 11 in this closeout commit.
+- **A3**: raw log file-name role swap (`host-100ms.log` content is CLIENT; `client-100ms.log` content is HOST). Determined unambiguously via role markers (rec-cb / PushHitbox Hit / StartHost vs StartClient counts). Digests named correctly per content; raw filename rename is housekeeping.
+
+### Lessons added (this PR cycle, lifted from full Phase 4b chain)
+
+- **L20** (added in V4 closeout PR #38): `git rm` of source files produces transient CS2001 "Source file could not be found" compile errors that recover automatically.
+- **L21** (added in V4 closeout PR #38): Risk:HIGH phases require FULL claim-by-claim grep verification + negative claims demand independent positive verification.
+- **L22** (added in V4 corrective PR #39, born during V5 IMPLEMENT staging): Negative-claim verification MUST query `git show HEAD:<path>` / `git status --short` / `git diff origin/<base>` — NOT Read/Grep on working tree. + methodology.md Rule 2 sub-clause "Verification target — git plumbing over working tree" + Stage 6 VERIFY pre-grep gate.
+
+### Methodology rule added (this closeout commit)
+
+- **Rule 11** — SMOKE driver hard-precondition for time-sensitive probes (born from A2's third partial-pass occurrence; spawn-window 60-tick gate require driver-confirmed early push BEFORE PlayMode entry, otherwise abort run).
+
+### Phase 4b chain closeout actions (per Q4 6-condition list)
+
+1. ✅ task #24 (Phase 4 umbrella) → COMPLETED via Phase 4b chain V1→V5
+2. 🔓 task #36 (Phase 7 visual jitter prep) → unblocked; KICKOFF awaits user trigger (per Q4-2 lean b)
+3. ✅ Phase 5 ↔ V3 reconciliation → grep `Assets/Scripts/Buddah/ComboSkill/` for `BuddahPredictionCombatRouting | TryApplyServerAuthoritativeImpulse | BuddahMovement.ApplyPushImpulseAndTorqueTargetRpc | ConsumePendingImpulseEvents_LegacyShadow` returned **0 hits** → Phase 5 marked **COMPLETE** by V3+V4 cumulative work
+4. ✅ Lessons-log → no new V5-specific lessons (existing rules covered all cases; L20/L21/L22 from V4-cycle work)
+5. ✅ Methodology updates → Rule 11 added (spawn-window driver precondition)
+6. ⏸ Phase 7 KICKOFF → defer per Q4-2 lean b; user explicit trigger required
 
 ---
 
@@ -134,4 +188,4 @@ Recommendation: V5 closeout PR description must list all checkbox items + explic
 | Implementation | 2026-05-03 | cowork-reviewer | PR #40 (Draft) at commit `4b60773`. 4 files +43/-4 LOC: PredictionProtocol.cs new + SteamLobbyManager.cs Q1 inserts (:95/:417/:454/:457-466) + BuddahPredictedMotor.cs Q3-B (`_reconcileCallbackCount` field + `++` in ReconcileState + 2 HEARTBEAT format updates) + this contract ledger. CRITICAL post-mortem mid-flight: V4 PR #37 partial-merge state discovered (6 files of unstaged deletions never reached HEAD); resolved via fix/phase4b-v4-corrective PR #39 + L22 + methodology Rule 2 sub-clause "Verification target — git plumbing over working tree". V5 branch rebased post-corrective-merge. |
 | Smoke | 2026-05-03 | Yonezawa (driver) + Claude (scrape) | 3 raw logs at `agent-exchange/console/raw/2026-05-03-phase4b-v5-{single,host-100ms,client-100ms}.log` (single=22MB, file-named-host=37MB CONTENT-IS-CLIENT, file-named-client=57MB CONTENT-IS-HOST per role markers). 3 digests at `agent-exchange/console/2026-05-03-phase4b-v5-*.log`. Path A baseline (HOST role, 2-peer no-LatencySim, 142 HBs, rec-cb=0 structurally). Path B HOST (212 HBs, 13 PushHitbox Hits, 14 Router stack frames, rec-cb=0 expected). Path B CLIENT (53 HBs, 16 Recv monotonic logicalId 1→16, **rec-cb=2595** under 100ms LatencySim — Q3-B engagement gate 519× exceeded). A1 CS2001 cold-start per L20 + Tundra ExitCode:0. A2 spawn-window 60-tick partial-pass 3rd occurrence. A3 file-name role swap (raw rename recommended for archival). |
 | Verify | 2026-05-03 | cowork-reviewer | Independent FULL-grep verification per L21 risk-aware + L22 git-plumbing primary self-application. Verify report at `agent-exchange/handoff/2026-05-03-phase4b-v5-verify.md`. All 9 metric classes match implementer digests 100%. Cross-peer Tier 1 chain verified via exact impulse-vector match HOST→CLIENT for logicalId 1+2 (`(83.34, 0.00, -55.27)` and `(-67.63, 0.00, 73.67)`). L7 latch survived V4 corrective merge (16 Recvs would be 0 if broken). Q0 race NOT manifested at 100ms (0 DupReject + 16 monotonic consumes). Q1 protocol-version handshake LIVE verified (v1↔v1 join successful, 16 cross-peer Recvs would be 0 if Q1 broke). Q3-B gate ABSOLUTELY EXCEEDED. STRICT PASS. Q2 200ms expansion eligible per design Q2-B trigger criteria; user decides whether to run optionally. |
-| Merge | ⏸ | | |
+| Merge | 2026-05-03 | Yonezawa | PR #40 merged to dev at commit `14e4757`. Q3.4 atomic deployment satisfied (no peer mid-playtest at merge time; Q1 protocol-version handshake adds future-proof guard against V5↔pre-V5 cross-version joins). Phase 4b sub-phase chain (V1 → V2a → V2a fix → V2b Step 0 → V2b Step 1 → V3 → V4 → V5) fully COMPLETE. |

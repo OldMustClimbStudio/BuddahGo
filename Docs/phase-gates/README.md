@@ -25,15 +25,9 @@ recon report, design Q&A, PR description, smoke verification report.
 
 ## Active phase
 
-| Phase | Contract | Branch | Status |
-|---|---|---|---|
-| V5 — LatencySimulator Terminal Gate + Carry-forward Resolution | [active/v5-contract.md](active/v5-contract.md) | feat/phase4b-v5-latency-terminal-gate (to-be-cut) | KICKOFF |
+**No active phase.** Phase 4b sub-phase chain (V1 → V5) **COMPLETE** as of 2026-05-03 (PR #40). Phase 7 (visual jitter + PredictionSmoother migration) is unblocked and awaits user trigger for KICKOFF.
 
-Note: `active/v2b-step1-contract.md` is also present in this folder as a
-historical record preserved by the user (full original contract with sign-off
-ledger). The canonical archived V2b Step 1 contract with FINAL outcome lives at
-[archive/v2b-step1-contract.md](archive/v2b-step1-contract.md). Both copies
-serve different purposes; do not delete either without explicit user direction.
+Note: `active/v2b-step1-contract.md` is preserved here as a historical record by user direction. The canonical archived V2b Step 1 contract with FINAL outcome lives at [archive/v2b-step1-contract.md](archive/v2b-step1-contract.md). Both copies serve different purposes; do not delete either without explicit user direction.
 
 ## Closed phases (archive)
 
@@ -45,7 +39,8 @@ serve different purposes; do not delete either without explicit user direction.
 | V2b Step 0 — Tick-stamp | (pending Phase B backfill) | merged | L18 (side-effect mirror) |
 | V2b Step 1 — Authority Flip | [archive/v2b-step1-contract.md](archive/v2b-step1-contract.md) | [#34](https://github.com/OldMustClimbStudio/BuddahGo/pull/34) merged @ `3181bc4` | L19 (authority-flip dead-compare removal) |
 | V3 — Skill Site Migration | [archive/v3-contract.md](archive/v3-contract.md) | [#36](https://github.com/OldMustClimbStudio/BuddahGo/pull/36) merged | 0 new lessons + Methodology Rule 1-D / Rule 2 trust-hierarchy / Rule 10 commit hygiene |
-| V4 — CombatRouting Deletion + LEGACY_SHADOW Retirement | [archive/v4-contract.md](archive/v4-contract.md) | [#37](https://github.com/OldMustClimbStudio/BuddahGo/pull/37) merged | L20 (CS2001 cold-start vs runtime live refs) + L21 (risk:HIGH full-grep mandate + negative-claim positive verification) |
+| V4 — CombatRouting Deletion + LEGACY_SHADOW Retirement | [archive/v4-contract.md](archive/v4-contract.md) | [#37](https://github.com/OldMustClimbStudio/BuddahGo/pull/37) merged + corrective [#39](https://github.com/OldMustClimbStudio/BuddahGo/pull/39) | L20 (CS2001 cold-start vs runtime live refs) + L21 (risk:HIGH full-grep mandate + negative-claim positive verification) + L22 (git plumbing over working tree for negative-claim verification) |
+| V5 — LatencySim Terminal Gate + Carry-forward Resolution | [archive/v5-contract.md](archive/v5-contract.md) | [#40](https://github.com/OldMustClimbStudio/BuddahGo/pull/40) merged @ `14e4757` | 0 new lessons (Q-gates all clean at 100ms LatencySim) + Methodology Rule 11 (SMOKE driver hard-precondition for time-sensitive probes) |
 
 ## Project Roadmap — Phase 4b in context
 
@@ -59,18 +54,18 @@ Phase 0 ✅  Foundation
 Phase 1 ✅  Data Contracts
 Phase 2 ✅  Event Channels + CommandBus
 Phase 3 ✅  Simulation Steps shadow mode
-Phase 4 🔄  Locomotion + Impulse cut over  ← we are here
+Phase 4 ✅  Locomotion + Impulse cut over  ← DONE via Phase 4b sub-phase chain V1→V5
    ├─ V1            ✅  Adapter scaffold + L7 latch
    ├─ V2a           ✅  Dual-feed inverted shadow
    ├─ V2a fix       ✅  PostTick relocate (L16, L17 lessons)
    ├─ V2b Step 0    ✅  Tick-stamp channel + ConsumeReady (L18)
    ├─ V2b Step 1    ✅  Authority flip (L19, PR #34 @ 3181bc4)
    ├─ V3            ✅  Skill site migration (PR #36 — Methodology Rule 1-D / 2-trust-hierarchy / 10 born here)
-   ├─ V4            ✅  CombatRouting deletion + LEGACY_SHADOW retirement (PR #37 — L20 CS2001 / L21 risk:HIGH full-grep)
-   └─ V5            🔄  LatencySim 100ms RTT terminal gate + V4 carry-forward resolution (KICKOFF — active contract)
-Phase 5 ⏸  Skill adapter cut over  ← scope overlap with V3/V4, reconcile post-V4
+   ├─ V4            ✅  CombatRouting deletion + LEGACY_SHADOW retirement (PR #37 + corrective #39 — L20 / L21 / L22 / Rule 2 sub-clause)
+   └─ V5            ✅  LatencySim 100ms RTT terminal gate + Q1 protocol-version handshake + Q3-B reconcile probe (PR #40 — Rule 11 SMOKE driver precondition)
+Phase 5 ✅  Skill adapter cut over  ← marked COMPLETE by V3+V4 work; ComboSkill grep returned 0 residue at V5 closeout
 Phase 6 ⏸  Teleport + Handoff cut over (channels exist, no consumer yet)
-Phase 7 ⏸  Visual layer + PredictionSmoother migration (jitter root cause)
+Phase 7 🔓  Visual layer + PredictionSmoother migration (jitter root cause) — UNBLOCKED, awaits user KICKOFF trigger
 Phase 8 ⏸  Cleanup + Roslyn analyzer
    └─ Entry 7       ✅  M2 Stopwatch for V13 rep-*-ms (done out-of-order during V2a era)
 ```
@@ -88,10 +83,11 @@ motor has NO consumer drain for these channels yet. Phase 6 replicates the
 Impulse path's Step-0 → Step-1 pattern for these two channels.
 
 ### Carry-forward queue (cross-phase decisions deferred)
-- **V4 PRE-WORK**: `pendingImpulseSummary` builder OR drop the field
-- **V4 PRE-WORK**: `BUDDAH_PREDICTION_LEGACY_SHADOW` define retirement plan
-- **V5 PRE-WORK**: Reconcile-before-RPC double-apply edge case under LatencySim
-- **Phase 7 prep**: visual jitter quantitative re-evaluation (task #36)
+- **Phase 6 PRE-WORK**: replicate V2b Step 0/1 tick-stamp + authority-flip pattern for Teleport + Handoff channels (motor has channels but no consumer drain)
+- **Phase 7 prep**: visual jitter quantitative re-evaluation (task #36) — **unblocked at V5 close**
+- **Phase 8**: L9 ClampPlanarSpeed fix + Roslyn analyzer + adapter caching
+- **V6 / Phase 7 prep candidate**: Q2 200ms LatencySim broader observation (eligible per V5 Q2-B trigger; deferred at V5 closeout per user direction)
+- **Q0-B retrofit (conditional)**: reconcile-before-RPC double-apply mitigation. Race NOT observed at 100ms. Preemptive code shape preserved in `agent-exchange/handoff/2026-05-03-phase4b-v5-design.md` for future-regime pivot if 200ms+ surfaces it.
 
 ## Pipeline overview
 

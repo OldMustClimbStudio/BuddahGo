@@ -436,6 +436,291 @@ absolute thresholds are used.
 
 ---
 
+## 7. MP 视觉同步架构合规 audit (post-Stage 3 framing amendment)
+
+> **Framing context:** Yonezawa confirmed at Stage 3 that visible jitter is OBSERVED, not hypothetical. Phase 7 framing shifted from "did Phase 4b regress?" to "characterize + identify root cause for Phase 7.5 retrofit scope". Q5-A retrofit is now expected. Surface 7 is the architectural audit that produces the prioritized root-cause hypothesis ranking — input to Stage 5 SMOKE driver focus list AND to the Phase 7.5 contract draft when Phase 7 closes. All audits use git plumbing only; PlayMode-independent; runs parallel to Stage 4 IMPLEMENT.
+
+### 7.1 — Layer 3: Reconcile correction strategy (★ top suspect)
+
+**Industry standard (informal):**
+- Source / CS series: error-correction lerp over ~100ms; single reconcile NEVER hard-snaps the visible position.
+- Halo / Overwatch class: per-reconcile soft cap ~10 cm; beyond that, lock position + gradual catch-up.
+- Rocket League: rb fully replaced but visible mesh lerp follows behind (visual lags rb 1-2 frames, hides reconcile snaps).
+
+**Audit:**
+```
+git grep -n "OnReconcile\|public void Reconcile\|\[Reconcile\]" -- Assets/Scripts/New_Buddah/
+→
+Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs:547   [Reconcile]
+Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs:729   $"[PredictionIntro][Reconcile] tick={tick} skipped={skipped} ..."
+
+git grep -nE "PredictionRigidbody\.Reconcile|rb\.position\s*=|MovePosition|\.Move\(" -- Assets/Scripts/New_Buddah/Core/
+→
+Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs:1873   rb.position = eventData.TargetPosition;
+Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs:1937   rb.position = eventData.SnapshotPosition;
+```
+
+**[Reconcile] callback body (motor.cs:547-572 abridged):**
+```csharp
+[Reconcile]
+private void ReconcileState(BuddahPredictedReconcileData data, Channel channel = Channel.Unreliable)
+{
+    _reconcileCallbackCount++;
+    if (_predictionRigidbody == null || data.RigidbodyState == null)
+        return;
+
+    Vector3 preReconcilePosition = rb != null ? rb.position : Vector3.zero;
+    // ...
+    if (!skipOwnerIntroReconcile)
+        _predictionRigidbody.Reconcile(data.RigidbodyState);   // ← THE CALL
+    Vector3 postReconcilePosition = rb != null ? rb.position : Vector3.zero;
+    // ... debug-state writes only after this point
+}
+```
+
+**Findings:**
+- The motor's [Reconcile] body does **NO project-side soft correction**. It calls FishNet 4.6's `_predictionRigidbody.Reconcile(data.RigidbodyState)` and trusts FishNet to handle smoothing.
+- Whether the actual visible behavior is "hard-snap" or "smooth correction" depends entirely on FishNet's internal handling under the prefab's `_localReconcileCorrectionType: 2` (Predicted mode) + the graphical-object smoother config (per Surface 2). FishNet's smoother sits BETWEEN rb (which gets hard-replaced by `_predictionRigidbody.Reconcile`) and `_graphicalObject` (which is what the player sees).
+- The two `rb.position = ...` direct writes at motor.cs:1873 + 1937 are inside **intro/teleport/handoff event handlers** (driven by `eventData.TargetPosition` / `eventData.SnapshotPosition`), NOT in the Reconcile callback. Each is followed by `rb.Sleep(); rb.WakeUp(); InitializePredictionRigidbody();` — explicit re-anchor. Out of jitter scope (these fire once per teleport/handoff event, not per tick).
+- No project-side single-reconcile soft cap (no "if delta > X cm, lock + catch-up" logic). Project relies on FishNet's smoother as the only damping layer. If FishNet's smoother can't absorb a per-tick correction, that correction propagates to the visible transform.
+
+**Industry-standard compliance: PARTIAL.** Project does delegate smoothing to a smoother layer (FishNet's adaptive interpolation, per Surface 2 prefab fields), which is the right architectural shape. But there is no explicit single-reconcile correction cap (Halo/Overwatch pattern), and there is no project-side documentation on what `_localReconcileCorrectionType: 2` actually does. The "correctness" of the smoothing is downstream of FishNet's behavior, which is a black-box from project code's perspective.
+
+**Risk: HIGH.** If under 49 Hz reconcile rate (Surface 7.5) FishNet's smoother is insufficient — and the smoother is the project's ONLY damping layer — visible jitter is the structural outcome, not a tuning bug.
+
+**Phase 7.5 implication:** add an explicit project-side soft-correction layer between `_predictionRigidbody.Reconcile` and the visible-transform smoother. Patterns: (a) per-reconcile snap-distance cap; (b) explicit lerp catch-up over ~100ms when authoritative state diverges from predicted state by > threshold; (c) capture pre/post-reconcile delta (Q4 sibling probe captures this!) and feed into a corrective velocity that the smoother then absorbs.
+
+---
+
+### 7.2 — Layer 4-5: Smoother config on Buddah prefab (★ second suspect)
+
+**Audit:**
+```
+git show HEAD:Assets/Character/Prefab/Buddah.prefab | grep -nE \
+  "TickSmoother|_ownerInterpolation|_spectatorInterpolation|_adaptiveInterpolation|_useGracePeriod|_movementMultiplier|_teleportThreshold|_graphicalObject|_smoothPosition|_smoothRotation|_ownerSmoothedProperties|_spectatorSmoothedProperties|_enablePrediction|_predictionType|_localReconcileCorrectionType|_enableTeleport|_detachGraphicalObject"
+```
+
+**Result (NetworkObject prediction-smoother fields, lines 1066-1083):**
+
+| Line | Field | Value | Semantics (FishNet 4.6) |
+|---|---|---|---|
+| 1070 | `_enablePrediction` | `1` (true) | NetworkObject opts in to prediction stack |
+| 1071 | `_predictionType` | `1` | Rigidbody (vs CharacterController = 0) |
+| 1072 | `_localReconcileCorrectionType` | `2` | Likely "Predicted" mode — FishNet handles correction with built-in smoothing (vs 0=None / 1=Smooth) |
+| 1073 | `_graphicalObject` | `{fileID: 1582303153357347920}` | wired to a child mesh-root transform (per Surface 2: real child transform, m_LocalScale=4) |
+| 1074 | `_detachGraphicalObject` | `0` (false) | graphical stays parented to root |
+| 1077 | `_ownerInterpolation` | `1` | owner interpolates **1 tick** lag |
+| 1078 | `_ownerSmoothedProperties` | `4294967295` (0xFFFFFFFF) | smooth ALL transform properties for owner |
+| 1079 | `_adaptiveInterpolation` | `3` | adaptive mode level 3 (highest) |
+| 1080 | `_spectatorSmoothedProperties` | `255` (0xFF) | smooth all 8 properties for spectator |
+| 1081 | `_spectatorInterpolation` | `2` | spectator interpolates **2 ticks** lag |
+| 1082 | `_enableTeleport` | `0` | teleport feature OFF |
+| 1083 | `_teleportThreshold` | `1` | meters; vestigial when `_enableTeleport=0` |
+
+A second NetworkObject block at lines 1117-1118 also shows `_enableTeleport: 0` / `_teleportThreshold: 1` — likely a child NetworkObject (skill projectile?) on the same prefab.
+
+**Findings:**
+- Owner interp = 1 tick (good for owner-perceived smoothness; minimum lag).
+- Spectator interp = 2 tick + adaptive 3 — reasonable for under-100ms-LatencySim conditions; spectator may need MORE buffer when latency spikes.
+- `_enableTeleport: 0` means **FishNet teleport-on-large-correction is DISABLED**. Combined with Surface 7.1's "no project-side soft cap", this means: every reconcile correction, regardless of magnitude, flows through the smoother as a continuous-motion segment. There is no "if delta > X, treat as teleport" path. At 80 m/s with 49 Hz reconciles (Surface 7.5), even a 30 cm correction per reconcile — well below the disabled `_teleportThreshold: 1` meter — accumulates into visible jitter at smoother granularity.
+- `_teleportThreshold: 1` meter is also notable: even if `_enableTeleport` were enabled, the threshold ~equals `(80 m/s) / (60 fps) × ~0.75` ≈ 1 m of nominal per-frame motion. So the teleport threshold is set at "one frame's worth of motion" — reasonable for slow characters, MARGINAL for an 80 m/s character.
+
+**Cross-ref to Stage 3 design Q3:** the design's `pos-dmax < 0.60 m` threshold (G3.2) corresponds to ~0.45 frames of nominal motion. If pos-dmax exceeds that, FishNet's smoother is leaking corrections into visible jitter without the `_enableTeleport` escape valve.
+
+**Industry-standard compliance: PARTIAL → MARGINAL at high speed.** Adaptive interpolation + per-role smoothed-properties is correct shape. But `_enableTeleport: 0` removes the structural "large correction = teleport, not lerp" safety net that smoothers in MP shooters typically rely on. At 80 m/s, the absence of this safety net is structurally significant.
+
+**Risk: HIGH.** Smoother config is partially correct but has no escape hatch for large corrections at high speed.
+
+**Phase 7.5 implication:** (a) enable `_enableTeleport` + tune `_teleportThreshold` for 80 m/s scale (~0.5-1.0 m); (b) consider increasing `_spectatorInterpolation` to 3 ticks for higher LatencySim conditions; (c) Phase 7.5 design Q&A must inventory FishNet 4.6 source for what `_localReconcileCorrectionType: 2` actually does — current value is undocumented in project code.
+
+---
+
+### 7.3 — Layer 1: Fixed tick + non-FixedUpdate rb writes
+
+**Audit:**
+```
+git grep -nE "void FixedUpdate|void Update\(\)|void LateUpdate" -- Assets/Scripts/New_Buddah/Core/ Assets/Scripts/New_Buddah/Simulation/
+→
+Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs:204   private void Update()
+```
+
+**Update() body (motor.cs:204-219):**
+```csharp
+private void Update()
+{
+    if (bootstrap == null)
+        return;
+    bootstrap.DebugState.isOwner = IsOwner;
+    bootstrap.DebugState.rigidbodyIsKinematic = rb != null && rb.isKinematic;
+    RefreshInputBridge();
+    bootstrap.DebugState.inputBridgeEnabled = _ownerInputBridge.IsEnabled;
+    bootstrap.DebugState.predictionBlockReason = GetPredictionBlockReason();
+    // ... more bootstrap.DebugState.* writes
+}
+```
+
+**Findings:**
+- Update() writes ONLY to `bootstrap.DebugState.*` fields — no rb writes, no transform writes. This is observation-domain instrumentation, not gameplay. **SAFE.**
+- All gameplay rb writes go through `_predictionRigidbody.AddForce` / `AddTorque` / `Velocity` / `Reconcile` (21 callsites in motor.cs, all `_predictionRigidbody.*` per the rb-write grep — Rule 7 PredictionRigidbody integrity is preserved). No bypass found.
+- Force application is in `TimeManager_OnTick()` (motor.cs:222) — FishNet's tick callback, equivalent to FixedUpdate for the prediction stack. Correct domain.
+
+**Tick rate (`Assets/Scenes/MainMenu.unity:6409`):** `_tickRate: 60`. FishNet TimeManager configured to 60 Hz. Other scenes inherit via NetworkManager singleton. Render frame rate locked to 120 Hz (`Assets/Scripts/GlobalSettings/FrameRateLock.cs:18` `Application.targetFrameRate = 120`), giving an exact **2:1 fps:tick ratio** — no beat frequency. The FrameRateLock.cs file's own header docstring documents this exact concern:
+> "Locks render frame rate to an integer multiple of the FishNet tick rate so PredictionSmoother's sub-frame interpolation fraction advances in even steps across frames. Without this, a non-integer fps-to-tick ratio produces a 'beat frequency' tremor in visual-root smoothing that shows as regular micro-oscillation on fast-moving predicted objects."
+
+This shows the team has already engineered for the beat-frequency failure mode — **NOT a likely root cause for the persistent jitter**.
+
+**Industry-standard compliance: HIGH.** Update is debug-only, no Unity FixedUpdate hot-path, all gameplay writes are PredictionRigidbody-mediated, fps:tick ratio is integer.
+
+**Risk: LOW.** Update() is observation-only; tick rate + frame rate lock are explicitly engineered. This layer is not the source of jitter.
+
+**Phase 7.5 implication:** none. Layer 1 is sound.
+
+---
+
+### 7.4 — Layer 6: Hitbox vs visual transform alignment
+
+**Audit:**
+```
+git grep -nE "OverlapBox|OverlapSphere|Physics\." -- Assets/Scripts/Buddah/
+```
+Three `Physics.OverlapBox/Sphere` callsites in `Assets/Scripts/Buddah/PushHitbox.cs` (lines 153, 165, 171), all using `box.transform.*` / `sphere.transform.*` / `_myCollider.bounds.*` — i.e., the collider's **own GameObject transform**.
+
+**PushHitbox `CheckVictimOverlaps` body (lines 145-180):**
+```csharp
+if (_myCollider is BoxCollider box)
+{
+    Vector3 center = box.transform.TransformPoint(box.center);
+    Vector3 halfExtents = Vector3.Scale(box.size * 0.5f, box.transform.lossyScale) + Vector3.one * OverlapPadding;
+    Collider[] overlaps = Physics.OverlapBox(center, halfExtents, box.transform.rotation, ~0, ...);
+    // TryApplyHit per overlap
+}
+```
+
+**Findings:**
+- Hitbox sweep position is anchored to `box.transform.*`, the collider's own GameObject transform.
+- The collider's GameObject is presumably parented under either (a) the **prefab root** (rb-driven, jumps per-tick), or (b) a child of the `_graphicalObject` smoother target (smoother-driven, lags rb by 1-2 ticks).
+- **Surface 7.4 limitation:** without inspecting the prefab's GameObject hierarchy at the level of finding where PushHitbox is attached, this audit cannot definitively say which transform PushHitbox follows. The `git grep` does not surface that — would need `git show` of the prefab YAML and trace m_GameObject ancestry of the PushHitbox MonoBehaviour record.
+- **However:** if the hitbox follows rb (jumps per-tick), but the visible mesh follows the smoother (lags 1-2 ticks), that's **structurally a 1-2-frame visual desync** — exactly the SC.3 driver-observation red line from Stage 3 design.
+- This is the canonical industry trade-off: hitbox-on-rb (responsive, visually wrong by 1-2 frames) vs hitbox-on-visual (visually correct, gameplay-laggy by 1-2 ticks). Most MP shooters pick hitbox-on-rb + accept SC.3-style desync; the question is whether BuddahGo intentionally chose this trade-off or fell into it accidentally.
+
+**Industry-standard compliance: UNKNOWN — needs prefab tree inspection.** Pattern is acceptable IF the hitbox attachment point is documented + intentional.
+
+**Risk: MEDIUM.** Conditional — depends on PushHitbox attachment point in prefab tree. If hitbox follows rb, this contributes to SC.3 driver-observable desync at peer-push events.
+
+**Phase 7.5 implication (conditional):** if Phase 7 SMOKE confirms SC.3 desync at peer-push, Phase 7.5 chooses one of:
+- (a) move hitbox to visual-root (prevents SC.3 visually but creates 1-2-tick gameplay lag — needs latency tolerance design);
+- (b) keep hitbox on rb + document SC.3 as accepted trade-off (industry standard for MP shooters);
+- (c) decouple via per-tick hitbox snapshot replay (advanced; expensive).
+
+**Action item for Stage 5 SMOKE driver:** during peer-push events, watch SC.3 carefully — note exact frame timing of visible contact vs gameplay response. Reviewer's prefab-tree inspection at Stage 6 verify resolves the conditional.
+
+---
+
+### 7.5 — Reconcile rate vs frame rate (★ correction to user premise)
+
+**User premise (cited from Phase 4b V5 verify):** "rec-cb=2595 in 53 HBs on CLIENT under 100ms LatencySim → 49 reconciles/sec".
+
+**Audit (independent verification of premise):**
+```
+for f in agent-exchange/console/raw/2026-05-03-phase4b-v5*.log; do
+  max_rec=$(grep -oE "rec-cb=[0-9]+" "$f" | awk -F= '{print $2}' | sort -n | tail -1)
+  echo "$f → max rec-cb=$max_rec"
+done
+→
+2026-05-03-phase4b-v5-client-100ms.log → max rec-cb=0
+2026-05-03-phase4b-v5-host-100ms.log   → max rec-cb=2595
+2026-05-03-phase4b-v5-single.log       → max rec-cb=0
+```
+
+**Correction to premise:** rec-cb=2595 is on the **HOST** log under 100ms LatencySim, NOT the CLIENT. The CLIENT log shows `rec-cb=0` for all 212 occurrences across the entire session. This is significant for Phase 7 framing:
+- **HOST runs ~49 reconciles/sec** under 100ms LatencySim. Host operates as both server-authority AND a peer client; the rec-cb counter likely fires on the host's CLIENT-role reconciliation against its own SERVER-role authoritative state, OR on prediction-replay-correction even when the host is server-authoritative.
+- **CLIENT (the actual remote peer) shows rec-cb=0** — apparently no reconciles fire at all on the spectator side under 100ms LatencySim in the V5 session, OR the CLIENT log was captured during an idle period.
+
+This inverts the Phase 7 hypothesis: the high-frequency reconcile load is on **HOST, not on CLIENT**. The visible jitter Yonezawa reports is therefore most likely on the **HOST-side BuddahPredicted character** (i.e., the local-control character on the host machine), not the spectator-view of the remote peer. SMOKE should confirm this perceptually.
+
+**Frame-rate analysis given correction:**
+- Render = 120 fps (FrameRateLock).
+- Tick = 60 Hz (MainMenu.unity:6409).
+- Host reconcile rate = ~49 Hz under 100ms LatencySim.
+- 49 Hz reconciles spread across 120 fps render = ~2.4 frames per reconcile event. Smoother has ~2 frames to absorb each correction before the next one fires.
+- 49 Hz reconciles vs 60 Hz tick = 0.82 reconciles per tick on average. Some ticks see 0 reconciles, some see 1. Not "every tick reconciles" but close.
+
+**Findings:**
+- The 2-frame per-reconcile budget is tight. If FishNet's smoother needs >2 frames to fully absorb a correction (e.g., uses 4-6 frames of damping for visual smoothness), then under 49 Hz reconciles the smoother is in continuous "absorbing" state — it never reaches a stable visible position before the next correction arrives. Result: visible micro-oscillation. This is the SC.1 reconcile-rubber-banding pattern from Stage 3 design.
+- The tightness is structural, not tuning: at 49 Hz, ANY damping > 2 render frames produces overlapping corrections. Tuning the smoother won't fix this; reducing the reconcile rate or capping correction magnitude is the architectural lever.
+
+**Industry-standard compliance: STRUCTURAL CONCERN.** 49 Hz reconcile rate approaches the 60 Hz tick rate; smoother absorption window is squeezed. Most MP architectures keep reconcile rate at 5-15 Hz (only when needed) via correction thresholds — fire reconcile only if predicted/authoritative drift exceeds X cm. BuddahGo's project-side code does not implement such a threshold (Surface 7.1); reconciles fire whenever FishNet decides authoritative != predicted, which under 100ms LatencySim is essentially every other tick.
+
+**Risk: HIGH.** This is plausibly the dominant root cause: the structural reconcile rate is too close to the frame rate for the project's smoother to keep up.
+
+**Phase 7.5 implication:**
+- (a) **Reconcile-threshold gate (preferred):** project adds a "if predicted/authoritative position diff < X cm AND velocity diff < Y m/s, skip the reconcile" gate at the start of `ReconcileState`. Suppresses 80%+ of reconciles whose corrections are visually negligible anyway. Reduces reconcile rate from 49 Hz to (estimated) 5-10 Hz.
+- (b) **Adaptive interp tuning:** raise `_spectatorInterpolation` and possibly `_ownerInterpolation` to give smoother more buffer; combined with adaptive 3, may absorb residual reconciles.
+- (c) **Per-reconcile correction cap (Surface 7.1 alternative):** caps individual snap distance, reducing visible amplitude of each reconcile even at 49 Hz frequency.
+- Combination of (a) + (c) is the canonical industry pattern.
+
+---
+
+### 7.6 — Frame-time stability
+
+**Audit:**
+```
+git grep -nE "Application\.targetFrameRate|QualitySettings\.vSyncCount|fixedDeltaTime" -- Assets/Scripts/ ProjectSettings/
+→
+Assets/Scripts/GlobalSettings/FrameRateLock.cs:17   QualitySettings.vSyncCount = 0;
+Assets/Scripts/GlobalSettings/FrameRateLock.cs:18   Application.targetFrameRate = TargetFrameRate;
+Assets/Scripts/Buddah/BuddahMovement.cs:[various]  Time.fixedDeltaTime  (legacy movement; gated out of prediction stack)
+Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs:1226 float dt = TimeManager != null ? (float)TimeManager.TickDelta : Time.fixedDeltaTime;
+```
+
+`FrameRateLock.cs:14` constant: `private const int TargetFrameRate = 120;`
+
+**ProjectSettings/QualitySettings.asset (Performant tier):** `vSyncCount: 0` confirmed at the asset level too.
+
+**ProjectSettings/TimeManager.asset:**
+```
+Fixed Timestep: 0.01666667    (= 1/60s = 60 Hz Unity FixedUpdate)
+Maximum Allowed Timestep: 0.33333334
+```
+
+**Findings:**
+- `Application.targetFrameRate = 120` + `vSyncCount = 0` → render rate capped at 120 fps with no vsync. Capped is good; vsync-off may reintroduce frame-time jitter on machines where the engine can sustain >120 fps (engine bursts a frame, then waits for the cap, producing irregular-but-bounded spacing).
+- Unity Fixed Timestep = 60 Hz matches FishNet TickRate (per Surface 7.3) — `TimeManager.TickDelta` is the prediction-domain dt. Consistent.
+- 120 / 60 = 2:1 exact ratio; FrameRateLock comment confirms intent. No beat-frequency tremor expected.
+- Variability remains within Unity's frame-pacing inherent jitter (~±0.5ms typically with vsync off + targetFrameRate cap), which is below the threshold of perceptible tremor at 80 m/s but could amplify other jitter sources.
+
+**Industry-standard compliance: HIGH.** Capped target frame rate, integer fps:tick ratio, vsync-off documented.
+
+**Risk: LOW.** Frame-time stability is engineered. Possible secondary contributor (vsync-off jitter ~0.5ms = ~6cm at 80 m/s) but not a primary root cause.
+
+**Phase 7.5 implication:** none expected. If Phase 7 SMOKE shows frame-time-correlated jitter (which would be a secondary finding), consider `vSyncCount = 1` for SMOKE-only runs — but production keeps current config.
+
+---
+
+### Prioritized root-cause hypothesis ranking (Surface 7 synthesis)
+
+| # | Risk | Hypothesis | Audit refs | What Phase 7 SMOKE proves | Phase 7.5 retrofit pattern |
+|---|---|---|---|---|---|
+| 1 | **HIGH** | Structural: reconcile rate (~49 Hz on HOST under 100ms latency) is too close to tick rate (60 Hz) for FishNet's smoother to fully damp each correction before the next arrives. Result: continuous "absorbing" state → visible micro-oscillation matching SC.1 rubber-banding. **Dominant on HOST side**, NOT spectator (per Surface 7.5 correction to user premise). | 7.5 + 7.1 + 7.2 | Q4 sibling-probe `[D-REC HEARTBEAT]` shows 40+ events-in-window on HOST under 100ms; SC.1 driver observation should fire on HOST view, not CLIENT view. | (a) project-side reconcile-threshold gate (skip if diff < X cm + Y m/s); (b) per-reconcile soft-correction cap; combination of both. Reduces reconcile rate to 5-10 Hz, recovers smoother absorption budget. |
+| 2 | **HIGH** | Smoother config gap: `_enableTeleport: 0` removes the "large correction → snap-not-lerp" escape valve. At 80 m/s scale, even a 30-60cm reconcile correction (well below the disabled threshold) flows through smoother as continuous-motion → visible distortion. No project-side soft cap to compensate (Layer 3 trusts FishNet entirely). | 7.1 + 7.2 | `pos-dmax` exceeding `pos-davg + 0.6m` (G3.2 design gate) on Path-B-100ms confirms; SC.2 push-recoil step-function visible when reconciles arrive mid-acceleration. | (a) enable `_enableTeleport` + tune `_teleportThreshold` to ~0.5m; (b) raise `_spectatorInterpolation` to 3 ticks for >100ms latency; (c) project-side single-reconcile cap. Phase 7.5 design Q&A inventories FishNet 4.6 source for `_localReconcileCorrectionType: 2` semantics (currently undocumented in project code). |
+| 3 | **MEDIUM** | Layer 6 hitbox/visual desync. PushHitbox uses `box.transform.*` for OverlapBox sweeps; if box collider follows rb (root-attached), hitbox is 1-2 ticks ahead of visible mesh. Industry-acceptable trade-off if intentional, contributes to SC.3 driver-observable desync if accidental. **Conditional on prefab tree inspection** (not resolved by git grep alone). | 7.4 | SC.3 driver observation during peer-push: visible mesh penetrates other character before push response fires. | If accidental: (a) move PushHitbox attachment to a visual-smoother child; if intentional: (b) document trade-off + accept SC.3 as a known cost. |
+| 4 | **LOW** | Layer 1 fixed-tick + non-FixedUpdate rb writes — debug-only Update(); all gameplay rb writes go through `_predictionRigidbody.*`. Engineered correctly. NOT a jitter source. | 7.3 | N/A | None. Layer 1 is sound. |
+| 5 | **LOW** | Layer 7.6 frame-time stability — 120 fps cap + 60 Hz tick = 2:1 integer ratio + vsync-off. Engineered. Possible secondary jitter from vsync-off frame-pacing irregularity (~±0.5ms ≈ ±6cm at 80 m/s). | 7.6 | If Phase 7 SMOKE shows frame-time-correlated jitter, consider vsync-on for SMOKE rerun. | None for production. SMOKE-only optional vsync toggle if needed for diagnostic isolation. |
+
+**Summary of Phase 7.5 retrofit scope (preview, finalized at Phase 7 closeout):**
+The dominant retrofit hypotheses (#1 + #2) converge on **adding a project-side correction-management layer between `_predictionRigidbody.Reconcile` and the visible-transform smoother**. Specifically:
+- Reconcile-threshold gate (skip negligible reconciles) → reduces 49 Hz to 5-10 Hz.
+- Per-reconcile soft cap (clamp single-event correction magnitude) → reduces visible amplitude.
+- Enable `_enableTeleport` + tune threshold → restore the structural escape valve for large corrections.
+
+These three together are sufficient retrofit hypotheses for Phase 7.5 design Q&A entry. Phase 7 SMOKE + verify will confirm or reject each via Q4 sibling-probe data + SC.1/SC.2/SC.3 driver observations + cross-reference with Surface 7 audit findings.
+
+**Stage 5 SMOKE driver focus list (per amended framing):**
+- **HOST-side observation prioritized** (per 7.5 correction): SC.1 rubber-banding most likely visible on the local-control character on the host machine, not the spectator view of the remote peer.
+- During 60s+ continuous push-pull interaction, watch for: (i) sustained micro-vibration on HOST character during continuous motion (SC.1 → confirms #1), (ii) step-function deceleration during peer-push receive (SC.2 → confirms #2), (iii) visible-mesh-penetrates-other-mesh before push response fires (SC.3 → confirms #3 conditionally on prefab tree).
+
+---
+
 ## Summary — what Q0–Q5 must answer (preview, not answers)
 
 - **Q0 — metric definition:** lean (C) preserved on substance (per-frame Δposition aggregate + snap-event metric). **Section 5b KEY FINDING:** existing `VisualShakeProbe` already emits `pos-dmax / pos-dp99 / pos-davg` (+ rotation aggregates) — Q0 design MUST decide whether Phase 7 vocabulary aligns with these names (recommended: align) or invents new ones. Note: existing emit is Δ-position arithmetic mean, not strict RMS — convertible offline if Q0 wants RMS specifically.

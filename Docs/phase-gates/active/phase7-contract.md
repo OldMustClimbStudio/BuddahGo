@@ -16,13 +16,16 @@
 
 ## Scope (locked)
 
+> **Framing amendment 2026-05-03 (post Stage 3 sign-off, pre-Stage 4 completion):** Yonezawa confirmed during Stage 3 that **persistent visual jitter is an OBSERVED reality**, not a theoretical risk Phase 7 would discover. Phase 7's framing therefore shifts from "did Phase 4b regress visual fidelity?" to "**characterize the existing jitter + identify root cause to drive Phase 7.5 retrofit scope**". Q5-A (Phase 7.5 retrofit) is now expected, not contingent. Architectural audit (Surface 7) added to RECON scope to identify root-cause layer per industry-standard MP visual sync 6-layer model (Layer 1 fixed tick / Layer 2 owner CSP / Layer 3 reconcile correction / Layer 4 observer interp / Layer 5 visual smoothing / Layer 6 hitbox-visual desync). Audit runs parallel to Stage 4 IMPLEMENT, lands before Stage 5 SMOKE so driver knows what to stress-test.
+
 **In scope:**
-- Define a quantitative jitter metric for the BuddahPredicted character on screen during 2-peer LAN play (baseline + 100ms LatencySim)
-- Implement a `JitterCapture.cs` Editor utility that logs `(tick, transform.position, transform.rotation, Time.unscaledDeltaTime)` per rendered frame to a per-session file
-- Run a 3-path smoke: Path A single, Path B 2-peer no-LatencySim, Path B 2-peer 100ms LatencySim — capture jitter file per peer per path
-- Build a small offline analyzer script (PowerShell preferred) that ingests the jitter files and produces metric values (per Q0 definition)
-- Compare metrics across paths to (a) detect regression vs Phase 4b expectations and (b) quantify reconcile-replay visual cost under LatencySim
-- Document findings in a Phase 7 verify report (per templates Template 4 post-L22)
+- Define a quantitative jitter metric for the BuddahPredicted character on screen during 2-peer LAN play (Path B no-LatencySim baseline + Path B 100ms LatencySim)
+- Reuse existing `BuddahPredictionVisualShakeProbe.cs` (Q1=A' per Stage 3 design) + add sibling `BuddahPredictionReconcileSnapProbe.cs` (Q4 per Stage 3 design) under separate define gates
+- Run a 3-path smoke: Path A single (wiring sanity only — NOT a comparison reference), Path B 2-peer no-LatencySim (baseline), Path B 2-peer 100ms LatencySim (characterization)
+- Build offline analyzer `Tools/Analysis/AnalyzeJitter.ps1` that ingests `[D-VIS HEARTBEAT]` + `[D-REC HEARTBEAT]` lines from per-path Editor.log files
+- Compare metrics across the two B-paths to quantify reconcile-replay visual cost under realistic latency
+- **Surface 7 architectural audit** (added per framing amendment): inventory BuddahGo's actual implementation against industry-standard 6-layer MP visual sync architecture; identify which layer(s) are the persistent-jitter root cause; produce actionable Phase 7.5 retrofit scope hypotheses
+- Document findings in a Phase 7 verify report (per templates Template 4 post-L22) including: jitter measurements, Surface 7 audit findings, SUCCESS CRITERIA SC.1-3 driver observations, and proposed Phase 7.5 retrofit scope
 
 **Out of scope:**
 - Any code change to `BuddahPredictedMotor.cs` / `BuddahPredictedReconcileData.cs` / channel layer / RPC pathways (Phase 4b is final on these)

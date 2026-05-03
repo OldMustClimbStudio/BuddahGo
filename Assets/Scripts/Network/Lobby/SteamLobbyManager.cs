@@ -92,6 +92,9 @@ namespace SteamMultiplayer.Network
         public const string KEY_HOST_STEAM_ID = "l_host";
         public const string KEY_VISIBILITY    = "l_vis";
         public const string KEY_MAX_PLAYERS   = "l_max";
+        // Phase 4b V5 Q1 — prediction wire-format protocol version. Joiners hard-reject mismatch.
+        // See PredictionProtocol.cs for version semantics + bump policy.
+        public const string KEY_PREDICTION_PROTOCOL_VERSION = "l_pv";
 
         // ── Inspector ──────────────────────────────────────────────────────────
         [Header("Lobby Defaults")]
@@ -414,6 +417,7 @@ namespace SteamMultiplayer.Network
             lobby.SetData(KEY_HOST_STEAM_ID, SteamClient.SteamId.Value.ToString());
             lobby.SetData(KEY_VISIBILITY, visibility.ToString());
             lobby.SetData(KEY_MAX_PLAYERS, maxPlayers.ToString());
+            lobby.SetData(KEY_PREDICTION_PROTOCOL_VERSION, PredictionProtocol.Version.ToString());
 
             CurrentLobby = lobby;
             NetLog.Info($"[Lobby] Created — ID={lobby.Id.Value}  name={name}");
@@ -451,6 +455,7 @@ namespace SteamMultiplayer.Network
             Lobby lobby = result.Value;
             string lobbyName  = lobby.GetData(KEY_LOBBY_NAME);
             string hostSteamId = lobby.GetData(KEY_HOST_STEAM_ID);
+            string remotePvStr = lobby.GetData(KEY_PREDICTION_PROTOCOL_VERSION);
 
             // Treat lobbies missing core metadata as invalid join targets.
             // This prevents the UI from entering RoomUI for dead/invalid lobby ids.
@@ -458,6 +463,18 @@ namespace SteamMultiplayer.Network
             {
                 lobby.Leave();
                 FireJoinFailed($"Lobby {steamId.Value} is invalid or missing host metadata.");
+                return;
+            }
+
+            // Phase 4b V5 Q1 — prediction protocol version handshake. Mismatch is a hard-block.
+            // Empty / parse-fail = pre-V5 host (treated as v0); reject with friendly message.
+            int remotePv = 0;
+            bool remotePvParsed = !string.IsNullOrWhiteSpace(remotePvStr) && int.TryParse(remotePvStr, out remotePv);
+            if (!remotePvParsed || remotePv != PredictionProtocol.Version)
+            {
+                lobby.Leave();
+                string remoteLabel = remotePvParsed ? remotePv.ToString() : "<unknown/pre-V5>";
+                FireJoinFailed($"Prediction protocol mismatch: host={remoteLabel}, you={PredictionProtocol.Version}. Both sides need a build with the same prediction protocol version.");
                 return;
             }
 

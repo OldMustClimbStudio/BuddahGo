@@ -38,12 +38,9 @@ namespace NewBuddah.PredictionV2.Core
         public readonly BuddahPredictedModifierState ShadowModifierStateSnapshot;
         public readonly BuddahPredictedMotorConfig Config;
 
-        // Phase 3d — handoff snapshot fields. Snapshotted in the same 3b pre-consume
-        // shadow block immediately before ConsumePendingLaunchHandoffEvent runs, so
-        // BuddahHandoffStep can parity-mirror the consume → FromData → Advance pipeline
-        // against identical inputs.
-        public readonly bool ShadowPreHandoffHasPending;
-        public readonly BuddahPredictedLaunchHandoffData ShadowPreHandoffEvent;
+        // Phase 6 — handoff shadow snapshot collapsed to single state field.
+        // Pre-consume pending-event slot retired with the RPC chain (Section 11.1
+        // option a deletion); BuddahHandoffStep mirrors only the post-Advance state.
         public readonly BuddahPredictedLaunchHandoffState ShadowPreHandoffState;
 
         public BuddahPredictionTickContext(
@@ -71,8 +68,6 @@ namespace NewBuddah.PredictionV2.Core
             bool teleportFlag_RebaseTrails,
             BuddahPredictedModifierState shadowModifierStateSnapshot,
             BuddahPredictedMotorConfig config,
-            bool shadowPreHandoffHasPending,
-            BuddahPredictedLaunchHandoffData shadowPreHandoffEvent,
             BuddahPredictedLaunchHandoffState shadowPreHandoffState)
         {
             RbVelocityPreTick = rbVelocityPreTick;
@@ -99,8 +94,6 @@ namespace NewBuddah.PredictionV2.Core
             TeleportFlag_RebaseTrails = teleportFlag_RebaseTrails;
             ShadowModifierStateSnapshot = shadowModifierStateSnapshot;
             Config = config;
-            ShadowPreHandoffHasPending = shadowPreHandoffHasPending;
-            ShadowPreHandoffEvent = shadowPreHandoffEvent;
             ShadowPreHandoffState = shadowPreHandoffState;
         }
     }

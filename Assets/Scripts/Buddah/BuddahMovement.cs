@@ -39,6 +39,11 @@ public class BuddahMovement : NetworkBehaviour
     [SerializeField] public float pushExtraMaxSpeed = 6f;
 
     [Header("Launch Continuity")]
+    // Phase 6: Legacy mode retains pre-Phase-6 velocity-inherit. PredictionV2
+    // race-start uses stop-then-countdown via prediction motor (motor.EnterRaceStartLock
+    // driven by RoomStateManager._raceStartTick SyncVar). launchInheritTime is now
+    // unreferenced (BeginLaunchHandoff retired in Area 2); launchBlendTime still
+    // used by legacy _launchState Blend path (UpdateLaunchState ~line 475).
     [SerializeField, Min(0f)] private float launchInheritTime = 0.2f;
     [SerializeField, Min(0f)] private float launchBlendTime = 0.32f;
 
@@ -241,71 +246,12 @@ public class BuddahMovement : NetworkBehaviour
         RefreshLocalControlState();
     }
 
-    public void BeginLaunchHandoff(LaunchHandoffSnapshot snapshot, float bypassRoomStateSeconds, float suppressTurnInputSeconds = 0.15f, bool clearAngularVelocity = true, int debugSequenceId = 0, bool enableDebugLogs = false)
-    {
-        if (TryGetPredictionHandoffBridge(out BuddahPredictionHandoffBridge bridge)
-            && bridge.TryBeginLaunchHandoff(
-                snapshot,
-                launchInheritTime,
-                launchBlendTime,
-                bypassRoomStateSeconds,
-                suppressTurnInputSeconds,
-                clearAngularVelocity,
-                debugSequenceId,
-                enableDebugLogs))
-        {
-            _authoritativeHandoffPending = true;
-            _predictionLaunchHandoffActive = false;
-            _roomStateBypassTimer = Mathf.Max(_roomStateBypassTimer, bypassRoomStateSeconds);
-            _suppressSteeringTimer = Mathf.Max(0f, suppressTurnInputSeconds);
-            Debug.Log(
-                $"[IntroHandoff][Movement:{name}] Routed prediction handoff request accepted seq={debugSequenceId} owner={IsOwner} " +
-                $"pendingEntered={_authoritativeHandoffPending} intro={_introControlActive} external={_externalKinematicControlActive}");
-            RefreshLocalControlState();
-            return;
-        }
-
-        _authoritativeHandoffPending = false;
-        _predictionLaunchHandoffActive = false;
-        _externalKinematicControlActive = false;
-        _introControlActive = false;
-        _roomStateBypassTimer = Mathf.Max(_roomStateBypassTimer, bypassRoomStateSeconds);
-        _suppressSteeringTimer = Mathf.Max(0f, suppressTurnInputSeconds);
-
-        _launchInheritedVelocity = snapshot.Velocity;
-        _launchInheritedForward = snapshot.Forward;
-        _launchInheritedForward.y = 0f;
-        if (_launchInheritedForward.sqrMagnitude < 0.0001f)
-            _launchInheritedForward = transform.forward.sqrMagnitude > 0.0001f ? transform.forward : Vector3.forward;
-        _launchInheritedForward.Normalize();
-
-        if (rb != null)
-        {
-            rb.isKinematic = false;
-            rb.position = snapshot.Position;
-            rb.rotation = snapshot.Rotation;
-            rb.velocity = snapshot.Velocity;
-            rb.angularVelocity = clearAngularVelocity ? Vector3.zero : snapshot.AngularVelocity;
-        }
-
-        if (launchInheritTime > 0f)
-        {
-            _launchState = LaunchState.Inherit;
-            _launchStateTimer = launchInheritTime;
-        }
-        else if (launchBlendTime > 0f)
-        {
-            _launchState = LaunchState.Blend;
-            _launchStateTimer = launchBlendTime;
-        }
-        else
-        {
-            _launchState = LaunchState.Normal;
-            _launchStateTimer = 0f;
-        }
-
-        RefreshLocalControlState();
-    }
+    // Phase 6 — BuddahMovement.BeginLaunchHandoff retired with the owner-side
+    // RPC chain (Section 11.1 option a). Race-start lock is now driven by
+    // server-side SyncVar (RoomStateManager._raceStartTick); spline-side driver
+    // no longer initiates the handoff. Legacy non-prediction (_launchState
+    // Inherit / Blend / ApplyLaunchInheritedVelocity) path retained — Phase 6
+    // applies to PredictionV2 mode only.
 
     public void SetExternalKinematicControlActive(bool active)
     {

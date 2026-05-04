@@ -26,10 +26,6 @@ namespace NewBuddah.PredictionV2.Core
     [DisallowMultipleComponent]
     public class BuddahPredictedMotor : TickNetworkBehaviour
     {
-        // Small buffer ahead of the owner's last known tick so the TargetRpc has time to arrive
-        // before the owner reaches StartTick. Keeps Consume firing the instant the event queues.
-        private const uint HandoffOwnerTickTravelBufferTicks = 2u;
-
         [Header("References")]
         [SerializeField] private BuddahPredictionBootstrap bootstrap;
         [SerializeField] private BuddahPredictedMotorConfig config;
@@ -41,19 +37,13 @@ namespace NewBuddah.PredictionV2.Core
         private BuddahPredictedModifierState _modifierState;
         private BuddahPredictedMotorComputedStats _computedStats;
         private uint _nextTeleportEventId = 1u;
-        private uint _nextLaunchHandoffEventId = 1u;
         private bool _impulseConsumedThisTick;
         private bool _hasPendingTeleportEvent;
-        private bool _hasPendingLaunchHandoffEvent;
         private BuddahPredictedTeleportEventData _pendingTeleportEvent;
-        private BuddahPredictedLaunchHandoffData _pendingLaunchHandoffEvent;
         private uint _lastConsumedTeleportEventId;
-        private uint _lastConsumedLaunchHandoffEventId;
         private BuddahPredictedLaunchHandoffState _handoffState;
         private bool _introControlActive;
         private bool _externalKinematicControlActive;
-        private bool _awaitingAuthoritativeLaunchHandoff;
-        private uint _localPreHandoffBypassUntilTick;
         private bool _lastLoggedIntroWriterSuppressed;
         private string _lastLoggedIntroWriterReason;
         private bool _lastLoggedIntroReconcileSkipped;
@@ -114,12 +104,10 @@ namespace NewBuddah.PredictionV2.Core
         private BuddahPredictedModifierState _shadowModifierStateSnapshot;
         private uint _shadowModifierConsumedCount;
         private int _dLocModifierDivCount;
-        // Phase 3d — handoff shadow state. Snapshots pre-consume (before motor.cs
-        // ConsumePendingLaunchHandoffEvent) so BuddahHandoffStep can parity-mirror
-        // the consume → FromData → Advance pipeline. Cumulative counter obeys L13
-        // (compared>0 gate); per-window divergence counter resets at heartbeat.
-        private bool _shadowPreHandoffHasPending;
-        private BuddahPredictedLaunchHandoffData _shadowPreHandoffEvent;
+        // Phase 6 — handoff shadow collapsed to single state field (Phase 3d
+        // pre-consume pending-event slot retired with the RPC chain). Cumulative
+        // counter obeys L13 (compared>0 gate); per-window divergence counter
+        // resets at heartbeat.
         private BuddahPredictedLaunchHandoffState _shadowPreHandoffState;
         private uint _shadowHandoffConsumedCount;
         private int _dLocHandoffDivCount;
@@ -135,7 +123,9 @@ namespace NewBuddah.PredictionV2.Core
         public float CurrentScaleMultiplier => _computedStats.ScaleMultiplier > 0f ? _computedStats.ScaleMultiplier : 1f;
         public bool IsPredictionIntroControlActive => _introControlActive;
         public bool IsPredictionExternalKinematicControlActive => _externalKinematicControlActive;
-        public bool IsAuthoritativeLaunchHandoffPending => _awaitingAuthoritativeLaunchHandoff || _hasPendingLaunchHandoffEvent;
+        // Phase 6 — owner-initiated pending state retired (Section 11.1 option a).
+        // No transient pending window in new design; Locked is the only "active" state.
+        public bool IsAuthoritativeLaunchHandoffPending => false;
         public bool IsPredictionLaunchHandoffConsumedOrActive => _handoffState.IsActive;
 
         private void Awake()
@@ -150,12 +140,53 @@ namespace NewBuddah.PredictionV2.Core
             base.OnStartClient();
             _ownerInputBridge.Initialize();
             RefreshInputBridge();
+            HookRaceStartTickListenerOnce();
         }
 
         public override void OnStopClient()
         {
             base.OnStopClient();
+            UnhookRaceStartTickListener();
             _ownerInputBridge.Dispose();
+        }
+
+        // Phase 6 — RoomStateManager._raceStartTick SyncVar OnChange subscription.
+        // L7: subscribe-once gate (_raceStartTickListenerHooked) prevents double-fire
+        // across OnStartClient + OnEnable + OnNetworkStart. Polls Instance until
+        // available since RoomStateManager spawn order is independent of motor spawn.
+        private bool _raceStartTickListenerHooked;
+        private uint _lastObservedRaceStartTick;
+        private void HookRaceStartTickListenerOnce()
+        {
+            if (_raceStartTickListenerHooked)
+                return;
+            // RoomStateManager.Instance may not exist yet on early client spawn; defer
+            // hook to first RunInputs tick by leaving listener unhooked here. Tick-poll
+            // pattern in BuildReplicateData picks up _raceStartTick via direct read.
+            _raceStartTickListenerHooked = true;
+            _lastObservedRaceStartTick = 0u;
+        }
+        private void UnhookRaceStartTickListener()
+        {
+            _raceStartTickListenerHooked = false;
+            _lastObservedRaceStartTick = 0u;
+        }
+        // Phase 6 — Called from BuildReplicateData each tick. When RoomStateManager
+        // signals a new _raceStartTick (non-zero, server-authoritative), motor enters
+        // Locked state with the new tick window. Idempotent via _lastObservedRaceStartTick.
+        private void PollRaceStartLockSyncVar()
+        {
+            RoomStateManager room = RoomStateManager.Instance;
+            if (room == null)
+                return;
+            uint tick = room.RaceStartTick;
+            if (tick == 0u || tick == _lastObservedRaceStartTick)
+                return;
+            // New race-start tick from server — enter Locked.
+            _lastObservedRaceStartTick = tick;
+            Vector3 lockPose = rb != null ? rb.position : Vector3.zero;
+            Quaternion lockRot = rb != null ? rb.rotation : Quaternion.identity;
+            EnterRaceStartLock(tick, lockPose, lockRot);
         }
 
         private void OnEnable()
@@ -223,6 +254,35 @@ namespace NewBuddah.PredictionV2.Core
             if (!ShouldRunPrediction())
                 return;
 
+            // Phase 6 SMOKE patch v3 — server-driven race-start unlock cleanup.
+            // RoomStateManager._gameplayMovementUnlocked SyncVar flips true at
+            // race-start tick (Area 3 server tick handler). Motor polls it here
+            // and clears the intro / external-kinematic flags independent of
+            // the OLD IntroSequenceManager → CompleteGoTransition chain.
+            // Runs on server + owner + spectator sides; server-side clear flows
+            // to clients via reconcile data (motor's reconcile callback reads
+            // IntroControlActive=false post-clear). Idempotent — once flags
+            // are false the conditionals self-gate.
+            var roomStateManager = RoomStateManager.Instance;
+            if (roomStateManager != null && roomStateManager.IsGameplayMovementUnlocked)
+            {
+                if (_introControlActive || _externalKinematicControlActive)
+                {
+                    _introControlActive = false;
+                    _externalKinematicControlActive = false;
+                    if (bootstrap != null)
+                        bootstrap.LogVerbose($"[Phase6] motor cleared intro/external flags via SyncVar gate (owner={IsOwner} server={IsServerInitialized})");
+                }
+                if (IsOwner && rb != null && rb.isKinematic)
+                {
+                    rb.isKinematic = false;
+                    rb.Sleep();
+                    rb.WakeUp();
+                    if (bootstrap != null)
+                        bootstrap.LogVerbose($"[Phase6] motor unkinematic'd owner rb via SyncVar gate");
+                }
+            }
+
             RunInputs(BuildReplicateData());
         }
 
@@ -258,9 +318,10 @@ namespace NewBuddah.PredictionV2.Core
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
             Vector3 planarVelocity = rb.velocity;
             planarVelocity.y = 0f;
-            bool movementAllowed = _movementGateBridge.IsMovementAllowed(gameObject)
-                                   || _computedStats.IsRoomBypassActive
-                                   || IsLocalPreHandoffBypassActive(currentTick);
+            bool isLocked = _handoffState.IsActive && _handoffState.CurrentState == BuddahPredictedLaunchState.Locked;
+            bool movementAllowed = !isLocked
+                                   && (_movementGateBridge.IsMovementAllowed(gameObject)
+                                       || _computedStats.IsRoomBypassActive);
 
             BuddahPredictedReconcileData data = new(
                 _predictionRigidbody,
@@ -322,14 +383,28 @@ namespace NewBuddah.PredictionV2.Core
         private BuddahPredictedInputData BuildReplicateData()
         {
             uint currentTick = TimeManager != null ? TimeManager.LocalTick : 0u;
+            // Phase 6 — poll RoomStateManager._raceStartTick SyncVar for transitions
+            // into Locked state (server-driven race-start countdown trigger).
+            PollRaceStartLockSyncVar();
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
-            bool preHandoffBypassActive = IsLocalPreHandoffBypassActive(currentTick);
-            bool movementAllowed = _movementGateBridge.IsMovementAllowed(gameObject)
-                                   || _computedStats.IsRoomBypassActive
-                                   || preHandoffBypassActive;
+            // Phase 6 — Locked state forces movementAllowed=false, which drives the
+            // motor.cs:466 MovementAllowed=false early-return (zero AddForce, zero
+            // velocity write — G8b replay determinism). Auto-forward (throttle=1f)
+            // resumes automatically when LockedUntilTick passes.
+            bool isLocked = _handoffState.IsActive && _handoffState.CurrentState == BuddahPredictedLaunchState.Locked;
+            bool movementAllowed = !isLocked
+                                   && (_movementGateBridge.IsMovementAllowed(gameObject)
+                                       || _computedStats.IsRoomBypassActive);
             float steering = movementAllowed ? (_ownerInputBridge.ReadSteering() * config.TurnInputMultiplier) : 0f;
             float throttle = movementAllowed ? 1f : 0f;
             bool ownerInputLive = IsOwner && movementAllowed;
+#if UNITY_EDITOR
+            // G8b — During Phase 3 Lock, motor must NEVER reach the post-MovementAllowed
+            // gameplay path (which produces AddForce calls). isLocked → movementAllowed=false
+            // → motor.cs:466 early-return. If this contract is broken, fail loud.
+            if (isLocked && movementAllowed)
+                Debug.LogError($"[D-LOC G8b] T={currentTick} Locked-state but MovementAllowed=true — Phase 3 Lock gate failed");
+#endif
 
             if (bootstrap != null)
             {
@@ -392,8 +467,6 @@ namespace NewBuddah.PredictionV2.Core
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _shadowPreTeleportHasPending = _hasPendingTeleportEvent;
             _shadowPreTeleportEvent = _pendingTeleportEvent;
-            _shadowPreHandoffHasPending = _hasPendingLaunchHandoffEvent;
-            _shadowPreHandoffEvent = _pendingLaunchHandoffEvent;
             _shadowPreHandoffState = _handoffState;
             {
                 BuddahPredictionTickContext earlyTickCtx = BuildTickContext(in data, Vector3.forward, 0f, 0f);
@@ -405,7 +478,9 @@ namespace NewBuddah.PredictionV2.Core
             }
 #endif
             ConsumePendingTeleportEvent(currentTick);
-            ConsumePendingLaunchHandoffEvent(currentTick);
+            // Phase 6 — ConsumePendingLaunchHandoffEvent retired with the queue
+            // infrastructure (Section 11.1 option a). Locked state is set externally
+            // via EnterRaceStartLock + cleared by RefreshLaunchState's tick-tail.
             // Phase 4b V2b Step 1 / V4 — sole impulse drain path. NEW (CommandBus.ImpulseChannel
             // ConsumeReady) is rb-writing authority. OLD queue + LEG shadow compare retired in V4.
             ConsumePendingImpulseEvents_Authoritative(currentTick);
@@ -488,8 +563,10 @@ namespace NewBuddah.PredictionV2.Core
 
             float resolvedThrottle = data.Throttle;
             float resolvedSteering = data.Steering * _computedStats.FinalSteeringSign;
-            ApplyLaunchHandoffInputScaling(currentTick, ref resolvedThrottle, ref resolvedSteering);
-            ApplyLaunchInheritedVelocity(currentTick);
+            // Phase 6 — ApplyLaunchHandoffInputScaling (Inherit/Blend throttle*=BlendAlpha)
+            // and ApplyLaunchInheritedVelocity (post-handoff velocity blend) retired.
+            // Locked state gates input via MovementAllowed=false at line 466 early-return;
+            // post-unlock path is untouched (auto-forward = throttle 1f intact).
 
             // Phase 4a Z2 (2026-04-19): apply IsSteeringSuppressed BEFORE Compute so
             // commanded turn torque is derived from the zeroed-steering value. Forward
@@ -770,8 +847,6 @@ namespace NewBuddah.PredictionV2.Core
             if (active)
             {
                 _handoffState = default;
-                _awaitingAuthoritativeLaunchHandoff = false;
-                _localPreHandoffBypassUntilTick = 0u;
             }
 
             if (rb != null && (IsOwner || IsServerInitialized))
@@ -848,122 +923,37 @@ namespace NewBuddah.PredictionV2.Core
             return queuedOnServer;
         }
 
-        public bool RequestAuthoritativeLaunchHandoffFromOwner(
-            LaunchHandoffSnapshot snapshot,
-            float inheritDurationSeconds,
-            float blendDurationSeconds,
-            float bypassRoomStateSeconds,
-            float suppressTurnInputSeconds,
-            bool clearAngularVelocity,
-            int debugSequenceId,
-            bool enableDebugLogs)
+        // Phase 6 — Race-start lock entry point. Replaces the owner→server→owner
+        // RPC chain (RequestAuthoritativeLaunchHandoffFromOwner / TryApplyServer
+        // AuthoritativeLaunchHandoff / RequestLaunchHandoffServerRpc / QueueLaunch
+        // HandoffTargetRpc / TryQueueLaunchHandoffEvent), which was deleted whole
+        // per Section 11.1 option (a). Called by RoomStateManager._raceStartTick
+        // SyncVar OnChange handler (Area 3) on each client; caller passes the
+        // server-authoritative raceStartTick so all peers compute the same lock
+        // window. snapshotPose is the spline endpoint pose (rb already snapped
+        // there by spline driver per Phase 1 endpoint logic).
+        public void EnterRaceStartLock(uint raceStartTick, Vector3 snapshotPosition, Quaternion snapshotRotation)
         {
-            bootstrap?.LogVerbose(
-                $"[HandoffDebug] owner request start isServer={IsServerInitialized} isOwner={IsOwner} " +
-                $"awaiting={_awaitingAuthoritativeLaunchHandoff} pos={snapshot.Position} speed={snapshot.Velocity.magnitude:0.00} seq={debugSequenceId}");
-            if (IsServerInitialized)
-            {
-                bootstrap?.LogVerbose("[HandoffDebug] owner request resolved locally on server without releasing intro/external control early.");
-                return TryApplyServerAuthoritativeLaunchHandoff(
-                    snapshot,
-                    inheritDurationSeconds,
-                    blendDurationSeconds,
-                    bypassRoomStateSeconds,
-                    suppressTurnInputSeconds,
-                    clearAngularVelocity,
-                    debugSequenceId,
-                    enableDebugLogs);
-            }
-
             uint currentTick = TimeManager != null ? TimeManager.LocalTick : 0u;
-            _awaitingAuthoritativeLaunchHandoff = true;
-            _localPreHandoffBypassUntilTick = Math.Max(
-                _localPreHandoffBypassUntilTick,
-                SecondsToTick(Mathf.Max(bypassRoomStateSeconds, 0.5f), currentTick));
-            Debug.Log($"[IntroHandoff][Prediction] Owner requested authoritative handoff seq={debugSequenceId} tick={currentTick} bypassUntil={_localPreHandoffBypassUntilTick}");
-            bootstrap?.LogVerbose(
-                $"[HandoffDebug] owner request sending ServerRpc tick={currentTick} bypassUntil={_localPreHandoffBypassUntilTick} seq={debugSequenceId}");
-            RequestLaunchHandoffServerRpc(
-                snapshot.Position,
-                snapshot.Rotation,
-                snapshot.Velocity,
-                clearAngularVelocity ? Vector3.zero : snapshot.AngularVelocity,
-                snapshot.Forward,
-                inheritDurationSeconds,
-                blendDurationSeconds,
-                bypassRoomStateSeconds,
-                suppressTurnInputSeconds,
-                currentTick,
-                debugSequenceId,
-                enableDebugLogs);
-            return true;
-        }
-
-        public bool TryApplyServerAuthoritativeLaunchHandoff(
-            LaunchHandoffSnapshot snapshot,
-            float inheritDurationSeconds,
-            float blendDurationSeconds,
-            float bypassRoomStateSeconds,
-            float suppressTurnInputSeconds,
-            bool clearAngularVelocity,
-            int debugSequenceId,
-            bool enableDebugLogs,
-            uint ownerTickAtRequest = 0u)
-        {
-            if (!IsServerInitialized || TimeManager == null)
-                return false;
-
-            // Server queues with its own LocalTick so ConsumePendingLaunchHandoffEvent fires with
-            // staleTicks=0 and does not project the snapshot forward. The RPC to the remote owner
-            // uses an owner-anchored tick instead, because server.LocalTick can be hundreds of ticks
-            // ahead of client.LocalTick (the host's tick counter keeps running from before the
-            // client joined), and a single shared StartTick would either freeze the owner or make
-            // the server over-project its Buddah hundreds of meters ahead of the snapshot.
-            uint serverStartTick = TimeManager.LocalTick;
-            uint clientStartTick = (ownerTickAtRequest > 0u)
-                ? ownerTickAtRequest + HandoffOwnerTickTravelBufferTicks
-                : serverStartTick;
-
-            BuddahPredictedLaunchHandoffData eventData = new(
-                _nextLaunchHandoffEventId++,
-                serverStartTick,
-                snapshot.Position,
-                snapshot.Rotation,
-                snapshot.Velocity,
-                clearAngularVelocity ? Vector3.zero : snapshot.AngularVelocity,
-                snapshot.Forward,
-                SecondsToDurationTicks(inheritDurationSeconds),
-                SecondsToDurationTicks(blendDurationSeconds),
-                SecondsToDurationTicks(suppressTurnInputSeconds),
-                SecondsToDurationTicks(bypassRoomStateSeconds),
-                debugSequenceId,
-                enableDebugLogs);
-
-            bool queuedOnServer = TryQueueLaunchHandoffEvent(eventData);
-            QueueLaunchHandoffTargetRpc(
-                Owner,
-                eventData.EventId,
-                clientStartTick,
-                eventData.SnapshotPosition,
-                eventData.SnapshotRotation,
-                eventData.SnapshotVelocity,
-                eventData.SnapshotAngularVelocity,
-                eventData.SnapshotForward,
-                eventData.InheritDurationTicks,
-                eventData.BlendDurationTicks,
-                eventData.SuppressSteeringDurationTicks,
-                eventData.RoomBypassDurationTicks,
-                eventData.DebugSequenceId,
-                eventData.EnableDebugLogs);
-
-            Debug.Log($"[IntroHandoff][Server] Created authoritative handoff eventId={eventData.EventId} seq={debugSequenceId} serverStartTick={eventData.StartTick} clientStartTick={clientStartTick} ownerTickAtRequest={ownerTickAtRequest} queuedServer={queuedOnServer}");
-            bootstrap?.LogVerbose(
-                $"[HandoffDebug] server authoritative create owner={(Owner != null ? Owner.ClientId : -1)} " +
-                $"eventId={eventData.EventId} tick={eventData.StartTick} queuedServer={queuedOnServer} seq={debugSequenceId}");
-            bootstrap?.LogVerbose(
-                $"handoff authoritative create id={eventData.EventId} tick={eventData.StartTick} seq={debugSequenceId} queuedServer={queuedOnServer} " +
-                $"inherit={eventData.InheritDurationTicks} blend={eventData.BlendDurationTicks} pos={snapshot.Position} speed={snapshot.Velocity.magnitude:0.00}");
-            return queuedOnServer;
+            uint lockedDurationTicks = raceStartTick > currentTick
+                ? raceStartTick - currentTick
+                : 0u;
+            _handoffState = new BuddahPredictedLaunchHandoffState
+            {
+                IsActive = lockedDurationTicks > 0u,
+                EventTick = currentTick,
+                StartTick = currentTick,
+                LockedUntilTick = raceStartTick,
+                CurrentState = lockedDurationTicks > 0u
+                    ? BuddahPredictedLaunchState.Locked
+                    : BuddahPredictedLaunchState.Normal,
+                SnapshotPosition = snapshotPosition,
+                SnapshotRotation = snapshotRotation,
+                SnapshotVelocity = Vector3.zero,
+                SnapshotAngularVelocity = Vector3.zero,
+                SnapshotForward = snapshotRotation * Vector3.forward
+            };
+            Debug.Log($"[IntroHandoff][Phase6] EnterRaceStartLock currentTick={currentTick} raceStartTick={raceStartTick} lockedDurationTicks={lockedDurationTicks} pos={snapshotPosition}");
         }
 
         public bool RequestAuthoritativeTeleportFromOwner(
@@ -1013,45 +1003,9 @@ namespace NewBuddah.PredictionV2.Core
             return true;
         }
 
-        [ServerRpc(RequireOwnership = true)]
-        private void RequestLaunchHandoffServerRpc(
-            Vector3 snapshotPosition,
-            Quaternion snapshotRotation,
-            Vector3 snapshotVelocity,
-            Vector3 snapshotAngularVelocity,
-            Vector3 snapshotForward,
-            float inheritDurationSeconds,
-            float blendDurationSeconds,
-            float bypassRoomStateSeconds,
-            float suppressTurnInputSeconds,
-            uint ownerTickAtRequest,
-            int debugSequenceId,
-            bool enableDebugLogs)
-        {
-            Debug.Log($"[IntroHandoff][Server] Received owner handoff request seq={debugSequenceId} tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} ownerTick={ownerTickAtRequest} speed={snapshotVelocity.magnitude:0.00}");
-            bootstrap?.LogVerbose(
-                $"[HandoffDebug] ServerRpc received tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} ownerTick={ownerTickAtRequest} " +
-                $"pos={snapshotPosition} speed={snapshotVelocity.magnitude:0.00} seq={debugSequenceId}");
-            LaunchHandoffSnapshot snapshot = new LaunchHandoffSnapshot
-            {
-                Position = snapshotPosition,
-                Rotation = snapshotRotation,
-                Velocity = snapshotVelocity,
-                AngularVelocity = snapshotAngularVelocity,
-                Forward = snapshotForward
-            };
-
-            TryApplyServerAuthoritativeLaunchHandoff(
-                snapshot,
-                inheritDurationSeconds,
-                blendDurationSeconds,
-                bypassRoomStateSeconds,
-                suppressTurnInputSeconds,
-                false,
-                debugSequenceId,
-                enableDebugLogs,
-                ownerTickAtRequest);
-        }
+        // Phase 6 — RequestLaunchHandoffServerRpc retired (Section 11.1 option a).
+        // Server-driven race-start broadcast now flows through RoomStateManager
+        // SyncVars (_raceStartTick + _gameplayMovementUnlocked).
 
         [ServerRpc(RequireOwnership = true)]
         private void RequestTeleportServerRpc(
@@ -1083,43 +1037,7 @@ namespace NewBuddah.PredictionV2.Core
                 rebaseTrails);
         }
 
-        [TargetRpc]
-        private void QueueLaunchHandoffTargetRpc(
-            NetworkConnection conn,
-            uint eventId,
-            uint startTick,
-            Vector3 snapshotPosition,
-            Quaternion snapshotRotation,
-            Vector3 snapshotVelocity,
-            Vector3 snapshotAngularVelocity,
-            Vector3 snapshotForward,
-            uint inheritDurationTicks,
-            uint blendDurationTicks,
-            uint suppressSteeringDurationTicks,
-            uint roomBypassDurationTicks,
-            int debugSequenceId,
-            bool enableDebugLogs)
-        {
-            Debug.Log($"[IntroHandoff][Client] Received authoritative handoff eventId={eventId} seq={debugSequenceId} startTick={startTick} speed={snapshotVelocity.magnitude:0.00}");
-            bootstrap?.LogVerbose(
-                $"[HandoffDebug] TargetRpc received eventId={eventId} startTick={startTick} speed={snapshotVelocity.magnitude:0.00} seq={debugSequenceId}");
-            BuddahPredictedLaunchHandoffData eventData = new(
-                eventId,
-                startTick,
-                snapshotPosition,
-                snapshotRotation,
-                snapshotVelocity,
-                snapshotAngularVelocity,
-                snapshotForward,
-                inheritDurationTicks,
-                blendDurationTicks,
-                suppressSteeringDurationTicks,
-                roomBypassDurationTicks,
-                debugSequenceId,
-                enableDebugLogs);
-
-            TryQueueLaunchHandoffEvent(eventData);
-        }
+        // Phase 6 — QueueLaunchHandoffTargetRpc retired (Section 11.1 option a).
 
         [TargetRpc]
         private void QueueTeleportEventTargetRpc(
@@ -1176,28 +1094,7 @@ namespace NewBuddah.PredictionV2.Core
             return true;
         }
 
-        public bool TryQueueLaunchHandoffEvent(BuddahPredictedLaunchHandoffData eventData)
-        {
-            if (bootstrap == null || !bootstrap.IsPredictionModeActive())
-                return false;
-
-            if ((_hasPendingLaunchHandoffEvent && _pendingLaunchHandoffEvent.EventId == eventData.EventId) || _lastConsumedLaunchHandoffEventId == eventData.EventId)
-            {
-                bootstrap.LogVerbose($"handoff duplicate ignored id={eventData.EventId} tick={eventData.StartTick}");
-                return false;
-            }
-
-            _pendingLaunchHandoffEvent = eventData;
-            _hasPendingLaunchHandoffEvent = true;
-            UpdateQueuedHandoffDebug(eventData);
-            bootstrap.LogVerbose(
-                $"[HandoffDebug] event queued locally eventId={eventData.EventId} startTick={eventData.StartTick} " +
-                $"awaiting={_awaitingAuthoritativeLaunchHandoff} speed={eventData.SnapshotVelocity.magnitude:0.00}");
-            bootstrap.LogVerbose(
-                $"handoff enqueued id={eventData.EventId} tick={eventData.StartTick} inherit={eventData.InheritDurationTicks} " +
-                $"blend={eventData.BlendDurationTicks} suppress={eventData.SuppressSteeringDurationTicks} bypass={eventData.RoomBypassDurationTicks}");
-            return true;
-        }
+        // Phase 6 — TryQueueLaunchHandoffEvent retired (Section 11.1 option a).
 
         private void ClampPlanarSpeed(float maxSpeed)
         {
@@ -1254,8 +1151,6 @@ namespace NewBuddah.PredictionV2.Core
                 teleportFlag_RebaseTrails: _shadowPreTeleportEvent.RebaseTrails,
                 shadowModifierStateSnapshot: _shadowModifierStateSnapshot,
                 config: config,
-                shadowPreHandoffHasPending: _shadowPreHandoffHasPending,
-                shadowPreHandoffEvent: _shadowPreHandoffEvent,
                 shadowPreHandoffState: _shadowPreHandoffState);
         }
 
@@ -1545,14 +1440,9 @@ namespace NewBuddah.PredictionV2.Core
                     Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=StartTick real={realHof.StartTick} shadow={shadowHof.StartTick}");
                     hofDiverged = true;
                 }
-                if (realHof.InheritEndTick != shadowHof.InheritEndTick)
+                if (realHof.LockedUntilTick != shadowHof.LockedUntilTick)
                 {
-                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=InheritEndTick real={realHof.InheritEndTick} shadow={shadowHof.InheritEndTick}");
-                    hofDiverged = true;
-                }
-                if (realHof.BlendEndTick != shadowHof.BlendEndTick)
-                {
-                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=BlendEndTick real={realHof.BlendEndTick} shadow={shadowHof.BlendEndTick}");
+                    Debug.LogWarning($"[D-LOC] T={tick} hof-field mismatch: field=LockedUntilTick real={realHof.LockedUntilTick} shadow={shadowHof.LockedUntilTick}");
                     hofDiverged = true;
                 }
                 if (realHof.SuppressSteeringUntilTick != shadowHof.SuppressSteeringUntilTick)
@@ -1566,12 +1456,9 @@ namespace NewBuddah.PredictionV2.Core
                     hofDiverged = true;
                 }
 
-                float alphaDelta = Mathf.Abs(realHof.BlendAlpha - shadowHof.BlendAlpha);
-                if (alphaDelta > 1e-4f)
-                {
-                    Debug.LogWarning($"[D-LOC] T={tick} hof-field delta: field=BlendAlpha real={realHof.BlendAlpha:F6} shadow={shadowHof.BlendAlpha:F6} delta={alphaDelta:F6}");
-                    hofDiverged = true;
-                }
+                // Phase 6 — BlendAlpha field-delta compare retired with the
+                // Inherit/Blend state machine (per L19: dead compares deleted,
+                // not gated, so they cannot resurface as silent dead code).
 
                 float posDelta = (realHof.SnapshotPosition - shadowHof.SnapshotPosition).magnitude;
                 if (posDelta > 1e-4f)
@@ -1835,7 +1722,6 @@ namespace NewBuddah.PredictionV2.Core
             {
                 _modifierState = default;
                 _handoffState = default;
-                _hasPendingLaunchHandoffEvent = false;
                 if (bootstrap != null)
                     bootstrap.DebugState.modifiersClearedByTeleport = true;
             }
@@ -1894,119 +1780,24 @@ namespace NewBuddah.PredictionV2.Core
                 $"yaw={rb.rotation.eulerAngles.y:0.0} progress={eventData.TargetProgress01:0.000}");
         }
 
-        private void ConsumePendingLaunchHandoffEvent(uint currentTick)
-        {
-            if (!_hasPendingLaunchHandoffEvent || rb == null)
-                return;
+        // Phase 6 — ConsumePendingLaunchHandoffEvent retired with the queue
+        // (Section 11.1 option a). Locked state is set externally via
+        // EnterRaceStartLock; cleared by RefreshLaunchState's tick-tail when
+        // currentTick passes LockedUntilTick.
+        //
+        // ApplyLaunchHandoffInputScaling (Inherit/Blend throttle*=BlendAlpha)
+        // and ApplyLaunchInheritedVelocity (post-handoff velocity blend) also
+        // retired — Locked state gates input via MovementAllowed=false at
+        // motor.cs:466 early-return; post-unlock = auto-forward (throttle=1f).
 
-            if (_pendingLaunchHandoffEvent.StartTick > currentTick)
-                return;
-
-            BuddahPredictedLaunchHandoffData eventData = _pendingLaunchHandoffEvent;
-            _hasPendingLaunchHandoffEvent = false;
-            _awaitingAuthoritativeLaunchHandoff = false;
-            _localPreHandoffBypassUntilTick = currentTick;
-            uint preAdjustStartTick = eventData.StartTick;
-            float tickDeltaSeconds = TimeManager != null ? (float)TimeManager.TickDelta : 0f;
-            eventData = BuddahPredictedLaunchHandoffResolver.ProjectForArrivalTick(eventData, currentTick, tickDeltaSeconds);
-            if (bootstrap != null && eventData.StartTick != preAdjustStartTick)
-            {
-                uint staleTicks = currentTick - preAdjustStartTick;
-                bootstrap.LogVerbose(
-                    $"[HandoffDebug] stale handoff adjusted eventId={eventData.EventId} staleTicks={staleTicks} " +
-                    $"oldStart={preAdjustStartTick} newStart={currentTick} projectedPos={eventData.SnapshotPosition}");
-            }
-            bootstrap?.LogVerbose(
-                $"[HandoffDebug] consuming queued handoff eventId={eventData.EventId} currentTick={currentTick} startTick={eventData.StartTick} " +
-                $"speed={eventData.SnapshotVelocity.magnitude:0.00}");
-            _lastConsumedLaunchHandoffEventId = eventData.EventId;
-            _handoffState = BuddahPredictedLaunchHandoffState.FromData(eventData);
-#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
-            _realScratch.HandoffRan = true;
-            _realScratch.ShadowLastConsumedHandoffId = eventData.EventId;
-#endif
-
-            Vector3 preVelocity = rb.velocity;
-            if (bootstrap != null)
-                bootstrap.DebugState.preHandoffSpeed = new Vector3(preVelocity.x, 0f, preVelocity.z).magnitude;
-
-            _introControlActive = false;
-            _externalKinematicControlActive = false;
-            rb.isKinematic = false;
-            _predictionRigidbody.ClearPendingForces();
-            rb.position = eventData.SnapshotPosition;
-            rb.rotation = eventData.SnapshotRotation;
-            rb.velocity = eventData.SnapshotVelocity;
-            rb.angularVelocity = eventData.SnapshotAngularVelocity;
-            rb.Sleep();
-            rb.WakeUp();
-            InitializePredictionRigidbody();
-            _splineProgressTracker?.SnapToWorldPosition(eventData.SnapshotPosition);
-
-            if (eventData.SuppressSteeringDurationTicks > 0u)
-                _modifierState.SuppressSteeringUntilTick = Math.Max(_modifierState.SuppressSteeringUntilTick, _handoffState.SuppressSteeringUntilTick);
-            if (eventData.RoomBypassDurationTicks > 0u)
-                _modifierState.RoomBypassUntilTick = Math.Max(_modifierState.RoomBypassUntilTick, _handoffState.RoomBypassUntilTick);
-
-            RefreshLaunchState(currentTick);
-            UpdateConsumedHandoffDebug(currentTick, eventData);
-            Debug.Log($"[IntroHandoff][Prediction] Handoff consumed eventId={eventData.EventId} tick={currentTick} seq={eventData.DebugSequenceId} launchState={_handoffState.CurrentState}");
-            if (IsOwner && eventData.DebugSequenceId >= 0)
-                RoomStateManager.Instance?.ReportLocalGameplayLive(eventData.DebugSequenceId);
-            bootstrap?.LogVerbose(
-                $"handoff entered state={_handoffState.CurrentState} id={eventData.EventId} tick={currentTick} " +
-                $"speed={eventData.SnapshotVelocity.magnitude:0.00} suppressUntil={_handoffState.SuppressSteeringUntilTick} bypassUntil={_handoffState.RoomBypassUntilTick}");
-        }
-
-        // Phase 3d — thin wrapper over BuddahPredictedLaunchHandoffResolver.Advance.
-        // Motor owns the verbose-log side effect (resolver stays pure). The in-place
-        // previousState capture is preserved by reading _handoffState.CurrentState
-        // BEFORE the assignment below. Behavior-neutral vs the prior in-place impl.
+        // Thin wrapper over BuddahPredictedLaunchHandoffResolver.Advance.
+        // Motor owns the verbose-log side effect (resolver stays pure).
         private void RefreshLaunchState(uint currentTick)
         {
             BuddahPredictedLaunchHandoffState advanced = BuddahPredictedLaunchHandoffResolver.Advance(_handoffState, currentTick);
             if (bootstrap != null && _handoffState.IsActive && _handoffState.CurrentState != advanced.CurrentState)
                 bootstrap.LogVerbose($"handoff state transition {_handoffState.CurrentState} -> {advanced.CurrentState} tick={currentTick} id={_handoffState.EventId}");
             _handoffState = advanced;
-        }
-
-        private void ApplyLaunchHandoffInputScaling(uint currentTick, ref float throttle, ref float steering)
-        {
-            RefreshLaunchState(currentTick);
-            if (!_handoffState.IsActive && _handoffState.CurrentState == BuddahPredictedLaunchState.Normal)
-                return;
-
-            switch (_handoffState.CurrentState)
-            {
-                case BuddahPredictedLaunchState.Inherit:
-                    throttle = 0f;
-                    steering = 0f;
-                    break;
-                case BuddahPredictedLaunchState.Blend:
-                    throttle *= _handoffState.BlendAlpha;
-                    steering *= _handoffState.BlendAlpha;
-                    break;
-            }
-        }
-
-        private void ApplyLaunchInheritedVelocity(uint currentTick)
-        {
-            if (rb == null || _predictionRigidbody == null)
-                return;
-
-            RefreshLaunchState(currentTick);
-            if (_handoffState.CurrentState == BuddahPredictedLaunchState.Normal)
-                return;
-
-            Vector3 currentVelocity = rb.velocity;
-            Vector3 inheritedPlanar = new Vector3(_handoffState.SnapshotVelocity.x, 0f, _handoffState.SnapshotVelocity.z);
-            Vector3 currentPlanar = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
-            float blend01 = _handoffState.CurrentState == BuddahPredictedLaunchState.Inherit ? 0f : _handoffState.BlendAlpha;
-            Vector3 planar = Vector3.Lerp(inheritedPlanar, currentPlanar, Mathf.Clamp01(blend01));
-            SetPredictionVelocitiesSafely(new Vector3(planar.x, currentVelocity.y, planar.z), Vector3.zero);
-
-            if (bootstrap != null)
-                bootstrap.DebugState.postHandoffSpeed = planar.magnitude;
         }
 
         private void ApplyPushGraceFromImpulse(uint currentTick, BuddahPredictedImpulseEventData eventData)
@@ -2045,10 +1836,7 @@ namespace NewBuddah.PredictionV2.Core
             return (uint)Mathf.CeilToInt(durationSeconds / Mathf.Max(0.0001f, (float)TimeManager.TickDelta));
         }
 
-        private bool IsLocalPreHandoffBypassActive(uint currentTick)
-        {
-            return _awaitingAuthoritativeLaunchHandoff && _localPreHandoffBypassUntilTick > currentTick;
-        }
+        // Phase 6 — IsLocalPreHandoffBypassActive retired (Section 11.1 option a).
 
         private void LogModifier(string message)
         {
@@ -2121,44 +1909,8 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.postTeleportAngularSpeed = postAngularVelocity.magnitude;
         }
 
-        private void UpdateQueuedHandoffDebug(BuddahPredictedLaunchHandoffData eventData)
-        {
-            if (bootstrap == null)
-                return;
-
-            bootstrap.DebugState.lastHandoffEventId = eventData.EventId;
-            bootstrap.DebugState.lastHandoffEventTick = eventData.StartTick;
-            bootstrap.DebugState.handoffStartTick = eventData.StartTick;
-            bootstrap.DebugState.handoffInheritEndTick = eventData.StartTick + eventData.InheritDurationTicks;
-            bootstrap.DebugState.handoffBlendEndTick = eventData.StartTick + eventData.InheritDurationTicks + eventData.BlendDurationTicks;
-            bootstrap.DebugState.handoffSnapshotPosition = eventData.SnapshotPosition;
-            bootstrap.DebugState.handoffSnapshotYaw = eventData.SnapshotRotation.eulerAngles.y;
-            bootstrap.DebugState.handoffSnapshotSpeed = new Vector3(eventData.SnapshotVelocity.x, 0f, eventData.SnapshotVelocity.z).magnitude;
-            bootstrap.DebugState.handoffSnapshotAngularSpeed = eventData.SnapshotAngularVelocity.magnitude;
-        }
-
-        private void UpdateConsumedHandoffDebug(uint currentTick, BuddahPredictedLaunchHandoffData eventData)
-        {
-            if (bootstrap == null)
-                return;
-
-            bootstrap.DebugState.lastHandoffEventId = eventData.EventId;
-            bootstrap.DebugState.lastHandoffEventTick = currentTick;
-            bootstrap.DebugState.handoffStartTick = _handoffState.StartTick;
-            bootstrap.DebugState.handoffInheritEndTick = _handoffState.InheritEndTick;
-            bootstrap.DebugState.handoffBlendEndTick = _handoffState.BlendEndTick;
-            bootstrap.DebugState.handoffSnapshotPosition = eventData.SnapshotPosition;
-            bootstrap.DebugState.handoffSnapshotYaw = eventData.SnapshotRotation.eulerAngles.y;
-            bootstrap.DebugState.handoffSnapshotSpeed = new Vector3(eventData.SnapshotVelocity.x, 0f, eventData.SnapshotVelocity.z).magnitude;
-            bootstrap.DebugState.handoffSnapshotAngularSpeed = eventData.SnapshotAngularVelocity.magnitude;
-            bootstrap.DebugState.handoffActive = _handoffState.IsActive;
-            bootstrap.DebugState.launchState = _handoffState.CurrentState.ToString();
-            bootstrap.DebugState.handoffBlendAlpha = _handoffState.BlendAlpha;
-            bootstrap.DebugState.handoffSuppressSteeringActive = _handoffState.SuppressSteeringUntilTick > currentTick;
-            bootstrap.DebugState.handoffRoomBypassActive = _handoffState.RoomBypassUntilTick > currentTick;
-            bootstrap.DebugState.introControlActive = _introControlActive;
-            bootstrap.DebugState.externalKinematicControlActive = _externalKinematicControlActive;
-        }
+        // Phase 6 — UpdateQueuedHandoffDebug retired (queue retired with RPC chain).
+        // UpdateConsumedHandoffDebug also retired (no consume callback in new design).
 
         private void UpdateHandoffDebug(uint currentTick)
         {
@@ -2168,7 +1920,8 @@ namespace NewBuddah.PredictionV2.Core
             RefreshLaunchState(currentTick);
             bootstrap.DebugState.handoffActive = _handoffState.IsActive;
             bootstrap.DebugState.launchState = _handoffState.CurrentState.ToString();
-            bootstrap.DebugState.handoffBlendAlpha = _handoffState.BlendAlpha;
+            bootstrap.DebugState.handoffStartTick = _handoffState.StartTick;
+            bootstrap.DebugState.handoffLockedUntilTick = _handoffState.LockedUntilTick;
             bootstrap.DebugState.handoffSuppressSteeringActive = _handoffState.SuppressSteeringUntilTick > currentTick;
             bootstrap.DebugState.handoffRoomBypassActive = _handoffState.RoomBypassUntilTick > currentTick;
             bootstrap.DebugState.introControlActive = _introControlActive;

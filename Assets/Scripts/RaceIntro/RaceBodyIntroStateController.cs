@@ -49,6 +49,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private bool _hasSplineDiagnosticSample;
     private float _lastSplineDiagnosticLogTime = float.NegativeInfinity;
     private IntroPhase _lastLoggedIntroPhase = IntroPhase.None;
+    // Phase 6 — gates RoomStateManager.ReportLocalSplineComplete to fire exactly once
+    // per sequenceId. Reset in ApplyIntroAssignment / ForceExitIntroState.
+    private bool _splineCompleteReported;
 
     public int OwnerId => networkObject != null ? networkObject.OwnerId : -1;
     public NetworkObject NetworkObject => networkObject;
@@ -111,6 +114,46 @@ public class RaceBodyIntroStateController : MonoBehaviour
             return;
 
         DriveSplinePose(IntroTimeUtility.GetClampedIntroNetworkTime(timing, now));
+        TryNotifySplineCompleteServer(now);
+    }
+
+    // Phase 6 — owner-side spline-complete detector. When networkTime ≥ resolvedIntroStart + T,
+    // buddah has finished the linear-decel traversal and is at rest at the spline endpoint.
+    // Snaps rb to exact endpoint pose (zeroes rb.velocity for prediction-bind safety) and
+    // notifies RoomStateManager.ReportLocalSplineComplete (Area 3 wires the SyncVar trigger).
+    // Idempotent: _splineCompleteReported gates so repeat ticks don't re-fire the RPC.
+    private void TryNotifySplineCompleteServer(double now)
+    {
+        if (_splineCompleteReported)
+            return;
+        if (networkObject == null || !networkObject.IsOwner)
+            return;
+        if (_resolvedIntroStartNetworkTime < 0d)
+            return;
+
+        float T = GetIntroTraversalTimeSeconds();
+        float elapsedSeconds = (float)(now - _resolvedIntroStartNetworkTime);
+        if (elapsedSeconds < T)
+            return;
+
+        // Snap rb to exact endpoint pose at velocity 0 (prevents kinematic-write residual jitter).
+        Vector3 endpointPosition = _assignedPath.EvaluatePosition(1f);
+        Vector3 endpointTangent = GetResolvedForwardAtT(1f);
+        Quaternion endpointRotation = Quaternion.LookRotation(endpointTangent, Vector3.up);
+        if (targetRigidbody != null)
+        {
+            targetRigidbody.position = endpointPosition;
+            targetRigidbody.rotation = endpointRotation;
+            if (!targetRigidbody.isKinematic)
+            {
+                targetRigidbody.velocity = Vector3.zero;
+                targetRigidbody.angularVelocity = Vector3.zero;
+            }
+        }
+
+        _splineCompleteReported = true;
+        Debug.Log($"[IntroHandoff][Body:{name}] Spline complete seq={_activeSequenceId} elapsedSeconds={elapsedSeconds:0.000} T={T:0.000} endpoint={endpointPosition}");
+        RoomStateManager.Instance?.ReportLocalSplineComplete(_activeSequenceId);
     }
 
     // Samples the spline pose at the current render-time network tick (sub-tick precise).
@@ -161,6 +204,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _hasSplineDiagnosticSample = false;
         _lastSplineDiagnosticLogTime = float.NegativeInfinity;
         _lastLoggedIntroPhase = IntroPhase.None;
+        _splineCompleteReported = false;
         Debug.Log(
             $"[IntroState][Body:{name}] Assignment prepared seq={assignment.sequenceId} ownerId={OwnerId} " +
             $"isLocalOwner={(networkObject != null && networkObject.IsOwner)} objId={(networkObject != null ? networkObject.ObjectId : -1)} " +
@@ -289,6 +333,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _hasSplineDiagnosticSample = false;
         _lastSplineDiagnosticLogTime = float.NegativeInfinity;
         _lastLoggedIntroPhase = IntroPhase.None;
+        _splineCompleteReported = false;
         bool isLocalOwner = networkObject != null && networkObject.IsOwner;
 
         if (movementController != null)
@@ -324,33 +369,40 @@ public class RaceBodyIntroStateController : MonoBehaviour
             $"snapshotPos={snapshot.Position} snapshotSpeed={snapshot.Velocity.magnitude:0.00} " +
             $"introActive={IsIntroActive}");
 
-        if (movementController != null && isLocalOwner)
-        {
-            _runtimeState = IntroRuntimeState.AuthoritativeHandoffPending;
-            RoomStateManager.Instance?.ReportLocalGameplayLive(_activeSequenceId);
-            Debug.Log($"[IntroHandoff][Body:{name}] Local owner launching handoff seq={_activeSequenceId}.");
-            movementController.BeginLaunchHandoff(
-                snapshot,
-                Mathf.Max(0.1f, GetHandoffLeadTime()),
-                0.15f,
-                false,
-                _activeSequenceId,
-                false);
-        }
-        else
-        {
-            _runtimeState = IntroRuntimeState.AuthoritativeHandoffApplied;
-            Debug.Log($"[IntroHandoff][Body:{name}] Remote authoritative go applied without local handoff seq={_activeSequenceId}.");
-        }
+        // Phase 6 — owner-initiated BeginLaunchHandoff retired (Section 11.1
+        // option a). Race-start lock is now driven by server-side SyncVar
+        // (RoomStateManager._raceStartTick) — Area 3 wires spline-complete
+        // notification + tick-stamped unlock. Existing intro-state cleanup
+        // (SetExternalKinematicControlActive + SetIntroControlActive below)
+        // still runs here; the handoff-trigger branch is the only deletion.
+        _runtimeState = IntroRuntimeState.AuthoritativeHandoffApplied;
+        Debug.Log($"[IntroHandoff][Body:{name}] Authoritative go applied seq={_activeSequenceId} isLocalOwner={isLocalOwner} (Phase 6: owner handoff RPC chain retired).");
 
-        if (movementController != null && !isLocalOwner)
+        // Phase 6 SMOKE patch v2 — owner-side cleanup folded in. Pre-Phase 6 the
+        // owner exit-from-intro side effects (clear _externalKinematicControlActive,
+        // un-kinematic the rb, Sleep/WakeUp to drop residual velocity) lived in
+        // ConsumePendingLaunchHandoffEvent. Area 2 deleted that path with the RPC
+        // chain but didn't relocate the owner cleanup, so owner stayed
+        // writer-relinquished forever. Single收口 here for owner + non-owner.
+        if (movementController != null)
             movementController.SetExternalKinematicControlActive(false);
 
         if (movementController != null)
             movementController.SetIntroControlActive(false);
 
-        if (targetRigidbody != null && !isLocalOwner)
-            targetRigidbody.isKinematic = true;
+        if (targetRigidbody != null)
+        {
+            if (isLocalOwner)
+            {
+                targetRigidbody.isKinematic = false;
+                targetRigidbody.Sleep();
+                targetRigidbody.WakeUp();
+            }
+            else
+            {
+                targetRigidbody.isKinematic = true;
+            }
+        }
 
         SetCollisionsEnabled(true);
         _hasAssignment = false;
@@ -405,7 +457,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
         Vector3 position = _assignedPath.EvaluatePosition(t);
         Vector3 tangent = GetResolvedForwardAtT(t);
         Quaternion rotation = Quaternion.LookRotation(tangent, Vector3.up);
-        float speed = GetIntroSpeedMetersPerSecond();
+        // Phase 6 — instantaneous speed under linear deceleration: v(t) = v_max × (1 - t/T)
+        // where v_max = 2L/T. Endpoint velocity = 0; midpoint velocity = v_max/2.
+        float speed = GetInstantaneousSplineSpeed(networkTime);
         Vector3 velocity = tangent * speed;
         Vector3 angularVelocity = EstimateAngularVelocity(networkTime, t, rotation);
 
@@ -427,9 +481,16 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (_resolvedIntroStartNetworkTime < 0d)
             return 0f;
 
+        // Phase 6 — linear-deceleration formula per contract Section 3.1:
+        //   v(t) = v_max × (1 - t/T) where v_max = 2L/T
+        //   s(t) = L × (2t/T - (t/T)²)
+        // Replaces pre-Phase-6 constant-velocity distance = elapsed × constSpeed.
+        // Result: buddah arrives at spline endpoint with velocity = 0 at t=T.
+        float T = GetIntroTraversalTimeSeconds();
         float elapsedSeconds = Mathf.Max(0f, (float)(networkTime - _resolvedIntroStartNetworkTime));
-        float distance = elapsedSeconds * GetIntroSpeedMetersPerSecond();
+        float u = Mathf.Clamp01(elapsedSeconds / T);
         float totalLength = Mathf.Max(0.0001f, _assignedPath.TotalLength);
+        float distance = totalLength * (2f * u - u * u);
         return _assignedPath.TAtDistance(Mathf.Min(distance, totalLength));
     }
 
@@ -438,9 +499,31 @@ public class RaceBodyIntroStateController : MonoBehaviour
         return _assignment.handoffLeadTime > 0f ? _assignment.handoffLeadTime : defaultHandoffLeadTime;
     }
 
-    private float GetIntroSpeedMetersPerSecond()
+    private float GetIntroTraversalTimeSeconds()
     {
-        return Mathf.Max(0.1f, _assignment.introSpeedMetersPerSecond);
+        return Mathf.Max(0.1f, _assignment.introTraversalTimeSeconds);
+    }
+
+    // Phase 6 — v_max = 2L/T (linear-decel formula); peak speed at t=0.
+    private float GetSplineVMaxMetersPerSecond()
+    {
+        if (_assignedPath == null)
+            return 0f;
+        float T = GetIntroTraversalTimeSeconds();
+        float L = Mathf.Max(0.0001f, _assignedPath.TotalLength);
+        return 2f * L / T;
+    }
+
+    // Phase 6 — instantaneous speed v(t) = v_max × (1 - t/T) under linear decel.
+    // Returns v_max at t=0 (intro start), 0 at t≥T (spline endpoint).
+    private float GetInstantaneousSplineSpeed(double networkTime)
+    {
+        if (_resolvedIntroStartNetworkTime < 0d)
+            return 0f;
+        float T = GetIntroTraversalTimeSeconds();
+        float elapsedSeconds = Mathf.Max(0f, (float)(networkTime - _resolvedIntroStartNetworkTime));
+        float u = Mathf.Clamp01(elapsedSeconds / T);
+        return GetSplineVMaxMetersPerSecond() * (1f - u);
     }
 
     private Vector3 EstimateAngularVelocity(double networkTime, float currentT, Quaternion currentRotation)
@@ -481,7 +564,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (networkObject == null || !networkObject.IsOwner)
             return;
 
-        float expectedStep = GetIntroSpeedMetersPerSecond() * Mathf.Max(Time.fixedDeltaTime, 0.0001f);
+        // Phase 6 — diagnostic uses v_max as upper-bound for expected step (actual
+        // step shrinks toward 0 as buddah decelerates; v_max bound never false-positives).
+        float expectedStep = GetSplineVMaxMetersPerSecond() * Mathf.Max(Time.fixedDeltaTime, 0.0001f);
         Vector3 appliedDelta = snapshot.Position - prePosition;
         float appliedDistance = appliedDelta.magnitude;
         float appliedForward = Vector3.Dot(appliedDelta, snapshot.Forward);
@@ -501,7 +586,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
             sampledDelta = snapshot.Position - _lastSplineDiagnosticPosition;
             sampledDistance = sampledDelta.magnitude;
             sampledForward = Vector3.Dot(sampledDelta, snapshot.Forward);
-            float sampledExpectedStep = GetIntroSpeedMetersPerSecond() * Mathf.Max((float)(networkTime - _lastSplineDiagnosticNetworkTime), Time.fixedDeltaTime);
+            float sampledExpectedStep = GetSplineVMaxMetersPerSecond() * Mathf.Max((float)(networkTime - _lastSplineDiagnosticNetworkTime), Time.fixedDeltaTime);
             backwardSampled = sampledForward < -SplineDiagnosticBackwardMeters;
             largeSampledStep = sampledDistance > Mathf.Max(SplineDiagnosticLargeSnapMeters, sampledExpectedStep * SplineDiagnosticOvershootFactor);
         }

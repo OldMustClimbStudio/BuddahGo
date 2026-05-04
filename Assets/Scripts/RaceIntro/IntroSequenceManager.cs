@@ -36,7 +36,12 @@ public class IntroSequenceManager : NetworkBehaviour
 
     [Header("Sequence")]
     [SerializeField, Min(0.1f)] private float fallbackIntroDuration = 3f;
-    [SerializeField, Min(0.1f)] private float introSpeedMetersPerSecond = 20f;
+    // Phase 6 — total time T (seconds) for buddah to complete spline traversal.
+    // v_max = 2L/T (linear deceleration formula per contract Section 3.1).
+    // FormerlySerializedAs preserves scene refs from the pre-Phase-6 constant-velocity field.
+    [SerializeField, Min(0.1f)]
+    [UnityEngine.Serialization.FormerlySerializedAs("introSpeedMetersPerSecond")]
+    private float introTraversalTimeSeconds = 18f;
     [SerializeField, Min(0f)] private float handoffLeadSeconds = 0.5f;
     [SerializeField, Min(0f)] private float introLeadInSeconds = 1f;
     [SerializeField] private bool randomizeSlots = true;
@@ -336,7 +341,7 @@ public class IntroSequenceManager : NetworkBehaviour
             slotIndex = slot.SlotIndex,
             splineId = splinePath != null ? splinePath.SplineId : string.Empty,
             introStartNetworkTime = -1d,
-            introSpeedMetersPerSecond = introSpeedMetersPerSecond,
+            introTraversalTimeSeconds = introTraversalTimeSeconds,
             goNetworkTime = -1d,
             handoffLeadTime = handoffLeadSeconds
         };
@@ -457,18 +462,12 @@ public class IntroSequenceManager : NetworkBehaviour
 
     private double GetLongestAssignedSplineDurationSecondsServer()
     {
-        double longestDuration = 0d;
-        float speed = Mathf.Max(0.1f, introSpeedMetersPerSecond);
-        for (int i = 0; i < _slotAssignments.Count; i++)
-        {
-            SplineIntroPath splinePath = _slotAssignments[i].slot != null ? _slotAssignments[i].slot.IntroPath as SplineIntroPath : null;
-            if (splinePath == null)
-                continue;
-
-            longestDuration = System.Math.Max(longestDuration, splinePath.TotalLength / speed);
-        }
-
-        return longestDuration > 0d ? longestDuration : fallbackIntroDuration;
+        // Phase 6 — duration is the traversalTime parameter directly (linear-decel
+        // formula completes the path in exactly T seconds regardless of length).
+        // Returns the configured T clamped to fallback. Per-slot variance not
+        // supported in current scaffolding; T is global per-stage.
+        double duration = Mathf.Max(0.1f, introTraversalTimeSeconds);
+        return _slotAssignments.Count > 0 ? duration : fallbackIntroDuration;
     }
 
     private RaceBodyIntroStateController[] FindIntroBodies()

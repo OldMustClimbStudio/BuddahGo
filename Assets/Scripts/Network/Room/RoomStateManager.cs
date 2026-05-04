@@ -415,6 +415,18 @@ namespace SteamMultiplayer.Network
                 _splineCompleteTimeoutRoutine = null;
             }
             Debug.Log($"[Phase6][Server] Race-start countdown begin currentTick={TimeManager.Tick} countdownTicks={countdownTicks} raceStartTick={raceStartTick} ({_raceStartCountdownSeconds:0.00}s)");
+
+            // Phase 6 SMOKE patch — bridge to legacy intro→gameplay cleanup chain.
+            // TriggerGoAndHandoff fires NotifyGoObserversRpc → ApplyAuthoritativeGo
+            // → CompleteGoTransition → SetIntroControlActive(false) on each body,
+            // which is the only path that clears motor._introControlActive. Without
+            // this call the writer stays relinquished post-Lock → ClearPendingForces
+            // every tick → no auto-forward / no turn even after movement unlock.
+            var introSequenceManager = FindFirstObjectByType<IntroSequenceManager>(FindObjectsInactive.Include);
+            if (introSequenceManager != null)
+                introSequenceManager.TriggerGoAndHandoff();
+            else
+                Debug.LogWarning("[Phase6][Server] IntroSequenceManager not found — intro cleanup chain not invoked; bodies may stay writer-relinquished.");
         }
 
         // Phase 6 — Q8 wait-all + timeout fallback. If quorum not reached within

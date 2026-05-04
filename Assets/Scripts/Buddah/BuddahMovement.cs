@@ -39,6 +39,11 @@ public class BuddahMovement : NetworkBehaviour
     [SerializeField] public float pushExtraMaxSpeed = 6f;
 
     [Header("Launch Continuity")]
+    // Phase 6: Legacy mode retains pre-Phase-6 velocity-inherit. PredictionV2
+    // race-start uses stop-then-countdown via prediction motor (motor.EnterRaceStartLock
+    // driven by RoomStateManager._raceStartTick SyncVar). launchInheritTime is now
+    // unreferenced (BeginLaunchHandoff retired in Area 2); launchBlendTime still
+    // used by legacy _launchState Blend path (UpdateLaunchState ~line 475).
     [SerializeField, Min(0f)] private float launchInheritTime = 0.2f;
     [SerializeField, Min(0f)] private float launchBlendTime = 0.32f;
 

@@ -400,13 +400,14 @@ public void UnlockFromRaceStart(uint raceStartTick)
 
 The following work is explicitly NOT part of Phase 6:
 
-- **Phase 7.5-A.1 smoother config retrofit** (separate ship): `_extrapolation:0` + `_adaptiveInterpolation:0` + FrameRateLockGuard@120 + optional `LocalTransformTickSmoother.cs:98` vendor hack. These ship before or in parallel with Phase 6 — they fix smoother-config layer confounds independent of handoff redesign.
+- **Phase 7.5 retrofit family (R7.5-A/B/C/D)**: framework PRE-KICKOFF DRAFT at `agent-exchange/handoff/2026-05-03-phase7-5-design-framework.md`. Decoupled from Phase 6 per 2026-05-04 user disposition — Phase 7.5 is a deferred follow-up gated on Phase 7 Stage 5 SMOKE + Stage 6 VERIFY, which require Yonezawa-driven Unity PlayMode runs. Phase 6 cuts branch from current dev tip (`39af100`, post-PR-#43 merge), NOT from a hypothetical post-7.5 dev tip. SC5 attribution at Stage 6 VERIFY accepts the resulting baseline confound — split-baseline measurement deferred to Phase 7.5 closeout.
 - **Phase 7 visual jitter measurement framework**: VisualShakeProbe, ReconcileSnapProbe, FrameTimeProbe, AnalyzeJitter.ps1 stay as-is (used to verify Phase 6 results).
 - **Hitbox-visual desync (Phase 7.5-D)**: separate concern; PushHitbox prefab tree audit.
 - **Phase 8 cleanup**: ClampPlanarSpeed (L9), Roslyn analyzer.
 - **Teleport mid-race events**: re-spawn / mid-race teleport handoff continues using existing teleport code path (`motor.cs:1873` rb.position = TargetPosition for skill-driven teleports). Phase 6 only redesigns the LAUNCH handoff at race start.
 - **Ranking / scoring / lap timing**: separate concern.
 - **Disconnect handling during Phase 3 lock**: out of Phase 6 scope; existing disconnect/reconnect logic should handle.
+- **Legacy mode handoff path** (`BuddahMovementModeSwitcher.runtimeMode == BuddahMovementRuntimeMode.Legacy`): pre-Phase-6 velocity-inherit pattern retained at `Assets/Scripts/Buddah/BuddahMovement.cs` (`_launchState` Inherit / Blend / `UpdateLaunchState` / `ApplyLaunchInheritedVelocity` ~line 539-589). Phase 6 redesign applies to PredictionV2 mode only — Legacy fallback is non-production and continues with old behavior. Stage 4 Area 2 deleted the `BuddahMovement.BeginLaunchHandoff` method (only entry into the legacy path from spline-side); legacy state machine itself is structurally unreachable post-Phase-6 unless a developer manually triggers it for debugging. Per OQ2 disposition, no further legacy-side cleanup in Phase 6.
 
 ---
 
@@ -420,7 +421,7 @@ The following work is explicitly NOT part of Phase 6:
 - **G4**: All buddahs unlock at exact same tick (verified via `[D-LOC HEARTBEAT]` cross-peer sync evidence — both peer logs show motor state transition at same tick).
 - **G5**: After unlock, auto-forward logic produces forward motion (player can confirm subjectively + Debug.Log of motor's first-tick post-unlock motion).
 - **G6**: Race-Start Timeline starts playing at countdown_begin event, plays through to ending (Yonezawa subjective verification).
-- **G7**: No regression in Phase 7.5-A.1 smoother improvements (existing `pos-dp99` measurements should match or improve).
+- **G7**: ~~No regression in Phase 7.5-A.1 smoother improvements~~ **AMENDED 2026-05-04** — Phase 7.5 decoupled from Phase 6 per Section 4. G7 reframed as: Phase 6 must not introduce NEW jitter beyond pre-Phase-6 dev tip baseline. `pos-dp99` measurements taken at Stage 5 SMOKE compared to phase7 measurement framework's pre-Phase-6 V5 100ms baseline (`agent-exchange/console/raw/2026-05-03-phase4b-v5-*.log`). Allowed: equal-or-better. Forbidden: regression from V5 baseline.
 
 ### 5.2 Subjective gates (Yonezawa-driver)
 
@@ -492,9 +493,8 @@ Edge cases + implementation specifics:
 
 ## 8. Carry-forward flags
 
-- **Phase 7.5-A.1** smoother config retrofit ships independently — coordinate so Phase 6 branch builds on Phase 7.5-A.1 tip
+- **Phase 7.5 retrofit family** (R7.5-A config / R7.5-B Gambetta split / R7.5-C hybrid / R7.5-D hitbox) — **DECOUPLED from Phase 6 per 2026-05-04 user disposition**. Phase 7.5 work blocks on Phase 7 Stage 5 SMOKE (Yonezawa-driven Unity PlayMode runs across 3 paths) + Stage 6 VERIFY (AnalyzeJitter.ps1 against G3.1-G3.6). Phase 7.5 KICKOFF gated on VERIFY outcome. Phase 6 ships first; 7.5 is a deferred follow-up.
 - **Phase 8** ClampPlanarSpeed (L9) — once Phase 6 lands, may need re-audit if race-start auto-forward triggers ClampPlanarSpeed at low speeds
-- **Phase 7.5-D** hitbox-visual desync — independent of Phase 6; runs parallel
 - **Future game-feel tuning**: `T` (spline traversal time) and 3s countdown duration are Yonezawa-tunable. Document for designers.
 - **Letterbox black bars implementation**: Yonezawa moves Timeline assets pre-implementation; engineer waits for asset reference at Stage 4
 
@@ -504,9 +504,9 @@ Edge cases + implementation specifics:
 
 | Stage | Date | Signer | Notes |
 |---|---|---|---|
-| Kickoff | 2026-05-04 | cowork-reviewer | Contract drafted 2026-05-04 by cowork-reviewer based on Yonezawa CQ1-CQ9 dispositions. Stamped to authorize implementer Stage 2 RECON to begin in parallel with Phase 7.5-A.1 retrofit ship. Branch `feat/phase6-race-start-handoff-redesign` is NOT cut yet — Stage 2 RECON is read-only (git plumbing + code reading), no branch / no commits required. Stage 4 IMPLEMENT branch cuts from dev tip POST Phase 7.5-A.1 ship (per Section 4 out-of-scope rule). Reviewer-raised pre-RECON observations recorded in Section 11 (added 2026-05-04 alongside this stamp). |
+| Kickoff | 2026-05-04 | cowork-reviewer | Contract drafted 2026-05-04 by cowork-reviewer based on Yonezawa CQ1-CQ9 dispositions. Stamped to authorize implementer Stage 2 RECON. **AMENDMENT 2026-05-04 (post-Stage-3 sign-off):** Phase 7.5 hard-sequencing dropped per user disposition — Phase 7.5 is **decoupled and deferred** (Phase 7 SMOKE is Yonezawa-driven, blocking 7.5 indefinitely; Phase 6 architecturally attacks H1''' at handoff moment independently of 7.5 smoother-config-layer work). Branch `feat/phase6-race-start-handoff-redesign` cut from dev tip `39af100` (post-PR-#43 merge); commit `1f7b1aa` Stage 1+2 docs; commit `a43cc58` Stage 3 design. Stage 4 IMPLEMENT proceeds on this branch from current tip — no rebase to 7.5 baseline required. Section 4 + Section 8 + G7 amended consistently. |
 | Recon | 2026-05-04 | cowork-reviewer | See `agent-exchange/handoff/2026-05-04-phase6-recon-verify.md` for independent grep evidence (Methodology Rule 12 honored). RECON report at `agent-exchange/handoff/2026-05-04-phase6-recon.md`. All 3 KEY FINDINGs verified via git plumbing on HEAD `8314b5d` (caller chain race-start ONLY → Section 11.1 option (a) firm; auto-forward = motor.cs:339 hardcoded throttle=1f → Q4 RESOLVED; existing `_gameplayMovementUnlocked` SyncVar chain ~90% covers Section 3.3). Pre-grep gate CLEAN for Phase 6 scope. Stage 3 DESIGN-QA authorized. 5 Open Questions disposed in verify report Stage D; OQ5 (contract location at `Docs/phase-gates/active/` vs `agent-exchange/handoff/`) routed to Yonezawa. |
-| Design | ⏸ | | Q1-Q10 PRE-WORK questions resolved + spline formula choice (linear vs quadratic) + wire format decision + auto-forward clarification |
+| Design | 2026-05-04 | cowork-reviewer | Design doc at `agent-exchange/handoff/2026-05-04-phase6-design.md` (commit `a43cc58`, PR #45). All Q-dispositions independently spot-checked at SHA `a43cc58`: Q2=(B) per-stage Inspector rename `introSpeedMetersPerSecond → introTraversalTimeSeconds` (linear decel default T=18s); Q3=(c) extend SyncVar with `_raceStartTick: uint` + reuse `_gameplayMovementUnlocked` flip; Q5=null-guarded PlayableDirector placeholder; Q6=(b.1) tick-driven catch-up no Timeline for late-joiners; Q7=no-op (existing camera gate covers); Q8=wait-all + 30s server timeout; OQ2=doc-only (Legacy mode out-of-scope, comment + Section 4 amendment). G8b strict gate elevated. Implementation file list (consolidated, ~25 edit points across 6 areas) supersedes contract Section 3.2.1. Stage 4 IMPLEMENT authorized; branch base + Phase 7.5-A.1 sequencing flagged in user brief. |
 | Implementation | ⏸ | | 5 areas: spline / motor / server / Timeline / unlock |
 | Smoke | ⏸ | | Path A single + Path B 2-peer + subjective re-validation |
 | Verify | ⏸ | | Cross-peer same-tick unlock + G8/G9/G10 regression + SC1-SC5 driver perception |

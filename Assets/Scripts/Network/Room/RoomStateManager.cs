@@ -38,6 +38,11 @@ namespace SteamMultiplayer.Network
         [SerializeField] private string _resultSceneName = "RaceMapEndField";
         [SerializeField] private string _mainMenuSceneName = "MainMenu";
         [SerializeField] private int _pregameCountdownSeconds = 15;
+        // Phase 6 — Section 3.3 race-start countdown duration. Default 3s = 180 ticks @ 60Hz.
+        [SerializeField, Min(0.1f)] private float _raceStartCountdownSeconds = 3f;
+        // Phase 6 Q8 — wait-all + timeout fallback. If quorum not reached within
+        // _splineCompleteTimeoutSeconds, server aborts race + returns to room menu.
+        [SerializeField, Min(5)] private int _splineCompleteTimeoutSeconds = 30;
 
         public readonly SyncList<RoomPlayerState> Players = new SyncList<RoomPlayerState>();
 
@@ -50,6 +55,10 @@ namespace SteamMultiplayer.Network
         private readonly SyncVar<bool> _raceStarted = new SyncVar<bool>();
         private readonly SyncVar<bool> _gameplayMovementUnlocked = new SyncVar<bool>();
         private readonly SyncVar<bool> _authoritativeGoIssued = new SyncVar<bool>();
+        // Phase 6 — server-authoritative tick at which Phase 3 Lock unlocks to Phase 4 Normal.
+        // Set by NotifySplineCompleteServerRpc when quorum reached; broadcast to all clients via SyncVar.
+        // Each client's motor compares LocalTick >= _raceStartTick.Value to drive same-tick unlock (G4 ±1 tick).
+        private readonly SyncVar<uint> _raceStartTick = new SyncVar<uint>();
         private readonly SyncVar<MatchSessionPhase> _matchSessionPhase = new SyncVar<MatchSessionPhase>();
         private float _nextRaceReadinessPollTime;
         private bool _returningToRoomMenu;
@@ -59,6 +68,14 @@ namespace SteamMultiplayer.Network
         private readonly HashSet<int> _introAssignmentReadyClientIds = new HashSet<int>();
         private readonly HashSet<int> _introVisualReadyClientIds = new HashSet<int>();
         private readonly HashSet<int> _gameplayLiveClientIds = new HashSet<int>();
+        // Phase 6 — server-only set tracking which clients have signaled spline-complete
+        // for the active sequence. Quorum check fires _raceStartTick + _authoritativeGoIssued
+        // when count reaches Players.Count; reset on new race / abort / sequence change.
+        private readonly HashSet<int> _splineCompleteClientIds = new HashSet<int>();
+        private int _splineCompleteSequenceId = -1;
+        private Coroutine _splineCompleteTimeoutRoutine;
+        private bool _serverTickHandlerHooked;
+        private bool _lastObservedRaceStartTickConsumed;
         private readonly Dictionary<int, int> _introAssignmentReadySequenceByClientId = new Dictionary<int, int>();
         private readonly Dictionary<int, int> _introVisualReadySequenceByClientId = new Dictionary<int, int>();
         private readonly Dictionary<int, int> _gameplayLiveSequenceByClientId = new Dictionary<int, int>();
@@ -81,6 +98,7 @@ namespace SteamMultiplayer.Network
         public bool IsRaceStarted => _raceStarted.Value;
         public bool IsGameplayMovementUnlocked => _gameplayMovementUnlocked.Value;
         public bool IsAuthoritativeGoIssued => _authoritativeGoIssued.Value;
+        public uint RaceStartTick => _raceStartTick.Value;
         public bool IsWaitingForAuthoritativeGameplayLive => IsMatchPhaseActive && _authoritativeGoIssued.Value && !_gameplayMovementUnlocked.Value;
         public MatchSessionPhase CurrentMatchSessionPhase => _matchSessionPhase.Value;
         public bool IsRaceSceneLoadedLocally => !string.IsNullOrWhiteSpace(_raceSceneName) && UnitySceneManager.GetSceneByName(_raceSceneName).isLoaded;
@@ -220,6 +238,36 @@ namespace SteamMultiplayer.Network
             ResetRaceFlowStateServer();
             _matchSessionPhase.Value = MatchSessionPhase.InRoom;
             _returningToRoomMenu = false;
+            HookServerTickHandlerOnce();
+        }
+
+        // Phase 6 — Subscribe to TimeManager.OnTick exactly once per server lifetime
+        // (per L7: OnStartServer / OnEnable / Awake all could potentially fire on the
+        // same component; gate via _serverTickHandlerHooked latch). Tick handler flips
+        // _gameplayMovementUnlocked when server tick reaches _raceStartTick.Value.
+        private void HookServerTickHandlerOnce()
+        {
+            if (_serverTickHandlerHooked || TimeManager == null)
+                return;
+            TimeManager.OnTick += OnServerTickPhase6;
+            _serverTickHandlerHooked = true;
+        }
+
+        private void OnServerTickPhase6()
+        {
+            if (!IsServerInitialized || TimeManager == null)
+                return;
+            if (!_authoritativeGoIssued.Value || _gameplayMovementUnlocked.Value)
+                return;
+            if (_raceStartTick.Value == 0u)
+                return;
+            if (TimeManager.Tick < _raceStartTick.Value)
+                return;
+            // Phase 4 unlock — broadcast SyncVar flip to all clients; per-client
+            // motor.RunInputs reads movementAllowed=true via existing chain.
+            _gameplayMovementUnlocked.Value = true;
+            _raceStarted.Value = true;
+            Debug.Log($"[Phase6][Server] OnServerTickPhase6 race-start unlock fired tick={TimeManager.Tick} raceStartTick={_raceStartTick.Value}");
         }
 
         public override void OnStopServer()
@@ -239,6 +287,15 @@ namespace SteamMultiplayer.Network
             }
 
             StopAllCoroutines();
+            // Phase 6 — symmetric unhook (L7: subscribe-once gate; unhook only when hooked).
+            if (_serverTickHandlerHooked && TimeManager != null)
+            {
+                TimeManager.OnTick -= OnServerTickPhase6;
+                _serverTickHandlerHooked = false;
+            }
+            _splineCompleteClientIds.Clear();
+            _splineCompleteSequenceId = -1;
+            _splineCompleteTimeoutRoutine = null;
             Players.Clear();
             _transitioningToPropertiesSelector.Value = false;
             _playersSummaryText.Value = string.Empty;
@@ -249,6 +306,7 @@ namespace SteamMultiplayer.Network
             _raceStarted.Value = false;
             _gameplayMovementUnlocked.Value = false;
             _authoritativeGoIssued.Value = false;
+            _raceStartTick.Value = 0u;
             _matchSessionPhase.Value = MatchSessionPhase.InRoom;
             _returningToRoomMenu = false;
         }
@@ -304,16 +362,87 @@ namespace SteamMultiplayer.Network
             ReportGameplayLiveServerRpc(sequenceId);
         }
 
-        // Phase 6 Area 1 — stub. Real implementation lands in Area 3 (SyncVar +
-        // ServerRpc + tick handler + timeout coroutine). Method exists here so
-        // RaceBodyIntroStateController.TryNotifySplineCompleteServer compiles
-        // standalone in this commit; Area 3 fills in the body.
+        // Phase 6 — owner-side spline-complete signal entry. Each owner Buddah
+        // calls this exactly once per sequence when its spline driver detects
+        // endpoint reached. Forwards to server via ServerRpc; quorum logic at
+        // NotifySplineCompleteServerRpc fires the race-start countdown SyncVars.
         public void ReportLocalSplineComplete(int sequenceId)
         {
             if (!IsClientInitialized || sequenceId < 0)
                 return;
-            // Phase 6 Area 3 wires NotifySplineCompleteServerRpc here.
-            Debug.Log($"[Phase6][Area1-stub] ReportLocalSplineComplete seq={sequenceId} — Area 3 wires SyncVar trigger");
+            NotifySplineCompleteServerRpc(sequenceId);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        private void NotifySplineCompleteServerRpc(int sequenceId, NetworkConnection caller = null)
+        {
+            if (caller == null || !caller.IsAuthenticated)
+                return;
+            if (!IsServerInitialized || TimeManager == null)
+                return;
+
+            // Sequence guard — late callers from a stale sequence are dropped.
+            if (_splineCompleteSequenceId >= 0 && sequenceId != _splineCompleteSequenceId)
+            {
+                Debug.Log($"[Phase6][Server] NotifySplineCompleteServerRpc stale seq={sequenceId} active={_splineCompleteSequenceId} client={caller.ClientId} — ignored");
+                return;
+            }
+
+            if (_splineCompleteSequenceId < 0)
+            {
+                _splineCompleteSequenceId = sequenceId;
+                _splineCompleteClientIds.Clear();
+                if (_splineCompleteTimeoutRoutine == null)
+                    _splineCompleteTimeoutRoutine = StartCoroutine(SplineCompleteTimeoutCoroutine(sequenceId));
+            }
+
+            bool added = _splineCompleteClientIds.Add(caller.ClientId);
+            Debug.Log($"[Phase6][Server] NotifySplineCompleteServerRpc seq={sequenceId} client={caller.ClientId} added={added} count={_splineCompleteClientIds.Count}/{Players.Count}");
+
+            if (_splineCompleteClientIds.Count < Players.Count)
+                return;
+
+            // Quorum reached — set countdown ticks + flip _authoritativeGoIssued.
+            uint countdownTicks = (uint)Mathf.Max(1, Mathf.RoundToInt(_raceStartCountdownSeconds / Mathf.Max(0.0001f, (float)TimeManager.TickDelta)));
+            uint raceStartTick = TimeManager.Tick + countdownTicks;
+            _raceStartTick.Value = raceStartTick;
+            _authoritativeGoIssued.Value = true;
+            _gameplayMovementUnlocked.Value = false;
+            _raceStarted.Value = false;
+            if (_splineCompleteTimeoutRoutine != null)
+            {
+                StopCoroutine(_splineCompleteTimeoutRoutine);
+                _splineCompleteTimeoutRoutine = null;
+            }
+            Debug.Log($"[Phase6][Server] Race-start countdown begin currentTick={TimeManager.Tick} countdownTicks={countdownTicks} raceStartTick={raceStartTick} ({_raceStartCountdownSeconds:0.00}s)");
+        }
+
+        // Phase 6 — Q8 wait-all + timeout fallback. If quorum not reached within
+        // _splineCompleteTimeoutSeconds, abort race + return to room menu via the
+        // existing _returningToRoomMenu chain. Reset all phase-6 SyncVars.
+        private IEnumerator SplineCompleteTimeoutCoroutine(int sequenceId)
+        {
+            float deadline = Time.unscaledTime + _splineCompleteTimeoutSeconds;
+            while (Time.unscaledTime < deadline)
+            {
+                if (_authoritativeGoIssued.Value || _splineCompleteSequenceId != sequenceId)
+                {
+                    _splineCompleteTimeoutRoutine = null;
+                    yield break;
+                }
+                yield return null;
+            }
+            Debug.LogWarning($"[Phase6][Server] Spline-complete timeout fired seq={sequenceId} count={_splineCompleteClientIds.Count}/{Players.Count} after {_splineCompleteTimeoutSeconds}s — aborting race");
+            _splineCompleteSequenceId = -1;
+            _splineCompleteClientIds.Clear();
+            _raceStartTick.Value = 0u;
+            _authoritativeGoIssued.Value = false;
+            _gameplayMovementUnlocked.Value = false;
+            _raceStarted.Value = false;
+            _splineCompleteTimeoutRoutine = null;
+            // Reuse existing room-return path if available; otherwise just sit at the
+            // pre-race state and let normal disconnect handling proceed.
+            _returningToRoomMenu = true;
         }
 
         public bool AreAllClientsIntroAssignmentsReadyForSequenceServer(int sequenceId)
@@ -927,6 +1056,15 @@ namespace SteamMultiplayer.Network
             _raceStarted.Value = false;
             _gameplayMovementUnlocked.Value = false;
             _authoritativeGoIssued.Value = false;
+            // Phase 6 — reset spline-complete chain state alongside legacy gameplay-live.
+            _raceStartTick.Value = 0u;
+            _splineCompleteSequenceId = -1;
+            _splineCompleteClientIds.Clear();
+            if (_splineCompleteTimeoutRoutine != null)
+            {
+                StopCoroutine(_splineCompleteTimeoutRoutine);
+                _splineCompleteTimeoutRoutine = null;
+            }
             _introAssignmentReadyClientIds.Clear();
             _introVisualReadyClientIds.Clear();
             _gameplayLiveClientIds.Clear();

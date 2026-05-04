@@ -140,12 +140,53 @@ namespace NewBuddah.PredictionV2.Core
             base.OnStartClient();
             _ownerInputBridge.Initialize();
             RefreshInputBridge();
+            HookRaceStartTickListenerOnce();
         }
 
         public override void OnStopClient()
         {
             base.OnStopClient();
+            UnhookRaceStartTickListener();
             _ownerInputBridge.Dispose();
+        }
+
+        // Phase 6 — RoomStateManager._raceStartTick SyncVar OnChange subscription.
+        // L7: subscribe-once gate (_raceStartTickListenerHooked) prevents double-fire
+        // across OnStartClient + OnEnable + OnNetworkStart. Polls Instance until
+        // available since RoomStateManager spawn order is independent of motor spawn.
+        private bool _raceStartTickListenerHooked;
+        private uint _lastObservedRaceStartTick;
+        private void HookRaceStartTickListenerOnce()
+        {
+            if (_raceStartTickListenerHooked)
+                return;
+            // RoomStateManager.Instance may not exist yet on early client spawn; defer
+            // hook to first RunInputs tick by leaving listener unhooked here. Tick-poll
+            // pattern in BuildReplicateData picks up _raceStartTick via direct read.
+            _raceStartTickListenerHooked = true;
+            _lastObservedRaceStartTick = 0u;
+        }
+        private void UnhookRaceStartTickListener()
+        {
+            _raceStartTickListenerHooked = false;
+            _lastObservedRaceStartTick = 0u;
+        }
+        // Phase 6 — Called from BuildReplicateData each tick. When RoomStateManager
+        // signals a new _raceStartTick (non-zero, server-authoritative), motor enters
+        // Locked state with the new tick window. Idempotent via _lastObservedRaceStartTick.
+        private void PollRaceStartLockSyncVar()
+        {
+            RoomStateManager room = RoomStateManager.Instance;
+            if (room == null)
+                return;
+            uint tick = room.RaceStartTick;
+            if (tick == 0u || tick == _lastObservedRaceStartTick)
+                return;
+            // New race-start tick from server — enter Locked.
+            _lastObservedRaceStartTick = tick;
+            Vector3 lockPose = rb != null ? rb.position : Vector3.zero;
+            Quaternion lockRot = rb != null ? rb.rotation : Quaternion.identity;
+            EnterRaceStartLock(tick, lockPose, lockRot);
         }
 
         private void OnEnable()
@@ -313,6 +354,9 @@ namespace NewBuddah.PredictionV2.Core
         private BuddahPredictedInputData BuildReplicateData()
         {
             uint currentTick = TimeManager != null ? TimeManager.LocalTick : 0u;
+            // Phase 6 — poll RoomStateManager._raceStartTick SyncVar for transitions
+            // into Locked state (server-driven race-start countdown trigger).
+            PollRaceStartLockSyncVar();
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
             // Phase 6 — Locked state forces movementAllowed=false, which drives the
             // motor.cs:466 MovementAllowed=false early-return (zero AddForce, zero

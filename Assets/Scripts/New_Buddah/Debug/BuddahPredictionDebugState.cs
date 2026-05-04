@@ -58,7 +58,6 @@ namespace NewBuddah.PredictionV2.Debugging
         public float postTeleportAngularSpeed;
         public float lastTeleportTargetProgress01;
         public float lastTeleportTargetYaw;
-        public float handoffBlendAlpha;
         public float handoffSnapshotYaw;
         public float handoffSnapshotSpeed;
         public float handoffSnapshotAngularSpeed;
@@ -76,8 +75,7 @@ namespace NewBuddah.PredictionV2.Debugging
         public uint lastHandoffEventId;
         public uint lastHandoffEventTick;
         public uint handoffStartTick;
-        public uint handoffInheritEndTick;
-        public uint handoffBlendEndTick;
+        public uint handoffLockedUntilTick;
         public uint rootUntilTick;
         public uint accelUntilTick;
         public uint postRootAccelUntilTick;

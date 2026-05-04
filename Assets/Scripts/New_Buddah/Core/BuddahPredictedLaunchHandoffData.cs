@@ -2,6 +2,11 @@ using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Core
 {
+    // Phase 6 — race-start handoff data. Stop-then-countdown collapses
+    // InheritDurationTicks + BlendDurationTicks into a single LockedDurationTicks
+    // (the Phase 3 lock window length, default 180 ticks @ 60Hz = 3s). Snapshot*
+    // fields are conventionally set to zero by the caller — Phase 6 design has
+    // SnapshotVelocity = Vector3.zero (no velocity inheritance, M2 elimination).
     public struct BuddahPredictedLaunchHandoffData
     {
         public uint EventId;
@@ -11,8 +16,7 @@ namespace NewBuddah.PredictionV2.Core
         public Vector3 SnapshotVelocity;
         public Vector3 SnapshotAngularVelocity;
         public Vector3 SnapshotForward;
-        public uint InheritDurationTicks;
-        public uint BlendDurationTicks;
+        public uint LockedDurationTicks;
         public uint SuppressSteeringDurationTicks;
         public uint RoomBypassDurationTicks;
         public int DebugSequenceId;
@@ -26,8 +30,7 @@ namespace NewBuddah.PredictionV2.Core
             Vector3 snapshotVelocity,
             Vector3 snapshotAngularVelocity,
             Vector3 snapshotForward,
-            uint inheritDurationTicks,
-            uint blendDurationTicks,
+            uint lockedDurationTicks,
             uint suppressSteeringDurationTicks,
             uint roomBypassDurationTicks,
             int debugSequenceId,
@@ -40,8 +43,7 @@ namespace NewBuddah.PredictionV2.Core
             SnapshotVelocity = snapshotVelocity;
             SnapshotAngularVelocity = snapshotAngularVelocity;
             SnapshotForward = snapshotForward;
-            InheritDurationTicks = inheritDurationTicks;
-            BlendDurationTicks = blendDurationTicks;
+            LockedDurationTicks = lockedDurationTicks;
             SuppressSteeringDurationTicks = suppressSteeringDurationTicks;
             RoomBypassDurationTicks = roomBypassDurationTicks;
             DebugSequenceId = debugSequenceId;

@@ -145,28 +145,9 @@ namespace NewBuddah.PredictionV2.Integration
             return true;
         }
 
-        public bool TryBeginLaunchHandoff(
-            LaunchHandoffSnapshot snapshot,
-            float inheritDurationSeconds,
-            float blendDurationSeconds,
-            float bypassRoomStateSeconds,
-            float suppressTurnInputSeconds,
-            bool clearAngularVelocity,
-            int debugSequenceId,
-            bool enableDebugLogs)
-        {
-            if (!IsPredictionHandoffActive())
-                return false;
-
-            return predictedMotor.RequestAuthoritativeLaunchHandoffFromOwner(
-                snapshot,
-                inheritDurationSeconds,
-                blendDurationSeconds,
-                bypassRoomStateSeconds,
-                suppressTurnInputSeconds,
-                clearAngularVelocity,
-                debugSequenceId,
-                enableDebugLogs);
-        }
+        // Phase 6 — owner-initiated TryBeginLaunchHandoff retired with the
+        // RPC chain (Section 11.1 option a). Race-start lock is now driven by
+        // server-side SyncVar (RoomStateManager._raceStartTick) consumed by
+        // motor's per-tick gate; bridge no longer surfaces an entry point.
     }
 }

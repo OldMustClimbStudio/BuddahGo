@@ -324,24 +324,14 @@ public class RaceBodyIntroStateController : MonoBehaviour
             $"snapshotPos={snapshot.Position} snapshotSpeed={snapshot.Velocity.magnitude:0.00} " +
             $"introActive={IsIntroActive}");
 
-        if (movementController != null && isLocalOwner)
-        {
-            _runtimeState = IntroRuntimeState.AuthoritativeHandoffPending;
-            RoomStateManager.Instance?.ReportLocalGameplayLive(_activeSequenceId);
-            Debug.Log($"[IntroHandoff][Body:{name}] Local owner launching handoff seq={_activeSequenceId}.");
-            movementController.BeginLaunchHandoff(
-                snapshot,
-                Mathf.Max(0.1f, GetHandoffLeadTime()),
-                0.15f,
-                false,
-                _activeSequenceId,
-                false);
-        }
-        else
-        {
-            _runtimeState = IntroRuntimeState.AuthoritativeHandoffApplied;
-            Debug.Log($"[IntroHandoff][Body:{name}] Remote authoritative go applied without local handoff seq={_activeSequenceId}.");
-        }
+        // Phase 6 — owner-initiated BeginLaunchHandoff retired (Section 11.1
+        // option a). Race-start lock is now driven by server-side SyncVar
+        // (RoomStateManager._raceStartTick) — Area 3 wires spline-complete
+        // notification + tick-stamped unlock. Existing intro-state cleanup
+        // (SetExternalKinematicControlActive + SetIntroControlActive below)
+        // still runs here; the handoff-trigger branch is the only deletion.
+        _runtimeState = IntroRuntimeState.AuthoritativeHandoffApplied;
+        Debug.Log($"[IntroHandoff][Body:{name}] Authoritative go applied seq={_activeSequenceId} isLocalOwner={isLocalOwner} (Phase 6: owner handoff RPC chain retired).");
 
         if (movementController != null && !isLocalOwner)
             movementController.SetExternalKinematicControlActive(false);

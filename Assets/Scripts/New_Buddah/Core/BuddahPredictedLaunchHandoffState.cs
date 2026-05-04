@@ -2,18 +2,20 @@ using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Core
 {
+    // Phase 6 — race-start handoff runtime state. Inherit/Blend collapsed:
+    // BlendAlpha / InheritEndTick / BlendEndTick removed. LockedUntilTick is
+    // the single tick boundary: while currentTick < LockedUntilTick the motor
+    // is in Locked state (Phase 3 freeze); past it, Normal (Phase 4 unlock).
     public struct BuddahPredictedLaunchHandoffState
     {
         public bool IsActive;
         public uint EventId;
         public uint EventTick;
         public uint StartTick;
-        public uint InheritEndTick;
-        public uint BlendEndTick;
+        public uint LockedUntilTick;
         public uint SuppressSteeringUntilTick;
         public uint RoomBypassUntilTick;
         public BuddahPredictedLaunchState CurrentState;
-        public float BlendAlpha;
         public Vector3 SnapshotPosition;
         public Quaternion SnapshotRotation;
         public Vector3 SnapshotVelocity;
@@ -22,27 +24,21 @@ namespace NewBuddah.PredictionV2.Core
 
         public static BuddahPredictedLaunchHandoffState FromData(BuddahPredictedLaunchHandoffData data)
         {
-            uint inheritEndTick = data.StartTick + data.InheritDurationTicks;
-            uint blendEndTick = inheritEndTick + data.BlendDurationTicks;
-            BuddahPredictedLaunchState state = BuddahPredictedLaunchState.Normal;
-
-            if (data.InheritDurationTicks > 0u)
-                state = BuddahPredictedLaunchState.Inherit;
-            else if (data.BlendDurationTicks > 0u)
-                state = BuddahPredictedLaunchState.Blend;
+            uint lockedUntilTick = data.StartTick + data.LockedDurationTicks;
+            BuddahPredictedLaunchState state = data.LockedDurationTicks > 0u
+                ? BuddahPredictedLaunchState.Locked
+                : BuddahPredictedLaunchState.Normal;
 
             return new BuddahPredictedLaunchHandoffState
             {
-                IsActive = state != BuddahPredictedLaunchState.Normal,
+                IsActive = state == BuddahPredictedLaunchState.Locked,
                 EventId = data.EventId,
                 EventTick = data.StartTick,
                 StartTick = data.StartTick,
-                InheritEndTick = inheritEndTick,
-                BlendEndTick = blendEndTick,
+                LockedUntilTick = lockedUntilTick,
                 SuppressSteeringUntilTick = data.StartTick + data.SuppressSteeringDurationTicks,
                 RoomBypassUntilTick = data.StartTick + data.RoomBypassDurationTicks,
                 CurrentState = state,
-                BlendAlpha = state == BuddahPredictedLaunchState.Blend ? 0f : (state == BuddahPredictedLaunchState.Normal ? 1f : 0f),
                 SnapshotPosition = data.SnapshotPosition,
                 SnapshotRotation = data.SnapshotRotation,
                 SnapshotVelocity = data.SnapshotVelocity,

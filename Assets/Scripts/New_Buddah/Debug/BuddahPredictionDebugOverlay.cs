@@ -89,7 +89,7 @@ namespace NewBuddah.PredictionV2.Debugging
                 $"Teleport Clears M:{state.modifiersClearedByTeleport} I:{state.impulseQueueClearedByTeleport} P:{state.pushGraceClearedByTeleport} Snap:{state.progressSnappedByTeleport} Trail:{state.trailRebasedByTeleport}\n" +
                 $"Intro: {state.introControlActive} | External: {state.externalKinematicControlActive} | Handoff: {state.handoffActive} | LaunchState: {state.launchState}\n" +
                 $"Handoff Id: {state.lastHandoffEventId} | Tick: {state.lastHandoffEventTick} | Start: {state.handoffStartTick}\n" +
-                $"Handoff InheritEnd: {state.handoffInheritEndTick} | BlendEnd: {state.handoffBlendEndTick} | Alpha: {state.handoffBlendAlpha:0.00}\n" +
+                $"Handoff LockedUntil: {state.handoffLockedUntilTick}\n" +
                 $"Handoff Snapshot Pos: {state.handoffSnapshotPosition} | Yaw: {state.handoffSnapshotYaw:0.0}\n" +
                 $"Handoff Snapshot Speed/Ang: {state.handoffSnapshotSpeed:0.00}/{state.handoffSnapshotAngularSpeed:0.00} | Pre/Post Speed: {state.preHandoffSpeed:0.00}/{state.postHandoffSpeed:0.00}\n" +
                 $"Handoff Suppress: {state.handoffSuppressSteeringActive} | Handoff Bypass: {state.handoffRoomBypassActive}\n" +
@@ -121,7 +121,7 @@ namespace NewBuddah.PredictionV2.Debugging
         {
             return
                 $"tick={state.currentTick} launch={state.launchState} intro={state.introControlActive} external={state.externalKinematicControlActive} " +
-                $"handoff={state.handoffActive} blend={state.handoffBlendAlpha:0.00} allowed={state.movementAllowed} blocked={state.gateBlocked} " +
+                $"handoff={state.handoffActive} lockedUntil={state.handoffLockedUntilTick} allowed={state.movementAllowed} blocked={state.gateBlocked} " +
                 $"speed={state.planarSpeed:0.00} postHandoff={state.postHandoffSpeed:0.00} visDelta={state.motorVisualPosDelta:0.000}/{state.motorVisualYawDelta:0.0} " +
                 $"ownerVis={state.ownerVisualRootStabilizationApplied}:{state.ownerVisualRootStabilizationReason} " +
                 $"rep='{state.replicateSummary}' rec='{state.reconcileSummary}'";

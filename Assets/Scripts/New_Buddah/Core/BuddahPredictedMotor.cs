@@ -254,6 +254,35 @@ namespace NewBuddah.PredictionV2.Core
             if (!ShouldRunPrediction())
                 return;
 
+            // Phase 6 SMOKE patch v3 — server-driven race-start unlock cleanup.
+            // RoomStateManager._gameplayMovementUnlocked SyncVar flips true at
+            // race-start tick (Area 3 server tick handler). Motor polls it here
+            // and clears the intro / external-kinematic flags independent of
+            // the OLD IntroSequenceManager → CompleteGoTransition chain.
+            // Runs on server + owner + spectator sides; server-side clear flows
+            // to clients via reconcile data (motor's reconcile callback reads
+            // IntroControlActive=false post-clear). Idempotent — once flags
+            // are false the conditionals self-gate.
+            var roomStateManager = RoomStateManager.Instance;
+            if (roomStateManager != null && roomStateManager.IsGameplayMovementUnlocked)
+            {
+                if (_introControlActive || _externalKinematicControlActive)
+                {
+                    _introControlActive = false;
+                    _externalKinematicControlActive = false;
+                    if (bootstrap != null)
+                        bootstrap.LogVerbose($"[Phase6] motor cleared intro/external flags via SyncVar gate (owner={IsOwner} server={IsServerInitialized})");
+                }
+                if (IsOwner && rb != null && rb.isKinematic)
+                {
+                    rb.isKinematic = false;
+                    rb.Sleep();
+                    rb.WakeUp();
+                    if (bootstrap != null)
+                        bootstrap.LogVerbose($"[Phase6] motor unkinematic'd owner rb via SyncVar gate");
+                }
+            }
+
             RunInputs(BuildReplicateData());
         }
 

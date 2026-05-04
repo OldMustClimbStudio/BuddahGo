@@ -378,14 +378,31 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _runtimeState = IntroRuntimeState.AuthoritativeHandoffApplied;
         Debug.Log($"[IntroHandoff][Body:{name}] Authoritative go applied seq={_activeSequenceId} isLocalOwner={isLocalOwner} (Phase 6: owner handoff RPC chain retired).");
 
-        if (movementController != null && !isLocalOwner)
+        // Phase 6 SMOKE patch v2 — owner-side cleanup folded in. Pre-Phase 6 the
+        // owner exit-from-intro side effects (clear _externalKinematicControlActive,
+        // un-kinematic the rb, Sleep/WakeUp to drop residual velocity) lived in
+        // ConsumePendingLaunchHandoffEvent. Area 2 deleted that path with the RPC
+        // chain but didn't relocate the owner cleanup, so owner stayed
+        // writer-relinquished forever. Single收口 here for owner + non-owner.
+        if (movementController != null)
             movementController.SetExternalKinematicControlActive(false);
 
         if (movementController != null)
             movementController.SetIntroControlActive(false);
 
-        if (targetRigidbody != null && !isLocalOwner)
-            targetRigidbody.isKinematic = true;
+        if (targetRigidbody != null)
+        {
+            if (isLocalOwner)
+            {
+                targetRigidbody.isKinematic = false;
+                targetRigidbody.Sleep();
+                targetRigidbody.WakeUp();
+            }
+            else
+            {
+                targetRigidbody.isKinematic = true;
+            }
+        }
 
         SetCollisionsEnabled(true);
         _hasAssignment = false;

@@ -304,6 +304,18 @@ namespace SteamMultiplayer.Network
             ReportGameplayLiveServerRpc(sequenceId);
         }
 
+        // Phase 6 Area 1 — stub. Real implementation lands in Area 3 (SyncVar +
+        // ServerRpc + tick handler + timeout coroutine). Method exists here so
+        // RaceBodyIntroStateController.TryNotifySplineCompleteServer compiles
+        // standalone in this commit; Area 3 fills in the body.
+        public void ReportLocalSplineComplete(int sequenceId)
+        {
+            if (!IsClientInitialized || sequenceId < 0)
+                return;
+            // Phase 6 Area 3 wires NotifySplineCompleteServerRpc here.
+            Debug.Log($"[Phase6][Area1-stub] ReportLocalSplineComplete seq={sequenceId} — Area 3 wires SyncVar trigger");
+        }
+
         public bool AreAllClientsIntroAssignmentsReadyForSequenceServer(int sequenceId)
         {
             if (!IsServerInitialized || sequenceId < 0)

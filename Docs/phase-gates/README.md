@@ -25,7 +25,13 @@ recon report, design Q&A, PR description, smoke verification report.
 
 ## Active phase
 
-**No active phase.** Phase 4b sub-phase chain (V1 → V5) **COMPLETE** as of 2026-05-03 (PR #40). Phase 7 (visual jitter + PredictionSmoother migration) is unblocked and awaits user trigger for KICKOFF.
+Three concurrent tracks as of 2026-05-04:
+
+1. **Phase 7 — visual jitter measurement + root-cause framework.** Stages 1–4 done (Kickoff → RECON → DESIGN → IMPLEMENT review). Stage 5 SMOKE digest identified H1''' (handoff state capture variance) as session-level jitter root cause. Stage 6 VERIFY + Stage 7 MERGE pending closeout. Active contract: `Docs/phase-gates/active/phase7-contract.md`. Recon at `agent-exchange/handoff/2026-05-03-phase7-recon.md`. Design at `agent-exchange/handoff/2026-05-03-phase7-design.md`. Implement review at `agent-exchange/handoff/2026-05-03-phase7-stage4-implement-review.md`.
+2. **Phase 7.5-A.1 — smoother config retrofit (in flight, parallel ship).** Scope: `_extrapolation:0` + `_adaptiveInterpolation:0` on Buddah prefab + `FrameRateLockGuard@120` + optional `LocalTransformTickSmoother.cs:98` vendor hack. Attacks H1''' at the smoother-config layer (orthogonal to Phase 6's architectural attack). Design framework at `agent-exchange/handoff/2026-05-03-phase7-5-design-framework.md`. No standalone phase-gate contract — folded into Phase 7 closeout commit chain. **Ships before Phase 6 branch cuts.**
+3. **Phase 6 — race-start handoff redesign (Stage 2 RECON SIGN-OFF 2026-05-04).** Replace velocity-inherit/Blend handoff state machine with stop-then-countdown pattern (decelerate → 3s lock → simultaneous server-driven unlock). Architectural elimination of H1''' M1/M2/M3 confounds at the handoff moment. Active contract: [`Docs/phase-gates/active/phase6-race-start-handoff-redesign-contract.md`](active/phase6-race-start-handoff-redesign-contract.md). RECON report at `agent-exchange/handoff/2026-05-04-phase6-recon.md`; reviewer verify at `agent-exchange/handoff/2026-05-04-phase6-recon-verify.md`. Stage 3 DESIGN-QA authorized; awaiting implementer kickoff. Stage 4 IMPLEMENT branch (`feat/phase6-race-start-handoff-redesign`) cuts from dev tip; subsequent stage commits accumulate on the same branch through one Phase 6 PR.
+
+Phase 4b sub-phase chain (V1 → V5) **COMPLETE** as of 2026-05-03 (PR #40).
 
 Note: `active/v2b-step1-contract.md` is preserved here as a historical record by user direction. The canonical archived V2b Step 1 contract with FINAL outcome lives at [archive/v2b-step1-contract.md](archive/v2b-step1-contract.md). Both copies serve different purposes; do not delete either without explicit user direction.
 

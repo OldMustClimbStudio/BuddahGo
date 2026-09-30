@@ -48,7 +48,7 @@ N10 纯 client reconcile 工作副本统一平移六个 handoff tick，区分零
 
 ## PR #58
 
-N10、Handshake、identity 及测试程序集整理的首轮结果保留在 [审查修复记录](review-fixes-validation.md)。后续增加冲量消费资格和诊断采样/wiring 测试，已公开运行结果见 [第二轮记录](review-runtime-round2.md#reproduction-and-evidence)。`e66e59d` / `4dfb45d` 的快照配对回归使用合成输入，覆盖 owner/observer、历史 Blend 和合法期限延长；旧 61/75 项通过数不改写成这些新测试的运行结果。
+N10、Handshake、identity 及测试程序集整理的首轮结果保留在 [审查修复记录](review-fixes-validation.md)。后续增加冲量消费资格和诊断采样/wiring 测试，已公开运行结果见 [第二轮记录](review-runtime-round2.md#reproduction-and-evidence)。截至 `4dfb45d`，快照配对回归使用合成输入，覆盖 owner/observer、历史 Blend 和合法期限延长；旧 61/75 项通过数不改写成这些新测试的运行结果。
 
 
 ## 历史证据定位补充

@@ -170,8 +170,8 @@ not executed. #52 user visual acceptance remains open; this entry does not
 claim all new comments resolved. No history rewrite or dev/main merge is performed.
 
 Published code follow-up: `97a186f` binds reconcile deadlines to the snapshot's
-`ServerStateTick` / `ClientStateTick`; #58 `e66e59d` / `4dfb45d` adds synthetic boundary
-tests while preserving historical replay and legitimate deadline updates. The current
+`ServerStateTick` / `ClientStateTick`; #58 boundary tests use synthetic inputs as of
+`4dfb45d` while preserving historical replay and legitimate deadline updates. The current
 [prediction contracts](../prediction-design.md) distinguish that mapping from impulse
 `ServerReplayTick` eligibility. This is a code/test inventory, not a replacement for
 the historical 75/75 result or a publication of new runtime evidence. Complete late-client

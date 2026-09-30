@@ -1,4 +1,5 @@
 using NewBuddah.PredictionV2.Bootstrap;
+using NewBuddah.PredictionV2.Debugging;
 using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Validation
@@ -10,6 +11,8 @@ namespace NewBuddah.PredictionV2.Validation
         [SerializeField] private BuddahPredictionCompatibilityRegistry compatibilityRegistry;
 
         private string _lastHighRiskSummary = string.Empty;
+        private float _lastHealthSampleTime = float.NegativeInfinity;
+        private const float HealthLogIntervalSeconds = 0.5f;
 
         private void Awake()
         {
@@ -17,13 +20,15 @@ namespace NewBuddah.PredictionV2.Validation
             RefreshHealthReport();
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private void LateUpdate()
         {
             if (bootstrap == null)
                 ResolveReferences();
-            if (bootstrap != null && bootstrap.ShouldBuildDebugSummaries)
-                RefreshHealthReport();
+            RefreshHealthReport();
         }
+
+#endif
 
         public void ResolveReferences()
         {
@@ -33,10 +38,12 @@ namespace NewBuddah.PredictionV2.Validation
                 compatibilityRegistry = GetComponent<BuddahPredictionCompatibilityRegistry>();
         }
 
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         public void RefreshHealthReport()
         {
             ResolveReferences();
-            if (bootstrap == null)
+            if (bootstrap == null || !BuddahDiagnosticLogSampling.TryBeginSample(bootstrap.HasHealthLogConsumer,
+                    Time.unscaledTime, HealthLogIntervalSeconds, ref _lastHealthSampleTime))
                 return;
 
             compatibilityRegistry?.RefreshRegistry();

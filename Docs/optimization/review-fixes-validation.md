@@ -1,5 +1,7 @@
 # 审查修复验证（2026-09-30）
 
+本文保留 `95e57a0` 及此前修复的验证记录；其中“待验证”和 60/61 项结果均属于该阶段。后续已公开的双端及 R8 材料见 [运行跟进](review-runtime-round2.md)、[Editor 性能记录](review-r8-editor.md)；快照配对与历史冲量 replay 的现行契约见 [预测设计](../prediction-design.md)。旧结果不作为后续提交的重测结果，未公开补证不在本文追加。
+
 本轮基于 `f7f6c7ffdd61eff78c84afe722ad8084f103ec70`，仅执行 review-2026-09-30.md 的 F1/F2/F4/F5/F6/F7，不重新 review 整个堆叠。工作目录为主项目的 `.worktree/review-fixes-20260930`，分支 `fix/review-fixes-20260930`。用户主目录 `dev@ce5c1c2` 的 PackageManagerSettings.asset 修改和旧 P6 worktree 的两项 meta 删除保持原样。
 
 ## 时钟契约与测试范围

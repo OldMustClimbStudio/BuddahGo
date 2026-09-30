@@ -6,6 +6,13 @@ version for both the local host and the separate pure client, Unity 2022.3.55f1c
 Tugboat localhost, and latency configured on both peers before connection and GO.
 These are two real Unity Editor processes, not helper-only tests or cross-machine Steam tests.
 
+The measurements and 75/75 result below describe the published sessions before
+`97a186f` changed reconcile mapping to the snapshot tick pair. They remain historical
+evidence for those versions. The [current clock contract](../prediction-design.md#reconcile-快照与本地期限)
+and synthetic regression tests describe the later code; no new private run data or
+media is added here. Full late-client 12/20-tick presentation and user visual acceptance
+remain unresolved.
+
 ## Functional change and attribution
 
 - #50: remove prediction/combo screen diagnostics as authorized; retain Editor/Development
@@ -14,6 +21,9 @@ These are two real Unity Editor processes, not helper-only tests or cross-machin
 - #57: pure-client impulse replay drains the event channel using FishNet's historical
   `ServerReplayTick`. Forward simulation retains the live server clock; server/host
   retain their local authoritative clock. Replays are not disabled.
+- #57 follow-up `97a186f`: reconcile modifier/handoff working copies use that snapshot's
+  `ServerStateTick` / `ClientStateTick`, replacing receipt-time mapping. Historical replay
+  and later legitimate deadline extensions remain allowed; see the linked contract.
 - #58: four impulse clock/channel tests, diagnostic sampling/wiring tests, session-helper
   documentation, and this evidence record. Observation harness changes are not shipped
   in the gameplay assembly.
@@ -96,14 +106,14 @@ started before host; the retained retry starts host first and completed on both 
 
 ## R9 scope and remaining review items
 
-Every reconcile is observed with its raw snapshot, translated window and current offset.
+In the recorded sessions, every reconcile is observed with its raw snapshot, translated window and current offset.
 Startup/stable timing offsets do jump. The new 0 ms contact run also records a -2 tick
 change during Blend at client local 2603/server 7382, clientStateTick 2591,
 serverStateTick 7375, pass 1142. The translated deadline moves from 2609 to 2611;
 Normal still occurs at server 7390. No expired-window resurrection was observed.
-This is not proof that arbitrary clock jumps cannot revive an expired state. Keep the
-100 ms active-window resurrection question open pending focused evidence; do not change
-the mapping algorithm solely from a static suspicion.
+This sample alone does not prove that arbitrary clock jumps cannot revive an expired
+state. Its receipt-clock mapping was subsequently superseded by `97a186f`; do not use
+the sample as validation of the snapshot-pair implementation.
 
 An additional 100 ms session (`visual-corrected-100`) records a +1 offset change at
 client local tick 8050/server 9367, snapshot client/server ticks 8028/9354, pass 1160.
@@ -111,8 +121,9 @@ The historical snapshot is still Blend; its translated end moves 8043 -> 8042.
 Forward simulation immediately before and after remains Normal/inactive. Reading the
 historical snapshot's active flag alone would falsely classify this as resurrection.
 This observation does not exercise a negative jump crossing a just-expired deadline;
-that specific boundary remains unobserved. No clock algorithm change is justified by
-this sample. [Selected original records](evidence/review-round2/cycle-r9-selected.jsonl)
+that specific boundary is not demonstrated by this published sample. The later
+snapshot-pair fix has synthetic boundary tests; they are not a new measured session.
+[Selected original records](evidence/review-round2/cycle-r9-selected.jsonl)
 include both sides of the update and both peers' completed rematch/return-to-room flow.
 
 ## High-speed visual capture and shader environment

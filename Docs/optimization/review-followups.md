@@ -1,6 +1,6 @@
 # 现有 PR 审查跟进（2026-09-30）
 
-按 #48 → #47 → #49–58 保持普通 merge 祖先关系；不改写历史。最终验证记录在 #58 汇总。
+按 #48 → #47 → #49–58 保持普通 merge 祖先关系；不改写历史。首轮验证见 [审查修复记录](review-fixes-validation.md)，后续公开证据见 [双端运行跟进](review-runtime-round2.md)。以下按已发布代码更新契约，不把历史测试结果扩大到后续提交。
 
 ## PR #48
 
@@ -16,7 +16,7 @@
 
 ## PR #50
 
-补充 BlackCurtain 缓存快照限制：fade 中新激活/新生成根对象在下次 rebuild 被发现。ResultAreaInteractionGate 保留 actor 根组件缓存；它仍避免每次从 child 向上搜索，进一步组件缓存需失效契约，属低优先级建议。NetLog.Info 的 Conditional 会移除 Release 的 Info 诊断（含连接/场景 Info），Warning/Error 保留；源注释与 N5 表格原已正确。P2-3 实现/I6 静态对照完成，阶段 R1 已有记录；完整 R4/跨机验收未完成。默认调试开关未改，不能声称默认性能收益；R8 无可比基线。
+BlackCurtain 在下次 rebuild 才发现 fade 中新激活/生成的根对象；ResultAreaInteractionGate 保留 actor 根组件缓存，进一步缓存仍需失效契约。NetLog.Info 的 Conditional 保留 Release 的既有裁剪，Warning/Error 不变。后续按用户决定移除预测/技能输入屏幕 debug，保留日志和普通 HUD，见 [诊断契约](../diagnostic-log-sampling-r8.md)。[公开 R8](review-r8-editor.md) 已区分原 P2 与 log-only 增量；仅限记录的 Editor 比较，不代表 Player/Release 或完整 R4/跨机验收。
 
 ## PR #51
 
@@ -24,7 +24,7 @@ SlowTrap 旧矩阵的 root/force 恢复结论限定 server/host；纯 client 时
 
 ## PR #52
 
-删除无调用的两项 burst wrapper；空 replicatedSkillId 提前警告。保留 server world-origin 视觉设计及速度×延迟取舍，未做人工高速视觉验收；历史图像/日志缺失不补造。
+删除无调用的两项 burst wrapper；空 replicatedSkillId 提前警告。server world-origin 视觉设计保持。后续[公开视觉记录](review-runtime-round2.md#high-speed-visual-capture-and-shader-environment) 已说明缓存修复与采集边界；用户视觉接受和视频公开许可仍待定，不能把数值一致当作视觉接受。
 
 ## PR #53
 
@@ -32,7 +32,7 @@ SlowTrap 旧矩阵的 root/force 恢复结论限定 server/host；纯 client 时
 
 ## PR #54
 
-补全旧 modifier clock 的 importer meta，随后在 #57 与 BuddahTickMath 统一时删除旧 helper/meta。TimeManager.Tick 回调校正造成 modifier 短暂复活是未证实风险，本轮保持既有语义；静态 deadline 测试不证明实际 timing-update 行为。历史原始日志不补造。
+补全旧 modifier clock 的 importer meta，随后在 #57 与 BuddahTickMath 统一时删除旧 helper/meta。后续 `97a186f` 将 reconcile 的 modifier/handoff 映射改为快照 `ServerStateTick` / `ClientStateTick` 配对；合成边界测试覆盖接收时钟回退、合法 deadline 延长及历史 replay。现行契约见 [预测设计](../prediction-design.md#reconcile-快照与本地期限)，不再沿用“映射算法未改”的首轮结论，也不将测试输入当作实测数据。
 
 ## PR #55
 
@@ -40,17 +40,17 @@ Handshake 集合私有化，提供按 Stage 操作的语义 API，更新 RSM/Roo
 
 ## PR #56
 
-补充 NaN 有序比较意图，七个 importer meta 保持 GUID。22 个 helper cases 已由 #58 的 Assets/Tests/EditMode/BuddahTickMathTests.cs 和 ProjectileBurstPlannerTests.cs 覆盖，不重复迁移。R6 全矩阵仍未完成。
+补充 NaN 有序比较意图，七个 importer meta 保持 GUID。22 个 helper cases 已由 #58 的 Assets/Tests/EditMode/BuddahTickMathTests.cs 和 ProjectileBurstPlannerTests.cs 覆盖，不重复迁移。已公开的 [R6 矩阵、夹具 miss 与补证](review-runtime-round2.md#r6--r7-and-charged-timing) 各自保留原范围；不据此将通用碰撞等价性或未公开补证标为全面通过。
 
 ## PR #57
 
-N10 纯 client reconcile 工作副本统一平移六个 handoff tick，区分零事件/阶段边界与 deadline 零哨兵；owner GetTick 已为 ClientStateTick 不再平移，server/host 不平移。modifier helper 统一进 BuddahTickMath。过去 replay tick 冲量消费时序属未证实风险，本轮不擅改语义，历史日志缺失不伪造。新增阶段/边界测试随 #58 测试程序集交付。
+N10 纯 client reconcile 工作副本统一平移六个 handoff tick，区分零事件/阶段边界与 deadline 零哨兵；owner GetTick 不重复平移，server/host 不平移。`97a186f` 使用快照配对而非接收时钟。`c853768` 令纯 client 冲量按历史 ServerReplayTick 判断 replay 消费资格，前向与 server/host 分支保留原时钟。两种时钟用途及测试入口统一见 [预测设计](../prediction-design.md)。迟到客户端完整 12/20 tick 呈现仍需协议决策，不随时钟修复标完成。
 
 ## PR #58
 
-新增 N10 17 例测试，Handshake 语义 API 测试，identity 精确反射签名和非空 transport/空或非空 connection/空白或有效地址测试；测试宏约束、Runtime 无用程序集引用清理。最终编译/EditMode 及静态验证以 review-fixes-validation.md 的本轮结果为准。
+N10、Handshake、identity 及测试程序集整理的首轮结果保留在 [审查修复记录](review-fixes-validation.md)。后续增加冲量消费资格和诊断采样/wiring 测试，已公开运行结果见 [第二轮记录](review-runtime-round2.md#reproduction-and-evidence)。`e66e59d` / `4dfb45d` 的快照配对回归使用合成输入，覆盖 owner/observer、历史 Blend 和合法期限延长；旧 61/75 项通过数不改写成这些新测试的运行结果。
 
 
 ## 历史证据定位补充
 
-本轮后续只读追查找到旧 P6 + clone 的 P2/P3/N7/N8 双端原始 JSONL 与 P2 图像，不是原始数据已丢失。文件大小、SHA256、时间及完成标记见 [验证记录](review-fixes-validation.md#找回的历史原始证据)。这些本机文件未在仓库中，GitHub 审阅者仍不能仅凭摘要重做全部断言；本轮只核验来源/范围，不把历史执行当成当前修复的 runtime 通过。#51 的 SlowTrap 旧结论仍限定 server/host，#54 timing 回跳与 #57 replay 冲量风险仍未证实。
+首轮只读追查找到了旧 P6 + clone 的 P2/P3/N7/N8 原始 JSONL 与 P2 图像，来源摘要见 [验证记录](review-fixes-validation.md#找回的历史原始证据)。该核验只证明来源/范围，不把旧执行当成后续修复的 runtime 通过。#51 的 SlowTrap 旧结论仍限定 server/host。第二轮已公开材料以 [运行记录](review-runtime-round2.md) 和 [R8](review-r8-editor.md) 为入口；未公开原日志、数值与视频不随文档整理补入。

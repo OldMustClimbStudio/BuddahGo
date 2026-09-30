@@ -2,6 +2,8 @@
 
 状态取值：`todo` / `doing` / `blocked` / `done` / `done-unverified`。每完成一步就更新本表。流程见 [HANDOFF.md](HANDOFF.md)。
 
+步骤表和首轮修复表保留各自提交时的验证范围；后续契约与公开证据见本文的 [second review follow-up](#2026-09-30-second-review-follow-up) 及 [逐 PR 跟进](review-followups.md)。历史未测项不能读成后续始终未执行，历史通过数也不能充当后续提交的重测结果。
+
 ## 步骤
 
 | 步骤 | 内容 | 状态 | 提交 | R 结果 | 备注 |
@@ -57,7 +59,7 @@
 
 | ID | 事项 | 结论 | 决定人 / 日期 |
 |---|---|---|---|
-| D1 | 调试开关默认关闭 | 待定 | |
+| D1 | 调试开关默认关闭 | 已决定移除预测/技能输入屏幕 debug，Editor/Dev/Release 均不绘制；保留普通 HUD 和日志既有门控。其余 verbose 开关不扩大调整，见 [诊断说明](../diagnostic-log-sampling-r8.md)。 | 用户 / 2026-09-30 |
 | D2 | 移除 Legacy 运动路径 | 待定 | |
 | D3 | 删除预测协议里的死字段 | 待定 | |
 | D4 | RaceGateState 枚举 | 待定 | |
@@ -121,7 +123,7 @@
 
 P0–P6 的可执行改动已实现并以 stacked draft PR 提交，未合并 dev。P1-4、P1-5、P1-7、P2-4 中预检不成立的部分继续标 blocked：活跃 UnityEvent/API/SoftMask、不同语义查询均保留，以避免破坏现有功能；不是遗漏删除。其余 done-unverified 行保留各项环境与基线限制，后续 N1/N2、N5、N6/B11、N7、N8/N9 修复与复测见对应阶段记录。
 
-P7 按用户决定等待美术确认。原工作区既有 PackageManagerSettings.asset 修改保留；本轮 worktree 的 Unity 自动生成无关改动已恢复。当前交付顶端为 refactor/architecture-p6，完整堆叠证据在以上 PR 与各阶段验证文档。
+P7 按用户决定等待美术确认。原工作区既有 PackageManagerSettings.asset 修改保留；该阶段 worktree 的 Unity 自动生成无关改动已恢复。P6 阶段交付顶端为 refactor/architecture-p6；后续追加修复与公开证据见以下审查跟进。
 
 ## 审查修复执行（2026-09-30，本地）
 
@@ -139,7 +141,7 @@ P7 按用户决定等待美术确认。原工作区既有 PackageManagerSettings
 
 代码后续清理：`SkillVfxReplicator.PlayVfxAllObserversRpc` 无调用方，当前实际使用 `PlayVfxAllObserversRpcCustom`；按本次范围仅记账，保留旧 RPC 声明及其协议顺序，留待专门 RPC 清理。
 
-验证记录必须区分本次与历史 P6 43/43；未执行的跨机 Steam、三圈、N6 高速人工验收、N10/R7 的 0/100ms 双端、R6 通用碰撞及 R8 dev 对照均不标通过。D1、D7/P7 及视觉设计未决事项保持不变。
+首轮记录区分当时结果与历史 P6 43/43；该阶段未执行项不标通过。后续双端与 R8 已公开范围见 second review follow-up，D1 的屏幕诊断决定见上表；D7/P7 与用户视觉接受仍未完成。
 
 用户最新优先级为 review 中的功能性问题，网络问题后续集中处理。报告中除 N10 外没有另一项已确认的游戏功能缺陷；F2 为导入元数据完整性，F6 空 skillId warning 为诊断补充，其余主要为代码卫生、文档或待验收事项。已完成的无害整理保留，不据此扩大功能范围。用户随后明确回答 N10“这次一起修复”；本轮已纳入，实现与其余整理可分离，其他网络整改仍留后续。
 
@@ -166,3 +168,11 @@ captures); all original numeric CSVs and per-run variation are retained in
 [review-r8-editor.md](review-r8-editor.md). The proposed Player/Release benchmark was
 not executed. #52 user visual acceptance remains open; this entry does not
 claim all new comments resolved. No history rewrite or dev/main merge is performed.
+
+Published code follow-up: `97a186f` binds reconcile deadlines to the snapshot's
+`ServerStateTick` / `ClientStateTick`; #58 `e66e59d` / `4dfb45d` adds synthetic boundary
+tests while preserving historical replay and legitimate deadline updates. The current
+[prediction contracts](../prediction-design.md) distinguish that mapping from impulse
+`ServerReplayTick` eligibility. This is a code/test inventory, not a replacement for
+the historical 75/75 result or a publication of new runtime evidence. Complete late-client
+12/20-tick presentation still needs a protocol decision; user visual acceptance remains open.

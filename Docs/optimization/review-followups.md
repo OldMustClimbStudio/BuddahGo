@@ -17,3 +17,7 @@
 ## PR #50
 
 补充 BlackCurtain 缓存快照限制：fade 中新激活/新生成根对象在下次 rebuild 被发现。ResultAreaInteractionGate 保留 actor 根组件缓存；它仍避免每次从 child 向上搜索，进一步组件缓存需失效契约，属低优先级建议。NetLog.Info 的 Conditional 会移除 Release 的 Info 诊断（含连接/场景 Info），Warning/Error 保留；源注释与 N5 表格原已正确。P2-3 实现/I6 静态对照完成，阶段 R1 已有记录；完整 R4/跨机验收未完成。默认调试开关未改，不能声称默认性能收益；R8 无可比基线。
+
+## PR #51
+
+SlowTrap 旧矩阵的 root/force 恢复结论限定 server/host；纯 client 时钟证据归后续 #54。历史 48 例原始日志未纳入仓库，不能从摘要重建为原始证据。本轮最终 EditMode 属于 helper/阶段验证，不能替代旧矩阵重跑。

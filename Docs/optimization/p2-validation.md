@@ -95,7 +95,7 @@ R4/R5/R6/R8/R9 完整判据目前均未完成；性能没有可比结论。阶�
 本机原 Editor + ParrelSync，6 技能 × 正常/反噬 × host/client × 0/100ms LatencySim。每个用例 21 秒，施放后 0.25 秒重试检验锁定/冷却；host 48 个 QUEUE/CAST，每个用例各一个；两端每例各收到一次 CastObserversRpc，各 owner 施放 24 次。全程每次 Registry 对照均相等，无夹具异常、捕获 Error/Exception 或非零 D-LOC。主机 1232 条、客户端 615 条心跳；再来一局、第二局约 20 秒游戏运行、client 投票回房间与清理通过。实际结束时间 05:33:13 UTC。
 
 - Acceleration：正常 force 50→100→50，反噬 50→5→50，两种 owner 和延迟组均观察到。
-- SlowTrap：普通对对手施加减速，两端 slowtrap_vfx 跟随误差采样为 0；反噬短暂 root 后 force 60，再恢复 50。用户确认反噬本就没有特效，因此空 vfxId 不是漏配美术，后续独立修复只跳过无效播放。
+- SlowTrap：普通对对手施加减速，两端 slowtrap_vfx 跟随误差采样为 0；反噬短暂 root 后 force 60，再恢复 50 的此轮观察仅对 server/host 成立；纯 client 的旧 deadline 时钟缺陷与后续修复证据见后续 #54（N7 验证）。用户确认反噬本就没有特效，因此空 vfxId 不是漏配美术，后续独立修复只跳过无效播放。
 - BlackCurtain：两端正常/反噬的 seeEdge 标志严格交换；每次都激活并恢复。当前平台夹具不能证明实际赛道路缘画面，后续补实际场景取景。
 - Giant：正常 scale 1→4→1、mass 2→6→2、force 50→175→50；反噬 scale 1→0.3→1。owner/observer 都观察到对应变更，不能将此预测路径结果推广到 B3 的 Legacy 路径。
 - ReverseTurn：普通仅对手反转，反噬仅自身反转；注意病例边界会短暂保留上例的客户端旧采样，判据在本次施放后窗口中取值。

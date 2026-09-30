@@ -77,7 +77,7 @@
 | 2026-09-29 | 正式包启动 / 基线资源 | N3/N4：无 Steam 的初始化连带异常，以及字体、空动画、LightingData 告警；详见 p0-validation.md。 | P0 |
 | 2026-09-29 | RaceMap EndMatch UnityEvent | P1-4 删除前提不成立：直接绑定 RaceFinishManager.TriggerDebugFinishRaceFromLocalUi（Assembly-CSharp）；保持现有按钮行为。 | P1-4 |
 | 2026-09-30 | Handoff shadow / 重置传送 | N5：真实侧 ResetModifiers 会清空 handoff 和 pending，shadow 未处理；P2 技能夹具第一次传送前 95 秒无 div，传送后 hof-div=1，测试停止。该文件与 origin/dev 的 blob 相同；32 组合单测复现 4 失败。独立修复后再继续技能矩阵。 | P2 / R7 |
-| 2026-09-30 | ReconcileState `_handoffState = data.HandoffState` | N10（代码审查发现，既有缺陷）：reconcile 带来的 handoff tick 字段是 server 时钟，纯 client 用自己的 LocalTick 推进，整个窗口停在 Inherit、跳过 Blend；与 N7/N8 同类。单独开 fix PR，见 review-2026-09-30.md F1。 | P5 / R7 / R9 |
+| 2026-09-30 | ReconcileState `_handoffState = data.HandoffState` | N10（代码审查发现，既有缺陷）：reconcile 带来的 handoff tick 字段是 server 时钟，纯 client 用自己的 LocalTick 推进，整个窗口停在 Inherit、跳过 Blend；与 N7/N8 同类。用户后续要求归入现有 PR；本轮实现与验证见 review-fixes-validation.md，不新开 PR。 | P5 / R7 / R9 |
 
 ## 阶段 PR
 
@@ -115,10 +115,32 @@
 
 ## 代码审查
 
-- 2026-09-30：#47–#58 全部 approve-with-nits，无 blocker；跟进项 F1–F7 见 [review-2026-09-30.md](review-2026-09-30.md)。F1 为既有缺陷 N10（handoff 时钟），按惯例单独修复。
+- 2026-09-30：#47–#58 全部 approve-with-nits，无 blocker；跟进项 F1–F7 见 [review-2026-09-30.md](review-2026-09-30.md)。F1 为既有缺陷 N10（handoff 时钟），用户后续要求在现有 PR 中修复，不新开 PR。
 
 ## 本轮收尾
 
 P0–P6 的可执行改动已实现并以 stacked draft PR 提交，未合并 dev。P1-4、P1-5、P1-7、P2-4 中预检不成立的部分继续标 blocked：活跃 UnityEvent/API/SoftMask、不同语义查询均保留，以避免破坏现有功能；不是遗漏删除。其余 done-unverified 行保留各项环境与基线限制，后续 N1/N2、N5、N6/B11、N7、N8/N9 修复与复测见对应阶段记录。
 
 P7 按用户决定等待美术确认。原工作区既有 PackageManagerSettings.asset 修改保留；本轮 worktree 的 Unity 自动生成无关改动已恢复。当前交付顶端为 refactor/architecture-p6，完整堆叠证据在以上 PR 与各阶段验证文档。
+
+## 审查修复执行（2026-09-30，本地）
+
+本轮隔离分支 `fix/review-fixes-20260930`，基线 `f7f6c7f`。主目录仍为 dev，已有 PackageManagerSettings.asset 修改保留；旧 P6、phase6/phase7 worktree 未修改。未更新远端、未新开 PR、未合并、未部署、未强推。完整范围、逐 PR 文件/片段归属与证据见 [review-fixes-validation.md](review-fixes-validation.md)。
+
+| 项 | 状态 | 本轮提交 | 实施与验证边界 |
+|---|---|---|---|
+| F1 N10 | done-unverified | bcdbedc | 用户明确本轮一起修复；17 个 N10 用例通过，全套 EditMode 60/60，R1 编译通过。0/100ms 双端及位置校正量未测；不扩展其他网络修复。 |
+| F2 meta | done | 81d5fc1（旧 helper 删除在 bcdbedc） | 16 个存续两行 meta 补齐 MonoImporter，本次 Unity 已导入且 GUID 全部不变；第 17 个随合并的 BuddahModifierTickClock 删除。 |
+| F3 历史压缩 | blocked / 待决定 | 不执行 | 用户明确保留历史；不 fixup/rebase bff7f9e 与 6ae3c72，保留中间提交的编译限制记录。 |
+| F4 文档 | done-unverified | 本记录 docs 提交 | baseline 对齐历史证据；P2 默认开关无门控收益、SlowTrap host 限定、P3 OnEnable、6 个 UnityEvent、P0 日志删除恢复说明已纠正。R6/R8 缺口保留，#47 描述未发布。 |
+| F5 N6 取舍 | done-unverified | 本记录 docs 提交 | 服务器世界起点与客户端模型的车速×延迟偏移已记录；设计不变，高速人工验收待团队确认。 |
+| F6 整理 | done-unverified | 81d5fc1；时钟合并 bcdbedc | burst 无调用 API、warning、using、Handshake/调用方/测试、RoomRoster、NaN 注释、测试宏/identity/asmdef、ProBuilder 配置已处理。R1、EditMode 60/60 和静态不变式核对通过；完整双端回归未跑。 |
+| F7 SceneCondition | done | 本记录 docs 提交 | networking.md 记录 global/场景归属及非 BufferLast RPC 的观察关系前提；文档链接核对通过。 |
+
+代码后续清理：`SkillVfxReplicator.PlayVfxAllObserversRpc` 无调用方，当前实际使用 `PlayVfxAllObserversRpcCustom`；按本次范围仅记账，保留旧 RPC 声明及其协议顺序，留待专门 RPC 清理。
+
+验证记录必须区分本次与历史 P6 43/43；未执行的跨机 Steam、三圈、N6 高速人工验收、N10/R7 的 0/100ms 双端、R6 通用碰撞及 R8 dev 对照均不标通过。D1、D7/P7 及视觉设计未决事项保持不变。
+
+用户最新优先级为 review 中的功能性问题，网络问题后续集中处理。报告中除 N10 外没有另一项已确认的游戏功能缺陷；F2 为导入元数据完整性，F6 空 skillId warning 为诊断补充，其余主要为代码卫生、文档或待验收事项。已完成的无害整理保留，不据此扩大功能范围。用户随后明确回答 N10“这次一起修复”；本轮已纳入，实现与其余整理可分离，其他网络整改仍留后续。
+
+本地提交台账：`bcdbedc`（N10 及 17 项测试）、`81d5fc1`（其余整理/meta/测试适配）、本记录所在的 `docs: record review fixes and validation`。上述均在隔离分支，尚未发布到现有 PR；F4/F5/F7 的文档提交可通过该唯一标题在本分支定位。最终可运行结果与未验证项见 review-fixes-validation.md。

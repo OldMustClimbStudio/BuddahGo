@@ -6,24 +6,15 @@ namespace BuddahGo.Tests
 {
     public class RaceStartHandshakeTests
     {
-        private static IEnumerable<HashSet<int>> Sets(RaceStartHandshake h)
-        {
-            yield return h._raceSceneManagersReadyClientIds;
-            yield return h._introAssignmentReadyClientIds;
-            yield return h._introVisualReadyClientIds;
-            yield return h._gameplayLiveClientIds;
-        }
-        private static IEnumerable<Dictionary<int, int>> Sequences(RaceStartHandshake h)
-        {
-            yield return h._introAssignmentReadySequenceByClientId;
-            yield return h._introVisualReadySequenceByClientId;
-            yield return h._gameplayLiveSequenceByClientId;
-        }
         private static RaceStartHandshake Seed()
         {
             var h = new RaceStartHandshake();
-            foreach (var set in Sets(h)) set.UnionWith(new[] { 1, 2 });
-            foreach (var map in Sequences(h)) { map[1] = 4; map[2] = 4; }
+            foreach (int player in new[] { 1, 2 })
+            {
+                h.MarkSceneManagersReady(player);
+                foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
+                    h.RecordReadySequence(player, 4, stage);
+            }
             return h;
         }
 
@@ -31,27 +22,37 @@ namespace BuddahGo.Tests
         public void SequenceResetRetainsSceneReadinessButClearsSequenceState()
         {
             var h = Seed(); h.ResetSequenceReadiness();
-            Assert.That(h._raceSceneManagersReadyClientIds, Is.EquivalentTo(new[] { 1, 2 }));
-            Assert.That(h._introAssignmentReadyClientIds, Is.Empty);
-            Assert.That(h._introVisualReadyClientIds, Is.Empty);
-            Assert.That(h._gameplayLiveClientIds, Is.Empty);
-            foreach (var map in Sequences(h)) Assert.That(map, Is.Empty);
+            foreach (int player in new[] { 1, 2 })
+            {
+                Assert.That(h.AreSceneManagersReady(player), Is.True);
+                foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
+                    Assert.That(h.IsReadyForSequence(player, 4, stage), Is.False);
+            }
         }
 
         [Test]
-        public void DisconnectRemovesOnlyDepartingPlayerFromAllReadinessCollections()
+        public void DisconnectRemovesOnlyDepartingPlayerFromAllReadiness()
         {
             var h = Seed(); h.RemovePlayer(1);
-            foreach (var set in Sets(h)) Assert.That(set, Is.EquivalentTo(new[] { 2 }));
-            foreach (var map in Sequences(h)) { Assert.That(map.Count, Is.EqualTo(1)); Assert.That(map[2], Is.EqualTo(4)); }
+            Assert.That(h.AreSceneManagersReady(1), Is.False);
+            Assert.That(h.AreSceneManagersReady(2), Is.True);
+            foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
+            {
+                Assert.That(h.IsReadyForSequence(1, 4, stage), Is.False);
+                Assert.That(h.IsReadyForSequence(2, 4, stage), Is.True);
+            }
         }
 
         [Test]
         public void FullResetClearsAllReadiness()
         {
             var h = Seed(); h.ResetAllReadiness();
-            foreach (var set in Sets(h)) Assert.That(set, Is.Empty);
-            foreach (var map in Sequences(h)) Assert.That(map, Is.Empty);
+            foreach (int player in new[] { 1, 2 })
+            {
+                Assert.That(h.AreSceneManagersReady(player), Is.False);
+                foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
+                    Assert.That(h.IsReadyForSequence(player, 4, stage), Is.False);
+            }
         }
 
         [Test]
@@ -72,19 +73,19 @@ namespace BuddahGo.Tests
         public void ReadyRequiresExactSequenceForCurrentRosterAndIgnoresDepartedEntries()
         {
             var players = new List<RoomPlayerState>();
-            var ready = new Dictionary<int, int>();
-            Assert.That(RaceStartHandshake.AreAllReadyForSequence(true, players, 4, ready), Is.True);
+            var h = new RaceStartHandshake();
+            var stage = RaceStartHandshake.Stage.Visual;
+            Assert.That(h.AreAllReadyForSequence(true, players, 4, stage), Is.True);
             players.Add(new RoomPlayerState { PlayerId = 1 }); players.Add(new RoomPlayerState { PlayerId = 2 });
-            Assert.That(RaceStartHandshake.AreAllReadyForSequence(true, players, 4, ready), Is.False);
-            var ids = new HashSet<int>();
-            RaceStartHandshake.RecordReadySequence(1, 4, ids, ready);
-            RaceStartHandshake.RecordReadySequence(2, 3, ids, ready);
-            Assert.That(RaceStartHandshake.AreAllReadyForSequence(true, players, 4, ready), Is.False);
-            RaceStartHandshake.RecordReadySequence(2, 4, ids, ready); ready[99] = 1;
-            Assert.That(ids, Is.EquivalentTo(new[] { 1, 2 }));
-            Assert.That(RaceStartHandshake.AreAllReadyForSequence(true, players, 4, ready), Is.True);
-            Assert.That(RaceStartHandshake.AreAllReadyForSequence(false, players, 4, ready), Is.False);
-            Assert.That(RaceStartHandshake.AreAllReadyForSequence(true, players, -1, ready), Is.False);
+            Assert.That(h.AreAllReadyForSequence(true, players, 4, stage), Is.False);
+            h.RecordReadySequence(1, 4, stage); h.RecordReadySequence(2, 3, stage);
+            Assert.That(h.AreAllReadyForSequence(true, players, 4, stage), Is.False);
+            h.RecordReadySequence(2, 4, stage); h.RecordReadySequence(99, 1, stage);
+            Assert.That(h.AreAllReadyForSequence(true, players, 4, stage), Is.True);
+            Assert.That(h.AreAllReadyForSequence(true, players, 4, RaceStartHandshake.Stage.Assignment), Is.False);
+            Assert.That(h.AreAllReadyForSequence(true, players, 4, RaceStartHandshake.Stage.Gameplay), Is.False);
+            Assert.That(h.AreAllReadyForSequence(false, players, 4, stage), Is.False);
+            Assert.That(h.AreAllReadyForSequence(true, players, -1, stage), Is.False);
         }
     }
 }

@@ -12,7 +12,6 @@
     "name": "BuddahGo.Runtime",
     "references": [
         "FishNet.Runtime",
-        "FishyFacepunch",
         "Unity.InputSystem",
         "Cinemachine",
         "Unity.Splines",

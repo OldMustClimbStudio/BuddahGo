@@ -45,3 +45,7 @@ Handshake 集合私有化，提供按 Stage 操作的语义 API，更新 RSM/Roo
 ## PR #57
 
 N10 纯 client reconcile 工作副本统一平移六个 handoff tick，区分零事件/阶段边界与 deadline 零哨兵；owner GetTick 已为 ClientStateTick 不再平移，server/host 不平移。modifier helper 统一进 BuddahTickMath。过去 replay tick 冲量消费时序属未证实风险，本轮不擅改语义，历史日志缺失不伪造。新增阶段/边界测试随 #58 测试程序集交付。
+
+## PR #58
+
+新增 N10 17 例测试，Handshake 语义 API 测试，identity 精确反射签名和非空 transport/空或非空 connection/空白或有效地址测试；测试宏约束、Runtime 无用程序集引用清理。最终编译/EditMode 及静态验证以 review-fixes-validation.md 的本轮结果为准。

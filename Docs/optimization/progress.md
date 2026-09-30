@@ -31,8 +31,8 @@
 | P2-5b | BlackCurtain 目标缓存 | doing | 5df211b | | |
 | P2-5c | 组件查询缓存 | doing | d09c941 | | |
 | P2-5d | UI 文本快照 | doing | 6927cb8 | | |
-| P2-5e | motor 调试摘要惰性构建 | doing | | | |
-| P2-5f | 热路径去浪费 | todo | | | |
+| P2-5e | motor 调试摘要惰性构建 | doing | bff7f9e | | |
+| P2-5f | RSM 诊断摘要门控 | doing | | | |
 | P2-5g | 热路径去浪费 | todo | | | |
 | P3-1 | SkillAction 基类公共方法 | todo | | | |
 | P3-2 | Anti 类改为继承 | todo | | | |

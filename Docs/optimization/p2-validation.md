@@ -63,3 +63,7 @@ LeaderboardTMPUI 在 StringBuilder/插值/Split 之前比较全部显示输入�
 ## P2-5e
 
 预检读 BuildModifierSummary、BuildPendingSummary 和六个摘要赋值：只生成字符串/DebugState，不改模拟。仅给六个赋值及 writer-relinquished 状态插值加门控。motor.Update 的 RefreshInputBridge、SyncModifierDebugState 的数值状态、UpdateHandoffDebug 内 RefreshLaunchState、ConsumeReady 及 tick 顺序全部原位保留，不能整段跳过。门控包含现有屏幕/verbose/dump 开关、全局 verbose，以及 Overlay 独立 mirrorSummaryToConsole（即使屏幕关闭仍保留镜像文本）。默认开关不改。I6 不适用；R1/R4/R5/R7/R8 待集中验证。
+
+## P2-5f
+
+10 个 LogSceneDiag 调用在构建参数前先检查原有两个开关；已读 BuildServerRaceReadinessSummary/HasOwnedRacePlayer，只有局部容器构建与只读查询。函数自身也保留守卫，并加 Editor/Dev Conditional。状态判断、返回分支和 RPC 不改。I6 不适用；R 项待集中验证。

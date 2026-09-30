@@ -916,7 +916,8 @@ namespace SteamMultiplayer.Network
                 return;
 
             bool allPlayersReady = AreAllPlayersReadyForRaceServer();
-            LogSceneDiag($"[SceneDiag][Server] EvaluateRaceStartReadiness allPlayersReady={allPlayersReady} waiting={_waitingForRacePlayers.Value} countdown={_raceCountdownActive.Value} started={_raceStarted.Value} time={Time.unscaledTime:F3} details={BuildServerRaceReadinessSummary()}");
+            if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                LogSceneDiag($"[SceneDiag][Server] EvaluateRaceStartReadiness allPlayersReady={allPlayersReady} waiting={_waitingForRacePlayers.Value} countdown={_raceCountdownActive.Value} started={_raceStarted.Value} time={Time.unscaledTime:F3} details={BuildServerRaceReadinessSummary()}");
             if (!allPlayersReady)
             {
                 StopRaceCountdownServer();
@@ -1001,26 +1002,30 @@ namespace SteamMultiplayer.Network
         {
             if (!ShouldMonitorRaceFlowServer())
             {
-                LogSceneDiag($"[SceneDiag][Server] Race readiness false: monitor disabled or race scene not loaded. details={BuildServerRaceReadinessSummary()}");
+                if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: monitor disabled or race scene not loaded. details={BuildServerRaceReadinessSummary()}");
                 return false;
             }
 
             if (Players.Count == 0 || InstanceFinder.ServerManager == null || InstanceFinder.SceneManager == null)
             {
-                LogSceneDiag($"[SceneDiag][Server] Race readiness false: Players={Players.Count}, ServerManager={(InstanceFinder.ServerManager != null)}, SceneManager={(InstanceFinder.SceneManager != null)} details={BuildServerRaceReadinessSummary()}");
+                if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: Players={Players.Count}, ServerManager={(InstanceFinder.ServerManager != null)}, SceneManager={(InstanceFinder.SceneManager != null)} details={BuildServerRaceReadinessSummary()}");
                 return false;
             }
 
             UnityEngine.SceneManagement.Scene raceScene = UnitySceneManager.GetSceneByName(_raceSceneName);
             if (!raceScene.isLoaded)
             {
-                LogSceneDiag($"[SceneDiag][Server] Race readiness false: scene '{_raceSceneName}' not loaded on server. details={BuildServerRaceReadinessSummary()}");
+                if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: scene '{_raceSceneName}' not loaded on server. details={BuildServerRaceReadinessSummary()}");
                 return false;
             }
 
             if (!InstanceFinder.SceneManager.SceneConnections.TryGetValue(raceScene, out HashSet<NetworkConnection> sceneConnections))
             {
-                LogSceneDiag($"[SceneDiag][Server] Race readiness false: no SceneConnections entry for '{_raceSceneName}'. details={BuildServerRaceReadinessSummary()}");
+                if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: no SceneConnections entry for '{_raceSceneName}'. details={BuildServerRaceReadinessSummary()}");
                 return false;
             }
 
@@ -1029,30 +1034,35 @@ namespace SteamMultiplayer.Network
                 RoomPlayerState playerState = Players[i];
                 if (!InstanceFinder.ServerManager.Clients.TryGetValue(playerState.PlayerId, out NetworkConnection conn) || conn == null || !conn.IsAuthenticated)
                 {
-                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} missing authenticated connection. details={BuildServerRaceReadinessSummary()}");
+                    if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                        LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} missing authenticated connection. details={BuildServerRaceReadinessSummary()}");
                     return false;
                 }
 
                 if (!sceneConnections.Contains(conn))
                 {
-                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} not present in race scene connections. details={BuildServerRaceReadinessSummary()}");
+                    if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                        LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} not present in race scene connections. details={BuildServerRaceReadinessSummary()}");
                     return false;
                 }
 
                 if (!HasOwnedRacePlayer(conn))
                 {
-                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} has no owned race player in '{_raceSceneName}'. details={BuildServerRaceReadinessSummary()}");
+                    if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                        LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} has no owned race player in '{_raceSceneName}'. details={BuildServerRaceReadinessSummary()}");
                     return false;
                 }
 
                 if (!_raceSceneManagersReadyClientIds.Contains(playerState.PlayerId))
                 {
-                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} has not reported race scene managers ready. details={BuildServerRaceReadinessSummary()}");
+                    if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                        LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} has not reported race scene managers ready. details={BuildServerRaceReadinessSummary()}");
                     return false;
                 }
             }
 
-            LogSceneDiag($"[SceneDiag][Server] Race readiness true for {Players.Count} players. details={BuildServerRaceReadinessSummary()}");
+            if (_enableDebugLogs && NetDebug.EnableVerboseLog)
+                LogSceneDiag($"[SceneDiag][Server] Race readiness true for {Players.Count} players. details={BuildServerRaceReadinessSummary()}");
             return true;
         }
 
@@ -1202,6 +1212,7 @@ namespace SteamMultiplayer.Network
                 GameLog.Verbose($"[RoomStateManager] {message}");
         }
 
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         private void LogSceneDiag(string message)
         {
             if (_enableDebugLogs && NetDebug.EnableVerboseLog)

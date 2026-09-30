@@ -19,8 +19,12 @@
 | P1-6 | 删除 DirectHeadingControl 分支 | done-unverified | 072fd93 | R1 通过；本机双端回归通过，R4 完整矩阵未执行 | 两个 sealed 输入源的 UseDirectHeadingControl 均为字面量 false；保留输入接口，移除不可达模式及专属无用字段。 |
 | P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | blocked | 438b0b7 | 四包移除、ParrelSync 固定；R1/R2 通过；本机双端回归通过，完整 R4 未执行 | SoftMask 在 RaceMap → UIprefap.prefab 中仍使用，保留该包；GUID 依赖预检推翻原计划“未使用”假设。 |
 | P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | done-unverified | 71e63d5 | R1/R2 通过；本机回归通过；R4/R5 不完整，R6 未执行 | 306 个 Demo 文件；默认表实际 12 Demo + 3 游戏，保留全部三个游戏 prefab GUID/fileID。 |
-| P2-1 | 新增 Foundation 模块 | done | | R1 通过：已加载 GameLog 类型、无 C# error | 暂不接入调用点；Registry 明确 activeInHierarchy/禁用组件语义，并首次查询补齐 Awake 顺序差异。 |
-| P2-2a–e | 日志迁移（按目录） | todo | | | |
+| P2-1 | 新增 Foundation 模块 | done | dc3bcda | R1 通过：已加载 GameLog 类型、无 C# error | 暂不接入调用点；Registry 明确 activeInHierarchy/禁用组件语义，并首次查询补齐 Awake 顺序差异。 |
+| P2-2a | New_Buddah 日志迁移 | doing | | | |
+| P2-2b | 日志迁移 | todo | | | |
+| P2-2c | 日志迁移 | todo | | | |
+| P2-2d | 日志迁移 | todo | | | |
+| P2-2e | 日志迁移 | todo | | | |
 | P2-3 | 常量与身份收敛 | todo | | | |
 | P2-4 | 接入 PlayerRegistry | todo | | | |
 | P2-5a–g | 热路径去浪费 | todo | | | |

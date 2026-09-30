@@ -43,7 +43,7 @@ namespace NewBuddah.PredictionV2.Debugging
 
             _lastConsoleMirrorTime = Time.unscaledTime;
             _lastConsoleMirrorSummary = summary;
-            Debug.Log($"[PredictionOverlay:{name}] {summary}");
+            GameLog.Verbose($"[PredictionOverlay:{name}] {summary}");
         }
 
         private void OnGUI()

@@ -9,3 +9,7 @@ Registry 的契约是 Awake 注册、OnDestroy 注销；按 activeInHierarchy �
 身份预检：三个 GetLocalClientId 除空白外完全相同，两个 ResolvePlayerName 的成员查找、本机 Steam、数字回退顺序相同。新实现接收 connection/Lobby，避免 Foundation 依赖会话单例；本步未替换旧函数。场景名和默认圈数原值不变。I6 的接入 diff 留到 P2-3。
 
 R1：Unity 2022.3.55f1c1 完整刷新后，GameLog 已实际加载到 Assembly-CSharp，未出现 C# error。Console 的 Timings 来自既有 Burst 编译统计。资产 meta 由 Unity 生成。没有改动序列化字段、RPC 或预测结构。
+
+## P2-2a — New_Buddah
+
+替换 27 个 Debug.Log 的调用表达式，参数/context、消息文本及外层守卫逐字保留；Warning/Error 不动。所有 Editor/Dev/shadow/perf/visual/sergate 分支均纳入语法树扫描，参数内无赋值或自增。嵌套调用仅为场景/名单/技能只读查询、tick/时间读取和局部摘要格式化；已读对应实现。Network 的 NetLog.Info 加 Conditional，保留 SteamMP 前缀，避免正式包仍求值参数。I6：不合并日志内容。语法检查通过，R1/R3/R4/R7 待 P2 集中验证。

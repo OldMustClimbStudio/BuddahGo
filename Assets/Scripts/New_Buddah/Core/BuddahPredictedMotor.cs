@@ -617,7 +617,7 @@ namespace NewBuddah.PredictionV2.Core
 #if BUDDAH_SERGATE_DEBUG
             // Enable via ProjectSettings -> Scripting Define Symbols: BUDDAH_SERGATE_DEBUG.
             // Used in Phase 2/3 to observe reconcile-data mirroring from motor private state.
-            Debug.Log($"[SerGate] T={data.GetTick()} isOwner={IsOwner} " +
+            GameLog.Verbose($"[SerGate] T={data.GetTick()} isOwner={IsOwner} " +
                       $"preHoTick={data.LocalPreHandoffBypassUntilTick} " +
                       $"awaitHo={data.AwaitingAuthoritativeLaunchHandoff} " +
                       $"pendingTp={data.HasPendingTeleport} tpPos={data.PendingTeleport.TargetPosition}");
@@ -707,7 +707,7 @@ namespace NewBuddah.PredictionV2.Core
             _lastLoggedIntroWriterSuppressed = relinquished;
             _lastLoggedIntroWriterReason = reason;
             bool isHostOwner = IsOwner && IsServerInitialized;
-            Debug.Log(
+            GameLog.Verbose(
                 $"[PredictionIntro][Writer] tick={currentTick} relinquished={relinquished} why={reason} " +
                 $"owner={IsOwner} hostOwner={isHostOwner} intro={introControlActive} external={externalControlActive} pending={authoritativePending}");
         }
@@ -727,7 +727,7 @@ namespace NewBuddah.PredictionV2.Core
             _lastLoggedIntroReconcileControlled = introControlled;
             _lastLoggedIntroReconcileHostOwner = isHostOwner;
             _lastLoggedIntroReconcilePending = authoritativePending;
-            Debug.Log(
+            GameLog.Verbose(
                 $"[PredictionIntro][Reconcile] tick={tick} skipped={skipped} reason={reason} owner={IsOwner} hostOwner={isHostOwner} " +
                 $"introControlled={introControlled} intro={_introControlActive} external={_externalKinematicControlActive} " +
                 $"pending={authoritativePending} posDelta={positionDelta:0.000} velDelta={velocityDelta:0.000}");
@@ -882,7 +882,7 @@ namespace NewBuddah.PredictionV2.Core
             _localPreHandoffBypassUntilTick = Math.Max(
                 _localPreHandoffBypassUntilTick,
                 SecondsToTick(Mathf.Max(bypassRoomStateSeconds, 0.5f), currentTick));
-            Debug.Log($"[IntroHandoff][Prediction] Owner requested authoritative handoff seq={debugSequenceId} tick={currentTick} bypassUntil={_localPreHandoffBypassUntilTick}");
+            GameLog.Verbose($"[IntroHandoff][Prediction] Owner requested authoritative handoff seq={debugSequenceId} tick={currentTick} bypassUntil={_localPreHandoffBypassUntilTick}");
             bootstrap?.LogVerbose(
                 $"[HandoffDebug] owner request sending ServerRpc tick={currentTick} bypassUntil={_localPreHandoffBypassUntilTick} seq={debugSequenceId}");
             RequestLaunchHandoffServerRpc(
@@ -958,7 +958,7 @@ namespace NewBuddah.PredictionV2.Core
                 eventData.DebugSequenceId,
                 eventData.EnableDebugLogs);
 
-            Debug.Log($"[IntroHandoff][Server] Created authoritative handoff eventId={eventData.EventId} seq={debugSequenceId} serverStartTick={eventData.StartTick} clientStartTick={clientStartTick} ownerTickAtRequest={ownerTickAtRequest} queuedServer={queuedOnServer}");
+            GameLog.Verbose($"[IntroHandoff][Server] Created authoritative handoff eventId={eventData.EventId} seq={debugSequenceId} serverStartTick={eventData.StartTick} clientStartTick={clientStartTick} ownerTickAtRequest={ownerTickAtRequest} queuedServer={queuedOnServer}");
             bootstrap?.LogVerbose(
                 $"[HandoffDebug] server authoritative create owner={(Owner != null ? Owner.ClientId : -1)} " +
                 $"eventId={eventData.EventId} tick={eventData.StartTick} queuedServer={queuedOnServer} seq={debugSequenceId}");
@@ -1030,7 +1030,7 @@ namespace NewBuddah.PredictionV2.Core
             int debugSequenceId,
             bool enableDebugLogs)
         {
-            Debug.Log($"[IntroHandoff][Server] Received owner handoff request seq={debugSequenceId} tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} ownerTick={ownerTickAtRequest} speed={snapshotVelocity.magnitude:0.00}");
+            GameLog.Verbose($"[IntroHandoff][Server] Received owner handoff request seq={debugSequenceId} tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} ownerTick={ownerTickAtRequest} speed={snapshotVelocity.magnitude:0.00}");
             bootstrap?.LogVerbose(
                 $"[HandoffDebug] ServerRpc received tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} ownerTick={ownerTickAtRequest} " +
                 $"pos={snapshotPosition} speed={snapshotVelocity.magnitude:0.00} seq={debugSequenceId}");
@@ -1102,7 +1102,7 @@ namespace NewBuddah.PredictionV2.Core
             int debugSequenceId,
             bool enableDebugLogs)
         {
-            Debug.Log($"[IntroHandoff][Client] Received authoritative handoff eventId={eventId} seq={debugSequenceId} startTick={startTick} speed={snapshotVelocity.magnitude:0.00}");
+            GameLog.Verbose($"[IntroHandoff][Client] Received authoritative handoff eventId={eventId} seq={debugSequenceId} startTick={startTick} speed={snapshotVelocity.magnitude:0.00}");
             bootstrap?.LogVerbose(
                 $"[HandoffDebug] TargetRpc received eventId={eventId} startTick={startTick} speed={snapshotVelocity.magnitude:0.00} seq={debugSequenceId}");
             BuddahPredictedLaunchHandoffData eventData = new(
@@ -1279,7 +1279,7 @@ namespace NewBuddah.PredictionV2.Core
                 {
                     uint tickIdle = TimeManager != null ? TimeManager.LocalTick : 0u;
                     // V2b Step 1 Q4 / V4: impulse axis dropped from D-LOC HEARTBEAT (LEG axis retired).
-                    Debug.Log($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} rec-cb={_reconcileCallbackCount} (both sides idle)");
+                    GameLog.Verbose($"[D-LOC HEARTBEAT] T={tickIdle} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} rec-cb={_reconcileCallbackCount} (both sides idle)");
                     _dLocLocomotionDivCount = 0;
                     _dLocTeleportDivCount = 0;
                     _dLocModifierDivCount = 0;
@@ -1292,7 +1292,7 @@ namespace NewBuddah.PredictionV2.Core
             if ((_shadowActiveCompares % 120) == 1)
             {
                 uint tickHb = TimeManager != null ? TimeManager.LocalTick : 0u;
-                Debug.Log($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} rec-cb={_reconcileCallbackCount}");
+                GameLog.Verbose($"[D-LOC HEARTBEAT] T={tickHb} active-ticks={_shadowActiveCompares} skip-ticks={_shadowSkipCompares}\n  loc-div={_dLocLocomotionDivCount} tel-div={_dLocTeleportDivCount} mod-div={_dLocModifierDivCount} hof-div={_dLocHandoffDivCount}\n  tel-compared={_shadowTeleportConsumedCount} mod-compared={_shadowModifierConsumedCount} hof-compared={_shadowHandoffConsumedCount} rec-cb={_reconcileCallbackCount}");
                 _dLocLocomotionDivCount = 0;
                 _dLocTeleportDivCount = 0;
                 _dLocModifierDivCount = 0;
@@ -1952,7 +1952,7 @@ namespace NewBuddah.PredictionV2.Core
 
             RefreshLaunchState(currentTick);
             UpdateConsumedHandoffDebug(currentTick, eventData);
-            Debug.Log($"[IntroHandoff][Prediction] Handoff consumed eventId={eventData.EventId} tick={currentTick} seq={eventData.DebugSequenceId} launchState={_handoffState.CurrentState}");
+            GameLog.Verbose($"[IntroHandoff][Prediction] Handoff consumed eventId={eventData.EventId} tick={currentTick} seq={eventData.DebugSequenceId} launchState={_handoffState.CurrentState}");
             if (IsOwner && eventData.DebugSequenceId >= 0)
                 RoomStateManager.Instance?.ReportLocalGameplayLive(eventData.DebugSequenceId);
             bootstrap?.LogVerbose(

@@ -90,7 +90,7 @@ namespace NewBuddah.PredictionV2.Events
             if ((mask & BuddahPredictionChannelMask.Modifier) != 0) _modifier.Clear();
             if ((mask & BuddahPredictionChannelMask.Handoff) != 0) _handoff.Clear();
 
-            Debug.Log(
+            GameLog.Verbose(
                 $"{LogPrefix}:ClearAll mask={mask} total={total} impulse={impulsePre} teleport={teleportPre} modifier={modifierPre} handoff={handoffPre}",
                 this);
             return total;
@@ -113,9 +113,9 @@ namespace NewBuddah.PredictionV2.Events
             if (!s_firstInvokeImpulse)
             {
                 s_firstInvokeImpulse = true;
-                Debug.Log($"{LogPrefix}:FirstInvoke ch=Impulse", this);
+                GameLog.Verbose($"{LogPrefix}:FirstInvoke ch=Impulse", this);
             }
-            Debug.Log(
+            GameLog.Verbose(
                 $"{LogPrefix}:Recv ch=Impulse linear={cmd.LinearImpulse} turn={cmd.TurnImpulse} srcType={cmd.SourceType} srcObj={cmd.SourceObjectId} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
                 this);
             TryEnqueueImpulse(cmd, cmd.EventTick, cmd.LogicalId);
@@ -128,9 +128,9 @@ namespace NewBuddah.PredictionV2.Events
             if (!s_firstInvokeTeleport)
             {
                 s_firstInvokeTeleport = true;
-                Debug.Log($"{LogPrefix}:FirstInvoke ch=Teleport", this);
+                GameLog.Verbose($"{LogPrefix}:FirstInvoke ch=Teleport", this);
             }
-            Debug.Log(
+            GameLog.Verbose(
                 $"{LogPrefix}:Recv ch=Teleport pos={cmd.Pos} rot={cmd.Rot.eulerAngles} prog={cmd.Progress01:F3} src={cmd.Source} flags={cmd.Flags} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
                 this);
             TryEnqueueTeleport(cmd, cmd.EventTick, cmd.LogicalId);
@@ -143,9 +143,9 @@ namespace NewBuddah.PredictionV2.Events
             if (!s_firstInvokeModifier)
             {
                 s_firstInvokeModifier = true;
-                Debug.Log($"{LogPrefix}:FirstInvoke ch=Modifier", this);
+                GameLog.Verbose($"{LogPrefix}:FirstInvoke ch=Modifier", this);
             }
-            Debug.Log(
+            GameLog.Verbose(
                 $"{LogPrefix}:Recv ch=Modifier kind={cmd.Kind} mag={cmd.Magnitude:F3} dur={cmd.Duration:F3} stack={cmd.StackPolicy} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
                 this);
             TryEnqueueModifier(cmd, cmd.EventTick, cmd.LogicalId);
@@ -158,9 +158,9 @@ namespace NewBuddah.PredictionV2.Events
             if (!s_firstInvokeHandoff)
             {
                 s_firstInvokeHandoff = true;
-                Debug.Log($"{LogPrefix}:FirstInvoke ch=Handoff", this);
+                GameLog.Verbose($"{LogPrefix}:FirstInvoke ch=Handoff", this);
             }
-            Debug.Log(
+            GameLog.Verbose(
                 $"{LogPrefix}:Recv ch=Handoff pos={cmd.SnapshotPosition} inherit={cmd.Inherit:F3} blend={cmd.Blend:F3} bypass={cmd.Bypass:F3} suppressTurn={cmd.SuppressTurn:F3} flags={cmd.Flags} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
                 this);
             TryEnqueueHandoff(cmd, cmd.EventTick, cmd.LogicalId);
@@ -192,7 +192,7 @@ namespace NewBuddah.PredictionV2.Events
                 sourceObjectId: 0,
                 eventTick: stampTick,
                 logicalId: A4ProbeLogicalId);
-            Debug.Log($"{LogPrefix}:A4Probe fire Target_EnqueueImpulse -> ownerClientId={Owner.ClientId} eventTick={stampTick} logicalId={A4ProbeLogicalId}", this);
+            GameLog.Verbose($"{LogPrefix}:A4Probe fire Target_EnqueueImpulse -> ownerClientId={Owner.ClientId} eventTick={stampTick} logicalId={A4ProbeLogicalId}", this);
             Target_EnqueueImpulse(Owner, cmd);
         }
 #endif

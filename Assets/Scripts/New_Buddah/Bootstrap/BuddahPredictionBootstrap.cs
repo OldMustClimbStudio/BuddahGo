@@ -178,7 +178,7 @@ namespace NewBuddah.PredictionV2.Bootstrap
                 return;
 
             if (debugSettings.enableVerboseLogs || NetDebug.EnableVerboseLog)
-                Debug.Log($"{LogPrefix} {message}", this);
+                GameLog.Verbose($"{LogPrefix} {message}", this);
         }
     }
 }

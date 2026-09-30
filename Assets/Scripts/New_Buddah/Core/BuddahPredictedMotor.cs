@@ -576,6 +576,9 @@ namespace NewBuddah.PredictionV2.Core
                 return;
 
             _modifierState = data.ModifierState;
+            // Reconcile carries server-clock deadlines; LocalTick is not synchronized on clients.
+            if (!IsServerInitialized && TimeManager != null)
+                _modifierState = BuddahModifierTickClock.ToLocal(_modifierState, TimeManager.Tick, TimeManager.LocalTick);
             _computedStats = data.ComputedStats;
             _handoffState = data.HandoffState;
             _introControlActive = data.IntroControlActive;

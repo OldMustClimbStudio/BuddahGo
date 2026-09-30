@@ -1,0 +1,12 @@
+var type=typeof(NewBuddah.PredictionV2.Core.BuddahPredictedMotor).Assembly.GetType("NewBuddah.PredictionV2.Core.BuddahModifierTickClock",true);
+var flags=System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic;
+var deadline=type.GetMethod("ToLocalDeadline",flags);
+var translate=type.GetMethod("ToLocal",flags);
+uint[][] cases={new uint[]{1060,1000,100,160},new uint[]{960,1000,100,60},new uint[]{0,1000,100,0},new uint[]{900,1000,100,0},new uint[]{1060,1000,1000,1060},new uint[]{160,100,1000,1060},new uint[]{uint.MaxValue,1,100,uint.MaxValue}};
+int passed=0;
+foreach(var c in cases){uint actual=(uint)deadline.Invoke(null,new object[]{c[0],c[1],c[2]});if(actual!=c[3])throw new System.Exception("Deadline mismatch "+actual+" expected "+c[3]);passed++;}
+var source=new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState {RootUntilTick=1060,AccelUntilTick=1120,PostRootAccelUntilTick=1180,ScaleUntilTick=1240,InvertTurnUntilTick=1300,PushGraceUntilTick=1360,SuppressSteeringUntilTick=1420,RoomBypassUntilTick=1480,AccelExtraForwardForce=17,AccelExtraMaxSpeed=18,PostRootAccelExtraForwardForce=19,PostRootAccelExtraMaxSpeed=20,ScaleMultiplier=4,ScaleMassMultiplier=3,ScaleForwardForceMultiplier=3.5f};
+var mapped=(NewBuddah.PredictionV2.Core.BuddahPredictedModifierState)translate.Invoke(null,new object[]{source,1000u,100u});
+foreach(var f in source.GetType().GetFields()) {var before=f.GetValue(source);var after=f.GetValue(mapped);if(f.FieldType==typeof(uint)){if((uint)after!=(uint)before-900u)throw new System.Exception("Deadline field mismatch "+f.Name);passed++;}else if(!before.Equals(after))throw new System.Exception("Changed nondeadline "+f.Name);}
+if(source.RootUntilTick!=1060)throw new System.Exception("Mutated source");
+return new {passed=passed,allNondeadlineFieldsPreserved=true,sourceUnchanged=true};

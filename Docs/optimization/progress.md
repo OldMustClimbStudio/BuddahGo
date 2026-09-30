@@ -34,9 +34,9 @@
 | P2-5e | motor 调试摘要惰性构建 | done-unverified | bff7f9e | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
 | P2-5f | RSM 诊断摘要门控 | done-unverified | b9ccad5 | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
 | P2-5g | HealthReport 帧更新门控 | done-unverified | cbe59ca | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
-| P3-1 | SkillAction 基类公共方法 | blocked | bd6e2ef | 预检 14 个 duration + 10 个 Feel 模板相同；R1/R7 与 48 例表现通过，R5 遇 N7 | 字段留在子类，Reflection 预施放入口保持。 |
-| P3-2 | Anti 公共实现共享（保留继承） | blocked | dc86d79 | R1/资产快照/实际赛道画面通过；R5 因既有 N7 待修复 | 用户以功能保留为准；原继承和资源原样，见 p3-validation.md。 |
-| P3-3 | SkillExecutor 下沉 | blocked | ecb5406 | R1/R7/本机重开回房间通过；R5 因 N7 待修复，R6 不完整 | 5 个查找显式区分 parent-first 与 children-first。 |
+| P3-1 | SkillAction 基类公共方法 | done | bd6e2ef | 预检 14 个 duration + 10 个 Feel 模板相同；R1/R7、48 例表现及 N7 修复后 16 例时长通过 | 字段留在子类，Reflection 预施放入口保持。 |
+| P3-2 | Anti 公共实现共享（保留继承） | done | dc86d79 | R1/资产快照/实际赛道画面通过；R5 加 N7 时长复测通过 | 用户以功能保留为准；原继承和资源原样，见 p3-validation.md。 |
+| P3-3 | SkillExecutor 下沉 | done-unverified | ecb5406 | R1/R7/本机重开回房间通过；R5 加 N7 时长复测通过，R6 普通推击不完整 | 5 个查找显式区分 parent-first 与 children-first。 |
 | P3-4 | 配置交叉校验（编辑器） | done | 694daed | R1 编译通过，菜单报告 0 error / 6 既有漂移 warning，12 技能资源逐值不变 | Push 18/15 vs 12/10 与四个未使用 VFX 字段，见 p3-validation.md；D5 不改数据。 |
 | P4-1 | RoomStateManager 下沉 | todo | | | |
 | P4-2 | RSM 三件套参数化 | todo | | | |
@@ -95,3 +95,5 @@
 
 - P3：[PR #53](https://github.com/OldMustClimbStudio/BuddahGo/pull/53)，base fix/skill-presentation-consistency；48 例、重开/回房间完成，1236/617 心跳 div=0。N6/B11 已验证；既有 N7 时基问题阻止 R5 完整通过，见 p3-validation.md。
 - N7（2026-09-30）：SlowTrap anti 在 server 定身 1s 后加速，client 在 21s 用例内仍 rooted。P2/P3 都复现；modifier 服务器 deadline 与 client 非同步 LocalTick 混用，独立修复，保留协议布局。
+
+- N7 独立修复完成：modifier deadline 映射客户端 LocalTick，15 纯逻辑检查及 16 双端/延迟用例通过；570/283 心跳 div=0，重开和回房间完成。见 n7-modifier-clock-validation.md。

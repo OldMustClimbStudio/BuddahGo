@@ -67,3 +67,7 @@ LeaderboardTMPUI 在 StringBuilder/插值/Split 之前比较全部显示输入�
 ## P2-5f
 
 10 个 LogSceneDiag 调用在构建参数前先检查原有两个开关；已读 BuildServerRaceReadinessSummary/HasOwnedRacePlayer，只有局部容器构建与只读查询。函数自身也保留守卫，并加 Editor/Dev Conditional。状态判断、返回分支和 RPC 不改。I6 不适用；R 项待集中验证。
+
+## P2-5g
+
+读完整 RefreshHealthReport/RefreshRegistry/BuildHighRiskSummary 及其 visual-root getter，除引用缓存与 DebugState 外无模拟写入。LateUpdate 仅在现有诊断开关/Overlay 镜像开启时刷新；Awake 与 public 显式刷新入口保持原样。bootstrap 缺失仍可重新获取。默认调试开关不改，R 项待集中验证。

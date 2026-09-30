@@ -19,7 +19,10 @@ namespace NewBuddah.PredictionV2.Validation
 
         private void LateUpdate()
         {
-            RefreshHealthReport();
+            if (bootstrap == null)
+                ResolveReferences();
+            if (bootstrap != null && bootstrap.ShouldBuildDebugSummaries)
+                RefreshHealthReport();
         }
 
         public void ResolveReferences()

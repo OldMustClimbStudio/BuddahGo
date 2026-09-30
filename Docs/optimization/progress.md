@@ -20,20 +20,20 @@
 | P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | blocked | 438b0b7 | 四包移除、ParrelSync 固定；R1/R2 通过；本机双端回归通过，完整 R4 未执行 | SoftMask 在 RaceMap → UIprefap.prefab 中仍使用，保留该包；GUID 依赖预检推翻原计划“未使用”假设。 |
 | P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | done-unverified | 71e63d5 | R1/R2 通过；本机回归通过；R4/R5 不完整，R6 未执行 | 306 个 Demo 文件；默认表实际 12 Demo + 3 游戏，保留全部三个游戏 prefab GUID/fileID。 |
 | P2-1 | 新增 Foundation 模块 | done | dc3bcda | R1 通过：已加载 GameLog 类型、无 C# error | 暂不接入调用点；Registry 明确 activeInHierarchy/禁用组件语义，并首次查询补齐 Awake 顺序差异。 |
-| P2-2a | New_Buddah 日志迁移 | doing | 1b62bcf | 待 P2 集中验证 | 27 处调用；原消息、context、开关不变。 |
-| P2-2b | Buddah 日志迁移 | doing | bc0459b | 待 P2 集中验证 | 77 处调用；原消息、context、开关不变。 |
-| P2-2c | Network 日志迁移 | doing | aaa5382 | 待 P2 集中验证 | 50 处调用；原消息、context、开关不变。 |
-| P2-2d | RaceIntro 日志迁移 | doing | 2b7f6d0 | 待 P2 集中验证 | 52 处调用；原消息、context、开关不变。 |
-| P2-2e | UI 日志迁移 | doing | dbc5ba4 | 待 P2 集中验证 | 8 处调用；原消息、context、开关不变。 |
+| P2-2a | New_Buddah 日志迁移 | blocked | 1b62bcf | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 27 处调用；原消息、context、开关不变。 |
+| P2-2b | Buddah 日志迁移 | blocked | bc0459b | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 77 处调用；原消息、context、开关不变。 |
+| P2-2c | Network 日志迁移 | blocked | aaa5382 | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 50 处调用；原消息、context、开关不变。 |
+| P2-2d | RaceIntro 日志迁移 | blocked | 2b7f6d0 | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 52 处调用；原消息、context、开关不变。 |
+| P2-2e | UI 日志迁移 | blocked | dbc5ba4 | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 8 处调用；原消息、context、开关不变。 |
 | P2-3 | 常量与身份收敛 | doing | 8dfe69b | | |
 | P2-4 | 接入 PlayerRegistry | blocked | 0a81fbd | 5 处等价 movement 查询已接入，待阶段验证 | 其余实际查找不同组件或包含 inactive，保留以满足 I5；见 p2-validation.md。 |
-| P2-5a | RoomUI 名单快照 | doing | 63335d6 | | |
-| P2-5b | BlackCurtain 目标缓存 | doing | 5df211b | | |
-| P2-5c | 组件查询缓存 | doing | d09c941 | | |
-| P2-5d | UI 文本快照 | doing | 6927cb8 | | |
-| P2-5e | motor 调试摘要惰性构建 | doing | bff7f9e | | |
-| P2-5f | RSM 诊断摘要门控 | doing | b9ccad5 | | |
-| P2-5g | HealthReport 帧更新门控 | doing | | | |
+| P2-5a | RoomUI 名单快照 | blocked | 63335d6 | | |
+| P2-5b | BlackCurtain 目标缓存 | blocked | 5df211b | | |
+| P2-5c | 组件查询缓存 | blocked | d09c941 | | |
+| P2-5d | UI 文本快照 | blocked | 6927cb8 | | |
+| P2-5e | motor 调试摘要惰性构建 | blocked | bff7f9e | | |
+| P2-5f | RSM 诊断摘要门控 | blocked | b9ccad5 | | |
+| P2-5g | HealthReport 帧更新门控 | blocked | cbe59ca | | |
 | P3-1 | SkillAction 基类公共方法 | todo | | | |
 | P3-2 | Anti 类改为继承 | todo | | | |
 | P3-3 | SkillExecutor 下沉 | todo | | | |
@@ -73,6 +73,8 @@
 | 2026-09-29 | ParrelSync client RaceMap | N2：SceneCondition 缺失导致场景注册/交接受阻；已在 be7c0fd / PR #48 处理，本机两端 195 秒回归通过，待合并。 | P0-3 / R7 |
 | 2026-09-29 | 正式包启动 / 基线资源 | N3/N4：无 Steam 的初始化连带异常，以及字体、空动画、LightingData 告警；详见 p0-validation.md。 | P0 |
 | 2026-09-29 | RaceMap EndMatch UnityEvent | P1-4 删除前提不成立：直接绑定 RaceFinishManager.TriggerDebugFinishRaceFromLocalUi（Assembly-CSharp）；保持现有按钮行为。 | P1-4 |
+
+| 2026-09-30 | Handoff shadow / 重置传送 | N5：真实侧 ResetModifiers 会清空 handoff 和 pending，shadow 未处理；P2 技能夹具第一次传送前 95 秒无 div，传送后 hof-div=1，测试停止。该文件与 origin/dev 的 blob 相同；32 组合单测复现 4 失败。独立修复后再继续技能矩阵。 | P2 / R7 |
 
 ## 阶段 PR
 

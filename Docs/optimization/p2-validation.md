@@ -71,3 +71,16 @@ LeaderboardTMPUI 在 StringBuilder/插值/Split 之前比较全部显示输入�
 ## P2-5g
 
 读完整 RefreshHealthReport/RefreshRegistry/BuildHighRiskSummary 及其 visual-root getter，除引用缓存与 DebugState 外无模拟写入。LateUpdate 仅在现有诊断开关/Overlay 镜像开启时刷新；Awake 与 public 显式刷新入口保持原样。bootstrap 缺失仍可重新获取。默认调试开关不改，R 项待集中验证。
+
+## 构建与首轮回归（6ae3c72，2026-09-30）
+
+- 集中编译修正了一处新增 NetDebug 命名空间限定后通过；新的诊断属性已实际加载，Console 无 C# error（保留已有 Burst Timings 日志）。修正前构建排队被编译错误拦截，未生成成功产物。
+- R2：Development Windows，23.342 秒，0 error / 12 warning，1162.32 MB；实际启动截图确认主菜单，日志无 Exception。
+- R3：Release Windows，19.443 秒，0 error / 11 warning，1134.44 MB；实际启动截图确认主菜单，日志无 Exception、无 SteamMP Info、无 D-Perf。
+- 对两种 Assembly-CSharp.dll 用 FishNet 自带 Cecil 枚举 IL：Release 的 GameLog.Verbose/NetLog.Info 调用均为 0；Dev 分别为 211/18，证明正式调用及参数求值被编译器消除。
+- 原 Editor + Clone 的正常连接、ready、配装、开赛与交接通过，随后有效运行 95 秒，Registry 与引擎查询集合逐次相等，传送前 D-LOC 非零窗口为 0。
+- 用户要求扩展为全部六技能及 anti、双方角色、0/100ms 延迟的 48 组合专项，同时检查坐标/命中/画面，不仅检查 RPC。夹具先使用正常比赛流程，再在未保存的本机测试平面上通过正式传送入口安排位置；只在测试实例确定性设置反噬概率和病例间冷却、配装，保留病例内重复施放拦截检查，所有正式 asset 原样。
+- 该专项在首个技能施放前的定位传送触发 N5：hof-div=1，真实 handoff EventId=0，shadow 仍为旧开场 EventId=1。host 共 138 条心跳后自动停止；client 随后手动停止。不能记为 R7/技能矩阵通过。
+- BuddahHandoffStep.cs 的 origin/dev 与当前 blob 均为 2d7167491daa7b8cc38ac1f944a0d7a58c587d87；静态检查确认其遗漏真实 ConsumePendingTeleportEvent.ResetModifiers 对 handoff/pending 的清除。32 种输入组合在未修复版本有 4 种失败（7/15/23/31）。先独立修复诊断模型，再继续同一矩阵，不隐藏 divergence。
+
+R4/R5/R6/R8/R9 完整判据目前均未完成；性能没有可比结论。阶段暂受 N5 阻塞，后续只在其修复后集中复测。

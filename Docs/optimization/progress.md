@@ -6,7 +6,7 @@
 
 | 步骤 | 内容 | 状态 | 提交 | R 结果 | 备注 |
 |---|---|---|---|---|---|
-| P0-1 | 记录基线 → baseline.md | todo | | | |
+| P0-1 | 记录基线 → baseline.md | done-unverified | 本步骤提交（见下步补记 hash） | 基线 C# 编译 0 error / 11 已有 warning；R4–R9 未执行 | 仅本机，无第二 Steam 测试端；完整原因见 baseline.md。LFS pull 完成，origin/dev 无新增提交、无冲突。 |
 | P0-2 | `.gitattributes` 修正二进制 .asset | todo | | | |
 | P0-3 | 修复正式包编译（B1） | todo | | | |
 | P0-4 | 调试探针只进 Editor/Dev（B2） | todo | | | |

@@ -1,7 +1,7 @@
-var type=typeof(NewBuddah.PredictionV2.Core.BuddahPredictedMotor).Assembly.GetType("NewBuddah.PredictionV2.Core.BuddahModifierTickClock",true);
+var type=typeof(NewBuddah.PredictionV2.Core.BuddahPredictedMotor).Assembly.GetType("NewBuddah.PredictionV2.Core.BuddahTickMath",true);
 var flags=System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic;
-var deadline=type.GetMethod("ToLocalDeadline",flags);
-var translate=type.GetMethod("ToLocal",flags);
+var deadline=type.GetMethod("ServerDeadlineToLocalTick",flags);
+var translate=type.GetMethod("ModifiersToLocal",flags);
 uint[][] cases={new uint[]{1060,1000,100,160},new uint[]{960,1000,100,60},new uint[]{0,1000,100,0},new uint[]{900,1000,100,0},new uint[]{1060,1000,1000,1060},new uint[]{160,100,1000,1060},new uint[]{uint.MaxValue,1,100,uint.MaxValue}};
 int passed=0;
 foreach(var c in cases){uint actual=(uint)deadline.Invoke(null,new object[]{c[0],c[1],c[2]});if(actual!=c[3])throw new System.Exception("Deadline mismatch "+actual+" expected "+c[3]);passed++;}

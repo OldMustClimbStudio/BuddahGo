@@ -64,7 +64,7 @@
 - **LightingData 显示已修改**：在 P0-2 之前，新检出后 `Assets/Scenes/RaceMap/LightingData.asset` 会显示为已修改（`.gitattributes` 把它当文本处理）。不要提交这个文件。
 - **DefaultPrefabObjects 会被自动重写**：FishNet 的 PrefabGenerator 已启用（`Assets/FishNet.Config.XML`），增删 prefab 时会自动改写 `Assets/DefaultPrefabObjects.asset`。只有 P1-8 允许提交这个文件的改动，其他步骤出现改动要丢弃。
 - **`Legacy/` 目录名有误导**：`UI/InGameUI/Legacy/` 里的 `LeaderboardTMPUI`、`ResultDecisionUI` 仍挂在 `RaceMap.unity` 上。判断死活看 refscan，不看目录名。
-- **UnityEvent 按程序集限定名引用脚本**：`MainMenuUI`（3 处）和 `RaceFinishManager`（1 处）被 UnityEvent 以 `ClassName, Assembly-CSharp` 引用。改名或移动程序集后要验证按钮能用（R10）。
+- **UnityEvent 按程序集限定名引用脚本**：P6 已将游戏 UnityEvent 的 6 处程序集限定引用迁到 `BuddahGo.Runtime`（含按钮与 Timeline 回调）；不能再按旧 `Assembly-CSharp` 身份判断。后续改名或移动程序集仍要复核全部持久绑定并运行 R10，见 [p6-validation.md](p6-validation.md)。
 - **`??` 用在 `UnityEngine.Object` 上**：会绕过 Unity 的假 null 判断（例如 `PlayerScaleEffect.cs:37/:174`）。现有代码不要改（改了会改变行为）；新代码使用显式的 `== null` 判断。
 - **运行时 AddComponent 的组件**：`SceneFadeController`、各种 `*Effect`、Validation 组件、`PlayerFinishPresentationController` 在 YAML 里查不到引用，但它们是存活的。缓存这些组件时，缓存为 null 必须允许重新查找。
 

@@ -25,3 +25,7 @@ SlowTrap 旧矩阵的 root/force 恢复结论限定 server/host；纯 client 时
 ## PR #52
 
 删除无调用的两项 burst wrapper；空 replicatedSkillId 提前警告。保留 server world-origin 视觉设计及速度×延迟取舍，未做人工高速视觉验收；历史图像/日志缺失不补造。
+
+## PR #53
+
+五个 importer meta 保持 GUID 并补全；SerializedObject 使用 using；纠正 LoadAssetAtPath 可触发 OnEnable。ApplyScaleServer 两个 duration 参数保留 SkillExecutor 转发签名，注释说明仅 presentation 消费，server physics 不读取，未改调用/行为。

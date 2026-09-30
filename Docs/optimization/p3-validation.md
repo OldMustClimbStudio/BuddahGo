@@ -24,7 +24,7 @@ CastSlotServerRpc 按原语句边界拆为 TryResolveCast、ResolveCastVariant�
 
 现有菜单接入 SkillConfigCrossValidator，按显式关联配置检查 SkillDatabase 的三张原始 action 列表与 config definition；比较 cooldown/castLock/obsession/anti id；逐项报告 config→SkillAction→后缀推断→无反噬的解析结果，并检查目标 id 实际存在。读取 vfxId 和库 prefab；空 id 仅为 Info（符合用户对 SlowTrap anti 的确认），未注册非空 id 为 Warning，并注明字段是否被执行路径使用仍需检查。effectParams 只匹配同名序列化字段，不猜别名。无显式配置关联时标出候选比较，不声称它必是运行时数据源。
 
-全部仅返回报告；不调用运行时配置初始化/重建，不 ApplyModifiedProperties/SetDirty/保存资源。已知 PushProjectileHands action 18/15 versus 配置 12/10 仅记录，D5 仍未决定，不自动改数值。R1/实际菜单报告与资源只读检查待执行。
+菜单不显式调用运行时配置初始化/重建，不 ApplyModifiedProperties/SetDirty/保存资源；但 LoadAssetAtPath<SkillDatabase> 会触发 OnEnable，因此不能宣称加载过程没有运行时配置初始化副作用。已知 PushProjectileHands action 18/15 versus 配置 12/10 仅记录，D5 仍未决定，不自动改数值。R1/实际菜单报告与资源只读检查待执行。
 
 ## 首次集中验证
 

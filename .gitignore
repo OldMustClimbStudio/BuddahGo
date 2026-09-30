@@ -71,11 +71,13 @@ Assets/Readme.asset.meta
 Assets/Sources/Font/
 Assets/Sources/Font.meta
 
-# Local-only agent/tool configs — may contain machine-specific paths or credentials.
-.mcp.json
+# Local-only agent settings; .mcp.json is a shared, credential-free loopback config.
 .claude/settings.local.json
 
 # Large raw playtest logs (digests in agent-exchange/console/*.log capture all [D-LOC] data)
 agent-exchange/console/raw/*.log
 agent-exchange/console/raw/*.txt
 agent-exchange/console/raw/_*.py
+
+# Project-local worktrees
+/.worktree/

@@ -1,6 +1,11 @@
+# Suppress the retired backend if inherited from a user's global configuration.
 [mcp_servers.ai-game-developer]
-bearer_token_env_var = "GAME_DEV_AUTH_TOKEN"
+# A local placeholder keeps this disabled entry valid without global defaults.
+url = "http://127.0.0.1:8080/mcp"
+enabled = false
+
+[mcp_servers.unityMCP]
+url = "http://127.0.0.1:8080/mcp"
 enabled = true
 startup_timeout_sec = 30
 tool_timeout_sec = 300
-url = "https://ai-game.dev/mcp"

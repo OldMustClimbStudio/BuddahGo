@@ -1,74 +1,35 @@
-# Architecture - System Boundaries and Ownership
+# 架构与运行流程
 
-## Layer Model
-
-| Layer | Scope | Primary owners | Write authority |
-|---|---|---|---|
-| `server-orchestration` | connection lifecycle, room flow, scene transitions | `GameNetworkManager`, `ConnectionManager`, `RoomStateManager`, `ResultDecisionManager` | server only |
-| `session-selection` | lobby membership, property selection, skill loadout selection | `SteamLobbyManager`, `PropertiesSelectionManager` | server validates, clients request |
-| `prediction-core` | owner input, motor simulation, reconcile state, bridge routing | `BuddahPredictedMotor`, `BuddahPredictedReconcileData`, `BuddahPredictedModifierResolver`, `BuddahPredictionBootstrap` | prediction stack with server reconciliation |
-| `skill-execution` | combo detection, cast dispatch, skill data lookup, base and anti execution | `ComboSkillInput`, `SkillExecutor`, `SkillAction`, `SkillDataBase`, `SkillLoadout` | `SkillExecutor` owns runtime skill dispatch |
-| `config-rules` | legal skill definitions, selection rules, global rules, validation | `ProjectConfigRuntime`, `ProjectConfigDatabase`, repositories, validators | config assets and repositories |
-| `race-and-results` | race intro, progress tracking, finish order, result presentation, next-match decisions | `IntroSequenceManager`, `RaceCompletionTracker`, `RaceFinishManager`, `LeaderboardManager`, `MatchResultPresentationCoordinator`, `ResultDecisionManager` | split between server orchestration and presentation listeners |
-| `presentation` | UI, VFX, cameras, visual bridges | `BuddahPredictionPresentationBridge`, `BuddahPredictionVisualRootBridge`, in-game UI, menu UI | read simulation and sync state only |
-
-## Ownership Rules
-- `GameNetworkManager` and `ConnectionManager` own transport startup and FishNet manager lifetime.
-- `RoomStateManager` owns room-to-selection, selection-to-race, result-to-next-game, and result-to-main-menu transitions.
-- `PropertiesSelectionManager` owns synchronized pre-game selections and readiness checks.
-- `ResultDecisionManager` owns result voting state, but delegates actual scene transitions back to `RoomStateManager`.
-- `BuddahPredictedMotor` owns predicted movement state. Other systems may request effects only through supported bridges.
-- `SkillExecutor` is the only supported runtime entry point for skill casts and anti-skill resolution.
-- `ProjectConfigRuntime` and its repositories own runtime access to skill, selection, and global rules.
-- Presentation systems may mirror or decorate state, but they must not become a second gameplay authority.
-
-## Practical System Map
-
-| System | Root paths | Canonical entry points | Protected hotspots |
-|---|---|---|---|
-| Room and scene orchestration | `Assets/Scripts/Network/Core/`, `Assets/Scripts/Network/Room/` | `GameNetworkManager`, `RoomStateManager` | `GameNetworkManager.cs`, `ConnectionManager.cs`, `RoomStateManager.cs` |
-| Lobby and selection | `Assets/Scripts/Network/Lobby/`, `Assets/Scripts/Network/Session/PropertySelection/` | `SteamLobbyManager`, `PropertiesSelectionManager` | `SteamLobbyManager.cs`, `PropertiesSelectionManager.cs` |
-| Prediction | `Assets/Scripts/New_Buddah/` | `BuddahPredictionBootstrap`, `BuddahPredictedMotor` | `BuddahPredictedMotor.cs`, `BuddahPredictedReconcileData.cs`, bridge classes |
-| Skills | `Assets/Scripts/Buddah/ComboSkill/` | `ComboSkillInput`, `SkillExecutor` | `SkillExecutor.cs`, `SkillAction.cs`, paired base and anti skills |
-| Config and rules | `Assets/Scripts/Config/` | `ProjectConfigRuntime`, validator and repositories | `ProjectConfigRuntime.cs`, `ProjectConfigDatabase.cs` |
-| Race intro and results | `Assets/Scripts/RaceIntro/`, `Assets/Scripts/Network/Gameplay/`, `Assets/Scripts/Network/Session/Results/` | `IntroSequenceManager`, `RaceCompletionTracker`, `ResultDecisionManager` | `IntroSequenceManager.cs`, `RaceFinishManager.cs`, `ResultDecisionManager.cs` |
-| UI and presentation | `Assets/Scripts/UI/`, VFX, visual bridges | menu UI, in-game UI, presentation bridge classes | visual bridge and result presentation hooks |
-
-## Cross-Layer Policy
-
-| From | To | Allowed path |
+| 系统 | 主要代码位置（相对 `Assets/Scripts/`） | 状态负责人 |
 |---|---|---|
-| session-selection | skill-execution | through validated loadout and property state only |
-| skill-execution | prediction-core | through `BuddahPredictionSkillMovementBridge` or approved effect bridges |
-| prediction-core | presentation | through read-only visual and camera bridges |
-| config-rules | session-selection or skill-execution | through repositories and runtime initialization |
-| presentation | gameplay state | forbidden unless routed back through owning server or skill system |
+| 连接与房间 | `Network/Core/`、`Network/Room/` | `GameNetworkManager`、`ConnectionManager`、`RoomStateManager` |
+| 大厅与选择 | `Network/Lobby/`、`Network/Session/PropertySelection/` | `SteamLobbyManager`、`PropertiesSelectionManager` |
+| 预测运动 | `New_Buddah/` | `BuddahPredictedMotor`、reconcile 数据与相关 bridge |
+| 技能 | `Buddah/ComboSkill/` | `SkillExecutor` |
+| 配置 | `Config/` | `ProjectConfigRuntime` 和 repositories |
+| 比赛与结算 | `RaceIntro/`、`Network/Gameplay/`、`Network/Session/Results/` | 入场、进度、终点和投票各自的 controller/manager |
+| 表现 | `UI/`、预测表现与相机 bridge | 读取游戏状态，更新 UI、VFX、相机 |
 
-## High-Coupling Hotspots
-- `RoomStateManager` couples room state, property selection, race start, result return, and scene management.
-- `PropertiesSelectionManager` couples selection sync, readiness, cached selections, and transition timing.
-- `SkillExecutor` couples combo input, database lookup, anti variant resolution, RPC dispatch, and prediction movement routing.
-- `BuddahPredictedMotor` couples owner input, simulation, reconcile, modifiers, and bridge compatibility.
-- `ResultDecisionManager` couples post-race votes with `RoomStateManager` transition requests.
-- `ProjectConfigRuntime` couples config asset loading with runtime repositories used by skill and selection code.
+## 关键边界
 
-## System Rules Worth Enforcing
+- 服务器决定游戏状态；客户端预测，表现层读取状态，不建立第二套游戏权威。
+- 预测模式下，技能、碰撞和复活通过现有预测桥接处理运动，避免在表现层直接改刚体。
+- `SkillExecutor` 负责技能分发与 base/anti 配对；合法技能、配装和属性来自配置仓库。
+- `RoomStateManager` 负责多人场景流转。`ResultDecisionManager` 负责投票结果，再请求房间系统切场景。
+- 控制权交接、复活和模式切换需要同时处理运动限制、队列与表现状态，避免遗留旧状态。
 
-### Prediction
-- Server is authoritative for gameplay truth.
-- Clients may predict but may not define authoritative state.
-- Gameplay forces and movement modifiers must route through the prediction stack when prediction is active.
-- Client-only visual logic must not create gameplay divergence.
+## 一场比赛的链路
 
-### Skills
-- Base and anti variants are a pair when backfire behavior exists.
-- `SkillExecutor` is the only cast dispatcher.
-- Runtime skill metadata must stay aligned with config repositories.
+```text
+SteamLobbyManager 创建/加入大厅
+  → ConnectionManager 启动连接，GameNetworkManager 绑定网络管理器
+  → RoomStateManager 进入选择场景
+  → PropertiesSelectionManager 校验属性、配装与 ready 状态
+  → RoomStateManager 加载赛道，IntroSequenceManager 协调开场
+  → 预测运动与 SkillExecutor 驱动比赛
+  → RaceCompletionTracker / RaceFinishManager 记录进度与完成顺序
+  → 结算展示，ResultDecisionManager 收集下一局/返回投票
+  → RoomStateManager 执行场景转换
+```
 
-### Room and results
-- Scene changes for multiplayer flows must remain inside the orchestrators that already own them.
-- Do not let menu or result UI call low-level scene APIs directly.
-
-### Config
-- Do not bypass repositories with hardcoded fallback gameplay values unless the task explicitly updates the config contract.
-- Validation changes must consider both editor validation and runtime repository reads.
+网络细节见 [networking.md](networking.md)，运动设计见 [prediction-design.md](prediction-design.md)。

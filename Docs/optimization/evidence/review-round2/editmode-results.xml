@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="75" result="Passed" total="75" passed="75" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.2433117">
+  <test-suite type="TestSuite" id="1103" name="BuddahGo" fullname="BuddahGo" runstate="Runnable" testcasecount="75" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.243312" total="75" passed="75" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties />
+    <test-suite type="Assembly" id="1199" name="BuddahGo.Tests.dll" fullname="C:/Users/dwh88/Perforce/dengw3_Liyuu_1160/.worktree/bgr2-host/Library/ScriptAssemblies/BuddahGo.Tests.dll" runstate="Runnable" testcasecount="75" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.212994" total="75" passed="75" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="42408" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+      </properties>
+      <test-suite type="TestSuite" id="1200" name="BuddahGo" fullname="BuddahGo" runstate="Runnable" testcasecount="75" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.211972" total="75" passed="75" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1201" name="Tests" fullname="BuddahGo.Tests" runstate="Runnable" testcasecount="75" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.211203" total="75" passed="75" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1104" name="BuddahTickMathTests" fullname="BuddahGo.Tests.BuddahTickMathTests" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" testcasecount="20" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.032616" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1127" name="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" fullname="BuddahGo.Tests.BuddahTickMathTests.DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.017543" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1119" name="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.0f,0.02f,uint.MinValue)" fullname="BuddahGo.Tests.BuddahTickMathTests.DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.0f,0.02f,uint.MinValue)" methodname="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="711956957" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.009516" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1120" name="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.001f,0.02f,1)" fullname="BuddahGo.Tests.BuddahTickMathTests.DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.001f,0.02f,1)" methodname="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1743291683" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000171" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1121" name="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.02f,0.02f,1)" fullname="BuddahGo.Tests.BuddahTickMathTests.DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.02f,0.02f,1)" methodname="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1519791218" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000089" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1122" name="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(1.0f,0.02f,50)" fullname="BuddahGo.Tests.BuddahTickMathTests.DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(1.0f,0.02f,50)" methodname="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1287129562" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000107" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1123" name="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(1.01f,0.02f,51)" fullname="BuddahGo.Tests.BuddahTickMathTests.DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(1.01f,0.02f,51)" methodname="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1106415639" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000082" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1124" name="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.0001f,0.0f,1)" fullname="BuddahGo.Tests.BuddahTickMathTests.DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.0001f,0.0f,1)" methodname="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="638718229" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000078" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1125" name="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.0001f,-1.0f,1)" fullname="BuddahGo.Tests.BuddahTickMathTests.DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.0001f,-1.0f,1)" methodname="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1638492051" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000076" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1126" name="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.001f,0.0001f,11)" fullname="BuddahGo.Tests.BuddahTickMathTests.DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(0.001f,0.0001f,11)" methodname="DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1291454026" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000075" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1109" name="ForwardAndHostImpulseClocksRetainTheirCanonicalTicks" fullname="BuddahGo.Tests.BuddahTickMathTests.ForwardAndHostImpulseClocksRetainTheirCanonicalTicks" methodname="ForwardAndHostImpulseClocksRetainTheirCanonicalTicks" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1787180850" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000407" asserts="0">
+              <properties />
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1108" name="ReplayDoesNotConsumeAnImpulseFromItsFuture" fullname="BuddahGo.Tests.BuddahTickMathTests.ReplayDoesNotConsumeAnImpulseFromItsFuture" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.003738" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1105" name="ReplayDoesNotConsumeAnImpulseFromItsFuture(5687,5690)" fullname="BuddahGo.Tests.BuddahTickMathTests.ReplayDoesNotConsumeAnImpulseFromItsFuture(5687,5690)" methodname="ReplayDoesNotConsumeAnImpulseFromItsFuture" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="340026494" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.002423" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1106" name="ReplayDoesNotConsumeAnImpulseFromItsFuture(uint.MinValue,1)" fullname="BuddahGo.Tests.BuddahTickMathTests.ReplayDoesNotConsumeAnImpulseFromItsFuture(uint.MinValue,1)" methodname="ReplayDoesNotConsumeAnImpulseFromItsFuture" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="473276565" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000123" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1107" name="ReplayDoesNotConsumeAnImpulseFromItsFuture(4294967294,uint.MaxValue)" fullname="BuddahGo.Tests.BuddahTickMathTests.ReplayDoesNotConsumeAnImpulseFromItsFuture(4294967294,uint.MaxValue)" methodname="ReplayDoesNotConsumeAnImpulseFromItsFuture" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="2053905990" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000104" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1118" name="ServerEventsMapToLocalClockWithoutUnsignedUnderflow" fullname="BuddahGo.Tests.BuddahTickMathTests.ServerEventsMapToLocalClockWithoutUnsignedUnderflow" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001965" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1110" name="ServerEventsMapToLocalClockWithoutUnsignedUnderflow(35000,37477,34560,32083)" fullname="BuddahGo.Tests.BuddahTickMathTests.ServerEventsMapToLocalClockWithoutUnsignedUnderflow(35000,37477,34560,32083)" methodname="ServerEventsMapToLocalClockWithoutUnsignedUnderflow" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1246614011" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000348" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1111" name="ServerEventsMapToLocalClockWithoutUnsignedUnderflow(37477,37477,34560,34560)" fullname="BuddahGo.Tests.BuddahTickMathTests.ServerEventsMapToLocalClockWithoutUnsignedUnderflow(37477,37477,34560,34560)" methodname="ServerEventsMapToLocalClockWithoutUnsignedUnderflow" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="947039358" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000094" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1112" name="ServerEventsMapToLocalClockWithoutUnsignedUnderflow(37480,37477,34560,34563)" fullname="BuddahGo.Tests.BuddahTickMathTests.ServerEventsMapToLocalClockWithoutUnsignedUnderflow(37480,37477,34560,34563)" methodname="ServerEventsMapToLocalClockWithoutUnsignedUnderflow" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1286779991" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000088" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1113" name="ServerEventsMapToLocalClockWithoutUnsignedUnderflow(uint.MinValue,uint.MinValue,100,100)" fullname="BuddahGo.Tests.BuddahTickMathTests.ServerEventsMapToLocalClockWithoutUnsignedUnderflow(uint.MinValue,uint.MinValue,100,100)" methodname="ServerEventsMapToLocalClockWithoutUnsignedUnderflow" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1117675905" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000065" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1114" name="ServerEventsMapToLocalClockWithoutUnsignedUnderflow(1,3000,10,uint.MinValue)" fullname="BuddahGo.Tests.BuddahTickMathTests.ServerEventsMapToLocalClockWithoutUnsignedUnderflow(1,3000,10,uint.MinValue)" methodname="ServerEventsMapToLocalClockWithoutUnsignedUnderflow" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="58976431" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000064" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1115" name="ServerEventsMapToLocalClockWithoutUnsignedUnderflow(uint.MaxValue,uint.MinValue,1,uint.MaxValue)" fullname="BuddahGo.Tests.BuddahTickMathTests.ServerEventsMapToLocalClockWithoutUnsignedUnderflow(uint.MaxValue,uint.MinValue,1,uint.MaxValue)" methodname="ServerEventsMapToLocalClockWithoutUnsignedUnderflow" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="478503767" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000061" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1116" name="ServerEventsMapToLocalClockWithoutUnsignedUnderflow(100,100,100,100)" fullname="BuddahGo.Tests.BuddahTickMathTests.ServerEventsMapToLocalClockWithoutUnsignedUnderflow(100,100,100,100)" methodname="ServerEventsMapToLocalClockWithoutUnsignedUnderflow" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="494435788" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000071" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1117" name="ServerEventsMapToLocalClockWithoutUnsignedUnderflow(100,90,200,210)" fullname="BuddahGo.Tests.BuddahTickMathTests.ServerEventsMapToLocalClockWithoutUnsignedUnderflow(100,90,200,210)" methodname="ServerEventsMapToLocalClockWithoutUnsignedUnderflow" classname="BuddahGo.Tests.BuddahTickMathTests" runstate="Runnable" seed="1847180761" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000060" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="1128" name="HandoffClockTests" fullname="BuddahGo.Tests.HandoffClockTests" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" testcasecount="17" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.012292" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1132" name="HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress" fullname="BuddahGo.Tests.HandoffClockTests.HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.005308" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1129" name="HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress(1828)" fullname="BuddahGo.Tests.HandoffClockTests.HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress(1828)" methodname="HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="272016156" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.004330" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1130" name="HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress(2917)" fullname="BuddahGo.Tests.HandoffClockTests.HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress(2917)" methodname="HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="940232554" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000250" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1131" name="HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress(-600)" fullname="BuddahGo.Tests.HandoffClockTests.HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress(-600)" methodname="HistoricalSnapshotKeepsPhaseLengthsAndBlendProgress" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="1485288595" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000212" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1149" name="ModifierDeadlinesTranslateAndNonTimeFieldsStayUnchanged" fullname="BuddahGo.Tests.HandoffClockTests.ModifierDeadlinesTranslateAndNonTimeFieldsStayUnchanged" methodname="ModifierDeadlinesTranslateAndNonTimeFieldsStayUnchanged" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="586427100" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001136" asserts="0">
+              <properties />
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1142" name="ReconcileUsesRoleCorrectClock" fullname="BuddahGo.Tests.HandoffClockTests.ReconcileUsesRoleCorrectClock" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001526" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1138" name="ReconcileUsesRoleCorrectClock(True,True,400)" fullname="BuddahGo.Tests.HandoffClockTests.ReconcileUsesRoleCorrectClock(True,True,400)" methodname="ReconcileUsesRoleCorrectClock" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="40689506" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000411" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1139" name="ReconcileUsesRoleCorrectClock(True,False,400)" fullname="BuddahGo.Tests.HandoffClockTests.ReconcileUsesRoleCorrectClock(True,False,400)" methodname="ReconcileUsesRoleCorrectClock" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="521087990" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000105" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1140" name="ReconcileUsesRoleCorrectClock(False,True,400)" fullname="BuddahGo.Tests.HandoffClockTests.ReconcileUsesRoleCorrectClock(False,True,400)" methodname="ReconcileUsesRoleCorrectClock" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="2100921689" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000088" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1141" name="ReconcileUsesRoleCorrectClock(False,False,500)" fullname="BuddahGo.Tests.HandoffClockTests.ReconcileUsesRoleCorrectClock(False,False,500)" methodname="ReconcileUsesRoleCorrectClock" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="1887561462" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000087" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1137" name="ResetStaysEmptyButInactiveSuppressionAndBypassTailsTranslate" fullname="BuddahGo.Tests.HandoffClockTests.ResetStaysEmptyButInactiveSuppressionAndBypassTailsTranslate" methodname="ResetStaysEmptyButInactiveSuppressionAndBypassTailsTranslate" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="349024629" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000466" asserts="0">
+              <properties />
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1148" name="TranslationSaturatesRatherThanUnsignedWrapping" fullname="BuddahGo.Tests.HandoffClockTests.TranslationSaturatesRatherThanUnsignedWrapping" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001432" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1143" name="TranslationSaturatesRatherThanUnsignedWrapping(uint.MinValue,10,100,90,uint.MinValue)" fullname="BuddahGo.Tests.HandoffClockTests.TranslationSaturatesRatherThanUnsignedWrapping(uint.MinValue,10,100,90,uint.MinValue)" methodname="TranslationSaturatesRatherThanUnsignedWrapping" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="498818863" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000272" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1144" name="TranslationSaturatesRatherThanUnsignedWrapping(1,3000,10,uint.MinValue,uint.MinValue)" fullname="BuddahGo.Tests.HandoffClockTests.TranslationSaturatesRatherThanUnsignedWrapping(1,3000,10,uint.MinValue,uint.MinValue)" methodname="TranslationSaturatesRatherThanUnsignedWrapping" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="1464812339" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000121" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1145" name="TranslationSaturatesRatherThanUnsignedWrapping(uint.MaxValue,uint.MinValue,1,uint.MaxValue,uint.MaxValue)" fullname="BuddahGo.Tests.HandoffClockTests.TranslationSaturatesRatherThanUnsignedWrapping(uint.MaxValue,uint.MinValue,1,uint.MaxValue,uint.MaxValue)" methodname="TranslationSaturatesRatherThanUnsignedWrapping" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="464445029" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000075" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1146" name="TranslationSaturatesRatherThanUnsignedWrapping(1,uint.MaxValue,5,uint.MinValue,uint.MinValue)" fullname="BuddahGo.Tests.HandoffClockTests.TranslationSaturatesRatherThanUnsignedWrapping(1,uint.MaxValue,5,uint.MinValue,uint.MinValue)" methodname="TranslationSaturatesRatherThanUnsignedWrapping" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="1181208687" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000067" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1147" name="TranslationSaturatesRatherThanUnsignedWrapping(4294967294,2,10,uint.MaxValue,uint.MaxValue)" fullname="BuddahGo.Tests.HandoffClockTests.TranslationSaturatesRatherThanUnsignedWrapping(4294967294,2,10,uint.MaxValue,uint.MaxValue)" methodname="TranslationSaturatesRatherThanUnsignedWrapping" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="2051905790" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000052" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1136" name="ZeroStartAndZeroDurationEndpointsAreTimestamps" fullname="BuddahGo.Tests.HandoffClockTests.ZeroStartAndZeroDurationEndpointsAreTimestamps" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001206" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1133" name="ZeroStartAndZeroDurationEndpointsAreTimestamps(uint.MinValue,4,Blend)" fullname="BuddahGo.Tests.HandoffClockTests.ZeroStartAndZeroDurationEndpointsAreTimestamps(uint.MinValue,4,Blend)" methodname="ZeroStartAndZeroDurationEndpointsAreTimestamps" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="1687185039" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000452" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1134" name="ZeroStartAndZeroDurationEndpointsAreTimestamps(3,uint.MinValue,Inherit)" fullname="BuddahGo.Tests.HandoffClockTests.ZeroStartAndZeroDurationEndpointsAreTimestamps(3,uint.MinValue,Inherit)" methodname="ZeroStartAndZeroDurationEndpointsAreTimestamps" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="1890943715" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000093" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1135" name="ZeroStartAndZeroDurationEndpointsAreTimestamps(uint.MinValue,uint.MinValue,Normal)" fullname="BuddahGo.Tests.HandoffClockTests.ZeroStartAndZeroDurationEndpointsAreTimestamps(uint.MinValue,uint.MinValue,Normal)" methodname="ZeroStartAndZeroDurationEndpointsAreTimestamps" classname="BuddahGo.Tests.HandoffClockTests" runstate="Runnable" seed="1863008154" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000068" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="1150" name="LoadoutRulesTests" fullname="BuddahGo.Tests.LoadoutRulesTests" classname="BuddahGo.Tests.LoadoutRulesTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.006607" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1157" name="AutofillPreservesCandidateOrderAndSeparateTrimPolicies" fullname="BuddahGo.Tests.LoadoutRulesTests.AutofillPreservesCandidateOrderAndSeparateTrimPolicies" methodname="AutofillPreservesCandidateOrderAndSeparateTrimPolicies" classname="BuddahGo.Tests.LoadoutRulesTests" runstate="Runnable" seed="1749541841" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.002402" asserts="0">
+              <properties />
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1154" name="DuplicatePolicyAppliesToSubmissionAndCompletion" fullname="BuddahGo.Tests.LoadoutRulesTests.DuplicatePolicyAppliesToSubmissionAndCompletion" classname="BuddahGo.Tests.LoadoutRulesTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001539" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1152" name="DuplicatePolicyAppliesToSubmissionAndCompletion(False,False)" fullname="BuddahGo.Tests.LoadoutRulesTests.DuplicatePolicyAppliesToSubmissionAndCompletion(False,False)" methodname="DuplicatePolicyAppliesToSubmissionAndCompletion" classname="BuddahGo.Tests.LoadoutRulesTests" runstate="Runnable" seed="285520852" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000810" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1153" name="DuplicatePolicyAppliesToSubmissionAndCompletion(True,True)" fullname="BuddahGo.Tests.LoadoutRulesTests.DuplicatePolicyAppliesToSubmissionAndCompletion(True,True)" methodname="DuplicatePolicyAppliesToSubmissionAndCompletion" classname="BuddahGo.Tests.LoadoutRulesTests" runstate="Runnable" seed="1376738461" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000118" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1155" name="InvalidOptionStopsNormalizationAtTheFailingSlot" fullname="BuddahGo.Tests.LoadoutRulesTests.InvalidOptionStopsNormalizationAtTheFailingSlot" methodname="InvalidOptionStopsNormalizationAtTheFailingSlot" classname="BuddahGo.Tests.LoadoutRulesTests" runstate="Runnable" seed="394380060" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000793" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1151" name="SubmissionTrimsAndAllowsBlankSlotsForAutofill" fullname="BuddahGo.Tests.LoadoutRulesTests.SubmissionTrimsAndAllowsBlankSlotsForAutofill" methodname="SubmissionTrimsAndAllowsBlankSlotsForAutofill" classname="BuddahGo.Tests.LoadoutRulesTests" runstate="Runnable" seed="1468250387" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000491" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1156" name="WrongSlotCountAndNullSubmissionAreRejectedBeforePolicyCalls" fullname="BuddahGo.Tests.LoadoutRulesTests.WrongSlotCountAndNullSubmissionAreRejectedBeforePolicyCalls" methodname="WrongSlotCountAndNullSubmissionAreRejectedBeforePolicyCalls" classname="BuddahGo.Tests.LoadoutRulesTests" runstate="Runnable" seed="927276593" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000250" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1158" name="PlayerIdentityTests" fullname="BuddahGo.Tests.PlayerIdentityTests" classname="BuddahGo.Tests.PlayerIdentityTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.008198" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1163" name="FallbackNamesPreserveClientId" fullname="BuddahGo.Tests.PlayerIdentityTests.FallbackNamesPreserveClientId" classname="BuddahGo.Tests.PlayerIdentityTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.004660" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1160" name="FallbackNamesPreserveClientId(-1,&quot;Player -1&quot;)" fullname="BuddahGo.Tests.PlayerIdentityTests.FallbackNamesPreserveClientId(-1,&quot;Player -1&quot;)" methodname="FallbackNamesPreserveClientId" classname="BuddahGo.Tests.PlayerIdentityTests" runstate="Runnable" seed="1941531578" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.003526" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1161" name="FallbackNamesPreserveClientId(0,&quot;Player 0&quot;)" fullname="BuddahGo.Tests.PlayerIdentityTests.FallbackNamesPreserveClientId(0,&quot;Player 0&quot;)" methodname="FallbackNamesPreserveClientId" classname="BuddahGo.Tests.PlayerIdentityTests" runstate="Runnable" seed="461526226" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000349" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1162" name="FallbackNamesPreserveClientId(42,&quot;Player 42&quot;)" fullname="BuddahGo.Tests.PlayerIdentityTests.FallbackNamesPreserveClientId(42,&quot;Player 42&quot;)" methodname="FallbackNamesPreserveClientId" classname="BuddahGo.Tests.PlayerIdentityTests" runstate="Runnable" seed="1293241006" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000275" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1164" name="MissingConnectionAndTransportUseExistingSentinels" fullname="BuddahGo.Tests.PlayerIdentityTests.MissingConnectionAndTransportUseExistingSentinels" methodname="MissingConnectionAndTransportUseExistingSentinels" classname="BuddahGo.Tests.PlayerIdentityTests" runstate="Runnable" seed="1201965540" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001332" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1159" name="TransportAddressRequiresConnectionAndPreservesNonBlankAddress" fullname="BuddahGo.Tests.PlayerIdentityTests.TransportAddressRequiresConnectionAndPreservesNonBlankAddress" methodname="TransportAddressRequiresConnectionAndPreservesNonBlankAddress" classname="BuddahGo.Tests.PlayerIdentityTests" runstate="Runnable" seed="814263297" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001266" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1165" name="PredictionDiagnosticSamplingTests" fullname="BuddahGo.Tests.PredictionDiagnosticSamplingTests" classname="BuddahGo.Tests.PredictionDiagnosticSamplingTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.007494" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1167" name="BuildGateMatchesVerboseAvailability" fullname="BuddahGo.Tests.PredictionDiagnosticSamplingTests.BuildGateMatchesVerboseAvailability" methodname="BuildGateMatchesVerboseAvailability" classname="BuddahGo.Tests.PredictionDiagnosticSamplingTests" runstate="Runnable" seed="1669840885" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000290" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1169" name="InvalidSerializedIntervalHasMinimum" fullname="BuddahGo.Tests.PredictionDiagnosticSamplingTests.InvalidSerializedIntervalHasMinimum" methodname="InvalidSerializedIntervalHasMinimum" classname="BuddahGo.Tests.PredictionDiagnosticSamplingTests" runstate="Runnable" seed="1778530198" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000192" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1166" name="NoConsumerDoesNotAdvanceClock" fullname="BuddahGo.Tests.PredictionDiagnosticSamplingTests.NoConsumerDoesNotAdvanceClock" methodname="NoConsumerDoesNotAdvanceClock" classname="BuddahGo.Tests.PredictionDiagnosticSamplingTests" runstate="Runnable" seed="19708675" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000161" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1171" name="ReconcileRetainsItsOwnTimeAndValuesAcrossLaterReplicates" fullname="BuddahGo.Tests.PredictionDiagnosticSamplingTests.ReconcileRetainsItsOwnTimeAndValuesAcrossLaterReplicates" methodname="ReconcileRetainsItsOwnTimeAndValuesAcrossLaterReplicates" classname="BuddahGo.Tests.PredictionDiagnosticSamplingTests" runstate="Runnable" seed="1962981920" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.004201" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1172" name="ReleaseStripsCaptureArgumentEvaluation" fullname="BuddahGo.Tests.PredictionDiagnosticSamplingTests.ReleaseStripsCaptureArgumentEvaluation" methodname="ReleaseStripsCaptureArgumentEvaluation" classname="BuddahGo.Tests.PredictionDiagnosticSamplingTests" runstate="Runnable" seed="585756995" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000235" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1170" name="ReplicateUsesLatestEventAndClearsOldWriterReason" fullname="BuddahGo.Tests.PredictionDiagnosticSamplingTests.ReplicateUsesLatestEventAndClearsOldWriterReason" methodname="ReplicateUsesLatestEventAndClearsOldWriterReason" classname="BuddahGo.Tests.PredictionDiagnosticSamplingTests" runstate="Runnable" seed="1590915230" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000719" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1168" name="UnchangedTextStillConsumesInterval" fullname="BuddahGo.Tests.PredictionDiagnosticSamplingTests.UnchangedTextStillConsumesInterval" methodname="UnchangedTextStillConsumesInterval" classname="BuddahGo.Tests.PredictionDiagnosticSamplingTests" runstate="Runnable" seed="1913401000" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000198" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1173" name="PredictionDiagnosticWiringTests" fullname="BuddahGo.Tests.PredictionDiagnosticWiringTests" classname="BuddahGo.Tests.PredictionDiagnosticWiringTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.129348" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1175" name="DiagnosticComponentsCannotDrawEvenWithOldSerializedFlags" fullname="BuddahGo.Tests.PredictionDiagnosticWiringTests.DiagnosticComponentsCannotDrawEvenWithOldSerializedFlags" methodname="DiagnosticComponentsCannotDrawEvenWithOldSerializedFlags" classname="BuddahGo.Tests.PredictionDiagnosticWiringTests" runstate="Runnable" seed="1926540936" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000251" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1174" name="HealthOnlyRefreshesForItsLogConsumerAndAtSampleIntervals" fullname="BuddahGo.Tests.PredictionDiagnosticWiringTests.HealthOnlyRefreshesForItsLogConsumerAndAtSampleIntervals" methodname="HealthOnlyRefreshesForItsLogConsumerAndAtSampleIntervals" classname="BuddahGo.Tests.PredictionDiagnosticWiringTests" runstate="Runnable" seed="308872568" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.003682" asserts="0">
+              <properties />
+              <output><![CDATA[[BuddahPredictionV2] health risk flags -> presentation deep target semantics | host/client path divergence
+]]></output>
+            </test-case>
+            <test-case id="1176" name="PrefabDisablesScreenFlagsAndKeepsConsoleMirror" fullname="BuddahGo.Tests.PredictionDiagnosticWiringTests.PrefabDisablesScreenFlagsAndKeepsConsoleMirror" methodname="PrefabDisablesScreenFlagsAndKeepsConsoleMirror" classname="BuddahGo.Tests.PredictionDiagnosticWiringTests" runstate="Runnable" seed="204491068" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.124341" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1177" name="ProjectileBurstPlannerTests" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" testcasecount="12" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.006381" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1182" name="BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001945" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1178" name="BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection(1)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection(1)" methodname="BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="1277381420" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000650" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1179" name="BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection(3)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection(3)" methodname="BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="207125875" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000156" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1180" name="BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection(4)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection(4)" methodname="BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="1253677814" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000204" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1181" name="BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection(5)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection(5)" methodname="BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="1270411414" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000161" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1183" name="ColliderSizeUsesMagnitudeAndMinimumOnEachAxis" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.ColliderSizeUsesMagnitudeAndMinimumOnEachAxis" methodname="ColliderSizeUsesMagnitudeAndMinimumOnEachAxis" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="2086997921" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000430" asserts="0">
+              <properties />
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1188" name="CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001363" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1184" name="CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback(False,9.0f,0.25f,0.25f)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback(False,9.0f,0.25f,0.25f)" methodname="CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="864072668" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000341" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1185" name="CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback(True,9.0f,0.25f,9.0f)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback(True,9.0f,0.25f,9.0f)" methodname="CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="1266919235" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000092" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1186" name="CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback(True,0.0f,0.25f,0.25f)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback(True,0.0f,0.25f,0.25f)" methodname="CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="1349078666" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000067" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1187" name="CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback(True,-1.0f,-2.0f,0.0f)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback(True,-1.0f,-2.0f,0.0f)" methodname="CooldownUsesPositiveChargedValueOrNonnegativeNormalFallback" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="668904698" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000063" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1192" name="OnlyActiveChargedModeAddsNonnegativeActionDelay" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.OnlyActiveChargedModeAddsNonnegativeActionDelay" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.001072" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1189" name="OnlyActiveChargedModeAddsNonnegativeActionDelay(False,2.0f,0.0f)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.OnlyActiveChargedModeAddsNonnegativeActionDelay(False,2.0f,0.0f)" methodname="OnlyActiveChargedModeAddsNonnegativeActionDelay" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="600515213" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000310" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1190" name="OnlyActiveChargedModeAddsNonnegativeActionDelay(True,2.0f,2.0f)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.OnlyActiveChargedModeAddsNonnegativeActionDelay(True,2.0f,2.0f)" methodname="OnlyActiveChargedModeAddsNonnegativeActionDelay" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="1061467623" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000097" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1191" name="OnlyActiveChargedModeAddsNonnegativeActionDelay(True,-1.0f,0.0f)" fullname="BuddahGo.Tests.ProjectileBurstPlannerTests.OnlyActiveChargedModeAddsNonnegativeActionDelay(True,-1.0f,0.0f)" methodname="OnlyActiveChargedModeAddsNonnegativeActionDelay" classname="BuddahGo.Tests.ProjectileBurstPlannerTests" runstate="Runnable" seed="1984646360" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000070" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestFixture" id="1193" name="RaceStartHandshakeTests" fullname="BuddahGo.Tests.RaceStartHandshakeTests" classname="BuddahGo.Tests.RaceStartHandshakeTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.006215" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1195" name="DisconnectRemovesOnlyDepartingPlayerFromAllReadiness" fullname="BuddahGo.Tests.RaceStartHandshakeTests.DisconnectRemovesOnlyDepartingPlayerFromAllReadiness" methodname="DisconnectRemovesOnlyDepartingPlayerFromAllReadiness" classname="BuddahGo.Tests.RaceStartHandshakeTests" runstate="Runnable" seed="1427115363" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.002919" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1196" name="FullResetClearsAllReadiness" fullname="BuddahGo.Tests.RaceStartHandshakeTests.FullResetClearsAllReadiness" methodname="FullResetClearsAllReadiness" classname="BuddahGo.Tests.RaceStartHandshakeTests" runstate="Runnable" seed="1007147960" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000485" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1197" name="LocalReportRejectsDuplicateInvalidAndUninitializedButAcceptsDifferentSequence" fullname="BuddahGo.Tests.RaceStartHandshakeTests.LocalReportRejectsDuplicateInvalidAndUninitializedButAcceptsDifferentSequence" methodname="LocalReportRejectsDuplicateInvalidAndUninitializedButAcceptsDifferentSequence" classname="BuddahGo.Tests.RaceStartHandshakeTests" runstate="Runnable" seed="88138962" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000327" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1198" name="ReadyRequiresExactSequenceForCurrentRosterAndIgnoresDepartedEntries" fullname="BuddahGo.Tests.RaceStartHandshakeTests.ReadyRequiresExactSequenceForCurrentRosterAndIgnoresDepartedEntries" methodname="ReadyRequiresExactSequenceForCurrentRosterAndIgnoresDepartedEntries" classname="BuddahGo.Tests.RaceStartHandshakeTests" runstate="Runnable" seed="1895227969" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000892" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1194" name="SequenceResetRetainsSceneReadinessButClearsSequenceState" fullname="BuddahGo.Tests.RaceStartHandshakeTests.SequenceResetRetainsSceneReadinessButClearsSequenceState" methodname="SequenceResetRetainsSceneReadinessButClearsSequenceState" classname="BuddahGo.Tests.RaceStartHandshakeTests" runstate="Runnable" seed="569304869" result="Passed" start-time="2026-09-30 17:26:40Z" end-time="2026-09-30 17:26:40Z" duration="0.000378" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

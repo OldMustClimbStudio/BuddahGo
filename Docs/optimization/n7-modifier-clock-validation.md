@@ -6,7 +6,7 @@ P2 and P3 skill matrices both reproduced SlowTrap anti remaining rooted on the p
 
 `ReconcileState` copied server deadline ticks directly into client working state. FishNet `TimeManager.LocalTick` is explicitly unsynchronized (server returns Tick; client returns its own counter), while modifier resolution uses LocalTick. The two editors started at different times, so the observed offset was about 1,828 ticks. The old code interpreted that offset as additional effect lifetime.
 
-The fix translates the eight deadline fields on the pure client's working copy using the current estimated server tick and local tick. Server state, reconcile payload layout, RPCs and effect parameters are unchanged. Arithmetic widens before subtraction: the bundled `TickToLocalTick` implementation subtracts unsigned values before widening, which is unsuitable for future deadlines. Zero remains the unset sentinel; out-of-range results saturate.
+The N7 version tested below translated the eight deadline fields on the pure client's working copy using the receipt-time estimated server tick and local tick. That clock source was subsequently replaced in `97a186f` by the reconcile snapshot's paired `ServerStateTick` / `ClientStateTick`; see the [current clock contract](../prediction-design.md#reconcile-快照与本地期限). The results below remain evidence for the N7 version, not a rerun of the later fix. Server state, reconcile payload layout, RPCs and effect parameters are unchanged. Arithmetic widens before subtraction; zero remains the unset deadline sentinel and out-of-range results saturate.
 
 ## Validation
 

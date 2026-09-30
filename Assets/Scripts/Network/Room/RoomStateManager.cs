@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using FishNet;
 using FishNet.Connection;
 using FishNet.Managing.Scened;
@@ -55,13 +54,10 @@ namespace SteamMultiplayer.Network
         private bool _returningToRoomMenu;
         private Coroutine _clientRaceSceneDiagnosticsRoutine;
         private Coroutine _clientRaceSceneReadyRoutine;
-        private readonly HashSet<int> _raceSceneManagersReadyClientIds = new HashSet<int>();
-        private readonly HashSet<int> _introAssignmentReadyClientIds = new HashSet<int>();
-        private readonly HashSet<int> _introVisualReadyClientIds = new HashSet<int>();
-        private readonly HashSet<int> _gameplayLiveClientIds = new HashSet<int>();
-        private readonly Dictionary<int, int> _introAssignmentReadySequenceByClientId = new Dictionary<int, int>();
-        private readonly Dictionary<int, int> _introVisualReadySequenceByClientId = new Dictionary<int, int>();
-        private readonly Dictionary<int, int> _gameplayLiveSequenceByClientId = new Dictionary<int, int>();
+        private readonly RaceStartHandshake _raceStartHandshake = new RaceStartHandshake();
+        private RoomRoster _roomRoster;
+        private RoomRoster Roster => _roomRoster ??= new RoomRoster(Players);
+
         private bool _reportedRaceSceneManagersReadyLocal;
         private int _reportedIntroAssignmentSequenceId = -1;
         private int _reportedIntroVisualSequenceId = -1;
@@ -69,6 +65,12 @@ namespace SteamMultiplayer.Network
         private float _localRaceSceneReadyStableSince = -1f;
         private bool _lastLoggedAuthoritativeGoIssued;
         private bool _lastLoggedGameplayMovementUnlocked;
+
+        internal string DiagnosticRaceSceneName => _raceSceneName;
+        internal bool DiagnosticManagersReported => _reportedRaceSceneManagersReadyLocal;
+        internal int DiagnosticAssignmentSequence => _reportedIntroAssignmentSequenceId;
+        internal int DiagnosticVisualSequence => _reportedIntroVisualSequenceId;
+        internal int DiagnosticGameplaySequence => _reportedGameplayLiveSequenceId;
 
         public bool IsTransitioningToPropertiesSelector => _transitioningToPropertiesSelector.Value;
         public string PlayersSummaryText => _playersSummaryText.Value;
@@ -279,72 +281,35 @@ namespace SteamMultiplayer.Network
 
         public void ReportLocalIntroAssignmentApplied(int sequenceId)
         {
-            if (!IsClientInitialized || sequenceId < 0 || _reportedIntroAssignmentSequenceId == sequenceId)
-                return;
-
-            _reportedIntroAssignmentSequenceId = sequenceId;
-            ReportIntroAssignmentAppliedServerRpc(sequenceId);
+            if (TryReportLocalSequence(sequenceId, ref _reportedIntroAssignmentSequenceId))
+                ReportIntroAssignmentAppliedServerRpc(sequenceId);
         }
 
         public void ReportLocalIntroVisualPrepared(int sequenceId)
         {
-            if (!IsClientInitialized || sequenceId < 0 || _reportedIntroVisualSequenceId == sequenceId)
-                return;
-
-            _reportedIntroVisualSequenceId = sequenceId;
-            ReportIntroVisualPreparedServerRpc(sequenceId);
+            if (TryReportLocalSequence(sequenceId, ref _reportedIntroVisualSequenceId))
+                ReportIntroVisualPreparedServerRpc(sequenceId);
         }
 
         public void ReportLocalGameplayLive(int sequenceId)
         {
-            if (!IsClientInitialized || sequenceId < 0 || _reportedGameplayLiveSequenceId == sequenceId)
-                return;
-
-            _reportedGameplayLiveSequenceId = sequenceId;
-            ReportGameplayLiveServerRpc(sequenceId);
+            if (TryReportLocalSequence(sequenceId, ref _reportedGameplayLiveSequenceId))
+                ReportGameplayLiveServerRpc(sequenceId);
         }
 
         public bool AreAllClientsIntroVisualsReadyForSequenceServer(int sequenceId)
         {
-            if (!IsServerInitialized || sequenceId < 0)
-                return false;
-
-            for (int i = 0; i < Players.Count; i++)
-            {
-                int playerId = Players[i].PlayerId;
-                if (!_introVisualReadySequenceByClientId.TryGetValue(playerId, out int readySequenceId) || readySequenceId != sequenceId)
-                    return false;
-            }
-
-            return true;
+            return AreAllClientsReadyForSequenceServer(sequenceId, RaceStartHandshake.Stage.Visual);
         }
 
         public bool AreAllClientsGameplayLiveForSequenceServer(int sequenceId)
         {
-            if (!IsServerInitialized || sequenceId < 0)
-                return false;
-
-            for (int i = 0; i < Players.Count; i++)
-            {
-                int playerId = Players[i].PlayerId;
-                if (!_gameplayLiveSequenceByClientId.TryGetValue(playerId, out int readySequenceId) || readySequenceId != sequenceId)
-                    return false;
-            }
-
-            return true;
+            return AreAllClientsReadyForSequenceServer(sequenceId, RaceStartHandshake.Stage.Gameplay);
         }
 
         public bool TryGetPlayer(int playerId, out RoomPlayerState player)
         {
-            int index = FindPlayerIndex(playerId);
-            if (index >= 0)
-            {
-                player = Players[index];
-                return true;
-            }
-
-            player = default;
-            return false;
+            return Roster.TryGetPlayer(playerId, out player);
         }
 
         public bool TryGetLocalPlayer(out RoomPlayerState player)
@@ -570,11 +535,7 @@ namespace SteamMultiplayer.Network
                 return;
 
             RoomPlayerState playerState = BuildRoomPlayerState(conn);
-            int index = FindPlayerIndex(conn.ClientId);
-            if (index < 0)
-                Players.Add(playerState);
-            else
-                Players[index] = playerState;
+            Roster.Upsert(playerState, conn.ClientId);
 
             UpdatePlayersSummaryText();
             LogDebug($"Registered room player: {playerState.PlayerName} ({playerState.SteamId})");
@@ -588,13 +549,7 @@ namespace SteamMultiplayer.Network
                 return;
 
             Players.RemoveAt(index);
-            _raceSceneManagersReadyClientIds.Remove(playerId);
-            _introAssignmentReadyClientIds.Remove(playerId);
-            _introVisualReadyClientIds.Remove(playerId);
-            _gameplayLiveClientIds.Remove(playerId);
-            _introAssignmentReadySequenceByClientId.Remove(playerId);
-            _introVisualReadySequenceByClientId.Remove(playerId);
-            _gameplayLiveSequenceByClientId.Remove(playerId);
+            _raceStartHandshake.RemovePlayer(playerId);
             UpdatePlayersSummaryText();
             LogDebug($"Removed room player {playerId}");
         }
@@ -657,39 +612,17 @@ namespace SteamMultiplayer.Network
 
         private static string SanitizePlayerName(string name)
         {
-            if (string.IsNullOrWhiteSpace(name))
-                return string.Empty;
-
-            string trimmed = name.Trim();
-            if (trimmed.Length > MaxPlayerNameLength)
-                trimmed = trimmed.Substring(0, MaxPlayerNameLength);
-
-            return trimmed;
+            return RoomRoster.SanitizePlayerName(name, MaxPlayerNameLength);
         }
 
         private bool AreAllRequiredPlayersReady()
         {
-            if (Players.Count == 0)
-                return false;
-
-            for (int i = 0; i < Players.Count; i++)
-            {
-                if (!Players[i].IsHost && !Players[i].IsReady)
-                    return false;
-            }
-
-            return true;
+            return Roster.AreAllRequiredPlayersReady();
         }
 
         private int FindPlayerIndex(int playerId)
         {
-            for (int i = 0; i < Players.Count; i++)
-            {
-                if (Players[i].PlayerId == playerId)
-                    return i;
-            }
-
-            return -1;
+            return Roster.FindPlayerIndex(playerId);
         }
 
         [Server]
@@ -733,13 +666,7 @@ namespace SteamMultiplayer.Network
             _gameplayMovementUnlocked.Value = false;
             _authoritativeGoIssued.Value = false;
             _matchSessionPhase.Value = MatchSessionPhase.InMatch;
-            _raceSceneManagersReadyClientIds.Clear();
-            _introAssignmentReadyClientIds.Clear();
-            _introVisualReadyClientIds.Clear();
-            _gameplayLiveClientIds.Clear();
-            _introAssignmentReadySequenceByClientId.Clear();
-            _introVisualReadySequenceByClientId.Clear();
-            _gameplayLiveSequenceByClientId.Clear();
+            _raceStartHandshake.ResetAllReadiness();
             GameLog.Verbose($"[SceneDiag][Server] BeginRacePreparationServer scene='{_raceSceneName}' time={Time.unscaledTime:F3}");
             EvaluateRaceStartReadinessServer();
             LogDebug("Race scene loaded. Waiting for all players and spawned characters before countdown.");
@@ -855,13 +782,7 @@ namespace SteamMultiplayer.Network
             ResolvedPropertySelectionCache.Clear();
             ResetRaceFlowStateServer();
             ResetPlayersReadyStateForRoomReturn();
-            _raceSceneManagersReadyClientIds.Clear();
-            _introAssignmentReadyClientIds.Clear();
-            _introVisualReadyClientIds.Clear();
-            _gameplayLiveClientIds.Clear();
-            _introAssignmentReadySequenceByClientId.Clear();
-            _introVisualReadySequenceByClientId.Clear();
-            _gameplayLiveSequenceByClientId.Clear();
+            _raceStartHandshake.ResetAllReadiness();
         }
 
         [Server]
@@ -884,28 +805,13 @@ namespace SteamMultiplayer.Network
             _raceStarted.Value = false;
             _gameplayMovementUnlocked.Value = false;
             _authoritativeGoIssued.Value = false;
-            _introAssignmentReadyClientIds.Clear();
-            _introVisualReadyClientIds.Clear();
-            _gameplayLiveClientIds.Clear();
-            _introAssignmentReadySequenceByClientId.Clear();
-            _introVisualReadySequenceByClientId.Clear();
-            _gameplayLiveSequenceByClientId.Clear();
+            _raceStartHandshake.ResetSequenceReadiness();
         }
 
         [Server]
         private void ResetPlayersReadyStateForRoomReturn()
         {
-            for (int i = 0; i < Players.Count; i++)
-            {
-                RoomPlayerState player = Players[i];
-                bool nextReady = player.IsHost;
-                if (player.IsReady == nextReady)
-                    continue;
-
-                player.IsReady = nextReady;
-                Players[i] = player;
-            }
-
+            Roster.ResetReadyForRoomReturn();
             UpdatePlayersSummaryText();
         }
 
@@ -1053,7 +959,7 @@ namespace SteamMultiplayer.Network
                     return false;
                 }
 
-                if (!_raceSceneManagersReadyClientIds.Contains(playerState.PlayerId))
+                if (!_raceStartHandshake.AreSceneManagersReady(playerState.PlayerId))
                 {
                     if (_enableDebugLogs && NetDebug.EnableVerboseLog)
                         LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} has not reported race scene managers ready. details={BuildServerRaceReadinessSummary()}");
@@ -1067,7 +973,7 @@ namespace SteamMultiplayer.Network
         }
 
         [Server]
-        private bool HasOwnedRacePlayer(NetworkConnection conn)
+        internal bool HasOwnedRacePlayer(NetworkConnection conn)
         {
             if (conn == null || conn.Objects == null)
                 return false;
@@ -1105,7 +1011,7 @@ namespace SteamMultiplayer.Network
             if (caller == null || !caller.IsAuthenticated)
                 return;
 
-            _raceSceneManagersReadyClientIds.Add(caller.ClientId);
+            _raceStartHandshake.MarkSceneManagersReady(caller.ClientId);
             GameLog.Verbose($"[SceneDiag][Server] Client {caller.ClientId} reported race scene managers ready. details={BuildServerRaceReadinessSummary()}");
             EvaluateRaceStartReadinessServer();
         }
@@ -1113,11 +1019,9 @@ namespace SteamMultiplayer.Network
         [ServerRpc(RequireOwnership = false)]
         private void ReportIntroAssignmentAppliedServerRpc(int sequenceId, NetworkConnection caller = null)
         {
-            if (caller == null || !caller.IsAuthenticated)
+            if (!TryRecordReadySequenceServer(sequenceId, caller,
+                    RaceStartHandshake.Stage.Assignment))
                 return;
-
-            _introAssignmentReadyClientIds.Add(caller.ClientId);
-            _introAssignmentReadySequenceByClientId[caller.ClientId] = sequenceId;
             GameLog.Verbose($"[SceneDiag][Server] Client {caller.ClientId} reported intro assignment ready for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
             EvaluateRaceStartReadinessServer();
         }
@@ -1125,22 +1029,18 @@ namespace SteamMultiplayer.Network
         [ServerRpc(RequireOwnership = false)]
         private void ReportIntroVisualPreparedServerRpc(int sequenceId, NetworkConnection caller = null)
         {
-            if (caller == null || !caller.IsAuthenticated)
+            if (!TryRecordReadySequenceServer(sequenceId, caller,
+                    RaceStartHandshake.Stage.Visual))
                 return;
-
-            _introVisualReadyClientIds.Add(caller.ClientId);
-            _introVisualReadySequenceByClientId[caller.ClientId] = sequenceId;
             GameLog.Verbose($"[IntroVisual][Server] Client {caller.ClientId} reported visual prepared for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
         }
 
         [ServerRpc(RequireOwnership = false)]
         private void ReportGameplayLiveServerRpc(int sequenceId, NetworkConnection caller = null)
         {
-            if (caller == null || !caller.IsAuthenticated)
+            if (!TryRecordReadySequenceServer(sequenceId, caller,
+                    RaceStartHandshake.Stage.Gameplay))
                 return;
-
-            _gameplayLiveClientIds.Add(caller.ClientId);
-            _gameplayLiveSequenceByClientId[caller.ClientId] = sequenceId;
             GameLog.Verbose($"[GameplayUnlock][Server] Client {caller.ClientId} reported gameplay live for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
 
             if (AreAllClientsGameplayLiveForSequenceServer(sequenceId))
@@ -1149,6 +1049,26 @@ namespace SteamMultiplayer.Network
                 _raceStarted.Value = true;
                 GameLog.Verbose($"[GameplayUnlock][Server] Gameplay movement unlocked for all players. details={BuildServerRaceReadinessSummary()}");
             }
+        }
+
+        private bool TryReportLocalSequence(int sequenceId, ref int reportedSequenceId)
+        {
+            return RaceStartHandshake.TryMarkLocalSequence(IsClientInitialized, sequenceId, ref reportedSequenceId);
+        }
+
+        private bool AreAllClientsReadyForSequenceServer(int sequenceId, RaceStartHandshake.Stage stage)
+        {
+            return _raceStartHandshake.AreAllReadyForSequence(IsServerInitialized, Players, sequenceId, stage);
+        }
+
+        private bool TryRecordReadySequenceServer(int sequenceId, NetworkConnection caller,
+            RaceStartHandshake.Stage stage)
+        {
+            if (caller == null || !caller.IsAuthenticated)
+                return false;
+
+            _raceStartHandshake.RecordReadySequence(caller.ClientId, sequenceId, stage);
+            return true;
         }
 
         private bool ContainsRaceScene(UnityEngine.SceneManagement.Scene[] loadedScenes)
@@ -1179,28 +1099,10 @@ namespace SteamMultiplayer.Network
         [Server]
         private void UpdatePlayersSummaryText()
         {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("Players");
-
-            if (Players.Count == 0)
-            {
-                sb.AppendLine("(none)");
-                _playersSummaryText.Value = sb.ToString();
-                return;
-            }
-
-            for (int i = 0; i < Players.Count; i++)
-            {
-                RoomPlayerState player = Players[i];
-                string roleLabel = player.IsHost ? "Host" : "Player";
-                string readyLabel = player.IsHost ? "Leader" : (player.IsReady ? "Ready" : "Waiting");
-                sb.AppendLine($"{player.PlayerName} [{roleLabel}] [{readyLabel}]");
-            }
-
-            _playersSummaryText.Value = sb.ToString();
+            _playersSummaryText.Value = Roster.BuildSummary();
         }
 
-        private int GetLocalClientId()
+        internal int GetLocalClientId()
         {
             return PlayerIdentity.GetLocalClientId(GameNetworkManager.Instance?.FishNetManager?.ClientManager?.Connection);
         }
@@ -1274,31 +1176,7 @@ namespace SteamMultiplayer.Network
 
         private void LogClientRaceSceneDiagnostics(string stageLabel)
         {
-            GameLog.Verbose(
-                $"[SceneDiag][Client] Race probe {stageLabel} loaded={UnitySceneManager.GetSceneByName(_raceSceneName).isLoaded} " +
-                $"matchPhase={_matchSessionPhase.Value} raceStarted={_raceStarted.Value} clientId={GetLocalClientId()}");
-            LogSceneObjectProbe("IntroSequenceManager", FindFirstObjectByType<IntroSequenceManager>(FindObjectsInactive.Include));
-            LogSceneObjectProbe("LeaderboardManager", FindFirstObjectByType<LeaderboardManager>(FindObjectsInactive.Include));
-            LogSceneObjectProbe("RaceFinishManager", FindFirstObjectByType<RaceFinishManager>(FindObjectsInactive.Include));
-            LogSceneObjectProbe("ResultDecisionManager", FindFirstObjectByType<ResultDecisionManager>(FindObjectsInactive.Include));
-            LogSceneObjectProbe("MatchResultPresentationCoordinator", FindFirstObjectByType<MatchResultPresentationCoordinator>(FindObjectsInactive.Include));
-            LogSceneObjectProbe("RaceResultAreaManager", FindFirstObjectByType<RaceResultAreaManager>(FindObjectsInactive.Include));
-            GameLog.Verbose($"[SceneDiag][Client] Local readiness summary {BuildLocalRaceSceneStatusReport()}");
-        }
-
-        private static void LogSceneObjectProbe(string label, NetworkBehaviour behaviour)
-        {
-            if (behaviour == null)
-            {
-                GameLog.Verbose($"[SceneDiag][Client] {label}: missing");
-                return;
-            }
-
-            NetworkObject nob = behaviour.NetworkObject;
-            bool isSpawned = nob != null && nob.IsSpawned;
-            bool isSceneObject = nob != null && nob.IsSceneObject;
-            string sceneName = behaviour.gameObject.scene.name;
-            GameLog.Verbose($"[SceneDiag][Client] {label}: present scene='{sceneName}' spawned={isSpawned} isSceneObject={isSceneObject} active={behaviour.gameObject.activeInHierarchy}");
+            RoomDiagnostics.LogClientRaceSceneDiagnostics(this, stageLabel);
         }
 
         private static bool AreRequiredRaceSceneManagersPresentLocally()
@@ -1336,39 +1214,10 @@ namespace SteamMultiplayer.Network
 
         private string BuildLocalRaceSceneStatusReport()
         {
-            int localClientId = GetLocalClientId();
-            bool raceSceneLoaded = !string.IsNullOrWhiteSpace(_raceSceneName) && UnitySceneManager.GetSceneByName(_raceSceneName).isLoaded;
-            bool introSequenceReady = IsSceneObjectReady(FindFirstObjectByType<IntroSequenceManager>(FindObjectsInactive.Include));
-            bool leaderboardReady = IsSceneObjectReady(FindFirstObjectByType<LeaderboardManager>(FindObjectsInactive.Include));
-            bool raceFinishReady = IsSceneObjectReady(FindFirstObjectByType<RaceFinishManager>(FindObjectsInactive.Include));
-            bool resultDecisionReady = IsSceneObjectReady(FindFirstObjectByType<ResultDecisionManager>(FindObjectsInactive.Include));
-            bool resultPresentationReady = IsSceneObjectReady(FindFirstObjectByType<MatchResultPresentationCoordinator>(FindObjectsInactive.Include));
-            bool resultAreaReady = IsSceneObjectReady(FindFirstObjectByType<RaceResultAreaManager>(FindObjectsInactive.Include));
-            bool localPlayerListed = TryGetLocalPlayer(out RoomPlayerState localPlayer);
-            bool localRaceBodyReady = false;
-            int localRaceBodyObjectId = -1;
-
-            RaceBodyIntroStateController[] introBodies = FindObjectsByType<RaceBodyIntroStateController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            for (int i = 0; i < introBodies.Length; i++)
-            {
-                RaceBodyIntroStateController body = introBodies[i];
-                if (body == null || body.OwnerId != localClientId)
-                    continue;
-
-                localRaceBodyReady = body.NetworkObject != null && body.NetworkObject.IsSpawned;
-                localRaceBodyObjectId = body.NetworkObject != null ? body.NetworkObject.ObjectId : -1;
-                break;
-            }
-
-            return
-                $"clientId={localClientId} raceSceneLoaded={raceSceneLoaded} localPlayerListed={localPlayerListed} " +
-                $"localPlayerReady={(localPlayerListed && localPlayer.IsReady)} localManagersReported={_reportedRaceSceneManagersReadyLocal} " +
-                $"introAssignmentSeq={_reportedIntroAssignmentSequenceId} introVisualSeq={_reportedIntroVisualSequenceId} gameplayLiveSeq={_reportedGameplayLiveSequenceId} " +
-                $"localRaceBodyReady={localRaceBodyReady} localRaceBodyObj={localRaceBodyObjectId} " +
-                $"managers[intro={introSequenceReady},leaderboard={leaderboardReady},finish={raceFinishReady},decision={resultDecisionReady},presentation={resultPresentationReady},resultArea={resultAreaReady}]";
+            return RoomDiagnostics.BuildLocalRaceSceneStatusReport(this);
         }
 
-        private static bool IsSceneObjectReady(NetworkBehaviour behaviour)
+        internal static bool IsSceneObjectReady(NetworkBehaviour behaviour)
         {
             if (behaviour == null)
                 return false;
@@ -1379,63 +1228,12 @@ namespace SteamMultiplayer.Network
 
         private string BuildServerRaceReadinessSummary()
         {
-            StringBuilder sb = new StringBuilder();
-            sb.Append(
-                $"players={Players.Count} managersReadyCount={_raceSceneManagersReadyClientIds.Count} " +
-                $"introAssignmentReadyCount={_introAssignmentReadyClientIds.Count} introVisualReadyCount={_introVisualReadyClientIds.Count} " +
-                $"gameplayLiveCount={_gameplayLiveClientIds.Count} goIssued={_authoritativeGoIssued.Value} movementUnlocked={_gameplayMovementUnlocked.Value}");
-
-            UnityEngine.SceneManagement.Scene raceScene = string.IsNullOrWhiteSpace(_raceSceneName)
-                ? default
-                : UnitySceneManager.GetSceneByName(_raceSceneName);
-            HashSet<NetworkConnection> sceneConnections = null;
-            if (raceScene.IsValid() && raceScene.isLoaded && InstanceFinder.SceneManager != null)
-                InstanceFinder.SceneManager.SceneConnections.TryGetValue(raceScene, out sceneConnections);
-
-            for (int i = 0; i < Players.Count; i++)
-            {
-                RoomPlayerState playerState = Players[i];
-                NetworkConnection conn = null;
-                bool hasConn = false;
-                if (InstanceFinder.ServerManager != null)
-                {
-                    hasConn = InstanceFinder.ServerManager.Clients.TryGetValue(playerState.PlayerId, out conn) && conn != null;
-                }
-                bool authenticated = hasConn && conn.IsAuthenticated;
-                bool inRaceScene = hasConn && sceneConnections != null && sceneConnections.Contains(conn);
-                bool hasRacePlayer = hasConn && HasOwnedRacePlayer(conn);
-                bool managersReady = _raceSceneManagersReadyClientIds.Contains(playerState.PlayerId);
-                bool introAssignmentReady = _introAssignmentReadyClientIds.Contains(playerState.PlayerId);
-                bool introVisualReady = _introVisualReadyClientIds.Contains(playerState.PlayerId);
-                bool gameplayLive = _gameplayLiveClientIds.Contains(playerState.PlayerId);
-                _introAssignmentReadySequenceByClientId.TryGetValue(playerState.PlayerId, out int introAssignmentSeq);
-                _introVisualReadySequenceByClientId.TryGetValue(playerState.PlayerId, out int introVisualSeq);
-                _gameplayLiveSequenceByClientId.TryGetValue(playerState.PlayerId, out int gameplayLiveSeq);
-                sb.Append(
-                    $" | p{playerState.PlayerId}:{playerState.PlayerName} host={playerState.IsHost} roomReady={playerState.IsReady} " +
-                    $"conn={hasConn} auth={authenticated} scene={inRaceScene} racePlayer={hasRacePlayer} " +
-                    $"sceneReady={managersReady} introReady={introAssignmentReady}(seq={introAssignmentSeq}) " +
-                    $"visualReady={introVisualReady}(seq={introVisualSeq}) gameplayLive={gameplayLive}(seq={gameplayLiveSeq})");
-            }
-
-            return sb.ToString();
+            return RoomDiagnostics.BuildServerRaceReadinessSummary(this, _raceStartHandshake);
         }
 
         private static string FormatSceneNames(Scene[] scenes)
         {
-            if (scenes == null || scenes.Length == 0)
-                return "<none>";
-
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < scenes.Length; i++)
-            {
-                if (i > 0)
-                    sb.Append(", ");
-
-                sb.Append(scenes[i].name);
-            }
-
-            return sb.ToString();
+            return RoomDiagnostics.FormatSceneNames(scenes);
         }
     }
 

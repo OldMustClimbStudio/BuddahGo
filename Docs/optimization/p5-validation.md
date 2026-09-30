@@ -34,3 +34,5 @@ P5-5 可选影子表驱动本轮不采用；影子计算/消息保持现有实�
 复活还复现 N9：case 33 owner client 请求 routed=true，server 消费 DropRespawn event 35，client 同一事件仍 consumed=false，之后又被 WrongWayCorrection 覆盖。Teleport 和 impulse 都用 server event tick 对比非同步 LocalTick；两条路径在 P5 前即已存在。保留初始证据并另开 fix PR，随后重测；不混入重构实现提交。
 
 初测完成于 2026-09-30 07:27:55 UTC：host/client 986/493 心跳，全部 loc/tel/mod/hof div=0；registry mismatch、Error、Exception 均为 0，实际结算 UnityEvent、重开、第二局和回房间全部完成。R7 通过；完整 R6 因 N8/N9 未通过。原始记录在 `Logs/p5-physics-matrix` 与 clone 同名目录，分析器 `Logs/analyze-p5-modifier.py` / `Logs/analyze-p5-physics.py`。外部 Steam、Dev Build 双端及真实跑完三圈仍未执行。
+
+P5 reconcile 回调量级核对：纯 client 正增量/时间差的中位数为 59.94 次/s，N7 基线为 59.93 次/s（分别 459/249 个非重置采样窗口）；host 两次均为 0。N8/N9 的独立修复及有效距离近战补测均完成，详见 n8-owner-event-clock-validation.md / PR #57。本机物理专项已覆盖，完整 R6 外部条件与通用碰撞等价性仍未验证。

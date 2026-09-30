@@ -45,7 +45,7 @@
 | P5-1 | motor 拆成 partial 文件 | done-unverified | a7934e7 | R1/R3、本机 R7 通过；完整 R9 未执行 | 986/493 心跳 div=0；N8/N9 另修 |
 | P5-2 | RunInputs 收尾抽取 | done-unverified | 8f48220 | 本机 0/100ms R7 通过，完整 R9 未执行 | 仅两分支等价，writer 分支保留 |
 | P5-3 | 工具函数去重 | done | 8525126 | 边界检查及双端 R7 通过 | 拖尾 null 语义不同不合并 |
-| P5-4 | BuddahHandControl 下沉 | blocked | 1304d81 | R1/22 helper 检查通过；R6 发现 N8/N9 | 坐标/服务器命中通过，owner 冲量延迟；另修后回归 |
+| P5-4 | BuddahHandControl 下沉 | done-unverified | 1304d81 | R1/22 helper 通过；N8/N9 修复后本机 R6 专项通过 | 外部条件/通用碰撞等价性未验证 |
 | P5-5 | 影子对比表驱动（可选） | done | 不采用 | 原影子逻辑/格式不变 | 可选项无必要行为收益，本轮只拆文件 |
 | P6-1–4 | 程序集拆分与测试（需 D6） | todo | | | |
 | P7 | 资源瘦身（需 D7） | todo | | | |
@@ -105,3 +105,5 @@
 - N8/N9（2026-09-30）：P5 物理矩阵发现 remote owner 的 server 冲量/传送事件与非同步 LocalTick 比较，导致冲量积压约 50 秒、传送未消费；旧冲量也污染后续近战夹具。保持 P5 重构差异，独立 fix 后重测。见 p5-validation.md。
 
 - P5：[PR #56](https://github.com/OldMustClimbStudio/BuddahGo/pull/56)，base refactor/architecture-p4；实现和初测完成，R6 等待独立 N8/N9 修复回归。
+
+- N8/N9：[PR #57](https://github.com/OldMustClimbStudio/BuddahGo/pull/57)，base refactor/architecture-p5，55aa5ab；20 项矩阵及四项受控近战完成，654/326 + 90/45 心跳 div=0。全部投射物、有效距离推击及 owner 复活消费通过；此前超射程未命中如实保留。

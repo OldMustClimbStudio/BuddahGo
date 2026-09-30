@@ -38,7 +38,7 @@
 | P3-2 | Anti 公共实现共享（保留继承） | done | dc86d79 | R1/资产快照/实际赛道画面通过；R5 加 N7 时长复测通过 | 用户以功能保留为准；原继承和资源原样，见 p3-validation.md。 |
 | P3-3 | SkillExecutor 下沉 | done-unverified | ecb5406 | R1/R7/本机重开回房间通过；R5 加 N7 时长复测通过，R6 普通推击不完整 | 5 个查找显式区分 parent-first 与 children-first。 |
 | P3-4 | 配置交叉校验（编辑器） | done | 694daed | R1 编译通过，菜单报告 0 error / 6 既有漂移 warning，12 技能资源逐值不变 | Push 18/15 vs 12/10 与四个未使用 VFX 字段，见 p3-validation.md；D5 不改数据。 |
-| P4-1 | RoomStateManager 下沉 | todo | | | |
+| P4-1 | RoomStateManager 下沉 | doing | | | |
 | P4-2 | RSM 三件套参数化 | todo | | | |
 | P4-3 | PropertiesSelectionManager 下沉 | todo | | | |
 | P4-4 | PlayerProgressReporter 分区 | todo | | | |
@@ -97,3 +97,5 @@
 - N7（2026-09-30）：SlowTrap anti 在 server 定身 1s 后加速，client 在 21s 用例内仍 rooted。P2/P3 都复现；modifier 服务器 deadline 与 client 非同步 LocalTick 混用，独立修复，保留协议布局。
 
 - N7 独立修复完成：modifier deadline 映射客户端 LocalTick，15 纯逻辑检查及 16 双端/延迟用例通过；570/283 心跳 div=0，重开和回房间完成。见 n7-modifier-clock-validation.md。
+
+- N7：[PR #54](https://github.com/OldMustClimbStudio/BuddahGo/pull/54)，base refactor/architecture-p3，85486fa；16 用例时长修复回归通过。P4 继续堆叠在此修复之上。

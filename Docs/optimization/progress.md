@@ -1,0 +1,61 @@
+# 执行进度
+
+状态取值：`todo` / `doing` / `blocked` / `done` / `done-unverified`。每完成一步就更新本表。流程见 [HANDOFF.md](HANDOFF.md)。
+
+## 步骤
+
+| 步骤 | 内容 | 状态 | 提交 | R 结果 | 备注 |
+|---|---|---|---|---|---|
+| P0-1 | 记录基线 → baseline.md | todo | | | |
+| P0-2 | `.gitattributes` 修正二进制 .asset | todo | | | |
+| P0-3 | 修复正式包编译（B1） | todo | | | |
+| P0-4 | 调试探针只进 Editor/Dev（B2） | todo | | | |
+| P0-5 | 取消跟踪 `.VSCodeCounter`、`agent-exchange/console/raw` | todo | | | |
+| P1-1 | 删除零引用脚本 | todo | | | |
+| P1-2 | 删除 MiniMap 半成品三件套 | todo | | | |
+| P1-3 | 删除旧大厅链路 | todo | | | |
+| P1-4 | 删除 RaceFinishManager 调试结束路径 | todo | | | |
+| P1-5 | 删除无调用者 API | todo | | | |
+| P1-6 | 删除 DirectHeadingControl 分支 | todo | | | |
+| P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | todo | | | |
+| P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | todo | | | |
+| P2-1 | 新增 Foundation 模块 | todo | | | |
+| P2-2a–e | 日志迁移（按目录） | todo | | | |
+| P2-3 | 常量与身份收敛 | todo | | | |
+| P2-4 | 接入 PlayerRegistry | todo | | | |
+| P2-5a–g | 热路径去浪费 | todo | | | |
+| P3-1 | SkillAction 基类公共方法 | todo | | | |
+| P3-2 | Anti 类改为继承 | todo | | | |
+| P3-3 | SkillExecutor 下沉 | todo | | | |
+| P3-4 | 配置交叉校验（编辑器） | todo | | | |
+| P4-1 | RoomStateManager 下沉 | todo | | | |
+| P4-2 | RSM 三件套参数化 | todo | | | |
+| P4-3 | PropertiesSelectionManager 下沉 | todo | | | |
+| P4-4 | PlayerProgressReporter 分区 | todo | | | |
+| P5-1 | motor 拆成 partial 文件 | todo | | | |
+| P5-2 | RunInputs 收尾抽取 | todo | | | |
+| P5-3 | 工具函数去重 | todo | | | |
+| P5-4 | BuddahHandControl 下沉 | todo | | | |
+| P5-5 | 影子对比表驱动（可选） | todo | | | |
+| P6-1–4 | 程序集拆分与测试（需 D6） | todo | | | |
+| P7 | 资源瘦身（需 D7） | todo | | | |
+
+## 决策
+
+| ID | 事项 | 结论 | 决定人 / 日期 |
+|---|---|---|---|
+| D1 | 调试开关默认关闭 | 待定 | |
+| D2 | 移除 Legacy 运动路径 | 待定 | |
+| D3 | 删除预测协议里的死字段 | 待定 | |
+| D4 | RaceGateState 枚举 | 待定 | |
+| D5 | JSON 兜底配置，SO 与配置表的漂移 | 待定 | |
+| D6 | 第三方 asmdef 与程序集拆分 | 待定 | |
+| D7 | 资源瘦身，是否改写历史 | 待定 | |
+| D8 | 修复缺陷 B3–B14 | 待定 | |
+
+## 新发现
+
+执行中发现的新缺陷或与方案不符之处，记在这里，不要在重构提交里修。
+
+| 日期 | 位置 | 描述 | 关联步骤 |
+|---|---|---|---|

@@ -11,6 +11,7 @@ Unity 2022.3.55f1c1 · FishNet · FishyFacepunch · Steam.
 
 - Creating a worktree, branch, commit or PR: [CONTRIBUTING.md](CONTRIBUTING.md), including validation and asset rules.
 - Understanding a system or using Unity MCP: [Docs/README.md](Docs/README.md).
+- Executing the architecture optimization plan: [Docs/optimization/HANDOFF.md](Docs/optimization/HANDOFF.md).
 
 This is the shared policy for `Agent.md`, `AGENTS.md` and `CLAUDE.md`.
 Historical reports in `agent-exchange/` are evidence, not current instructions or a task queue.

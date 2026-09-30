@@ -2214,7 +2214,5 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.pendingImpulseCount = impulseChannelDbg != null ? impulseChannelDbg.Count : 0;
             UpdateHandoffDebug(tick);
         }
-
-
     }
 }

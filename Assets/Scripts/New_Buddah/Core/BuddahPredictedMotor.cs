@@ -98,14 +98,6 @@ namespace NewBuddah.PredictionV2.Core
         // simulated latency, FishNet fires reconcile more often → growth rate proportional.
         // 0 callbacks across a session under LatencySim = simulator not engaged.
         private uint _reconcileCallbackCount;
-#if UNITY_EDITOR && BUDDAH_PREDICTION_RECONCILE_PROBE
-        // Phase 7 Q4 sibling-probe hook: fires once per [Reconcile] callback after
-        // state restoration with (preReconcilePosition, postReconcilePosition).
-        // BuddahPredictionReconcileSnapProbe subscribes; magnitude of the pair is
-        // recorded into a per-event ring buffer for [D-REC HEARTBEAT] aggregates.
-        // UNITY_EDITOR + define gated; compiles out of production builds.
-        internal static event Action<Vector3, Vector3> OnReconcileSampled;
-#endif
         private Vector3 _shadowPreClampVelocity;
         private bool _shadowPreTeleportHasPending;
         private BuddahPredictedTeleportEventData _shadowPreTeleportEvent;
@@ -131,6 +123,12 @@ namespace NewBuddah.PredictionV2.Core
         private BuddahPredictedLaunchHandoffState _shadowPreHandoffState;
         private uint _shadowHandoffConsumedCount;
         private int _dLocHandoffDivCount;
+#endif
+
+#if UNITY_EDITOR && BUDDAH_PREDICTION_RECONCILE_PROBE
+        // Per-motor observation hook, independent of the shadow diagnostics.
+        // Fires after reconciliation with (prePosition, postPosition).
+        internal event Action<Vector3, Vector3> OnReconcileSampled;
 #endif
 
         // L7 latch tracker. Flipped to true on the first RunInputs tick where
@@ -555,7 +553,9 @@ namespace NewBuddah.PredictionV2.Core
         [Reconcile]
         private void ReconcileState(BuddahPredictedReconcileData data, Channel channel = Channel.Unreliable)
         {
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _reconcileCallbackCount++;
+#endif
             if (_predictionRigidbody == null || data.RigidbodyState == null)
                 return;
 

@@ -177,7 +177,7 @@ $groups = $allEvents | Group-Object PathTag, PeerTag, Owner, Type
 Write-Output ''
 Write-Output '# Phase 7 jitter analysis'
 Write-Output ''
-Write-Output ('Files ingested: ' + ($LogPaths | ForEach-Object { [System.IO.Path]::GetFileName($_) } | Sort-Object -Unique) -join ', ')
+Write-Output ('Files ingested: ' + (($LogPaths | ForEach-Object { [System.IO.Path]::GetFileName($_) } | Sort-Object -Unique) -join ', '))
 $visCount = (@($allEvents | Where-Object { $_.Type -eq 'VIS' })).Count
 $recCount = (@($allEvents | Where-Object { $_.Type -eq 'REC' })).Count
 $ftCount  = (@($allEvents | Where-Object { $_.Type -eq 'FT'  })).Count

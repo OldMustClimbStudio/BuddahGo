@@ -27,14 +27,15 @@
 
 .PARAMETER TargetLogPath
   Override the captured-log target path. Default:
-  agent-exchange/console/raw/2026-05-03-phase7-host-only-jitter.log.
+  agent-exchange/console/raw/<UTC-timestamp>-phase7-host-only-jitter-<GUID>.log.
 #>
 [CmdletBinding()]
 param(
     [switch] $SkipGitPush,
     [switch] $DryRun,
     [string] $EditorLogPath,
-    [string] $TargetLogPath = 'agent-exchange/console/raw/2026-05-03-phase7-host-only-jitter.log'
+    [string] $TargetLogPath = ('agent-exchange/console/raw/{0}-phase7-host-only-jitter-{1}.log' -f
+        [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH-mm-ss-fffffffZ'), [Guid]::NewGuid().ToString('N'))
 )
 
 $ErrorActionPreference = 'Stop'
@@ -83,7 +84,7 @@ if (-not (Test-Path -LiteralPath $projectSettings)) {
     exit 1
 }
 
-$content = Get-Content -LiteralPath $projectSettings -Raw
+$content = Get-Content -LiteralPath $projectSettings -Raw -Encoding UTF8
 
 $defines = @(
     'BUDDAH_PREDICTION_RECONCILE_PROBE',
@@ -115,7 +116,7 @@ if ($mutated) {
 # 4. Alpha-discipline verify: ProjectSettings.asset must net-zero vs origin/dev.
 $diff = git diff origin/dev -- ProjectSettings/ProjectSettings.asset 2>$null
 if ($LASTEXITCODE -ne 0) {
-    Write-Warning "git diff origin/dev failed (exit $LASTEXITCODE) -- verify origin/dev is fetched. Skipping alpha verify."
+    throw "ALPHA VERIFY FAILED: git diff origin/dev failed (exit $LASTEXITCODE). Fetch origin/dev and rerun; no commit or push is allowed without verification."
 } elseif ($diff) {
     Write-Error "ALPHA DISCIPLINE VIOLATED: ProjectSettings.asset has unexpected diff vs origin/dev:`n$diff"
     Write-Error 'Phase 7 must NOT alter ProjectSettings.asset net of pre-flight + post-flight cycle. Investigate before push.'

@@ -347,7 +347,7 @@ if (Test-Path $activeContractDir) {
             $relativePath = $contract.FullName.Substring($repoRoot.Length).TrimStart('\', '/').Replace('\', '/')
             Write-Output ("- contract: {0}" -f $relativePath)
 
-            $contractContent = Get-Content -Path $contract.FullName -ErrorAction SilentlyContinue
+            $contractContent = Get-Content -Path $contract.FullName -Encoding UTF8 -ErrorAction SilentlyContinue
             if ($contractContent) {
                 $statusLine = $contractContent | Where-Object { $_ -match '^\*\*Status:\*\*' } | Select-Object -First 1
                 if ($statusLine) {
@@ -357,7 +357,7 @@ if (Test-Path $activeContractDir) {
                 # Last non-empty sign-off ledger row (table row starting with "|")
                 # that has a non-empty Date cell. Skips header + separator rows.
                 $ledgerRows = $contractContent | Where-Object { $_ -match '^\| ' -and $_ -notmatch '^\|---' -and $_ -notmatch '^\| Stage \|' }
-                $lastSignedRow = $ledgerRows | Where-Object { $_ -match '^\| [A-Za-z]+ \| [0-9]{4}-' } | Select-Object -Last 1
+                $lastSignedRow = $ledgerRows | Where-Object { $_ -match '^\|\s*[^|]+\|\s*[0-9]{4}-[0-9]{2}-[0-9]{2}\s*\|' } | Select-Object -Last 1
                 if ($lastSignedRow) {
                     # Truncate ledger row to first 200 chars to keep helper output readable.
                     $rowDisplay = $lastSignedRow.Trim()

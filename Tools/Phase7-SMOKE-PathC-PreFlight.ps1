@@ -38,7 +38,7 @@ if (-not (Test-Path $projectSettings)) {
     exit 1
 }
 
-$content = Get-Content -LiteralPath $projectSettings -Raw
+$content = Get-Content -LiteralPath $projectSettings -Raw -Encoding UTF8
 
 $defines = @(
     'BUDDAH_PREDICTION_RECONCILE_PROBE',
@@ -49,7 +49,7 @@ $defines = @(
 # The .asset file has multiple unrelated `Standalone:` YAML keys (applicationIdentifier,
 # buildNumber, etc.); only the scripting-define-symbols one contains FISHNET in this
 # project. Matching on FISHNET avoids leaking defines into unrelated keys.
-$sdLinePattern = '(?m)^(    Standalone: [^\r\n]*FISHNET[^\r\n]*)$'
+$sdLinePattern = '(?m)^(    Standalone: [^\r\n]*FISHNET[^\r\n]*)(?=\r?$)'
 
 if ($content -notmatch $sdLinePattern) {
     Write-Error 'Could not locate the scripting-define-symbols Standalone line in ProjectSettings.asset (expected to contain FISHNET). Aborting; manual investigation required before re-running pre-flight.'
@@ -103,4 +103,4 @@ Write-Host '  1. Open Unity Editor; wait for recompile to finish.'
 Write-Host '  2. Enter PlayMode (host-mode start; no peer joins).'
 Write-Host '  3. Drive 90s of continuous active play -- driving + random skill cast (NO idle).'
 Write-Host '  4. Exit PlayMode.'
-Write-Host '  5. Run: pwsh Tools/Phase7-SMOKE-PathC-PostFlight.ps1'
+Write-Host '  5. Run from the current PowerShell session: & ./Tools/Phase7-SMOKE-PathC-PostFlight.ps1'

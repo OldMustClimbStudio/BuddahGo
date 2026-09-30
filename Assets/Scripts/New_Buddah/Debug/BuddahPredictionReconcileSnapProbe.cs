@@ -8,7 +8,7 @@ namespace NewBuddah.PredictionV2.Debugging
 {
     // Phase 7 Q4 sibling probe (mirrors BuddahPredictionVisualShakeProbe shape) -
     // observation only, gated behind BUDDAH_PREDICTION_RECONCILE_PROBE + UNITY_EDITOR.
-    // Subscribes to BuddahPredictedMotor.OnReconcileSampled; receives
+    // Subscribes to its own motor's OnReconcileSampled; receives
     // (preReconcilePosition, postReconcilePosition) per [Reconcile] callback;
     // records magnitude of (post - pre) into a pre-allocated ring buffer keyed
     // on EVENTS (not frames - rec-cb cadence is event-driven, not frame-rate-
@@ -30,6 +30,7 @@ namespace NewBuddah.PredictionV2.Debugging
     {
         [Header("Pinned references")]
         [SerializeField] private NetworkObject _networkObject;
+        private BuddahPredictedMotor _motor;
 
         [Header("Capture cadence (event-keyed, NOT frame-keyed)")]
         [Tooltip("Reconcile events per heartbeat emit. Also the ring-buffer window size for p99 computation.")]
@@ -62,16 +63,20 @@ namespace NewBuddah.PredictionV2.Debugging
             // Inspector pin still wins if present.
             if (_networkObject == null)
                 _networkObject = GetComponentInParent<NetworkObject>();
+            if (_networkObject != null)
+                _motor = _networkObject.GetComponent<BuddahPredictedMotor>();
         }
 
         private void OnEnable()
         {
-            BuddahPredictedMotor.OnReconcileSampled += HandleReconcileSampled;
+            if (_motor != null)
+                _motor.OnReconcileSampled += HandleReconcileSampled;
         }
 
         private void OnDisable()
         {
-            BuddahPredictedMotor.OnReconcileSampled -= HandleReconcileSampled;
+            if (_motor != null)
+                _motor.OnReconcileSampled -= HandleReconcileSampled;
         }
 
         private void HandleReconcileSampled(Vector3 prePos, Vector3 postPos)

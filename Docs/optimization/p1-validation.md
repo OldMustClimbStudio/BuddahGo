@@ -86,3 +86,9 @@ refscan 对 ConnectionManager 的一个文本命中来自 Plugins/FishyFacepunch
 预检：IBuddahInputSource 仅有 PlayerBuddahInputSource 与 DisabledBuddahInputSource 两个 sealed 实现，UseDirectHeadingControl 都是字面量 false。三个 directHeading 序列化字段只被不可达的 ApplyDirectHeadingControl 使用，外部只有 Buddah.prefab 的旧值，无配置/反射调用。
 
 移除该方法、不可达分支、RotationMode 私有枚举/字段/赋值；TorqueSteering 的恒真条件简化，现用施力、扭矩、衰减和调用顺序保持原样。按 I1 的“确认无用字段”例外删除三个专属字段，prefab 的旧 YAML 值不改写。输入接口及两个实现保持原样。Roslyn 语法解析通过；I6 不适用，R1/R4 待阶段集中验证。
+
+## P1-7（四包移除，SoftMask 保留）
+
+在 Assets 源码/asmdef 中未找到五个目标包的调用，但进一步用 PackageCache 的真实 GUID 检查了 4,811 个 Assets 序列化/元数据文件，发现 SoftMask 是活跃依赖：RaceMap.unity:5581/5789 引用 UI/UIprefap.prefab（GUID b3daf86579f2d46419a926f54d2c5d7c），该 prefab 使用 SoftMask 包脚本 GUID 385b7d1277b6c4007a84c065696e0f8c / 97bc2ebab6563400c95b036136d26ea6。两个 UISoftMaskProjectSettings asset 也引用包资源。因此保留 com.coffee.softmask-for-ugui 及资源，标记该部分 blocked。
+
+其余四包（visualscripting/collab-proxy/ide.vscode/probuilder）的 GUID 集合分别为 1,840/927/16/832 个，Assets 中引用数为 0；没有其他保留包依赖它们。移除其 manifest/lock 条目。ParrelSync 固定到原 lock 的 610157ad762084380380148ba8ce14e266a6da97，实际版本不变。JSON 解析/依赖闭包检查通过，R1/R2/R4 待阶段验证。I6 不适用。

@@ -16,8 +16,8 @@
 | P1-3 | 删除旧大厅链路 | doing | 4aff429 | R1/R4 待 P1 集中验证 | 两脚本 YAML 引用为 0；MainMenu legacy prefab 为 null；仅旧链路内部与可移除 spawn 分支依赖。 |
 | P1-4 | 删除 RaceFinishManager 调试结束路径 | blocked | 9205b7b | 不删除：预检发现活跃 UnityEvent | RaceMap.unity:6858 直接绑定 TriggerDebugFinishRaceFromLocalUi；按方案必须保留该方法及其调用链。 |
 | P1-5 | 删除无调用者 API | blocked | 8f02f68 | 已删 29 个无调用声明；R1/R4/R5 待阶段验证 | SetInputSource 有实际控制路径调用，保留该项；其余 API 逐项引用/绑定复核后删除。 |
-| P1-6 | 删除 DirectHeadingControl 分支 | doing | | R1/R4 待阶段验证 | 两个 sealed 输入源的 UseDirectHeadingControl 均为字面量 false；保留输入接口，移除不可达模式及专属无用字段。 |
-| P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | todo | | | |
+| P1-6 | 删除 DirectHeadingControl 分支 | doing | 072fd93 | R1/R4 待阶段验证 | 两个 sealed 输入源的 UseDirectHeadingControl 均为字面量 false；保留输入接口，移除不可达模式及专属无用字段。 |
+| P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | blocked | | 四包移除、ParrelSync 固定；R1/R2/R4 待验证 | SoftMask 在 RaceMap → UIprefap.prefab 中仍使用，保留该包；GUID 依赖预检推翻原计划“未使用”假设。 |
 | P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | todo | | | |
 | P2-1 | 新增 Foundation 模块 | todo | | | |
 | P2-2a–e | 日志迁移（按目录） | todo | | | |

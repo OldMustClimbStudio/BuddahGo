@@ -59,7 +59,7 @@ public class Skill_PushProjectileHands : SkillAction
             true,
             ignoreSolidWorld);
 
-        Debug.Log($"[Skill_PushProjectileHands][Server] Enabled charged projectile push buff for {buffDurationSeconds}s, buildup={buildUpSeconds}s, offset=({projectileForwardOffset},{projectileHeightOffset}), speed={projectileSpeed}, lifetime={projectileLifetimeSeconds}, impulse={projectileImpulseStrength}");
+        GameLog.Verbose($"[Skill_PushProjectileHands][Server] Enabled charged projectile push buff for {buffDurationSeconds}s, buildup={buildUpSeconds}s, offset=({projectileForwardOffset},{projectileHeightOffset}), speed={projectileSpeed}, lifetime={projectileLifetimeSeconds}, impulse={projectileImpulseStrength}");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)

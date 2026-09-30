@@ -96,7 +96,7 @@ public class SkillExecutor : NetworkBehaviour
 
     private void OnSlotTriggeredByCombo(int slotIndex, string comboName)
     {
-        Debug.Log($"[SkillExecutor][Owner] Combo '{comboName}' triggered slot {slotIndex}, requesting cast...");
+        GameLog.Verbose($"[SkillExecutor][Owner] Combo '{comboName}' triggered slot {slotIndex}, requesting cast...");
         RequestCast(slotIndex);
     }
 
@@ -186,7 +186,7 @@ public class SkillExecutor : NetworkBehaviour
         string skillId = loadout.GetSkillId(slotIndex);
         if (string.IsNullOrWhiteSpace(skillId))
         {
-            Debug.Log($"[SkillExecutor][Server] Slot {slotIndex} is empty, cast ignored.");
+            GameLog.Verbose($"[SkillExecutor][Server] Slot {slotIndex} is empty, cast ignored.");
             return;
         }
 
@@ -201,7 +201,7 @@ public class SkillExecutor : NetworkBehaviour
 
         if (now < _nextReadyTime[slotIndex])
         {
-            Debug.Log($"[SkillExecutor][Server] Skill '{skillId}' on cooldown. Ready in {(_nextReadyTime[slotIndex] - now):0.00}s");
+            GameLog.Verbose($"[SkillExecutor][Server] Skill '{skillId}' on cooldown. Ready in {(_nextReadyTime[slotIndex] - now):0.00}s");
             return;
         }
 
@@ -234,7 +234,7 @@ public class SkillExecutor : NetworkBehaviour
                 }
             }
 
-            Debug.Log($"[SkillExecutor][Server] Backfire roll: skill='{skillId}', anti='{resolvedAntiSkillId}', obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
+            GameLog.Verbose($"[SkillExecutor][Server] Backfire roll: skill='{skillId}', anti='{resolvedAntiSkillId}', obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
         }
 
         float castDelaySeconds = isAnti ? AntiCastConfirmDelaySeconds : CastConfirmDelaySeconds;
@@ -247,7 +247,7 @@ public class SkillExecutor : NetworkBehaviour
         _nextReadyTime[slotIndex] = triggerAt + resolvedCooldownSeconds;
 
         float obsessionGain = database != null ? Mathf.Max(0f, database.GetObsessionGain(skillId, skill)) : Mathf.Max(0f, skill.ObsessionGain);
-        Debug.Log($"[SkillExecutor][Server] QUEUE '{executedSkillId}' (slot {slotIndex}) delay={castDelaySeconds:0.##}s cooldown={resolvedCooldownSeconds:0.##} lock={resolvedCastLockSeconds:0.##} anti={isAnti}");
+        GameLog.Verbose($"[SkillExecutor][Server] QUEUE '{executedSkillId}' (slot {slotIndex}) delay={castDelaySeconds:0.##}s cooldown={resolvedCooldownSeconds:0.##} lock={resolvedCastLockSeconds:0.##} anti={isAnti}");
         PlayQueuedCastFeedbackObserversRpc(executedSkillId, isAnti);
         StartCoroutine(ExecuteQueuedCastAfterDelay(slotIndex, executedSkill, executedSkillId, obsessionGain, isAnti, castDelaySeconds));
     }
@@ -268,7 +268,7 @@ public class SkillExecutor : NetworkBehaviour
             yield break;
         }
 
-        Debug.Log($"[SkillExecutor][Server] CAST '{executedSkillId}' (slot {slotIndex}) after {castDelaySeconds:0.##}s delay.");
+        GameLog.Verbose($"[SkillExecutor][Server] CAST '{executedSkillId}' (slot {slotIndex}) after {castDelaySeconds:0.##}s delay.");
 
         executedSkill.ExecuteServer(this, slotIndex);
         _obs?.AddServer(obsessionGain);
@@ -288,7 +288,7 @@ public class SkillExecutor : NetworkBehaviour
             PlayFeelLocal(SkillReflectionSharedFeelEventId);
         }
 
-        Debug.Log($"[SkillExecutor][PreCastFeedback] '{executedSkillId}' anti={isAnti}, IsOwner={IsOwner}");
+        GameLog.Verbose($"[SkillExecutor][PreCastFeedback] '{executedSkillId}' anti={isAnti}, IsOwner={IsOwner}");
 
         if (!IsOwner)
             return;
@@ -304,11 +304,11 @@ public class SkillExecutor : NetworkBehaviour
         string ownerClientId = Owner != null ? Owner.ClientId.ToString() : "null";
         string localClientId = LocalConnection != null ? LocalConnection.ClientId.ToString() : "null";
         int objectId = NetworkObject != null ? NetworkObject.ObjectId : 0;
-        Debug.Log($"[SkillExecutor][ObserversRpc] object='{name}', objectId={objectId}, slot={slotIndex}, skill='{executedSkillId}', anti={isAnti}, IsOwner={IsOwner}, IsClientInitialized={IsClientInitialized}, ownerClientId={ownerClientId}, localClientId={localClientId}");
+        GameLog.Verbose($"[SkillExecutor][ObserversRpc] object='{name}', objectId={objectId}, slot={slotIndex}, skill='{executedSkillId}', anti={isAnti}, IsOwner={IsOwner}, IsClientInitialized={IsClientInitialized}, ownerClientId={ownerClientId}, localClientId={localClientId}");
 
         if (database.TryGet(executedSkillId, out SkillAction skill) && skill != null)
         {
-            Debug.Log($"[SkillExecutor][Observers] '{executedSkillId}' played (slot {slotIndex}) [anti={isAnti}]");
+            GameLog.Verbose($"[SkillExecutor][Observers] '{executedSkillId}' played (slot {slotIndex}) [anti={isAnti}]");
             skill.ExecuteObservers(this, slotIndex, isAnti, IsOwner);
 
             if (IsOwner)
@@ -317,7 +317,7 @@ public class SkillExecutor : NetworkBehaviour
                 float resolvedCastLockSeconds = database != null ? database.GetCastLockSeconds(executedSkillId, skill) : skill.castLockSeconds;
                 LocalSkillUiTriggered?.Invoke(new LocalSkillUiEvent(slotIndex, resolvedCooldownSeconds, resolvedCastLockSeconds));
 
-                Debug.Log($"[SkillExecutor][Owner] ExecuteLocal '{executedSkillId}' (slot {slotIndex}) [anti={isAnti}]");
+                GameLog.Verbose($"[SkillExecutor][Owner] ExecuteLocal '{executedSkillId}' (slot {slotIndex}) [anti={isAnti}]");
                 skill.ExecuteLocal(this, slotIndex, isAnti);
             }
         }
@@ -348,7 +348,7 @@ public class SkillExecutor : NetworkBehaviour
             if (extraForwardForce > 0f || extraMaxSpeed > 0f)
                 ShowAccelerationTrail(durationSeconds);
 
-            Debug.Log($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed acceleration to PredictionV2 bridge.");
+            GameLog.Verbose($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed acceleration to PredictionV2 bridge.");
             return;
         }
 
@@ -361,7 +361,7 @@ public class SkillExecutor : NetworkBehaviour
 
         if (move.IsSkillRooted)
         {
-            Debug.Log($"[SkillExecutor][Target] Accel ignored because rooted. ({extraForwardForce}, {extraMaxSpeed}, {durationSeconds}s)");
+            GameLog.Verbose($"[SkillExecutor][Target] Accel ignored because rooted. ({extraForwardForce}, {extraMaxSpeed}, {durationSeconds}s)");
             return;
         }
 
@@ -375,7 +375,7 @@ public class SkillExecutor : NetworkBehaviour
         if (extraForwardForce > 0f || extraMaxSpeed > 0f)
             ShowAccelerationTrail(durationSeconds);
 
-        Debug.Log($"[SkillExecutor][Target] Accel: +{extraForwardForce} forwardForce, +{extraMaxSpeed} maxSpeed for {durationSeconds}s");
+        GameLog.Verbose($"[SkillExecutor][Target] Accel: +{extraForwardForce} forwardForce, +{extraMaxSpeed} maxSpeed for {durationSeconds}s");
     }
 
     public void ApplyRootThenAccelerationToOwner(float rootDurationSeconds, float extraForwardForce, float extraMaxSpeed, float accelDurationSeconds)
@@ -398,7 +398,7 @@ public class SkillExecutor : NetworkBehaviour
         {
             if (!IsServerInitialized)
                 predictionSkillMovementBridge.TryApplyRootThenAcceleration(rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds, "SkillExecutor.Target");
-            Debug.Log($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed root-then-acceleration to PredictionV2 bridge.");
+            GameLog.Verbose($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed root-then-acceleration to PredictionV2 bridge.");
             return;
         }
 
@@ -415,7 +415,7 @@ public class SkillExecutor : NetworkBehaviour
 
         effect.ApplyOrRestart(move, rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds);
 
-        Debug.Log($"[SkillExecutor][Target] RootThenAccel: root={rootDurationSeconds}s, accel=({extraForwardForce},{extraMaxSpeed}) for {accelDurationSeconds}s");
+        GameLog.Verbose($"[SkillExecutor][Target] RootThenAccel: root={rootDurationSeconds}s, accel=({extraForwardForce},{extraMaxSpeed}) for {accelDurationSeconds}s");
     }
 
     public void ApplyInvertTurnInputToOwner(float durationSeconds)
@@ -438,7 +438,7 @@ public class SkillExecutor : NetworkBehaviour
         {
             if (!IsServerInitialized)
                 predictionSkillMovementBridge.TryApplyInvertTurn(durationSeconds, "SkillExecutor.Target");
-            Debug.Log($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed invert-turn to PredictionV2 bridge.");
+            GameLog.Verbose($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed invert-turn to PredictionV2 bridge.");
             return;
         }
 
@@ -455,7 +455,7 @@ public class SkillExecutor : NetworkBehaviour
 
         effect.ApplyOrRefresh(move, durationSeconds);
 
-        Debug.Log($"[SkillExecutor][Target] InvertTurnInput for {durationSeconds}s");
+        GameLog.Verbose($"[SkillExecutor][Target] InvertTurnInput for {durationSeconds}s");
     }
 
     public void ApplyScaleToOwner(float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds, float massMultiplier, float forwardForceMultiplier)
@@ -484,7 +484,7 @@ public class SkillExecutor : NetworkBehaviour
                 visualEffect = gameObject.AddComponent<PlayerScaleEffect>();
 
             visualEffect.ApplyOrRefresh(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
-            Debug.Log($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed movement scale to PredictionV2 bridge and kept visual scale effect locally.");
+            GameLog.Verbose($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed movement scale to PredictionV2 bridge and kept visual scale effect locally.");
             return;
         }
 
@@ -494,7 +494,7 @@ public class SkillExecutor : NetworkBehaviour
 
         effect.ApplyOrRefresh(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
 
-        Debug.Log($"[SkillExecutor][Target] Scale x{scaleMultiplier:0.##} for {durationSeconds}s (enter={enterDurationSeconds:0.##}, restore={restoreDurationSeconds:0.##})");
+        GameLog.Verbose($"[SkillExecutor][Target] Scale x{scaleMultiplier:0.##} for {durationSeconds}s (enter={enterDurationSeconds:0.##}, restore={restoreDurationSeconds:0.##})");
     }
 
     private bool UsePredictionMovementBridge()

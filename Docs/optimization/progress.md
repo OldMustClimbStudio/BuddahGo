@@ -20,8 +20,8 @@
 | P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | blocked | 438b0b7 | 四包移除、ParrelSync 固定；R1/R2 通过；本机双端回归通过，完整 R4 未执行 | SoftMask 在 RaceMap → UIprefap.prefab 中仍使用，保留该包；GUID 依赖预检推翻原计划“未使用”假设。 |
 | P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | done-unverified | 71e63d5 | R1/R2 通过；本机回归通过；R4/R5 不完整，R6 未执行 | 306 个 Demo 文件；默认表实际 12 Demo + 3 游戏，保留全部三个游戏 prefab GUID/fileID。 |
 | P2-1 | 新增 Foundation 模块 | done | dc3bcda | R1 通过：已加载 GameLog 类型、无 C# error | 暂不接入调用点；Registry 明确 activeInHierarchy/禁用组件语义，并首次查询补齐 Awake 顺序差异。 |
-| P2-2a | New_Buddah 日志迁移 | doing | | | |
-| P2-2b | 日志迁移 | todo | | | |
+| P2-2a | New_Buddah 日志迁移 | doing | 1b62bcf | 待 P2 集中验证 | 27 处调用；原消息、context、开关不变。 |
+| P2-2b | Buddah 日志迁移 | doing | | | |
 | P2-2c | 日志迁移 | todo | | | |
 | P2-2d | 日志迁移 | todo | | | |
 | P2-2e | 日志迁移 | todo | | | |

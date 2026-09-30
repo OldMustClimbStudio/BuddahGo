@@ -149,7 +149,7 @@ public class ComboSkillInput : NetworkBehaviour
 
         if (now - _lastInputTime > stepWindowSeconds)
         {
-            Debug.Log($"[Combo] window expired ({now - _lastInputTime:0.00}s), clearing buffer");
+            GameLog.Verbose($"[Combo] window expired ({now - _lastInputTime:0.00}s), clearing buffer");
             _buffer.Clear();
         }
 
@@ -160,7 +160,7 @@ public class ComboSkillInput : NetworkBehaviour
 
         RaiseComboProgressEvents();
 
-        Debug.Log($"[Combo] +{token} | buffer = {string.Join(",", _buffer)}");
+        GameLog.Verbose($"[Combo] +{token} | buffer = {string.Join(",", _buffer)}");
 
         ComboBinding matched = FindExactMatchOnSuffix(_buffer);
         if (matched != null)
@@ -173,7 +173,7 @@ public class ComboSkillInput : NetworkBehaviour
 
         if (!CouldBePrefixOfAnyCombo(_buffer))
         {
-            Debug.Log($"[Combo] dead-end buffer, clearing: {string.Join(",", _buffer)}");
+            GameLog.Verbose($"[Combo] dead-end buffer, clearing: {string.Join(",", _buffer)}");
             _buffer.Clear();
             RaiseComboProgressEvents();
         }

@@ -63,7 +63,7 @@ public class PushHitbox : MonoBehaviour
             }
         }
 
-        Debug.Log($"[PushHitbox] Spawn attacker={_attacker?.name} pos={transform.position} rot={transform.rotation.eulerAngles} impulse={_impulse} lifetime={lifetimeSeconds:0.00}");
+        GameLog.Verbose($"[PushHitbox] Spawn attacker={_attacker?.name} pos={transform.position} rot={transform.rotation.eulerAngles} impulse={_impulse} lifetime={lifetimeSeconds:0.00}");
     }
 
     public void ApplyScaleMultiplier(float scaleMultiplier)
@@ -195,7 +195,7 @@ public class PushHitbox : MonoBehaviour
 
         _hit.Add(victimNO);
 
-        Debug.Log($"[PushHitbox] Hit mode={detectionMode} victim={victimNO.name} owner={victimNO.OwnerId} attacker={_attacker?.name} impulse={_impulse}");
+        GameLog.Verbose($"[PushHitbox] Hit mode={detectionMode} victim={victimNO.name} owner={victimNO.OwnerId} attacker={_attacker?.name} impulse={_impulse}");
 
         // Phase 4b V3 — single dispatch entry. Router internally handles V2-prediction Buddah,
         // PushTargetBox debug, and Legacy Buddah BuddahMovement RPC fallback. Replaces the

@@ -24,7 +24,7 @@ public class MovementAccelerationEffect : MonoBehaviour
 
         if (_move.IsSkillRooted)
         {
-            Debug.Log("[MovementAccelerationEffect] Ignored apply/refresh because target is rooted.");
+            GameLog.Verbose("[MovementAccelerationEffect] Ignored apply/refresh because target is rooted.");
             return;
         }
 
@@ -47,7 +47,7 @@ public class MovementAccelerationEffect : MonoBehaviour
 
         ApplyNow();
 
-        Debug.Log($"[AccelEffect] ON: +{_extraForwardForce} forwardForce, +{_extraMaxSpeed} maxSpeed, {_timeLeft:0.00}s");
+        GameLog.Verbose($"[AccelEffect] ON: +{_extraForwardForce} forwardForce, +{_extraMaxSpeed} maxSpeed, {_timeLeft:0.00}s");
     }
 
     public void CancelAndRestore()
@@ -67,7 +67,7 @@ public class MovementAccelerationEffect : MonoBehaviour
         if (_timeLeft <= 0f)
         {
             Restore();
-            Debug.Log("[AccelEffect] OFF: restored");
+            GameLog.Verbose("[AccelEffect] OFF: restored");
             Destroy(this);
         }
     }

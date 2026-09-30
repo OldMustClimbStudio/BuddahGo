@@ -145,7 +145,7 @@ public class BuddahHandControl : NetworkBehaviour
 
     private void OnEnable()
     {
-        Debug.Log($"[HandControl] OnEnable. IsOwner={IsOwner}, netObj={gameObject.name}");
+        GameLog.Verbose($"[HandControl] OnEnable. IsOwner={IsOwner}, netObj={gameObject.name}");
         CacheBaseRotationsIfNeeded(force: false);
     }
 
@@ -157,12 +157,12 @@ public class BuddahHandControl : NetworkBehaviour
             return;
 
         inputActions?.Enable();
-        Debug.Log("[HandControl] inputActions Enabled (owner).");
+        GameLog.Verbose("[HandControl] inputActions Enabled (owner).");
 
         if (handPushAction != null)
         {
             handPushAction.performed += OnHandPushPerformed;
-            Debug.Log("[HandControl] Subscribed handPushAction.performed.");
+            GameLog.Verbose("[HandControl] Subscribed handPushAction.performed.");
         }
         else
         {
@@ -243,7 +243,7 @@ public class BuddahHandControl : NetworkBehaviour
         _projectileChargedVisualPrefabServer = null;
         _projectileChargedProgressPropertyServer = DefaultChargedProjectileProgressProperty;
         _projectileChargedPushCooldownServer = 0f;
-        Debug.Log("[HandControl] Projectile push mode expired on server. Reverting to normal push.");
+        GameLog.Verbose("[HandControl] Projectile push mode expired on server. Reverting to normal push.");
     }
 
     private void ClearProjectilePushModeLocal()
@@ -257,7 +257,7 @@ public class BuddahHandControl : NetworkBehaviour
         _projectileHeightOffsetLocal = 0f;
         _projectileDelayedPushSecondsLocal = 0f;
         _projectileChargedPushCooldownLocal = 0f;
-        Debug.Log("[HandControl] Projectile push mode expired locally. Reverting to normal push.");
+        GameLog.Verbose("[HandControl] Projectile push mode expired locally. Reverting to normal push.");
     }
 
     private void LateUpdate()
@@ -392,7 +392,7 @@ public class BuddahHandControl : NetworkBehaviour
 
     private void OnHandPushPerformed(InputAction.CallbackContext ctx)
     {
-        Debug.Log($"[HandControl] HandPush PERFORMED. IsOwner={IsOwner}, control={ctx.control?.path}");
+        GameLog.Verbose($"[HandControl] HandPush PERFORMED. IsOwner={IsOwner}, control={ctx.control?.path}");
 
         if (!IsOwner || animator == null || IsRaceGameplayBlocked())
         {
@@ -406,7 +406,7 @@ public class BuddahHandControl : NetworkBehaviour
             return;
         }
 
-        Debug.Log($"[HandControl] Key = {key.keyCode}");
+        GameLog.Verbose($"[HandControl] Key = {key.keyCode}");
 
         if (key.keyCode == Key.W)
         {

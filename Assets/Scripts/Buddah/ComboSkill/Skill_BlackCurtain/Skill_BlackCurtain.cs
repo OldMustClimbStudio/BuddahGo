@@ -36,7 +36,7 @@ public class Skill_BlackCurtain : SkillAction
             return;
 
         float actualDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds;
-        Debug.Log($"[Skill_BlackCurtain][Server] Triggered by {caster.name}, totalDuration={actualDuration:0.00}s");
+        GameLog.Verbose($"[Skill_BlackCurtain][Server] Triggered by {caster.name}, totalDuration={actualDuration:0.00}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
@@ -54,7 +54,7 @@ public class Skill_BlackCurtain : SkillAction
 
         bool localShouldSeeEdge = localIsCaster ^ isAnti;
         Vector2 center = ResolveScreenCenter(localCamera, caster);
-        Debug.Log($"[Skill_BlackCurtain][Observers] localIsCaster={localIsCaster}, isAnti={isAnti}, localShouldSeeEdge={localShouldSeeEdge}, camera={localCamera.name}");
+        GameLog.Verbose($"[Skill_BlackCurtain][Observers] localIsCaster={localIsCaster}, isAnti={isAnti}, localShouldSeeEdge={localShouldSeeEdge}, camera={localCamera.name}");
         viewController.Play(
             fullscreenMaterial,
             fullscreenMaterialName,
@@ -74,7 +74,7 @@ public class Skill_BlackCurtain : SkillAction
         float actualDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds;
         caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualDuration, $"{skillId}_observers");
 
-        Debug.Log($"[Skill_BlackCurtain][Observers] Local player affected by '{skillId}' (slot {slotIndex})");
+        GameLog.Verbose($"[Skill_BlackCurtain][Observers] Local player affected by '{skillId}' (slot {slotIndex})");
     }
 
     private static Camera ResolveLocalCamera()

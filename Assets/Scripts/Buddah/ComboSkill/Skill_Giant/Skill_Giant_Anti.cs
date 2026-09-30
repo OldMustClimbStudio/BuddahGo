@@ -16,7 +16,7 @@ public class Skill_Giant_Anti : SkillAction
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
         caster.ApplyScaleToOwner(scaleMultiplier, durationSeconds, shrinkDurationSeconds, restoreDurationSeconds, 1f, 1f);
-        Debug.Log($"[Skill_Giant_Anti][Server] Apply x{scaleMultiplier:0.##} scale for {durationSeconds:0.##}s");
+        GameLog.Verbose($"[Skill_Giant_Anti][Server] Apply x{scaleMultiplier:0.##} scale for {durationSeconds:0.##}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
@@ -24,7 +24,7 @@ public class Skill_Giant_Anti : SkillAction
         ApplyScaleEffect(caster);
 
         caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, durationSeconds, $"{skillId}_observers");
-        Debug.Log($"[Skill_Giant_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
+        GameLog.Verbose($"[Skill_Giant_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
     }
 
     public override void ExecuteLocal(SkillExecutor caster, int slotIndex, bool isAnti)
@@ -60,6 +60,6 @@ public class Skill_Giant_Anti : SkillAction
         }
 
         camera.ResetRuntimeEffects();
-        Debug.Log("[Skill_Giant_Anti][Owner] Applied local camera reinforcement.");
+        GameLog.Verbose("[Skill_Giant_Anti][Owner] Applied local camera reinforcement.");
     }
 }

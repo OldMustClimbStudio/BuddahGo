@@ -40,12 +40,12 @@ public class Skill_ReverseTurn : SkillAction
 
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : invertDurationSeconds;
 
-        Debug.Log($"[Skill_ReverseTurnTrap][Server] InvertTurnAllOthers duration={invertDurationSeconds}s, targets={appliedCount}, vfx={actualVfxDuration}s");
+        GameLog.Verbose($"[Skill_ReverseTurnTrap][Server] InvertTurnAllOthers duration={invertDurationSeconds}s, targets={appliedCount}, vfx={actualVfxDuration}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
-        Debug.Log($"[Skill_ReverseTurnTrap][Observers] '{skillId}' triggered (slot {slotIndex})");
+        GameLog.Verbose($"[Skill_ReverseTurnTrap][Observers] '{skillId}' triggered (slot {slotIndex})");
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : invertDurationSeconds;
         caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualVfxDuration, $"{skillId}_observers");
     }

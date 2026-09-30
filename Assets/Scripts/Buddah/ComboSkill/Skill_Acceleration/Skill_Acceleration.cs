@@ -28,12 +28,12 @@ public class Skill_Acceleration : SkillAction
         caster.ApplyAccelerationToOwner(extraForwardForce, extraMaxSpeed, durationSeconds);
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : durationSeconds;
 
-        Debug.Log($"[Skill_Acceleration][Server] Apply +{extraForwardForce} force, +{extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
+        GameLog.Verbose($"[Skill_Acceleration][Server] Apply +{extraForwardForce} force, +{extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
-        Debug.Log($"[Skill_Acceleration][Observers] '{skillId}' triggered (slot {slotIndex})");
+        GameLog.Verbose($"[Skill_Acceleration][Observers] '{skillId}' triggered (slot {slotIndex})");
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : durationSeconds;
         caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualVfxDuration, $"{skillId}_observers");
         caster.ShowAccelerationTrailLocal(durationSeconds);

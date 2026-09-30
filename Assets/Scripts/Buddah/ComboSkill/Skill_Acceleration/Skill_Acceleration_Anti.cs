@@ -38,12 +38,12 @@ public class Skill_Acceleration_Anti : SkillAction
         caster.ApplyAccelerationToOwner(extraForwardForce, extraMaxSpeed, durationSeconds);
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : durationSeconds;
 
-        Debug.Log($"[Skill_Acceleration_Anti][Server] Apply {extraForwardForce} force, {extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
+        GameLog.Verbose($"[Skill_Acceleration_Anti][Server] Apply {extraForwardForce} force, {extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
-        Debug.Log($"[Skill_Acceleration_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
+        GameLog.Verbose($"[Skill_Acceleration_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
         float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : durationSeconds;
         caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualVfxDuration, $"{skillId}_observers");
     }

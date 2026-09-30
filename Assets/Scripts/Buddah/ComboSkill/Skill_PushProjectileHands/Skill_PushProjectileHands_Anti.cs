@@ -53,7 +53,7 @@ public class Skill_PushProjectileHands_Anti : SkillAction
             additionalForwardSpawnOffset: additionalForwardSpawnOffset,
             additionalHeightSpawnOffset: additionalHeightSpawnOffset);
 
-        Debug.Log($"[Skill_PushProjectileHands_Anti][Server] Fired reverse burst count={projectileCount}, spacing={projectileSpacing}, extraSpawn=({additionalForwardSpawnOffset},{additionalHeightSpawnOffset}), speed={projectileSpeed}, hitTurnTorqueImpulse={hitTurnTorqueImpulse}");
+        GameLog.Verbose($"[Skill_PushProjectileHands_Anti][Server] Fired reverse burst count={projectileCount}, spacing={projectileSpacing}, extraSpawn=({additionalForwardSpawnOffset},{additionalHeightSpawnOffset}), speed={projectileSpeed}, hitTurnTorqueImpulse={hitTurnTorqueImpulse}");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)

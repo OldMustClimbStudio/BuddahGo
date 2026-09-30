@@ -40,12 +40,12 @@ public class Skill_SlowTrap_Anti : SkillAction
         if (vfx != null)
             vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
 
-        Debug.Log($"[Skill_SlowTrap_Anti][Server] Root self {rootDurationSeconds}s, then accel +{extraForwardForce}/+{extraMaxSpeed} for {accelerationDurationSeconds}s, vfx={actualVfxDuration}s");
+        GameLog.Verbose($"[Skill_SlowTrap_Anti][Server] Root self {rootDurationSeconds}s, then accel +{extraForwardForce}/+{extraMaxSpeed} for {accelerationDurationSeconds}s, vfx={actualVfxDuration}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
-        Debug.Log($"[Skill_SlowTrap_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
+        GameLog.Verbose($"[Skill_SlowTrap_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
         // VFX replication is sent from server in ExecuteServer().
     }
 }

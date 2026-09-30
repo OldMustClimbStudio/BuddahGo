@@ -68,7 +68,7 @@ public class TrackEdgeVisibility : MonoBehaviour
         }
 
         ApplyVisibility(targetValue);
-        Debug.Log($"[TrackEdgeVisibility] SetVisibility t={t:0.###}, targetValue={targetValue:0.###}, material='{_resolvedMaterial?.name ?? "property-block-only"}', shader='{_resolvedMaterial?.shader?.name ?? "unknown"}'");
+        GameLog.Verbose($"[TrackEdgeVisibility] SetVisibility t={t:0.###}, targetValue={targetValue:0.###}, material='{_resolvedMaterial?.name ?? "property-block-only"}', shader='{_resolvedMaterial?.shader?.name ?? "unknown"}'");
     }
 
     private void CachePropertyId()

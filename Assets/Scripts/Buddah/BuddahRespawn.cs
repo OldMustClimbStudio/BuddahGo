@@ -131,7 +131,7 @@ public class BuddahRespawn : MonoBehaviour
         if (!IsLocalOwner()) return false;
         ResolveReferences();
         float clamped = Mathf.Clamp01(targetProgress01);
-        Debug.Log($"[Respawn] reason={reason} progress01={clamped:0.000}");
+        GameLog.Verbose($"[Respawn] reason={reason} progress01={clamped:0.000}");
         return TeleportToTrackProgress(clamped, reason);
     }
 
@@ -286,6 +286,6 @@ public class BuddahRespawn : MonoBehaviour
     private void DebugLog(string message)
     {
         if (enableVerboseRespawnLogs)
-            Debug.Log($"[BuddahRespawn] {message}");
+            GameLog.Verbose($"[BuddahRespawn] {message}");
     }
 }

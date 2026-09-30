@@ -81,3 +81,7 @@ agent-exchange/console/raw/_*.py
 
 # Project-local worktrees
 /.worktree/
+
+# Local code-count reports and complete raw playtest captures.
+/.VSCodeCounter/
+/agent-exchange/console/raw/

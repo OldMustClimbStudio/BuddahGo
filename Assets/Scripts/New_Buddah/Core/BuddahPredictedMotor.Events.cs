@@ -414,14 +414,16 @@ namespace NewBuddah.PredictionV2.Core
 
             // Impulse channels retain canonical server ticks on both peers. LocalTick is
             // unsynchronized on a pure client and can delay old hits until long after impact.
-            uint eventClockTick = !IsServerInitialized && TimeManager != null ? TimeManager.Tick : currentTick;
+            var prediction = PredictionManager;
+            uint eventClockTick = BuddahTickMath.ImpulseEventClock(IsServerInitialized,
+                prediction != null && prediction.IsReconciling, currentTick,
+                TimeManager != null ? TimeManager.Tick : currentTick,
+                prediction != null ? prediction.ServerReplayTick : currentTick);
             channel.ConsumeReady(eventClockTick, ConsumeImpulseAuthoritativeEntry);
 
             if (bootstrap != null)
             {
                 bootstrap.DebugState.pendingImpulseCount = channel.Count;
-                if (bootstrap.ShouldBuildDebugSummaries)
-                    bootstrap.DebugState.pendingImpulseSummary = channel.BuildPendingSummary();
             }
         }
 

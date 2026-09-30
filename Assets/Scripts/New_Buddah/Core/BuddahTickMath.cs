@@ -62,7 +62,8 @@ namespace NewBuddah.PredictionV2.Core
             return state;
         }
 
-        // Return the tick used to advance diagnostics in the same clock as the working states.
+        // serverTick/localTick must be the paired ServerStateTick/ClientStateTick of this
+        // reconcile, not the receipt-time clocks. Return diagnostics in that same local clock.
         internal static uint ReconcileToLocal(ref BuddahPredictedModifierState modifiers,
             ref BuddahPredictedLaunchHandoffState handoff, uint stateTick,
             bool isServer, bool isOwner, uint serverTick, uint localTick)

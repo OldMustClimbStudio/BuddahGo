@@ -531,10 +531,11 @@ namespace NewBuddah.PredictionV2.Core
             _modifierState = data.ModifierState;
             _handoffState = data.HandoffState;
             uint stateTick = data.GetTick();
-            // Only translate working copies: wire/history snapshots remain in the server clock.
-            if (TimeManager != null)
-                stateTick = BuddahTickMath.ReconcileToLocal(ref _modifierState, ref _handoffState, stateTick,
-                    IsServerInitialized, IsOwner, TimeManager.Tick, TimeManager.LocalTick);
+            // Use the tick pair belonging to this authoritative snapshot. The live estimated
+            // server clock can jump during timing updates; it must not move snapshot deadlines.
+            // Only working copies are translated; wire/history states retain server timestamps.
+            stateTick = BuddahTickMath.ReconcileToLocal(ref _modifierState, ref _handoffState, stateTick,
+                IsServerInitialized, IsOwner, PredictionManager.ServerStateTick, PredictionManager.ClientStateTick);
             _computedStats = data.ComputedStats;
             _introControlActive = data.IntroControlActive;
             _externalKinematicControlActive = data.ExternalKinematicControlActive;

@@ -92,3 +92,17 @@ refscan 对 ConnectionManager 的一个文本命中来自 Plugins/FishyFacepunch
 在 Assets 源码/asmdef 中未找到五个目标包的调用，但进一步用 PackageCache 的真实 GUID 检查了 4,811 个 Assets 序列化/元数据文件，发现 SoftMask 是活跃依赖：RaceMap.unity:5581/5789 引用 UI/UIprefap.prefab（GUID b3daf86579f2d46419a926f54d2c5d7c），该 prefab 使用 SoftMask 包脚本 GUID 385b7d1277b6c4007a84c065696e0f8c / 97bc2ebab6563400c95b036136d26ea6。两个 UISoftMaskProjectSettings asset 也引用包资源。因此保留 com.coffee.softmask-for-ugui 及资源，标记该部分 blocked。
 
 其余四包（visualscripting/collab-proxy/ide.vscode/probuilder）的 GUID 集合分别为 1,840/927/16/832 个，Assets 中引用数为 0；没有其他保留包依赖它们。移除其 manifest/lock 条目。ParrelSync 固定到原 lock 的 610157ad762084380380148ba8ce14e266a6da97，实际版本不变。JSON 解析/依赖闭包检查通过，R1/R2/R4 待阶段验证。I6 不适用。
+
+## P1-8
+
+预检使用 --no-ignore/完整目录扫描，覆盖 gitignore 中已跟踪的 Demo 资源。Demo 及目录 meta 共 187 个 GUID；目录外的真实资源引用仅来自 DefaultPrefabObjects。外部代码命中只有 validator 的 Demo 排除路径和 FishNet 的 friend-assembly 名字常量，未发现运行时 Resources/路径加载或类型消费者。306 个目录内文件全部已跟踪，没有未跟踪用户文件。
+
+当前默认表为 15 项（12 Demo + 3 游戏），与方案中的约 30 Demo 数字不同，按实际 GUID 清理。删除 Demo 目录及 meta，并手动只移除已识别的 12 条 Demo 引用，保留以下条目的原 GUID/fileID/顺序：
+
+| 游戏 prefab | GUID |
+|---|---|
+| Assets/Character/MenuPlayer.prefab | 7a09426a99e26dc4d8f9a0b402532397 |
+| Assets/UIMenus/Lobby/RoomStateManager.prefab | 054af5abe930c124e9c745e84e9e4e1c |
+| Assets/Character/Prefab/Buddah.prefab | c2b8c569b26585545904610506c355cd |
+
+已读 NetworkManager.Awake → SpawnablePrefabs.InitializePrefabRange → ManagedObjects.InitializePrefab：运行时会根据新表赋 PrefabId，所有端须使用同一表/构建。场景对象 sceneId 不改动。I6 不适用，R1/R2/R4/R5/R6 待阶段集中验证。

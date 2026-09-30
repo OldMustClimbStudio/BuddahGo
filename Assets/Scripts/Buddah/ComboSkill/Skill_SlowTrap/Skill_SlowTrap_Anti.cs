@@ -34,7 +34,7 @@ public class Skill_SlowTrap_Anti : SkillAction
             extraMaxSpeed,
             accelerationDurationSeconds);
         float effectDurationSeconds = rootDurationSeconds + accelerationDurationSeconds;
-        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : effectDurationSeconds;
+        float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, effectDurationSeconds);
 
         var vfx = caster.GetComponent<SkillVfxReplicator>();
         if (vfx != null && !string.IsNullOrWhiteSpace(vfxId))

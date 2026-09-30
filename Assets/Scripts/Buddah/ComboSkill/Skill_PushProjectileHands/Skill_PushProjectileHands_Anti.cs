@@ -52,6 +52,6 @@ public class Skill_PushProjectileHands_Anti : SkillAction
             return;
 
         float feelDuration = Mathf.Max(0.05f, buildUpSeconds + projectileLifetimeSeconds);
-        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, feelDuration, $"{skillId}_observers");
+        PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, feelDuration);
     }
 }

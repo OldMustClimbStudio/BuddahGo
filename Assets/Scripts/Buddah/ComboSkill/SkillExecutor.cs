@@ -51,6 +51,9 @@ public class SkillExecutor : NetworkBehaviour
     private Coroutine _cameraFovPulseRoutine;
     private float[] _nextReadyTime;
     private ObsessionFigure _obs;
+    private OwnerMovementEffectApplier _movementEffects;
+    private OwnerMovementEffectApplier MovementEffects => _movementEffects ??= new OwnerMovementEffectApplier(this);
+    internal BuddahPredictionSkillMovementBridge PredictionMovementBridge => predictionSkillMovementBridge;
 
     private static readonly int AntiAnimatorTriggerHash = Animator.StringToHash(AntiAnimatorTriggerName);
 
@@ -173,47 +176,64 @@ public class SkillExecutor : NetworkBehaviour
     [ServerRpc(RequireOwnership = true)]
     private void CastSlotServerRpc(int slotIndex)
     {
-        if (!ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject))
+        if (!TryResolveCast(slotIndex, out string skillId, out SkillAction skill, out float now))
             return;
+        ResolveCastVariant(skillId, skill, out bool isAnti, out SkillAction executedSkill, out string executedSkillId);
+        QueueCast(slotIndex, skillId, skill, now, isAnti, executedSkill, executedSkillId);
+    }
 
-        if (slotIndex < 0 || slotIndex >= SkillLoadout.SlotCount) return;
+    private bool TryResolveCast(int slotIndex, out string skillId, out SkillAction skill, out float now)
+    {
+        skillId = string.Empty;
+        skill = null;
+        now = 0f;
+        if (!ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject))
+            return false;
+
+        if (slotIndex < 0 || slotIndex >= SkillLoadout.SlotCount) return false;
         if (loadout == null || database == null)
         {
             Debug.LogWarning("[SkillExecutor][Server] Missing loadout/database.");
-            return;
+            return false;
         }
 
-        string skillId = loadout.GetSkillId(slotIndex);
+        skillId = loadout.GetSkillId(slotIndex);
         if (string.IsNullOrWhiteSpace(skillId))
         {
             GameLog.Verbose($"[SkillExecutor][Server] Slot {slotIndex} is empty, cast ignored.");
-            return;
+            return false;
         }
 
-        if (!database.TryGet(skillId, out SkillAction skill) || skill == null)
+        if (!database.TryGet(skillId, out skill) || skill == null)
         {
             Debug.LogWarning($"[SkillExecutor][Server] Unknown skillId '{skillId}' (slot {slotIndex}).");
-            return;
+            return false;
         }
 
-        float now = (float)Time.time;
-        if (now < _castLockedUntil) return;
+        now = (float)Time.time;
+        if (now < _castLockedUntil) return false;
 
         if (now < _nextReadyTime[slotIndex])
         {
             GameLog.Verbose($"[SkillExecutor][Server] Skill '{skillId}' on cooldown. Ready in {(_nextReadyTime[slotIndex] - now):0.00}s");
-            return;
+            return false;
         }
 
+        return true;
+    }
+
+    private void ResolveCastVariant(string skillId, SkillAction skill, out bool isAnti,
+        out SkillAction executedSkill, out string executedSkillId)
+    {
         ResolveObsessionFigure();
         float obsessionNow = (_obs != null) ? _obs.Current : 0f;
         float backfirePercent = (_obs != null) ? _obs.GetBackfireProbabilityPercent(obsessionNow) : 0f;
         string resolvedAntiSkillId = ResolveAntiSkillId(skillId, skill);
         bool hasResolvableAnti = !string.IsNullOrWhiteSpace(resolvedAntiSkillId);
 
-        bool isAnti = false;
-        SkillAction executedSkill = skill;
-        string executedSkillId = skillId;
+        isAnti = false;
+        executedSkill = skill;
+        executedSkillId = skillId;
 
         if (hasResolvableAnti && backfirePercent > 0.0001f)
         {
@@ -236,7 +256,11 @@ public class SkillExecutor : NetworkBehaviour
 
             GameLog.Verbose($"[SkillExecutor][Server] Backfire roll: skill='{skillId}', anti='{resolvedAntiSkillId}', obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
         }
+    }
 
+    private void QueueCast(int slotIndex, string skillId, SkillAction skill, float now,
+        bool isAnti, SkillAction executedSkill, string executedSkillId)
+    {
         float castDelaySeconds = isAnti ? AntiCastConfirmDelaySeconds : CastConfirmDelaySeconds;
         float triggerAt = now + castDelaySeconds;
 
@@ -327,8 +351,7 @@ public class SkillExecutor : NetworkBehaviour
     {
         if (!IsServerInitialized) return;
 
-        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
-            predictionSkillMovementBridge.TryApplyAcceleration(extraForwardForce, extraMaxSpeed, durationSeconds, "SkillExecutor.Server");
+        MovementEffects.ApplyAccelerationServer(extraForwardForce, extraMaxSpeed, durationSeconds);
 
         NetworkConnection conn = Owner;
         if (conn == null) return;
@@ -339,51 +362,14 @@ public class SkillExecutor : NetworkBehaviour
     [TargetRpc]
     private void ApplyAccelerationTargetRpc(NetworkConnection conn, float extraForwardForce, float extraMaxSpeed, float durationSeconds)
     {
-        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
-        {
-            if (!IsServerInitialized)
-                predictionSkillMovementBridge.TryApplyAcceleration(extraForwardForce, extraMaxSpeed, durationSeconds, "SkillExecutor.Target");
-            PlayFeelLocal("acceleration_local");
-
-            if (extraForwardForce > 0f || extraMaxSpeed > 0f)
-                ShowAccelerationTrail(durationSeconds);
-
-            GameLog.Verbose($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed acceleration to PredictionV2 bridge.");
-            return;
-        }
-
-        var move = GetComponent<BuddahMovement>();
-        if (move == null)
-        {
-            Debug.LogWarning("[SkillExecutor][Target] Missing BuddahMovement.");
-            return;
-        }
-
-        if (move.IsSkillRooted)
-        {
-            GameLog.Verbose($"[SkillExecutor][Target] Accel ignored because rooted. ({extraForwardForce}, {extraMaxSpeed}, {durationSeconds}s)");
-            return;
-        }
-
-        var effect = GetComponent<MovementAccelerationEffect>();
-        if (effect == null)
-            effect = gameObject.AddComponent<MovementAccelerationEffect>();
-
-        effect.ApplyOrRefresh(move, extraForwardForce, extraMaxSpeed, durationSeconds);
-        PlayFeelLocal("acceleration_local");
-
-        if (extraForwardForce > 0f || extraMaxSpeed > 0f)
-            ShowAccelerationTrail(durationSeconds);
-
-        GameLog.Verbose($"[SkillExecutor][Target] Accel: +{extraForwardForce} forwardForce, +{extraMaxSpeed} maxSpeed for {durationSeconds}s");
+        MovementEffects.ApplyAccelerationOwner(extraForwardForce, extraMaxSpeed, durationSeconds);
     }
 
     public void ApplyRootThenAccelerationToOwner(float rootDurationSeconds, float extraForwardForce, float extraMaxSpeed, float accelDurationSeconds)
     {
         if (!IsServerInitialized) return;
 
-        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
-            predictionSkillMovementBridge.TryApplyRootThenAcceleration(rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds, "SkillExecutor.Server");
+        MovementEffects.ApplyRootThenAccelerationServer(rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds);
 
         NetworkConnection conn = Owner;
         if (conn == null) return;
@@ -394,36 +380,14 @@ public class SkillExecutor : NetworkBehaviour
     [TargetRpc]
     private void ApplyRootThenAccelerationTargetRpc(NetworkConnection conn, float rootDurationSeconds, float extraForwardForce, float extraMaxSpeed, float accelDurationSeconds)
     {
-        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
-        {
-            if (!IsServerInitialized)
-                predictionSkillMovementBridge.TryApplyRootThenAcceleration(rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds, "SkillExecutor.Target");
-            GameLog.Verbose($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed root-then-acceleration to PredictionV2 bridge.");
-            return;
-        }
-
-        var move = GetComponent<BuddahMovement>();
-        if (move == null)
-        {
-            Debug.LogWarning("[SkillExecutor][Target] Missing BuddahMovement for root-then-accel.");
-            return;
-        }
-
-        var effect = GetComponent<MovementRootThenAccelerationEffect>();
-        if (effect == null)
-            effect = gameObject.AddComponent<MovementRootThenAccelerationEffect>();
-
-        effect.ApplyOrRestart(move, rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds);
-
-        GameLog.Verbose($"[SkillExecutor][Target] RootThenAccel: root={rootDurationSeconds}s, accel=({extraForwardForce},{extraMaxSpeed}) for {accelDurationSeconds}s");
+        MovementEffects.ApplyRootThenAccelerationOwner(rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds);
     }
 
     public void ApplyInvertTurnInputToOwner(float durationSeconds)
     {
         if (!IsServerInitialized) return;
 
-        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
-            predictionSkillMovementBridge.TryApplyInvertTurn(durationSeconds, "SkillExecutor.Server");
+        MovementEffects.ApplyInvertTurnInputServer(durationSeconds);
 
         NetworkConnection conn = Owner;
         if (conn == null) return;
@@ -434,36 +398,14 @@ public class SkillExecutor : NetworkBehaviour
     [TargetRpc]
     private void ApplyInvertTurnInputTargetRpc(NetworkConnection conn, float durationSeconds)
     {
-        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
-        {
-            if (!IsServerInitialized)
-                predictionSkillMovementBridge.TryApplyInvertTurn(durationSeconds, "SkillExecutor.Target");
-            GameLog.Verbose($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed invert-turn to PredictionV2 bridge.");
-            return;
-        }
-
-        var move = GetComponent<BuddahMovement>();
-        if (move == null)
-        {
-            Debug.LogWarning("[SkillExecutor][Target] Missing BuddahMovement for invert-turn.");
-            return;
-        }
-
-        var effect = GetComponent<MovementInvertTurnInputEffect>();
-        if (effect == null)
-            effect = gameObject.AddComponent<MovementInvertTurnInputEffect>();
-
-        effect.ApplyOrRefresh(move, durationSeconds);
-
-        GameLog.Verbose($"[SkillExecutor][Target] InvertTurnInput for {durationSeconds}s");
+        MovementEffects.ApplyInvertTurnInputOwner(durationSeconds);
     }
 
     public void ApplyScaleToOwner(float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds, float massMultiplier, float forwardForceMultiplier)
     {
         if (!IsServerInitialized) return;
 
-        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
-            predictionSkillMovementBridge.TryApplyScale(scaleMultiplier, durationSeconds, massMultiplier, forwardForceMultiplier, "SkillExecutor.Server");
+        MovementEffects.ApplyScaleServer(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
 
         NetworkConnection conn = Owner;
         if (conn == null) return;
@@ -474,30 +416,10 @@ public class SkillExecutor : NetworkBehaviour
     [TargetRpc]
     private void ApplyScaleTargetRpc(NetworkConnection conn, float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds, float massMultiplier, float forwardForceMultiplier)
     {
-        if (UsePredictionMovementBridge() && predictionSkillMovementBridge != null)
-        {
-            if (!IsServerInitialized)
-                predictionSkillMovementBridge.TryApplyScale(scaleMultiplier, durationSeconds, massMultiplier, forwardForceMultiplier, "SkillExecutor.Target");
-
-            var visualEffect = GetComponent<PlayerScaleEffect>();
-            if (visualEffect == null)
-                visualEffect = gameObject.AddComponent<PlayerScaleEffect>();
-
-            visualEffect.ApplyOrRefresh(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
-            GameLog.Verbose($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed movement scale to PredictionV2 bridge and kept visual scale effect locally.");
-            return;
-        }
-
-        var effect = GetComponent<PlayerScaleEffect>();
-        if (effect == null)
-            effect = gameObject.AddComponent<PlayerScaleEffect>();
-
-        effect.ApplyOrRefresh(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
-
-        GameLog.Verbose($"[SkillExecutor][Target] Scale x{scaleMultiplier:0.##} for {durationSeconds}s (enter={enterDurationSeconds:0.##}, restore={restoreDurationSeconds:0.##})");
+        MovementEffects.ApplyScaleOwner(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
     }
 
-    private bool UsePredictionMovementBridge()
+    internal bool UsePredictionMovementBridge()
     {
         if (predictionBootstrap == null) predictionBootstrap = GetComponent<BuddahPredictionBootstrap>();
         if (predictionSkillMovementBridge == null) predictionSkillMovementBridge = GetComponent<BuddahPredictionSkillMovementBridge>();
@@ -508,16 +430,33 @@ public class SkillExecutor : NetworkBehaviour
                && predictionSkillMovementBridge.IsPredictionMovementActive();
     }
 
+    private T ResolveInHierarchy<T>(bool parentsBeforeChildren) where T : Component
+    {
+        T result = GetComponent<T>();
+        if (result != null)
+            return result;
+
+        if (parentsBeforeChildren)
+        {
+            result = GetComponentInParent<T>();
+            if (result == null)
+                result = GetComponentInChildren<T>(true);
+        }
+        else
+        {
+            result = GetComponentInChildren<T>(true);
+            if (result == null)
+                result = GetComponentInParent<T>();
+        }
+        return result;
+    }
+
     private void ResolveObsessionFigure()
     {
         if (_obs != null)
             return;
 
-        _obs = GetComponent<ObsessionFigure>();
-        if (_obs == null)
-            _obs = GetComponentInParent<ObsessionFigure>();
-        if (_obs == null)
-            _obs = GetComponentInChildren<ObsessionFigure>(true);
+        _obs = ResolveInHierarchy<ObsessionFigure>(true);
     }
 
     public void PlayFeelLocal(string eventId)
@@ -535,15 +474,7 @@ public class SkillExecutor : NetworkBehaviour
         if (feelRouter != null)
             return;
 
-        feelRouter = GetComponent<SkillFeelRouter>();
-        if (feelRouter != null)
-            return;
-
-        feelRouter = GetComponentInChildren<SkillFeelRouter>(true);
-        if (feelRouter != null)
-            return;
-
-        feelRouter = GetComponentInParent<SkillFeelRouter>();
+        feelRouter = ResolveInHierarchy<SkillFeelRouter>(false);
     }
 
     private void TriggerAntiAnimationLocal()
@@ -562,18 +493,10 @@ public class SkillExecutor : NetworkBehaviour
         if (characterAnimator != null)
             return;
 
-        characterAnimator = GetComponent<Animator>();
-        if (characterAnimator != null)
-            return;
-
-        characterAnimator = GetComponentInChildren<Animator>(true);
-        if (characterAnimator != null)
-            return;
-
-        characterAnimator = GetComponentInParent<Animator>();
+        characterAnimator = ResolveInHierarchy<Animator>(false);
     }
 
-    private void ShowAccelerationTrail(float durationSeconds)
+    internal void ShowAccelerationTrail(float durationSeconds)
     {
         ResolveAccelerationTrailController();
 
@@ -596,15 +519,7 @@ public class SkillExecutor : NetworkBehaviour
         if (accelerationTrailController != null)
             return;
 
-        accelerationTrailController = GetComponent<PlayerAccelerationTrail>();
-        if (accelerationTrailController != null)
-            return;
-
-        accelerationTrailController = GetComponentInChildren<PlayerAccelerationTrail>(true);
-        if (accelerationTrailController != null)
-            return;
-
-        accelerationTrailController = GetComponentInParent<PlayerAccelerationTrail>();
+        accelerationTrailController = ResolveInHierarchy<PlayerAccelerationTrail>(false);
     }
 
     private bool IsRaceGameplayBlocked()
@@ -659,65 +574,8 @@ public class SkillExecutor : NetworkBehaviour
 
     private IEnumerator PlayCameraFovBoostRoutine(float fovOffset, float rampInSeconds, float durationSeconds, float settleSeconds, AnimationCurve rampInCurve, AnimationCurve settleCurve)
     {
-        if (playerCamera == null)
-            yield break;
-
-        AnimationCurve resolvedRampInCurve = rampInCurve ?? AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
-        AnimationCurve resolvedSettleCurve = settleCurve ?? AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
-
-        if (rampInSeconds <= 0f)
-        {
-            playerCamera.SetRuntimeFieldOfViewOffset(fovOffset);
-        }
-        else
-        {
-            float safeRampInSeconds = Mathf.Max(0.001f, rampInSeconds);
-            float rampInElapsed = 0f;
-            while (rampInElapsed < safeRampInSeconds)
-            {
-                if (playerCamera == null)
-                    yield break;
-
-                float normalizedTime = Mathf.Clamp01(rampInElapsed / safeRampInSeconds);
-                float curveValue = Mathf.Clamp01(resolvedRampInCurve.Evaluate(normalizedTime));
-                playerCamera.SetRuntimeFieldOfViewOffset(fovOffset * curveValue);
-                rampInElapsed += Time.deltaTime;
-                yield return null;
-            }
-
-            if (playerCamera != null)
-                playerCamera.SetRuntimeFieldOfViewOffset(fovOffset);
-        }
-
-        if (durationSeconds > 0f)
-            yield return new WaitForSeconds(durationSeconds);
-
-        if (settleSeconds <= 0f)
-        {
-            if (playerCamera != null)
-                playerCamera.SetRuntimeFieldOfViewOffset(0f);
-        }
-        else
-        {
-            float safeSettleSeconds = Mathf.Max(0.001f, settleSeconds);
-            float elapsed = 0f;
-            while (elapsed < safeSettleSeconds)
-            {
-                if (playerCamera == null)
-                    yield break;
-
-                float normalizedTime = Mathf.Clamp01(elapsed / safeSettleSeconds);
-                float curveValue = Mathf.Clamp01(resolvedSettleCurve.Evaluate(normalizedTime));
-                playerCamera.SetRuntimeFieldOfViewOffset(fovOffset * curveValue);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-        }
-
-        if (playerCamera != null)
-            playerCamera.SetRuntimeFieldOfViewOffset(0f);
-
-        _cameraFovPulseRoutine = null;
+        return SkillCameraFov.Run(() => playerCamera, () => _cameraFovPulseRoutine = null,
+            fovOffset, rampInSeconds, durationSeconds, settleSeconds, rampInCurve, settleCurve);
     }
 
     private string ResolveAntiSkillId(string skillId, SkillAction skill)
@@ -750,15 +608,7 @@ public class SkillExecutor : NetworkBehaviour
         if (playerCamera != null)
             return;
 
-        playerCamera = GetComponent<PlayerCamera>();
-        if (playerCamera != null)
-            return;
-
-        playerCamera = GetComponentInChildren<PlayerCamera>(true);
-        if (playerCamera != null)
-            return;
-
-        playerCamera = GetComponentInParent<PlayerCamera>();
+        playerCamera = ResolveInHierarchy<PlayerCamera>(false);
     }
 
     public void PlayChargedBurstVisualsServer(string skillId, Vector3[] starts, Vector3 direction,

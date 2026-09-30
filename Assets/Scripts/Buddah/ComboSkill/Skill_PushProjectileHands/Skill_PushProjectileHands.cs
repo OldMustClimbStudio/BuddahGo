@@ -82,7 +82,7 @@ public class Skill_PushProjectileHands : SkillAction
                 delayedPushActionSeconds);
         }
 
-        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, buffDurationSeconds, $"{skillId}_observers");
+        PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, buffDurationSeconds);
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)

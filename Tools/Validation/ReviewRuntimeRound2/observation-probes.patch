@@ -1,0 +1,226 @@
+diff --git a/Assets/Scripts/Buddah/BuddahHandControl.cs b/Assets/Scripts/Buddah/BuddahHandControl.cs
+index f83425f..844f867 100644
+--- a/Assets/Scripts/Buddah/BuddahHandControl.cs
++++ b/Assets/Scripts/Buddah/BuddahHandControl.cs
+@@ -431,6 +431,11 @@ public class BuddahHandControl : NetworkBehaviour
+     private void StartDelayedPushAnimationLocal(bool isLeft)
+     {
+         float delayedPushSeconds = GetChargedPushActionDelayLocal();
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++        NewBuddah.PredictionV2.Core.BuddahReviewTrace.Sink?.Invoke(new{kind="pushAccepted",owner=OwnerId,isLeft,
++            time=Time.time,realtime=Time.realtimeSinceStartupAsDouble,localTick=TimeManager.LocalTick,serverTick=TimeManager.Tick,
++            delay=delayedPushSeconds,cooldown=GetActivePushCooldownLocal(),next=isLeft?_nextPushLocalTimeLeft:_nextPushLocalTimeRight});
++#endif
+         if (delayedPushSeconds <= 0f)
+         {
+             PlayPushAnimationLocal(isLeft);
+@@ -450,6 +455,10 @@ public class BuddahHandControl : NetworkBehaviour
+     {
+         if (!IsOwner || animator == null)
+             return;
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++        NewBuddah.PredictionV2.Core.BuddahReviewTrace.Sink?.Invoke(new{kind="pushAnimation",owner=OwnerId,isLeft,
++            time=Time.time,realtime=Time.realtimeSinceStartupAsDouble,localTick=TimeManager.LocalTick,serverTick=TimeManager.Tick});
++#endif
+ 
+         if (isLeft)
+         {
+@@ -570,6 +579,11 @@ public class BuddahHandControl : NetworkBehaviour
+         Vector3 spawnPos = GetPushSpawnPosition(handWorldPositionSnapshot, isLeft, dir, scaleMultiplier, forwardOffset, heightOffset, useProjectileMode);
+ 
+         Quaternion spawnRot = Quaternion.LookRotation(dir, Vector3.up);
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++        NewBuddah.PredictionV2.Core.BuddahReviewTrace.Sink?.Invoke(new{kind="pushSpawn",owner=OwnerId,isLeft,
++            time=Time.time,realtime=Time.realtimeSinceStartupAsDouble,localTick=TimeManager.LocalTick,serverTick=TimeManager.Tick,
++            useProjectileMode,useChargedProjectileRuntime,position=new[]{spawnPos.x,spawnPos.y,spawnPos.z}});
++#endif
+ 
+         if (useProjectileMode)
+         {
+@@ -1062,6 +1076,21 @@ public class BuddahHandControl : NetworkBehaviour
+         string resolvedProgressProperty = !string.IsNullOrWhiteSpace(_projectileChargedProgressPropertyLocal) ? _projectileChargedProgressPropertyLocal : DefaultChargedProjectileProgressProperty;
+         float scaleMultiplier = GetPushScaleMultiplier();
+         Vector3 launchEffectWorldOffset = (-dir * (_projectileForwardOffsetLocal * scaleMultiplier)) + (Vector3.up * (-_projectileHeightOffsetLocal * scaleMultiplier));
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++        if (NewBuddah.PredictionV2.Core.BuddahReviewTrace.Sink != null)
++        {
++            var bridge = GetComponent<NewBuddah.PredictionV2.Visual.BuddahPredictionVisualRootBridge>();
++            Vector3 visualOffset = bridge != null ? bridge.GetVisualRoot().position - transform.position : Vector3.zero;
++            // The controlled review driver presses the left hand only; this observes its
++            // configured emitter offset on the rendered model, not the animated hand bone.
++            Vector3 localAnchor = GetPushSpawnPosition(GetHandWorldPositionSnapshot(true), true, dir, scaleMultiplier,
++                _projectileForwardOffsetLocal, _projectileHeightOffsetLocal, true) + visualOffset;
++            NewBuddah.PredictionV2.Core.BuddahReviewTrace.Sink(new {kind="visualSpawnAnchor",owner=OwnerId,localOwner=IsOwner,
++                time=Time.realtimeSinceStartupAsDouble,localTick=TimeManager.LocalTick,serverTick=TimeManager.Tick,
++                start=new[]{spawnPos.x,spawnPos.y,spawnPos.z},anchor=new[]{localAnchor.x,localAnchor.y,localAnchor.z},
++                distance=Vector3.Distance(spawnPos,localAnchor),longitudinalError=Vector3.Dot(spawnPos-localAnchor,dir)});
++        }
++#endif
+ 
+         ChargedHandProjectileRuntime.SpawnVisual(
+             spawnPos,
+diff --git a/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.Events.cs b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.Events.cs
+index 28881ed..066760f 100644
+--- a/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.Events.cs
++++ b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.Events.cs
+@@ -470,6 +470,9 @@ namespace NewBuddah.PredictionV2.Core
+                 sourceType: (BuddahPredictedImpulseSourceType)cmd.SourceType,
+                 sourceObjectId: cmd.SourceObjectId);
+             ApplyPushGraceFromImpulse(currentTick, syntheticEventData);
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++            ReviewRecord("impulse", eventId: entry.Id, eventTick: entry.EventTick, logicalId: entry.LogicalId);
++#endif
+ 
+             bootstrap.LogVerbose(
+                 $"impulse consumed (NEW authoritative) entryId={entry.Id} logicalId={entry.LogicalId} source={(BuddahPredictedImpulseSourceType)cmd.SourceType} tick={currentTick} " +
+diff --git a/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.ReviewTrace.cs b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.ReviewTrace.cs
+new file mode 100644
+index 0000000..5441225
+--- /dev/null
++++ b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.ReviewTrace.cs
+@@ -0,0 +1,56 @@
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++using System;
++using UnityEngine;
++namespace NewBuddah.PredictionV2.Core
++{
++    // Opt-in observer only; no state writes, RPCs or serialized fields.
++    public static class BuddahReviewTrace
++    {
++        public static Action<object> Sink;
++        public static bool Detailed = true;
++    }
++    public partial class BuddahPredictedMotor
++    {
++        private uint _reviewInputTick;
++        private string _reviewReplicateState;
++        private ulong _reviewReconcilePass;
++        private ulong _reviewConsumptionSequence;
++        private static float[] ReviewVec(Vector3 v) => new[] {v.x,v.y,v.z};
++        private void ReviewRecord(string kind, uint snapshotTick = 0, float correction = 0,
++            BuddahPredictedLaunchHandoffState raw = default, BuddahPredictedModifierState rawModifier = default,
++            uint eventId = 0, uint eventTick = 0, uint logicalId = 0)
++        {
++            if (BuddahReviewTrace.Sink == null || !BuddahReviewTrace.Detailed) return;
++            if (kind == "reconcile") _reviewReconcilePass++;
++            if (kind == "impulse") _reviewConsumptionSequence++;
++            BuddahReviewTrace.Sink(new {
++                kind, time=Time.realtimeSinceStartupAsDouble, owner=OwnerId, obj=ObjectId,
++                server=IsServerInitialized, localOwner=IsOwner,
++                localTick=TimeManager.LocalTick, serverTick=TimeManager.Tick,
++                inputTick=_reviewInputTick, replicateState=_reviewReplicateState,
++                snapshotTick, correction, eventId, eventTick, logicalId,
++                reconcilePass=_reviewReconcilePass,consumptionSequence=_reviewConsumptionSequence,
++                clientStateTick=PredictionManager.ClientStateTick,serverStateTick=PredictionManager.ServerStateTick,
++                clientReplayTick=PredictionManager.ClientReplayTick,serverReplayTick=PredictionManager.ServerReplayTick,
++                phase=_handoffState.CurrentState.ToString(), active=_handoffState.IsActive,
++                handoffId=_handoffState.EventId, start=_handoffState.StartTick,
++                inheritEnd=_handoffState.InheritEndTick, blendEnd=_handoffState.BlendEndTick,
++                alpha=_handoffState.BlendAlpha, steeringUntil=_handoffState.SuppressSteeringUntilTick,
++                bypassUntil=_handoffState.RoomBypassUntilTick,
++                rawId=raw.EventId, rawStart=raw.StartTick, rawInheritEnd=raw.InheritEndTick,
++                rawBlendEnd=raw.BlendEndTick, rawPhase=raw.CurrentState.ToString(),
++                modifiers=new[]{_modifierState.RootUntilTick,_modifierState.AccelUntilTick,
++                    _modifierState.PostRootAccelUntilTick,_modifierState.ScaleUntilTick,
++                    _modifierState.InvertTurnUntilTick,_modifierState.PushGraceUntilTick,
++                    _modifierState.SuppressSteeringUntilTick,_modifierState.RoomBypassUntilTick},
++                rawModifiers=new[]{rawModifier.RootUntilTick,rawModifier.AccelUntilTick,
++                    rawModifier.PostRootAccelUntilTick,rawModifier.ScaleUntilTick,
++                    rawModifier.InvertTurnUntilTick,rawModifier.PushGraceUntilTick,
++                    rawModifier.SuppressSteeringUntilTick,rawModifier.RoomBypassUntilTick},
++                impulseConsumed=_impulseConsumedThisTick,
++                position=ReviewVec(rb.position),velocity=ReviewVec(rb.velocity)
++            });
++        }
++    }
++}
++#endif
+diff --git a/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.ReviewTrace.cs.meta b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.ReviewTrace.cs.meta
+new file mode 100644
+index 0000000..1113b8a
+--- /dev/null
++++ b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.ReviewTrace.cs.meta
+@@ -0,0 +1,11 @@
++fileFormatVersion: 2
++guid: d1e24936cbaa47009b31b2c20d2f1abc
++MonoImporter:
++  externalObjects: {}
++  serializedVersion: 2
++  defaultReferences: []
++  executionOrder: 0
++  icon: {instanceID: 0}
++  userData:
++  assetBundleName:
++  assetBundleVariant:
+diff --git a/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs
+index 83da18c..9b758d7 100644
+--- a/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs
++++ b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.cs
+@@ -5,7 +5,6 @@ using FishNet.Transporting;
+ using FishNet.Utility.Template;
+ using System;
+ using System.Text;
+-using NewBuddah.PredictionV2.Debugging;
+ using NewBuddah.PredictionV2.Bootstrap;
+ using NewBuddah.PredictionV2.Config;
+ using NewBuddah.PredictionV2.Integration;
+@@ -338,6 +337,10 @@ namespace NewBuddah.PredictionV2.Core
+             _shadowScratch = default;
+ #endif
+ 
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++            _reviewInputTick = data.GetTick();
++            _reviewReplicateState = state.ToString();
++#endif
+             InitializePredictionRigidbody();
+             uint currentTick = TimeManager != null ? TimeManager.LocalTick : data.GetTick();
+ 
+@@ -411,6 +414,9 @@ namespace NewBuddah.PredictionV2.Core
+                 FinalizeImpulseDebugAfterSimulate();
+                 UpdateHandoffDebug(currentTick);
+                 UpdateReplicateDebug(data, state, "writer-relinquished", writerReason);
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++            ReviewRecord("run");
++#endif
+                 LogPredictionIntroWriterState(currentTick, true, writerReason, introControlActive, externalControlActive, authoritativePending);
+                 return;
+             }
+@@ -496,6 +502,9 @@ namespace NewBuddah.PredictionV2.Core
+             FinalizeImpulseDebugAfterSimulate();
+             UpdateHandoffDebug(currentTick);
+             UpdateReplicateDebug(data, state, "active");
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++            ReviewRecord("run");
++#endif
+         }
+ 
+         [Reconcile]
+@@ -512,8 +521,18 @@ namespace NewBuddah.PredictionV2.Core
+             bool introControlled = data.IntroControlActive || data.ExternalKinematicControlActive;
+             bool authoritativePending = IsPredictionAuthoritativeHandoffPending();
+             bool skipOwnerIntroReconcile = ShouldSkipTransformReconcileDuringIntroOrPendingHandoff(data, authoritativePending, out string reconcileReason);
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++            Vector3 reviewPreTransform = transform.localPosition;
++#endif
+             if (!skipOwnerIntroReconcile)
+                 _predictionRigidbody.Reconcile(data.RigidbodyState);
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++            BuddahReviewTrace.Sink?.Invoke(new {kind="transformCorrection",owner=OwnerId,localOwner=IsOwner,
++                localTick=TimeManager.LocalTick,serverTick=TimeManager.Tick,snapshotTick=data.GetTick(),
++                skipped=skipOwnerIntroReconcile,reason=reconcileReason,
++                correction=Vector3.Distance(reviewPreTransform,transform.localPosition),
++                time=Time.realtimeSinceStartupAsDouble});
++#endif
+             Vector3 postReconcilePosition = rb != null ? rb.position : Vector3.zero;
+             Vector3 postReconcileVelocity = rb != null ? rb.velocity : Vector3.zero;
+             LogPredictionIntroReconcileState(
+@@ -567,6 +586,9 @@ namespace NewBuddah.PredictionV2.Core
+             _consoleLogSnapshot.CaptureReconcile(data.GetTick(), data.PlanarSpeed,
+                 bootstrap.DebugState.lastReconcilePositionDelta, bootstrap.DebugState.lastReconcileVelocityDelta,
+                 bootstrap.DebugState.lastReconcileVelocityPlanarDelta, bootstrap.DebugState.lastReconcileVelocityVerticalDelta);
++#if UNITY_EDITOR || DEVELOPMENT_BUILD
++            ReviewRecord("reconcile", data.GetTick(), Vector3.Distance(preReconcilePosition, postReconcilePosition), data.HandoffState, data.ModifierState);
++#endif
+             SyncModifierDebugState(stateTick);
+             UpdateHandoffDebug(stateTick);
+ 

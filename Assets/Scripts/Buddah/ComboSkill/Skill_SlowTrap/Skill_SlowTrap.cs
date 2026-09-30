@@ -57,7 +57,7 @@ public class Skill_SlowTrap : SkillAction
             debugReferenceLocalScale);
 
         var vfx = caster.GetComponent<SkillVfxReplicator>();
-        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : zoneDurationSeconds;
+        float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, zoneDurationSeconds);
         if (vfx != null)
             vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
 

@@ -23,6 +23,7 @@ public static class ProjectConfigValidationMenu
             string path = AssetDatabase.GUIDToAssetPath(guids[i]);
             ProjectConfigDatabase database = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(path);
             List<ProjectConfigValidationMessage> messages = ProjectConfigValidator.Validate(database);
+            messages.AddRange(SkillConfigCrossValidator.Validate(database));
 
             for (int j = 0; j < messages.Count; j++)
             {

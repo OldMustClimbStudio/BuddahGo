@@ -79,9 +79,9 @@ namespace SteamMultiplayer.Network
         {
             StringBuilder sb = new StringBuilder();
             sb.Append(
-                $"players={owner.Players.Count} managersReadyCount={handshake._raceSceneManagersReadyClientIds.Count} " +
-                $"introAssignmentReadyCount={handshake._introAssignmentReadyClientIds.Count} introVisualReadyCount={handshake._introVisualReadyClientIds.Count} " +
-                $"gameplayLiveCount={handshake._gameplayLiveClientIds.Count} goIssued={owner.IsAuthoritativeGoIssued} movementUnlocked={owner.IsGameplayMovementUnlocked}");
+                $"players={owner.Players.Count} managersReadyCount={handshake.SceneManagersReadyCount} " +
+                $"introAssignmentReadyCount={handshake.ReadyCount(RaceStartHandshake.Stage.Assignment)} introVisualReadyCount={handshake.ReadyCount(RaceStartHandshake.Stage.Visual)} " +
+                $"gameplayLiveCount={handshake.ReadyCount(RaceStartHandshake.Stage.Gameplay)} goIssued={owner.IsAuthoritativeGoIssued} movementUnlocked={owner.IsGameplayMovementUnlocked}");
 
             UnityEngine.SceneManagement.Scene raceScene = string.IsNullOrWhiteSpace(owner.DiagnosticRaceSceneName)
                 ? default
@@ -102,13 +102,13 @@ namespace SteamMultiplayer.Network
                 bool authenticated = hasConn && conn.IsAuthenticated;
                 bool inRaceScene = hasConn && sceneConnections != null && sceneConnections.Contains(conn);
                 bool hasRacePlayer = hasConn && owner.HasOwnedRacePlayer(conn);
-                bool managersReady = handshake._raceSceneManagersReadyClientIds.Contains(playerState.PlayerId);
-                bool introAssignmentReady = handshake._introAssignmentReadyClientIds.Contains(playerState.PlayerId);
-                bool introVisualReady = handshake._introVisualReadyClientIds.Contains(playerState.PlayerId);
-                bool gameplayLive = handshake._gameplayLiveClientIds.Contains(playerState.PlayerId);
-                handshake._introAssignmentReadySequenceByClientId.TryGetValue(playerState.PlayerId, out int introAssignmentSeq);
-                handshake._introVisualReadySequenceByClientId.TryGetValue(playerState.PlayerId, out int introVisualSeq);
-                handshake._gameplayLiveSequenceByClientId.TryGetValue(playerState.PlayerId, out int gameplayLiveSeq);
+                bool managersReady = handshake.AreSceneManagersReady(playerState.PlayerId);
+                bool introAssignmentReady = handshake.HasReported(playerState.PlayerId, RaceStartHandshake.Stage.Assignment);
+                bool introVisualReady = handshake.HasReported(playerState.PlayerId, RaceStartHandshake.Stage.Visual);
+                bool gameplayLive = handshake.HasReported(playerState.PlayerId, RaceStartHandshake.Stage.Gameplay);
+                handshake.TryGetReportedSequence(playerState.PlayerId, RaceStartHandshake.Stage.Assignment, out int introAssignmentSeq);
+                handshake.TryGetReportedSequence(playerState.PlayerId, RaceStartHandshake.Stage.Visual, out int introVisualSeq);
+                handshake.TryGetReportedSequence(playerState.PlayerId, RaceStartHandshake.Stage.Gameplay, out int gameplayLiveSeq);
                 sb.Append(
                     $" | p{playerState.PlayerId}:{playerState.PlayerName} host={playerState.IsHost} roomReady={playerState.IsReady} " +
                     $"conn={hasConn} auth={authenticated} scene={inRaceScene} racePlayer={hasRacePlayer} " +

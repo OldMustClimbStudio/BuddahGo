@@ -121,6 +121,8 @@ internal sealed class OwnerMovementEffectApplier
         GameLog.Verbose($"[SkillExecutor][Target] InvertTurnInput for {durationSeconds}s");
     }
 
+    // Keep the SkillExecutor forwarding signature aligned with presentation settings.
+    // Enter/restore durations are consumed by ScaleSkillPresentation, not server physics.
     internal void ApplyScaleServer(float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds, float massMultiplier, float forwardForceMultiplier)
     {
         if (_owner.UsePredictionMovementBridge() && _owner.PredictionMovementBridge != null)

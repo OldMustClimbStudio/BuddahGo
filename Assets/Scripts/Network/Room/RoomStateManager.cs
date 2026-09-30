@@ -299,12 +299,12 @@ namespace SteamMultiplayer.Network
 
         public bool AreAllClientsIntroVisualsReadyForSequenceServer(int sequenceId)
         {
-            return AreAllClientsReadyForSequenceServer(sequenceId, _raceStartHandshake._introVisualReadySequenceByClientId);
+            return AreAllClientsReadyForSequenceServer(sequenceId, RaceStartHandshake.Stage.Visual);
         }
 
         public bool AreAllClientsGameplayLiveForSequenceServer(int sequenceId)
         {
-            return AreAllClientsReadyForSequenceServer(sequenceId, _raceStartHandshake._gameplayLiveSequenceByClientId);
+            return AreAllClientsReadyForSequenceServer(sequenceId, RaceStartHandshake.Stage.Gameplay);
         }
 
         public bool TryGetPlayer(int playerId, out RoomPlayerState player)
@@ -959,7 +959,7 @@ namespace SteamMultiplayer.Network
                     return false;
                 }
 
-                if (!_raceStartHandshake._raceSceneManagersReadyClientIds.Contains(playerState.PlayerId))
+                if (!_raceStartHandshake.AreSceneManagersReady(playerState.PlayerId))
                 {
                     if (_enableDebugLogs && NetDebug.EnableVerboseLog)
                         LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} has not reported race scene managers ready. details={BuildServerRaceReadinessSummary()}");
@@ -1011,7 +1011,7 @@ namespace SteamMultiplayer.Network
             if (caller == null || !caller.IsAuthenticated)
                 return;
 
-            _raceStartHandshake._raceSceneManagersReadyClientIds.Add(caller.ClientId);
+            _raceStartHandshake.MarkSceneManagersReady(caller.ClientId);
             GameLog.Verbose($"[SceneDiag][Server] Client {caller.ClientId} reported race scene managers ready. details={BuildServerRaceReadinessSummary()}");
             EvaluateRaceStartReadinessServer();
         }
@@ -1020,7 +1020,7 @@ namespace SteamMultiplayer.Network
         private void ReportIntroAssignmentAppliedServerRpc(int sequenceId, NetworkConnection caller = null)
         {
             if (!TryRecordReadySequenceServer(sequenceId, caller,
-                    _raceStartHandshake._introAssignmentReadyClientIds, _raceStartHandshake._introAssignmentReadySequenceByClientId))
+                    RaceStartHandshake.Stage.Assignment))
                 return;
             GameLog.Verbose($"[SceneDiag][Server] Client {caller.ClientId} reported intro assignment ready for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
             EvaluateRaceStartReadinessServer();
@@ -1030,7 +1030,7 @@ namespace SteamMultiplayer.Network
         private void ReportIntroVisualPreparedServerRpc(int sequenceId, NetworkConnection caller = null)
         {
             if (!TryRecordReadySequenceServer(sequenceId, caller,
-                    _raceStartHandshake._introVisualReadyClientIds, _raceStartHandshake._introVisualReadySequenceByClientId))
+                    RaceStartHandshake.Stage.Visual))
                 return;
             GameLog.Verbose($"[IntroVisual][Server] Client {caller.ClientId} reported visual prepared for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
         }
@@ -1039,7 +1039,7 @@ namespace SteamMultiplayer.Network
         private void ReportGameplayLiveServerRpc(int sequenceId, NetworkConnection caller = null)
         {
             if (!TryRecordReadySequenceServer(sequenceId, caller,
-                    _raceStartHandshake._gameplayLiveClientIds, _raceStartHandshake._gameplayLiveSequenceByClientId))
+                    RaceStartHandshake.Stage.Gameplay))
                 return;
             GameLog.Verbose($"[GameplayUnlock][Server] Client {caller.ClientId} reported gameplay live for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
 
@@ -1056,18 +1056,18 @@ namespace SteamMultiplayer.Network
             return RaceStartHandshake.TryMarkLocalSequence(IsClientInitialized, sequenceId, ref reportedSequenceId);
         }
 
-        private bool AreAllClientsReadyForSequenceServer(int sequenceId, Dictionary<int, int> readiness)
+        private bool AreAllClientsReadyForSequenceServer(int sequenceId, RaceStartHandshake.Stage stage)
         {
-            return RaceStartHandshake.AreAllReadyForSequence(IsServerInitialized, Players, sequenceId, readiness);
+            return _raceStartHandshake.AreAllReadyForSequence(IsServerInitialized, Players, sequenceId, stage);
         }
 
         private bool TryRecordReadySequenceServer(int sequenceId, NetworkConnection caller,
-            HashSet<int> readyClientIds, Dictionary<int, int> readySequences)
+            RaceStartHandshake.Stage stage)
         {
             if (caller == null || !caller.IsAuthenticated)
                 return false;
 
-            RaceStartHandshake.RecordReadySequence(caller.ClientId, sequenceId, readyClientIds, readySequences);
+            _raceStartHandshake.RecordReadySequence(caller.ClientId, sequenceId, stage);
             return true;
         }
 

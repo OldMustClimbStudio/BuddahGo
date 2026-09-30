@@ -34,7 +34,7 @@
 | P2-5e | motor 调试摘要惰性构建 | done-unverified | bff7f9e | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
 | P2-5f | RSM 诊断摘要门控 | done-unverified | b9ccad5 | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
 | P2-5g | HealthReport 帧更新门控 | done-unverified | cbe59ca | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
-| P3-1 | SkillAction 基类公共方法 | todo | | | |
+| P3-1 | SkillAction 基类公共方法 | doing | | 预检 14 个 duration + 10 个 Feel 模板均为相同纯表达式/调用 | 字段留在子类，Reflection 预施放入口保持。 |
 | P3-2 | Anti 类改为继承 | todo | | | |
 | P3-3 | SkillExecutor 下沉 | todo | | | |
 | P3-4 | 配置交叉校验（编辑器） | todo | | | |
@@ -90,3 +90,5 @@
 - B11 决定：用户确认 SlowTrap 反噬“就是没特效的”；保留空 id 与现有定身后加速，只在独立修复中跳过无效 VFX 调用。
 - P3-2 预检：更改 Anti 继承会迁移序列化字段声明类，与 I1 冲突。用户要求以保留全部功能为准，执行方案改为共享普通方法，保留原继承、字段声明、GUID 和资源值；不做字段迁移。
 - 用户补充验收：技能/反噬的全屏变亮、必要摄像机移动/FOV/震动必须存在，后续回归采样实际 Volume 和相机状态并检查恢复。
+
+- 技能表现修复：[PR #52](https://github.com/OldMustClimbStudio/BuddahGo/pull/52)，base fix/teleport-handoff-shadow，979fb87；编译通过，运行验证与 P3 集中进行。

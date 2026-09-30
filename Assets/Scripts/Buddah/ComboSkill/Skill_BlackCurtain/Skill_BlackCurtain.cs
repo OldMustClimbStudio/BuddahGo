@@ -35,7 +35,7 @@ public class Skill_BlackCurtain : SkillAction
         if (caster == null)
             return;
 
-        float actualDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds;
+        float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
         GameLog.Verbose($"[Skill_BlackCurtain][Server] Triggered by {caster.name}, totalDuration={actualDuration:0.00}s");
     }
 
@@ -71,8 +71,8 @@ public class Skill_BlackCurtain : SkillAction
             localShouldSeeEdge,
             center);
 
-        float actualDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds;
-        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualDuration, $"{skillId}_observers");
+        float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
+        PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, actualDuration);
 
         GameLog.Verbose($"[Skill_BlackCurtain][Observers] Local player affected by '{skillId}' (slot {slotIndex})");
     }

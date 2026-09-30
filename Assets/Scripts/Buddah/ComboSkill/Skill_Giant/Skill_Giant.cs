@@ -43,7 +43,7 @@ public class Skill_Giant : SkillAction
     {
         ApplyScaleEffect(caster);
 
-        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, durationSeconds, $"{skillId}_observers");
+        PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, durationSeconds);
         GameLog.Verbose($"[Skill_Giant][Observers] '{skillId}' triggered (slot {slotIndex})");
     }
 

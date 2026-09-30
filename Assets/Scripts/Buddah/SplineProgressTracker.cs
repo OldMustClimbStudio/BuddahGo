@@ -308,7 +308,7 @@ public class SplineProgressTracker : NetworkBehaviour
         _lastProjectionDiagnosticLogTime = Time.unscaledTime;
         if (NetDebug.EnableVerboseLog)
         {
-            Debug.Log(
+            GameLog.Verbose(
                 $"[SplineDiag][Tracker:{name}] introActive={introActive} progress={progress01:0.000} prev={previousProgress01:0.000} " +
                 $"chosenDeltaM={chosenDelta:0.000} globalDeltaM={deltaGlobal:0.000} localDeltaM={deltaLocal:0.000} " +
                 $"chosenT={chosenT:0.000} globalT={tGlobal:0.000} localT={tLocal:0.000} " +

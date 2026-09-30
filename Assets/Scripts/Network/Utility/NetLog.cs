@@ -6,7 +6,7 @@ namespace SteamMultiplayer.Network
     /// Centralised logging helper for the Steam Multiplayer framework.
     ///
     /// Log levels:
-    ///   - Info  : always shown (connection lifecycle, important state changes)
+    ///   - Info  : development-only informational messages
     ///   - Warn  : always shown (recoverable issues)
     ///   - Error : always shown (failures)
     ///   - Dev   : only shown when DEVELOPMENT_BUILD or UNITY_EDITOR is defined
@@ -20,9 +20,11 @@ namespace SteamMultiplayer.Network
         private const string TAG = "[SteamMP]";
 
         /// <summary>Standard informational message.</summary>
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         public static void Info(string message)
         {
-            Debug.Log($"{TAG} {message}");
+            GameLog.Verbose($"{TAG} {message}");
         }
 
         /// <summary>Warning – something unexpected but recoverable.</summary>
@@ -45,7 +47,7 @@ namespace SteamMultiplayer.Network
         [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         public static void Dev(string message)
         {
-            Debug.Log($"{TAG}[DEV] {message}");
+            GameLog.Verbose($"{TAG}[DEV] {message}");
         }
     }
 }

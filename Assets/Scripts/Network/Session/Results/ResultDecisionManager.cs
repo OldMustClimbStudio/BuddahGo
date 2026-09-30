@@ -18,8 +18,8 @@ namespace SteamMultiplayer.Network.Results
 
         [Header("Config")]
         [SerializeField, Min(1)] private int decisionDurationSeconds = 60;
-        [SerializeField] private string nextScenePropertySelection = "PropertySelection";
-        [SerializeField] private string returnSceneMainMenu = "MainMenu";
+        [SerializeField] private string nextScenePropertySelection = SceneNames.PropertySelection;
+        [SerializeField] private string returnSceneMainMenu = SceneNames.MainMenu;
 
         public readonly SyncList<ResultPlayerDecision> PlayerDecisions = new SyncList<ResultPlayerDecision>();
 
@@ -195,7 +195,7 @@ namespace SteamMultiplayer.Network.Results
                     PlayerDecisions.Add(new ResultPlayerDecision
                     {
                         ClientId = player.PlayerId,
-                        PlayerName = string.IsNullOrWhiteSpace(player.PlayerName) ? $"Player {player.PlayerId}" : player.PlayerName,
+                        PlayerName = string.IsNullOrWhiteSpace(player.PlayerName) ? PlayerIdentity.FallbackName(player.PlayerId) : player.PlayerName,
                         Choice = ResultPlayerChoice.None,
                         HasResponded = false
                     });
@@ -203,7 +203,7 @@ namespace SteamMultiplayer.Network.Results
             }
 
             _decisionCountdownRoutine = StartCoroutine(DecisionCountdownCoroutine());
-            Debug.Log($"[ResultDecisionManager] Decision phase started. participants={PlayerDecisions.Count}");
+            GameLog.Verbose($"[ResultDecisionManager] Decision phase started. participants={PlayerDecisions.Count}");
         }
 
         [Server]
@@ -289,7 +289,7 @@ namespace SteamMultiplayer.Network.Results
                 _decisionCountdownRoutine = null;
             }
 
-            Debug.Log($"[ResultDecisionManager] Finalized result decision={finalDecision} reason={reason}");
+            GameLog.Verbose($"[ResultDecisionManager] Finalized result decision={finalDecision} reason={reason}");
 
             if (RoomStateManager.Instance == null)
             {
@@ -322,10 +322,7 @@ namespace SteamMultiplayer.Network.Results
 
         private int GetLocalClientId()
         {
-            if (GameNetworkManager.Instance?.FishNetManager?.ClientManager?.Connection == null)
-                return -1;
-
-            return GameNetworkManager.Instance.FishNetManager.ClientManager.Connection.ClientId;
+            return PlayerIdentity.GetLocalClientId(GameNetworkManager.Instance?.FishNetManager?.ClientManager?.Connection);
         }
 
         [Server]

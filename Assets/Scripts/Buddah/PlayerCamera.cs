@@ -372,7 +372,7 @@ public class PlayerCamera : NetworkBehaviour
     private static void DebugLog(string message)
     {
         if (NetDebug.EnableVerboseLog)
-            Debug.Log(message);
+            GameLog.Verbose(message);
     }
 
     private bool ShouldUseStableIntroCamera()

@@ -62,7 +62,7 @@ namespace SteamMultiplayer.Network
         [Header("Stage Flow")]
         [SerializeField] private bool _registerDefaultStageProperties = true;
         [SerializeField] private int _stageDurationSeconds = 30;
-        [SerializeField] private string _resolvedMatchSceneName = "RaceMap";
+        [SerializeField] private string _resolvedMatchSceneName = SceneNames.RaceMap;
         [SerializeField, Min(0f)] private float _sceneTransitionFadeDurationSeconds = 1f;
         [SerializeField] private bool _preferTimelineForMatchTransition = true;
         [SerializeField] private bool _enableDebugLogs = false;
@@ -110,7 +110,7 @@ namespace SteamMultiplayer.Network
         {
             base.OnStartClient();
             Instance = this;
-            Debug.Log("[PropertySelection] OnStartClient - client received manager");
+            GameLog.Verbose("[PropertySelection] OnStartClient - client received manager");
             SubscribeSyncCollections();
             NotifySelectionStateChanged();
         }
@@ -453,17 +453,7 @@ namespace SteamMultiplayer.Network
             }
             UpsertSelection(caller.ClientId, propertyKey, optionId);
             LogDebug($"Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}");
-            if (AreAllRequiredSelectionsSubmittedForCurrentStage(definition))
-            {
-                StopAllCoroutines();
-                _stageCountdownActive.Value = false;
-                _stageCountdownSecondsRemaining.Value = 0;
-                RaiseSelectionStateChanged();
-                LogDebug($"All required selections submitted for stage '{propertyKey}'. Advancing immediately.");
-                AdvanceToNextStageServer();
-                return;
-            }
-            RaiseSelectionStateChanged();
+            FinishSelectionSubmissionServer(definition, propertyKey, false);
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -497,17 +487,30 @@ namespace SteamMultiplayer.Network
             for (int slotIndex = 0; slotIndex < SkillLoadout.SlotCount; slotIndex++)
             {
                 UpsertSelection(caller.ClientId, GetSkillLoadoutSlotPropertyKey(slotIndex), skillIds[slotIndex]);
-                Debug.Log($"[PropertySelection] Player {caller.ClientId} submitted skill slot {slotIndex} -> '{skillIds[slotIndex]}'");
+                GameLog.Verbose($"[PropertySelection] Player {caller.ClientId} submitted skill slot {slotIndex} -> '{skillIds[slotIndex]}'");
             }
 
-            Debug.Log($"[PropertySelection] Player {caller.ClientId} current submitted loadout: 0='{skillIds[0]}', 1='{skillIds[1]}', 2='{skillIds[2]}'");
+            GameLog.Verbose($"[PropertySelection] Player {caller.ClientId} current submitted loadout: 0='{skillIds[0]}', 1='{skillIds[1]}', 2='{skillIds[2]}'");
+            FinishSelectionSubmissionServer(definition, SkillLoadoutStageKey, true);
+        }
+
+        private bool IsSkillOptionValid(string skillId)
+        {
+            return IsOptionValid(SkillLoadoutStageKey, skillId);
+        }
+
+        private void FinishSelectionSubmissionServer(PropertyDefinitionRecord definition, string propertyKey, bool skillLoadout)
+        {
             if (AreAllRequiredSelectionsSubmittedForCurrentStage(definition))
             {
                 StopAllCoroutines();
                 _stageCountdownActive.Value = false;
                 _stageCountdownSecondsRemaining.Value = 0;
                 RaiseSelectionStateChanged();
-                Debug.Log("[PropertySelection] All players completed skill loadout stage. Advancing immediately.");
+                if (skillLoadout)
+                    GameLog.Verbose("[PropertySelection] All players completed skill loadout stage. Advancing immediately.");
+                else
+                    LogDebug($"All required selections submitted for stage '{propertyKey}'. Advancing immediately.");
                 AdvanceToNextStageServer();
                 return;
             }
@@ -579,7 +582,7 @@ namespace SteamMultiplayer.Network
             _stageCountdownSecondsRemaining.Value = Mathf.Max(1, _stageDurationSeconds);
             StartCoroutine(StageCountdownCoroutine());
             if (IsSkillLoadoutStage(stageKey))
-                Debug.Log("[PropertySelection] Skill loadout selection stage started.");
+                GameLog.Verbose("[PropertySelection] Skill loadout selection stage started.");
             else
                 LogDebug($"Stage started: '{stageKey}'");
             RaiseSelectionStateChanged();
@@ -644,7 +647,7 @@ namespace SteamMultiplayer.Network
                 yield return new WaitForSeconds(transitionDurationSeconds);
 
             SceneLoadData sceneLoadData = new SceneLoadData(_resolvedMatchSceneName) { ReplaceScenes = ReplaceOption.All };
-            Debug.Log($"[SceneDiag][Server] LoadGlobalScenes start scene='{_resolvedMatchSceneName}' replace={sceneLoadData.ReplaceScenes} time={Time.unscaledTime:F3}");
+            GameLog.Verbose($"[SceneDiag][Server] LoadGlobalScenes start scene='{_resolvedMatchSceneName}' replace={sceneLoadData.ReplaceScenes} time={Time.unscaledTime:F3}");
             InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
             LogDebug($"Loading match scene: {_resolvedMatchSceneName}");
         }
@@ -709,10 +712,7 @@ namespace SteamMultiplayer.Network
 
         private string GetSteamIdForConnection(NetworkConnection conn)
         {
-            if (GameNetworkManager.Instance?.FishNetManager?.TransportManager?.Transport == null || conn == null)
-                return string.Empty;
-            string address = GameNetworkManager.Instance.FishNetManager.TransportManager.Transport.GetConnectionAddress(conn.ClientId);
-            return string.IsNullOrWhiteSpace(address) ? string.Empty : address;
+            return PlayerIdentity.GetSteamIdForConnection(GameNetworkManager.Instance?.FishNetManager?.TransportManager?.Transport, conn);
         }
 
         private bool IsHostConnection(NetworkConnection conn, string steamId)
@@ -729,18 +729,10 @@ namespace SteamMultiplayer.Network
 
         private string ResolvePlayerName(string steamId, int clientId)
         {
-            if (!string.IsNullOrWhiteSpace(steamId) && SteamLobbyManager.Instance != null && SteamLobbyManager.Instance.CurrentLobby.HasValue)
-            {
-                Lobby lobby = SteamLobbyManager.Instance.CurrentLobby.Value;
-                foreach (Friend member in lobby.Members)
-                {
-                    if (member.Id.Value.ToString() == steamId)
-                        return member.Name;
-                }
-            }
-            if (SteamClient.IsValid && SteamClient.SteamId.Value.ToString() == steamId)
-                return SteamClient.Name;
-            return $"Player {clientId}";
+            Lobby? lobby = !string.IsNullOrWhiteSpace(steamId) && SteamLobbyManager.Instance != null
+                ? SteamLobbyManager.Instance.CurrentLobby
+                : null;
+            return PlayerIdentity.ResolvePlayerName(steamId, clientId, lobby);
         }
 
         private void SubscribeSyncCollections()
@@ -977,9 +969,7 @@ namespace SteamMultiplayer.Network
 
         private int GetLocalClientId()
         {
-            if (GameNetworkManager.Instance?.FishNetManager?.ClientManager?.Connection == null)
-                return -1;
-            return GameNetworkManager.Instance.FishNetManager.ClientManager.Connection.ClientId;
+            return PlayerIdentity.GetLocalClientId(GameNetworkManager.Instance?.FishNetManager?.ClientManager?.Connection);
         }
 
         [Server]
@@ -987,7 +977,7 @@ namespace SteamMultiplayer.Network
         {
             if (!IsSkillLoadoutStage(stageKey))
                 return;
-            Debug.Log("[PropertySelection] Skill loadout timer expired. Auto-filling incomplete selections.");
+            GameLog.Verbose("[PropertySelection] Skill loadout timer expired. Auto-filling incomplete selections.");
             if (!TryGetDefinitionRecord(stageKey, out PropertyDefinitionRecord definition))
                 return;
             for (int i = 0; i < Participants.Count; i++)
@@ -1033,57 +1023,23 @@ namespace SteamMultiplayer.Network
                 currentSkillIds[slotIndex] = fillSkillId;
                 UpsertSelection(playerId, GetSkillLoadoutSlotPropertyKey(slotIndex), fillSkillId);
             }
-            Debug.Log($"[PropertySelection] Auto-filled player {playerId} final skill loadout: 0='{currentSkillIds[0]}', 1='{currentSkillIds[1]}', 2='{currentSkillIds[2]}'");
+            GameLog.Verbose($"[PropertySelection] Auto-filled player {playerId} final skill loadout: 0='{currentSkillIds[0]}', 1='{currentSkillIds[1]}', 2='{currentSkillIds[2]}'");
         }
 
         private bool ValidateSkillLoadoutSubmission(int playerId, string[] skillIds, out string validationError)
         {
-            validationError = string.Empty;
-            if (skillIds == null || skillIds.Length != SkillLoadout.SlotCount)
-            {
-                validationError = "slot array size mismatch";
-                return false;
-            }
-            HashSet<string> seen = new HashSet<string>();
-            for (int slotIndex = 0; slotIndex < skillIds.Length; slotIndex++)
-            {
-                string skillId = (skillIds[slotIndex] ?? string.Empty).Trim();
-                skillIds[slotIndex] = skillId;
-                if (string.IsNullOrWhiteSpace(skillId))
-                    continue;
-                if (!IsOptionValid(SkillLoadoutStageKey, skillId))
-                {
-                    validationError = $"invalid skillId '{skillId}' in slot {slotIndex}";
-                    return false;
-                }
-                if (!IsDuplicateSkillSelectionAllowed() && !seen.Add(skillId))
-                {
-                    validationError = $"duplicate skill '{skillId}' is not allowed";
-                    return false;
-                }
-            }
-            LogDebug($"Validated skill loadout submission for player={playerId}");
-            return true;
+            bool valid = LoadoutRules.ValidateSubmission(skillIds, SkillLoadout.SlotCount,
+                IsSkillOptionValid, IsDuplicateSkillSelectionAllowed, out validationError);
+            if (valid)
+                LogDebug($"Validated skill loadout submission for player={playerId}");
+            return valid;
         }
 
         private bool HasCompleteSkillLoadoutSelection(int playerId)
         {
             if (!TryGetPlayerSkillLoadoutSelection(playerId, out string[] skillIds) || skillIds == null)
                 return false;
-            for (int i = 0; i < skillIds.Length; i++)
-            {
-                if (string.IsNullOrWhiteSpace(skillIds[i]) || !IsOptionValid(SkillLoadoutStageKey, skillIds[i]))
-                    return false;
-            }
-            if (IsDuplicateSkillSelectionAllowed())
-                return true;
-            HashSet<string> seen = new HashSet<string>();
-            for (int i = 0; i < skillIds.Length; i++)
-            {
-                if (!seen.Add(skillIds[i]))
-                    return false;
-            }
-            return true;
+            return LoadoutRules.HasCompleteSelection(skillIds, IsSkillOptionValid, IsDuplicateSkillSelectionAllowed);
         }
 
         private List<string> BuildSkillAutoFillCandidates()
@@ -1091,40 +1047,19 @@ namespace SteamMultiplayer.Network
             List<string> candidates = new List<string>();
             HashSet<string> seen = new HashSet<string>();
             List<SelectablePropertyOption> options = GetOptionsForProperty(SkillLoadoutStageKey);
-            for (int i = 0; i < options.Count; i++)
-            {
-                string optionId = options[i].OptionId;
-                if (!string.IsNullOrWhiteSpace(optionId) && seen.Add(optionId))
-                    candidates.Add(optionId);
-            }
+            LoadoutRules.AppendOptionCandidates(candidates, seen, options);
             if (_skillDatabase != null)
             {
                 List<string> configuredFallbackSkillIds = _skillDatabase.GetFallbackSkillIds();
-                for (int i = 0; i < configuredFallbackSkillIds.Count; i++)
-                {
-                    string skillId = (configuredFallbackSkillIds[i] ?? string.Empty).Trim();
-                    if (!string.IsNullOrWhiteSpace(skillId) && seen.Add(skillId))
-                        candidates.Add(skillId);
-                }
+                LoadoutRules.AppendFallbackCandidates(candidates, seen, configuredFallbackSkillIds);
             }
-            for (int i = 0; i < _fallbackSkillIds.Length; i++)
-            {
-                string skillId = (_fallbackSkillIds[i] ?? string.Empty).Trim();
-                if (!string.IsNullOrWhiteSpace(skillId) && seen.Add(skillId))
-                    candidates.Add(skillId);
-            }
+            LoadoutRules.AppendFallbackCandidates(candidates, seen, _fallbackSkillIds);
             return candidates;
         }
 
         private string FindNextAutoFillSkillId(List<string> candidateSkillIds, HashSet<string> used)
         {
-            for (int i = 0; i < candidateSkillIds.Count; i++)
-            {
-                string candidate = candidateSkillIds[i];
-                if (!string.IsNullOrWhiteSpace(candidate) && (IsDuplicateSkillSelectionAllowed() || !used.Contains(candidate)))
-                    return candidate;
-            }
-            return string.Empty;
+            return LoadoutRules.FindNextAutoFillSkillId(candidateSkillIds, used, IsDuplicateSkillSelectionAllowed);
         }
 
         private string NormalizeOptionsPropertyKey(string propertyKey)
@@ -1202,7 +1137,7 @@ namespace SteamMultiplayer.Network
         private void LogDebug(string message)
         {
             if (_enableDebugLogs)
-                Debug.Log($"[PropertiesSelectionManager] {message}");
+                GameLog.Verbose($"[PropertiesSelectionManager] {message}");
         }
     }
 }

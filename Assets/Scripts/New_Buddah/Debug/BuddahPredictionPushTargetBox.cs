@@ -45,7 +45,7 @@ namespace NewBuddah.PredictionV2.Debugging
 
             if (verboseLogs)
             {
-                Debug.Log(
+                GameLog.Verbose(
                     $"{Bootstrap.BuddahPredictionBootstrap.LogPrefix} push-target hit name={name} source={sourceType} " +
                     $"sourceId={sourceObjectId} impulse={impulse} torque={turnTorqueImpulse:0.00}",
                     this);

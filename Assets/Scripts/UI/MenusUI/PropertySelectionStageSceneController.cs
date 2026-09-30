@@ -151,7 +151,7 @@ namespace SteamMultiplayer.UI
 
             if (!_warnedMissingManager && enableDebugLogs)
             {
-                Debug.Log("[PropertySelectionStageSceneController] Waiting for PropertiesSelectionManager...");
+                GameLog.Verbose("[PropertySelectionStageSceneController] Waiting for PropertiesSelectionManager...");
                 _warnedMissingManager = true;
             }
         }
@@ -170,7 +170,7 @@ namespace SteamMultiplayer.UI
             _subscribedManager = selectionManager;
 
             if (enableDebugLogs)
-                Debug.Log("[PropertySelectionStageSceneController] Subscribed to PropertiesSelectionManager.");
+                GameLog.Verbose("[PropertySelectionStageSceneController] Subscribed to PropertiesSelectionManager.");
         }
 
         private void UnsubscribeFromManager()
@@ -207,7 +207,7 @@ namespace SteamMultiplayer.UI
 
                 if (logIfChanged && enableDebugLogs)
                 {
-                    Debug.Log(
+                    GameLog.Verbose(
                         $"[PropertySelectionStageSceneController] Stage switched to '{_lastAppliedStageKey}' -> {target}.");
                 }
             }

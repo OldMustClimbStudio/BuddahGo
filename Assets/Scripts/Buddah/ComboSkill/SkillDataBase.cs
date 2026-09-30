@@ -102,13 +102,6 @@ public class SkillDatabase : ScriptableObject
             && repository.TryGetDefinition(skillId, out record);
     }
 
-    public bool TryGetBalance(string skillId, out SkillBalanceRecord record)
-    {
-        record = null;
-        return ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository)
-            && repository.TryGetBalance(skillId, out record);
-    }
-
     public string GetResolvedDisplayName(string skillId, SkillAction fallbackSkill = null)
     {
         if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository))
@@ -118,22 +111,6 @@ public class SkillDatabase : ScriptableObject
             return fallbackSkill.displayName;
 
         return (skillId ?? string.Empty).Trim();
-    }
-
-    public string GetResolvedDescription(string skillId)
-    {
-        if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository))
-            return repository.GetDescription(skillId);
-
-        return string.Empty;
-    }
-
-    public string GetResolvedIconKey(string skillId)
-    {
-        if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository))
-            return repository.GetIconKey(skillId);
-
-        return string.Empty;
     }
 
     public float GetCooldownSeconds(string skillId, SkillAction fallbackSkill)
@@ -254,13 +231,6 @@ public class SkillDatabase : ScriptableObject
 
         skillIds = record.ToSlots();
         return true;
-    }
-
-    public bool TryGetEffectFloat(string skillId, string effectType, string paramKey, out float value)
-    {
-        value = 0f;
-        return ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository)
-            && repository.TryGetFloat(skillId, effectType, paramKey, out value);
     }
 
     private void RebuildLookup()

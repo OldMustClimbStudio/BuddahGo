@@ -36,15 +36,15 @@ public class Skill_Acceleration_Anti : SkillAction
         float extraMaxSpeed = -Mathf.Abs(slowMaxSpeed);
 
         caster.ApplyAccelerationToOwner(extraForwardForce, extraMaxSpeed, durationSeconds);
-        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : durationSeconds;
+        float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, durationSeconds);
 
-        Debug.Log($"[Skill_Acceleration_Anti][Server] Apply {extraForwardForce} force, {extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
+        GameLog.Verbose($"[Skill_Acceleration_Anti][Server] Apply {extraForwardForce} force, {extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
-        Debug.Log($"[Skill_Acceleration_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
-        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : durationSeconds;
-        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualVfxDuration, $"{skillId}_observers");
+        GameLog.Verbose($"[Skill_Acceleration_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
+        float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, durationSeconds);
+        PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, actualVfxDuration);
     }
 }

@@ -28,6 +28,7 @@ public class BuddahRespawn : MonoBehaviour
     [SerializeField] private BuddahPredictionBootstrap predictionBootstrap;
     [SerializeField] private BuddahPredictionRespawnBridge predictionRespawnBridge;
 
+    private NetworkObject _ownerNetworkObject;
     private Coroutine _respawnRoutine;
     private int _respawnContactCount;
     private float _contactStartTime = float.PositiveInfinity;
@@ -131,7 +132,7 @@ public class BuddahRespawn : MonoBehaviour
         if (!IsLocalOwner()) return false;
         ResolveReferences();
         float clamped = Mathf.Clamp01(targetProgress01);
-        Debug.Log($"[Respawn] reason={reason} progress01={clamped:0.000}");
+        GameLog.Verbose($"[Respawn] reason={reason} progress01={clamped:0.000}");
         return TeleportToTrackProgress(clamped, reason);
     }
 
@@ -224,8 +225,9 @@ public class BuddahRespawn : MonoBehaviour
 
     private bool IsLocalOwner()
     {
-        NetworkObject networkObject = GetComponent<NetworkObject>();
-        return networkObject == null || networkObject.IsOwner;
+        if (_ownerNetworkObject == null)
+            _ownerNetworkObject = GetComponent<NetworkObject>();
+        return _ownerNetworkObject == null || _ownerNetworkObject.IsOwner;
     }
 
     private Vector3 ResolveSafeRespawnPosition(Vector3 basePosition)
@@ -286,6 +288,6 @@ public class BuddahRespawn : MonoBehaviour
     private void DebugLog(string message)
     {
         if (enableVerboseRespawnLogs)
-            Debug.Log($"[BuddahRespawn] {message}");
+            GameLog.Verbose($"[BuddahRespawn] {message}");
     }
 }

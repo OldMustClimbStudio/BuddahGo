@@ -51,13 +51,6 @@
       },
       "url": "https://packages.unity.cn"
     },
-    "com.unity.collab-proxy": {
-      "version": "2.11.3",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {},
-      "url": "https://packages.unity.cn"
-    },
     "com.unity.ext.nunit": {
       "version": "1.0.6",
       "depth": 1,
@@ -83,13 +76,6 @@
       },
       "url": "https://packages.unity.cn"
     },
-    "com.unity.ide.vscode": {
-      "version": "1.2.5",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {},
-      "url": "https://packages.unity.cn"
-    },
     "com.unity.inputsystem": {
       "version": "1.11.2",
       "depth": 0,
@@ -111,17 +97,6 @@
       "depth": 1,
       "source": "registry",
       "dependencies": {},
-      "url": "https://packages.unity.cn"
-    },
-    "com.unity.probuilder": {
-      "version": "5.2.4",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.modules.imgui": "1.0.0",
-        "com.unity.modules.physics": "1.0.0",
-        "com.unity.settings-manager": "1.0.3"
-      },
       "url": "https://packages.unity.cn"
     },
     "com.unity.render-pipelines.core": {
@@ -238,18 +213,8 @@
         "com.unity.render-pipelines.core": "14.0.11"
       }
     },
-    "com.unity.visualscripting": {
-      "version": "1.9.4",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.ugui": "1.0.0",
-        "com.unity.modules.jsonserialize": "1.0.0"
-      },
-      "url": "https://packages.unity.cn"
-    },
     "com.veriorpies.parrelsync": {
-      "version": "https://github.com/VeriorPies/ParrelSync.git?path=/ParrelSync",
+      "version": "https://github.com/VeriorPies/ParrelSync.git?path=/ParrelSync#610157ad762084380380148ba8ce14e266a6da97",
       "depth": 0,
       "source": "git",
       "dependencies": {},

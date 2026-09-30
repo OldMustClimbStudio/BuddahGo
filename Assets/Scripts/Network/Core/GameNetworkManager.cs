@@ -38,9 +38,6 @@ namespace SteamMultiplayer.Network
         [Tooltip("RoomStateManager network prefab to spawn automatically when the host/server starts.")]
         [SerializeField] private NetworkObject _roomStateManagerPrefab;
 
-        [Tooltip("Legacy LobbyManager network prefab. Optional fallback while migrating.")]
-        [SerializeField] private NetworkObject _legacyLobbyManagerPrefab;
-
         // ───────── Public Read-Only Accessors ─────────
         /// <summary>Current Fish-Net NetworkManager.</summary>
         public NetworkManager FishNetManager => _networkManager;
@@ -229,7 +226,7 @@ namespace SteamMultiplayer.Network
             if (!debugManager.WriteSceneObjectDetails)
             {
                 debugManager.WriteSceneObjectDetails = true;
-                Debug.Log("[NetworkDiag] Enabled FishNet DebugManager.WriteSceneObjectDetails for scene object diagnostics.");
+                GameLog.Verbose("[NetworkDiag] Enabled FishNet DebugManager.WriteSceneObjectDetails for scene object diagnostics.");
             }
         }
 
@@ -267,7 +264,6 @@ namespace SteamMultiplayer.Network
             if (state == LocalConnectionState.Started)
             {
                 EnsureRoomStateManagerSpawned();
-                EnsureLegacyLobbyManagerSpawned();
             }
 
             OnServerStateChanged?.Invoke(state);
@@ -311,20 +307,5 @@ namespace SteamMultiplayer.Network
             NetLog.Info($"Spawned RoomStateManager network object: {roomStateManagerInstance.gameObject.name}");
         }
 
-        private void EnsureLegacyLobbyManagerSpawned()
-        {
-            if (_networkManager == null || _networkManager.ServerManager == null || !_networkManager.ServerManager.Started)
-                return;
-
-            if (_legacyLobbyManagerPrefab == null)
-                return;
-
-            if (LobbyManager.Instance != null && LobbyManager.Instance.NetworkObject != null && LobbyManager.Instance.NetworkObject.IsSpawned)
-                return;
-
-            NetworkObject lobbyManagerInstance = Instantiate(_legacyLobbyManagerPrefab);
-            _networkManager.ServerManager.Spawn(lobbyManagerInstance);
-            NetLog.Info($"Spawned legacy LobbyManager network object: {lobbyManagerInstance.gameObject.name}");
-        }
     }
 }

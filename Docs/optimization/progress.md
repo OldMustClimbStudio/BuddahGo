@@ -42,7 +42,7 @@
 | P4-2 | RSM 三件套参数化 | done-unverified | 6f99c5e | 双端开赛/重开/回房间与 100ms 通过 | 原 guard/空集合语义保持；48 辅助检查通过 |
 | P4-3 | PropertiesSelectionManager 下沉 | done-unverified | d6876cb | R1；全员提交、60s 超时自动补全、真实 client 断线通过 | cache 重建时机保持；完整 Steam/三圈矩阵未执行 |
 | P4-4 | PlayerProgressReporter 分区 | done-unverified | 0d56d02 | 两轮实际结算 UnityEvent、重开和回房间通过 | 去掉 region 后 token 相同；完整 R4 未执行 |
-| P5-1 | motor 拆成 partial 文件 | todo | | | |
+| P5-1 | motor 拆成 partial 文件 | doing | | | |
 | P5-2 | RunInputs 收尾抽取 | todo | | | |
 | P5-3 | 工具函数去重 | todo | | | |
 | P5-4 | BuddahHandControl 下沉 | todo | | | |
@@ -99,3 +99,5 @@
 - N7 独立修复完成：modifier deadline 映射客户端 LocalTick，15 纯逻辑检查及 16 双端/延迟用例通过；570/283 心跳 div=0，重开和回房间完成。见 n7-modifier-clock-validation.md。
 
 - N7：[PR #54](https://github.com/OldMustClimbStudio/BuddahGo/pull/54)，base refactor/architecture-p3，85486fa；16 用例时长修复回归通过。P4 继续堆叠在此修复之上。
+
+- P4：[PR #55](https://github.com/OldMustClimbStudio/BuddahGo/pull/55)，base fix/modifier-deadline-clock；本机两轮、超时与断线专项通过，见 p4-validation.md。

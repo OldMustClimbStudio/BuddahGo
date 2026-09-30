@@ -48,7 +48,7 @@ def main():
     cs = load_cs()
     print("file\tyamlRefs\tcsRefs\tstartupHooks")
     for p, src in sorted(cs.items()):
-        if not p.startswith("Assets/Scripts/"):
+        if not p.replace(os.sep, "/").startswith("Assets/Scripts/"):
             continue
         types = re.findall(r"(?:class|struct|interface|enum)\s+@?([A-Za-z_]\w*)", src)
         if wanted and not wanted.intersection(types):

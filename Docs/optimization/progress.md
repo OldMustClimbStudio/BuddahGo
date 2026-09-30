@@ -11,7 +11,7 @@
 | P0-3 | 修复正式包编译（B1） | done-unverified | 5a77b8a | R1 通过；R3 构建 0 error、主菜单启动；R7 本机测试未完成，见 p0-validation.md | 32 种宏组合源码比较通过；本机连接/Ready/配装同步已确认，RaceMap 注册阻塞有效预测回归。 |
 | P0-4 | 调试探针只进 Editor/Dev（B2） | done-unverified | 84ad1be | R1/R2/R3 通过；正式包无探针元数据和心跳；R7 受 N2 阻塞未重跑 | 6 处守卫，192 组 Editor/Dev 源码比较一致；两种包均到达主菜单且启动日志无 Exception。 |
 | P0-5 | 取消跟踪 `.VSCodeCounter`、`agent-exchange/console/raw` | done | 9f12e5f | 两目录跟踪数为 0；19 个文件逐字节保留 | 新增整目录 ignore；digest/handoff 保留，未改写历史。I6 不适用。 |
-| P1-1 | 删除零引用脚本 | todo | | | |
+| P1-1 | 删除零引用脚本 | doing | | R1/R2 待 P1 集中验证 | 13 个目标 GUID/C# 引用均为 0、无启动钩子；保留 CombatAdapter。修正 refscan 的 Windows 路径过滤。 |
 | P1-2 | 删除 MiniMap 半成品三件套 | todo | | | |
 | P1-3 | 删除旧大厅链路 | todo | | | |
 | P1-4 | 删除 RaceFinishManager 调试结束路径 | todo | | | |
@@ -67,4 +67,5 @@
 
 - P0：[PR #47](https://github.com/OldMustClimbStudio/BuddahGo/pull/47)，已实现并记录未验证范围，草稿。
 - 本机联机启动修复：[PR #48](https://github.com/OldMustClimbStudio/BuddahGo/pull/48)，提交 `be7c0fd`，从 dev 单独分支；正常 host 身份、场景注册和开赛交接已恢复。本机两端各运行约 195 秒（普通 95 秒 + 100ms LatencySim 100 秒），D-LOC 非零窗口/FATAL/SceneId 错误均为 0。
-- 两份 PR 当前可合并、无远端 CI 检查配置。后续按 HANDOFF 的阶段顺序，在阶段合并后同步 origin/dev，再进入 P1。
+- 2026-09-29 用户更新：后续使用 stacked PR，最后统一处理，不逐阶段合并 dev。当前依赖为 #48（base dev）→ #47（base fix/local-multiplayer-flow）→ P1（base refactor/architecture-optimization）。P0 已通过 d6439a6 纳入联机修复基线。
+- 按用户要求，阶段内先记录问题并完成修改，再集中执行相关构建/本机回归；每步仍保留独立实现提交及预检证据。

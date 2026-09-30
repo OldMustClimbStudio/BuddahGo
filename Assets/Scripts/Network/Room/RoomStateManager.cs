@@ -156,6 +156,12 @@ namespace SteamMultiplayer.Network
         {
             base.OnStartClient();
             Instance = this;
+
+            // Authentication can register the host before its local ClientId is assigned.
+            // Refresh once the local client is initialized so host authority is recorded.
+            if (IsServerInitialized && ClientManager.Connection.IsValid)
+                AddOrUpdatePlayer(ClientManager.Connection);
+
             SubmitLocalDisplayName();
 
             if (InstanceFinder.SceneManager != null)

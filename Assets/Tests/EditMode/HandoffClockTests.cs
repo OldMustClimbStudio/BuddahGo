@@ -100,24 +100,24 @@ namespace BuddahGo.Tests
         [TestCase(false)]
         public void SnapshotPairKeepsExpiredHandoffAndModifierExpiredAfterReceiptClockMovesBack(bool owner)
         {
-            // Recorded pure-client stress: live (server, local) changed from (2745, 2835)
-            // to (2741, 2835), while this historical packet remained (2732, 2814).
-            var wire = Snapshot(2712, 12, 20);
-            wire.RoomBypassUntilTick = 2742;
-            var modifiers = new BuddahPredictedModifierState { RoomBypassUntilTick = 2742 };
-            var receiptMapped = BuddahTickMath.HandoffToLocal(wire, 2741, 2835);
-            Assert.That(BuddahPredictedLaunchHandoffResolver.Advance(receiptMapped, 2835).IsActive, Is.True,
+            // Synthetic regression fixture: live (server, local) changed from (1033, 2033)
+            // to (1029, 2033), while the hypothetical historical packet remains (1020, 2012).
+            var wire = Snapshot(1000, 12, 20);
+            wire.RoomBypassUntilTick = 1030;
+            var modifiers = new BuddahPredictedModifierState { RoomBypassUntilTick = 1030 };
+            var receiptMapped = BuddahTickMath.HandoffToLocal(wire, 1029, 2033);
+            Assert.That(BuddahPredictedLaunchHandoffResolver.Advance(receiptMapped, 2033).IsActive, Is.True,
                 "The old receipt-clock mapping revives this expired phase.");
 
             uint diagnosticTick = BuddahTickMath.ReconcileToLocal(ref modifiers, ref wire,
-                owner ? 2814u : 2732u, false, owner, 2732, 2814);
-            Assert.That(diagnosticTick, Is.EqualTo(2814));
-            Assert.That(wire.BlendEndTick, Is.EqualTo(2826));
-            Assert.That(modifiers.RoomBypassUntilTick, Is.EqualTo(2824));
-            Assert.That(BuddahPredictedLaunchHandoffResolver.Advance(wire, 2835).IsActive, Is.False);
-            Assert.That(modifiers.RoomBypassUntilTick, Is.LessThanOrEqualTo(2835));
+                owner ? 2012u : 1020u, false, owner, 1020, 2012);
+            Assert.That(diagnosticTick, Is.EqualTo(2012));
+            Assert.That(wire.BlendEndTick, Is.EqualTo(2024));
+            Assert.That(modifiers.RoomBypassUntilTick, Is.EqualTo(2022));
+            Assert.That(BuddahPredictedLaunchHandoffResolver.Advance(wire, 2033).IsActive, Is.False);
+            Assert.That(modifiers.RoomBypassUntilTick, Is.LessThanOrEqualTo(2033));
             // Historical replay is still entitled to reproduce the original active phase.
-            var replay = BuddahPredictedLaunchHandoffResolver.Advance(wire, 2820);
+            var replay = BuddahPredictedLaunchHandoffResolver.Advance(wire, 2018);
             Assert.That(replay.CurrentState, Is.EqualTo(BuddahPredictedLaunchState.Blend));
             Assert.That(replay.BlendAlpha, Is.EqualTo(0.7f).Within(0.0001f));
         }
@@ -125,13 +125,13 @@ namespace BuddahGo.Tests
         [Test]
         public void LaterAuthoritativeSnapshotCanStillExtendADeadline()
         {
-            var handoff = Snapshot(2712, 12, 20);
-            var modifiers = new BuddahPredictedModifierState { RoomBypassUntilTick = 2742 };
-            BuddahTickMath.ReconcileToLocal(ref modifiers, ref handoff, 2814, false, true, 2732, 2814);
+            var handoff = Snapshot(1000, 12, 20);
+            var modifiers = new BuddahPredictedModifierState { RoomBypassUntilTick = 1030 };
+            BuddahTickMath.ReconcileToLocal(ref modifiers, ref handoff, 2012, false, true, 1020, 2012);
             uint originalDeadline = modifiers.RoomBypassUntilTick;
-            handoff = Snapshot(2712, 12, 20);
-            modifiers = new BuddahPredictedModifierState { RoomBypassUntilTick = 2762 };
-            BuddahTickMath.ReconcileToLocal(ref modifiers, ref handoff, 2815, false, true, 2733, 2815);
+            handoff = Snapshot(1000, 12, 20);
+            modifiers = new BuddahPredictedModifierState { RoomBypassUntilTick = 1050 };
+            BuddahTickMath.ReconcileToLocal(ref modifiers, ref handoff, 2013, false, true, 1021, 2013);
             Assert.That(modifiers.RoomBypassUntilTick, Is.EqualTo(originalDeadline + 20));
             // No monotonic cache/tombstone suppresses a legitimate authoritative update.
         }

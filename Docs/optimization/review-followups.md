@@ -13,3 +13,7 @@
 ## PR #49
 
 删除遗留 ProBuilder Settings.json。PlayVfxAllObserversRpc 没有调用方，本轮保留声明以避免改变 RPC 索引。MainMenu._legacyLobbyManagerPrefab 与 Buddah.directHeadingDegreesPerSecond/directHeadingAngularDamping/directHeadingSnapAngle 的旧 YAML 项仍在；运行时代码已不读取，保留避免额外场景/prefab 改动。R6 的 P1-8 通用碰撞等价性仍未完整验证。
+
+## PR #50
+
+补充 BlackCurtain 缓存快照限制：fade 中新激活/新生成根对象在下次 rebuild 被发现。ResultAreaInteractionGate 保留 actor 根组件缓存；它仍避免每次从 child 向上搜索，进一步组件缓存需失效契约，属低优先级建议。NetLog.Info 的 Conditional 会移除 Release 的 Info 诊断（含连接/场景 Info），Warning/Error 保留；源注释与 N5 表格原已正确。P2-3 实现/I6 静态对照完成，阶段 R1 已有记录；完整 R4/跨机验收未完成。默认调试开关未改，不能声称默认性能收益；R8 无可比基线。

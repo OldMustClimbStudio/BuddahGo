@@ -1,5 +1,10 @@
 # P2 预检与验证
 
+## 审查更正（F4，2026-09-30）
+
+Buddah.prefab 当前 enableOnScreenDebug=1、mirrorSummaryToConsole=1，使 ShouldBuildDebugSummaries 保持 true。P2-5e/5g 的惰性摘要和诊断门控在此默认配置下不产生所述跳过收益；不能把代码门控当作已测性能收益。D1 默认开关由团队决定，本轮不修改。R8 缺少 dev 同负载 GC.Alloc 基线与双端对照，仍未验证。
+
+
 ## P2-1
 
 新增 GameLog、PlayerRegistry、PlayerIdentity、SceneNames/RaceRules，尚无产品调用点。GameLog 的单参数及 context 重载保持现有消息格式，双字符串重载用于新日志标签。两个 Conditional 属性使正式包调用和参数求值一起移除；Warning/Error 不经过此门面。

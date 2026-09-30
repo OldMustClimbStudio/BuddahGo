@@ -103,3 +103,5 @@
 - P4：[PR #55](https://github.com/OldMustClimbStudio/BuddahGo/pull/55)，base fix/modifier-deadline-clock；本机两轮、超时与断线专项通过，见 p4-validation.md。
 
 - N8/N9（2026-09-30）：P5 物理矩阵发现 remote owner 的 server 冲量/传送事件与非同步 LocalTick 比较，导致冲量积压约 50 秒、传送未消费；旧冲量也污染后续近战夹具。保持 P5 重构差异，独立 fix 后重测。见 p5-validation.md。
+
+- P5：[PR #56](https://github.com/OldMustClimbStudio/BuddahGo/pull/56)，base refactor/architecture-p4；实现和初测完成，R6 等待独立 N8/N9 修复回归。

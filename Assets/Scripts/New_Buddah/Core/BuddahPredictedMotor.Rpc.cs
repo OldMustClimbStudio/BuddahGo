@@ -148,6 +148,11 @@ namespace NewBuddah.PredictionV2.Core
             bool resetPushGrace,
             bool rebaseTrails)
         {
+            // Teleport consumption and its shadow use the owner's LocalTick. Translate the
+            // received working copy; the server event and RPC payload stay server-stamped.
+            if (!IsServerInitialized && TimeManager != null)
+                eventTick = BuddahTickMath.ServerEventToLocalTick(eventTick, TimeManager.Tick, TimeManager.LocalTick);
+
             BuddahPredictedTeleportEventData eventData = new(
                 eventId,
                 eventTick,

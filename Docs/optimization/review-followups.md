@@ -37,3 +37,7 @@ SlowTrap 旧矩阵的 root/force 恢复结论限定 server/host；纯 client 时
 ## PR #55
 
 Handshake 集合私有化，提供按 Stage 操作的语义 API，更新 RSM/RoomDiagnostics 与验证脚本；RoomRoster 命名整理，四个 meta 保持 GUID。Diagnostic* 保留 internal：仅同程序集协作者使用，未扩大公共 API；进一步只读快照封装属可选设计，不引入分配或新架构。
+
+## PR #56
+
+补充 NaN 有序比较意图，七个 importer meta 保持 GUID。22 个 helper cases 已由 #58 的 Assets/Tests/EditMode/BuddahTickMathTests.cs 和 ProjectileBurstPlannerTests.cs 覆盖，不重复迁移。R6 全矩阵仍未完成。

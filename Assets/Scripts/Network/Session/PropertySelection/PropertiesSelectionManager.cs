@@ -453,17 +453,7 @@ namespace SteamMultiplayer.Network
             }
             UpsertSelection(caller.ClientId, propertyKey, optionId);
             LogDebug($"Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}");
-            if (AreAllRequiredSelectionsSubmittedForCurrentStage(definition))
-            {
-                StopAllCoroutines();
-                _stageCountdownActive.Value = false;
-                _stageCountdownSecondsRemaining.Value = 0;
-                RaiseSelectionStateChanged();
-                LogDebug($"All required selections submitted for stage '{propertyKey}'. Advancing immediately.");
-                AdvanceToNextStageServer();
-                return;
-            }
-            RaiseSelectionStateChanged();
+            FinishSelectionSubmissionServer(definition, propertyKey, false);
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -501,13 +491,26 @@ namespace SteamMultiplayer.Network
             }
 
             GameLog.Verbose($"[PropertySelection] Player {caller.ClientId} current submitted loadout: 0='{skillIds[0]}', 1='{skillIds[1]}', 2='{skillIds[2]}'");
+            FinishSelectionSubmissionServer(definition, SkillLoadoutStageKey, true);
+        }
+
+        private bool IsSkillOptionValid(string skillId)
+        {
+            return IsOptionValid(SkillLoadoutStageKey, skillId);
+        }
+
+        private void FinishSelectionSubmissionServer(PropertyDefinitionRecord definition, string propertyKey, bool skillLoadout)
+        {
             if (AreAllRequiredSelectionsSubmittedForCurrentStage(definition))
             {
                 StopAllCoroutines();
                 _stageCountdownActive.Value = false;
                 _stageCountdownSecondsRemaining.Value = 0;
                 RaiseSelectionStateChanged();
-                GameLog.Verbose("[PropertySelection] All players completed skill loadout stage. Advancing immediately.");
+                if (skillLoadout)
+                    GameLog.Verbose("[PropertySelection] All players completed skill loadout stage. Advancing immediately.");
+                else
+                    LogDebug($"All required selections submitted for stage '{propertyKey}'. Advancing immediately.");
                 AdvanceToNextStageServer();
                 return;
             }
@@ -1025,52 +1028,18 @@ namespace SteamMultiplayer.Network
 
         private bool ValidateSkillLoadoutSubmission(int playerId, string[] skillIds, out string validationError)
         {
-            validationError = string.Empty;
-            if (skillIds == null || skillIds.Length != SkillLoadout.SlotCount)
-            {
-                validationError = "slot array size mismatch";
-                return false;
-            }
-            HashSet<string> seen = new HashSet<string>();
-            for (int slotIndex = 0; slotIndex < skillIds.Length; slotIndex++)
-            {
-                string skillId = (skillIds[slotIndex] ?? string.Empty).Trim();
-                skillIds[slotIndex] = skillId;
-                if (string.IsNullOrWhiteSpace(skillId))
-                    continue;
-                if (!IsOptionValid(SkillLoadoutStageKey, skillId))
-                {
-                    validationError = $"invalid skillId '{skillId}' in slot {slotIndex}";
-                    return false;
-                }
-                if (!IsDuplicateSkillSelectionAllowed() && !seen.Add(skillId))
-                {
-                    validationError = $"duplicate skill '{skillId}' is not allowed";
-                    return false;
-                }
-            }
-            LogDebug($"Validated skill loadout submission for player={playerId}");
-            return true;
+            bool valid = LoadoutRules.ValidateSubmission(skillIds, SkillLoadout.SlotCount,
+                IsSkillOptionValid, IsDuplicateSkillSelectionAllowed, out validationError);
+            if (valid)
+                LogDebug($"Validated skill loadout submission for player={playerId}");
+            return valid;
         }
 
         private bool HasCompleteSkillLoadoutSelection(int playerId)
         {
             if (!TryGetPlayerSkillLoadoutSelection(playerId, out string[] skillIds) || skillIds == null)
                 return false;
-            for (int i = 0; i < skillIds.Length; i++)
-            {
-                if (string.IsNullOrWhiteSpace(skillIds[i]) || !IsOptionValid(SkillLoadoutStageKey, skillIds[i]))
-                    return false;
-            }
-            if (IsDuplicateSkillSelectionAllowed())
-                return true;
-            HashSet<string> seen = new HashSet<string>();
-            for (int i = 0; i < skillIds.Length; i++)
-            {
-                if (!seen.Add(skillIds[i]))
-                    return false;
-            }
-            return true;
+            return LoadoutRules.HasCompleteSelection(skillIds, IsSkillOptionValid, IsDuplicateSkillSelectionAllowed);
         }
 
         private List<string> BuildSkillAutoFillCandidates()
@@ -1078,40 +1047,19 @@ namespace SteamMultiplayer.Network
             List<string> candidates = new List<string>();
             HashSet<string> seen = new HashSet<string>();
             List<SelectablePropertyOption> options = GetOptionsForProperty(SkillLoadoutStageKey);
-            for (int i = 0; i < options.Count; i++)
-            {
-                string optionId = options[i].OptionId;
-                if (!string.IsNullOrWhiteSpace(optionId) && seen.Add(optionId))
-                    candidates.Add(optionId);
-            }
+            LoadoutRules.AppendOptionCandidates(candidates, seen, options);
             if (_skillDatabase != null)
             {
                 List<string> configuredFallbackSkillIds = _skillDatabase.GetFallbackSkillIds();
-                for (int i = 0; i < configuredFallbackSkillIds.Count; i++)
-                {
-                    string skillId = (configuredFallbackSkillIds[i] ?? string.Empty).Trim();
-                    if (!string.IsNullOrWhiteSpace(skillId) && seen.Add(skillId))
-                        candidates.Add(skillId);
-                }
+                LoadoutRules.AppendFallbackCandidates(candidates, seen, configuredFallbackSkillIds);
             }
-            for (int i = 0; i < _fallbackSkillIds.Length; i++)
-            {
-                string skillId = (_fallbackSkillIds[i] ?? string.Empty).Trim();
-                if (!string.IsNullOrWhiteSpace(skillId) && seen.Add(skillId))
-                    candidates.Add(skillId);
-            }
+            LoadoutRules.AppendFallbackCandidates(candidates, seen, _fallbackSkillIds);
             return candidates;
         }
 
         private string FindNextAutoFillSkillId(List<string> candidateSkillIds, HashSet<string> used)
         {
-            for (int i = 0; i < candidateSkillIds.Count; i++)
-            {
-                string candidate = candidateSkillIds[i];
-                if (!string.IsNullOrWhiteSpace(candidate) && (IsDuplicateSkillSelectionAllowed() || !used.Contains(candidate)))
-                    return candidate;
-            }
-            return string.Empty;
+            return LoadoutRules.FindNextAutoFillSkillId(candidateSkillIds, used, IsDuplicateSkillSelectionAllowed);
         }
 
         private string NormalizeOptionsPropertyKey(string propertyKey)

@@ -34,10 +34,10 @@ public class Skill_SlowTrap_Anti : SkillAction
             extraMaxSpeed,
             accelerationDurationSeconds);
         float effectDurationSeconds = rootDurationSeconds + accelerationDurationSeconds;
-        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : effectDurationSeconds;
+        float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, effectDurationSeconds);
 
         var vfx = caster.GetComponent<SkillVfxReplicator>();
-        if (vfx != null)
+        if (vfx != null && !string.IsNullOrWhiteSpace(vfxId))
             vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
 
         GameLog.Verbose($"[Skill_SlowTrap_Anti][Server] Root self {rootDurationSeconds}s, then accel +{extraForwardForce}/+{extraMaxSpeed} for {accelerationDurationSeconds}s, vfx={actualVfxDuration}s");

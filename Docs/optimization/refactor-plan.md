@@ -25,7 +25,7 @@
   - MonoBehaviour、NetworkBehaviour、ScriptableObject 保持类名、文件名、`.meta` GUID 不变。
   - 移动文件时连同 `.meta` 一起用 `git mv`。
   - 本轮不改 namespace。
-  - `MainMenuUI`、`RaceFinishManager` 被 UnityEvent 以 `Assembly-CSharp` 限定名引用，尤其不能动。
+  - P6 经授权已将游戏 UnityEvent 的 6 处限定名迁到 `BuddahGo.Runtime`，并记录 R10 验证。后续仍保持类名、GUID 和绑定语义；程序集迁移必须同步更新全部持久引用，不能再套用原 `Assembly-CSharp` 限定名。
 - **I3 网络协议**
   - RPC 方法的名称、签名、所在类保持不变。
   - SyncVar、SyncList 的类型和声明保持不变。

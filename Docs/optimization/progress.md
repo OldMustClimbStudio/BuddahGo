@@ -76,8 +76,8 @@
 | 2026-09-29 | ParrelSync client RaceMap | N2：SceneCondition 缺失导致场景注册/交接受阻；已在 be7c0fd / PR #48 处理，本机两端 195 秒回归通过，待合并。 | P0-3 / R7 |
 | 2026-09-29 | 正式包启动 / 基线资源 | N3/N4：无 Steam 的初始化连带异常，以及字体、空动画、LightingData 告警；详见 p0-validation.md。 | P0 |
 | 2026-09-29 | RaceMap EndMatch UnityEvent | P1-4 删除前提不成立：直接绑定 RaceFinishManager.TriggerDebugFinishRaceFromLocalUi（Assembly-CSharp）；保持现有按钮行为。 | P1-4 |
-
 | 2026-09-30 | Handoff shadow / 重置传送 | N5：真实侧 ResetModifiers 会清空 handoff 和 pending，shadow 未处理；P2 技能夹具第一次传送前 95 秒无 div，传送后 hof-div=1，测试停止。该文件与 origin/dev 的 blob 相同；32 组合单测复现 4 失败。独立修复后再继续技能矩阵。 | P2 / R7 |
+| 2026-09-30 | ReconcileState `_handoffState = data.HandoffState` | N10（代码审查发现，既有缺陷）：reconcile 带来的 handoff tick 字段是 server 时钟，纯 client 用自己的 LocalTick 推进，整个窗口停在 Inherit、跳过 Blend；与 N7/N8 同类。单独开 fix PR，见 review-2026-09-30.md F1。 | P5 / R7 / R9 |
 
 ## 阶段 PR
 
@@ -112,6 +112,10 @@
 - N8/N9：[PR #57](https://github.com/OldMustClimbStudio/BuddahGo/pull/57)，base refactor/architecture-p5，55aa5ab；20 项矩阵及四项受控近战完成，654/326 + 90/45 心跳 div=0。全部投射物、有效距离推击及 owner 复活消费通过；此前超射程未命中如实保留。
 
 - P6：[PR #58](https://github.com/OldMustClimbStudio/BuddahGo/pull/58)，base fix/owner-event-clocks；两种构建及启动、两端各 43 EditMode、主菜单/Timeline UnityEvent、0/100ms 两轮回归全部完成。详见 p6-validation.md。
+
+## 代码审查
+
+- 2026-09-30：#47–#58 全部 approve-with-nits，无 blocker；跟进项 F1–F7 见 [review-2026-09-30.md](review-2026-09-30.md)。F1 为既有缺陷 N10（handoff 时钟），按惯例单独修复。
 
 ## 本轮收尾
 

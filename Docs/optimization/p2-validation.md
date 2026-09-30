@@ -43,3 +43,7 @@ I5 逐点预检：ISM/ICC 查找 active BuddahMovement 为缺少 controller 的�
 与计划不符：LeaderboardManager/MRPC/RFM 实际查询 PlayerProgressReporter；RSM 的两处为包含 inactive 的 RaceBodyIntroStateController；SkillSlot/Obsession/Leaderboard 的技能、执念查询以及 Lap 的后续回退也不以 BuddahMovement 存在为前提。仅移动组件注册表不能证明返回集合一致，按 I5 保留原实现并标 blocked（部分完成）。业务代码显式 FindObjectsByType<BuddahMovement> 已为 0；Foundation 首次查询仍有一次 seed，避免查询先于 Awake/禁用域重载造成漏查，不能声称整个项目调用为 0。
 
 I6：没有合并具有不同语义的查询。待集中 R1/R4/R5/R8 和实际 registry 集合对照验证；没有提前宣称性能下降。
+
+## P2-5a
+
+RoomUI 保留每帧/事件刷新入口，名单签名不变且逐元素 Equals 确认后跳过清空/重建。签名包含人数、顺序、id、SteamId、名字、Host/Ready；读取过 RoomPlayerEntryUI.Bind，三个显示项全部覆盖。对哈希碰撞做精确比较，并跟踪列表 root/prefab/空提示引用、丢失条目，OnDisable 失效。Header/Actions 仍按原顺序每帧刷新。I6 不适用，R 项待集中验证。

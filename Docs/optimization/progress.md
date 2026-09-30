@@ -26,8 +26,14 @@
 | P2-2d | RaceIntro 日志迁移 | doing | 2b7f6d0 | 待 P2 集中验证 | 52 处调用；原消息、context、开关不变。 |
 | P2-2e | UI 日志迁移 | doing | dbc5ba4 | 待 P2 集中验证 | 8 处调用；原消息、context、开关不变。 |
 | P2-3 | 常量与身份收敛 | doing | 8dfe69b | | |
-| P2-4 | 接入 PlayerRegistry | blocked | | 5 处等价 movement 查询已接入，待阶段验证 | 其余实际查找不同组件或包含 inactive，保留以满足 I5；见 p2-validation.md。 |
-| P2-5a–g | 热路径去浪费 | todo | | | |
+| P2-4 | 接入 PlayerRegistry | blocked | 0a81fbd | 5 处等价 movement 查询已接入，待阶段验证 | 其余实际查找不同组件或包含 inactive，保留以满足 I5；见 p2-validation.md。 |
+| P2-5a | RoomUI 名单快照 | doing | | | |
+| P2-5b | 热路径去浪费 | todo | | | |
+| P2-5c | 热路径去浪费 | todo | | | |
+| P2-5d | 热路径去浪费 | todo | | | |
+| P2-5e | 热路径去浪费 | todo | | | |
+| P2-5f | 热路径去浪费 | todo | | | |
+| P2-5g | 热路径去浪费 | todo | | | |
 | P3-1 | SkillAction 基类公共方法 | todo | | | |
 | P3-2 | Anti 类改为继承 | todo | | | |
 | P3-3 | SkillExecutor 下沉 | todo | | | |

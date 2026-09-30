@@ -23,3 +23,14 @@ PushAttackTiming 接收已按原短路条件算出的 active 状态，保留 act
 R1 主 Editor 编译通过；tick rounding、minimum delta、普通/蓄力冷却、delay、奇偶/单发居中和 collider 下限共 22 检查通过。最初测试误将 float 0.001/0.0001 的 Ceil 当作 10；实际原表达式比值为 10.000001、结果 11，确认原行为后用精确单 tick 边界修正夹具，未改生产公式。R6 待实际双端矩阵。
 
 P5-5 可选影子表驱动本轮不采用；影子计算/消息保持现有实现，仅随 P5-1 搬入 Shadow partial，避免无必要地扩大验证面。
+
+
+## 阶段运行验证（2026-09-30）
+
+正式包 `Builds/ArchitectureP5Release/BuddahGo.exe` 构建成功（30.541s，1134.45 MB，0 error / 12 warning），已实际启动到主菜单并关闭；Player.log 无异常或开发探针输出。12 条均为现有来源：PredictionSmoother obsolete 7、unreachable 2、unused field 3（包含 IntroSequenceManager 的 Release 条件字段）。两个 Editor 的 22 项 helper 检查均通过。
+
+36 项本机双端矩阵的前 16 项 modifier 时长/恢复全通过；8 项蓄力/反噬连发的服务器、host visual、client visual 起点/方向/速度集合完全相同，数量为 1/5，服务器命中目标正确；普通投射物四组都有实际命中。进一步核对 owner 的新冲量事件发现 N8：server 已消费的事件在 remote owner 上仍排队。示例 server estimated tick=37477、client LocalTick=34560，pending event ticks=35280/36696，事件在服务器时钟已过去，却被本地时钟视作未来。后续近战夹具受到滞后冲量污染，不能宣称 R6 完整通过。
+
+复活还复现 N9：case 33 owner client 请求 routed=true，server 消费 DropRespawn event 35，client 同一事件仍 consumed=false，之后又被 WrongWayCorrection 覆盖。Teleport 和 impulse 都用 server event tick 对比非同步 LocalTick；两条路径在 P5 前即已存在。保留初始证据并另开 fix PR，随后重测；不混入重构实现提交。
+
+初测完成于 2026-09-30 07:27:55 UTC：host/client 986/493 心跳，全部 loc/tel/mod/hof div=0；registry mismatch、Error、Exception 均为 0，实际结算 UnityEvent、重开、第二局和回房间全部完成。R7 通过；完整 R6 因 N8/N9 未通过。原始记录在 `Logs/p5-physics-matrix` 与 clone 同名目录，分析器 `Logs/analyze-p5-modifier.py` / `Logs/analyze-p5-physics.py`。外部 Steam、Dev Build 双端及真实跑完三圈仍未执行。

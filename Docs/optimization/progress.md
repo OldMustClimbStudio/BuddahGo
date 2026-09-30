@@ -42,10 +42,10 @@
 | P4-2 | RSM 三件套参数化 | done-unverified | 6f99c5e | 双端开赛/重开/回房间与 100ms 通过 | 原 guard/空集合语义保持；48 辅助检查通过 |
 | P4-3 | PropertiesSelectionManager 下沉 | done-unverified | d6876cb | R1；全员提交、60s 超时自动补全、真实 client 断线通过 | cache 重建时机保持；完整 Steam/三圈矩阵未执行 |
 | P4-4 | PlayerProgressReporter 分区 | done-unverified | 0d56d02 | 两轮实际结算 UnityEvent、重开和回房间通过 | 去掉 region 后 token 相同；完整 R4 未执行 |
-| P5-1 | motor 拆成 partial 文件 | doing | a7934e7 | R1 通过，R3/R7/R9 待集中 | 12 片段逐字移动 |
-| P5-2 | RunInputs 收尾抽取 | doing | 8f48220 | R7/R9 待集中 | 仅两分支等价，writer 分支保留 |
-| P5-3 | 工具函数去重 | doing | 8525126 | 边界检查通过，R7 待集中 | 拖尾 null 语义不同不合并 |
-| P5-4 | BuddahHandControl 下沉 | doing | | | |
+| P5-1 | motor 拆成 partial 文件 | done-unverified | a7934e7 | R1/R3、本机 R7 通过；完整 R9 未执行 | 986/493 心跳 div=0；N8/N9 另修 |
+| P5-2 | RunInputs 收尾抽取 | done-unverified | 8f48220 | 本机 0/100ms R7 通过，完整 R9 未执行 | 仅两分支等价，writer 分支保留 |
+| P5-3 | 工具函数去重 | done | 8525126 | 边界检查及双端 R7 通过 | 拖尾 null 语义不同不合并 |
+| P5-4 | BuddahHandControl 下沉 | blocked | 1304d81 | R1/22 helper 检查通过；R6 发现 N8/N9 | 坐标/服务器命中通过，owner 冲量延迟；另修后回归 |
 | P5-5 | 影子对比表驱动（可选） | done | 不采用 | 原影子逻辑/格式不变 | 可选项无必要行为收益，本轮只拆文件 |
 | P6-1–4 | 程序集拆分与测试（需 D6） | todo | | | |
 | P7 | 资源瘦身（需 D7） | todo | | | |
@@ -101,3 +101,5 @@
 - N7：[PR #54](https://github.com/OldMustClimbStudio/BuddahGo/pull/54)，base refactor/architecture-p3，85486fa；16 用例时长修复回归通过。P4 继续堆叠在此修复之上。
 
 - P4：[PR #55](https://github.com/OldMustClimbStudio/BuddahGo/pull/55)，base fix/modifier-deadline-clock；本机两轮、超时与断线专项通过，见 p4-validation.md。
+
+- N8/N9（2026-09-30）：P5 物理矩阵发现 remote owner 的 server 冲量/传送事件与非同步 LocalTick 比较，导致冲量积压约 50 秒、传送未消费；旧冲量也污染后续近战夹具。保持 P5 重构差异，独立 fix 后重测。见 p5-validation.md。

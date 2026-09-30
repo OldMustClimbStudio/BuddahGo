@@ -804,7 +804,7 @@ MonoBehaviour:
   - name: Skill_3
     slotIndex: 2
     sequence: 00000000000000000100000001000000
-  debugHud: 1
+  debugHud: 0
 --- !u!114 &-713974680141041721
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1197,7 +1197,7 @@ MonoBehaviour:
   commandBus: {fileID: 4006809585340021479}
   debugSettings:
     enableVerboseLogs: 0
-    enableOnScreenDebug: 1
+    enableOnScreenDebug: 0
     dumpReplicate: 0
     dumpReconcile: 0
     dumpGateState: 0

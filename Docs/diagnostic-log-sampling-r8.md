@@ -4,6 +4,14 @@ Addresses [PR #50 review comment 4146561530](https://github.com/OldMustClimbStud
 The user explicitly authorized disabling local screen diagnostics in Editor,
 Development and Release, retaining logs and ordinary game HUD/Unity Console.
 
+Integration follow-up: the runtime backport is published on #50 and propagated through
+the stack; integrated Unity compilation and EditMode passed **75/75**, including all
+three wiring tests below. Actual local two-Editor scene measurements are now available
+in [review-r8-editor.md](optimization/review-r8-editor.md): 3 sources × 3 fresh pairs,
+30-second after-GO warmup + 60-second capture at 1920×1080. The original 5×120-second
+Development-player design below remains an unexecuted proposal, not the measured data.
+The isolation/command history below describes the auxiliary task's original handoff.
+
 ## Isolation and implementation
 
 Primary worktree: `.worktree/debug-log-sampling-20260930`, branch
@@ -52,10 +60,11 @@ trailing whitespace in the two new metadata files; no history was rewritten).
 | Pure NUnit suite under existing Unity Mono, each of Editor/Dev/Release symbols | 7/7 each; 21/21 total |
 | 100,000 replicate/reconcile capture pairs after warm-up, each configuration | 0 managed bytes on Unity Mono; supplemental method check only |
 | `git diff --check` for final changes | Pass |
-| Actual Unity EditMode wiring suite (3 tests) | Not run; coordinate existing Editor with main task |
-| Actual player build / FishNet IL post-processing | Not run; C# compilation is not a Unity build |
-| Screen/HUD/log visual check on host and remote client | Not run; main task owns real dual-end runtime |
-| Scene profiler/GC R8 data | Not run; no actual scene measurements or percentage claim |
+| Actual Unity EditMode wiring suite (3 tests) | Passed in the integrated 75/75 Unity EditMode run |
+| Actual standalone player build | Not run; Dev/Release compiler checks are not a Player build |
+| Actual Editor compilation / FishNet IL post-processing | Passed in integrated Unity compilation and runtime sessions |
+| Screen/HUD/log observation on local host and pure client | Completed in the main task's dual-Editor sessions; no cross-machine claim |
+| Scene profiler/GC R8 data | 18 valid endpoint captures; see the linked Editor report, not a Player/Release claim |
 
 Compiler checks used the installed Unity Roslyn compiler and read-only cached dependency
 references from `.worktree/bgr2-host/Library/Bee/artifacts/1900b0aE.dag`; all production
@@ -79,11 +88,7 @@ The first attempt used .NET 8 to run Unity's net35 NUnit assembly and failed wit
 `System.Runtime.Remoting.Messaging.CallContext` unavailable. The committed runner uses
 the already installed Unity Mono runtime; all three runs then passed.
 
-After integration, reserve approximately 5–10 minutes in the main task's existing Editor
-for `BuddahGo.Tests.PredictionDiagnosticWiringTests` and a screen/log check. Tests verify
-no diagnostic OnGUI method, prefab flags/mirror, and no-consumer/interval health behavior.
-No Editor test result is claimed here. To run headless later, only after the project is
-released by its current owner:
+The integrated wiring suite is now complete. To reproduce it in a released disposable project, use:
 
 ```powershell
 & '<Unity>/Editor/Unity.exe' -batchmode -nographics -projectPath '<integrated project>' `
@@ -96,7 +101,7 @@ filtering remains, disabled mirror emits no mirror logs, verbose health can be e
 and existing intro/authority validation signals still print. Inspect Release for absence
 of prediction mirror/Verbose logs without changing the Console or normal HUD.
 
-## R8 comparison design — no actual data yet
+## Originally proposed Player comparison (not executed)
 
 Do not call a screen-disabled increment the whole P2 improvement. Required P2 cells:
 

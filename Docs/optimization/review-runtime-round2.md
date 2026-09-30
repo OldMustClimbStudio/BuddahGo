@@ -31,6 +31,24 @@ at local 2708 it still uses the owner-anchored TargetRpc window (2705/2717/2737)
 the next usable reconcile replaces it with the translated authoritative window. Normal
 aligns to 6154. This is not evidence of identical observed phase duration on every peer.
 
+For the pure-client-owned actor, the first observed forward-simulation transitions are
+below. An observed Inherit span starts at its first logged simulation, not necessarily
+the authoritative StartTick; it must not be substituted for the configured 12-tick
+window. Normal has no finite configured duration.
+
+| Run / observer | First Inherit | First Blend | First Normal | Observed Inherit / Blend span |
+| --- | ---: | ---: | ---: | ---: |
+| fixed 0 ms / server | 5875 | 5885 | 5905 | 10 / 20 ticks |
+| fixed 0 ms / pure client, local ticks | 2614 | 2624 | 2644 | 10 / 20 ticks |
+| fixed 100 ms / server | 6124 | 6134 | 6154 | 10 / 20 ticks |
+| fixed 100 ms / pure client, local ticks | 2705 | 2709 | 2728 | 4 / 19 ticks |
+| original 0 ms / pure client, local ticks | 2672 | absent | 2673 | 1 / 0 ticks |
+| original 100 ms / pure client, local ticks | 2794 | absent | 2831 | 37 / 0 ticks |
+
+The client begins observing the 100 ms start later than the server, then converges to
+the authoritative end. This evidence supports restoring Blend and aligning Normal;
+it does not establish a full 12/20-tick client presentation under latency.
+
 Actual transform correction is measured immediately before/after Rigidbody reconcile,
 using records whose UTC is in [that peer's GO, GO + 1.000 seconds). The older `fixed-0`
 rigidbody-position probe did not measure this correctly and is excluded.
@@ -120,6 +138,9 @@ The authoritative caster stays at 80 u/s through all 31 owner frames; the observ
 240 ms. Case 13 follows client caster object 3; the first shot is near the 80 u/s segment,
 but later frames slow down, so the entire clip must not be described as constant speed.
 Observer Rigidbody velocity is not a measurement of interpolated visual-root speed.
+For case 12 the observer's recorded actor root advances 282.14 units over 3.460 seconds
+(81.54 u/s net displacement); its zero Rigidbody velocity is therefore not evidence
+that the observed caster is stationary. Individual network/interpolation steps vary.
 
 The host-caster emission samples place the authoritative start about 20.00 units behind
 the owner renderer's configured emission anchor; corresponding observer samples are
@@ -131,8 +152,10 @@ The authority/world-space design remains unchanged. Recordings contain only game
 rendering and remain local pending permission to publish; final visual acceptance is
 the user's decision. Earlier magenta/cyan diagnostic clips are not acceptance footage.
 
-R8 scene measurements are still in progress; no allocation or frame-time improvement
-percentage is claimed from method tests.
+R8 scene measurements are complete: nine same-source host/client pairs, three per
+source, each with 30 seconds after-GO warmup and 60 seconds of actual Editor sampling.
+See [all per-run results and limitations](review-r8-editor.md). This is a local Editor
+comparison, not the originally proposed Player benchmark or a Release performance claim.
 
 ## Reproduction and evidence
 

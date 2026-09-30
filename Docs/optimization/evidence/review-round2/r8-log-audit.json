@@ -1,0 +1,92 @@
+{
+  "log-only-client-1-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8906725
+  },
+  "log-only-client-2-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8727801
+  },
+  "log-only-client-3-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8791419
+  },
+  "log-only-host-1-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 6806778
+  },
+  "log-only-host-2-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 9317791
+  },
+  "log-only-host-3-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 9393917
+  },
+  "pre-p2-client-1-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 9676431
+  },
+  "pre-p2-client-2-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 9073014
+  },
+  "pre-p2-client-3-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 9352058
+  },
+  "pre-p2-host-1-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8211141
+  },
+  "pre-p2-host-2-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8088105
+  },
+  "pre-p2-host-3-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8383727
+  },
+  "screen-on-client-1-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8178039
+  },
+  "screen-on-client-2-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8442056
+  },
+  "screen-on-client-3-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8091764
+  },
+  "screen-on-host-1-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8619243
+  },
+  "screen-on-host-2-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8059653
+  },
+  "screen-on-host-3-editor.log": {
+    "errors": [],
+    "completeMarkers": 1,
+    "bytes": 8420816
+  }
+}

@@ -161,5 +161,8 @@ The material cache was repaired without source-art changes; a warmed owner/obser
 capture now has no shader-compilation placeholder frames. Recorded visuals remain local
 pending publication permission and user acceptance. Both peers also completed rematch
 and return-to-room in the follow-up session.
-R8 scene measurements and #52 visual acceptance remain open; this entry does not
+R8's adapted Editor dataset completed 9/9 dual-process runs (18/18 valid endpoint
+captures); all original numeric CSVs and per-run variation are retained in
+[review-r8-editor.md](review-r8-editor.md). The proposed Player/Release benchmark was
+not executed. #52 user visual acceptance remains open; this entry does not
 claim all new comments resolved. No history rewrite or dev/main merge is performed.

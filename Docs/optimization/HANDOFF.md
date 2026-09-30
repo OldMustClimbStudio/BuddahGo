@@ -1,6 +1,6 @@
 # 交接：架构优化执行
 
-你负责在分支 `codex/architecture-optimization-plan` 上执行 [refactor-plan.md](refactor-plan.md)，把代码架构整理干净，同时让玩家、联机和回放可观察到的行为保持与基线一致。
+你负责在分支 `refactor/architecture-optimization` 上执行 [refactor-plan.md](refactor-plan.md)，把代码架构整理干净，同时让玩家、联机和回放可观察到的行为保持与基线一致。
 
 - 方案和评估是本分支的前两个提交，只有文档，没有代码改动。
 - 证据在 [audit-report.md](audit-report.md)。
@@ -13,7 +13,7 @@
 1. 在主项目根目录建 worktree，或进入已有的 worktree：
 
    ```bash
-   git worktree add .worktree/architecture-optimization-plan codex/architecture-optimization-plan
+   git worktree add .worktree/architecture-optimization refactor/architecture-optimization
    ```
 
 2. 执行 `git lfs pull`。方案是在只有 LFS 指针的检出上写的，你需要完整资源才能构建和跑 R 项。

@@ -3,12 +3,12 @@
 ## 分支与标题
 
 - 日常 PR 以 `dev` 为目标；`main` 用于稳定发布。
-- Agent 新分支使用 `codex/<topic>`；团队现有 `feature/`、`fix/`、`chore/`、`docs/` 分支可继续使用。
+- 分支名为 `<type>/<topic>`，`<type>` 与提交类型一致：`feat/`、`fix/`、`refactor/`、`chore/`、`docs/`。人和 Agent 使用同一规则，分支名不包含模型或工具名。已有的 `feature/` 等分支可以继续使用。
 - Commit 和 PR 标题使用 `feat:`、`fix:`、`refactor:`、`chore:` 或 `docs:`，后接具体变化，例如 `fix: restore movement after race countdown`。
 
 ## Worktree
 
-为保持辨识度，后续 worktree 统一放在主项目根目录的 `.worktree/<topic>/` 下；从主项目创建时可用 `git worktree add .worktree/<topic> -b codex/<topic> dev`。
+为保持辨识度，后续 worktree 统一放在主项目根目录的 `.worktree/<topic>/` 下；从主项目创建时可用 `git worktree add .worktree/<topic> -b <type>/<topic> dev`。
 目录规则不改变上述分支命名，也不要求迁移已有 worktree。`.worktree/` 不提交到版本库。
 
 ## PR 内容

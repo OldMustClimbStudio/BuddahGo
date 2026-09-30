@@ -250,7 +250,7 @@ namespace SteamMultiplayer.Network.Results
         private void DebugLog(string message)
         {
             if (enableDebugLogs)
-                Debug.Log($"[PlayerFinishPresentationController] object='{name}' {message}");
+                GameLog.Verbose($"[PlayerFinishPresentationController] object='{name}' {message}");
         }
 
         private void TryPlayLocalLossOfControlTimeline()

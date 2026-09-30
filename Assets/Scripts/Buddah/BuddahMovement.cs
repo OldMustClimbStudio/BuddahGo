@@ -9,11 +9,6 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(NetworkObject))]
 public class BuddahMovement : NetworkBehaviour
 {
-    private enum RotationMode
-    {
-        TorqueSteering,
-        DirectHeadingControl
-    }
 
     private enum LaunchState
     {
@@ -28,11 +23,6 @@ public class BuddahMovement : NetworkBehaviour
     [SerializeField] public float turnDecayPerSecond = 8f;
     [SerializeField] public float maxSpeed = 8f;
     [SerializeField] public float turnInputMultiplier = 1f;
-
-    [Header("Direct Heading Control")]
-    [SerializeField, Min(1f)] private float directHeadingDegreesPerSecond = 420f;
-    [SerializeField, Min(0f)] private float directHeadingAngularDamping = 18f;
-    [SerializeField, Min(0f)] private float directHeadingSnapAngle = 2.5f;
 
     [Header("Push Reaction")]
     [SerializeField] public float pushGraceSeconds = 0.25f;
@@ -56,7 +46,6 @@ public class BuddahMovement : NetworkBehaviour
     private float _roomStateBypassTimer;
     private bool _inputInitialized;
     private int _skillRootCount;
-    private RotationMode _rotationMode;
     private LaunchState _launchState;
     private float _launchStateTimer;
     private Vector3 _launchInheritedVelocity;
@@ -70,13 +59,13 @@ public class BuddahMovement : NetworkBehaviour
     private string _lastInputGateReason = string.Empty;
 
     public bool IsSkillRooted => _skillRootCount > 0;
-    public bool IsUsingAutoInput => _currentInputSource != null && _currentInputSource.AllowMovementWhenGameplayBlocked;
     public bool IsLaunchHandoffActive => TryGetPredictionHandoffBridge(out BuddahPredictionHandoffBridge bridge) && bridge.IsPredictionHandoffActive()
         ? bridge.IsLaunchHandoffActive()
         : _launchState != LaunchState.Normal || _externalKinematicControlActive || _introControlActive || _authoritativeHandoffPending || _predictionLaunchHandoffActive;
 
     private void Awake()
     {
+        PlayerRegistry.Register(this);
         inputActions = new InputSystem_Actions();
         movementAction = inputActions.Player.Movement;
         _playerInputSource = new PlayerBuddahInputSource(movementAction);
@@ -87,6 +76,11 @@ public class BuddahMovement : NetworkBehaviour
             rb = GetComponent<Rigidbody>();
         if (predictionHandoffBridge == null)
             predictionHandoffBridge = GetComponent<BuddahPredictionHandoffBridge>();
+    }
+
+    private void OnDestroy()
+    {
+        PlayerRegistry.Unregister(this);
     }
 
     public override void OnStartClient()
@@ -122,7 +116,6 @@ public class BuddahMovement : NetworkBehaviour
 
         IBuddahInputSource inputSource = _currentInputSource ?? _disabledInputSource;
         inputSource.Tick(Time.fixedDeltaTime, transform, rb);
-        _rotationMode = inputSource.UseDirectHeadingControl ? RotationMode.DirectHeadingControl : RotationMode.TorqueSteering;
 
         if (IsRaceGameplayBlocked() && _roomStateBypassTimer <= 0f && !inputSource.AllowMovementWhenGameplayBlocked)
         {
@@ -155,9 +148,6 @@ public class BuddahMovement : NetworkBehaviour
             forwardDir = Vector3.forward;
         forwardDir.Normalize();
 
-        if (_rotationMode == RotationMode.DirectHeadingControl)
-            ApplyDirectHeadingControl(inputSource.GetDesiredForward(), Time.fixedDeltaTime);
-
         forwardDir = transform.forward;
         forwardDir.y = 0f;
         if (forwardDir.sqrMagnitude < 0.0001f)
@@ -166,11 +156,11 @@ public class BuddahMovement : NetworkBehaviour
 
         rb.AddForce(forwardDir * (forwardForce * throttle), ForceMode.Force);
 
-        if (_rotationMode == RotationMode.TorqueSteering && Mathf.Abs(steering) > 0.001f)
+        if (Mathf.Abs(steering) > 0.001f)
         {
             rb.AddTorque(Vector3.up * steering * turnTorque, ForceMode.Force);
         }
-        else if (_rotationMode == RotationMode.TorqueSteering && turnDecayPerSecond > 0f)
+        else if (turnDecayPerSecond > 0f)
         {
             Vector3 angular = rb.angularVelocity;
             angular.y = Mathf.MoveTowards(angular.y, 0f, turnDecayPerSecond * Time.fixedDeltaTime);
@@ -207,20 +197,6 @@ public class BuddahMovement : NetworkBehaviour
         _currentInputSource?.OnDeactivated(transform, rb);
         _currentInputSource = next;
         _currentInputSource?.OnActivated(transform, rb);
-        _rotationMode = _currentInputSource != null && _currentInputSource.UseDirectHeadingControl
-            ? RotationMode.DirectHeadingControl
-            : RotationMode.TorqueSteering;
-    }
-
-    public void RestorePlayerInputSource()
-    {
-        bool shouldEnableOwnerInput = ShouldEnableOwnerInputNow(out _);
-        RefreshInputSourceForCurrentControlState(shouldEnableOwnerInput);
-    }
-
-    public void DisableAllInput()
-    {
-        SetInputSource(_disabledInputSource);
     }
 
     public void SetIntroControlActive(bool active)
@@ -231,13 +207,13 @@ public class BuddahMovement : NetworkBehaviour
         if (TryGetPredictionHandoffBridge(out BuddahPredictionHandoffBridge bridge) && bridge.TrySetIntroControlActive(active))
         {
             _introControlActive = active;
-            Debug.Log($"[IntroState][Movement:{name}] Intro control mirrored to prediction active={active} owner={IsOwner}");
+            GameLog.Verbose($"[IntroState][Movement:{name}] Intro control mirrored to prediction active={active} owner={IsOwner}");
             RefreshLocalControlState();
             return;
         }
 
         _introControlActive = active;
-        Debug.Log($"[IntroState][Movement:{name}] Intro control active={active} owner={IsOwner}");
+        GameLog.Verbose($"[IntroState][Movement:{name}] Intro control active={active} owner={IsOwner}");
         RefreshLocalControlState();
     }
 
@@ -258,7 +234,7 @@ public class BuddahMovement : NetworkBehaviour
             _predictionLaunchHandoffActive = false;
             _roomStateBypassTimer = Mathf.Max(_roomStateBypassTimer, bypassRoomStateSeconds);
             _suppressSteeringTimer = Mathf.Max(0f, suppressTurnInputSeconds);
-            Debug.Log(
+            GameLog.Verbose(
                 $"[IntroHandoff][Movement:{name}] Routed prediction handoff request accepted seq={debugSequenceId} owner={IsOwner} " +
                 $"pendingEntered={_authoritativeHandoffPending} intro={_introControlActive} external={_externalKinematicControlActive}");
             RefreshLocalControlState();
@@ -320,7 +296,7 @@ public class BuddahMovement : NetworkBehaviour
                 _launchState = LaunchState.Normal;
                 _launchStateTimer = 0f;
             }
-            Debug.Log($"[IntroState][Movement:{name}] External kinematic mirrored to prediction active={active} owner={IsOwner}");
+            GameLog.Verbose($"[IntroState][Movement:{name}] External kinematic mirrored to prediction active={active} owner={IsOwner}");
             RefreshLocalControlState();
             return;
         }
@@ -342,7 +318,7 @@ public class BuddahMovement : NetworkBehaviour
             _launchStateTimer = 0f;
         }
 
-        Debug.Log($"[IntroState][Movement:{name}] External kinematic active={active} owner={IsOwner}");
+        GameLog.Verbose($"[IntroState][Movement:{name}] External kinematic active={active} owner={IsOwner}");
         RefreshLocalControlState();
     }
 
@@ -388,12 +364,12 @@ public class BuddahMovement : NetworkBehaviour
 
         if (hadPending && !_authoritativeHandoffPending && _predictionLaunchHandoffActive)
         {
-            Debug.Log($"[IntroHandoff][Movement:{name}] Pending state cleared because prediction consumed/active owner={IsOwner}");
+            GameLog.Verbose($"[IntroHandoff][Movement:{name}] Pending state cleared because prediction consumed/active owner={IsOwner}");
         }
 
         if (changed)
         {
-            Debug.Log(
+            GameLog.Verbose(
                 $"[IntroHandoff][Movement:{name}] Synced prediction state owner={IsOwner} intro={_introControlActive} " +
                 $"external={_externalKinematicControlActive} handoffPending={_authoritativeHandoffPending} active={_predictionLaunchHandoffActive}");
         }
@@ -421,12 +397,6 @@ public class BuddahMovement : NetworkBehaviour
         }
 
         _skillRootCount = Mathf.Max(0, _skillRootCount - 1);
-    }
-
-    [TargetRpc]
-    public void ApplyPushImpulseTargetRpc(NetworkConnection conn, Vector3 impulse)
-    {
-        ApplyPushAndTorqueLocal(impulse, 0f);
     }
 
     [TargetRpc]
@@ -484,41 +454,6 @@ public class BuddahMovement : NetworkBehaviour
             inputActions.Enable();
         else
             inputActions.Disable();
-    }
-
-    private void ApplyDirectHeadingControl(Vector3 desiredForward, float deltaTime)
-    {
-        desiredForward.y = 0f;
-        if (desiredForward.sqrMagnitude < 0.0001f)
-            return;
-
-        desiredForward.Normalize();
-
-        Vector3 currentForward = transform.forward;
-        currentForward.y = 0f;
-        if (currentForward.sqrMagnitude < 0.0001f)
-            currentForward = desiredForward;
-        currentForward.Normalize();
-
-        float angleToTarget = Vector3.Angle(currentForward, desiredForward);
-        Quaternion currentRotation = rb.rotation;
-        Quaternion targetRotation = Quaternion.LookRotation(desiredForward, Vector3.up);
-
-        if (angleToTarget <= directHeadingSnapAngle)
-        {
-            rb.MoveRotation(targetRotation);
-        }
-        else
-        {
-            Quaternion nextRotation = Quaternion.RotateTowards(currentRotation, targetRotation, directHeadingDegreesPerSecond * deltaTime);
-            rb.MoveRotation(nextRotation);
-        }
-
-        Vector3 angular = rb.angularVelocity;
-        angular.x = 0f;
-        angular.z = 0f;
-        angular.y = Mathf.MoveTowards(angular.y, 0f, directHeadingAngularDamping * deltaTime);
-        rb.angularVelocity = angular;
     }
 
     private float GetLaunchBlend01()
@@ -635,7 +570,7 @@ public class BuddahMovement : NetworkBehaviour
         bool movementUnlocked = room != null && room.IsGameplayMovementUnlocked;
         bool matchPhase = room != null && room.IsMatchPhaseActive;
         bool resultPhase = room != null && room.IsResultPhaseActive;
-        Debug.Log(
+        GameLog.Verbose(
             $"[InputGate][Movement:{name}] enabled={enabled} reason={reason} owner={IsOwner} " +
             $"intro={_introControlActive} external={_externalKinematicControlActive} phase={phase} " +
             $"handoffPending={_authoritativeHandoffPending} match={matchPhase} result={resultPhase} movementUnlocked={movementUnlocked}");

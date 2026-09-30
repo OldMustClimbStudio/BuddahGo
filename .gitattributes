@@ -4,6 +4,8 @@
 *.prefab text eol=lf
 *.mat text eol=lf
 *.asset text eol=lf
+# Baked lighting data is binary even though it uses the .asset extension.
+LightingData.asset binary
 *.anim text eol=lf
 *.controller text eol=lf
 *.overrideController text eol=lf

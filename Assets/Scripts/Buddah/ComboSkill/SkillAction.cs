@@ -22,7 +22,16 @@ public abstract class SkillAction : ScriptableObject
     [Header("Anti (Backfire) Variant")]
     [Tooltip("If set, casting this skill may instead cast the Anti variant based on ObsessionFigure.")]
     public string antiSkillId = string.Empty;
-    public bool HasAnti => !string.IsNullOrWhiteSpace(antiSkillId);
+
+    protected static float ResolveVfxDuration(float configuredSeconds, float fallbackSeconds)
+    {
+        return configuredSeconds > 0f ? configuredSeconds : fallbackSeconds;
+    }
+
+    protected void PlayObserverFeel(SkillExecutor caster, string startEventId, string stopEventId, float durationSeconds)
+    {
+        caster.PlayFeelLocalTimed(startEventId, stopEventId, durationSeconds, $"{skillId}_observers");
+    }
 
     /// <summary>
     /// Server-authoritative skill execution (spawn hitbox, apply forces, etc).

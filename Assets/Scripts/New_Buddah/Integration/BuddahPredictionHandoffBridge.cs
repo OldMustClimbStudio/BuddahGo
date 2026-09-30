@@ -122,7 +122,7 @@ namespace NewBuddah.PredictionV2.Integration
 
             _loggedStateValid = true;
             _lastLoggedState = state;
-            Debug.Log(
+            GameLog.Verbose(
                 $"[IntroHandoff][Bridge:{name}] prediction state intro={state.IntroControlActive} external={state.ExternalKinematicControlActive} " +
                 $"pending={state.AuthoritativeLaunchHandoffPending} active={state.LaunchHandoffConsumedOrActive}");
         }

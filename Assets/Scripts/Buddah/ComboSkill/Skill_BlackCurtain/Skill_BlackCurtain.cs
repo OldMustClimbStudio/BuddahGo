@@ -35,75 +35,35 @@ public class Skill_BlackCurtain : SkillAction
         if (caster == null)
             return;
 
-        float actualDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds;
-        Debug.Log($"[Skill_BlackCurtain][Server] Triggered by {caster.name}, totalDuration={actualDuration:0.00}s");
+        float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
+        GameLog.Verbose($"[Skill_BlackCurtain][Server] Triggered by {caster.name}, totalDuration={actualDuration:0.00}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
     {
-        Camera localCamera = ResolveLocalCamera();
-        if (localCamera == null)
+        var settings = new BlackCurtainPresentation.Settings
         {
-            Debug.LogWarning("[Skill_BlackCurtain][Observers] No local camera found for screen effect.");
+            fullscreenMaterial = fullscreenMaterial,
+            fullscreenMaterialName = fullscreenMaterialName,
+            fullscreenShaderName = fullscreenShaderName,
+            expandDurationSeconds = expandDurationSeconds,
+            holdDurationSeconds = holdDurationSeconds,
+            fadeOutDurationSeconds = fadeOutDurationSeconds,
+            maxOpacity = maxOpacity,
+            progressProperty = progressProperty,
+            opacityProperty = opacityProperty,
+            elapsedTimeProperty = elapsedTimeProperty,
+            activeProperty = activeProperty,
+            centerProperty = centerProperty,
+            centerWorldOffset = centerWorldOffset,
+        };
+        if (!BlackCurtainPresentation.TryPlay(caster, isAnti, localIsCaster, GetType().Name, settings))
             return;
-        }
 
-        var viewController = localCamera.GetComponent<BlackCurtainViewController>();
-        if (viewController == null)
-            viewController = localCamera.gameObject.AddComponent<BlackCurtainViewController>();
+        float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
+        PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, actualDuration);
 
-        bool localShouldSeeEdge = localIsCaster ^ isAnti;
-        Vector2 center = ResolveScreenCenter(localCamera, caster);
-        Debug.Log($"[Skill_BlackCurtain][Observers] localIsCaster={localIsCaster}, isAnti={isAnti}, localShouldSeeEdge={localShouldSeeEdge}, camera={localCamera.name}");
-        viewController.Play(
-            fullscreenMaterial,
-            fullscreenMaterialName,
-            fullscreenShaderName,
-            expandDurationSeconds,
-            holdDurationSeconds,
-            fadeOutDurationSeconds,
-            maxOpacity,
-            progressProperty,
-            opacityProperty,
-            elapsedTimeProperty,
-            activeProperty,
-            centerProperty,
-            localShouldSeeEdge,
-            center);
-
-        float actualDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds;
-        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualDuration, $"{skillId}_observers");
-
-        Debug.Log($"[Skill_BlackCurtain][Observers] Local player affected by '{skillId}' (slot {slotIndex})");
+        GameLog.Verbose($"[Skill_BlackCurtain][Observers] Local player affected by '{skillId}' (slot {slotIndex})");
     }
 
-    private static Camera ResolveLocalCamera()
-    {
-        if (Camera.main != null)
-            return Camera.main;
-
-        Camera[] cameras = FindObjectsByType<Camera>(FindObjectsSortMode.None);
-        for (int i = 0; i < cameras.Length; i++)
-        {
-            if (cameras[i] != null && cameras[i].isActiveAndEnabled)
-                return cameras[i];
-        }
-
-        return null;
-    }
-
-    private Vector2 ResolveScreenCenter(Camera localCamera, SkillExecutor caster)
-    {
-        if (localCamera == null || caster == null)
-            return new Vector2(0.5f, 0.5f);
-
-        Vector3 worldPosition = caster.transform.position + centerWorldOffset;
-        Vector3 viewportPosition = localCamera.WorldToViewportPoint(worldPosition);
-        if (viewportPosition.z <= 0f)
-            return new Vector2(0.5f, 0.5f);
-
-        return new Vector2(
-            Mathf.Clamp01(viewportPosition.x),
-            Mathf.Clamp01(viewportPosition.y));
-    }
 }

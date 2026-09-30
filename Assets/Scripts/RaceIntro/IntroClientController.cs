@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class IntroClientController : MonoBehaviour
 {
+    private readonly System.Collections.Generic.List<BuddahMovement> _playerQuery = new System.Collections.Generic.List<BuddahMovement>();
+
     private sealed class SequenceRuntimeRecord
     {
         public readonly Dictionary<int, IntroAssignmentData> PendingAssignmentsByObjectId = new Dictionary<int, IntroAssignmentData>();
@@ -56,7 +58,7 @@ public class IntroClientController : MonoBehaviour
         int sequenceId = assignments[0].sequenceId;
         if (sequenceId < _activeSequenceId)
         {
-            Debug.Log($"[SequenceGuard][Client] Ignored stale assignments seq={sequenceId} active={_activeSequenceId}");
+            GameLog.Verbose($"[SequenceGuard][Client] Ignored stale assignments seq={sequenceId} active={_activeSequenceId}");
             return;
         }
 
@@ -70,7 +72,7 @@ public class IntroClientController : MonoBehaviour
         runtime.HasAssignments = true;
         runtime.PendingAssignmentsByObjectId.Clear();
 
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroState][Client] ReceiveAssignments seq={sequenceId} count={assignments.Length} " +
             $"reuseCachedVisual={runtime.HasVisualStart} reuseCachedGo={runtime.HasAuthoritativeGo}");
 
@@ -86,7 +88,7 @@ public class IntroClientController : MonoBehaviour
             runtime.PendingAssignmentsByObjectId[assignment.playerObjectId] = assignment;
             runtime.VisualAppliedBodyObjectIds.Remove(assignment.playerObjectId);
             runtime.GoAppliedBodyObjectIds.Remove(assignment.playerObjectId);
-            Debug.Log(
+            GameLog.Verbose(
                 $"[IntroState][Client] Pending assignment seq={assignment.sequenceId} obj={assignment.playerObjectId} " +
                 $"owner={assignment.playerOwnerId} slot={assignment.slotIndex} spline={assignment.splineId} " +
                 $"introStart={assignment.introStartNetworkTime:0.000} go={assignment.goNetworkTime:0.000}");
@@ -94,7 +96,7 @@ public class IntroClientController : MonoBehaviour
 
         if (runtime.HasVisualStart || runtime.HasAuthoritativeGo)
         {
-            Debug.Log(
+            GameLog.Verbose(
                 $"[LateJoin][Client] Assignments seq={sequenceId} will reuse cached commands " +
                 $"visual={runtime.HasVisualStart} go={runtime.HasAuthoritativeGo}");
         }
@@ -119,14 +121,14 @@ public class IntroClientController : MonoBehaviour
         ForceExitAllBodies();
         _activeSequenceId = sequenceId;
         PruneCancelledRuntimeRecords(sequenceId);
-        Debug.Log($"[IntroState][Client] CancelSequence seq={sequenceId} active={_activeSequenceId} runtimeRecords={_runtimeBySequenceId.Count}");
+        GameLog.Verbose($"[IntroState][Client] CancelSequence seq={sequenceId} active={_activeSequenceId} runtimeRecords={_runtimeBySequenceId.Count}");
     }
 
     public void ApplyAuthoritativeGo(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)
     {
         if (sequenceId < _activeSequenceId)
         {
-            Debug.Log($"[SequenceGuard][Client] Ignored stale authoritative go seq={sequenceId} active={_activeSequenceId}");
+            GameLog.Verbose($"[SequenceGuard][Client] Ignored stale authoritative go seq={sequenceId} active={_activeSequenceId}");
             return;
         }
 
@@ -147,7 +149,7 @@ public class IntroClientController : MonoBehaviour
         if (overwriteKnownGo)
             runtime.GoAppliedBodyObjectIds.Clear();
 
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroGo][Client] Cached authoritative go seq={sequenceId} goIssuedNow={goIssuedNetworkTime:0.000} " +
             $"scheduledGoTime={scheduledGoNetworkTime:0.000} localNow={IntroTimeUtility.GetNetworkTimeSeconds():0.000} " +
             $"overwriteKnown={overwriteKnownGo} hasAssignments={runtime.PendingAssignmentsByObjectId.Count > 0 || runtime.HasAssignments}");
@@ -173,7 +175,7 @@ public class IntroClientController : MonoBehaviour
     {
         if (sequenceId < _activeSequenceId)
         {
-            Debug.Log($"[SequenceGuard][Client] Ignored stale visual start seq={sequenceId} active={_activeSequenceId}");
+            GameLog.Verbose($"[SequenceGuard][Client] Ignored stale visual start seq={sequenceId} active={_activeSequenceId}");
             return;
         }
 
@@ -194,7 +196,7 @@ public class IntroClientController : MonoBehaviour
         if (overwriteKnownVisualStart)
             runtime.VisualAppliedBodyObjectIds.Clear();
 
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroVisual][Client] Cached visual start seq={sequenceId} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000} " +
             $"overwriteKnown={overwriteKnownVisualStart} hasAssignments={runtime.PendingAssignmentsByObjectId.Count > 0 || runtime.HasAssignments}");
 
@@ -223,7 +225,7 @@ public class IntroClientController : MonoBehaviour
 
             if (sequenceId < _activeSequenceId)
             {
-                Debug.Log($"[SequenceGuard][Client] Removing stale runtime seq={sequenceId} active={_activeSequenceId}");
+                GameLog.Verbose($"[SequenceGuard][Client] Removing stale runtime seq={sequenceId} active={_activeSequenceId}");
                 _runtimeBySequenceId.Remove(sequenceId);
                 continue;
             }
@@ -244,7 +246,7 @@ public class IntroClientController : MonoBehaviour
             IntroAssignmentData assignment = kvp.Value;
             if (assignment.sequenceId < _activeSequenceId)
             {
-                Debug.Log($"[SequenceGuard][Client] Dropping stale pending assignment seq={assignment.sequenceId} active={_activeSequenceId} obj={kvp.Key}");
+                GameLog.Verbose($"[SequenceGuard][Client] Dropping stale pending assignment seq={assignment.sequenceId} active={_activeSequenceId} obj={kvp.Key}");
                 appliedObjectIds ??= new List<int>();
                 appliedObjectIds.Add(kvp.Key);
                 continue;
@@ -252,22 +254,22 @@ public class IntroClientController : MonoBehaviour
 
             if (!_bodiesByObjectId.TryGetValue(kvp.Key, out RaceBodyIntroStateController body) || body == null)
             {
-                Debug.Log($"[LateJoin][Client] Assignment waiting for body obj={kvp.Key} seq={assignment.sequenceId} spline={assignment.splineId}");
+                GameLog.Verbose($"[LateJoin][Client] Assignment waiting for body obj={kvp.Key} seq={assignment.sequenceId} spline={assignment.splineId}");
                 continue;
             }
 
             SplineIntroPath splinePath = splineRegistry.GetPathById(assignment.splineId);
             if (splinePath == null)
             {
-                Debug.Log($"[LateJoin][Client] Assignment waiting for spline obj={kvp.Key} seq={assignment.sequenceId} spline={assignment.splineId}");
+                GameLog.Verbose($"[LateJoin][Client] Assignment waiting for spline obj={kvp.Key} seq={assignment.sequenceId} spline={assignment.splineId}");
                 continue;
             }
 
-            Debug.Log(
+            GameLog.Verbose(
                 $"[IntroState][Client] Applying assignment seq={assignment.sequenceId} obj={kvp.Key} owner={assignment.playerOwnerId} " +
                 $"slot={assignment.slotIndex} spline={assignment.splineId} body={body.name}");
             body.ApplyIntroAssignment(assignment, splinePath);
-            Debug.Log(
+            GameLog.Verbose(
                 $"[IntroState][Client] Body prepared seq={assignment.sequenceId} obj={kvp.Key} body={body.name} " +
                 $"cachedVisual={runtime.HasVisualStart} cachedGo={runtime.HasAuthoritativeGo}");
             runtime.VisualAppliedBodyObjectIds.Remove(kvp.Key);
@@ -276,7 +278,7 @@ public class IntroClientController : MonoBehaviour
             NetworkObject bodyNetworkObject = body.NetworkObject;
             if (bodyNetworkObject != null && bodyNetworkObject.IsOwner && !runtime.LocalAssignmentReported)
             {
-                Debug.Log(
+                GameLog.Verbose(
                     $"[IntroState][Client] Local intro assignment ready seq={assignment.sequenceId} obj={bodyNetworkObject.ObjectId} " +
                     $"owner={body.OwnerId} body={body.name}");
                 runtime.LocalAssignmentReported = true;
@@ -289,7 +291,7 @@ public class IntroClientController : MonoBehaviour
                 && introSequenceManager != null
                 && introSequenceManager.TryPrepareLocalVisual(assignment.sequenceId))
             {
-                Debug.Log(
+                GameLog.Verbose(
                     $"[IntroVisual][Client] Local visual prepared seq={assignment.sequenceId} obj={bodyNetworkObject.ObjectId} " +
                     $"owner={body.OwnerId} body={body.name}");
                 runtime.LocalVisualPreparedReported = true;
@@ -354,8 +356,9 @@ public class IntroClientController : MonoBehaviour
 
     private void EnsureBodyControllersPresent()
     {
-        BuddahMovement[] movements = FindObjectsByType<BuddahMovement>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        for (int i = 0; i < movements.Length; i++)
+        PlayerRegistry.CopyActiveTo(_playerQuery);
+        var movements = _playerQuery;
+        for (int i = 0; i < movements.Count; i++)
         {
             BuddahMovement movement = movements[i];
             if (movement == null || movement.GetComponent<RaceBodyIntroStateController>() != null)
@@ -388,7 +391,7 @@ public class IntroClientController : MonoBehaviour
         if (runtime.HasVisualStart && !runtime.VisualAppliedBodyObjectIds.Contains(objectId))
         {
             string source = isReplay ? "cached" : "direct";
-            Debug.Log(
+            GameLog.Verbose(
                 $"[LateJoin][Client] Replaying {source} visual start seq={sequenceId} onto body={body.name} obj={objectId} " +
                 $"introStart={runtime.VisualStartNetworkTime:0.000} go={runtime.VisualStartGoNetworkTime:0.000} " +
                 $"bodyPrepared={body.HasAssignment} bodyActiveSeq={body.ActiveSequenceId}");
@@ -399,7 +402,7 @@ public class IntroClientController : MonoBehaviour
         if (runtime.HasAuthoritativeGo && !runtime.GoAppliedBodyObjectIds.Contains(objectId))
         {
             string source = isReplay ? "cached" : "direct";
-            Debug.Log(
+            GameLog.Verbose(
                 $"[LateJoin][Client] Replaying {source} authoritative go seq={sequenceId} onto body={body.name} obj={objectId} " +
                 $"goIssuedNow={runtime.AuthoritativeGoIssuedNetworkTime:0.000} scheduledGoTime={runtime.AuthoritativeGoScheduledNetworkTime:0.000} " +
                 $"bodyPrepared={body.HasAssignment} bodyActiveSeq={body.ActiveSequenceId}");
@@ -432,7 +435,7 @@ public class IntroClientController : MonoBehaviour
         {
             int sequenceId = _sequenceScratch[i];
             _runtimeBySequenceId.Remove(sequenceId);
-            Debug.Log($"[SequenceGuard][Client] Pruned stale runtime record seq={sequenceId} keepFrom={keepFromSequenceId}");
+            GameLog.Verbose($"[SequenceGuard][Client] Pruned stale runtime record seq={sequenceId} keepFrom={keepFromSequenceId}");
         }
     }
 
@@ -449,7 +452,7 @@ public class IntroClientController : MonoBehaviour
         {
             int sequenceId = _sequenceScratch[i];
             _runtimeBySequenceId.Remove(sequenceId);
-            Debug.Log($"[SequenceGuard][Client] Cleared cancelled runtime record seq={sequenceId} cancelledAt={cancelledSequenceId}");
+            GameLog.Verbose($"[SequenceGuard][Client] Cleared cancelled runtime record seq={sequenceId} cancelledAt={cancelledSequenceId}");
         }
     }
 

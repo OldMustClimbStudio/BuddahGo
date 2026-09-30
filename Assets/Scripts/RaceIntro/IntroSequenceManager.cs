@@ -8,6 +8,8 @@ using UnityEngine.Playables;
 
 public class IntroSequenceManager : NetworkBehaviour
 {
+    private readonly System.Collections.Generic.List<BuddahMovement> _playerQuery = new System.Collections.Generic.List<BuddahMovement>();
+
     [Serializable]
     public class IntroLayout
     {
@@ -182,7 +184,7 @@ public class IntroSequenceManager : NetworkBehaviour
         if (networkAssignments.Count == 0)
             return;
 
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroState][Server] Assignments broadcast seq={_activeSequenceId} introDuration={_serverConfiguredIntroDurationSeconds:0.000} " +
             $"requestedDuration={duration:0.000} waitingForAllVisualPrepared=true");
         BroadcastAssignmentsObserversRpc(networkAssignments.ToArray());
@@ -198,7 +200,7 @@ public class IntroSequenceManager : NetworkBehaviour
         _serverRuntimeState = IntroRuntimeState.AuthoritativeGoIssued;
         double goIssuedNow = IntroTimeUtility.GetNetworkTimeSeconds();
         roomStateManager?.MarkAuthoritativeGoIssuedServer();
-        Debug.Log($"[IntroGo][Server] Authoritative go issued seq={_activeSequenceId} goIssuedNow={goIssuedNow:0.000} scheduledGoTime={_serverAssignedGoNetworkTime:0.000}");
+        GameLog.Verbose($"[IntroGo][Server] Authoritative go issued seq={_activeSequenceId} goIssuedNow={goIssuedNow:0.000} scheduledGoTime={_serverAssignedGoNetworkTime:0.000}");
         NotifyGoObserversRpc(_activeSequenceId, _serverAssignedGoNetworkTime, goIssuedNow);
         _authorityState = IntroAuthorityState.GoBroadcast;
     }
@@ -241,7 +243,7 @@ public class IntroSequenceManager : NetworkBehaviour
     {
         if (sequenceId < _activeSequenceId)
         {
-            Debug.Log($"[SequenceGuard][Client] Ignored stale visual prepare seq={sequenceId} active={_activeSequenceId}");
+            GameLog.Verbose($"[SequenceGuard][Client] Ignored stale visual prepare seq={sequenceId} active={_activeSequenceId}");
             return false;
         }
 
@@ -253,11 +255,11 @@ public class IntroSequenceManager : NetworkBehaviour
             timelineDirector.time = 0d;
             timelineDirector.Evaluate();
             timelineDirector.Stop();
-            Debug.Log($"[IntroVisual][Client] Visual prepared seq={sequenceId} preload=timeline-reset-only");
+            GameLog.Verbose($"[IntroVisual][Client] Visual prepared seq={sequenceId} preload=timeline-reset-only");
         }
         else
         {
-            Debug.Log($"[IntroVisual][Client] Visual prepared seq={sequenceId} without timeline");
+            GameLog.Verbose($"[IntroVisual][Client] Visual prepared seq={sequenceId} without timeline");
         }
 
         return true;
@@ -351,7 +353,7 @@ public class IntroSequenceManager : NetworkBehaviour
         int sequenceId = assignments[0].sequenceId;
         if (sequenceId < _activeSequenceId)
         {
-            Debug.Log($"[SequenceGuard][Client] Ignored stale assignment broadcast seq={sequenceId} active={_activeSequenceId}");
+            GameLog.Verbose($"[SequenceGuard][Client] Ignored stale assignment broadcast seq={sequenceId} active={_activeSequenceId}");
             return;
         }
 
@@ -363,7 +365,7 @@ public class IntroSequenceManager : NetworkBehaviour
         _clientIntroStartNetworkTime = -1d;
         _clientAssignedGoNetworkTime = -1d;
         ResetTimelineToIntroStart();
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroState][Client] Assignment broadcast accepted seq={sequenceId} count={assignments.Length}; " +
             "bodies stay prepared-only until visual start.");
 
@@ -375,7 +377,7 @@ public class IntroSequenceManager : NetworkBehaviour
     {
         if (sequenceId < _activeSequenceId)
         {
-            Debug.Log($"[SequenceGuard][Client] Ignored stale visual start seq={sequenceId} active={_activeSequenceId}");
+            GameLog.Verbose($"[SequenceGuard][Client] Ignored stale visual start seq={sequenceId} active={_activeSequenceId}");
             return;
         }
 
@@ -386,7 +388,7 @@ public class IntroSequenceManager : NetworkBehaviour
         _clientAssignedGoNetworkTime = goNetworkTime;
         _clientRuntimeState = IntroRuntimeState.VisualStarted;
         introClientController?.ApplyVisualStart(sequenceId, introStartNetworkTime, goNetworkTime);
-        Debug.Log($"[IntroVisual][Client] Visual start armed seq={sequenceId} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000}");
+        GameLog.Verbose($"[IntroVisual][Client] Visual start armed seq={sequenceId} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000}");
     }
 
     [ObserversRpc(BufferLast = true)]
@@ -394,14 +396,14 @@ public class IntroSequenceManager : NetworkBehaviour
     {
         if (sequenceId < _activeSequenceId)
         {
-            Debug.Log($"[SequenceGuard][Client] Ignored stale authoritative go seq={sequenceId} active={_activeSequenceId}");
+            GameLog.Verbose($"[SequenceGuard][Client] Ignored stale authoritative go seq={sequenceId} active={_activeSequenceId}");
             return;
         }
 
         EnsureIntroClientController();
         _activeSequenceId = sequenceId;
         _clientAssignedGoNetworkTime = scheduledGoNetworkTime;
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroGo][Client] Received authoritative go seq={sequenceId} goIssuedNow={goIssuedNetworkTime:0.000} " +
             $"scheduledGoTime={scheduledGoNetworkTime:0.000} localNow={IntroTimeUtility.GetNetworkTimeSeconds():0.000}");
         _clientRuntimeState = IntroRuntimeState.AuthoritativeGoIssued;
@@ -440,7 +442,7 @@ public class IntroSequenceManager : NetworkBehaviour
         _serverAssignedGoNetworkTime = goTime;
         _serverIntroVisualsBroadcast = true;
         _serverRuntimeState = IntroRuntimeState.VisualStarted;
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroVisual][Server] Visual start issued seq={_activeSequenceId} introStart={introStartTime:0.000} " +
             $"go={goTime:0.000} duration={introDuration:0.000}");
         BroadcastIntroVisualsStartObserversRpc(_activeSequenceId, introStartTime, goTime);
@@ -473,8 +475,9 @@ public class IntroSequenceManager : NetworkBehaviour
 
     private RaceBodyIntroStateController[] FindIntroBodies()
     {
-        BuddahMovement[] movements = FindObjectsByType<BuddahMovement>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        for (int i = 0; i < movements.Length; i++)
+        PlayerRegistry.CopyActiveTo(_playerQuery);
+        var movements = _playerQuery;
+        for (int i = 0; i < movements.Count; i++)
         {
             BuddahMovement movement = movements[i];
             if (movement == null || movement.GetComponent<RaceBodyIntroStateController>() != null)
@@ -533,12 +536,12 @@ public class IntroSequenceManager : NetworkBehaviour
             if (!hasReachedGo)
             {
                 timelineDirector.Play();
-                Debug.Log($"[IntroVisual][Client] Timeline play seq={_activeSequenceId} now={now:0.000} seek={seekTime:0.000}");
+                GameLog.Verbose($"[IntroVisual][Client] Timeline play seq={_activeSequenceId} now={now:0.000} seek={seekTime:0.000}");
             }
             else
             {
                 timelineDirector.Stop();
-                Debug.Log($"[LateJoin][Client] Timeline skipped to end seq={_activeSequenceId} now={now:0.000} seek={seekTime:0.000} go={timing.GoNetworkTime:0.000}");
+                GameLog.Verbose($"[LateJoin][Client] Timeline skipped to end seq={_activeSequenceId} now={now:0.000} seek={seekTime:0.000} go={timing.GoNetworkTime:0.000}");
             }
         }
 

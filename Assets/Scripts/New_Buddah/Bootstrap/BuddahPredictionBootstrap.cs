@@ -40,6 +40,10 @@ namespace NewBuddah.PredictionV2.Bootstrap
         private bool _compatibilityRegistryAutoAdded;
         private bool _runtimeHealthReportAutoAdded;
 
+        // Health diagnostics have their own log consumer; console mirroring does not use them.
+        public bool HasHealthLogConsumer => BuddahDiagnosticLogSampling.VerboseCompiledIn
+            && ((debugSettings != null && debugSettings.enableVerboseLogs) || global::NetDebug.EnableVerboseLog);
+
         public BuddahMovementModeSwitcher ModeSwitcher => modeSwitcher;
         public Core.BuddahPredictedMotor PredictedMotor => predictedMotor;
         public BuddahPredictedMotorConfig PredictedMotorConfig => predictedMotorConfig;
@@ -74,7 +78,7 @@ namespace NewBuddah.PredictionV2.Bootstrap
             // BuddahMovementModeSwitcher's double-ApplyMode and its 4
             // [CommandBus]:ClearAll lines have all landed).
             _combatAdapter.Initialize(commandBus);
-#if BUDDAH_PREDICTION_VISUAL_PROBE
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_VISUAL_PROBE
             // Phase 4-probes wiring: attach the V3 visual-shake probe per-Buddah.
             // Runs on every peer (this MonoBehaviour lives on the replicated
             // Buddah prefab, so Awake fires on both HOST-instantiated and
@@ -168,17 +172,17 @@ namespace NewBuddah.PredictionV2.Bootstrap
             debugState.predictedMotorEnabled = predictedMotor != null && predictedMotor.enabled;
             debugState.legacyMovementEnabled = legacyComponentRefs.Movement != null && legacyComponentRefs.Movement.enabled;
             debugState.lastLifecycleMessage = lifecycleMessage;
-            compatibilityRegistry?.RefreshRegistry();
             runtimeHealthReport?.RefreshHealthReport();
         }
 
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         public void LogVerbose(string message)
         {
             if (debugSettings == null)
                 return;
 
             if (debugSettings.enableVerboseLogs || NetDebug.EnableVerboseLog)
-                Debug.Log($"{LogPrefix} {message}", this);
+                GameLog.Verbose($"{LogPrefix} {message}", this);
         }
     }
 }

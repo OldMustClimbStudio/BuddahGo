@@ -35,6 +35,8 @@ public class LapProgress : NetworkBehaviour
     [SerializeField] private bool hasReachedLapValidationDistance = false;
     [SerializeField] private int nextCheckpointIndex = 1;
 
+    private GameObject _cachedStartPoint;
+    private Collider[] _startPointColliders;
     private SplineProgressTracker _tracker;
     private float _nextAllowedCrossTime = 0f;
     private float _lastProgress01 = 0f;
@@ -208,6 +210,27 @@ public class LapProgress : NetworkBehaviour
         _hasLastProgressSample = true;
     }
 
+    private Collider[] GetStartPointColliders()
+    {
+        bool refresh = _cachedStartPoint != startPointObject || _startPointColliders == null
+            || _startPointColliders.Length == 0;
+        if (!refresh)
+        {
+            for (int i = 0; i < _startPointColliders.Length; i++)
+            {
+                if (_startPointColliders[i] != null)
+                    continue;
+                refresh = true;
+                break;
+            }
+        }
+        if (refresh)
+        {
+            _cachedStartPoint = startPointObject;
+            _startPointColliders = startPointObject.GetComponentsInChildren<Collider>(true);
+        }
+        return _startPointColliders;
+    }
     private bool IsInsideStartPointZone()
     {
         if (startPointObject == null || !startPointObject.scene.IsValid())
@@ -216,7 +239,7 @@ public class LapProgress : NetworkBehaviour
         if (startPointObject == null)
             return false;
 
-        Collider[] startColliders = startPointObject.GetComponentsInChildren<Collider>(true);
+        Collider[] startColliders = GetStartPointColliders();
         if (startColliders == null || startColliders.Length == 0)
             return false;
 
@@ -243,7 +266,7 @@ public class LapProgress : NetworkBehaviour
         if (startPointObject == null)
             return float.PositiveInfinity;
 
-        Collider[] startColliders = startPointObject.GetComponentsInChildren<Collider>(true);
+        Collider[] startColliders = GetStartPointColliders();
         Vector3 pos = transform.position;
         float bestSqrDistance = float.PositiveInfinity;
 

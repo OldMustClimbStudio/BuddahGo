@@ -201,7 +201,7 @@ public class PlayerProgressReporter : NetworkBehaviour
     private static void DebugLog(string message)
     {
         if (NetDebug.EnableVerboseLog)
-            Debug.Log(message);
+            GameLog.Verbose(message);
     }
 
     private int GetConfiguredLapsToFinish()

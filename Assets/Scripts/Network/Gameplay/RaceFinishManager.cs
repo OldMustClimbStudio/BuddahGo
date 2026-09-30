@@ -183,7 +183,7 @@ public class RaceFinishManager : NetworkBehaviour
             return;
         }
 
-        Debug.Log($"[RaceFinishManager] Debug champion-finish requested by client {caller.ClientId}. Simulating a first-place finish presentation for the host player.");
+        GameLog.Verbose($"[RaceFinishManager] Debug champion-finish requested by client {caller.ClientId}. Simulating a first-place finish presentation for the host player.");
         bool registered = TryRegisterFinish(completionTracker);
         if (!registered)
         {
@@ -292,6 +292,6 @@ public class RaceFinishManager : NetworkBehaviour
     private void DebugLog(string message)
     {
         if (enableVerboseLogs)
-            Debug.Log($"[RaceFinishManager] {message}");
+            GameLog.Verbose($"[RaceFinishManager] {message}");
     }
 }

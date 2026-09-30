@@ -124,13 +124,13 @@ namespace SteamMultiplayer.Network
             if (_lastLoggedAuthoritativeGoIssued != _authoritativeGoIssued.Value)
             {
                 _lastLoggedAuthoritativeGoIssued = _authoritativeGoIssued.Value;
-                Debug.Log($"[IntroGo][{(IsServerInitialized ? "Server" : "Client")}] AuthoritativeGoIssued changed -> {_authoritativeGoIssued.Value} phase={_matchSessionPhase.Value}");
+                GameLog.Verbose($"[IntroGo][{(IsServerInitialized ? "Server" : "Client")}] AuthoritativeGoIssued changed -> {_authoritativeGoIssued.Value} phase={_matchSessionPhase.Value}");
             }
 
             if (_lastLoggedGameplayMovementUnlocked != _gameplayMovementUnlocked.Value)
             {
                 _lastLoggedGameplayMovementUnlocked = _gameplayMovementUnlocked.Value;
-                Debug.Log($"[GameplayUnlock][{(IsServerInitialized ? "Server" : "Client")}] MovementUnlocked changed -> {_gameplayMovementUnlocked.Value} phase={_matchSessionPhase.Value}");
+                GameLog.Verbose($"[GameplayUnlock][{(IsServerInitialized ? "Server" : "Client")}] MovementUnlocked changed -> {_gameplayMovementUnlocked.Value} phase={_matchSessionPhase.Value}");
             }
 
             if (!IsServerInitialized || _matchSessionPhase.Value != MatchSessionPhase.InMatch || !ShouldMonitorRaceFlowServer())
@@ -482,7 +482,7 @@ namespace SteamMultiplayer.Network
             if (!IsServerInitialized)
                 return;
 
-            Debug.Log($"[SceneDiag][Server] OnLoadEnd scenes={FormatSceneNames(args.LoadedScenes)} time={Time.unscaledTime:F3}");
+            GameLog.Verbose($"[SceneDiag][Server] OnLoadEnd scenes={FormatSceneNames(args.LoadedScenes)} time={Time.unscaledTime:F3}");
 
             if (ContainsScene(args.LoadedScenes, _mainMenuSceneName))
             {
@@ -507,7 +507,7 @@ namespace SteamMultiplayer.Network
 
         private void HandleClientSceneLoadEnd(SceneLoadEndEventArgs args)
         {
-            Debug.Log($"[SceneDiag][Client] OnLoadEnd scenes={FormatSceneNames(args.LoadedScenes)} time={Time.unscaledTime:F3} localClientId={GetLocalClientId()}");
+            GameLog.Verbose($"[SceneDiag][Client] OnLoadEnd scenes={FormatSceneNames(args.LoadedScenes)} time={Time.unscaledTime:F3} localClientId={GetLocalClientId()}");
 
         if (!ContainsRaceScene(args.LoadedScenes))
             return;
@@ -756,7 +756,7 @@ namespace SteamMultiplayer.Network
             _introAssignmentReadySequenceByClientId.Clear();
             _introVisualReadySequenceByClientId.Clear();
             _gameplayLiveSequenceByClientId.Clear();
-            Debug.Log($"[SceneDiag][Server] BeginRacePreparationServer scene='{_raceSceneName}' time={Time.unscaledTime:F3}");
+            GameLog.Verbose($"[SceneDiag][Server] BeginRacePreparationServer scene='{_raceSceneName}' time={Time.unscaledTime:F3}");
             EvaluateRaceStartReadinessServer();
             LogDebug("Race scene loaded. Waiting for all players and spawned characters before countdown.");
         }
@@ -981,7 +981,7 @@ namespace SteamMultiplayer.Network
             _pregameCountdownCompleted.Value = true;
             _raceStarted.Value = false;
             _gameplayMovementUnlocked.Value = false;
-            Debug.Log($"[IntroGo][Server] Pregame countdown completed. Waiting for synchronized intro go. details={BuildServerRaceReadinessSummary()}");
+            GameLog.Verbose($"[IntroGo][Server] Pregame countdown completed. Waiting for synchronized intro go. details={BuildServerRaceReadinessSummary()}");
         }
 
         [Server]
@@ -1000,7 +1000,7 @@ namespace SteamMultiplayer.Network
             _authoritativeGoIssued.Value = true;
             _pregameCountdownCompleted.Value = false;
             _gameplayMovementUnlocked.Value = false;
-            Debug.Log($"[IntroGo][Server] Authoritative go state set by intro sequence. details={BuildServerRaceReadinessSummary()}");
+            GameLog.Verbose($"[IntroGo][Server] Authoritative go state set by intro sequence. details={BuildServerRaceReadinessSummary()}");
         }
 
         [Server]
@@ -1112,7 +1112,7 @@ namespace SteamMultiplayer.Network
                 return;
 
             _raceSceneManagersReadyClientIds.Add(caller.ClientId);
-            Debug.Log($"[SceneDiag][Server] Client {caller.ClientId} reported race scene managers ready. details={BuildServerRaceReadinessSummary()}");
+            GameLog.Verbose($"[SceneDiag][Server] Client {caller.ClientId} reported race scene managers ready. details={BuildServerRaceReadinessSummary()}");
             EvaluateRaceStartReadinessServer();
         }
 
@@ -1124,7 +1124,7 @@ namespace SteamMultiplayer.Network
 
             _introAssignmentReadyClientIds.Add(caller.ClientId);
             _introAssignmentReadySequenceByClientId[caller.ClientId] = sequenceId;
-            Debug.Log($"[SceneDiag][Server] Client {caller.ClientId} reported intro assignment ready for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
+            GameLog.Verbose($"[SceneDiag][Server] Client {caller.ClientId} reported intro assignment ready for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
             EvaluateRaceStartReadinessServer();
         }
 
@@ -1136,7 +1136,7 @@ namespace SteamMultiplayer.Network
 
             _introVisualReadyClientIds.Add(caller.ClientId);
             _introVisualReadySequenceByClientId[caller.ClientId] = sequenceId;
-            Debug.Log($"[IntroVisual][Server] Client {caller.ClientId} reported visual prepared for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
+            GameLog.Verbose($"[IntroVisual][Server] Client {caller.ClientId} reported visual prepared for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -1147,13 +1147,13 @@ namespace SteamMultiplayer.Network
 
             _gameplayLiveClientIds.Add(caller.ClientId);
             _gameplayLiveSequenceByClientId[caller.ClientId] = sequenceId;
-            Debug.Log($"[GameplayUnlock][Server] Client {caller.ClientId} reported gameplay live for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
+            GameLog.Verbose($"[GameplayUnlock][Server] Client {caller.ClientId} reported gameplay live for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
 
             if (AreAllClientsGameplayLiveForSequenceServer(sequenceId))
             {
                 _gameplayMovementUnlocked.Value = true;
                 _raceStarted.Value = true;
-                Debug.Log($"[GameplayUnlock][Server] Gameplay movement unlocked for all players. details={BuildServerRaceReadinessSummary()}");
+                GameLog.Verbose($"[GameplayUnlock][Server] Gameplay movement unlocked for all players. details={BuildServerRaceReadinessSummary()}");
             }
         }
 
@@ -1218,13 +1218,13 @@ namespace SteamMultiplayer.Network
         {
             // Require both local inspector intent and global verbose switch.
             if (_enableDebugLogs && NetDebug.EnableVerboseLog)
-                Debug.Log($"[RoomStateManager] {message}");
+                GameLog.Verbose($"[RoomStateManager] {message}");
         }
 
         private void LogSceneDiag(string message)
         {
             if (_enableDebugLogs && NetDebug.EnableVerboseLog)
-                Debug.Log(message);
+                GameLog.Verbose(message);
         }
 
         private IEnumerator RunClientRaceSceneDiagnostics()
@@ -1251,7 +1251,7 @@ namespace SteamMultiplayer.Network
                     if (_localRaceSceneReadyStableSince < 0f)
                     {
                         _localRaceSceneReadyStableSince = Time.unscaledTime;
-                        Debug.Log($"[SceneDiag][Client] Race scene ready conditions met. Holding stable window {stableWindowSeconds:0.00}s status={BuildLocalRaceSceneStatusReport()}");
+                        GameLog.Verbose($"[SceneDiag][Client] Race scene ready conditions met. Holding stable window {stableWindowSeconds:0.00}s status={BuildLocalRaceSceneStatusReport()}");
                     }
 
                     if (Time.unscaledTime - _localRaceSceneReadyStableSince < stableWindowSeconds)
@@ -1263,7 +1263,7 @@ namespace SteamMultiplayer.Network
                     if (!_reportedRaceSceneManagersReadyLocal)
                     {
                         _reportedRaceSceneManagersReadyLocal = true;
-                        Debug.Log($"[SceneDiag][Client] Required race scene managers are present. Reporting ready to server. status={BuildLocalRaceSceneStatusReport()}");
+                        GameLog.Verbose($"[SceneDiag][Client] Required race scene managers are present. Reporting ready to server. status={BuildLocalRaceSceneStatusReport()}");
                         ReportRaceSceneManagersReadyServerRpc();
                     }
 
@@ -1272,7 +1272,7 @@ namespace SteamMultiplayer.Network
                 }
 
                 _localRaceSceneReadyStableSince = -1f;
-                Debug.Log($"[SceneDiag][Client] Waiting for race scene managers... elapsed={(Time.unscaledTime - startedAt):0.00}s status={BuildLocalRaceSceneStatusReport()}");
+                GameLog.Verbose($"[SceneDiag][Client] Waiting for race scene managers... elapsed={(Time.unscaledTime - startedAt):0.00}s status={BuildLocalRaceSceneStatusReport()}");
                 yield return new WaitForSecondsRealtime(0.1f);
             }
 
@@ -1282,7 +1282,7 @@ namespace SteamMultiplayer.Network
 
         private void LogClientRaceSceneDiagnostics(string stageLabel)
         {
-            Debug.Log(
+            GameLog.Verbose(
                 $"[SceneDiag][Client] Race probe {stageLabel} loaded={UnitySceneManager.GetSceneByName(_raceSceneName).isLoaded} " +
                 $"matchPhase={_matchSessionPhase.Value} raceStarted={_raceStarted.Value} clientId={GetLocalClientId()}");
             LogSceneObjectProbe("IntroSequenceManager", FindFirstObjectByType<IntroSequenceManager>(FindObjectsInactive.Include));
@@ -1291,14 +1291,14 @@ namespace SteamMultiplayer.Network
             LogSceneObjectProbe("ResultDecisionManager", FindFirstObjectByType<ResultDecisionManager>(FindObjectsInactive.Include));
             LogSceneObjectProbe("MatchResultPresentationCoordinator", FindFirstObjectByType<MatchResultPresentationCoordinator>(FindObjectsInactive.Include));
             LogSceneObjectProbe("RaceResultAreaManager", FindFirstObjectByType<RaceResultAreaManager>(FindObjectsInactive.Include));
-            Debug.Log($"[SceneDiag][Client] Local readiness summary {BuildLocalRaceSceneStatusReport()}");
+            GameLog.Verbose($"[SceneDiag][Client] Local readiness summary {BuildLocalRaceSceneStatusReport()}");
         }
 
         private static void LogSceneObjectProbe(string label, NetworkBehaviour behaviour)
         {
             if (behaviour == null)
             {
-                Debug.Log($"[SceneDiag][Client] {label}: missing");
+                GameLog.Verbose($"[SceneDiag][Client] {label}: missing");
                 return;
             }
 
@@ -1306,7 +1306,7 @@ namespace SteamMultiplayer.Network
             bool isSpawned = nob != null && nob.IsSpawned;
             bool isSceneObject = nob != null && nob.IsSceneObject;
             string sceneName = behaviour.gameObject.scene.name;
-            Debug.Log($"[SceneDiag][Client] {label}: present scene='{sceneName}' spawned={isSpawned} isSceneObject={isSceneObject} active={behaviour.gameObject.activeInHierarchy}");
+            GameLog.Verbose($"[SceneDiag][Client] {label}: present scene='{sceneName}' spawned={isSpawned} isSceneObject={isSceneObject} active={behaviour.gameObject.activeInHierarchy}");
         }
 
         private static bool AreRequiredRaceSceneManagersPresentLocally()

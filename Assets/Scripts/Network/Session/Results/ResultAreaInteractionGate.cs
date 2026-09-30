@@ -101,7 +101,7 @@ namespace SteamMultiplayer.Network.Results
         private void DebugLog(string message)
         {
             if (enableDebugLogs)
-                Debug.Log($"[ResultAreaInteractionGate] {message}");
+                GameLog.Verbose($"[ResultAreaInteractionGate] {message}");
         }
     }
 }

@@ -110,7 +110,7 @@ namespace SteamMultiplayer.Network
         {
             base.OnStartClient();
             Instance = this;
-            Debug.Log("[PropertySelection] OnStartClient - client received manager");
+            GameLog.Verbose("[PropertySelection] OnStartClient - client received manager");
             SubscribeSyncCollections();
             NotifySelectionStateChanged();
         }
@@ -497,17 +497,17 @@ namespace SteamMultiplayer.Network
             for (int slotIndex = 0; slotIndex < SkillLoadout.SlotCount; slotIndex++)
             {
                 UpsertSelection(caller.ClientId, GetSkillLoadoutSlotPropertyKey(slotIndex), skillIds[slotIndex]);
-                Debug.Log($"[PropertySelection] Player {caller.ClientId} submitted skill slot {slotIndex} -> '{skillIds[slotIndex]}'");
+                GameLog.Verbose($"[PropertySelection] Player {caller.ClientId} submitted skill slot {slotIndex} -> '{skillIds[slotIndex]}'");
             }
 
-            Debug.Log($"[PropertySelection] Player {caller.ClientId} current submitted loadout: 0='{skillIds[0]}', 1='{skillIds[1]}', 2='{skillIds[2]}'");
+            GameLog.Verbose($"[PropertySelection] Player {caller.ClientId} current submitted loadout: 0='{skillIds[0]}', 1='{skillIds[1]}', 2='{skillIds[2]}'");
             if (AreAllRequiredSelectionsSubmittedForCurrentStage(definition))
             {
                 StopAllCoroutines();
                 _stageCountdownActive.Value = false;
                 _stageCountdownSecondsRemaining.Value = 0;
                 RaiseSelectionStateChanged();
-                Debug.Log("[PropertySelection] All players completed skill loadout stage. Advancing immediately.");
+                GameLog.Verbose("[PropertySelection] All players completed skill loadout stage. Advancing immediately.");
                 AdvanceToNextStageServer();
                 return;
             }
@@ -579,7 +579,7 @@ namespace SteamMultiplayer.Network
             _stageCountdownSecondsRemaining.Value = Mathf.Max(1, _stageDurationSeconds);
             StartCoroutine(StageCountdownCoroutine());
             if (IsSkillLoadoutStage(stageKey))
-                Debug.Log("[PropertySelection] Skill loadout selection stage started.");
+                GameLog.Verbose("[PropertySelection] Skill loadout selection stage started.");
             else
                 LogDebug($"Stage started: '{stageKey}'");
             RaiseSelectionStateChanged();
@@ -644,7 +644,7 @@ namespace SteamMultiplayer.Network
                 yield return new WaitForSeconds(transitionDurationSeconds);
 
             SceneLoadData sceneLoadData = new SceneLoadData(_resolvedMatchSceneName) { ReplaceScenes = ReplaceOption.All };
-            Debug.Log($"[SceneDiag][Server] LoadGlobalScenes start scene='{_resolvedMatchSceneName}' replace={sceneLoadData.ReplaceScenes} time={Time.unscaledTime:F3}");
+            GameLog.Verbose($"[SceneDiag][Server] LoadGlobalScenes start scene='{_resolvedMatchSceneName}' replace={sceneLoadData.ReplaceScenes} time={Time.unscaledTime:F3}");
             InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
             LogDebug($"Loading match scene: {_resolvedMatchSceneName}");
         }
@@ -987,7 +987,7 @@ namespace SteamMultiplayer.Network
         {
             if (!IsSkillLoadoutStage(stageKey))
                 return;
-            Debug.Log("[PropertySelection] Skill loadout timer expired. Auto-filling incomplete selections.");
+            GameLog.Verbose("[PropertySelection] Skill loadout timer expired. Auto-filling incomplete selections.");
             if (!TryGetDefinitionRecord(stageKey, out PropertyDefinitionRecord definition))
                 return;
             for (int i = 0; i < Participants.Count; i++)
@@ -1033,7 +1033,7 @@ namespace SteamMultiplayer.Network
                 currentSkillIds[slotIndex] = fillSkillId;
                 UpsertSelection(playerId, GetSkillLoadoutSlotPropertyKey(slotIndex), fillSkillId);
             }
-            Debug.Log($"[PropertySelection] Auto-filled player {playerId} final skill loadout: 0='{currentSkillIds[0]}', 1='{currentSkillIds[1]}', 2='{currentSkillIds[2]}'");
+            GameLog.Verbose($"[PropertySelection] Auto-filled player {playerId} final skill loadout: 0='{currentSkillIds[0]}', 1='{currentSkillIds[1]}', 2='{currentSkillIds[2]}'");
         }
 
         private bool ValidateSkillLoadoutSubmission(int playerId, string[] skillIds, out string validationError)
@@ -1202,7 +1202,7 @@ namespace SteamMultiplayer.Network
         private void LogDebug(string message)
         {
             if (_enableDebugLogs)
-                Debug.Log($"[PropertiesSelectionManager] {message}");
+                GameLog.Verbose($"[PropertiesSelectionManager] {message}");
         }
     }
 }

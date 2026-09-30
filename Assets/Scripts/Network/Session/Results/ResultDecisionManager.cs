@@ -203,7 +203,7 @@ namespace SteamMultiplayer.Network.Results
             }
 
             _decisionCountdownRoutine = StartCoroutine(DecisionCountdownCoroutine());
-            Debug.Log($"[ResultDecisionManager] Decision phase started. participants={PlayerDecisions.Count}");
+            GameLog.Verbose($"[ResultDecisionManager] Decision phase started. participants={PlayerDecisions.Count}");
         }
 
         [Server]
@@ -289,7 +289,7 @@ namespace SteamMultiplayer.Network.Results
                 _decisionCountdownRoutine = null;
             }
 
-            Debug.Log($"[ResultDecisionManager] Finalized result decision={finalDecision} reason={reason}");
+            GameLog.Verbose($"[ResultDecisionManager] Finalized result decision={finalDecision} reason={reason}");
 
             if (RoomStateManager.Instance == null)
             {

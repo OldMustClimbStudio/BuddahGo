@@ -144,7 +144,7 @@ public class LeaderboardManager : NetworkBehaviour
 
         BuildRankings();
         _rankingsFrozen = true;
-        Debug.Log($"[Leaderboard] Rankings frozen count={Rankings.Count}");
+        GameLog.Verbose($"[Leaderboard] Rankings frozen count={Rankings.Count}");
     }
 
     public List<FinalMatchResultEntry> BuildFinalResultsSnapshot(Func<int, string> playerNameResolver = null)
@@ -263,7 +263,7 @@ public class LeaderboardManager : NetworkBehaviour
         _leaderboardSnapshotText.Value = BuildLeaderboardSnapshotText(list);
 
         if (EnableVerboseRankingLogs)
-            Debug.Log($"[Leaderboard] BuildRankings count={list.Count}");
+            GameLog.Verbose($"[Leaderboard] BuildRankings count={list.Count}");
         _rankingsDirty = false;
     }
 

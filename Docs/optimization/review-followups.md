@@ -33,3 +33,7 @@ SlowTrap 旧矩阵的 root/force 恢复结论限定 server/host；纯 client 时
 ## PR #54
 
 补全旧 modifier clock 的 importer meta，随后在 #57 与 BuddahTickMath 统一时删除旧 helper/meta。TimeManager.Tick 回调校正造成 modifier 短暂复活是未证实风险，本轮保持既有语义；静态 deadline 测试不证明实际 timing-update 行为。历史原始日志不补造。
+
+## PR #55
+
+Handshake 集合私有化，提供按 Stage 操作的语义 API，更新 RSM/RoomDiagnostics 与验证脚本；RoomRoster 命名整理，四个 meta 保持 GUID。Diagnostic* 保留 internal：仅同程序集协作者使用，未扩大公共 API；进一步只读快照封装属可选设计，不引入分配或新架构。

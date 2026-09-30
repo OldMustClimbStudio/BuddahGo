@@ -1,73 +1,39 @@
-# Contributing
+# 提交与 PR
 
-## Branch Naming
+## 分支与标题
 
-- `feature/<topic>`
-- `fix/<topic>`
-- `chore/<topic>`
-- `docs/<topic>`
+- 日常 PR 以 `dev` 为目标；`main` 用于稳定发布。
+- Agent 新分支使用 `codex/<topic>`；团队现有 `feature/`、`fix/`、`chore/`、`docs/` 分支可继续使用。
+- Commit 和 PR 标题使用 `feat:`、`fix:`、`refactor:`、`chore:` 或 `docs:`，后接具体变化，例如 `fix: restore movement after race countdown`。
 
-## Commit Message Convention
+## Worktree
 
-Use conventional prefixes:
+为保持辨识度，后续 worktree 统一放在主项目根目录的 `.worktree/<topic>/` 下；从主项目创建时可用 `git worktree add .worktree/<topic> -b codex/<topic> dev`。
+目录规则不改变上述分支命名，也不要求迁移已有 worktree。`.worktree/` 不提交到版本库。
 
-- `feat:` new functionality
-- `fix:` bug fix
-- `refactor:` internal code change without behavior change
-- `chore:` maintenance updates
-- `docs:` documentation updates
+## PR 内容
 
-Examples:
+说明解决的问题、改后的行为，以及实际执行的验证。涉及场景、资源迁移或未完成事项时再补充；小改动几句话即可。
 
-- `feat: add steam lobby invite flow`
-- `fix: avoid null transport during startup`
-
-## Pull Request Convention
-
-### PR Title
-Use the same conventional prefix as commits:
-
-```
-feat: integrate Multiplayer Framework (Steam + FishyFacepunch + FishNet Demos)
-```
-
-### PR Description
-Fill in the following sections in the description box:
-
-```
+```markdown
 ## Summary
-What this PR does and why.
+问题和改后的行为。
 
-## Test plan
-- [ ] Step to verify change A
-- [ ] Step to verify change B
-
-## Affected areas
-- `Assets/Scripts/` — what changed and why
-- `Packages/manifest.json` — dependency updates
-
-## Pending
-Any known follow-up work left out of this PR.
+## Validation
+实际运行的检查、结果，以及未验证的部分。
 ```
 
-### Merge Commit Message
-Use GitHub's auto-generated message — do not edit it:
+PR 描述与最终差异保持一致；只提交本次改动，包含必要的新文件和删除项。合并提交使用 GitHub 默认生成的消息。
 
-```
-Merge pull request #N from feature/<topic>
-```
+## 按改动验证
 
-The PR number links directly to the full description, commit list, and review history, making the auto-generated message sufficient.
+- 文档：检查内容和链接；配置/工具：解析配置并运行受影响的命令。
+- C# 或 Unity 包：编译并检查新错误；行为改动：运行相关复现或已有测试。
+- 联机权限、RPC、预测：验证受影响的 host/client 路径；序列化/场景改动：检查引用和迁移。
+- 检查通过后无需重复，除非后续改动影响结果。环境不具备时如实说明，静态检查不能写成运行通过。
 
-## Pull Request Expectations
+## Unity 资源
 
-- Explain what changed and why
-- List testing steps
-- Mention impacted scenes or scripts
-- Keep PR focused and reasonably small
-
-## Unity-Specific Rules
-
-- Always commit related `.meta` files
-- Do not commit `Library/`, `Temp/`, `Logs/`, `UserSettings/`
-- Avoid editing auto-generated `.csproj`/`.sln`
+资源与 `.meta` 一起提交，二进制遵循 `.gitattributes` 的 LFS 配置。保留 `Assets/`、`Packages/`、`ProjectSettings/` 的必要文件。
+不提交缓存、生成的 `.csproj`/`.sln`、凭据、Blender 工作文件或无关插件示例；具体忽略项见 `.gitignore`。
+删除资源前确认运行时加载引用，不能仅凭编辑器静态依赖报告判断未使用。

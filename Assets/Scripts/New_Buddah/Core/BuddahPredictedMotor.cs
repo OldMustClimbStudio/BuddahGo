@@ -12,7 +12,7 @@ using NewBuddah.PredictionV2.Simulation;
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
 using System.Collections.Generic;
 #endif
-#if BUDDAH_PREDICTION_PERF_PROBE
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_PERF_PROBE
 using Stopwatch = System.Diagnostics.Stopwatch;
 #endif
 using UnityEngine;
@@ -64,7 +64,7 @@ namespace NewBuddah.PredictionV2.Core
         private SkillExecutor _skillExecutor;
         private float _baseMass = 1f;
 
-#if BUDDAH_PREDICTION_PERF_PROBE
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_PERF_PROBE
         // V13 perf probe — Stopwatch-backed per-frame accumulator consumed by
         // BuddahPredictionPerfProbe. Replaces Phase 4 ProfilerMarker path (which
         // required active Profiler recording to sample custom markers; Entry 7 M2
@@ -353,7 +353,7 @@ namespace NewBuddah.PredictionV2.Core
         [Replicate]
         private void RunInputs(BuddahPredictedInputData data, ReplicateState state = ReplicateState.Invalid, Channel channel = Channel.Unreliable)
         {
-#if BUDDAH_PREDICTION_PERF_PROBE
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_PERF_PROBE
             using var markerScope = PerfProbeScope.Auto();
 #endif
             if (!ShouldRunPrediction() || _predictionRigidbody == null)

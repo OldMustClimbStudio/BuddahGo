@@ -1,4 +1,4 @@
-#if BUDDAH_PREDICTION_PERF_PROBE
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_PERF_PROBE
 using System;
 using NewBuddah.PredictionV2.Core;
 using Unity.Profiling;

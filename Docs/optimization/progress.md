@@ -8,8 +8,8 @@
 |---|---|---|---|---|---|
 | P0-1 | 记录基线 → baseline.md | done-unverified | 874a55b | 基线 C# 编译 0 error / 11 已有 warning；R4–R9 未执行 | 仅本机，无第二 Steam 测试端；完整原因见 baseline.md。LFS pull 完成，origin/dev 无新增提交、无冲突。 |
 | P0-2 | `.gitattributes` 修正二进制 .asset | done | 6151cb1 | R1：基线 C# 编译通过，本步不改源码；4 个 LightingData 原始字节与 HEAD 一致，asset 状态干净；check-attr binary=set | 95 个 .asset 中 4 个 LightingData 为二进制，XRSettings 为 JSON 保留文本，无 LFS 指针。I6 不适用。 |
-| P0-3 | 修复正式包编译（B1） | done-unverified | 本步骤提交（见下步补记 hash） | R1 通过；R3 构建 0 error、主菜单启动；R7 本机测试未完成，见 p0-validation.md | 32 种宏组合源码比较通过；本机连接/Ready/配装同步已确认，RaceMap 注册阻塞有效预测回归。 |
-| P0-4 | 调试探针只进 Editor/Dev（B2） | todo | | | |
+| P0-3 | 修复正式包编译（B1） | done-unverified | 5a77b8a | R1 通过；R3 构建 0 error、主菜单启动；R7 本机测试未完成，见 p0-validation.md | 32 种宏组合源码比较通过；本机连接/Ready/配装同步已确认，RaceMap 注册阻塞有效预测回归。 |
+| P0-4 | 调试探针只进 Editor/Dev（B2） | done-unverified | 本步骤提交（见下步补记 hash） | R1/R2/R3 通过；正式包无探针元数据和心跳；R7 受 N2 阻塞未重跑 | 6 处守卫，192 组 Editor/Dev 源码比较一致；两种包均到达主菜单且启动日志无 Exception。 |
 | P0-5 | 取消跟踪 `.VSCodeCounter`、`agent-exchange/console/raw` | todo | | | |
 | P1-1 | 删除零引用脚本 | todo | | | |
 | P1-2 | 删除 MiniMap 半成品三件套 | todo | | | |
@@ -59,7 +59,6 @@
 
 | 日期 | 位置 | 描述 | 关联步骤 |
 |---|---|---|---|
-
 | 2026-09-29 | 本机 Tugboat host 名单 | N1：IsHost=false；测试中显式重做名单刷新后可推进。产品修复按 D8 处理，blocked。 | P0-3 / R4 |
 | 2026-09-29 | ParrelSync client RaceMap | N2：多个 SceneId 未注册，开赛控制权未解锁；记录后停止该轮，待修复再回归，blocked。 | P0-3 / R7 |
 | 2026-09-29 | 正式包启动 / 基线资源 | N3/N4：无 Steam 的初始化连带异常，以及字体、空动画、LightingData 告警；详见 p0-validation.md。 | P0 |

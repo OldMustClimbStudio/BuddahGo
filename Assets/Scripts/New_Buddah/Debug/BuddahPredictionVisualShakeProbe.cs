@@ -1,4 +1,4 @@
-#if BUDDAH_PREDICTION_VISUAL_PROBE
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_VISUAL_PROBE
 using System;
 using FishNet.Object;
 using NewBuddah.PredictionV2.Visual;

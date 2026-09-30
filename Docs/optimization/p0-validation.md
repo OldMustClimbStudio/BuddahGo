@@ -40,3 +40,17 @@ R4 仅部分路径验证，R5 仅配装提交验证、没有完整技能施放�
 | N4 | 首次导入有空动画、LightingData 不兼容警告，选择 UI 出现中文字体缺字 | 基线资源告警，不作为本次源码改动产生的新 warning。 |
 
 按用户要求：本轮发现先记录；相关修复完成后再做一次针对性回归，避免同一问题反复测试。
+
+## P0-4：探针编译边界
+
+- 共修改 6 处守卫：motor 3、bootstrap 1、PerfProbe 1、VisualShakeProbe 1。`ProjectSettings` 宏保持原样。
+- 预检扫描 22 处 prediction 条件，修改后没有未限定的 `#if BUDDAH_PREDICTION...`。
+- 192 组 Editor/Dev 条件编译比较均与 P0-3 有效源码逐字相同；正式条件下两类探针及其调用点均消失。I6 不适用。
+- R1：修改后的 Editor C# 编译成功，没有新增 C# warning。Console 的 `Timings:` 是基线 Burst 编译统计输出。
+- R2：Windows64 Development 构建成功，0 error、15 warning，38.1 秒，1166.51 MB。输出 `Builds/ArchitectureP0Dev/BuddahGo.exe`，job `build-5529727967`。已实际启动并截图确认主菜单。
+- R3：Windows64 非 Development 构建成功，0 error、12 warning，24.1 秒，1137.62 MB。输出 `Builds/ArchitectureP0ReleaseFinal/BuddahGo.exe`，job `build-4ad68008e0`。已实际启动并截图确认主菜单。
+- 产物检查：Dev 的 Assembly-CSharp.dll 含 PerfProbe、VisualShakeProbe、PerfProbeScope 与计时字段的元数据名字；最终正式包四者均不存在。
+- Player.log 检查：Dev 有 182 条 D-PERF 心跳，最终正式包为 0；两者均无 Exception 行。此时观察到 Steam 进程已运行，与 P0-3 首次无 Steam 的启动条件不同；不将此差异归因于本步骤代码。
+- R7：首轮记录的 N2 尚未处理；按用户要求不重复执行同一受阻测试，保持 `done-unverified`。已完成的编译/启动检查不能替代 R7。
+- 本机日志：`Logs/p0-4-dev-player.log`、`Logs/p0-4-release-player.log`。测试进程均已关闭。
+- Clone 生成的 ParrelSync 本地设置与 MCP 连接辅助脚本只保留为本地测试配置，不提交。Unity 自动删除的两份孤立 meta 和 PackageManagerSettings 自动改动已恢复。

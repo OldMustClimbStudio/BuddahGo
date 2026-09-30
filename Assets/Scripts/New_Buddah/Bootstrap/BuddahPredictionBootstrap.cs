@@ -74,7 +74,7 @@ namespace NewBuddah.PredictionV2.Bootstrap
             // BuddahMovementModeSwitcher's double-ApplyMode and its 4
             // [CommandBus]:ClearAll lines have all landed).
             _combatAdapter.Initialize(commandBus);
-#if BUDDAH_PREDICTION_VISUAL_PROBE
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_VISUAL_PROBE
             // Phase 4-probes wiring: attach the V3 visual-shake probe per-Buddah.
             // Runs on every peer (this MonoBehaviour lives on the replicated
             // Buddah prefab, so Awake fires on both HOST-instantiated and

@@ -1492,7 +1492,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1802809107}
-        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, Assembly-CSharp
+        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, BuddahGo.Runtime
         m_MethodName: ShowCreateRoom
         m_Mode: 1
         m_Arguments:
@@ -7160,7 +7160,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1802809107}
-        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, Assembly-CSharp
+        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, BuddahGo.Runtime
         m_MethodName: ShowJoinById
         m_Mode: 1
         m_Arguments:
@@ -11998,7 +11998,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1802809107}
-        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, Assembly-CSharp
+        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, BuddahGo.Runtime
         m_MethodName: ShowBrowseRooms
         m_Mode: 1
         m_Arguments:

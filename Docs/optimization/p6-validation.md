@@ -14,3 +14,5 @@
 实现、编译、构建、UnityEvent 与运行结果待填写。
 
 P6-1：FishyFacepunch 独立 asmdef 导入后主 Editor 编译通过，实际程序集名为 FishyFacepunch；MMF_Player 仍为 MoreMountains.Tools。第三方源码及 DLL 导入设置未改。
+
+P6-2：主 Editor 完整编译通过，实际类型程序集确认 Runtime / Editor / FishyFacepunch。首次刷新被“场景外部修改”重载提示阻挡，加载磁盘上迁移后的 MainMenu 后恢复。场景 diff 仅六处程序集限定名；既有 C#、脚本 GUID、网络协议和字段布局未改。克隆端将连同测试程序集集中刷新。

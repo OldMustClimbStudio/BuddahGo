@@ -48,7 +48,7 @@ namespace NewBuddah.PredictionV2.Bootstrap
                 if (debugSettings != null && (debugSettings.enableOnScreenDebug || debugSettings.enableVerboseLogs
                     || debugSettings.dumpReplicate || debugSettings.dumpReconcile || debugSettings.dumpGateState))
                     return true;
-                if (SteamMultiplayer.Network.NetDebug.EnableVerboseLog)
+                if (global::NetDebug.EnableVerboseLog)
                     return true;
                 if (_debugOverlay == null)
                     _debugOverlay = GetComponent<BuddahPredictionDebugOverlay>();

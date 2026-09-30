@@ -34,8 +34,8 @@
 | P2-5e | motor 调试摘要惰性构建 | done-unverified | bff7f9e | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
 | P2-5f | RSM 诊断摘要门控 | done-unverified | b9ccad5 | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
 | P2-5g | HealthReport 帧更新门控 | done-unverified | cbe59ca | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
-| P3-1 | SkillAction 基类公共方法 | doing | | 预检 14 个 duration + 10 个 Feel 模板均为相同纯表达式/调用 | 字段留在子类，Reflection 预施放入口保持。 |
-| P3-2 | Anti 类改为继承 | todo | | | |
+| P3-1 | SkillAction 基类公共方法 | doing | bd6e2ef | 预检 14 个 duration + 10 个 Feel 模板均为相同纯表达式/调用 | 字段留在子类，Reflection 预施放入口保持。 |
+| P3-2 | Anti 公共实现共享（保留继承） | doing | | I1 预检：保留原字段声明类；BlackCurtain/Giant 逻辑共享 | 用户以功能保留为准；原继承和资源原样，见 p3-validation.md。 |
 | P3-3 | SkillExecutor 下沉 | todo | | | |
 | P3-4 | 配置交叉校验（编辑器） | todo | | | |
 | P4-1 | RoomStateManager 下沉 | todo | | | |

@@ -547,7 +547,9 @@ namespace NewBuddah.PredictionV2.Core
         [Reconcile]
         private void ReconcileState(BuddahPredictedReconcileData data, Channel channel = Channel.Unreliable)
         {
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _reconcileCallbackCount++;
+#endif
             if (_predictionRigidbody == null || data.RigidbodyState == null)
                 return;
 

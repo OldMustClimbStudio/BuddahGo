@@ -4,6 +4,14 @@ namespace NewBuddah.PredictionV2.Core
 {
     internal static class BuddahTickMath
     {
+        // The impulse channel stores server ticks. During replay use the historical
+        // server tick supplied by FishNet, not its live (and adjustable) clock.
+        internal static uint ImpulseEventClock(bool isServer, bool isReplaying,
+            uint localTick, uint serverTick, uint serverReplayTick)
+        {
+            return isServer ? localTick : isReplaying ? serverReplayTick : serverTick;
+        }
+
         // Server-stamped events must enter the owner's local simulation clock before queuing.
         // Event tick zero is valid (unlike a modifier deadline's unset sentinel).
         internal static uint ServerEventToLocalTick(uint eventTick, uint serverTick, uint localTick)

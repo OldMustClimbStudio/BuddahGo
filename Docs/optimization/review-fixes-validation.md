@@ -67,6 +67,7 @@
 - 现有 P6 本机 host/client driver 依赖两个已配置的 Editor/ParrelSync 和注入的 HOST_ROLE/DRY_RUN；它在 GO 后约 95 秒才设置 100ms，并每 10 秒采样，无法直接给出“100ms 开赛 handoff”或“首秒校正量”。N8 driver 还写入固定旧 BuddahGo/Logs 控制路径，不能原样用于隔离工作区。本轮没有改旧场景/工作区或启动该 driver；N10 双端 0/100ms 仍未执行。最小后续工作是为隔离的第二客户端配置现有 localhost 工具，将延迟设定前移到 GO 前并记录逐 tick 阶段/首秒校正，然后运行两组；这是新夹具适配，留后续专项，未当作测试失败或通过。
 - F3 用户确认保留历史；用户要求具体历史编译故障最后单独诊断，本轮发布不做历史 fixup。
 - 每个审查项的修复、保留理由及未测边界见 [逐 PR 跟进](review-followups.md)。评论回复由主会话统一协调，本代码发布任务没有重复发评论。
+- 12 个分支已通过原子普通 push 发布并逐个以 ls-remote 核实。GitHub connector 更新 #47 描述返回 403 Resource not accessible by integration，故远端描述尚未更新；拟议完整正文保存在本机 review-transfer/pr47-proposed-body.md，交主会话处理。仓库内日志删除/恢复、分支命名和 refscan 说明已在相应提交及跟进记录中。
 
 ## 找回的历史原始证据
 

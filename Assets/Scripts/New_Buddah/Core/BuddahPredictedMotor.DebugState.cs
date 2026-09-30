@@ -4,7 +4,7 @@ using FishNet.Object.Prediction;
 using FishNet.Transporting;
 using FishNet.Utility.Template;
 using System;
-using System.Text;
+using NewBuddah.PredictionV2.Debugging;
 using NewBuddah.PredictionV2.Bootstrap;
 using NewBuddah.PredictionV2.Config;
 using NewBuddah.PredictionV2.Integration;
@@ -57,7 +57,19 @@ namespace NewBuddah.PredictionV2.Core
                 $"pending={authoritativePending} posDelta={positionDelta:0.000} velDelta={velocityDelta:0.000}");
         }
 
-        private void UpdateReplicateDebug(BuddahPredictedInputData data, ReplicateState state, string status)
+        private BuddahPredictionLogSnapshot _consoleLogSnapshot;
+
+        // Called only when the console consumer samples. Capture methods never format strings.
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        public void RefreshConsoleDebugSummaries()
+        {
+            if (bootstrap == null)
+                return;
+            bootstrap.DebugState.replicateSummary = _consoleLogSnapshot.BuildReplicateSummary();
+            bootstrap.DebugState.reconcileSummary = _consoleLogSnapshot.BuildReconcileSummary();
+        }
+
+        private void UpdateReplicateDebug(BuddahPredictedInputData data, ReplicateState state, string status, string writerReason = null)
         {
             if (bootstrap == null)
                 return;
@@ -67,9 +79,7 @@ namespace NewBuddah.PredictionV2.Core
 
             bootstrap.DebugState.lastReplicateTick = data.GetTick();
             bootstrap.DebugState.planarSpeed = planarVelocity.magnitude;
-            if (bootstrap.ShouldBuildDebugSummaries)
-                bootstrap.DebugState.replicateSummary =
-                    $"tick={data.GetTick()} steer={data.Steering:0.00} throttle={data.Throttle:0.00} {status}";
+            _consoleLogSnapshot.CaptureReplicate(data.GetTick(), data.Steering, data.Throttle, status, writerReason);
 
             if (bootstrap.DebugSettings.dumpReplicate)
                 bootstrap.LogVerbose(
@@ -206,41 +216,10 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.pushGraceUntilTick = _modifierState.PushGraceUntilTick;
             bootstrap.DebugState.suppressSteeringUntilTick = _modifierState.SuppressSteeringUntilTick;
             bootstrap.DebugState.roomBypassUntilTick = _modifierState.RoomBypassUntilTick;
-            if (bootstrap.ShouldBuildDebugSummaries)
-                bootstrap.DebugState.activeModifiers = BuildModifierSummary(tick);
             var impulseChannelDbg = bootstrap.CommandBus != null ? bootstrap.CommandBus.ImpulseChannel : null;
             bootstrap.DebugState.pendingImpulseCount = impulseChannelDbg != null ? impulseChannelDbg.Count : 0;
-            if (bootstrap.ShouldBuildDebugSummaries)
-                bootstrap.DebugState.pendingImpulseSummary = impulseChannelDbg != null ? impulseChannelDbg.BuildPendingSummary() : "none";
             UpdateHandoffDebug(tick);
         }
 
-        private string BuildModifierSummary(uint tick)
-        {
-            StringBuilder sb = new StringBuilder();
-
-            void Append(string label, bool active)
-            {
-                if (!active)
-                    return;
-
-                if (sb.Length > 0)
-                    sb.Append(", ");
-
-                sb.Append(label);
-            }
-
-            Append("root", _modifierState.RootUntilTick > tick);
-            Append("accel", _modifierState.AccelUntilTick > tick);
-            Append("postRootAccel", _modifierState.PostRootAccelUntilTick > tick);
-            Append("scale", _modifierState.ScaleUntilTick > tick);
-            Append("invert", _modifierState.InvertTurnUntilTick > tick);
-            Append("pushGrace", _modifierState.PushGraceUntilTick > tick);
-            Append("suppress", _modifierState.SuppressSteeringUntilTick > tick);
-            Append("roomBypass", _modifierState.RoomBypassUntilTick > tick);
-            Append("handoff", _handoffState.IsActive);
-
-            return sb.Length > 0 ? sb.ToString() : "none";
-        }
     }
 }

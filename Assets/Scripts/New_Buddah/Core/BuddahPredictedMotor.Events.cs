@@ -417,8 +417,6 @@ namespace NewBuddah.PredictionV2.Core
             if (bootstrap != null)
             {
                 bootstrap.DebugState.pendingImpulseCount = channel.Count;
-                if (bootstrap.ShouldBuildDebugSummaries)
-                    bootstrap.DebugState.pendingImpulseSummary = channel.BuildPendingSummary();
             }
         }
 

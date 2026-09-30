@@ -5,6 +5,7 @@ using FishNet.Transporting;
 using FishNet.Utility.Template;
 using System;
 using System.Text;
+using NewBuddah.PredictionV2.Debugging;
 using NewBuddah.PredictionV2.Bootstrap;
 using NewBuddah.PredictionV2.Config;
 using NewBuddah.PredictionV2.Integration;
@@ -175,8 +176,6 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.predictionBlockReason = GetPredictionBlockReason();
             var impulseChannel = bootstrap.CommandBus != null ? bootstrap.CommandBus.ImpulseChannel : null;
             bootstrap.DebugState.pendingImpulseCount = impulseChannel != null ? impulseChannel.Count : 0;
-            if (bootstrap.ShouldBuildDebugSummaries)
-                bootstrap.DebugState.pendingImpulseSummary = impulseChannel != null ? impulseChannel.BuildPendingSummary() : "none";
             bootstrap.DebugState.introControlActive = _introControlActive;
             bootstrap.DebugState.externalKinematicControlActive = _externalKinematicControlActive;
         }
@@ -411,7 +410,7 @@ namespace NewBuddah.PredictionV2.Core
 
                 FinalizeImpulseDebugAfterSimulate();
                 UpdateHandoffDebug(currentTick);
-                UpdateReplicateDebug(data, state, bootstrap != null && bootstrap.ShouldBuildDebugSummaries ? $"writer-relinquished:{writerReason}" : string.Empty);
+                UpdateReplicateDebug(data, state, "writer-relinquished", writerReason);
                 LogPredictionIntroWriterState(currentTick, true, writerReason, introControlActive, externalControlActive, authoritativePending);
                 return;
             }
@@ -563,10 +562,9 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.reconcileHadCorrection =
                 bootstrap.DebugState.lastReconcilePositionDelta > 0.001f ||
                 bootstrap.DebugState.lastReconcileVelocityDelta > 0.001f;
-            if (bootstrap.ShouldBuildDebugSummaries)
-                bootstrap.DebugState.reconcileSummary =
-                    $"tick={data.GetTick()} speed={data.PlanarSpeed:0.00} posDelta={bootstrap.DebugState.lastReconcilePositionDelta:0.000} velDelta={bootstrap.DebugState.lastReconcileVelocityDelta:0.000} " +
-                    $"planarVelDelta={bootstrap.DebugState.lastReconcileVelocityPlanarDelta:0.000} verticalVelDelta={bootstrap.DebugState.lastReconcileVelocityVerticalDelta:0.000}";
+            _consoleLogSnapshot.CaptureReconcile(data.GetTick(), data.PlanarSpeed,
+                bootstrap.DebugState.lastReconcilePositionDelta, bootstrap.DebugState.lastReconcileVelocityDelta,
+                bootstrap.DebugState.lastReconcileVelocityPlanarDelta, bootstrap.DebugState.lastReconcileVelocityVerticalDelta);
             SyncModifierDebugState(data.GetTick());
             UpdateHandoffDebug(data.GetTick());
 

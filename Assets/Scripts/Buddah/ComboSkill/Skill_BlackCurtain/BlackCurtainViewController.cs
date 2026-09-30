@@ -51,6 +51,12 @@ public class BlackCurtainViewController : MonoBehaviour
     private bool _hasCachedOutdoorVolumeEnabled;
     private bool _cachedBlackCurtainActiveVolumeEnabled;
     private bool _hasCachedBlackCurtainActiveVolumeEnabled;
+    private TrackEdgeVisibility[] _cachedTrackEdges;
+    private GameObject[] _cachedTaggedEdgeRoots;
+    private Renderer[][] _cachedTaggedEdgeRenderers;
+    private string _cachedTrackEdgeTag;
+    private string _cachedVisibilityProperty;
+    private int _trackEdgeVisibilityPropertyId;
     private MaterialPropertyBlock _trackEdgePropertyBlock;
     private readonly Dictionary<Renderer, bool> _hiddenPlayerRenderers = new Dictionary<Renderer, bool>();
     private readonly Dictionary<GameObject, bool> _hiddenTrackEdgeObjects = new Dictionary<GameObject, bool>();
@@ -397,6 +403,7 @@ public class BlackCurtainViewController : MonoBehaviour
     private void SetTrackEdgesVisible(bool visible, bool hideTaggedObjects)
     {
         RestoreTrackEdgeObjects();
+        CacheTrackEdgeTargets();
 
         _trackEdgeFadeActive = false;
         SetTrackEdgesVisibilityAmount(visible ? 1f : 0f);
@@ -408,6 +415,7 @@ public class BlackCurtainViewController : MonoBehaviour
     private void BeginTrackEdgeFade(float expandDuration, float holdDuration, float fadeOutDuration)
     {
         RestoreTrackEdgeObjects();
+        CacheTrackEdgeTargets();
 
         float now = Time.time;
         float fadeInDelay = Mathf.Max(0f, trackEdgeFadeInDelay);
@@ -447,11 +455,12 @@ public class BlackCurtainViewController : MonoBehaviour
 
     private void SetTrackEdgesVisibilityAmount(float visibility)
     {
-        TrackEdgeVisibility[] edges = FindObjectsByType<TrackEdgeVisibility>(FindObjectsSortMode.None);
+        EnsureTrackEdgeTargets();
+        TrackEdgeVisibility[] edges = _cachedTrackEdges;
         for (int i = 0; i < edges.Length; i++)
         {
             TrackEdgeVisibility edge = edges[i];
-            if (edge == null)
+            if (edge == null || !edge.gameObject.activeInHierarchy)
                 continue;
 
             edge.SetVisibility(visibility);
@@ -465,23 +474,17 @@ public class BlackCurtainViewController : MonoBehaviour
         if (string.IsNullOrWhiteSpace(trackEdgeTag) || string.IsNullOrWhiteSpace(trackEdgeVisibilityProperty))
             return;
 
-        GameObject[] taggedObjects = GameObject.FindGameObjectsWithTag(trackEdgeTag);
-        if (taggedObjects == null || taggedObjects.Length == 0)
-            return;
-
         if (_trackEdgePropertyBlock == null)
             _trackEdgePropertyBlock = new MaterialPropertyBlock();
 
-        int visibilityPropertyId = Shader.PropertyToID(trackEdgeVisibilityProperty);
         float clampedVisibility = Mathf.Clamp01(visibility);
-
-        for (int i = 0; i < taggedObjects.Length; i++)
+        for (int i = 0; i < _cachedTaggedEdgeRoots.Length; i++)
         {
-            GameObject taggedObject = taggedObjects[i];
-            if (taggedObject == null)
+            GameObject root = _cachedTaggedEdgeRoots[i];
+            if (root == null || !root.activeInHierarchy)
                 continue;
 
-            Renderer[] renderers = taggedObject.GetComponentsInChildren<Renderer>(true);
+            Renderer[] renderers = _cachedTaggedEdgeRenderers[i];
             for (int j = 0; j < renderers.Length; j++)
             {
                 Renderer renderer = renderers[j];
@@ -489,8 +492,57 @@ public class BlackCurtainViewController : MonoBehaviour
                     continue;
 
                 renderer.GetPropertyBlock(_trackEdgePropertyBlock);
-                _trackEdgePropertyBlock.SetFloat(visibilityPropertyId, clampedVisibility);
+                _trackEdgePropertyBlock.SetFloat(_trackEdgeVisibilityPropertyId, clampedVisibility);
                 renderer.SetPropertyBlock(_trackEdgePropertyBlock);
+            }
+        }
+    }
+
+    private void CacheTrackEdgeTargets()
+    {
+        _cachedTrackEdges = FindObjectsByType<TrackEdgeVisibility>(FindObjectsSortMode.None);
+        _cachedTrackEdgeTag = trackEdgeTag;
+        _cachedVisibilityProperty = trackEdgeVisibilityProperty;
+        _cachedTaggedEdgeRoots = !string.IsNullOrWhiteSpace(trackEdgeTag)
+            && !string.IsNullOrWhiteSpace(trackEdgeVisibilityProperty)
+            ? GameObject.FindGameObjectsWithTag(trackEdgeTag)
+            : System.Array.Empty<GameObject>();
+        _cachedTaggedEdgeRenderers = new Renderer[_cachedTaggedEdgeRoots.Length][];
+        for (int i = 0; i < _cachedTaggedEdgeRoots.Length; i++)
+            _cachedTaggedEdgeRenderers[i] = _cachedTaggedEdgeRoots[i].GetComponentsInChildren<Renderer>(true);
+        if (!string.IsNullOrWhiteSpace(trackEdgeVisibilityProperty))
+            _trackEdgeVisibilityPropertyId = Shader.PropertyToID(trackEdgeVisibilityProperty);
+    }
+
+    private void EnsureTrackEdgeTargets()
+    {
+        if (_cachedTrackEdges == null || _cachedTaggedEdgeRoots == null
+            || _cachedTrackEdgeTag != trackEdgeTag || _cachedVisibilityProperty != trackEdgeVisibilityProperty)
+        {
+            CacheTrackEdgeTargets();
+            return;
+        }
+
+        for (int i = 0; i < _cachedTrackEdges.Length; i++)
+        {
+            if (_cachedTrackEdges[i] != null)
+                continue;
+            CacheTrackEdgeTargets();
+            return;
+        }
+        for (int i = 0; i < _cachedTaggedEdgeRoots.Length; i++)
+        {
+            if (_cachedTaggedEdgeRoots[i] == null)
+            {
+                CacheTrackEdgeTargets();
+                return;
+            }
+            for (int j = 0; j < _cachedTaggedEdgeRenderers[i].Length; j++)
+            {
+                if (_cachedTaggedEdgeRenderers[i][j] != null)
+                    continue;
+                CacheTrackEdgeTargets();
+                return;
             }
         }
     }

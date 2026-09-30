@@ -20,6 +20,7 @@ public class TrackEdgeVisibility : MonoBehaviour
 
     private Material _resolvedMaterial;
     private int _visibilityPropertyId;
+    private string _cachedVisibilityProperty;
     private MaterialPropertyBlock _propertyBlock;
 
     private void Awake()
@@ -76,6 +77,9 @@ public class TrackEdgeVisibility : MonoBehaviour
         if (string.IsNullOrWhiteSpace(visibilityProperty))
             return;
 
+        if (_cachedVisibilityProperty == visibilityProperty)
+            return;
+        _cachedVisibilityProperty = visibilityProperty;
         _visibilityPropertyId = Shader.PropertyToID(visibilityProperty);
     }
 

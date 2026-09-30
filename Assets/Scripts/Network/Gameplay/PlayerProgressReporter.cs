@@ -185,7 +185,7 @@ public class PlayerProgressReporter : NetworkBehaviour
             if (LeaderboardManager.Instance != null)
             {
                 string displayName = string.IsNullOrWhiteSpace(gameObject.name)
-                    ? $"Player {OwnerId}"
+                    ? PlayerIdentity.FallbackName(OwnerId)
                     : $"{gameObject.name} #{OwnerId}";
 
                 LeaderboardManager.Instance.RegisterPlayer(OwnerId, displayName);
@@ -209,7 +209,7 @@ public class PlayerProgressReporter : NetworkBehaviour
         if (RaceFinishManager.Instance != null)
             return RaceFinishManager.Instance.LapsToFinish;
 
-        return 3;
+        return RaceRules.DefaultLapsToFinish;
     }
 
     [ObserversRpc]

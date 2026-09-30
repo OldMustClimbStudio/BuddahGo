@@ -29,3 +29,9 @@ R1：Unity 2022.3.55f1c1 完整刷新后，GameLog 已实际加载到 Assembly-C
 ## P2-2e — UI
 
 替换 8 个 Debug.Log 的调用表达式，参数/context、消息文本及外层守卫逐字保留；Warning/Error 不动。所有 Editor/Dev/shadow/perf/visual/sergate 分支均纳入语法树扫描，参数内无赋值或自增。嵌套调用仅为场景/名单/技能只读查询、tick/时间读取和局部摘要格式化；已读对应实现。Network 的 NetLog.Info 加 Conditional，保留 SteamMP 前缀，避免正式包仍求值参数。I6：不合并日志内容。语法检查通过，R1/R3/R4/R7 待 P2 集中验证。
+
+## P2-3
+
+I6：Roslyn token 逐字比较（忽略空白）显示 GetLocalClientId 三份、ResolvePlayerName 两份、GetSteamIdForConnection 两份、IsHostConnection 两份各只有一种实现。合并前三者；IsHostConnection 保留会话中的 lobby-host 判定及仅在必要时读取本机连接的短路顺序，避免门面强迫提前求值。原调用方的网络单例空链保留，Foundation 只接收连接/Transport/Lobby。显示名按 lobby→有效本机 Steam→Player id 原顺序，原名字清洗与 Host 身份策略不变；数字回退统一为 FallbackName。
+
+6 个场景名默认值改为同值常量，序列化字段留在原类。三个默认圈数位置（RFM 字段、RaceCompletionTracker 常量、PPR 返回值）均为 3，兜底条件保持。未编辑 prefab/scene/asset。R1/R4 待阶段验证。

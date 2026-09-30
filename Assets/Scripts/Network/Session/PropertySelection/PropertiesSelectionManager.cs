@@ -62,7 +62,7 @@ namespace SteamMultiplayer.Network
         [Header("Stage Flow")]
         [SerializeField] private bool _registerDefaultStageProperties = true;
         [SerializeField] private int _stageDurationSeconds = 30;
-        [SerializeField] private string _resolvedMatchSceneName = "RaceMap";
+        [SerializeField] private string _resolvedMatchSceneName = SceneNames.RaceMap;
         [SerializeField, Min(0f)] private float _sceneTransitionFadeDurationSeconds = 1f;
         [SerializeField] private bool _preferTimelineForMatchTransition = true;
         [SerializeField] private bool _enableDebugLogs = false;
@@ -709,10 +709,7 @@ namespace SteamMultiplayer.Network
 
         private string GetSteamIdForConnection(NetworkConnection conn)
         {
-            if (GameNetworkManager.Instance?.FishNetManager?.TransportManager?.Transport == null || conn == null)
-                return string.Empty;
-            string address = GameNetworkManager.Instance.FishNetManager.TransportManager.Transport.GetConnectionAddress(conn.ClientId);
-            return string.IsNullOrWhiteSpace(address) ? string.Empty : address;
+            return PlayerIdentity.GetSteamIdForConnection(GameNetworkManager.Instance?.FishNetManager?.TransportManager?.Transport, conn);
         }
 
         private bool IsHostConnection(NetworkConnection conn, string steamId)
@@ -729,18 +726,10 @@ namespace SteamMultiplayer.Network
 
         private string ResolvePlayerName(string steamId, int clientId)
         {
-            if (!string.IsNullOrWhiteSpace(steamId) && SteamLobbyManager.Instance != null && SteamLobbyManager.Instance.CurrentLobby.HasValue)
-            {
-                Lobby lobby = SteamLobbyManager.Instance.CurrentLobby.Value;
-                foreach (Friend member in lobby.Members)
-                {
-                    if (member.Id.Value.ToString() == steamId)
-                        return member.Name;
-                }
-            }
-            if (SteamClient.IsValid && SteamClient.SteamId.Value.ToString() == steamId)
-                return SteamClient.Name;
-            return $"Player {clientId}";
+            Lobby? lobby = !string.IsNullOrWhiteSpace(steamId) && SteamLobbyManager.Instance != null
+                ? SteamLobbyManager.Instance.CurrentLobby
+                : null;
+            return PlayerIdentity.ResolvePlayerName(steamId, clientId, lobby);
         }
 
         private void SubscribeSyncCollections()
@@ -977,9 +966,7 @@ namespace SteamMultiplayer.Network
 
         private int GetLocalClientId()
         {
-            if (GameNetworkManager.Instance?.FishNetManager?.ClientManager?.Connection == null)
-                return -1;
-            return GameNetworkManager.Instance.FishNetManager.ClientManager.Connection.ClientId;
+            return PlayerIdentity.GetLocalClientId(GameNetworkManager.Instance?.FishNetManager?.ClientManager?.Connection);
         }
 
         [Server]

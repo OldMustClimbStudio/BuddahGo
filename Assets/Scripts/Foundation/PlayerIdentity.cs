@@ -4,6 +4,16 @@ using Steamworks.Data;
 
 public static class PlayerIdentity
 {
+    public static string FallbackName(int clientId) => $"Player {clientId}";
+
+    public static string GetSteamIdForConnection(FishNet.Transporting.Transport transport, NetworkConnection connection)
+    {
+        if (transport == null || connection == null)
+            return string.Empty;
+
+        string address = transport.GetConnectionAddress(connection.ClientId);
+        return string.IsNullOrWhiteSpace(address) ? string.Empty : address;
+    }
     public static int GetLocalClientId(NetworkConnection connection)
     {
         return connection == null ? -1 : connection.ClientId;
@@ -24,6 +34,6 @@ public static class PlayerIdentity
         if (SteamClient.IsValid && SteamClient.SteamId.Value.ToString() == steamId)
             return SteamClient.Name;
 
-        return $"Player {clientId}";
+        return FallbackName(clientId);
     }
 }

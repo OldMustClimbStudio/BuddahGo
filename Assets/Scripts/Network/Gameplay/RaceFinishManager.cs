@@ -12,7 +12,7 @@ public class RaceFinishManager : NetworkBehaviour
     public static RaceFinishManager Instance { get; private set; }
 
     [Header("Race Rules")]
-    [SerializeField, Min(1)] private int lapsToFinish = 3;
+    [SerializeField, Min(1)] private int lapsToFinish = RaceRules.DefaultLapsToFinish;
     [SerializeField, Min(0f)] private float postFirstFinishCountdownSeconds = 15f;
     [SerializeField] private bool enableVerboseLogs = true;
     [SerializeField, Tooltip("Deprecated: result flow no longer loads a separate scene. Kept only for inspector migration.")]
@@ -265,7 +265,7 @@ public class RaceFinishManager : NetworkBehaviour
                 return playerState.PlayerName;
         }
 
-        return $"Player {clientId}";
+        return PlayerIdentity.FallbackName(clientId);
     }
 
     private bool TryGetOwnedCompletionTracker(int clientId, out RaceCompletionTracker completionTracker)

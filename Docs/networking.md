@@ -28,3 +28,9 @@
 | 切场景后对象不可见 | 客户端场景登记、observer 与对象迁移 |
 | Host 正常、远端异常 | 序列化、客户端输入/回放、RPC 返回链路 |
 | 角色或相机抖动 | [预测设计](prediction-design.md)中的模拟状态与视觉平滑边界 |
+
+## SceneCondition 与常驻对象
+
+MainMenu 的 ObserverManager 默认使用 SceneCondition。房间级常驻 NetworkObject 必须设为 global，或放进由 FishNet 加载、登记观察关系的场景，否则 client 看不到它。不要只靠普通 Unity 的场景加载或 DontDestroyOnLoad 推断可见性。
+
+client 完成 RaceMap 加载并建立 observer 关系之前，服务器发出的非 BufferLast observers RPC 对该 client 不会补发。新增 spawn/初始化路径上的 RPC 时，应等待观察关系或使用适合的同步状态/缓存机制，并核对 host 与纯 client 的实际接收行为。

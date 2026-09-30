@@ -1,5 +1,10 @@
 # P2 预检与验证
 
+## 审查更正（F4，2026-09-30）
+
+Buddah.prefab 当前 enableOnScreenDebug=1、mirrorSummaryToConsole=1，使 ShouldBuildDebugSummaries 保持 true。P2-5e/5g 的惰性摘要和诊断门控在此默认配置下不产生所述跳过收益；不能把代码门控当作已测性能收益。D1 默认开关由团队决定，本轮不修改。R8 缺少 dev 同负载 GC.Alloc 基线与双端对照，仍未验证。
+
+
 ## P2-1
 
 新增 GameLog、PlayerRegistry、PlayerIdentity、SceneNames/RaceRules，尚无产品调用点。GameLog 的单参数及 context 重载保持现有消息格式，双字符串重载用于新日志标签。两个 Conditional 属性使正式包调用和参数求值一起移除；Warning/Error 不经过此门面。
@@ -90,7 +95,7 @@ R4/R5/R6/R8/R9 完整判据目前均未完成；性能没有可比结论。阶�
 本机原 Editor + ParrelSync，6 技能 × 正常/反噬 × host/client × 0/100ms LatencySim。每个用例 21 秒，施放后 0.25 秒重试检验锁定/冷却；host 48 个 QUEUE/CAST，每个用例各一个；两端每例各收到一次 CastObserversRpc，各 owner 施放 24 次。全程每次 Registry 对照均相等，无夹具异常、捕获 Error/Exception 或非零 D-LOC。主机 1232 条、客户端 615 条心跳；再来一局、第二局约 20 秒游戏运行、client 投票回房间与清理通过。实际结束时间 05:33:13 UTC。
 
 - Acceleration：正常 force 50→100→50，反噬 50→5→50，两种 owner 和延迟组均观察到。
-- SlowTrap：普通对对手施加减速，两端 slowtrap_vfx 跟随误差采样为 0；反噬短暂 root 后 force 60，再恢复 50。用户确认反噬本就没有特效，因此空 vfxId 不是漏配美术，后续独立修复只跳过无效播放。
+- SlowTrap：普通对对手施加减速，两端 slowtrap_vfx 跟随误差采样为 0；反噬短暂 root 后 force 60，再恢复 50 的此轮观察仅对 server/host 成立；纯 client 的旧 deadline 时钟缺陷与后续修复证据见后续 #54（N7 验证）。用户确认反噬本就没有特效，因此空 vfxId 不是漏配美术，后续独立修复只跳过无效播放。
 - BlackCurtain：两端正常/反噬的 seeEdge 标志严格交换；每次都激活并恢复。当前平台夹具不能证明实际赛道路缘画面，后续补实际场景取景。
 - Giant：正常 scale 1→4→1、mass 2→6→2、force 50→175→50；反噬 scale 1→0.3→1。owner/observer 都观察到对应变更，不能将此预测路径结果推广到 B3 的 Legacy 路径。
 - ReverseTurn：普通仅对手反转，反噬仅自身反转；注意病例边界会短暂保留上例的客户端旧采样，判据在本次施放后窗口中取值。

@@ -19,7 +19,7 @@
 | P1-6 | 删除 DirectHeadingControl 分支 | done-unverified | 072fd93 | R1 通过；本机双端回归通过，R4 完整矩阵未执行 | 两个 sealed 输入源的 UseDirectHeadingControl 均为字面量 false；保留输入接口，移除不可达模式及专属无用字段。 |
 | P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | blocked | 438b0b7 | 四包移除、ParrelSync 固定；R1/R2 通过；本机双端回归通过，完整 R4 未执行 | SoftMask 在 RaceMap → UIprefap.prefab 中仍使用，保留该包；GUID 依赖预检推翻原计划“未使用”假设。 |
 | P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | done-unverified | 71e63d5 | R1/R2 通过；本机回归通过；R4/R5 不完整，R6 未执行 | 306 个 Demo 文件；默认表实际 12 Demo + 3 游戏，保留全部三个游戏 prefab GUID/fileID。 |
-| P2-1 | 新增 Foundation 模块 | todo | | | |
+| P2-1 | 新增 Foundation 模块 | done | | R1 通过：已加载 GameLog 类型、无 C# error | 暂不接入调用点；Registry 明确 activeInHierarchy/禁用组件语义，并首次查询补齐 Awake 顺序差异。 |
 | P2-2a–e | 日志迁移（按目录） | todo | | | |
 | P2-3 | 常量与身份收敛 | todo | | | |
 | P2-4 | 接入 PlayerRegistry | todo | | | |
@@ -70,3 +70,4 @@
 - 本机联机启动修复：[PR #48](https://github.com/OldMustClimbStudio/BuddahGo/pull/48)，提交 `be7c0fd`，从 dev 单独分支；正常 host 身份、场景注册和开赛交接已恢复。本机两端各运行约 195 秒（普通 95 秒 + 100ms LatencySim 100 秒），D-LOC 非零窗口/FATAL/SceneId 错误均为 0。
 - 2026-09-29 用户更新：后续使用 stacked PR，最后统一处理，不逐阶段合并 dev。当前依赖为 #48（base dev）→ #47（base fix/local-multiplayer-flow）→ P1（base refactor/architecture-optimization）。P0 已通过 d6439a6 纳入联机修复基线。
 - 按用户要求，阶段内先记录问题并完成修改，再集中执行相关构建/本机回归；每步仍保留独立实现提交及预检证据。
+- P1：[PR #49](https://github.com/OldMustClimbStudio/BuddahGo/pull/49)，base refactor/architecture-optimization；完整验证记录见 p1-validation.md。

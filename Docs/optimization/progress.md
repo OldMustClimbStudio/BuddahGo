@@ -11,14 +11,14 @@
 | P0-3 | 修复正式包编译（B1） | done-unverified | 5a77b8a | R1 通过；R3 构建 0 error、主菜单启动；R7 本机测试未完成，见 p0-validation.md | 32 种宏组合源码比较通过；本机连接/Ready/配装同步已确认，RaceMap 注册阻塞有效预测回归。 |
 | P0-4 | 调试探针只进 Editor/Dev（B2） | done-unverified | 84ad1be | R1/R2/R3 通过；正式包无探针元数据和心跳；R7 受 N2 阻塞未重跑 | 6 处守卫，192 组 Editor/Dev 源码比较一致；两种包均到达主菜单且启动日志无 Exception。 |
 | P0-5 | 取消跟踪 `.VSCodeCounter`、`agent-exchange/console/raw` | done | 9f12e5f | 两目录跟踪数为 0；19 个文件逐字节保留 | 新增整目录 ignore；digest/handoff 保留，未改写历史。I6 不适用。 |
-| P1-1 | 删除零引用脚本 | doing | 32160bf | R1/R2 待 P1 集中验证 | 13 个目标 GUID/C# 引用均为 0、无启动钩子；保留 CombatAdapter。修正 refscan 的 Windows 路径过滤。 |
-| P1-2 | 删除 MiniMap 半成品三件套 | doing | 9319ae1 | R1/R4 待 P1 集中验证 | Presenter 无引用；Locator/Mapper 仅被 Presenter 引用，三件套外部引用为 0；MiniMapController 保持原样。 |
-| P1-3 | 删除旧大厅链路 | doing | 4aff429 | R1/R4 待 P1 集中验证 | 两脚本 YAML 引用为 0；MainMenu legacy prefab 为 null；仅旧链路内部与可移除 spawn 分支依赖。 |
+| P1-1 | 删除零引用脚本 | done | 32160bf | R1/R2 通过；见 p1-validation.md | 13 个目标 GUID/C# 引用均为 0、无启动钩子；保留 CombatAdapter。修正 refscan 的 Windows 路径过滤。 |
+| P1-2 | 删除 MiniMap 半成品三件套 | done-unverified | 9319ae1 | R1 通过；本机 R4 辅助回归通过，完整矩阵未执行 | Presenter 无引用；Locator/Mapper 仅被 Presenter 引用，三件套外部引用为 0；MiniMapController 保持原样。 |
+| P1-3 | 删除旧大厅链路 | done-unverified | 4aff429 | R1 通过；本机 R4 辅助回归通过，完整矩阵未执行 | 两脚本 YAML 引用为 0；MainMenu legacy prefab 为 null；仅旧链路内部与可移除 spawn 分支依赖。 |
 | P1-4 | 删除 RaceFinishManager 调试结束路径 | blocked | 9205b7b | 不删除：预检发现活跃 UnityEvent | RaceMap.unity:6858 直接绑定 TriggerDebugFinishRaceFromLocalUi；按方案必须保留该方法及其调用链。 |
-| P1-5 | 删除无调用者 API | blocked | 8f02f68 | 已删 29 个无调用声明；R1/R4/R5 待阶段验证 | SetInputSource 有实际控制路径调用，保留该项；其余 API 逐项引用/绑定复核后删除。 |
-| P1-6 | 删除 DirectHeadingControl 分支 | doing | 072fd93 | R1/R4 待阶段验证 | 两个 sealed 输入源的 UseDirectHeadingControl 均为字面量 false；保留输入接口，移除不可达模式及专属无用字段。 |
-| P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | blocked | 438b0b7 | 四包移除、ParrelSync 固定；R1/R2/R4 待验证 | SoftMask 在 RaceMap → UIprefap.prefab 中仍使用，保留该包；GUID 依赖预检推翻原计划“未使用”假设。 |
-| P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | doing | | R1/R2/R4/R5/R6 待阶段验证 | 306 个 Demo 文件；默认表实际 12 Demo + 3 游戏，保留全部三个游戏 prefab GUID/fileID。 |
+| P1-5 | 删除无调用者 API | blocked | 8f02f68 | 已删 29 个无调用声明；R1 通过；本机双端技能回归通过，完整 R4/R5 未执行 | SetInputSource 有实际控制路径调用，保留该项；其余 API 逐项引用/绑定复核后删除。 |
+| P1-6 | 删除 DirectHeadingControl 分支 | done-unverified | 072fd93 | R1 通过；本机双端回归通过，R4 完整矩阵未执行 | 两个 sealed 输入源的 UseDirectHeadingControl 均为字面量 false；保留输入接口，移除不可达模式及专属无用字段。 |
+| P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | blocked | 438b0b7 | 四包移除、ParrelSync 固定；R1/R2 通过；本机双端回归通过，完整 R4 未执行 | SoftMask 在 RaceMap → UIprefap.prefab 中仍使用，保留该包；GUID 依赖预检推翻原计划“未使用”假设。 |
+| P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | done-unverified | 71e63d5 | R1/R2 通过；本机回归通过；R4/R5 不完整，R6 未执行 | 306 个 Demo 文件；默认表实际 12 Demo + 3 游戏，保留全部三个游戏 prefab GUID/fileID。 |
 | P2-1 | 新增 Foundation 模块 | todo | | | |
 | P2-2a–e | 日志迁移（按目录） | todo | | | |
 | P2-3 | 常量与身份收敛 | todo | | | |
@@ -62,7 +62,6 @@
 | 2026-09-29 | 本机 Tugboat host 名单 | N1：无 Steam 的本机 host 首次登记 IsHost=false；已在独立修复 be7c0fd / PR #48 处理，一次回归无需名单补丁，待合并。 | P0-3 / R4 |
 | 2026-09-29 | ParrelSync client RaceMap | N2：SceneCondition 缺失导致场景注册/交接受阻；已在 be7c0fd / PR #48 处理，本机两端 195 秒回归通过，待合并。 | P0-3 / R7 |
 | 2026-09-29 | 正式包启动 / 基线资源 | N3/N4：无 Steam 的初始化连带异常，以及字体、空动画、LightingData 告警；详见 p0-validation.md。 | P0 |
-
 | 2026-09-29 | RaceMap EndMatch UnityEvent | P1-4 删除前提不成立：直接绑定 RaceFinishManager.TriggerDebugFinishRaceFromLocalUi（Assembly-CSharp）；保持现有按钮行为。 | P1-4 |
 
 ## 阶段 PR

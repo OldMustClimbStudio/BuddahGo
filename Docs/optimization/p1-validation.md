@@ -106,3 +106,16 @@ refscan 对 ConnectionManager 的一个文本命中来自 Plugins/FishyFacepunch
 | Assets/Character/Prefab/Buddah.prefab | c2b8c569b26585545904610506c355cd |
 
 已读 NetworkManager.Awake → SpawnablePrefabs.InitializePrefabRange → ManagedObjects.InitializePrefab：运行时会根据新表赋 PrefabId，所有端须使用同一表/构建。场景对象 sceneId 不改动。I6 不适用，R1/R2/R4/R5/R6 待阶段集中验证。
+
+## 阶段集中验证（2026-09-30，71e63d5）
+
+- R1：重启编辑器并完成包解析后，C# 编译 0 error、10 个已有 warning（移除 Demo 后比基线少 1 个）。旧进程残留的 PlasticSCM/VisualScripting 类型加载问题通过重启解除。现有字体缺字、空动画、LightingData 告警仍保留。
+- R2：Development Windows 构建成功，53.172 秒，0 error / 17 warning，1162.31 MB；实际启动到主菜单，启动日志无 Exception。
+- R3：非 Development Windows 构建成功，28.893 秒，0 error / 13 warning，1134.47 MB；实际启动到主菜单，启动日志无 Exception、无 D-Perf 探针输出。
+- 本机集中回归：原 Editor host + ParrelSync Editor client，临时未保存 Tugboat 127.0.0.1:17845；两端均为本阶段程序集和 3 项 prefab 表。正常连接、ready、属性/技能选择、RaceMap 倒计时和控制权交接；两端各施放 6 次技能。首轮有效比赛约 214 秒，95 秒后启用 100ms LatencySim；通过场景已有 UnityEvent 结束按钮进入结算，两端投票再来一局，第二轮再次正常交接，之后由 client 投票返回房间，两端均到 MainMenu/InRoom 并完成 10 秒观察。
+- R7：host 336 / client 167 条 D-LOC 心跳，loc/tel/mod/hof 的非零 div 窗口均为 0，FATAL、SceneId、Exception 匹配均为 0。两端结果 completed=true、secondRaceSeen=true、returnedToRoom=true；测试结束后均停止 Play。
+- R10 补充：两个结算入口均通过实际绑定 RaceFinishManager.TriggerDebugFinishRaceFromLocalUi 的 Button.onClick 执行；证明 P1-4 所保留的绑定仍可用。DefaultPrefabObjects 保持全部 3 个游戏 prefab 的原 GUID/fileID/顺序，无额外生成差异。
+
+验证边界：这是两个 Editor 的本机辅助回归，未执行 Steam 双账号/Dev host 的完整 R4，也没有真实跑完 3 圈；结束使用已有调试按钮。R5 未逐一人工确认全部 anti、反噬与冷却表现；R6 的完整复活/碰撞/推击/普通、蓄力、连发矩阵未执行。小地图显示未单独做可视化断言。R8 没有可比基线，不宣称性能改进。R9 验证了 100ms 下比赛、结算和后续流程，未覆盖正式 R4 全部环节。
+
+本机原始证据（不提交生成日志）：Logs/p1-editor.log、p1-dev-player.log、p1-release-player.log、p1-regression-host.jsonl；克隆 Logs/p1-client-editor.log、p1-regression-client.jsonl。以上结论补充各步骤当时记录的“待阶段验证”，不把未覆盖项记作通过。

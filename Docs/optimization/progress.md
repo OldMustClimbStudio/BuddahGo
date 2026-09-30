@@ -42,8 +42,8 @@
 | P4-2 | RSM 三件套参数化 | done-unverified | 6f99c5e | 双端开赛/重开/回房间与 100ms 通过 | 原 guard/空集合语义保持；48 辅助检查通过 |
 | P4-3 | PropertiesSelectionManager 下沉 | done-unverified | d6876cb | R1；全员提交、60s 超时自动补全、真实 client 断线通过 | cache 重建时机保持；完整 Steam/三圈矩阵未执行 |
 | P4-4 | PlayerProgressReporter 分区 | done-unverified | 0d56d02 | 两轮实际结算 UnityEvent、重开和回房间通过 | 去掉 region 后 token 相同；完整 R4 未执行 |
-| P5-1 | motor 拆成 partial 文件 | doing | | | |
-| P5-2 | RunInputs 收尾抽取 | todo | | | |
+| P5-1 | motor 拆成 partial 文件 | doing | a7934e7 | R1 通过，R3/R7/R9 待集中 | 12 片段逐字移动 |
+| P5-2 | RunInputs 收尾抽取 | doing | | | |
 | P5-3 | 工具函数去重 | todo | | | |
 | P5-4 | BuddahHandControl 下沉 | todo | | | |
 | P5-5 | 影子对比表驱动（可选） | todo | | | |

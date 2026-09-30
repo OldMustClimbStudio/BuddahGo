@@ -420,11 +420,7 @@ namespace NewBuddah.PredictionV2.Core
 
             if (!data.MovementAllowed)
             {
-                _predictionRigidbody.ClearPendingForces();
-                SetPredictionVelocitiesSafely(Vector3.zero, Vector3.zero);
-                _predictionRigidbody.Simulate();
-                FinalizeImpulseDebugAfterSimulate();
-                UpdateReplicateDebug(data, state, "blocked");
+                CompleteStoppedPredictionStep(data, state, "blocked");
                 return;
             }
 
@@ -435,11 +431,7 @@ namespace NewBuddah.PredictionV2.Core
 
             if (_computedStats.IsRooted)
             {
-                _predictionRigidbody.ClearPendingForces();
-                SetPredictionVelocitiesSafely(Vector3.zero, Vector3.zero);
-                _predictionRigidbody.Simulate();
-                FinalizeImpulseDebugAfterSimulate();
-                UpdateReplicateDebug(data, state, "rooted");
+                CompleteStoppedPredictionStep(data, state, "rooted");
                 return;
             }
 
@@ -613,6 +605,15 @@ namespace NewBuddah.PredictionV2.Core
 
             reason = "prediction-active";
             return false;
+        }
+
+        private void CompleteStoppedPredictionStep(BuddahPredictedInputData data, ReplicateState state, string status)
+        {
+            _predictionRigidbody.ClearPendingForces();
+            SetPredictionVelocitiesSafely(Vector3.zero, Vector3.zero);
+            _predictionRigidbody.Simulate();
+            FinalizeImpulseDebugAfterSimulate();
+            UpdateReplicateDebug(data, state, status);
         }
 
         private void SimulateZeroVelocityPredictionStep()

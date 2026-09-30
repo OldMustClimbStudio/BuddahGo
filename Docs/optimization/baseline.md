@@ -20,7 +20,7 @@
 
 原始本机证据：`Logs/architecture-editor.log`（忽略的生成日志）。这仅证明 C# 编译成功，不能替代后续运行和构建验证。
 
-## R4–R9
+## 初次基线采集时的 R4–R9（2026-09-29）
 
 | ID | 结果 | 未执行原因 / 待补证据 |
 |---|---|---|
@@ -36,3 +36,16 @@ P0-1 状态为 `done-unverified`。后续补跑时记录两端构建提交号、
 ## 不变式检查
 
 本步骤只增加基线与进度记录，未修改代码或序列化资源。I6 不适用（没有合并重复实现）。
+
+## 后续验证索引（2026-09-30 更正）
+
+上表记录初次 dev 基线采集的状态，不代表后续各 PR 始终未执行。后续证据在修复后的堆叠版本上采集，不能追溯充当原 dev 基线，也不是本次 F1–F7 修复的重测结果。
+
+| 项目 | 后续记录与剩余范围 |
+|---|---|
+| R4 | [P4](p4-validation.md)、[P6](p6-validation.md) 记录本机开赛/重开/回房间；外部 Steam、跨机 Dev 双端与实际三圈仍未完整覆盖。 |
+| R5 | [P3](p3-validation.md)、[N7](n7-modifier-clock-validation.md) 记录技能/反噬及修复后时长矩阵；勿将 N7 前的 host 观察推广到纯 client。 |
+| R6 | [P5](p5-validation.md)、[N8/N9](n8-owner-event-clock-validation.md) 及[第二轮公开矩阵](review-runtime-round2.md#r6--r7-and-charged-timing)记录投射物、复活、碰撞与受控推击；保留原夹具 miss 和补证范围，不把摘要扩展为通用碰撞等价性或未公开补证。 |
+| R7 | 各阶段有双端 D-LOC 心跳证据；N10 的 real/shadow 同源错误不能由 hof-div=0 排除。[第二轮记录](review-runtime-round2.md)与[现行时钟契约](../prediction-design.md)分别说明版本证据和代码，不能相互替代。 |
+| R8 | [公开 Editor 对照](review-r8-editor.md)已有 pre-P2 / screen-on / log-only 三组同配置记录；原始 dev 基线和提议的 Player/Release 对照仍未采集，不扩大为所有配置的性能收益。 |
+| R9 | [P4](p4-validation.md)、[N8/N9](n8-owner-event-clock-validation.md)、[P6](p6-validation.md)及[第二轮](review-runtime-round2.md#r9-scope-and-remaining-review-items)有本机 100ms 专项；快照配对的代码说明不等于公开了新实测，完整外部联机矩阵与迟到客户端呈现不标完成。 |

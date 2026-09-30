@@ -36,15 +36,15 @@ public class Skill_Giant : SkillAction
             shrinkDurationSeconds,
             massMultiplier,
             forwardForceMultiplier);
-        Debug.Log($"[Skill_Giant][Server] Apply x{scaleMultiplier:0.##} scale for {durationSeconds:0.##}s");
+        GameLog.Verbose($"[Skill_Giant][Server] Apply x{scaleMultiplier:0.##} scale for {durationSeconds:0.##}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
     {
-        ApplyScaleEffect(caster);
+        ScaleSkillPresentation.ApplyScaleEffect(caster, scaleMultiplier, durationSeconds, growDurationSeconds, shrinkDurationSeconds);
 
-        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, durationSeconds, $"{skillId}_observers");
-        Debug.Log($"[Skill_Giant][Observers] '{skillId}' triggered (slot {slotIndex})");
+        PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, durationSeconds);
+        GameLog.Verbose($"[Skill_Giant][Observers] '{skillId}' triggered (slot {slotIndex})");
     }
 
     public override void ExecuteLocal(SkillExecutor caster, int slotIndex, bool isAnti)
@@ -52,35 +52,7 @@ public class Skill_Giant : SkillAction
         if (caster == null || !caster.IsOwner)
             return;
 
-        ApplyLocalCameraEffect(caster);
-    }
-
-    private void ApplyScaleEffect(SkillExecutor caster)
-    {
-        if (caster == null)
-            return;
-
-        var effect = caster.GetComponent<PlayerScaleEffect>();
-        if (effect == null)
-            effect = caster.gameObject.AddComponent<PlayerScaleEffect>();
-
-        effect.ApplyOrRefresh(scaleMultiplier, durationSeconds, growDurationSeconds, shrinkDurationSeconds);
-    }
-
-    private void ApplyLocalCameraEffect(SkillExecutor caster)
-    {
-        var camera = caster.GetComponentInChildren<PlayerCamera>(true);
-        if (camera == null)
-            camera = caster.GetComponentInParent<PlayerCamera>();
-
-        if (camera == null)
-        {
-            Debug.LogWarning("[Skill_Giant][Owner] Missing PlayerCamera for local camera effect.");
-            return;
-        }
-
-        camera.ResetRuntimeEffects();
-        Debug.Log("[Skill_Giant][Owner] Applied local camera reinforcement.");
+        ScaleSkillPresentation.ResetLocalCamera(caster, GetType().Name);
     }
 
     private void EnsureAntiSkillId()

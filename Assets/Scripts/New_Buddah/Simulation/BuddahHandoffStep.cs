@@ -27,10 +27,16 @@ namespace NewBuddah.PredictionV2.Simulation
         {
             _ = input;
 
+            // Teleport is consumed first by the motor. ResetModifiers clears both
+            // the current handoff and its pending slot before handoff consumption.
+            bool clearedByTeleport = scratch.TeleportRan && scratch.TeleportFlag_ResetModifiers;
+            BuddahPredictedLaunchHandoffState preState = clearedByTeleport
+                ? default
+                : ctx.ShadowPreHandoffState;
             BuddahPredictedLaunchHandoffState shadowState = BuddahPredictedLaunchHandoffResolver.Advance(
-                ctx.ShadowPreHandoffState, ctx.Tick);
+                preState, ctx.Tick);
 
-            if (ctx.ShadowPreHandoffHasPending
+            if (!clearedByTeleport && ctx.ShadowPreHandoffHasPending
                 && ctx.ShadowPreHandoffEvent.StartTick <= ctx.Tick)
             {
                 BuddahPredictedLaunchHandoffData adjusted = BuddahPredictedLaunchHandoffResolver.ProjectForArrivalTick(

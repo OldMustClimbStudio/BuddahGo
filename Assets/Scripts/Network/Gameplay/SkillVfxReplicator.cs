@@ -38,7 +38,7 @@ public class SkillVfxReplicator : NetworkBehaviour
             return;
 
         prewarmStarted = true;
-        Debug.Log($"[SkillVfxReplicator] Prewarm started from {source}.", this);
+        GameLog.Verbose($"[SkillVfxReplicator] Prewarm started from {source}.", this);
         StartCoroutine(PrewarmAllVfx());
     }
 
@@ -147,7 +147,7 @@ public class SkillVfxReplicator : NetworkBehaviour
             yield return null;
         }
 
-        Debug.Log($"[SkillVfxReplicator] Prewarm finished. warmed={warmedCount}", this);
+        GameLog.Verbose($"[SkillVfxReplicator] Prewarm finished. warmed={warmedCount}", this);
     }
 
     private TimedVfxInstance FindExisting(string vfxId)

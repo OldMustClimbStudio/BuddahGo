@@ -1,0 +1,26 @@
+var cases=new System.Collections.Generic.List<object>();
+var oldEvent=new NewBuddah.PredictionV2.Core.BuddahPredictedLaunchHandoffData(41,1,new UnityEngine.Vector3(4,5,6),UnityEngine.Quaternion.identity,new UnityEngine.Vector3(2,0,3),UnityEngine.Vector3.up,UnityEngine.Vector3.forward,2,3,4,5,1,false);
+var pre=NewBuddah.PredictionV2.Core.BuddahPredictedLaunchHandoffState.FromData(oldEvent);
+int failures=0;
+for(int bits=0;bits<32;bits++){
+ bool teleport=(bits&1)!=0, teleportDue=(bits&2)!=0,reset=(bits&4)!=0,pending=(bits&8)!=0,handoffDue=(bits&16)!=0;
+ uint tick=100;
+ var handoff=oldEvent;handoff.EventId=99;handoff.StartTick=handoffDue?90u:110u;
+ var ctx=new NewBuddah.PredictionV2.Core.BuddahPredictionTickContext(UnityEngine.Vector3.zero,2f,1f/60,tick,UnityEngine.Vector3.forward,1,0,default(NewBuddah.PredictionV2.Core.BuddahPredictedMotorComputedStats),0,0,teleport,7,teleportDue?90u:110u,UnityEngine.Vector3.one,UnityEngine.Quaternion.identity,false,true,true,reset,true,true,true,default(NewBuddah.PredictionV2.Core.BuddahPredictedModifierState),null,pending,handoff,pre);
+ var input=default(NewBuddah.PredictionV2.Core.BuddahPredictedInputData);
+ var scratch=default(NewBuddah.PredictionV2.Simulation.BuddahPredictionShadowScratch);
+ object[] arguments={ctx,input,scratch};
+ typeof(NewBuddah.PredictionV2.Simulation.BuddahTeleportStep).GetMethod("Run").Invoke(null,arguments);
+ typeof(NewBuddah.PredictionV2.Simulation.BuddahHandoffStep).GetMethod("Run").Invoke(null,arguments);
+ scratch=(NewBuddah.PredictionV2.Simulation.BuddahPredictionShadowScratch)arguments[2];
+ // Motor contract: ripe resetting teleport clears existing AND pending handoff before its consume.
+ bool cleared=teleport&&teleportDue&&reset;
+ bool consumed=pending&&handoffDue&&!cleared;
+ var expected=cleared?default(NewBuddah.PredictionV2.Core.BuddahPredictedLaunchHandoffState):pre;
+ if(consumed)expected=NewBuddah.PredictionV2.Core.BuddahPredictedLaunchHandoffState.FromData(NewBuddah.PredictionV2.Core.BuddahPredictedLaunchHandoffResolver.ProjectForArrivalTick(handoff,tick,1f/60));
+ expected=NewBuddah.PredictionV2.Core.BuddahPredictedLaunchHandoffResolver.Advance(expected,tick);
+ bool equal=expected.Equals(scratch.ShadowHandoffState)&&scratch.HandoffRan==consumed&&scratch.ShadowLastConsumedHandoffId==(consumed?99u:0u);
+ if(!equal)failures++;
+ cases.Add(new{bits=bits,passed=equal,expectedId=expected.EventId,actualId=scratch.ShadowHandoffState.EventId,expectedRan=consumed,actualRan=scratch.HandoffRan});
+}
+return new{total=32,failures=failures,cases=cases};

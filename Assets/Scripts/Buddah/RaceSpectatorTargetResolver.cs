@@ -63,6 +63,6 @@ public class RaceSpectatorTargetResolver : MonoBehaviour
     private void DebugLog(string message)
     {
         if (enableDebugLogs)
-            Debug.Log($"[RaceSpectatorTargetResolver] {message}");
+            GameLog.Verbose($"[RaceSpectatorTargetResolver] {message}");
     }
 }

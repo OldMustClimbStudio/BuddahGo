@@ -116,6 +116,8 @@ public class PlayerProgressReporter : NetworkBehaviour
         _lapTracker?.TryAdvanceCheckpoint(checkpointId);
     }
 
+    #region Result area server entry points
+
     [Server]
     public void EnterResultAreaServer(Vector3 worldPosition, Quaternion worldRotation)
     {
@@ -154,6 +156,10 @@ public class PlayerProgressReporter : NetworkBehaviour
         EnterResultAreaInteractiveObserversRpc(allowMovement, allowSkills);
     }
 
+    #endregion
+
+    #region Progress dependencies and registration
+
     private void ResolveProgressDependencies()
     {
         _tracker ??= GetComponent<SplineProgressTracker>();
@@ -185,7 +191,7 @@ public class PlayerProgressReporter : NetworkBehaviour
             if (LeaderboardManager.Instance != null)
             {
                 string displayName = string.IsNullOrWhiteSpace(gameObject.name)
-                    ? $"Player {OwnerId}"
+                    ? PlayerIdentity.FallbackName(OwnerId)
                     : $"{gameObject.name} #{OwnerId}";
 
                 LeaderboardManager.Instance.RegisterPlayer(OwnerId, displayName);
@@ -201,7 +207,7 @@ public class PlayerProgressReporter : NetworkBehaviour
     private static void DebugLog(string message)
     {
         if (NetDebug.EnableVerboseLog)
-            Debug.Log(message);
+            GameLog.Verbose(message);
     }
 
     private int GetConfiguredLapsToFinish()
@@ -209,8 +215,12 @@ public class PlayerProgressReporter : NetworkBehaviour
         if (RaceFinishManager.Instance != null)
             return RaceFinishManager.Instance.LapsToFinish;
 
-        return 3;
+        return RaceRules.DefaultLapsToFinish;
     }
+
+    #endregion
+
+    #region Result area RPCs and local presentation
 
     [ObserversRpc]
     private void SyncResultAreaTeleportObserversRpc(Vector3 worldPosition, Quaternion worldRotation)
@@ -290,4 +300,6 @@ public class PlayerProgressReporter : NetworkBehaviour
         ApplyResultAreaTeleportLocally(worldPosition, worldRotation);
         _finishPresentationController?.EnterHiddenInResultAreaWaitingReveal();
     }
+    #endregion
+
 }

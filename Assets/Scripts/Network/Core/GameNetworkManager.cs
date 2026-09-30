@@ -226,7 +226,7 @@ namespace SteamMultiplayer.Network
             if (!debugManager.WriteSceneObjectDetails)
             {
                 debugManager.WriteSceneObjectDetails = true;
-                Debug.Log("[NetworkDiag] Enabled FishNet DebugManager.WriteSceneObjectDetails for scene object diagnostics.");
+                GameLog.Verbose("[NetworkDiag] Enabled FishNet DebugManager.WriteSceneObjectDetails for scene object diagnostics.");
             }
         }
 

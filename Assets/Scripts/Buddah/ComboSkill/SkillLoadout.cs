@@ -61,7 +61,7 @@ public class SkillLoadout : NetworkBehaviour
 
         EnsureSlotCountServer();
         SlotSkillIds[slotIndex] = skillId ?? string.Empty;
-        Debug.Log($"[SkillLoadout][Server] Set slot {slotIndex} -> '{SlotSkillIds[slotIndex]}'");
+        GameLog.Verbose($"[SkillLoadout][Server] Set slot {slotIndex} -> '{SlotSkillIds[slotIndex]}'");
     }
 
     [Server]
@@ -78,7 +78,7 @@ public class SkillLoadout : NetworkBehaviour
         }
 
         SetSlotsServer(resolvedLoadout);
-        Debug.Log($"[SkillLoadout][Server] Applied property selection loadout for player {playerId}.");
+        GameLog.Verbose($"[SkillLoadout][Server] Applied property selection loadout for player {playerId}.");
         return true;
     }
 
@@ -134,7 +134,7 @@ public class SkillLoadout : NetworkBehaviour
     [Server]
     private void LogFinalLoadout(string context)
     {
-        Debug.Log(
+        GameLog.Verbose(
             $"[SkillLoadout][Server] {context} final slots: " +
             $"0='{GetSkillId(0)}', 1='{GetSkillId(1)}', 2='{GetSkillId(2)}'");
     }

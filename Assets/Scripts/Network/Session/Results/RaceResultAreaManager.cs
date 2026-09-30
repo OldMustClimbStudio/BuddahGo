@@ -174,7 +174,7 @@ namespace SteamMultiplayer.Network.Results
         private void DebugLog(string message)
         {
             if (enableDebugLogs)
-                Debug.Log($"[RaceResultAreaManager] {message}");
+                GameLog.Verbose($"[RaceResultAreaManager] {message}");
         }
     }
 }

@@ -65,6 +65,7 @@ public class BuddahMovement : NetworkBehaviour
 
     private void Awake()
     {
+        PlayerRegistry.Register(this);
         inputActions = new InputSystem_Actions();
         movementAction = inputActions.Player.Movement;
         _playerInputSource = new PlayerBuddahInputSource(movementAction);
@@ -75,6 +76,11 @@ public class BuddahMovement : NetworkBehaviour
             rb = GetComponent<Rigidbody>();
         if (predictionHandoffBridge == null)
             predictionHandoffBridge = GetComponent<BuddahPredictionHandoffBridge>();
+    }
+
+    private void OnDestroy()
+    {
+        PlayerRegistry.Unregister(this);
     }
 
     public override void OnStartClient()
@@ -201,13 +207,13 @@ public class BuddahMovement : NetworkBehaviour
         if (TryGetPredictionHandoffBridge(out BuddahPredictionHandoffBridge bridge) && bridge.TrySetIntroControlActive(active))
         {
             _introControlActive = active;
-            Debug.Log($"[IntroState][Movement:{name}] Intro control mirrored to prediction active={active} owner={IsOwner}");
+            GameLog.Verbose($"[IntroState][Movement:{name}] Intro control mirrored to prediction active={active} owner={IsOwner}");
             RefreshLocalControlState();
             return;
         }
 
         _introControlActive = active;
-        Debug.Log($"[IntroState][Movement:{name}] Intro control active={active} owner={IsOwner}");
+        GameLog.Verbose($"[IntroState][Movement:{name}] Intro control active={active} owner={IsOwner}");
         RefreshLocalControlState();
     }
 
@@ -228,7 +234,7 @@ public class BuddahMovement : NetworkBehaviour
             _predictionLaunchHandoffActive = false;
             _roomStateBypassTimer = Mathf.Max(_roomStateBypassTimer, bypassRoomStateSeconds);
             _suppressSteeringTimer = Mathf.Max(0f, suppressTurnInputSeconds);
-            Debug.Log(
+            GameLog.Verbose(
                 $"[IntroHandoff][Movement:{name}] Routed prediction handoff request accepted seq={debugSequenceId} owner={IsOwner} " +
                 $"pendingEntered={_authoritativeHandoffPending} intro={_introControlActive} external={_externalKinematicControlActive}");
             RefreshLocalControlState();
@@ -290,7 +296,7 @@ public class BuddahMovement : NetworkBehaviour
                 _launchState = LaunchState.Normal;
                 _launchStateTimer = 0f;
             }
-            Debug.Log($"[IntroState][Movement:{name}] External kinematic mirrored to prediction active={active} owner={IsOwner}");
+            GameLog.Verbose($"[IntroState][Movement:{name}] External kinematic mirrored to prediction active={active} owner={IsOwner}");
             RefreshLocalControlState();
             return;
         }
@@ -312,7 +318,7 @@ public class BuddahMovement : NetworkBehaviour
             _launchStateTimer = 0f;
         }
 
-        Debug.Log($"[IntroState][Movement:{name}] External kinematic active={active} owner={IsOwner}");
+        GameLog.Verbose($"[IntroState][Movement:{name}] External kinematic active={active} owner={IsOwner}");
         RefreshLocalControlState();
     }
 
@@ -358,12 +364,12 @@ public class BuddahMovement : NetworkBehaviour
 
         if (hadPending && !_authoritativeHandoffPending && _predictionLaunchHandoffActive)
         {
-            Debug.Log($"[IntroHandoff][Movement:{name}] Pending state cleared because prediction consumed/active owner={IsOwner}");
+            GameLog.Verbose($"[IntroHandoff][Movement:{name}] Pending state cleared because prediction consumed/active owner={IsOwner}");
         }
 
         if (changed)
         {
-            Debug.Log(
+            GameLog.Verbose(
                 $"[IntroHandoff][Movement:{name}] Synced prediction state owner={IsOwner} intro={_introControlActive} " +
                 $"external={_externalKinematicControlActive} handoffPending={_authoritativeHandoffPending} active={_predictionLaunchHandoffActive}");
         }
@@ -564,7 +570,7 @@ public class BuddahMovement : NetworkBehaviour
         bool movementUnlocked = room != null && room.IsGameplayMovementUnlocked;
         bool matchPhase = room != null && room.IsMatchPhaseActive;
         bool resultPhase = room != null && room.IsResultPhaseActive;
-        Debug.Log(
+        GameLog.Verbose(
             $"[InputGate][Movement:{name}] enabled={enabled} reason={reason} owner={IsOwner} " +
             $"intro={_introControlActive} external={_externalKinematicControlActive} phase={phase} " +
             $"handoffPending={_authoritativeHandoffPending} match={matchPhase} result={resultPhase} movementUnlocked={movementUnlocked}");

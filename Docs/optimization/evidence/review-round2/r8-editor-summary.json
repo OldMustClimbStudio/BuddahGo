@@ -1,0 +1,943 @@
+{
+  "protocol": "Two local Unity Editors; same source on peers; 1920x1080; quality 2; 0 ms simulator; RaceMap; 30 s after-GO warmup + 60 s capture; 3 fresh pairs per source; detailed trace and screenshot capture absent. Sequential groups, uncontrolled machine background load; target60 is not an enforced Editor frame lock.",
+  "complete": true,
+  "missing": [],
+  "cells": {
+    "pre-p2/host": {
+      "runs": [
+        {
+          "run": 1,
+          "metadata": {
+            "label": "pre-p2",
+            "revision": "707376f3bf0e33ad8586eba8034a9fe33caf68c8",
+            "role": "host",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 1,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4302,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.00980880000003,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T17:49:49.702661+00:00",
+            "end": "2026-09-30T17:50:49.712470+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 67641.26522547653,
+          "gcBytesPerSecond": 4849085.988089331,
+          "mainMeanMs": 13.941458344955835,
+          "mainP95Ms": 16.92266,
+          "frameMeanMs": 13.949405410388067,
+          "frameP95Ms": 17.025065049529076,
+          "csvSha256": "29fbcac64a421899224619942db949d68bd1db657b7f63246f7feca44e6ad58c"
+        },
+        {
+          "run": 2,
+          "metadata": {
+            "label": "pre-p2",
+            "revision": "707376f3bf0e33ad8586eba8034a9fe33caf68c8",
+            "role": "host",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 2,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4695,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.00784389999998,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T17:53:59.237589+00:00",
+            "end": "2026-09-30T17:54:59.245433+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 67061.70500532481,
+          "gcBytesPerSecond": 5246892.481667719,
+          "mainMeanMs": 12.774109073482428,
+          "mainP95Ms": 14.877340000000002,
+          "frameMeanMs": 12.781439312159444,
+          "frameP95Ms": 14.938650093972683,
+          "csvSha256": "cbe4089720bb2f35bcaef732be3c7fa4a7a6316f12784e3fefa7599403be51a2"
+        },
+        {
+          "run": 3,
+          "metadata": {
+            "label": "pre-p2",
+            "revision": "707376f3bf0e33ad8586eba8034a9fe33caf68c8",
+            "role": "host",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 3,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4801,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.00823649999998,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:06:23.962234+00:00",
+            "end": "2026-09-30T18:07:23.970470+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 67099.52530722765,
+          "gcBytesPerSecond": 5368343.410658304,
+          "mainMeanMs": 12.491572130806082,
+          "mainP95Ms": 15.0507,
+          "frameMeanMs": 12.499201599174093,
+          "frameP95Ms": 15.060399658977985,
+          "csvSha256": "84c78288916487fd296abd9f2db29045a4ac0ce0c4615a4ebb7069f2ba3d0ebd"
+        }
+      ],
+      "medianOfRuns": {
+        "gcMeanBytesPerFrame": 67099.52530722765,
+        "gcBytesPerSecond": 5246892.481667719,
+        "mainMeanMs": 12.774109073482428,
+        "mainP95Ms": 15.0507,
+        "frameMeanMs": 12.781439312159444,
+        "frameP95Ms": 15.060399658977985
+      },
+      "rangeOfRuns": {
+        "gcMeanBytesPerFrame": [
+          67061.70500532481,
+          67641.26522547653
+        ],
+        "gcBytesPerSecond": [
+          4849085.988089331,
+          5368343.410658304
+        ],
+        "mainMeanMs": [
+          12.491572130806082,
+          13.941458344955835
+        ],
+        "mainP95Ms": [
+          14.877340000000002,
+          16.92266
+        ],
+        "frameMeanMs": [
+          12.499201599174093,
+          13.949405410388067
+        ],
+        "frameP95Ms": [
+          14.938650093972683,
+          17.025065049529076
+        ]
+      }
+    },
+    "pre-p2/client": {
+      "runs": [
+        {
+          "run": 1,
+          "metadata": {
+            "label": "pre-p2",
+            "revision": "707376f3bf0e33ad8586eba8034a9fe33caf68c8",
+            "role": "client",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 1,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4526,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.01034500000003,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T17:49:49.762010+00:00",
+            "end": "2026-09-30T17:50:49.772355+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 80676.87251436147,
+          "gcBytesPerSecond": 6084676.317058331,
+          "mainMeanMs": 13.251502872293417,
+          "mainP95Ms": 16.25225,
+          "frameMeanMs": 13.258903271918257,
+          "frameP95Ms": 16.261450480669737,
+          "csvSha256": "df9153d1f8a09b59e845c8fc832b9f6b09053684eeb25fb802986e16bee86498"
+        },
+        {
+          "run": 2,
+          "metadata": {
+            "label": "pre-p2",
+            "revision": "707376f3bf0e33ad8586eba8034a9fe33caf68c8",
+            "role": "client",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 2,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4300,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.00902509999996,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T17:53:59.238419+00:00",
+            "end": "2026-09-30T17:54:59.247444+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 74114.93255813954,
+          "gcBytesPerSecond": 5310771.329294603,
+          "mainMeanMs": 13.947527581395349,
+          "mainP95Ms": 16.383649999999996,
+          "frameMeanMs": 13.955334021904788,
+          "frameP95Ms": 16.464604809880257,
+          "csvSha256": "50a11e31534c62fe9c6f35036b2f4a584501029e84b9dd38bed529978cb088f1"
+        },
+        {
+          "run": 3,
+          "metadata": {
+            "label": "pre-p2",
+            "revision": "707376f3bf0e33ad8586eba8034a9fe33caf68c8",
+            "role": "client",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 3,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4409,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.01385569999999,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:06:23.998400+00:00",
+            "end": "2026-09-30T18:07:24.012256+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 78657.47811295078,
+          "gcBytesPerSecond": 5778679.222571597,
+          "mainMeanMs": 13.604077341800862,
+          "mainP95Ms": 16.280099999999997,
+          "frameMeanMs": 13.611771222934832,
+          "frameP95Ms": 16.42418019473552,
+          "csvSha256": "862ca3049f3caa4904077846aed5ba6d99e020578dd86bcaee6d54d414aaafdc"
+        }
+      ],
+      "medianOfRuns": {
+        "gcMeanBytesPerFrame": 78657.47811295078,
+        "gcBytesPerSecond": 5778679.222571597,
+        "mainMeanMs": 13.604077341800862,
+        "mainP95Ms": 16.280099999999997,
+        "frameMeanMs": 13.611771222934832,
+        "frameP95Ms": 16.42418019473552
+      },
+      "rangeOfRuns": {
+        "gcMeanBytesPerFrame": [
+          74114.93255813954,
+          80676.87251436147
+        ],
+        "gcBytesPerSecond": [
+          5310771.329294603,
+          6084676.317058331
+        ],
+        "mainMeanMs": [
+          13.251502872293417,
+          13.947527581395349
+        ],
+        "mainP95Ms": [
+          16.25225,
+          16.383649999999996
+        ],
+        "frameMeanMs": [
+          13.258903271918257,
+          13.955334021904788
+        ],
+        "frameP95Ms": [
+          16.261450480669737,
+          16.464604809880257
+        ]
+      }
+    },
+    "screen-on/host": {
+      "runs": [
+        {
+          "run": 1,
+          "metadata": {
+            "label": "screen-on",
+            "revision": "6129b59a3e4a7076963937d5b2b34eb7b0ecf5af",
+            "role": "host",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 1,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4881,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.0053341,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:10:34.373346+00:00",
+            "end": "2026-09-30T18:11:34.378680+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 65414.92132759681,
+          "gcBytesPerSecond": 5321030.8014933625,
+          "mainMeanMs": 12.286233374308543,
+          "mainP95Ms": 14.4931,
+          "frameMeanMs": 12.293500527247247,
+          "frameP95Ms": 14.55910038203001,
+          "csvSha256": "027327371c343f5611c82515b7726454856a72fb3577264071788992d63dd116"
+        },
+        {
+          "run": 2,
+          "metadata": {
+            "label": "screen-on",
+            "revision": "6129b59a3e4a7076963937d5b2b34eb7b0ecf5af",
+            "role": "host",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 2,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4555,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.011295399999995,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:14:25.373486+00:00",
+            "end": "2026-09-30T18:15:25.384781+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 65679.262129528,
+          "gcBytesPerSecond": 4985212.1505779065,
+          "mainMeanMs": 13.167255455543359,
+          "mainP95Ms": 15.39602,
+          "frameMeanMs": 13.174831297383546,
+          "frameP95Ms": 15.41310977190733,
+          "csvSha256": "d117eeef723db787c0f043a152bed56b5293e9830239bcac77bec160711511b6"
+        },
+        {
+          "run": 3,
+          "metadata": {
+            "label": "screen-on",
+            "revision": "6129b59a3e4a7076963937d5b2b34eb7b0ecf5af",
+            "role": "host",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 3,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4949,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.00809580000001,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:17:54.133787+00:00",
+            "end": "2026-09-30T18:18:54.141883+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 65276.370579915136,
+          "gcBytesPerSecond": 5383486.239535032,
+          "mainMeanMs": 12.118102687411598,
+          "mainP95Ms": 14.303479999999999,
+          "frameMeanMs": 12.125403273667764,
+          "frameP95Ms": 14.334780350327492,
+          "csvSha256": "d51fae156c67b968332c885541c794fee0be4e1a314a1faad76dfbf38b24b5ab"
+        }
+      ],
+      "medianOfRuns": {
+        "gcMeanBytesPerFrame": 65414.92132759681,
+        "gcBytesPerSecond": 5321030.8014933625,
+        "mainMeanMs": 12.286233374308543,
+        "mainP95Ms": 14.4931,
+        "frameMeanMs": 12.293500527247247,
+        "frameP95Ms": 14.55910038203001
+      },
+      "rangeOfRuns": {
+        "gcMeanBytesPerFrame": [
+          65276.370579915136,
+          65679.262129528
+        ],
+        "gcBytesPerSecond": [
+          4985212.1505779065,
+          5383486.239535032
+        ],
+        "mainMeanMs": [
+          12.118102687411598,
+          13.167255455543359
+        ],
+        "mainP95Ms": [
+          14.303479999999999,
+          15.39602
+        ],
+        "frameMeanMs": [
+          12.125403273667764,
+          13.174831297383546
+        ],
+        "frameP95Ms": [
+          14.334780350327492,
+          15.41310977190733
+        ]
+      }
+    },
+    "screen-on/client": {
+      "runs": [
+        {
+          "run": 1,
+          "metadata": {
+            "label": "screen-on",
+            "revision": "6129b59a3e4a7076963937d5b2b34eb7b0ecf5af",
+            "role": "client",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 1,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4469,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.010047999999955,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:10:34.403789+00:00",
+            "end": "2026-09-30T18:11:34.413837+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 73285.01566345939,
+          "gcBytesPerSecond": 5457598.284207342,
+          "mainMeanMs": 13.42023649586037,
+          "mainP95Ms": 15.882899999999996,
+          "frameMeanMs": 13.42785560344024,
+          "frameP95Ms": 15.914979577064514,
+          "csvSha256": "ed19ebef6fe2460056dcb8584e650b47a79b868c7375fcdc88219c057b37708b"
+        },
+        {
+          "run": 2,
+          "metadata": {
+            "label": "screen-on",
+            "revision": "6129b59a3e4a7076963937d5b2b34eb7b0ecf5af",
+            "role": "client",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 2,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4730,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.007611,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:14:25.396799+00:00",
+            "end": "2026-09-30T18:15:25.404410+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 74765.67674418604,
+          "gcBytesPerSecond": 5893279.954104489,
+          "mainMeanMs": 12.679136490486258,
+          "mainP95Ms": 15.029265000000004,
+          "frameMeanMs": 12.6865128112315,
+          "frameP95Ms": 15.077619766816497,
+          "csvSha256": "a7fa717701beb9c3b5ce4df71af260c74979f776da3d50cf76ef1884cc0bdaff"
+        },
+        {
+          "run": 3,
+          "metadata": {
+            "label": "screen-on",
+            "revision": "6129b59a3e4a7076963937d5b2b34eb7b0ecf5af",
+            "role": "client",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 3,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4703,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.01057269999998,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:17:54.164366+00:00",
+            "end": "2026-09-30T18:18:54.174939+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 73406.2183712524,
+          "gcBytesPerSecond": 5752810.371029839,
+          "mainMeanMs": 12.75295111630874,
+          "mainP95Ms": 15.287269999999996,
+          "frameMeanMs": 12.760332283745504,
+          "frameP95Ms": 15.35368012264371,
+          "csvSha256": "3009b373233f4fb3f5af5fe11498ea2988a966a7016b782f3f0a936d21eb3541"
+        }
+      ],
+      "medianOfRuns": {
+        "gcMeanBytesPerFrame": 73406.2183712524,
+        "gcBytesPerSecond": 5752810.371029839,
+        "mainMeanMs": 12.75295111630874,
+        "mainP95Ms": 15.287269999999996,
+        "frameMeanMs": 12.760332283745504,
+        "frameP95Ms": 15.35368012264371
+      },
+      "rangeOfRuns": {
+        "gcMeanBytesPerFrame": [
+          73285.01566345939,
+          74765.67674418604
+        ],
+        "gcBytesPerSecond": [
+          5457598.284207342,
+          5893279.954104489
+        ],
+        "mainMeanMs": [
+          12.679136490486258,
+          13.42023649586037
+        ],
+        "mainP95Ms": [
+          15.029265000000004,
+          15.882899999999996
+        ],
+        "frameMeanMs": [
+          12.6865128112315,
+          13.42785560344024
+        ],
+        "frameP95Ms": [
+          15.077619766816497,
+          15.914979577064514
+        ]
+      }
+    },
+    "log-only/host": {
+      "runs": [
+        {
+          "run": 1,
+          "metadata": {
+            "label": "log-only",
+            "revision": "f1ee5ab929d7b78a6611148b53a6876474d6eb4f",
+            "role": "host",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 1,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 3850,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.00029999999998,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:21:56.383686+00:00",
+            "end": "2026-09-30T18:22:56.383986+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 26138.104415584414,
+          "gcBytesPerSecond": 1677186.6474000968,
+          "mainMeanMs": 15.577144337662338,
+          "mainP95Ms": 21.872439999999997,
+          "frameMeanMs": 15.584229487538725,
+          "frameP95Ms": 21.925720199942578,
+          "csvSha256": "6f00defd0860785aaf0e19983a56167c4f746bd6af7d4817c6c73672750887ca"
+        },
+        {
+          "run": 2,
+          "metadata": {
+            "label": "log-only",
+            "revision": "f1ee5ab929d7b78a6611148b53a6876474d6eb4f",
+            "role": "host",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 2,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 5461,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.00752410000001,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:25:31.837595+00:00",
+            "end": "2026-09-30T18:26:31.845119+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 24670.71690166636,
+          "gcBytesPerSecond": 2245164.8692501206,
+          "mainMeanMs": 10.981152554477202,
+          "mainP95Ms": 12.8006,
+          "frameMeanMs": 10.988225654753993,
+          "frameP95Ms": 12.842000462114811,
+          "csvSha256": "a88bd6c14d2b804d4185ff79fd8f0ea3023fee8e23b1c191e4adf2566fa07740"
+        },
+        {
+          "run": 3,
+          "metadata": {
+            "label": "log-only",
+            "revision": "f1ee5ab929d7b78a6611148b53a6876474d6eb4f",
+            "role": "host",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 3,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 5507,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.01024600000004,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:29:03.295642+00:00",
+            "end": "2026-09-30T18:30:03.305888+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 25204.08934083893,
+          "gcBytesPerSecond": 2312920.363632569,
+          "mainMeanMs": 10.890303177773742,
+          "mainP95Ms": 12.62434,
+          "frameMeanMs": 10.89715417053409,
+          "frameP95Ms": 12.655390147119759,
+          "csvSha256": "7e77e6846bfd7c6c5549450cf392de0cbf897978c687fb36ba705af1a78fcf50"
+        }
+      ],
+      "medianOfRuns": {
+        "gcMeanBytesPerFrame": 25204.08934083893,
+        "gcBytesPerSecond": 2245164.8692501206,
+        "mainMeanMs": 10.981152554477202,
+        "mainP95Ms": 12.8006,
+        "frameMeanMs": 10.988225654753993,
+        "frameP95Ms": 12.842000462114811
+      },
+      "rangeOfRuns": {
+        "gcMeanBytesPerFrame": [
+          24670.71690166636,
+          26138.104415584414
+        ],
+        "gcBytesPerSecond": [
+          1677186.6474000968,
+          2312920.363632569
+        ],
+        "mainMeanMs": [
+          10.890303177773742,
+          15.577144337662338
+        ],
+        "mainP95Ms": [
+          12.62434,
+          21.872439999999997
+        ],
+        "frameMeanMs": [
+          10.89715417053409,
+          15.584229487538725
+        ],
+        "frameP95Ms": [
+          12.655390147119759,
+          21.925720199942578
+        ]
+      }
+    },
+    "log-only/client": {
+      "runs": [
+        {
+          "run": 1,
+          "metadata": {
+            "label": "log-only",
+            "revision": "f1ee5ab929d7b78a6611148b53a6876474d6eb4f",
+            "role": "client",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 1,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 5085,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.01155249999999,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:21:56.390536+00:00",
+            "end": "2026-09-30T18:22:56.402088+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 26637.96243854474,
+          "gcBytesPerSecond": 2257132.7245699903,
+          "mainMeanMs": 11.794363205506391,
+          "mainP95Ms": 13.90684,
+          "frameMeanMs": 11.801724384136813,
+          "frameP95Ms": 13.965620286762714,
+          "csvSha256": "7c34f9d44c89313048f3805b63c89a6e7511ad73543c9f0ecce0cd61c0e80b70"
+        },
+        {
+          "run": 2,
+          "metadata": {
+            "label": "log-only",
+            "revision": "f1ee5ab929d7b78a6611148b53a6876474d6eb4f",
+            "role": "client",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 2,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 4920,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.004233499999984,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:25:31.892773+00:00",
+            "end": "2026-09-30T18:26:31.897006+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 26986.52845528455,
+          "gcBytesPerSecond": 2212739.206142847,
+          "mainMeanMs": 12.188438983739838,
+          "mainP95Ms": 14.276735,
+          "frameMeanMs": 12.195907537901123,
+          "frameP95Ms": 14.305959874764085,
+          "csvSha256": "1c2696bba5bdc3147f3044ff2c4e3c7cce8752dfe2621e45e864a1c85bdd4cfd"
+        },
+        {
+          "run": 3,
+          "metadata": {
+            "label": "log-only",
+            "revision": "f1ee5ab929d7b78a6611148b53a6876474d6eb4f",
+            "role": "client",
+            "unity": "2022.3.55f1c1",
+            "scene": "RaceMap",
+            "operatingSystem": "Windows 11  (10.0.26200) 64bit",
+            "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+            "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "build": "Editor",
+            "run": 3,
+            "width": 1920,
+            "height": 1080,
+            "quality": 2,
+            "targetFps": 60,
+            "vSync": 0,
+            "frames": 5020,
+            "warmupSeconds": 30.0,
+            "requestedSeconds": 60.0,
+            "measuredSeconds": 60.01295429999999,
+            "status": "complete"
+          },
+          "approximateWindowUtc": {
+            "start": "2026-09-30T18:29:03.350956+00:00",
+            "end": "2026-09-30T18:30:03.363910+00:00",
+            "method": "metadata file mtime immediately after counters stop, minus actual measured duration; not an in-probe UTC timestamp"
+          },
+          "gcMeanBytesPerFrame": 27075.073107569722,
+          "gcBytesPerSecond": 2264792.1367203887,
+          "mainMeanMs": 11.947486035856574,
+          "mainP95Ms": 14.113535,
+          "frameMeanMs": 11.954876510203775,
+          "frameP95Ms": 14.136459864676,
+          "csvSha256": "7b4a7e328ab0f376b6d15b01494239bba5ff15cb97c646d2ff4ac04fa17ebf05"
+        }
+      ],
+      "medianOfRuns": {
+        "gcMeanBytesPerFrame": 26986.52845528455,
+        "gcBytesPerSecond": 2257132.7245699903,
+        "mainMeanMs": 11.947486035856574,
+        "mainP95Ms": 14.113535,
+        "frameMeanMs": 11.954876510203775,
+        "frameP95Ms": 14.136459864676
+      },
+      "rangeOfRuns": {
+        "gcMeanBytesPerFrame": [
+          26637.96243854474,
+          27075.073107569722
+        ],
+        "gcBytesPerSecond": [
+          2212739.206142847,
+          2264792.1367203887
+        ],
+        "mainMeanMs": [
+          11.794363205506391,
+          12.188438983739838
+        ],
+        "mainP95Ms": [
+          13.90684,
+          14.276735
+        ],
+        "frameMeanMs": [
+          11.801724384136813,
+          12.195907537901123
+        ],
+        "frameP95Ms": [
+          13.965620286762714,
+          14.305959874764085
+        ]
+      }
+    }
+  },
+  "probeSha256": "c332ca43f2e2a74b99c6cfed57cdd5dd0cabd43db2f9a013d0f06d9dce342f11",
+  "driverSha256": "fd61bef71a95e200e504c4c083213d0353cdbcb731e1be95346a0ad20e14dd1c",
+  "probeNormalizedLfSha256": "398f147e97d49bee3ce2fe3b86065dc35ed0d743120eeaa8050cfb7b9b4c4b77",
+  "driverNormalizedLfSha256": "305a44eee6d817c5a5f1284b68c28ba877322bde0b2cd30cfdb18f4e82e10e15",
+  "identicalSourceBlobsAcrossABC": {
+    "Assets/Scenes/RaceMap.unity": "c38c84092e81dbf90245a0710a293ac77d92d041",
+    "Assets/Scenes/MainMenu.unity": "f844ccea2021fd74abc3866dd82dfa1e546f6536",
+    "ProjectSettings/QualitySettings.asset": "4c95fce143ef1cfbc3d17ea5481b48a9e3aead8b"
+  },
+  "externalLoadAudit": {
+    "observedMediaEncodeDecodeEndUtc": "2026-09-30T18:04:59Z",
+    "observedMediaVerificationWrittenUtc": "2026-09-30T18:05:02Z",
+    "preP2Run3ApproximateWindowUtc": "2026-09-30T18:06:23.962Z to 18:07:24.012Z",
+    "finding": "Available encode/decode artifact timestamps do not overlap the measured window. Earlier baseline runs finished before this media work. General background load was not controlled.",
+    "artifactTimestamps": [
+      {
+        "name": "encode-host.log",
+        "lastWriteUtc": "2026-09-30T18:04:51.683306+00:00",
+        "sha256": "5da634ab002293eded32f9d98c2ffaa25d53cbe693385676b2a48023e37da299"
+      },
+      {
+        "name": "encode-client.log",
+        "lastWriteUtc": "2026-09-30T18:04:58.813357+00:00",
+        "sha256": "49ce441fea2e5eb241f9c4a39a48f41e0accf62e52994e2454a2814d6e27d17e"
+      },
+      {
+        "name": "decode-host.log",
+        "lastWriteUtc": "2026-09-30T18:04:51.982559+00:00",
+        "sha256": "e3587fa0f3f918ca3ed335ca379e62d2f5f5ee384bb7f1547230595e5831d59a"
+      },
+      {
+        "name": "decode-client.log",
+        "lastWriteUtc": "2026-09-30T18:04:59.128292+00:00",
+        "sha256": "4b7ebdf300c6ad2620047f610f9600cb07dd43e8a0f1f2005ac571a44af2955e"
+      },
+      {
+        "name": "verification.json",
+        "lastWriteUtc": "2026-09-30T18:05:02.060714+00:00",
+        "sha256": "fd8c2ed74ee97ee28a6b77bfcaf75134270d2c12fbd0fce24e2595845acd5b55"
+      }
+    ]
+  }
+}

@@ -26,7 +26,7 @@ namespace NewBuddah.PredictionV2.Integration
             if (commandBus != null)
             {
                 int cleared = commandBus.TryClearChannels(BuddahPredictionChannelMask.All);
-                Debug.Log(
+                GameLog.Verbose(
                     $"{BuddahPredictionCommandBus.LogPrefix}:ClearAll triggeredBy=ModeSwitch channelsCleared={cleared} mode={mode}",
                     commandBus);
             }

@@ -1,0 +1,217 @@
+#if UNITY_EDITOR
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using FishNet;
+using NewBuddah.PredictionV2.Core;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+
+public static partial class ReviewRuntimeDriver
+{
+    private static readonly BindingFlags Fields=BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic;
+    private static object Read(object value,string name)=>value.GetType().GetField(name,Fields).GetValue(value);
+    private static void Set(object value,string name,object data)=>value.GetType().GetField(name,Fields).SetValue(value,data);
+    private static float[] Vec(Vector3 value)=>new[]{value.x,value.y,value.z};
+    private static BuddahPredictedMotor[] Motors()=>UnityEngine.Object.FindObjectsByType<BuddahPredictedMotor>(FindObjectsSortMode.None);
+    private static InputSettings originalInputs,testInputs;
+    private static Keyboard testKeyboard;
+    private static GameObject floor;
+    private static int matrixIndex=-1,observedIndex=-1;
+    private static double matrixBegan,nextSample,nextCapture;
+    private static int captureFrame;
+    private static bool castSent,retrySent,respawnSent,meleeAligned,visualMaterialsPrepared;
+    private static readonly string[] Cases={"collision","push","ordinary","charged","burst","respawn"};
+    private static readonly Dictionary<int,Vector3> TrackPositions=new Dictionary<int,Vector3>();
+    private static readonly Dictionary<int,Quaternion> TrackRotations=new Dictionary<int,Quaternion>();
+    private static void PostTick()=>PhysicsSample("postTick",0,0);
+    private static void PostReplay(uint clientTick,uint serverTick)=>PhysicsSample("postReplay",clientTick,serverTick);
+    private static void PhysicsSample(string kind,uint clientReplayTick,uint serverReplayTick)
+    {
+        if(writer==null||!BuddahReviewTrace.Detailed)return;
+        foreach(var motor in Motors())
+        {
+            var rb=motor.GetComponent<Rigidbody>();
+            Record(new{kind,owner=motor.OwnerId,localOwner=motor.IsOwner,
+                localTick=motor.TimeManager.LocalTick,serverTick=motor.TimeManager.Tick,clientReplayTick,serverReplayTick,
+                position=Vec(rb.position),velocity=Vec(rb.velocity),time=Time.realtimeSinceStartupAsDouble});
+        }
+    }
+    private static void DriveMatrix(double now)
+    {
+        // Leave the natural start untouched; sample its first seconds before fixture setup.
+        if(now-unlocked<4)return;
+        if(Arg("-reviewMode")=="visual"&&Arg("-reviewPrepareVisual")=="true") {
+            if(!visualMaterialsPrepared) {PrepareVisualMaterials();visualMaterialsPrepared=true;File.WriteAllText(Path.Combine(output,role+"-visual-ready.flag"),DateTime.UtcNow.ToString("O"));}
+            if(!File.Exists(Path.Combine(output,"host-visual-ready.flag"))||!File.Exists(Path.Combine(output,"client-visual-ready.flag")))return;
+        }
+        if(testKeyboard==null)
+        {
+            if(Arg("-reviewMode")=="visual")matrixIndex=11;
+            originalInputs=InputSystem.settings;testInputs=UnityEngine.Object.Instantiate(originalInputs);
+            testInputs.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;
+            testInputs.editorInputBehaviorInPlayMode=InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings=testInputs;testKeyboard=InputSystem.AddDevice<Keyboard>();
+            floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.name="Review runtime fixture (unsaved)";
+            floor.transform.position=new Vector3(0,500,0);floor.transform.localScale=new Vector3(4000,1,4000);
+            foreach(var motor in Motors())
+            {
+                TrackPositions[motor.OwnerId]=motor.transform.position;TrackRotations[motor.OwnerId]=motor.transform.rotation;
+                motor.gameObject.AddComponent<ReviewRuntimeCollisionProbe>();
+            }
+            Record(new{kind="fixture",floor=Vec(floor.transform.position),size=Vec(floor.transform.localScale),latency});
+        }
+        string controlPath=Path.Combine(output,"matrix-control.json");
+        int total=Arg("-reviewMode")=="push"?2:latency==100?14:12;
+        if(host && matrixIndex<total && (matrixIndex<0 || now-matrixBegan>=14))
+        {
+            matrixIndex++;matrixBegan=now;
+            if(matrixIndex>=total){File.WriteAllText(controlPath,"{\"index\":"+total+"}");return;}
+            int owner=matrixIndex>=12?matrixIndex-12:matrixIndex/6;string mode=matrixIndex>=12?"charged":Cases[matrixIndex%6];
+            if(Arg("-reviewMode")=="push"){owner=matrixIndex;mode="push";}
+            floor.SetActive(mode!="respawn");
+            foreach(var executor in UnityEngine.Object.FindObjectsByType<SkillExecutor>(FindObjectsSortMode.None))
+            {
+                executor.ResetActiveSkillEffectsServer();
+                var obs=executor.GetComponent<ObsessionFigure>();
+                Set(obs,"backfirePMaxPercent",executor.OwnerId==owner&&mode=="burst"?100f:0f);
+                Set(obs,"backfireKeepPMaxAtOrAboveX",0f);Set(executor,"_castLockedUntil",0f);
+                Array.Clear((float[])Read(executor,"_nextReadyTime"),0,SkillLoadout.SlotCount);
+                executor.GetComponent<SkillLoadout>().SetSlotsServer(new[]{"push_projectile_hands","giant","acceleration"});
+                var hands=executor.GetComponent<BuddahHandControl>();
+                foreach(string field in new[]{"_projectilePushModeUntilServer","_projectilePushModeUntilLocal","_nextPushServerTimeLeft","_nextPushServerTimeRight","_nextPushLocalTimeLeft","_nextPushLocalTimeRight"})Set(hands,field,0f);
+                if(mode=="ordinary" && executor.OwnerId==owner)
+                    hands.ActivateProjectilePushMode(12,0,120,3,100,new Vector3(10,10,12),0,0,null,null,.25f,false,true);
+                Vector3 offset=executor.OwnerId==owner?Vector3.zero:matrixIndex>=12?new Vector3(200,0,20):
+                    mode=="push"?new Vector3(-4.1f,0,10):mode=="ordinary"?new Vector3(-4.1f,0,40):
+                    mode=="collision"?new Vector3(0,0,30):new Vector3(0,0,20);
+                var motor=executor.GetComponent<BuddahPredictedMotor>();
+                motor.TryApplyServerAuthoritativeTeleport(mode=="respawn"?TrackPositions[executor.OwnerId]:new Vector3(0,505,0)+offset,
+                    mode=="respawn"?TrackRotations[executor.OwnerId]:mode=="collision"&&executor.OwnerId!=owner?Quaternion.Euler(0,180,0):Quaternion.identity,0,BuddahPredictedTeleportSourceType.Manual,
+                    "review-r6-fixture",false,true,true,true,true,true,true);
+            }
+            var control=new{index=matrixIndex,owner,mode,utc=DateTime.UtcNow.ToString("O")};
+            File.WriteAllText(controlPath,JsonConvert.SerializeObject(control));Record(new{kind="caseStart",data=control});
+        }
+        if(!File.Exists(controlPath))return;
+        JObject item;
+        try{item=JObject.Parse(File.ReadAllText(controlPath));}catch(IOException){return;}catch(JsonException){return;}
+        int index=(int)item["index"];if(index>=total){InputSystem.QueueStateEvent(testKeyboard,new KeyboardState());return;}
+        string test=(string)item["mode"];int caster=(int)item["owner"];
+        if(index!=observedIndex)
+        {
+            observedIndex=index;castSent=retrySent=respawnSent=meleeAligned=false;floor.SetActive(test!="respawn");
+            captureFrame=0;
+            if(index>=12) {
+                var materials=Resources.FindObjectsOfTypeAll<Material>();
+                Record(new{kind="shaderEvidence",index,materials=materials.Where(m=>UnityEditor.AssetDatabase.GetAssetPath(m).Contains("Piloto") || (m.shader!=null&&!m.shader.isSupported)).Select(m=>new{
+                    material=m.name,path=UnityEditor.AssetDatabase.GetAssetPath(m),shader=m.shader==null?"null":m.shader.name,supported=m.shader!=null&&m.shader.isSupported,
+                    shaderPath=m.shader==null?"":UnityEditor.AssetDatabase.GetAssetPath(m.shader),messages=m.shader==null?null:UnityEditor.ShaderUtil.GetShaderMessages(m.shader).Select(x=>new{x.message,x.platform,x.severity}).ToArray()}).ToArray()});
+            }
+            if(test=="push") foreach(var motor in Motors()) Set(motor.GetComponent<NewBuddah.PredictionV2.Config.BuddahPredictedMotorConfig>(),"forwardForce",0f);
+            if(index>=12)foreach(var motor in Motors())
+            {
+                var config=motor.GetComponent<NewBuddah.PredictionV2.Config.BuddahPredictedMotorConfig>();
+                Set(config,"forwardForce",500f);Set(config,"maxSpeed",80f);
+            }
+            if(index>=12)
+            {
+                foreach(var follower in UnityEngine.Object.FindObjectsByType<CinemachineLocalPlayerFollower>(FindObjectsSortMode.None))follower.enabled=false;
+                var followed=Motors().First(x=>x.OwnerId==caster);
+                var localCamera=UnityEngine.Object.FindObjectsByType<PlayerCamera>(FindObjectsSortMode.None).First(x=>x.IsOwner);
+                localCamera.SetFollowTargetOverride(followed.GetComponent<NewBuddah.PredictionV2.Visual.BuddahPredictionVisualRootBridge>().GetVisualRoot(),followed.GetComponent<Rigidbody>());
+                localCamera.SetPresentationMode(PlayerCamera.CameraPresentationMode.Spectator);
+                Record(new{kind="captureCamera",index,caster,localOwner=followed.IsOwner,camera=localCamera.name,cameraObject=localCamera.GetInstanceID(),target=followed.name,targetObject=followed.ObjectId,source="existing PlayerCamera follow override; observer renders remote visual root"});
+            }
+            foreach(var hands in UnityEngine.Object.FindObjectsByType<BuddahHandControl>(FindObjectsSortMode.None))
+                if(hands.IsOwner)foreach(string field in new[]{"_projectilePushModeUntilLocal","_nextPushLocalTimeLeft","_nextPushLocalTimeRight"})Set(hands,field,0f);
+            Record(new{kind="caseObserved",data=item});
+        }
+        double elapsed=(DateTime.UtcNow-DateTime.Parse((string)item["utc"],null,System.Globalization.DateTimeStyles.RoundtripKind)).TotalSeconds;
+        var owned=UnityEngine.Object.FindObjectsByType<SkillExecutor>(FindObjectsSortMode.None).FirstOrDefault(x=>x.IsOwner&&x.OwnerId==caster);
+        if(host&&test=="push"&&elapsed>=4.8&&!meleeAligned)
+        {
+            meleeAligned=true;var shooter=Motors().First(x=>x.OwnerId==caster);var victim=Motors().First(x=>x.OwnerId!=caster);
+            Vector3 point=shooter.transform.position-shooter.transform.right*4+shooter.transform.forward*9;
+            victim.TryApplyServerAuthoritativeTeleport(point,shooter.transform.rotation,0,BuddahPredictedTeleportSourceType.Manual,
+                "review-melee-contact-fixture",false,true,true,true,true,true,true);
+            Record(new{kind="fixtureMeleeAlignment",index,point=Vec(point)});
+        }
+        if(owned!=null && elapsed>=2 && !castSent)
+        {
+            castSent=true;
+            if(test=="charged"||test=="burst")owned.RequestCast(0);
+            if(test=="respawn")
+            {
+                respawnSent=owned.GetComponent<BuddahRespawn>().RespawnToTrackProgress(.25f,false,true,"review-r6");
+                Record(new{kind="respawnRequest",index,routed=respawnSent,owner=caster});
+            }
+            Record(new{kind="caseAction",index,test,owner=caster,elapsed});
+        }
+        if(owned!=null && (test=="charged"||test=="burst") && elapsed>=2.25 && !retrySent)
+        {retrySent=true;owned.RequestCast(0);Record(new{kind="skillCooldownRetry",index,elapsed});}
+        // Distinct press/release edges: accepted at 5s, rejected at .4s, accepted after 1s for charged mode.
+        bool press=owned!=null && (test=="charged"||test=="push"||test=="ordinary") &&
+            ((elapsed>=5&&elapsed<5.15)||(elapsed>=5.4&&elapsed<5.55)||(elapsed>=6.15&&elapsed<6.3));
+        InputSystem.QueueStateEvent(testKeyboard,press?new KeyboardState(Key.W):new KeyboardState());
+        if(index>=12 && elapsed>=4.5 && elapsed<8 && now>=nextCapture)
+        {
+            nextCapture=now+1.0/15;
+            string captures=Path.Combine(output,"video-"+index+"-"+role);Directory.CreateDirectory(captures);
+            string file=Path.Combine(captures,"frame-"+(captureFrame++).ToString("D4")+".png");
+            ScreenCapture.CaptureScreenshot(file);
+            var casterMotor=Motors().FirstOrDefault(x=>x.OwnerId==caster);
+            if(casterMotor!=null)
+            {
+                var hands=casterMotor.GetComponent<BuddahHandControl>();
+                var anchor=(Vector3)typeof(BuddahHandControl).GetMethod("GetHandWorldPositionSnapshot",Fields).Invoke(hands,new object[]{true});
+                anchor+=Vector3.up*30;
+                Record(new{kind="videoFrame",shaderCompiling=UnityEditor.ShaderUtil.anythingCompiling,index,frame=captureFrame-1,elapsed,file,owner=caster,localOwner=casterMotor.IsOwner,
+                    simulatedLatency=InstanceFinder.NetworkManager.TransportManager.LatencySimulator.GetLatency(),latencyEnabled=InstanceFinder.NetworkManager.TransportManager.LatencySimulator.GetEnabled(),rtt=InstanceFinder.TimeManager.RoundTripTime,
+                    modelHandAnchor=Vec(anchor),position=Vec(casterMotor.transform.position),velocity=Vec(casterMotor.GetComponent<Rigidbody>().velocity),
+                    projectiles=UnityEngine.Object.FindObjectsByType<ChargedHandProjectileRuntime>(FindObjectsSortMode.None).Select(p=>new{
+                        id=p.GetInstanceID(),position=Vec(p.transform.position),start=Vec((Vector3)Read(p,"_startPosition")),
+                        armed=(bool)Read(p,"_armed"),server=(bool)Read(p,"_applyHits"),
+                        longitudinalOffset=Vector3.Dot(p.transform.position-anchor,casterMotor.transform.forward)}).ToArray()});
+            }
+        }
+        if(now>=nextSample)
+        {
+            nextSample=now+.05;
+            var projectiles=new List<object>();
+            foreach(var projectile in UnityEngine.Object.FindObjectsByType<ChargedHandProjectileRuntime>(FindObjectsSortMode.None))
+                projectiles.Add(new{type="charged",id=projectile.GetInstanceID(),position=Vec(projectile.transform.position),
+                    start=Vec((Vector3)Read(projectile,"_startPosition")),armed=(bool)Read(projectile,"_armed"),server=(bool)Read(projectile,"_applyHits"),
+                    hits=((HashSet<FishNet.Object.NetworkObject>)Read(projectile,"_hitVictims")).Where(x=>x!=null).Select(x=>x.OwnerId).ToArray()});
+            foreach(var projectile in UnityEngine.Object.FindObjectsByType<HandPushProjectileRuntime>(FindObjectsSortMode.None))
+                projectiles.Add(new{type="ordinary",id=projectile.GetInstanceID(),position=Vec(projectile.transform.position),server=(bool)Read(projectile,"_applyHits"),
+                    hits=((HashSet<FishNet.Object.NetworkObject>)Read(projectile,"_hitVictims")).Where(x=>x!=null).Select(x=>x.OwnerId).ToArray()});
+            Record(new{kind="matrixSample",index,test,elapsed,projectiles});
+        }
+    }
+    private static void StopMatrix()
+    {
+        if(testKeyboard!=null)InputSystem.RemoveDevice(testKeyboard);
+        if(originalInputs!=null)InputSystem.settings=originalInputs;
+        if(testInputs!=null)UnityEngine.Object.DestroyImmediate(testInputs);
+    }
+    public static void RecordCollision(BuddahPredictedMotor motor,Collision collision)
+    {
+        var other=collision.collider.GetComponentInParent<BuddahPredictedMotor>();
+        if(other==null)return;
+        Record(new{kind="actorCollision",index=observedIndex,owner=motor.OwnerId,other=other.OwnerId,
+            localTick=motor.TimeManager.LocalTick,serverTick=motor.TimeManager.Tick,
+            impulse=Vec(collision.impulse),relativeVelocity=Vec(collision.relativeVelocity)});
+    }
+}
+public class ReviewRuntimeCollisionProbe:MonoBehaviour
+{
+    private void OnCollisionEnter(Collision collision)
+    {ReviewRuntimeDriver.RecordCollision(GetComponent<BuddahPredictedMotor>(),collision);}
+}
+#endif

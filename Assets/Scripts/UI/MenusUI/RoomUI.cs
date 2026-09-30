@@ -38,6 +38,12 @@ namespace SteamMultiplayer.UI
         private SteamLobbyManager _steamLobbyManager;
         private RoomStateManager _roomStateManager;
         private readonly List<RoomPlayerEntryUI> _spawnedEntries = new List<RoomPlayerEntryUI>();
+        private readonly List<RoomPlayerState> _displayedPlayers = new List<RoomPlayerState>();
+        private bool _hasPlayerListSnapshot;
+        private int _playerListSignature;
+        private Transform _displayedContentRoot;
+        private RoomPlayerEntryUI _displayedEntryPrefab;
+        private TextMeshProUGUI _displayedEmptyPlayersText;
         private bool _subscribedSteam;
         private bool _subscribedRoomPlayers;
 
@@ -70,6 +76,7 @@ namespace SteamMultiplayer.UI
 
         private void OnDisable()
         {
+            _hasPlayerListSnapshot = false;
             UnsubscribeSteam();
             UnsubscribeRoomPlayers();
         }
@@ -252,13 +259,17 @@ namespace SteamMultiplayer.UI
 
         private void RefreshPlayerList()
         {
+            Transform contentRoot = ResolvePlayerListContentRoot();
+            if (!PlayerListChanged(contentRoot))
+                return;
+
+            RememberPlayerList(contentRoot);
             ClearPlayerEntries();
 
             bool hasPlayers = _roomStateManager != null && _roomStateManager.Players.Count > 0;
             if (emptyPlayersText != null)
                 emptyPlayersText.gameObject.SetActive(!hasPlayers);
 
-            Transform contentRoot = ResolvePlayerListContentRoot();
             if (!hasPlayers || contentRoot == null || playerEntryPrefab == null)
                 return;
 
@@ -270,6 +281,52 @@ namespace SteamMultiplayer.UI
             }
         }
 
+        private int ComputePlayerListSignature()
+        {
+            int count = _roomStateManager != null ? _roomStateManager.Players.Count : 0;
+            unchecked
+            {
+                int signature = count;
+                for (int i = 0; i < count; i++)
+                    signature = signature * 31 + _roomStateManager.Players[i].GetHashCode();
+                return signature;
+            }
+        }
+
+        private bool PlayerListChanged(Transform contentRoot)
+        {
+            int count = _roomStateManager != null ? _roomStateManager.Players.Count : 0;
+            if (!_hasPlayerListSnapshot || _playerListSignature != ComputePlayerListSignature()
+                || _displayedContentRoot != contentRoot || _displayedEntryPrefab != playerEntryPrefab
+                || _displayedEmptyPlayersText != emptyPlayersText || _displayedPlayers.Count != count)
+                return true;
+
+            // Confirm equality even on a hash collision; names, host flags and order matter.
+            for (int i = 0; i < count; i++)
+                if (!_displayedPlayers[i].Equals(_roomStateManager.Players[i]))
+                    return true;
+
+            int expectedEntries = contentRoot != null && playerEntryPrefab != null ? count : 0;
+            if (_spawnedEntries.Count != expectedEntries)
+                return true;
+            for (int i = 0; i < _spawnedEntries.Count; i++)
+                if (_spawnedEntries[i] == null || _spawnedEntries[i].transform.parent != contentRoot)
+                    return true;
+            return false;
+        }
+
+        private void RememberPlayerList(Transform contentRoot)
+        {
+            _displayedPlayers.Clear();
+            if (_roomStateManager != null)
+                for (int i = 0; i < _roomStateManager.Players.Count; i++)
+                    _displayedPlayers.Add(_roomStateManager.Players[i]);
+            _playerListSignature = ComputePlayerListSignature();
+            _displayedContentRoot = contentRoot;
+            _displayedEntryPrefab = playerEntryPrefab;
+            _displayedEmptyPlayersText = emptyPlayersText;
+            _hasPlayerListSnapshot = true;
+        }
         private Transform ResolvePlayerListContentRoot()
         {
             if (playerListContentRoot == null)

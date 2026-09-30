@@ -28,15 +28,15 @@ public class Skill_ReverseTurn_Anti : SkillAction
             return;
 
         caster.ApplyInvertTurnInputToOwner(invertDurationSeconds);
-        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : invertDurationSeconds;
+        float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, invertDurationSeconds);
 
-        Debug.Log($"[Skill_ReverseTurnTrap_Anti][Server] Invert self turn input for {invertDurationSeconds}s, vfx={actualVfxDuration}s");
+        GameLog.Verbose($"[Skill_ReverseTurnTrap_Anti][Server] Invert self turn input for {invertDurationSeconds}s, vfx={actualVfxDuration}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
-        Debug.Log($"[Skill_ReverseTurnTrap_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
-        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : invertDurationSeconds;
-        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, actualVfxDuration, $"{skillId}_observers");
+        GameLog.Verbose($"[Skill_ReverseTurnTrap_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
+        float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, invertDurationSeconds);
+        PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, actualVfxDuration);
     }
 }

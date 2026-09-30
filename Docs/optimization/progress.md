@@ -14,8 +14,8 @@
 | P1-1 | 删除零引用脚本 | doing | 32160bf | R1/R2 待 P1 集中验证 | 13 个目标 GUID/C# 引用均为 0、无启动钩子；保留 CombatAdapter。修正 refscan 的 Windows 路径过滤。 |
 | P1-2 | 删除 MiniMap 半成品三件套 | doing | 9319ae1 | R1/R4 待 P1 集中验证 | Presenter 无引用；Locator/Mapper 仅被 Presenter 引用，三件套外部引用为 0；MiniMapController 保持原样。 |
 | P1-3 | 删除旧大厅链路 | doing | 4aff429 | R1/R4 待 P1 集中验证 | 两脚本 YAML 引用为 0；MainMenu legacy prefab 为 null；仅旧链路内部与可移除 spawn 分支依赖。 |
-| P1-4 | 删除 RaceFinishManager 调试结束路径 | blocked | | 不删除：预检发现活跃 UnityEvent | RaceMap.unity:6858 直接绑定 TriggerDebugFinishRaceFromLocalUi；按方案必须保留该方法及其调用链。 |
-| P1-5 | 删除无调用者 API | todo | | | |
+| P1-4 | 删除 RaceFinishManager 调试结束路径 | blocked | 9205b7b | 不删除：预检发现活跃 UnityEvent | RaceMap.unity:6858 直接绑定 TriggerDebugFinishRaceFromLocalUi；按方案必须保留该方法及其调用链。 |
+| P1-5 | 删除无调用者 API | blocked | | 已删 29 个无调用声明；R1/R4/R5 待阶段验证 | SetInputSource 有实际控制路径调用，保留该项；其余 API 逐项引用/绑定复核后删除。 |
 | P1-6 | 删除 DirectHeadingControl 分支 | todo | | | |
 | P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | todo | | | |
 | P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | todo | | | |
@@ -63,6 +63,8 @@
 | 2026-09-29 | ParrelSync client RaceMap | N2：SceneCondition 缺失导致场景注册/交接受阻；已在 be7c0fd / PR #48 处理，本机两端 195 秒回归通过，待合并。 | P0-3 / R7 |
 | 2026-09-29 | 正式包启动 / 基线资源 | N3/N4：无 Steam 的初始化连带异常，以及字体、空动画、LightingData 告警；详见 p0-validation.md。 | P0 |
 
+| 2026-09-29 | RaceMap EndMatch UnityEvent | P1-4 删除前提不成立：直接绑定 RaceFinishManager.TriggerDebugFinishRaceFromLocalUi（Assembly-CSharp）；保持现有按钮行为。 | P1-4 |
+
 ## 阶段 PR
 
 - P0：[PR #47](https://github.com/OldMustClimbStudio/BuddahGo/pull/47)，已实现并记录未验证范围，草稿。
@@ -70,4 +72,3 @@
 - 2026-09-29 用户更新：后续使用 stacked PR，最后统一处理，不逐阶段合并 dev。当前依赖为 #48（base dev）→ #47（base fix/local-multiplayer-flow）→ P1（base refactor/architecture-optimization）。P0 已通过 d6439a6 纳入联机修复基线。
 - 按用户要求，阶段内先记录问题并完成修改，再集中执行相关构建/本机回归；每步仍保留独立实现提交及预检证据。
 
-| 2026-09-29 | RaceMap EndMatch UnityEvent | P1-4 删除前提不成立：直接绑定 RaceFinishManager.TriggerDebugFinishRaceFromLocalUi（Assembly-CSharp）；保持现有按钮行为。 | P1-4 |

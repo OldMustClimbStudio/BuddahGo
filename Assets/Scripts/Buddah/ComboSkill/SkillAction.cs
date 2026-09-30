@@ -22,7 +22,6 @@ public abstract class SkillAction : ScriptableObject
     [Header("Anti (Backfire) Variant")]
     [Tooltip("If set, casting this skill may instead cast the Anti variant based on ObsessionFigure.")]
     public string antiSkillId = string.Empty;
-    public bool HasAnti => !string.IsNullOrWhiteSpace(antiSkillId);
 
     /// <summary>
     /// Server-authoritative skill execution (spawn hitbox, apply forces, etc).

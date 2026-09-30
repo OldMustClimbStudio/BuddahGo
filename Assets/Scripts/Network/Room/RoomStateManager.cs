@@ -81,16 +81,10 @@ namespace SteamMultiplayer.Network
         public bool IsRaceStarted => _raceStarted.Value;
         public bool IsGameplayMovementUnlocked => _gameplayMovementUnlocked.Value;
         public bool IsAuthoritativeGoIssued => _authoritativeGoIssued.Value;
-        public bool IsWaitingForAuthoritativeGameplayLive => IsMatchPhaseActive && _authoritativeGoIssued.Value && !_gameplayMovementUnlocked.Value;
         public MatchSessionPhase CurrentMatchSessionPhase => _matchSessionPhase.Value;
         public bool IsRaceSceneLoadedLocally => !string.IsNullOrWhiteSpace(_raceSceneName) && UnitySceneManager.GetSceneByName(_raceSceneName).isLoaded;
         public bool IsMatchPhaseActive => _matchSessionPhase.Value == MatchSessionPhase.InMatch;
         public bool IsResultPhaseActive => _matchSessionPhase.Value == MatchSessionPhase.InResult;
-        public bool CanPlayersUseGameplayInput => IsResultPhaseActive || (IsMatchPhaseActive && _gameplayMovementUnlocked.Value);
-        public bool ShouldBlockRaceGameplayInput => IsRaceSceneLoadedLocally && IsMatchPhaseActive && !_gameplayMovementUnlocked.Value;
-        public bool AreAllClientsIntroAssignmentsReadyServer => IsServerInitialized && _introAssignmentReadyClientIds.Count >= Players.Count;
-        public bool AreAllClientsIntroVisualsReadyServer => IsServerInitialized && _introVisualReadyClientIds.Count >= Players.Count;
-        public bool AreAllClientsGameplayLiveServer => IsServerInitialized && _gameplayLiveClientIds.Count >= Players.Count;
 
         public bool ShouldEnableOwnerMovementInputNow()
         {
@@ -308,21 +302,6 @@ namespace SteamMultiplayer.Network
 
             _reportedGameplayLiveSequenceId = sequenceId;
             ReportGameplayLiveServerRpc(sequenceId);
-        }
-
-        public bool AreAllClientsIntroAssignmentsReadyForSequenceServer(int sequenceId)
-        {
-            if (!IsServerInitialized || sequenceId < 0)
-                return false;
-
-            for (int i = 0; i < Players.Count; i++)
-            {
-                int playerId = Players[i].PlayerId;
-                if (!_introAssignmentReadySequenceByClientId.TryGetValue(playerId, out int readySequenceId) || readySequenceId != sequenceId)
-                    return false;
-            }
-
-            return true;
         }
 
         public bool AreAllClientsIntroVisualsReadyForSequenceServer(int sequenceId)

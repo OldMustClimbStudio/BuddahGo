@@ -43,3 +43,40 @@ refscan 对 ConnectionManager 的一个文本命中来自 Plugins/FishyFacepunch
 ## P1-4（blocked，保留）
 
 虽然 DebugRaceFinishButton 已删除，RaceMap.unity:6858 仍通过 UnityEvent 直接绑定 `RaceFinishManager, Assembly-CSharp` 的 `TriggerDebugFinishRaceFromLocalUi`，m_CallState=2。该函数继续调用 CanUseLocalDebugFinishButton / RequestDebugChampionFinishServerRpc，因此整个路径仍存活。按照本步骤“Inspector 或 UnityEvent 绑定的方法必须保留”的约束，未修改 RaceFinishManager 或其场景绑定。继续执行无依赖的后续清理。
+
+## P1-5（29 个声明已删除；SetInputSource 保留）
+
+先运行 refscan 确认 8 个 owner 类均存活，所有 owner、GUID、字段和结构布局保留。随后全 Assets C# 名称搜索并区分接收类型；UnityEvent 的 m_MethodName（含 getter 形式）在 scene/prefab/asset/playable 中未找到目标绑定；没有发现外部字符串反射调用。逐项证据：
+
+| Owner | 成员 | 调用证据 |
+|---|---|---|
+| RoomStateManager | AreAllClientsIntroAssignmentsReadyServer | 仅声明，0 调用 |
+| RoomStateManager | AreAllClientsIntroVisualsReadyServer | 仅声明，0 调用 |
+| RoomStateManager | AreAllClientsGameplayLiveServer | 仅声明，0 调用 |
+| RoomStateManager | AreAllClientsIntroAssignmentsReadyForSequenceServer | 仅声明，0 调用 |
+| RoomStateManager | IsWaitingForAuthoritativeGameplayLive | 仅声明，0 调用 |
+| RoomStateManager | CanPlayersUseGameplayInput | 仅声明，0 调用 |
+| RoomStateManager | ShouldBlockRaceGameplayInput | 仅声明，0 调用 |
+| LeaderboardManager | TryAdvanceCheckpoint | 本类 0 调用；PlayerProgressReporter 同名调用的接收者是 LapProgress，保留后者 |
+| SkillAction | HasAnti | 仅声明，0 调用 |
+| SkillLoadout | RequestSetSlot | 仅声明，0 外部调用 |
+| SkillLoadout | SetSlotServerRpc | 唯一调用为同组删除的 RequestSetSlot |
+| SkillDatabase | TryGetBalance | 0 调用此 wrapper；SkillConfigRepository 的同名方法及内部调用保留 |
+| SkillDatabase | GetResolvedDescription | 仅声明，0 调用 |
+| SkillDatabase | GetResolvedIconKey | 仅声明，0 调用 |
+| SkillDatabase | TryGetEffectFloat | 仅声明，0 调用 |
+| SkillConfigRepository | GetSkillIdsByTag | 仅声明，0 调用 |
+| SkillConfigRepository | GetSkillIdsByBehaviorType | 方案 ByBehaviorType 对应的实际名称；仅声明，0 调用 |
+| SkillConfigRepository | GetBehaviorType | 仅声明，0 调用 |
+| SkillConfigRepository | GetAllParams | 仅声明，0 调用 |
+| SkillConfigRepository | GetFloat | 仅声明，0 调用本 repository 方法；TryGetFloat 保留 |
+| SkillVfxReplicator | PlayVfxAll(string,float) | 0 调用；SlowTrap 两个调用使用 5 参数重载，保留 |
+| SkillVfxReplicator | PlayVfxLocal（2/4/5 参数） | 三个重载均只有声明，无外部调用 |
+| SkillVfxReplicator | ForcePrewarmNow | 仅声明及自身日志标签；没有 ContextMenu/UnityEvent 入口 |
+| BuddahMovement | IsUsingAutoInput | 仅声明，0 调用 |
+| BuddahMovement | RestorePlayerInputSource | 仅声明，0 调用 |
+| BuddahMovement | DisableAllInput | 仅声明，0 调用 |
+| BuddahMovement | ApplyPushImpulseTargetRpc | 仅声明；PushHitbox 中另一命中是历史注释 |
+| BuddahMovement | SetInputSource（保留） | RefreshInputSourceForCurrentControlState 在运行时调用，删除前提不成立 |
+
+使用 Unity 自带 Roslyn 按 owner、名称和参数个数移除精确声明（含文档/属性）；每个修改后文件重新语法解析均无诊断错误。SkillVfxReplicator 未列入删除清单的 ObserversRpc 保留，不额外改变其 RPC 编号。仅移除计划明确列出的 SkillLoadout.SetSlotServerRpc 与 BuddahMovement.ApplyPushImpulseTargetRpc；所有测试/运行端必须同构建。I6 不适用。语法解析不等于语义编译，R1/R4/R5 待阶段集中验证。

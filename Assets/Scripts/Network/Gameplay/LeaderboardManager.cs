@@ -104,26 +104,6 @@ public class LeaderboardManager : NetworkBehaviour
         }
     }
 
-    public bool TryAdvanceCheckpoint(int clientId, int checkpointId)
-    {
-        if (!IsServerInitialized || _rankingsFrozen)
-            return false;
-
-        if (!_progressByClientId.TryGetValue(clientId, out PlayerProgress progress))
-        {
-            RegisterPlayer(clientId, $"Player {clientId}");
-            progress = _progressByClientId[clientId];
-        }
-
-        if (checkpointId != progress.CheckpointIndex + 1)
-            return false;
-
-        progress.CheckpointIndex = checkpointId;
-        _progressByClientId[clientId] = progress;
-        _rankingsDirty = true;
-        return true;
-    }
-
     public void ReportSplineProgress(
         int clientId,
         float distanceOnTrack,

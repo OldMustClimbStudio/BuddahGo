@@ -32,11 +32,6 @@ public class SkillVfxReplicator : NetworkBehaviour
         TryStartPrewarm("Start");
     }
 
-    public void ForcePrewarmNow()
-    {
-        TryStartPrewarm("ForcePrewarmNow");
-    }
-
     private void TryStartPrewarm(string source)
     {
         if (!prewarmOnStart || prewarmStarted)
@@ -48,45 +43,12 @@ public class SkillVfxReplicator : NetworkBehaviour
     }
 
     /// <summary>
-    /// Server-side call: play a VFX on ALL clients for durationSeconds.
-    /// </summary>
-    public void PlayVfxAll(string vfxId, float durationSeconds)
-    {
-        if (!IsServerInitialized) return;
-        PlayVfxAllObserversRpc(vfxId, durationSeconds);
-    }
-
-    /// <summary>
     /// Server-side call: play a VFX on ALL clients with custom local transform/timing.
     /// </summary>
     public void PlayVfxAll(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler, float stopPlayingBeforeEndSeconds)
     {
         if (!IsServerInitialized) return;
         PlayVfxAllObserversRpcCustom(vfxId, durationSeconds, localOffset, localEuler, stopPlayingBeforeEndSeconds);
-    }
-
-    /// <summary>
-    /// Client/local call: play a VFX locally for durationSeconds.
-    /// </summary>
-    public void PlayVfxLocal(string vfxId, float durationSeconds)
-    {
-        PlayVfxInternal(vfxId, durationSeconds, DefaultLocalOffset, DefaultLocalEuler, DefaultStopPlayingBeforeEndSeconds);
-    }
-
-    /// <summary>
-    /// Client/local call: play a VFX locally with skill-defined local transform.
-    /// </summary>
-    public void PlayVfxLocal(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler)
-    {
-        PlayVfxInternal(vfxId, durationSeconds, localOffset, localEuler, DefaultStopPlayingBeforeEndSeconds);
-    }
-
-    /// <summary>
-    /// Client/local call: play a VFX locally with skill-defined local transform and particle stop timing.
-    /// </summary>
-    public void PlayVfxLocal(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler, float stopPlayingBeforeEndSeconds)
-    {
-        PlayVfxInternal(vfxId, durationSeconds, localOffset, localEuler, stopPlayingBeforeEndSeconds);
     }
 
     [ObserversRpc]

@@ -70,7 +70,6 @@ public class BuddahMovement : NetworkBehaviour
     private string _lastInputGateReason = string.Empty;
 
     public bool IsSkillRooted => _skillRootCount > 0;
-    public bool IsUsingAutoInput => _currentInputSource != null && _currentInputSource.AllowMovementWhenGameplayBlocked;
     public bool IsLaunchHandoffActive => TryGetPredictionHandoffBridge(out BuddahPredictionHandoffBridge bridge) && bridge.IsPredictionHandoffActive()
         ? bridge.IsLaunchHandoffActive()
         : _launchState != LaunchState.Normal || _externalKinematicControlActive || _introControlActive || _authoritativeHandoffPending || _predictionLaunchHandoffActive;
@@ -210,17 +209,6 @@ public class BuddahMovement : NetworkBehaviour
         _rotationMode = _currentInputSource != null && _currentInputSource.UseDirectHeadingControl
             ? RotationMode.DirectHeadingControl
             : RotationMode.TorqueSteering;
-    }
-
-    public void RestorePlayerInputSource()
-    {
-        bool shouldEnableOwnerInput = ShouldEnableOwnerInputNow(out _);
-        RefreshInputSourceForCurrentControlState(shouldEnableOwnerInput);
-    }
-
-    public void DisableAllInput()
-    {
-        SetInputSource(_disabledInputSource);
     }
 
     public void SetIntroControlActive(bool active)
@@ -421,12 +409,6 @@ public class BuddahMovement : NetworkBehaviour
         }
 
         _skillRootCount = Mathf.Max(0, _skillRootCount - 1);
-    }
-
-    [TargetRpc]
-    public void ApplyPushImpulseTargetRpc(NetworkConnection conn, Vector3 impulse)
-    {
-        ApplyPushAndTorqueLocal(impulse, 0f);
     }
 
     [TargetRpc]

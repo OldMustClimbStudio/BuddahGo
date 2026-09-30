@@ -39,17 +39,6 @@ public class SkillLoadout : NetworkBehaviour
         return SlotSkillIds[slotIndex] ?? string.Empty;
     }
 
-    /// <summary>
-    /// Client calls this to request changing loadout from menu/UI.
-    /// </summary>
-    public void RequestSetSlot(int slotIndex, string skillId)
-    {
-        if (!IsOwner)
-            return;
-
-        SetSlotServerRpc(slotIndex, skillId);
-    }
-
     [Server]
     public void SetSlotsServer(IReadOnlyList<string> skillIds)
     {
@@ -129,12 +118,6 @@ public class SkillLoadout : NetworkBehaviour
         }
 
         LogFinalLoadout("ApplyDefaultSkillsServer");
-    }
-
-    [ServerRpc(RequireOwnership = true)]
-    private void SetSlotServerRpc(int slotIndex, string skillId)
-    {
-        SetSlotServer(slotIndex, skillId);
     }
 
     [Server]

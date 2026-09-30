@@ -760,4 +760,31 @@ public class SkillExecutor : NetworkBehaviour
 
         playerCamera = GetComponentInParent<PlayerCamera>();
     }
+
+    public void PlayChargedBurstVisualsServer(string skillId, Vector3[] starts, Vector3 direction,
+        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize)
+    {
+        if (!IsServerInitialized)
+            return;
+        PlayChargedBurstVisualsObserversRpc(skillId, starts, direction, speed, buildUpSeconds,
+            lifetimeSeconds, localEuler, visualSize);
+    }
+
+    // Appended after the existing RPC declarations to preserve their relative order.
+    [ObserversRpc]
+    private void PlayChargedBurstVisualsObserversRpc(string skillId, Vector3[] starts, Vector3 direction,
+        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize)
+    {
+        if (database == null || !database.TryGet(skillId, out SkillAction action)
+            || !(action is Skill_PushProjectileHands_Anti skill) || starts == null)
+            return;
+
+        BuddahHandControl handControl = GetComponent<BuddahHandControl>();
+        if (handControl == null)
+            return;
+        handControl.SpawnChargedBurstVisualsAtPositions(starts, direction, speed, buildUpSeconds,
+            lifetimeSeconds, localEuler, visualSize, skill.ChargedProjectileVfxPrefab,
+            skill.ChargedProjectileProgressProperty);
+    }
+
 }

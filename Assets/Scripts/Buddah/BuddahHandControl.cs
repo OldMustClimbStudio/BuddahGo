@@ -917,6 +917,20 @@ public class BuddahHandControl : NetworkBehaviour
             scaledVisualSize);
     }
 
+    // The server plans the burst once; peers receive these world-space origins.
+    public void FireChargedProjectileBurstReplicated(Skill_PushProjectileHands_Anti skill)
+    {
+        if (!IsServerInitialized || skill == null)
+            return;
+
+        SpawnChargedProjectileBurst(
+            skill.projectileCount, skill.projectileSpacing, skill.buildUpSeconds,
+            skill.projectileSpeed, skill.projectileLifetimeSeconds, skill.projectileImpulseStrength,
+            skill.projectileColliderSize, true, true, true, skill.hitTurnTorqueImpulse,
+            skill.additionalForwardSpawnOffset, skill.additionalHeightSpawnOffset,
+            true, false, null, null, skill.skillId);
+    }
+
     public void FireChargedProjectileBurstServerOnly(
         int projectileCount,
         float projectileSpacing,
@@ -1005,7 +1019,8 @@ public class BuddahHandControl : NetworkBehaviour
         bool spawnServerHitboxes,
         bool spawnVisuals,
         GameObject visualPrefabOverride,
-        string progressPropertyOverride)
+        string progressPropertyOverride,
+        string replicatedSkillId = null)
     {
         int safeProjectileCount = Mathf.Max(1, projectileCount);
         float safeSpacing = Mathf.Max(0f, projectileSpacing);
@@ -1017,11 +1032,15 @@ public class BuddahHandControl : NetworkBehaviour
         Vector3 scaledColliderSize = SanitizeColliderSize(projectileColliderSize * scaleMultiplier);
         Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
         string resolvedProgressProperty = string.IsNullOrWhiteSpace(progressPropertyOverride) ? DefaultChargedProjectileProgressProperty : progressPropertyOverride;
+        Vector3[] replicatedStarts = string.IsNullOrEmpty(replicatedSkillId) ? null : new Vector3[safeProjectileCount];
 
         for (int i = 0; i < safeProjectileCount; i++)
         {
             float offsetIndex = i - ((safeProjectileCount - 1) * 0.5f);
             Vector3 spawnPos = burstAnchor + (sideDir * (offsetIndex * safeSpacing * scaleMultiplier));
+
+            if (replicatedStarts != null)
+                replicatedStarts[i] = spawnPos;
 
             if (spawnServerHitboxes)
             {
@@ -1055,6 +1074,25 @@ public class BuddahHandControl : NetworkBehaviour
                     transform);
             }
         }
+
+        if (replicatedStarts != null)
+        {
+            SkillExecutor executor = GetComponent<SkillExecutor>();
+            if (executor != null)
+                executor.PlayChargedBurstVisualsServer(replicatedSkillId, replicatedStarts, travelDir,
+                    projectileSpeed, buildUpSeconds, projectileLifetimeSeconds,
+                    projectileVisualLocalEuler, scaledVisualSize);
+        }
+    }
+
+    public void SpawnChargedBurstVisualsAtPositions(Vector3[] starts, Vector3 direction, float speed,
+        float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
+        GameObject visualPrefab, string progressProperty)
+    {
+        for (int i = 0; i < starts.Length; i++)
+            ChargedHandProjectileRuntime.SpawnVisual(starts[i], direction, speed, buildUpSeconds,
+                lifetimeSeconds, visualPrefab != null ? visualPrefab : projectilePrefab,
+                localEuler, visualSize, progressProperty, transform);
     }
 
     private Vector3 GetCurrentAimDirectionServer()

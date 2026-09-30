@@ -1,0 +1,87 @@
+#if UNITY_EDITOR
+using System;
+using System.IO;
+using System.Linq;
+using FishNet;
+using FishNet.Managing;
+using FishNet.Managing.Transporting;
+using FishNet.Transporting.Tugboat;
+using SteamMultiplayer.Network;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+[InitializeOnLoad]
+public static class ReviewR8Driver
+{
+    static bool initialized,host,connected,ready,started,unlocked;
+    static double began,nextUpdate;
+    static string stage="",metadata;
+    static string Arg(string key,string fallback="")
+    {var a=Environment.GetCommandLineArgs();int i=Array.IndexOf(a,key);return i>=0&&i+1<a.Length?a[i+1]:fallback;}
+    static ReviewR8Driver(){if(Arg("-r8Role")!="")EditorApplication.update+=Update;}
+    public static void Launch()
+    {
+        string shaderPath="Assets/Plugins/Piloto Studio/Shaders_Reforged/UberFXSG.shadergraph";
+        var shader=AssetDatabase.LoadAssetAtPath<Shader>(shaderPath);
+        if(shader!=null&&shader.name.Contains("ErrorShader")) {
+            AssetDatabase.ImportAsset(shaderPath,ImportAssetOptions.ForceUpdate|ImportAssetOptions.ForceSynchronousImport);
+            shader=AssetDatabase.LoadAssetAtPath<Shader>(shaderPath);
+            Debug.Log("[R8 environment] shader cache="+(shader==null?"null":shader.name));
+            if(shader==null||shader.name.Contains("ErrorShader"))throw new Exception("R8 shader environment invalid");
+        }
+        if(Arg("-r8Clone")=="true") {
+            var type=System.AppDomain.CurrentDomain.GetAssemblies().Select(a=>a.GetType("ParrelSync.ClonesManager")).First(t=>t!=null);
+            if(type.GetMethod("CreateCloneFromCurrent").Invoke(null,null)==null)throw new Exception("Clone failed");
+        }
+        EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity",OpenSceneMode.Single);
+        var nm=UnityEngine.Object.FindObjectOfType<NetworkManager>();
+        var tug=nm.GetComponent<Tugboat>()??nm.gameObject.AddComponent<Tugboat>();
+        tug.SetPort(17883);tug.SetClientAddress("127.0.0.1");tug.SetServerBindAddress("127.0.0.1",FishNet.Transporting.IPAddressType.IPv4);
+        nm.GetComponent<TransportManager>().Transport=tug;
+        Application.runInBackground=true;
+        var view=EditorWindow.GetWindow(typeof(Editor).Assembly.GetType("UnityEditor.GameView"));view.Show();
+        EditorApplication.isPlaying=true;
+    }
+    static void Update()
+    {
+        if(!EditorApplication.isPlaying)return;
+        double now=Time.realtimeSinceStartupAsDouble;
+        if(!initialized)
+        {
+            initialized=true;began=now;host=Arg("-r8Role")=="host";
+            metadata=Path.Combine(Arg("-r8Output"),Arg("-r8Label")+"-"+Arg("-r8Role")+"-"+Arg("-r8Run")+".json");
+        }
+        if(now<nextUpdate)return;nextUpdate=now+(unlocked ? .5 : .05);
+        if(File.Exists(metadata)&&File.Exists(metadata.Replace(host?"-host-":"-client-",host?"-client-":"-host-"))){Debug.Log("[R8 driver] capture finished: "+metadata);EditorApplication.Exit(0);return;}
+        if(now-began>360){Debug.LogError("[R8 driver] startup/capture timeout");EditorApplication.Exit(2);return;}
+        if(unlocked)return; // No scene searches, trace collection or input work during capture.
+        var nm=InstanceFinder.NetworkManager;var game=GameNetworkManager.Instance;var room=RoomStateManager.Instance;
+        if(!connected&&nm!=null&&game!=null)
+        {
+            nm.TransportManager.LatencySimulator.SetEnabled(false);connected=true;
+            if(host)game.StartHost();else game.StartClient("127.0.0.1");
+            Debug.Log("[R8 driver] connection initiated role="+Arg("-r8Role"));
+        }
+        if(room!=null&&nm!=null&&nm.ClientManager.Started&&room.Players.Count==2)
+        {
+            if(host&&!started&&room.CanHostStartGame&&room.CurrentMatchSessionPhase.ToString()=="InRoom")
+            {started=true;room.RequestStartGame();}
+            else if(!host&&!ready&&room.CurrentMatchSessionPhase.ToString()=="InRoom")
+            {ready=true;room.RequestToggleReady();}
+        }
+        var selection=PropertiesSelectionManager.Instance;
+        if(selection!=null&&selection.IsClientInitialized&&selection.IsStageCountdownActive&&selection.CurrentStagePropertyKey!=stage)
+        {
+            stage=selection.CurrentStagePropertyKey;var choices=selection.GetOptionsForProperty(stage);
+            if(stage==PropertiesSelectionManager.SkillLoadoutStageKey)selection.SubmitSkillLoadoutSelection(new[]{"push_projectile_hands","giant","acceleration"});
+            else if(choices.Count>0)selection.SubmitPlayerSelection(stage,choices[0].OptionId);
+        }
+        if(room!=null&&room.IsMatchPhaseActive&&room.IsGameplayMovementUnlocked)
+        {
+            unlocked=true;UnityEngine.Object.FindObjectOfType<R8SceneCapture>().BeginAfterGameplayUnlock();
+            Debug.Log("[R8 driver] GO, prediction warm-up begins; tick="+nm.TimeManager.LocalTick);
+        }
+    }
+}
+#endif

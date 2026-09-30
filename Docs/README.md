@@ -3,6 +3,7 @@
 | 需要了解 | 文档 |
 |---|---|
 | 系统职责与比赛流程 | [architecture.md](architecture.md) |
+| 房间名单、握手、配装与身份 helper | [session-helpers.md](session-helpers.md) |
 | FishNet 权限、同步与场景要点 | [networking.md](networking.md) |
 | 预测与回放的核心设计 | [prediction-design.md](prediction-design.md) |
 | Unity MCP 启动与连接 | [unity-mcp.md](unity-mcp.md) |

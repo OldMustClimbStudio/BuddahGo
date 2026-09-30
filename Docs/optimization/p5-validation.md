@@ -13,3 +13,13 @@ I6 预检推翻“三个分支完全相同”的假设：writer relinquishment �
 ## P5-3 秒转 tick
 
 三个计算表达式逐字相同，抽出 BuddahTickMath.DurationToTicks；保留外围三种 guard/返回语义，TimeManager.TickDelta 原位读取，CeilToInt、0.0001f 下限、uint cast 与 deadline 加法不变。两个拖尾重置循环存在 Unity `!= null` 与 CLR `?.` 差异，motor 还更新 debug 旗标，按 I6 不合并。R7 随阶段验证。
+
+## P5-4 推击参数与纯计算
+
+内部 18 参数连发方法改为非序列化的 ProjectileBurstParameters 值快照；三个 public 入口及所有 RPC/同步/序列化字段保持原样，各赋值顺序复刻原实参求值顺序。普通与蓄力连发的排布数学逐字相同，共用 ProjectileBurstPlanner.GetSpawnPosition；两者 spawn 动作不同（蓄力 clamp impulse/size、普通路径原样），不合并整段循环或改变碰撞参数。Collider size 的纯计算原式移到 planner。
+
+PushAttackTiming 接收已按原短路条件算出的 active 状态，保留 action delay 的 `!(time >= until)` 与 cooldown 的 `time < until` 差别、正 charged cooldown 优先与非负普通值回退。两个 private cooldown wrapper 全 Assets C#/YAML/字符串搜索仅有各自定义及本类调用，移除后由纯 helper 承担；BuddahHandControl 类型本身有 YAML/C# 引用，完整保留。
+
+R1 主 Editor 编译通过；tick rounding、minimum delta、普通/蓄力冷却、delay、奇偶/单发居中和 collider 下限共 22 检查通过。最初测试误将 float 0.001/0.0001 的 Ceil 当作 10；实际原表达式比值为 10.000001、结果 11，确认原行为后用精确单 tick 边界修正夹具，未改生产公式。R6 待实际双端矩阵。
+
+P5-5 可选影子表驱动本轮不采用；影子计算/消息保持现有实现，仅随 P5-1 搬入 Shadow partial，避免无必要地扩大验证面。

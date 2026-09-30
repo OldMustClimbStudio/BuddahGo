@@ -43,10 +43,10 @@
 | P4-3 | PropertiesSelectionManager 下沉 | done-unverified | d6876cb | R1；全员提交、60s 超时自动补全、真实 client 断线通过 | cache 重建时机保持；完整 Steam/三圈矩阵未执行 |
 | P4-4 | PlayerProgressReporter 分区 | done-unverified | 0d56d02 | 两轮实际结算 UnityEvent、重开和回房间通过 | 去掉 region 后 token 相同；完整 R4 未执行 |
 | P5-1 | motor 拆成 partial 文件 | doing | a7934e7 | R1 通过，R3/R7/R9 待集中 | 12 片段逐字移动 |
-| P5-2 | RunInputs 收尾抽取 | doing | | | |
-| P5-3 | 工具函数去重 | doing | | | |
-| P5-4 | BuddahHandControl 下沉 | todo | | | |
-| P5-5 | 影子对比表驱动（可选） | todo | | | |
+| P5-2 | RunInputs 收尾抽取 | doing | 8f48220 | R7/R9 待集中 | 仅两分支等价，writer 分支保留 |
+| P5-3 | 工具函数去重 | doing | 8525126 | 边界检查通过，R7 待集中 | 拖尾 null 语义不同不合并 |
+| P5-4 | BuddahHandControl 下沉 | doing | | | |
+| P5-5 | 影子对比表驱动（可选） | done | 不采用 | 原影子逻辑/格式不变 | 可选项无必要行为收益，本轮只拆文件 |
 | P6-1–4 | 程序集拆分与测试（需 D6） | todo | | | |
 | P7 | 资源瘦身（需 D7） | todo | | | |
 

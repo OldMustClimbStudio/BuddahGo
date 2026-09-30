@@ -9,6 +9,8 @@
 
 ## 0. Harness helper output (Step 3 of Mandatory Execution Order)
 
+Historical snapshot from the original recon workspace (`8314b5d`), retained verbatim below. It is not the output of the current PR branch: the Phase 7 contract listed here is absent from this branch. The current tracked active contracts are [Phase 6](../../Docs/phase-gates/active/phase6-race-start-handoff-redesign-contract.md) and [the preserved V2b Step 1 record](../../Docs/phase-gates/active/v2b-step1-contract.md).
+
 ```
 > powershell -ExecutionPolicy Bypass -Command "& 'Tools/Harness/Get-BuddahGoHarnessContext.ps1' -Intent refactor -Systems prediction,room-session,config-rules"
 Project: BuddahGo
@@ -37,7 +39,7 @@ Active Phase Gate:
 - contract: Docs/phase-gates/active/v2b-step1-contract.md  (stale; previously flagged in phase7 RECON Section "Other observations")
 ```
 
-Note: Phase 6 contract `Docs/phase-gates/active/phase6-race-start-handoff-redesign-contract.md` is the operative document for this recon, but the harness helper currently surfaces Phase 7 + v2b-step1 as the "Active Phase Gate" entries because the helper detects active-state by ledger-row date pattern, not file name. This is **NOT a recon blocker** — Phase 6 contract is the explicit authorization document for this RECON; helper surfacing is a separate housekeeping observation parallel to phase7-recon's "stale active contract" note.
+Current location correction: the canonical Phase 6 contract is now in `Docs/phase-gates/active/`, with a MOVED notice on the preserved handoff artifact. The helper discovers `*-contract.md` files in that directory; the ledger date pattern selects the last signed row, not which contracts are discovered. The Phase 7 + V2b listing above describes the earlier workspace only.
 
 All 6 protected files in scope are touched in this RECON's READ-ONLY surface inventory; no edits.
 
@@ -729,7 +731,7 @@ So Phase 6 unlock = flip `_gameplayMovementUnlocked = true` at server-determined
 
 4. **Contract line drift (Section 1.8 KEY FINDING)** — contract Section 1.1 cites motor.cs:1937 for the handoff `rb.position = SnapshotPosition` write; HEAD has it at 1948. Likely caused by phase7 commits between contract draft and current dev tip. Contract update (cite drift to ~1948) optional but improves locator precision for Stage 4.
 
-5. **Phase 6 contract not yet in `Docs/phase-gates/active/`** — contract lives at `agent-exchange/handoff/2026-05-04-phase6-race-start-handoff-redesign-contract.md`; the Phase Gate System (per Methodology + CLAUDE.md "Before starting work on any phase, read in order: ... `Docs/phase-gates/active/<current-phase>-contract.md`") expects active contracts under `Docs/phase-gates/active/`. The harness helper currently surfaces phase7 + v2b-step1 as active, NOT phase6. Recommend reviewer move/copy the contract to `Docs/phase-gates/active/phase6-race-start-handoff-redesign-contract.md` after Stage 2 RECON sign-off so the helper surfaces it correctly for Stage 3 onwards.
+5. **Contract location — resolved by copy-and-redirect (OQ5 option II).** The original recon found the contract only under `agent-exchange/handoff/` and proposed moving/copying it into the active directory. This PR now contains the [canonical active contract](../../Docs/phase-gates/active/phase6-race-start-handoff-redesign-contract.md); the [original handoff artifact](2026-05-04-phase6-race-start-handoff-redesign-contract.md) carries a MOVED notice and remains a read-only Stage 1 record. Future ledger edits belong to the active copy. No move/copy task remains.
 
 ---
 

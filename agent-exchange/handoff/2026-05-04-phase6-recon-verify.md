@@ -195,7 +195,9 @@ NOT a blocker for RECON sign-off. Stage 3 disposition.
 
 Reviewer will patch the agent-exchange/handoff/ contract Section 1.1 cite in this verify pass for hygiene. Not gating sign-off.
 
-### OQ5 — Phase 6 contract not in `Docs/phase-gates/active/`
+### OQ5 — Contract location (resolved; original review retained below)
+
+**Current disposition:** option (II), copy-and-redirect, is implemented in this PR. The [canonical contract](../../Docs/phase-gates/active/phase6-race-start-handoff-redesign-contract.md) is under `active/`; the [Stage 1 artifact](2026-05-04-phase6-race-start-handoff-redesign-contract.md) has a MOVED notice and remains read-only. Future gate updates belong to the canonical copy. The following finding, recommendation, and options are historical review commentary, not an outstanding action or approval request.
 
 **RECON finding:** Phase 6 contract lives at `agent-exchange/handoff/2026-05-04-phase6-race-start-handoff-redesign-contract.md`; the Phase Gate System (per Methodology + CLAUDE.md "read in order: ... `Docs/phase-gates/active/<current-phase>-contract.md`") expects active contracts under `Docs/phase-gates/active/`. Harness helper currently surfaces phase7 + v2b-step1 (per RECON Surface 0).
 

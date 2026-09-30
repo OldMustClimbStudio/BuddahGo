@@ -3,7 +3,7 @@
 **Phase ID:** phase6-race-start-handoff-redesign
 **Branch:** `feat/phase6-race-start-handoff-redesign` (cut from dev tip post Phase 7.5-A.1 ship)
 **Risk:** MEDIUM-HIGH (cross-system: motor + spline driver + server orchestrator + Timeline + UI; supersedes existing Inherit/Blend handoff state machine)
-**Status:** KICKOFF DRAFT (authored 2026-05-04, awaiting transfer to implementer Claude window)
+**Status:** RECON + DESIGN SIGNED OFF (2026-05-04); implementation authorized, subsequent gate sign-offs pending in Section 9. This status reflects the ledger, not a claim that implementation or SMOKE has passed.
 **Predecessors:**
 - Phase 4b (V1→V5) DONE — prediction stack mature, wire-format frozen
 - Phase 7 RECON+SMOKE 找到 root cause: H1''' Handoff state capture variance (per Phase 7 stage5 SMOKE digest)
@@ -70,7 +70,7 @@ Phase 1: Spline 减速段 (在 Phase 0 内, 末段)
 
 Phase 2: 全员到位 — Server 检测 + 触发 race-start 编排
   - Server 监测: 所有 buddah _splineCompleted = true (或类似 sync 信号)
-  - Server broadcast "race_start_countdown_begin" event (TargetRpc to all clients)
+  - Server communicates countdown timing to clients (Stage 3 Q3 chose replicated SyncVars; see Section 9 Design row and the design doc. A TargetRpc alternative would require one call per connection, not a broadcast.)
     - 含 startTick (server-authoritative tick)
     - countdown duration = 3s (= Y ticks at 60Hz, 默认 180 ticks; configurable Section 4.7)
   - 所有 client 收到 event 后同 tick 转 Phase 3
@@ -536,9 +536,9 @@ You are receiving this contract to implement Phase 6 race-start handoff redesign
 - Handoff data structures: `Assets/Scripts/New_Buddah/Core/BuddahPredictedLaunchHandoffData.cs` + `BuddahPredictedLaunchHandoffState.cs` + `BuddahPredictedLaunchState.cs` + `BuddahPredictedLaunchHandoffResolver.cs`
 - Bridge: `Assets/Scripts/New_Buddah/Integration/BuddahPredictionHandoffBridge.cs`
 - Spline-side driver: `Assets/Scripts/Buddah/BuddahMovement.cs` (method `SyncPredictionHandoffStateFromBridge` and surrounding logic)
-- Existing Phase 7 RECON Surface 7 audit (codebase architecture): `agent-exchange/handoff/2026-05-03-phase7-recon.md` Section 7
-- Phase 7 SMOKE digest with H1''' identification: latest digest in `agent-exchange/handoff/`
-- Phase 7.5-A.1 design framework: `agent-exchange/handoff/2026-05-03-phase7-5-design-framework.md`
+- Available architecture audit: [Phase 6 RECON](../../../agent-exchange/handoff/2026-05-04-phase6-recon.md) and [independent verification](../../../agent-exchange/handoff/2026-05-04-phase6-recon-verify.md).
+- Current design dispositions: [Phase 6 design](../../../agent-exchange/handoff/2026-05-04-phase6-design.md), including Q3's SyncVar choice.
+- Historical source limitation: the original Phase 7 RECON Surface 7, H1''' SMOKE digest, and Phase 7.5-A.1 design framework cited by this draft are not present on this branch. Their mentions above preserve the rationale at drafting time; they are not local evidence or instructions to open missing files. The Phase 6 reports do not replace those missing runtime logs.
 
 **Discipline reminders** (per project methodology):
 - Rule 7: PredictionRigidbody integrity — all rb.AddForce / AddTorque go through `_predictionRigidbody`, NOT direct rb. Locked state's `rb.isKinematic = true` setting is allowed (this is config not force).

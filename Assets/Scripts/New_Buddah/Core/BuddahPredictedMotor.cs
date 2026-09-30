@@ -530,11 +530,13 @@ namespace NewBuddah.PredictionV2.Core
                 return;
 
             _modifierState = data.ModifierState;
-            // Reconcile carries server-clock deadlines; LocalTick is not synchronized on clients.
-            if (!IsServerInitialized && TimeManager != null)
-                _modifierState = BuddahModifierTickClock.ToLocal(_modifierState, TimeManager.Tick, TimeManager.LocalTick);
-            _computedStats = data.ComputedStats;
             _handoffState = data.HandoffState;
+            uint stateTick = data.GetTick();
+            // Only translate working copies: wire/history snapshots remain in the server clock.
+            if (TimeManager != null)
+                stateTick = BuddahTickMath.ReconcileToLocal(ref _modifierState, ref _handoffState, stateTick,
+                    IsServerInitialized, IsOwner, TimeManager.Tick, TimeManager.LocalTick);
+            _computedStats = data.ComputedStats;
             _introControlActive = data.IntroControlActive;
             _externalKinematicControlActive = data.ExternalKinematicControlActive;
 
@@ -567,8 +569,8 @@ namespace NewBuddah.PredictionV2.Core
                 bootstrap.DebugState.reconcileSummary =
                     $"tick={data.GetTick()} speed={data.PlanarSpeed:0.00} posDelta={bootstrap.DebugState.lastReconcilePositionDelta:0.000} velDelta={bootstrap.DebugState.lastReconcileVelocityDelta:0.000} " +
                     $"planarVelDelta={bootstrap.DebugState.lastReconcileVelocityPlanarDelta:0.000} verticalVelDelta={bootstrap.DebugState.lastReconcileVelocityVerticalDelta:0.000}";
-            SyncModifierDebugState(data.GetTick());
-            UpdateHandoffDebug(data.GetTick());
+            SyncModifierDebugState(stateTick);
+            UpdateHandoffDebug(stateTick);
 
             if (bootstrap.DebugSettings.dumpReconcile)
                 bootstrap.LogVerbose($"reconcile tick={data.GetTick()} allowed={data.MovementAllowed} speed={data.PlanarSpeed:0.00}");

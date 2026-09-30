@@ -41,3 +41,7 @@ Handshake 集合私有化，提供按 Stage 操作的语义 API，更新 RSM/Roo
 ## PR #56
 
 补充 NaN 有序比较意图，七个 importer meta 保持 GUID。22 个 helper cases 已由 #58 的 Assets/Tests/EditMode/BuddahTickMathTests.cs 和 ProjectileBurstPlannerTests.cs 覆盖，不重复迁移。R6 全矩阵仍未完成。
+
+## PR #57
+
+N10 纯 client reconcile 工作副本统一平移六个 handoff tick，区分零事件/阶段边界与 deadline 零哨兵；owner GetTick 已为 ClientStateTick 不再平移，server/host 不平移。modifier helper 统一进 BuddahTickMath。过去 replay tick 冲量消费时序属未证实风险，本轮不擅改语义，历史日志缺失不伪造。新增阶段/边界测试随 #58 测试程序集交付。

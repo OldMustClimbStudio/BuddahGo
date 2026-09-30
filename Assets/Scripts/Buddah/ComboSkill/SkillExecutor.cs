@@ -256,7 +256,6 @@ public class SkillExecutor : NetworkBehaviour
 
             GameLog.Verbose($"[SkillExecutor][Server] Backfire roll: skill='{skillId}', anti='{resolvedAntiSkillId}', obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
         }
-
     }
 
     private void QueueCast(int slotIndex, string skillId, SkillAction skill, float now,

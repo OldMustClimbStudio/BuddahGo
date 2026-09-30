@@ -21,3 +21,7 @@
 ## PR #51
 
 SlowTrap 旧矩阵的 root/force 恢复结论限定 server/host；纯 client 时钟证据归后续 #54。历史 48 例原始日志未纳入仓库，不能从摘要重建为原始证据。本轮最终 EditMode 属于 helper/阶段验证，不能替代旧矩阵重跑。
+
+## PR #52
+
+删除无调用的两项 burst wrapper；空 replicatedSkillId 提前警告。保留 server world-origin 视觉设计及速度×延迟取舍，未做人工高速视觉验收；历史图像/日志缺失不补造。

@@ -17,3 +17,7 @@ RemovePlayer 仍先找到并移除名单项，然后仅从全部 7 集合移除�
 RoomDiagnostics 仅移动摘要与探测的方法体，原日志门控、IncludeInactive 查询、IsSceneObject/IsSpawned 的区别、Unity null 和 getter 求值位置不变。I6：两处 7 集合 clear 完全相同，6 集合 clear 和按 id remove 为不同具名函数。
 
 R1：主 Editor 编译成功，0 新 C# error/warning；R4/R9 待 P4 阶段集中验证。
+
+## P4-2 三件套参数化
+
+I6：3 个本地 report 仅 marker/RPC 名不同；共享 client/负序号/重复序号检查与 marker 更新。3 个 RPC 共享 caller/auth 检查、set.Add→dictionary 赋值，保留各自之后的日志、assignment readiness 评估、gameplay 解锁逻辑。没有新增负序号 RPC 检查。实际只有 2 个 AreAll sequence 查询，共享 server/负序号检查与遍历，空名单仍返回 true。public/RPC 名称、签名、声明顺序不变。R4/R9 待集中验证。

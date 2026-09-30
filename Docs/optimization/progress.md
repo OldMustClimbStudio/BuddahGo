@@ -38,8 +38,8 @@
 | P3-2 | Anti 公共实现共享（保留继承） | done | dc86d79 | R1/资产快照/实际赛道画面通过；R5 加 N7 时长复测通过 | 用户以功能保留为准；原继承和资源原样，见 p3-validation.md。 |
 | P3-3 | SkillExecutor 下沉 | done-unverified | ecb5406 | R1/R7/本机重开回房间通过；R5 加 N7 时长复测通过，R6 普通推击不完整 | 5 个查找显式区分 parent-first 与 children-first。 |
 | P3-4 | 配置交叉校验（编辑器） | done | 694daed | R1 编译通过，菜单报告 0 error / 6 既有漂移 warning，12 技能资源逐值不变 | Push 18/15 vs 12/10 与四个未使用 VFX 字段，见 p3-validation.md；D5 不改数据。 |
-| P4-1 | RoomStateManager 下沉 | doing | | | |
-| P4-2 | RSM 三件套参数化 | todo | | | |
+| P4-1 | RoomStateManager 下沉 | doing | 96fd9dc | R1 通过；R4/R9 待集中回归 | reset 矩阵见 p4-validation.md |
+| P4-2 | RSM 三件套参数化 | doing | | | |
 | P4-3 | PropertiesSelectionManager 下沉 | todo | | | |
 | P4-4 | PlayerProgressReporter 分区 | todo | | | |
 | P5-1 | motor 拆成 partial 文件 | todo | | | |

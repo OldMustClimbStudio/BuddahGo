@@ -44,5 +44,37 @@ namespace SteamMultiplayer.Network
             _introVisualReadySequenceByClientId.Remove(playerId);
             _gameplayLiveSequenceByClientId.Remove(playerId);
         }
+
+        internal static bool TryMarkLocalSequence(bool clientInitialized, int sequenceId, ref int reportedSequenceId)
+        {
+            if (!clientInitialized || sequenceId < 0 || reportedSequenceId == sequenceId)
+                return false;
+
+            reportedSequenceId = sequenceId;
+            return true;
+        }
+
+        internal static bool AreAllReadyForSequence(bool serverInitialized, IList<RoomPlayerState> players,
+            int sequenceId, Dictionary<int, int> readySequences)
+        {
+            if (!serverInitialized || sequenceId < 0)
+                return false;
+
+            for (int i = 0; i < players.Count; i++)
+            {
+                int playerId = players[i].PlayerId;
+                if (!readySequences.TryGetValue(playerId, out int readySequenceId) || readySequenceId != sequenceId)
+                    return false;
+            }
+
+            return true;
+        }
+
+        internal static void RecordReadySequence(int playerId, int sequenceId,
+            HashSet<int> readyClientIds, Dictionary<int, int> readySequences)
+        {
+            readyClientIds.Add(playerId);
+            readySequences[playerId] = sequenceId;
+        }
     }
 }

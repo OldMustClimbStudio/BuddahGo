@@ -23,8 +23,8 @@
 | P2-2a | New_Buddah 日志迁移 | doing | 1b62bcf | 待 P2 集中验证 | 27 处调用；原消息、context、开关不变。 |
 | P2-2b | Buddah 日志迁移 | doing | bc0459b | 待 P2 集中验证 | 77 处调用；原消息、context、开关不变。 |
 | P2-2c | Network 日志迁移 | doing | aaa5382 | 待 P2 集中验证 | 50 处调用；原消息、context、开关不变。 |
-| P2-2d | RaceIntro 日志迁移 | doing | | | |
-| P2-2e | 日志迁移 | todo | | | |
+| P2-2d | RaceIntro 日志迁移 | doing | 2b7f6d0 | 待 P2 集中验证 | 52 处调用；原消息、context、开关不变。 |
+| P2-2e | UI 日志迁移 | doing | | | |
 | P2-3 | 常量与身份收敛 | todo | | | |
 | P2-4 | 接入 PlayerRegistry | todo | | | |
 | P2-5a–g | 热路径去浪费 | todo | | | |

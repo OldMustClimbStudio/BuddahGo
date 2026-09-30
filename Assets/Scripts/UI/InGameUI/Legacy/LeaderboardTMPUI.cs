@@ -76,7 +76,7 @@ public class LeaderboardTMPUI : MonoBehaviour
         if (NetDebug.EnableVerboseLog)
         {
             int count = LeaderboardManager.Instance != null ? LeaderboardManager.Instance.Rankings.Count : -1;
-            Debug.Log($"[Leaderboard] SyncList updated count={count} op={op} asServer={asServer}");
+            GameLog.Verbose($"[Leaderboard] SyncList updated count={count} op={op} asServer={asServer}");
         }
         RefreshText();
     }

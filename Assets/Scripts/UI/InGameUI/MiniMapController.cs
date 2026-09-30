@@ -246,7 +246,7 @@ public class MiniMapController : MonoBehaviour
         else
         {
             if (enableDebugLogs)
-                Debug.Log($"[MiniMapController] {reason}: bound '{player.name}' via {debugBindSource}", this);
+                GameLog.Verbose($"[MiniMapController] {reason}: bound '{player.name}' via {debugBindSource}", this);
         }
     }
 
@@ -316,13 +316,13 @@ public class MiniMapController : MonoBehaviour
 
         if (debugLogEachFrame)
         {
-            Debug.Log($"[MiniMapController] {message}", this);
+            GameLog.Verbose($"[MiniMapController] {message}", this);
             return;
         }
 
         int interval = Mathf.Max(1, debugLogEveryNFrames);
         if (Time.frameCount % interval == 0)
-            Debug.Log($"[MiniMapController] {message}", this);
+            GameLog.Verbose($"[MiniMapController] {message}", this);
     }
 
     private static float SafeNonZero(float value)

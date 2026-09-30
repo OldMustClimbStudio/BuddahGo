@@ -992,7 +992,7 @@ namespace SteamMultiplayer.UI
         private void LogDebug(string message)
         {
             if (enableDebugLogs)
-                Debug.Log($"[SkillWallSelectionController] {message}");
+                GameLog.Verbose($"[SkillWallSelectionController] {message}");
         }
     }
 }

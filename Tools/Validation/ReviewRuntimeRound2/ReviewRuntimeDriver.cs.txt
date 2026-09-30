@@ -1,0 +1,157 @@
+#if UNITY_EDITOR
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using FishNet;
+using FishNet.Managing;
+using FishNet.Managing.Transporting;
+using FishNet.Transporting.Tugboat;
+using NewBuddah.PredictionV2.Core;
+using Newtonsoft.Json;
+using SteamMultiplayer.Network;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+[InitializeOnLoad]
+public static partial class ReviewRuntimeDriver
+{
+    private static bool initialized,host,connected,ready,started,done;
+    private static double began,unlocked=-1,nextDrive,nextFlush,nextStatus;
+    private static string output,role,stage="";
+    private static int latency;
+    private static StreamWriter writer;
+    private static string Arg(string key,string fallback="")
+    {
+        var args=Environment.GetCommandLineArgs();
+        int index=Array.IndexOf(args,key);
+        return index>=0 && index+1<args.Length?args[index+1]:fallback;
+    }
+    static ReviewRuntimeDriver()
+    {
+        if (Arg("-reviewRole")!="") EditorApplication.update+=Update;
+    }
+    public static void Launch()
+    {
+        if (Arg("-reviewClone")=="true")
+        {
+            Type manager=AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a=>a.GetType("ParrelSync.ClonesManager")).First(t=>t!=null);
+            object clone=manager.GetMethod("CreateCloneFromCurrent",BindingFlags.Public|BindingFlags.Static).Invoke(null,null);
+            if (clone==null) throw new InvalidOperationException("Clone creation failed");
+        }
+        EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity",OpenSceneMode.Single);
+        var nm=UnityEngine.Object.FindObjectOfType<NetworkManager>();
+        if(nm==null)throw new InvalidOperationException("MainMenu NetworkManager missing");
+        var tm=nm.GetComponent<TransportManager>();
+        var tug=nm.GetComponent<Tugboat>()??nm.gameObject.AddComponent<Tugboat>();
+        tug.SetPort(17883);
+        tug.SetClientAddress("127.0.0.1");
+        tug.SetServerBindAddress("127.0.0.1",FishNet.Transporting.IPAddressType.IPv4);
+        tm.Transport=tug;
+        // In-memory setup only. Never save MainMenu or mutate a shared prefab.
+        Application.runInBackground=true;
+        EditorApplication.isPlaying=true;
+    }
+    private static void Record(object data)
+    {
+        writer?.WriteLine(JsonConvert.SerializeObject(new { utc=DateTime.UtcNow.ToString("O"),data }));
+    }
+    private static void CaptureLog(string message,string stack,LogType type)
+    {
+        if(message.Contains("D-LOC") || message.Contains("IntroHandoff") ||
+           message.Contains("GameplayUnlock") || message.Contains("SkillExecutor") ||
+           message.Contains("Projectile") || message.Contains("PushHitbox") || message.Contains("HandControl") || message.Contains("Respawn") ||
+           type==LogType.Error || type==LogType.Exception)
+            Record(new{kind="log",type=type.ToString(),message,stack=type==LogType.Exception?stack:""});
+    }
+    private static void Initialize()
+    {
+        initialized=true; role=Arg("-reviewRole");host=role=="host";
+        latency=int.Parse(Arg("-reviewLatency","0"));
+        output=Arg("-reviewOutput");
+        if(string.IsNullOrWhiteSpace(output))throw new InvalidOperationException("Explicit output directory required");
+        Directory.CreateDirectory(output);
+        writer=new StreamWriter(Path.Combine(output,role+".jsonl"),false);
+        began=Time.realtimeSinceStartupAsDouble;
+        Application.runInBackground=true;Application.targetFrameRate=60;
+        BuddahReviewTrace.Sink=Record;
+        Application.logMessageReceived+=CaptureLog;
+        Record(new{kind="start",role,latency,project=Application.dataPath,version=Arg("-reviewVersion","95e57a0"),mode=Arg("-reviewMode","n10")});
+        var view=EditorWindow.GetWindow(typeof(Editor).Assembly.GetType("UnityEditor.GameView"));
+        view.Show();
+    }
+    private static void Update()
+    {
+        if(!EditorApplication.isPlaying || done)return;
+        try
+        {
+            if(!initialized)Initialize();
+            double now=Time.realtimeSinceStartupAsDouble;
+            if(now>=nextFlush){nextFlush=now+1;writer.Flush();}
+            if(now<nextDrive)return;nextDrive=now+.05;
+            var game=GameNetworkManager.Instance;
+            var nm=InstanceFinder.NetworkManager;
+            var room=RoomStateManager.Instance;
+            if(!connected&&game!=null&&nm!=null)
+            {
+                // Latency is configured before connection/selection/GO on both peers.
+                nm.TransportManager.LatencySimulator.SetLatency(latency);
+                nm.TransportManager.LatencySimulator.SetEnabled(latency>0);
+                connected=true;
+                nm.TimeManager.OnPostTick+=PostTick;
+                nm.GetComponent<FishNet.Managing.Predicting.PredictionManager>().OnPostReplicateReplay+=PostReplay;
+                if(host)game.StartHost();else game.StartClient("127.0.0.1");
+                Record(new{kind="connect",role,latency,tick=nm.TimeManager.LocalTick});
+            }
+            if(room!=null&&nm!=null&&nm.ClientManager.Started&&room.Players.Count==2)
+            {
+                if(host&&!started&&room.CanHostStartGame&&room.CurrentMatchSessionPhase.ToString()=="InRoom")
+                {started=true;room.RequestStartGame();Record(new{kind="startMatch"});}
+                else if(!host&&!ready&&room.CurrentMatchSessionPhase.ToString()=="InRoom")
+                {ready=true;room.RequestToggleReady();Record(new{kind="ready"});}
+            }
+            var selection=PropertiesSelectionManager.Instance;
+            if(selection!=null&&selection.IsClientInitialized&&selection.IsStageCountdownActive&&selection.CurrentStagePropertyKey!=stage)
+            {
+                stage=selection.CurrentStagePropertyKey;
+                var options=selection.GetOptionsForProperty(stage);
+                if(stage==PropertiesSelectionManager.SkillLoadoutStageKey)
+                    selection.SubmitSkillLoadoutSelection(new[]{"push_projectile_hands","giant","acceleration"});
+                else if(options.Count>0)selection.SubmitPlayerSelection(stage,options[0].OptionId);
+                Record(new{kind="selection",stage});
+            }
+            if(room!=null&&room.IsMatchPhaseActive&&room.IsGameplayMovementUnlocked&&unlocked<0)
+            {
+                unlocked=now;
+                Record(new{kind="unlocked",localTick=nm.TimeManager.LocalTick,serverTick=nm.TimeManager.Tick});
+            }
+            if(now>=nextStatus)
+            {
+                nextStatus=now+5;
+                Record(new{kind="status",elapsed=now-began,unlocked=unlocked>=0,
+                    scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
+                    players=room==null?-1:room.Players.Count,
+                    client=nm!=null&&nm.ClientManager.Started,server=nm!=null&&nm.ServerManager.Started});
+                writer.Flush();
+            }
+            if(unlocked>=0 && (Arg("-reviewMode")=="matrix" || Arg("-reviewMode")=="visual" || Arg("-reviewMode")=="push")) DriveMatrix(now);
+            if(Arg("-reviewCycle")=="true")DriveCycle(now);
+            else if(unlocked>=0&&now-unlocked>double.Parse(Arg("-reviewDuration","15")))
+                Finish("completed");
+            else if(unlocked<0 && now-began>360)Finish("startup-timeout");
+        }
+        catch(Exception ex){Record(new{kind="driverException",message=ex.ToString()});Finish("exception");}
+    }
+    private static void Finish(string result)
+    {
+        if(done)return;done=true;
+        Record(new{kind="complete",result});
+        StopMatrix();
+        BuddahReviewTrace.Sink=null;Application.logMessageReceived-=CaptureLog;
+        writer?.Flush();writer?.Dispose();writer=null;
+        EditorApplication.Exit(result=="completed"?0:2);
+    }
+}
+#endif

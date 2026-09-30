@@ -149,3 +149,12 @@ P7 按用户决定等待美术确认。原工作区既有 PackageManagerSettings
 ### 2026-09-30 现有 PR 审查跟进发布
 
 按 #48 → #47 → #49–58 的原 head 创建独立本地分支，逐层普通 merge 传播，按归属追加修复；不改 dev/main、不新 PR、不强推、不历史重写。补齐 #58 非空 transport 测试与 #50/#53 注释，最终栈 R1 编译通过、EditMode **61/61**（本轮实际执行），结构/GUID/祖先关系检查通过。各 PR 的 disposition 见 [review-followups.md](review-followups.md)，测试和找回历史原始日志的 SHA256 见 [review-fixes-validation.md](review-fixes-validation.md)。N10 live 双端、N6 人工高速、完整 R6/跨机 Steam/R8 未执行，不以 helper 结果替代。F3 历史编译问题按用户要求留最后单独诊断。
+
+
+## 2026-09-30 second review follow-up
+
+Functional corrections and actual local two-process evidence are tracked in
+[review-runtime-round2.md](review-runtime-round2.md). The impulse replay timing fix,
+diagnostic log sampling and session-helper documentation are staged locally.
+R8 scene measurements and #52 visual acceptance remain open; this entry does not
+claim all new comments resolved. No history rewrite or dev/main merge is performed.

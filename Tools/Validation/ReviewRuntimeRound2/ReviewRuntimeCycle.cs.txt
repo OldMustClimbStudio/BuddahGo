@@ -1,0 +1,41 @@
+#if UNITY_EDITOR
+using System;
+using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
+using UnityEngine;
+
+public static partial class ReviewRuntimeDriver
+{
+    private static int reviewRound,lastDecision;
+    private static bool finishSent;
+    private static void DriveCycle(double now)
+    {
+        int total=latency==100?14:12;
+        if(host&&!finishSent&&((reviewRound==0&&matrixIndex>=total)||(reviewRound==1&&unlocked>=0&&now-unlocked>=20)))
+        {
+            bool invoked=false;
+            foreach(var button in UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None))
+            {
+                for(int i=0;i<button.onClick.GetPersistentEventCount();i++)
+                    if(button.onClick.GetPersistentTarget(i) is RaceFinishManager && button.onClick.GetPersistentMethodName(i)=="TriggerDebugFinishRaceFromLocalUi")
+                    {button.onClick.Invoke();invoked=true;break;}
+                if(invoked)break;
+            }
+            if(!invoked)throw new InvalidOperationException("Existing EndMatch button not found");
+            finishSent=true;Record(new{kind="endMatchButton",round=reviewRound});
+        }
+        var decision=ResultDecisionManager.Instance;
+        if(decision!=null&&decision.IsDecisionActive&&decision.GetInstanceID()!=lastDecision)
+        {
+            lastDecision=decision.GetInstanceID();
+            decision.SubmitChoiceServerRpc(reviewRound==0?ResultPlayerChoice.StartNewGame:ResultPlayerChoice.ReturnToRoom);
+            Record(new{kind="resultVote",round=reviewRound,choice=reviewRound==0?"StartNewGame":"ReturnToRoom"});
+            reviewRound++;unlocked=-1;stage="";finishSent=false;
+        }
+        var room=RoomStateManager.Instance;
+        if(reviewRound==2&&room!=null&&room.CurrentMatchSessionPhase.ToString()=="InRoom"&&UnityEngine.SceneManagement.SceneManager.GetActiveScene().name=="MainMenu")
+        {Record(new{kind="returnedRoom",round=reviewRound});Finish("completed");}
+        if(now-began>600)Finish("cycle-timeout");
+    }
+}
+#endif

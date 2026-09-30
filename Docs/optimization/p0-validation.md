@@ -54,3 +54,15 @@ R4 仅部分路径验证，R5 仅配装提交验证、没有完整技能施放�
 - R7：首轮记录的 N2 尚未处理；按用户要求不重复执行同一受阻测试，保持 `done-unverified`。已完成的编译/启动检查不能替代 R7。
 - 本机日志：`Logs/p0-4-dev-player.log`、`Logs/p0-4-release-player.log`。测试进程均已关闭。
 - Clone 生成的 ParrelSync 本地设置与 MCP 连接辅助脚本只保留为本地测试配置，不提交。Unity 自动删除的两份孤立 meta 和 PackageManagerSettings 自动改动已恢复。
+
+## 独立行为修复与一次集中回归
+
+N1/N2 在独立 `fix/local-multiplayer-flow` 分支修复，提交 `be7c0fd`，见 [PR #48](https://github.com/OldMustClimbStudio/BuddahGo/pull/48)。修复不混入 P0 的编译守卫提交。本节补充首轮失败之后的结果，不覆盖或改写上面的首次测试记录。
+
+- MainMenu 新增使用现有 SceneCondition 的 ObserverManager，RoomStateManager prefab 标记为全局网络对象；host 在本地客户端就绪后刷新其名单条目。
+- 一次双 Editor/ParrelSync/Tugboat 回归自动完成 Ready → 属性/技能选择 → RaceMap → 权威 GO / 移动解锁，不再使用 host 身份测试补丁。
+- host/client 活跃运行 195.095 / 195.003 秒，均包含约 95 秒普通条件和 100 秒启用 100ms LatencySim 的阶段。
+- D-LOC 心跳 236 / 91 条，四项 divergence 的非零窗口数均为 0，没有 FATAL、SceneId 查询失败或新连接后的 Exception 行。client reconcile 回调达到 9581。
+- 两端各请求施放 6 次，观察到一致的 6 技能及 blackcurtain anti 播报；两端都记录到 Giant 的 scale=4。
+- 这是本机预测/同步回归结果；仍不覆盖完整 Steam 大厅/P2P、三圈结算与投票、所有 base/anti 组合、完整物理交互和性能对比。P0-1 的完整基线仍为 done-unverified。
+- 可复核证据见 PR #48 中 `agent-exchange/console/2026-09-29-local-flow-regression.md`；本机 JSONL 日志和截图保留在两端各自的 Logs 中。

@@ -51,7 +51,7 @@
 | D5 | JSON 兜底配置，SO 与配置表的漂移 | 待定 | |
 | D6 | 第三方 asmdef 与程序集拆分 | 待定 | |
 | D7 | 资源瘦身，是否改写历史 | 待定 | |
-| D8 | 修复缺陷 B3–B14 | 待定 | |
+| D8 | 修复缺陷 B3–B14 | 既有 B3–B14 仍待定；本轮新发现 N1/N2 按用户“记录问题、修复后集中回归”要求单独修复，见 PR #48 | 用户 / 2026-09-29 |
 
 ## 新发现
 
@@ -59,6 +59,12 @@
 
 | 日期 | 位置 | 描述 | 关联步骤 |
 |---|---|---|---|
-| 2026-09-29 | 本机 Tugboat host 名单 | N1：IsHost=false；测试中显式重做名单刷新后可推进。产品修复按 D8 处理，blocked。 | P0-3 / R4 |
-| 2026-09-29 | ParrelSync client RaceMap | N2：多个 SceneId 未注册，开赛控制权未解锁；记录后停止该轮，待修复再回归，blocked。 | P0-3 / R7 |
+| 2026-09-29 | 本机 Tugboat host 名单 | N1：无 Steam 的本机 host 首次登记 IsHost=false；已在独立修复 be7c0fd / PR #48 处理，一次回归无需名单补丁，待合并。 | P0-3 / R4 |
+| 2026-09-29 | ParrelSync client RaceMap | N2：SceneCondition 缺失导致场景注册/交接受阻；已在 be7c0fd / PR #48 处理，本机两端 195 秒回归通过，待合并。 | P0-3 / R7 |
 | 2026-09-29 | 正式包启动 / 基线资源 | N3/N4：无 Steam 的初始化连带异常，以及字体、空动画、LightingData 告警；详见 p0-validation.md。 | P0 |
+
+## 阶段 PR
+
+- P0：[PR #47](https://github.com/OldMustClimbStudio/BuddahGo/pull/47)，已实现并记录未验证范围，草稿。
+- 本机联机启动修复：[PR #48](https://github.com/OldMustClimbStudio/BuddahGo/pull/48)，提交 `be7c0fd`，从 dev 单独分支；正常 host 身份、场景注册和开赛交接已恢复。本机两端各运行约 195 秒（普通 95 秒 + 100ms LatencySim 100 秒），D-LOC 非零窗口/FATAL/SceneId 错误均为 0。
+- 两份 PR 当前可合并、无远端 CI 检查配置。后续按 HANDOFF 的阶段顺序，在阶段合并后同步 origin/dev，再进入 P1。

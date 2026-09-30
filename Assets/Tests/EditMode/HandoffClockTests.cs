@@ -96,6 +96,46 @@ namespace BuddahGo.Tests
             Assert.That(modifiers.RootUntilTick, Is.EqualTo(server ? 410u : 510u));
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void SnapshotPairKeepsExpiredHandoffAndModifierExpiredAfterReceiptClockMovesBack(bool owner)
+        {
+            // Recorded pure-client stress: live (server, local) changed from (2745, 2835)
+            // to (2741, 2835), while this historical packet remained (2732, 2814).
+            var wire = Snapshot(2712, 12, 20);
+            wire.RoomBypassUntilTick = 2742;
+            var modifiers = new BuddahPredictedModifierState { RoomBypassUntilTick = 2742 };
+            var receiptMapped = BuddahTickMath.HandoffToLocal(wire, 2741, 2835);
+            Assert.That(BuddahPredictedLaunchHandoffResolver.Advance(receiptMapped, 2835).IsActive, Is.True,
+                "The old receipt-clock mapping revives this expired phase.");
+
+            uint diagnosticTick = BuddahTickMath.ReconcileToLocal(ref modifiers, ref wire,
+                owner ? 2814u : 2732u, false, owner, 2732, 2814);
+            Assert.That(diagnosticTick, Is.EqualTo(2814));
+            Assert.That(wire.BlendEndTick, Is.EqualTo(2826));
+            Assert.That(modifiers.RoomBypassUntilTick, Is.EqualTo(2824));
+            Assert.That(BuddahPredictedLaunchHandoffResolver.Advance(wire, 2835).IsActive, Is.False);
+            Assert.That(modifiers.RoomBypassUntilTick, Is.LessThanOrEqualTo(2835));
+            // Historical replay is still entitled to reproduce the original active phase.
+            var replay = BuddahPredictedLaunchHandoffResolver.Advance(wire, 2820);
+            Assert.That(replay.CurrentState, Is.EqualTo(BuddahPredictedLaunchState.Blend));
+            Assert.That(replay.BlendAlpha, Is.EqualTo(0.7f).Within(0.0001f));
+        }
+
+        [Test]
+        public void LaterAuthoritativeSnapshotCanStillExtendADeadline()
+        {
+            var handoff = Snapshot(2712, 12, 20);
+            var modifiers = new BuddahPredictedModifierState { RoomBypassUntilTick = 2742 };
+            BuddahTickMath.ReconcileToLocal(ref modifiers, ref handoff, 2814, false, true, 2732, 2814);
+            uint originalDeadline = modifiers.RoomBypassUntilTick;
+            handoff = Snapshot(2712, 12, 20);
+            modifiers = new BuddahPredictedModifierState { RoomBypassUntilTick = 2762 };
+            BuddahTickMath.ReconcileToLocal(ref modifiers, ref handoff, 2815, false, true, 2733, 2815);
+            Assert.That(modifiers.RoomBypassUntilTick, Is.EqualTo(originalDeadline + 20));
+            // No monotonic cache/tombstone suppresses a legitimate authoritative update.
+        }
+
         [TestCase(0u, 10u, 100u, 90u, 0u)]
         [TestCase(1u, 3000u, 10u, 0u, 0u)]
         [TestCase(uint.MaxValue, 0u, 1u, uint.MaxValue, uint.MaxValue)]

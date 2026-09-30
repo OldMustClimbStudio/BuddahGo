@@ -33,8 +33,8 @@ until both metadata files exist, and exits only the two processes it was launche
 Use the same 1920×1080 GameView and quality level 2 in each cell. The probe records
 actual dimensions and refuses missing counters/scene changes/early quits; the analysis
 checks dimensions, duration, frame counts and source IDs. The Editor may exceed the
-requested 60 fps. Samples have no file I/O or detailed gameplay trace inside their
-capture window. These measurements include Editor overhead and cannot be called
+requested 60 fps. Samples have no per-frame evidence writes or detailed gameplay trace inside their
+capture window; the driver retains a low-frequency completion-marker file check. These measurements include Editor overhead and cannot be called
 Development-player or Release performance results.
 
 `python summarize-r8-editor.py <result-directory>` calculates every run and the median

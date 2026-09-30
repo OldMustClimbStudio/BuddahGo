@@ -41,7 +41,7 @@
 | P4-1 | RoomStateManager 下沉 | doing | 96fd9dc | R1 通过；R4/R9 待集中回归 | reset 矩阵见 p4-validation.md |
 | P4-2 | RSM 三件套参数化 | doing | 6f99c5e | R4/R9 待集中回归 | 原 guard/空集合语义保持 |
 | P4-3 | PropertiesSelectionManager 下沉 | doing | | | |
-| P4-4 | PlayerProgressReporter 分区 | todo | | | |
+| P4-4 | PlayerProgressReporter 分区 | doing | | | |
 | P5-1 | motor 拆成 partial 文件 | todo | | | |
 | P5-2 | RunInputs 收尾抽取 | todo | | | |
 | P5-3 | 工具函数去重 | todo | | | |

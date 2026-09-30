@@ -29,3 +29,7 @@ I6：两份提交完成推进块逐字比较，仅日志内容及门控不同；
 保留输入数组原地 Trim（失败时保留已处理前缀）、空槽与重复策略；option 候选原样不 Trim，配置与本地 fallback 才 Trim；原候选顺序、序号比较和 cache 重建调用点保持。没有修改 RPC/Sync/序列化布局。
 
 R1：P4-1–3 主 Editor 编译无新增 C# error/warning。48 个辅助规则检查全部通过（7 集合的三种清理模式、序号 guards、名单 ready、合法/非法/空槽/重复技能、自动补全顺序）。完整 R4 待两轮与断线专项。
+
+## P4-4 结算文件分区
+
+仅给 PlayerProgressReporter 的 5 个 server 入口、进度依赖、5 个结算 RPC/本地演出添加 region。去除 region/空白后源码 token 完全相同；RPC/UnityEvent 名称与顺序、Update 重复计算未变。R4 随阶段回归验证。

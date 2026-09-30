@@ -500,6 +500,8 @@ public class BlackCurtainViewController : MonoBehaviour
 
     private void CacheTrackEdgeTargets()
     {
+        // Snapshot active targets at fade start. Newly spawned or activated edge roots are
+        // discovered on the next rebuild; changing active state alone does not invalidate it.
         _cachedTrackEdges = FindObjectsByType<TrackEdgeVisibility>(FindObjectsSortMode.None);
         _cachedTrackEdgeTag = trackEdgeTag;
         _cachedVisibilityProperty = trackEdgeVisibilityProperty;

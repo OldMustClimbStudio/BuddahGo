@@ -66,3 +66,15 @@ N1/N2 在独立 `fix/local-multiplayer-flow` 分支修复，提交 `be7c0fd`，�
 - 两端各请求施放 6 次，观察到一致的 6 技能及 blackcurtain anti 播报；两端都记录到 Giant 的 scale=4。
 - 这是本机预测/同步回归结果；仍不覆盖完整 Steam 大厅/P2P、三圈结算与投票、所有 base/anti 组合、完整物理交互和性能对比。P0-1 的完整基线仍为 done-unverified。
 - 可复核证据见 PR #48 中 `agent-exchange/console/2026-09-29-local-flow-regression.md`；本机 JSONL 日志和截图保留在两端各自的 Logs 中。
+
+## 审查补充（F4/F6）
+
+P0-5 取消跟踪的日志会在其他人更新到该提交时从其工作区删除；有本地需要的记录应先备份。可从删除前提交取回，例如：
+
+```powershell
+git show '9f12e5f^:agent-exchange/console/raw/host-player-log-2026-04-19.log'
+```
+
+通用形式为 `git show 9f12e5f^:<path>`。以上提醒及命令需同步到现有 PR #47 的描述；本轮只完成本地文档，尚未发布 PR 描述。
+
+`BUDDAH_SERGATE_DEBUG` 当前只有该宏守卫，没有额外 Editor/Development 限定；正式包显式开启该宏时仍可能包含对应路径。本轮仅记录，不改变团队未决的调试默认值。

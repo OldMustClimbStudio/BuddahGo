@@ -11,8 +11,8 @@
 | P0-3 | 修复正式包编译（B1） | done-unverified | 5a77b8a | R1 通过；R3 构建 0 error、主菜单启动；R7 本机测试未完成，见 p0-validation.md | 32 种宏组合源码比较通过；本机连接/Ready/配装同步已确认，RaceMap 注册阻塞有效预测回归。 |
 | P0-4 | 调试探针只进 Editor/Dev（B2） | done-unverified | 84ad1be | R1/R2/R3 通过；正式包无探针元数据和心跳；R7 受 N2 阻塞未重跑 | 6 处守卫，192 组 Editor/Dev 源码比较一致；两种包均到达主菜单且启动日志无 Exception。 |
 | P0-5 | 取消跟踪 `.VSCodeCounter`、`agent-exchange/console/raw` | done | 9f12e5f | 两目录跟踪数为 0；19 个文件逐字节保留 | 新增整目录 ignore；digest/handoff 保留，未改写历史。I6 不适用。 |
-| P1-1 | 删除零引用脚本 | doing | | R1/R2 待 P1 集中验证 | 13 个目标 GUID/C# 引用均为 0、无启动钩子；保留 CombatAdapter。修正 refscan 的 Windows 路径过滤。 |
-| P1-2 | 删除 MiniMap 半成品三件套 | todo | | | |
+| P1-1 | 删除零引用脚本 | doing | 32160bf | R1/R2 待 P1 集中验证 | 13 个目标 GUID/C# 引用均为 0、无启动钩子；保留 CombatAdapter。修正 refscan 的 Windows 路径过滤。 |
+| P1-2 | 删除 MiniMap 半成品三件套 | doing | | R1/R4 待 P1 集中验证 | Presenter 无引用；Locator/Mapper 仅被 Presenter 引用，三件套外部引用为 0；MiniMapController 保持原样。 |
 | P1-3 | 删除旧大厅链路 | todo | | | |
 | P1-4 | 删除 RaceFinishManager 调试结束路径 | todo | | | |
 | P1-5 | 删除无调用者 API | todo | | | |

@@ -33,3 +33,15 @@ CastSlotServerRpc 按原语句边界拆为 TryResolveCast、ResolveCastVariant�
 实际执行 ValidateAllDatabases 菜单入口：errors=0、warnings=6，共 19 条交叉信息。两条数值漂移为 PushProjectileHands cooldown 18 vs 12、castLock 15 vs 10，留给 D5；另四条为 Acceleration/ReverseTurn 正常和反噬声明的旧 vfxId 没有库项，这些 action 的现有执行路径并不通过 SkillVfxReplicator 播放它们，不能据此认定运行时缺特效。SlowTrap anti 空 id 作为 Info 保留。菜单前后未保存或修改资源。
 
 P2 全部警告复核还包含已有未配置的可选 Feel 事件 acceleration_local、acceleration_anti_observers、blackcurtain_observers、blackcurtain_anti_observers，以及 Animator/kinematic body/字体警告；它们与已配置且实测播放的 Reflection 全屏反馈不同。重构不凭空创建或替换这些可选美术反馈，后续报告保留此限制。
+
+## 48 用例双端回归（694daed）
+
+2026-09-30 06:17 UTC 完成。6 种技能 × 正常/反噬 × host/client 施法 × 0/100ms LatencySim，共 48 用例。每例服务器 QUEUE/CAST 各 1 次，两端观察者各收到 1 次，重复施法被冷却阻止。随后通过场景现有 EndMatch UnityEvent 进入结算，完成再来一局、第二轮开赛、客户端投票回房间。host/client 各施法 24 次，1236/617 条 D-LOC 心跳的 loc/tel/mod/hof div 均为 0；注册表与引擎查询无差异，采集无 Error/Exception。
+
+全屏与相机：48 例施法者 Bloom 采样峰值正常 3.665–3.997、反噬 4.551–5.000（采样可能错过精确峰值）；另一端本地 Bloom 为 0，17 秒后均回到 0。全部反噬的本地 CinemachineImpulseSource 播放计数恰好增加 1，正常技能该计数不增；普通蓄力手掌的四种 owner/latency 组合 FOV offset 达到 30，后续恢复。黑幕在实际赛道截图中正常施法者可见白色边线、其他人不可见，反噬交换该关系。Shared/Local Reflection 入口、资产与反馈保留。
+
+N6 修复回归：8 个普通/反噬弹体用例中，服务器、host 视觉、client 视觉的起点/方向/速度集合全部精确相同；正常 1 个、反噬 5 个视觉弹体，无重复。普通均命中对手，反噬均记录双方命中。网络传输仍带来时间上的播放延迟，这不等于任意墙钟帧位置完全重合。SlowTrap anti 空 VFX 不再报 Unknown vfxId。
+
+**新发现 N7，R5 尚不标为完全通过**：进一步检查数值持续时间发现 SlowTrap anti 的服务器定身约 1 秒后为 force=60/speed=83，再恢复 50/80；客户端在该 21 秒用例内一直 rooted，未进入加速段。P2 原始记录同样存在，非 P3 引入。FishNet LocalTick 明确不跨客户端同步，而 modifier deadline 随 reconcile 直接从服务器复制，疑似时基错配。按用户技能正确性要求另开 fix PR 处理并复测，P3 重构不混入修复。完整三圈/外部 Steam 双机与普通非蓄力推击的完整 R6 矩阵仍未执行。
+
+原始日志与截图：两端 Logs/p3-skill-matrix；全屏采样 Logs/p3-feel-samples.jsonl；分析器 Logs/audit-p3-presentation.py。R1 已通过；R7 与本机重开/回房间通过；R5 因 N7 保持 blocked。P4–P6 继续前先定位并修复 N7。

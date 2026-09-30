@@ -55,3 +55,7 @@ RoomUI 保留每帧/事件刷新入口，名单签名不变且逐元素 Equals �
 ## P2-5c
 
 PlayerCamera.GetCameraScaleMultiplier 已具备 self→parent→children 缓存及 null 重试，保持原样。Respawn 缓存 self NetworkObject，null 时重试但不缓存 IsOwner 值。ResultArea 门面用弱 key 缓存 self 命中；父/子命中不缓存，保证后续 AddComponent(self) 仍优先，原查找顺序保持。LapProgress 复用静态起点碰撞器数组，起点变更、空集合或元素被销毁时重取；enabled/ClosestPoint 每次仍实时读取。两个碰撞器循环的细微判定差异不合并（I6）。R 项待集中验证。
+
+## P2-5d
+
+LeaderboardTMPUI 在 StringBuilder/插值/Split 之前比较全部显示输入快照，保留刷新间隔、事件订阅和所有格式文本。可见排名使用精确字段比较（原 RankEntry.Equals 的 Approximate 不适合作为文本缓存判据）；外部改写文本也会恢复。重复读取进度合并为同次刷新的一次无副作用读取。ObsessionUI 实际没有字符串拼接，SkillSlotUI 已按 skillId 跳过相同展示，不增加无意义缓存；它们按不同组件查找的 P2-4 例外保留。I6 不合并不同 UI 行为。R 项待集中验证。

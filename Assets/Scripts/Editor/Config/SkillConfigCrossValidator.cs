@@ -22,7 +22,7 @@ public static class SkillConfigCrossValidator
             SkillDatabase database = AssetDatabase.LoadAssetAtPath<SkillDatabase>(path);
             if (database == null)
                 continue;
-            var serializedDatabase = new SerializedObject(database);
+            using var serializedDatabase = new SerializedObject(database);
             var configured = serializedDatabase.FindProperty("_projectConfigDatabase").objectReferenceValue;
             if (configured != null && configured != config)
                 continue;
@@ -80,7 +80,7 @@ public static class SkillConfigCrossValidator
                 if (anti.Length > 0 && !actions.ContainsKey(anti))
                     Add(results, ProjectConfigValidationSeverity.Warning, context, "Resolved anti id is absent; runtime would fall back to the normal skill.");
 
-                var serializedAction = new SerializedObject(action);
+                using var serializedAction = new SerializedObject(action);
                 SerializedProperty vfx = serializedAction.FindProperty("vfxId");
                 if (vfx != null && vfx.propertyType == SerializedPropertyType.String)
                 {

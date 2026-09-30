@@ -5,11 +5,11 @@ namespace SteamMultiplayer.Network
 {
     internal sealed class RoomRoster
     {
-        private readonly IList<RoomPlayerState> Players;
+        private readonly IList<RoomPlayerState> _players;
 
         internal RoomRoster(IList<RoomPlayerState> players)
         {
-            Players = players;
+            _players = players;
         }
 
         internal bool TryGetPlayer(int playerId, out RoomPlayerState player)
@@ -17,7 +17,7 @@ namespace SteamMultiplayer.Network
             int index = FindPlayerIndex(playerId);
             if (index >= 0)
             {
-                player = Players[index];
+                player = _players[index];
                 return true;
             }
 
@@ -27,12 +27,12 @@ namespace SteamMultiplayer.Network
 
         internal bool AreAllRequiredPlayersReady()
         {
-            if (Players.Count == 0)
+            if (_players.Count == 0)
                 return false;
 
-            for (int i = 0; i < Players.Count; i++)
+            for (int i = 0; i < _players.Count; i++)
             {
-                if (!Players[i].IsHost && !Players[i].IsReady)
+                if (!_players[i].IsHost && !_players[i].IsReady)
                     return false;
             }
 
@@ -41,9 +41,9 @@ namespace SteamMultiplayer.Network
 
         internal int FindPlayerIndex(int playerId)
         {
-            for (int i = 0; i < Players.Count; i++)
+            for (int i = 0; i < _players.Count; i++)
             {
-                if (Players[i].PlayerId == playerId)
+                if (_players[i].PlayerId == playerId)
                     return i;
             }
 
@@ -64,15 +64,15 @@ namespace SteamMultiplayer.Network
 
         internal void ResetReadyForRoomReturn()
         {
-            for (int i = 0; i < Players.Count; i++)
+            for (int i = 0; i < _players.Count; i++)
             {
-                RoomPlayerState player = Players[i];
+                RoomPlayerState player = _players[i];
                 bool nextReady = player.IsHost;
                 if (player.IsReady == nextReady)
                     continue;
 
                 player.IsReady = nextReady;
-                Players[i] = player;
+                _players[i] = player;
             }
         }
 
@@ -81,15 +81,15 @@ namespace SteamMultiplayer.Network
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("Players");
 
-            if (Players.Count == 0)
+            if (_players.Count == 0)
             {
                 sb.AppendLine("(none)");
                 return sb.ToString();
             }
 
-            for (int i = 0; i < Players.Count; i++)
+            for (int i = 0; i < _players.Count; i++)
             {
-                RoomPlayerState player = Players[i];
+                RoomPlayerState player = _players[i];
                 string roleLabel = player.IsHost ? "Host" : "Player";
                 string readyLabel = player.IsHost ? "Leader" : (player.IsReady ? "Ready" : "Waiting");
                 sb.AppendLine($"{player.PlayerName} [{roleLabel}] [{readyLabel}]");
@@ -102,9 +102,9 @@ namespace SteamMultiplayer.Network
         {
             int index = FindPlayerIndex(playerId);
             if (index < 0)
-                Players.Add(playerState);
+                _players.Add(playerState);
             else
-                Players[index] = playerState;
+                _players[index] = playerState;
         }
     }
 }

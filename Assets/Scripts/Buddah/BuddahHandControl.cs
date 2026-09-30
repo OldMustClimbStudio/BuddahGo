@@ -715,6 +715,7 @@ public class BuddahHandControl : NetworkBehaviour
 
     private float GetChargedPushActionDelayLocal()
     {
+        // Preserve the original NaN behavior: !(>=) is not equivalent to < for unordered values.
         bool active = _projectileUseChargedRuntimeLocal && !(Time.time >= _projectilePushModeUntilLocal);
         return PushAttackTiming.GetActionDelay(active, _projectileDelayedPushSecondsLocal);
     }
@@ -925,81 +926,6 @@ public class BuddahHandControl : NetworkBehaviour
         });
     }
 
-    public void FireChargedProjectileBurstServerOnly(
-        int projectileCount,
-        float projectileSpacing,
-        float buildUpSeconds,
-        float projectileSpeed,
-        float projectileLifetimeSeconds,
-        float projectileImpulseStrength,
-        Vector3 projectileColliderSize,
-        bool reverseDirection,
-        bool allowSelfHit,
-        bool ignoreSolidWorld = false,
-        float hitTurnTorqueImpulse = 0f,
-        float additionalForwardSpawnOffset = 0f,
-        float additionalHeightSpawnOffset = 0f)
-    {
-        if (!IsServerInitialized)
-            return;
-
-        SpawnChargedProjectileBurst(new ProjectileBurstParameters
-        {
-            projectileCount = projectileCount,
-            projectileSpacing = projectileSpacing,
-            buildUpSeconds = buildUpSeconds,
-            projectileSpeed = projectileSpeed,
-            projectileLifetimeSeconds = projectileLifetimeSeconds,
-            projectileImpulseStrength = projectileImpulseStrength,
-            projectileColliderSize = projectileColliderSize,
-            reverseDirection = reverseDirection,
-            allowSelfHit = allowSelfHit,
-            ignoreSolidWorld = ignoreSolidWorld,
-            hitTurnTorqueImpulse = hitTurnTorqueImpulse,
-            additionalForwardSpawnOffset = additionalForwardSpawnOffset,
-            additionalHeightSpawnOffset = additionalHeightSpawnOffset,
-            spawnServerHitboxes = true,
-            spawnVisuals = false,
-            visualPrefabOverride = null,
-            progressPropertyOverride = null
-        });
-    }
-
-    public void SpawnChargedProjectileBurstVisualLocal(
-        int projectileCount,
-        float projectileSpacing,
-        float buildUpSeconds,
-        float projectileSpeed,
-        float projectileLifetimeSeconds,
-        Vector3 projectileColliderSize,
-        bool reverseDirection,
-        float additionalForwardSpawnOffset = 0f,
-        float additionalHeightSpawnOffset = 0f,
-        GameObject visualPrefabOverride = null,
-        string progressPropertyOverride = null)
-    {
-        SpawnChargedProjectileBurst(new ProjectileBurstParameters
-        {
-            projectileCount = projectileCount,
-            projectileSpacing = projectileSpacing,
-            buildUpSeconds = buildUpSeconds,
-            projectileSpeed = projectileSpeed,
-            projectileLifetimeSeconds = projectileLifetimeSeconds,
-            projectileImpulseStrength = 0f,
-            projectileColliderSize = projectileColliderSize,
-            reverseDirection = reverseDirection,
-            allowSelfHit = false,
-            ignoreSolidWorld = true,
-            hitTurnTorqueImpulse = 0f,
-            additionalForwardSpawnOffset = additionalForwardSpawnOffset,
-            additionalHeightSpawnOffset = additionalHeightSpawnOffset,
-            spawnServerHitboxes = false,
-            spawnVisuals = true,
-            visualPrefabOverride = visualPrefabOverride,
-            progressPropertyOverride = progressPropertyOverride
-        });
-    }
-
     private void SpawnChargedProjectileBurst(ProjectileBurstParameters burst)
     {
         int safeProjectileCount = Mathf.Max(1, burst.projectileCount);
@@ -1012,6 +938,8 @@ public class BuddahHandControl : NetworkBehaviour
         Vector3 scaledColliderSize = SanitizeColliderSize(burst.projectileColliderSize * scaleMultiplier);
         Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
         string resolvedProgressProperty = string.IsNullOrWhiteSpace(burst.progressPropertyOverride) ? DefaultChargedProjectileProgressProperty : burst.progressPropertyOverride;
+        if (burst.spawnServerHitboxes && string.IsNullOrEmpty(burst.replicatedSkillId))
+            Debug.LogWarning("[BuddahHandControl] Charged burst has no skillId; hitboxes spawn but replicated visuals cannot be resolved.", this);
         Vector3[] replicatedStarts = string.IsNullOrEmpty(burst.replicatedSkillId) ? null : new Vector3[safeProjectileCount];
 
         for (int i = 0; i < safeProjectileCount; i++)

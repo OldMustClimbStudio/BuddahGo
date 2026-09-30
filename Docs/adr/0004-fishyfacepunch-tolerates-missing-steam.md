@@ -1,0 +1,3 @@
+# FishyFacepunch tolerates a missing Steam client
+
+A Solo Match must run with Steam closed. Today the FishyFacepunch plugin calls `SteamClient.Init` without any guard as soon as it initializes, and that call throws when Steam is not running. We patch the plugin's initialization to tolerate the failure: online entry points then report that Steam is unavailable, while the Solo Match runs on Yak through the same NetworkManager. We chose this over separate NetworkManager setups for solo and online, which would duplicate every scene's network configuration. This is a local change to third-party code and must be kept when the plugin is upgraded.

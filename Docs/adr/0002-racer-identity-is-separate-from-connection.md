@@ -1,0 +1,3 @@
+# Racer identity is separate from network connection
+
+Race progress, finishing, placement, result presentation, spectating and display names are keyed by a RacerId rather than by connection or owner id. A Human Player's RacerId comes from their connection, and every AI Racer gets its own unique RacerId. AI Racers are server-owned objects whose `OwnerId` is always -1, so every system keyed by owner would merge all AI Racers into one entry. Patching each system with its own "if AI" branch would repeat the duplication the architecture audit flagged. In an Online Match, Racers and Human Players map one-to-one, so online behavior is unchanged.

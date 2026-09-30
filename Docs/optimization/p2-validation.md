@@ -51,3 +51,7 @@ RoomUI 保留每帧/事件刷新入口，名单签名不变且逐元素 Equals �
 ## P2-5b
 
 读完整 BlackCurtainViewController/TrackEdgeVisibility：在 SetTrackEdgesVisible 和 BeginTrackEdgeFade 恢复被隐藏对象后刷新 edge/tagged-root/renderer 缓存，淡入淡出期间复用；目标变 null 或 tag/property 字符串改变时重查。保留 active 根过滤、disabled edge 组件、GetComponentsInChildren(true) 和 root/renderer 遍历顺序；Shader ID 仅配置变化时刷新。TrackEdge 日志已在 P2-2b 迁移。已有共享材质写入 B13 不在本重构修复。I6 不适用，R1/R4/R5/R7/R8 待阶段验证。
+
+## P2-5c
+
+PlayerCamera.GetCameraScaleMultiplier 已具备 self→parent→children 缓存及 null 重试，保持原样。Respawn 缓存 self NetworkObject，null 时重试但不缓存 IsOwner 值。ResultArea 门面用弱 key 缓存 self 命中；父/子命中不缓存，保证后续 AddComponent(self) 仍优先，原查找顺序保持。LapProgress 复用静态起点碰撞器数组，起点变更、空集合或元素被销毁时重取；enabled/ClosestPoint 每次仍实时读取。两个碰撞器循环的细微判定差异不合并（I6）。R 项待集中验证。

@@ -28,8 +28,8 @@
 | P2-3 | 常量与身份收敛 | doing | 8dfe69b | | |
 | P2-4 | 接入 PlayerRegistry | blocked | 0a81fbd | 5 处等价 movement 查询已接入，待阶段验证 | 其余实际查找不同组件或包含 inactive，保留以满足 I5；见 p2-validation.md。 |
 | P2-5a | RoomUI 名单快照 | doing | 63335d6 | | |
-| P2-5b | BlackCurtain 目标缓存 | doing | | | |
-| P2-5c | 热路径去浪费 | todo | | | |
+| P2-5b | BlackCurtain 目标缓存 | doing | 5df211b | | |
+| P2-5c | 组件查询缓存 | doing | | | |
 | P2-5d | 热路径去浪费 | todo | | | |
 | P2-5e | 热路径去浪费 | todo | | | |
 | P2-5f | 热路径去浪费 | todo | | | |

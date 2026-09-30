@@ -84,12 +84,27 @@ namespace SteamMultiplayer.Network.Results
             return presentation == null || !presentation.BlocksRaceProgression;
         }
 
+        private sealed class PresentationCache
+        {
+            public PlayerFinishPresentationController Self;
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GameObject, PresentationCache>
+            Presentations = new System.Runtime.CompilerServices.ConditionalWeakTable<GameObject, PresentationCache>();
         private static PlayerFinishPresentationController ResolvePresentation(GameObject actor)
         {
             if (actor == null)
                 return null;
 
-            PlayerFinishPresentationController presentation = actor.GetComponent<PlayerFinishPresentationController>();
+            if (!Presentations.TryGetValue(actor, out PresentationCache cache))
+            {
+                cache = new PresentationCache();
+                Presentations.Add(actor, cache);
+            }
+            // Only cache self: a later AddComponent on self must outrank a cached ancestor/child.
+            if (cache.Self == null)
+                cache.Self = actor.GetComponent<PlayerFinishPresentationController>();
+            PlayerFinishPresentationController presentation = cache.Self;
             if (presentation == null)
                 presentation = actor.GetComponentInParent<PlayerFinishPresentationController>();
             if (presentation == null)

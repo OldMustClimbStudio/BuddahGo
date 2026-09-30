@@ -28,6 +28,7 @@ public class BuddahRespawn : MonoBehaviour
     [SerializeField] private BuddahPredictionBootstrap predictionBootstrap;
     [SerializeField] private BuddahPredictionRespawnBridge predictionRespawnBridge;
 
+    private NetworkObject _ownerNetworkObject;
     private Coroutine _respawnRoutine;
     private int _respawnContactCount;
     private float _contactStartTime = float.PositiveInfinity;
@@ -224,8 +225,9 @@ public class BuddahRespawn : MonoBehaviour
 
     private bool IsLocalOwner()
     {
-        NetworkObject networkObject = GetComponent<NetworkObject>();
-        return networkObject == null || networkObject.IsOwner;
+        if (_ownerNetworkObject == null)
+            _ownerNetworkObject = GetComponent<NetworkObject>();
+        return _ownerNetworkObject == null || _ownerNetworkObject.IsOwner;
     }
 
     private Vector3 ResolveSafeRespawnPosition(Vector3 basePosition)

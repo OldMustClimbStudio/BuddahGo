@@ -20,20 +20,20 @@
 | P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | blocked | 438b0b7 | 四包移除、ParrelSync 固定；R1/R2 通过；本机双端回归通过，完整 R4 未执行 | SoftMask 在 RaceMap → UIprefap.prefab 中仍使用，保留该包；GUID 依赖预检推翻原计划“未使用”假设。 |
 | P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | done-unverified | 71e63d5 | R1/R2 通过；本机回归通过；R4/R5 不完整，R6 未执行 | 306 个 Demo 文件；默认表实际 12 Demo + 3 游戏，保留全部三个游戏 prefab GUID/fileID。 |
 | P2-1 | 新增 Foundation 模块 | done | dc3bcda | R1 通过：已加载 GameLog 类型、无 C# error | 暂不接入调用点；Registry 明确 activeInHierarchy/禁用组件语义，并首次查询补齐 Awake 顺序差异。 |
-| P2-2a | New_Buddah 日志迁移 | blocked | 1b62bcf | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 27 处调用；原消息、context、开关不变。 |
-| P2-2b | Buddah 日志迁移 | blocked | bc0459b | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 77 处调用；原消息、context、开关不变。 |
-| P2-2c | Network 日志迁移 | blocked | aaa5382 | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 50 处调用；原消息、context、开关不变。 |
-| P2-2d | RaceIntro 日志迁移 | blocked | 2b7f6d0 | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 52 处调用；原消息、context、开关不变。 |
-| P2-2e | UI 日志迁移 | blocked | dbc5ba4 | R1/R2/R3 通过；R7 传送触发 N5，待独立修复回归 | 8 处调用；原消息、context、开关不变。 |
-| P2-3 | 常量与身份收敛 | doing | 8dfe69b | | |
-| P2-4 | 接入 PlayerRegistry | blocked | 0a81fbd | 5 处等价 movement 查询已接入，待阶段验证 | 其余实际查找不同组件或包含 inactive，保留以满足 I5；见 p2-validation.md。 |
-| P2-5a | RoomUI 名单快照 | blocked | 63335d6 | | |
-| P2-5b | BlackCurtain 目标缓存 | blocked | 5df211b | | |
-| P2-5c | 组件查询缓存 | blocked | d09c941 | | |
-| P2-5d | UI 文本快照 | blocked | 6927cb8 | | |
-| P2-5e | motor 调试摘要惰性构建 | blocked | bff7f9e | | |
-| P2-5f | RSM 诊断摘要门控 | blocked | b9ccad5 | | |
-| P2-5g | HealthReport 帧更新门控 | blocked | cbe59ca | | |
+| P2-2a | New_Buddah 日志迁移 | done | 1b62bcf | R1/R2/R3/R7 通过；48 例回归后 1232/615 心跳非零均为 0 | 原消息、context、开关不变；N5 独立修复后回归完成。 |
+| P2-2b | Buddah 日志迁移 | done | bc0459b | R1/R2/R3/R7 通过；48 例回归后 1232/615 心跳非零均为 0 | 原消息、context、开关不变；N5 独立修复后回归完成。 |
+| P2-2c | Network 日志迁移 | done | aaa5382 | R1/R2/R3/R7 通过；48 例回归后 1232/615 心跳非零均为 0 | 原消息、context、开关不变；N5 独立修复后回归完成。 |
+| P2-2d | RaceIntro 日志迁移 | done | 2b7f6d0 | R1/R2/R3/R7 通过；48 例回归后 1232/615 心跳非零均为 0 | 原消息、context、开关不变；N5 独立修复后回归完成。 |
+| P2-2e | UI 日志迁移 | done | dbc5ba4 | R1/R2/R3/R7 通过；48 例回归后 1232/615 心跳非零均为 0 | 原消息、context、开关不变；N5 独立修复后回归完成。 |
+| P2-3 | 常量与身份收敛 | done-unverified | 8dfe69b | R1 通过；本机双端重开/回房间通过，完整 R4 未执行 | 常量值与身份规则保持；见 p2-validation.md。 |
+| P2-4 | 接入 PlayerRegistry | blocked | 0a81fbd | 5 处等价查询；全程 Registry 与引擎集合相等 | 其余查询不同组件或包含 inactive，按 I5 保留；部分完成，R8 未验证。 |
+| P2-5a | RoomUI 名单快照 | done-unverified | 63335d6 | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
+| P2-5b | BlackCurtain 目标缓存 | done-unverified | 5df211b | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
+| P2-5c | 组件查询缓存 | done-unverified | d09c941 | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
+| P2-5d | UI 文本快照 | done-unverified | 6927cb8 | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
+| P2-5e | motor 调试摘要惰性构建 | done-unverified | bff7f9e | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
+| P2-5f | RSM 诊断摘要门控 | done-unverified | b9ccad5 | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
+| P2-5g | HealthReport 帧更新门控 | done-unverified | cbe59ca | R1/R7 通过；本机 48 例与重开/回房间完成，R8 未验证 | 详见 p2-validation.md；N6 视觉起点问题转独立修复。 |
 | P3-1 | SkillAction 基类公共方法 | todo | | | |
 | P3-2 | Anti 类改为继承 | todo | | | |
 | P3-3 | SkillExecutor 下沉 | todo | | | |
@@ -84,3 +84,9 @@
 - 按用户要求，阶段内先记录问题并完成修改，再集中执行相关构建/本机回归；每步仍保留独立实现提交及预检证据。
 - P1：[PR #49](https://github.com/OldMustClimbStudio/BuddahGo/pull/49)，base refactor/architecture-optimization；完整验证记录见 p1-validation.md。
 - P2：[PR #50](https://github.com/OldMustClimbStudio/BuddahGo/pull/50)，base refactor/architecture-p1；构建通过，发现 N5，独立修复后恢复双端专项。
+
+- N5：[PR #51](https://github.com/OldMustClimbStudio/BuddahGo/pull/51)，base refactor/architecture-p2；修复后两端 32/32 组合通过，48 技能用例、重开与回房间完成，1232/615 条心跳各项 div=0。
+- N6（2026-09-30）：反噬连发服务器/视觉在不同端重算坐标；示例纵向偏差 8.335571。按用户“所有技能表现正确，无坐标错误/打不中/表现差别”要求另开修复 PR，不混入 P3 重构。
+- B11 决定：用户确认 SlowTrap 反噬“就是没特效的”；保留空 id 与现有定身后加速，只在独立修复中跳过无效 VFX 调用。
+- P3-2 预检：更改 Anti 继承会迁移序列化字段声明类，与 I1 冲突。用户要求以保留全部功能为准，执行方案改为共享普通方法，保留原继承、字段声明、GUID 和资源值；不做字段迁移。
+- 用户补充验收：技能/反噬的全屏变亮、必要摄像机移动/FOV/震动必须存在，后续回归采样实际 Volume 和相机状态并检查恢复。

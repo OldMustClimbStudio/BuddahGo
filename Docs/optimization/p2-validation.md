@@ -84,3 +84,19 @@ LeaderboardTMPUI 在 StringBuilder/插值/Split 之前比较全部显示输入�
 - BuddahHandoffStep.cs 的 origin/dev 与当前 blob 均为 2d7167491daa7b8cc38ac1f944a0d7a58c587d87；静态检查确认其遗漏真实 ConsumePendingTeleportEvent.ResetModifiers 对 handoff/pending 的清除。32 种输入组合在未修复版本有 4 种失败（7/15/23/31）。先独立修复诊断模型，再继续同一矩阵，不隐藏 divergence。
 
 R4/R5/R6/R8/R9 完整判据目前均未完成；性能没有可比结论。阶段暂受 N5 阻塞，后续只在其修复后集中复测。
+
+## N5 修复后的 48 用例回归（74c1ea8）
+
+本机原 Editor + ParrelSync，6 技能 × 正常/反噬 × host/client × 0/100ms LatencySim。每个用例 21 秒，施放后 0.25 秒重试检验锁定/冷却；host 48 个 QUEUE/CAST，每个用例各一个；两端每例各收到一次 CastObserversRpc，各 owner 施放 24 次。全程每次 Registry 对照均相等，无夹具异常、捕获 Error/Exception 或非零 D-LOC。主机 1232 条、客户端 615 条心跳；再来一局、第二局约 20 秒游戏运行、client 投票回房间与清理通过。实际结束时间 05:33:13 UTC。
+
+- Acceleration：正常 force 50→100→50，反噬 50→5→50，两种 owner 和延迟组均观察到。
+- SlowTrap：普通对对手施加减速，两端 slowtrap_vfx 跟随误差采样为 0；反噬短暂 root 后 force 60，再恢复 50。用户确认反噬本就没有特效，因此空 vfxId 不是漏配美术，后续独立修复只跳过无效播放。
+- BlackCurtain：两端正常/反噬的 seeEdge 标志严格交换；每次都激活并恢复。当前平台夹具不能证明实际赛道路缘画面，后续补实际场景取景。
+- Giant：正常 scale 1→4→1、mass 2→6→2、force 50→175→50；反噬 scale 1→0.3→1。owner/observer 都观察到对应变更，不能将此预测路径结果推广到 B3 的 Legacy 路径。
+- ReverseTurn：普通仅对手反转，反噬仅自身反转；注意病例边界会短暂保留上例的客户端旧采样，判据在本次施放后窗口中取值。
+- PushProjectileHands：普通实际命中对手；反噬 5 弹能命中自身和对手，4 组角色/延迟均记录到服务端 hit 集合。发现 N6：反噬视觉使用各端重算的起点，示例 server z=182.537445 与 client z=174.201874，相差 8.335571；普通弹体的同一发 start/direction 精确相同。故 R5 不能宣称所有视觉一致，须先独立修复。
+- 用户追加的全屏变亮/相机反馈：在最后一组客户端施放中采样 Reflection 对应的实际 Volume，普通 Bloom 峰值约 4、反噬约 5、Tint 约 100，随后均归零；观察者保持 0。普通弹体技能本地 FOV offset 0→30→0。MMF 配置包含反噬 CinemachineImpulseSource。此采样从 case 37 才开始，未覆盖全部 owner/技能；后续重构回归增加完整采样，不以配置存在替代运行结果。
+
+RoomUI 补充检查：真实两人名单，隔离的 inactive UI 夹具连续刷新 10000 次，两个条目的 instanceId 均不变；销毁条目、改 parent 后均重建正确。GC.GetAllocatedBytesForCurrentThread 的 Mono 计数器在 1MB 校准分配上也返回 0，故不采用其“0 allocation”读数。R8 缺少同场景可比基线，仍未验证；没有声称性能改善已实测。
+
+R7 完成。R4/R9 验证了本机流程、开赛、技能、结算按钮、再来一局和回房间，但未跑真实三圈或真实 Steam 跨账号。R6 验证了本矩阵的普通/反噬弹体命中，尚不是全部物理交互。所有资源值保持；Unity 自动删除的两项孤立 meta 恢复。原始日志和截图保存在本机 Logs/p2-skill-matrix 及克隆同路径，未提交原始日志。

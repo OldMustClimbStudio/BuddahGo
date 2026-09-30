@@ -47,7 +47,10 @@
 | P5-3 | 工具函数去重 | done | 8525126 | 边界检查及双端 R7 通过 | 拖尾 null 语义不同不合并 |
 | P5-4 | BuddahHandControl 下沉 | done-unverified | 1304d81 | R1/22 helper 通过；N8/N9 修复后本机 R6 专项通过 | 外部条件/通用碰撞等价性未验证 |
 | P5-5 | 影子对比表驱动（可选） | done | 不采用 | 原影子逻辑/格式不变 | 可选项无必要行为收益，本轮只拆文件 |
-| P6-1–4 | 程序集拆分与测试（需 D6） | todo | | | |
+| P6-1 | 第三方程序集前置 | done | 待回填 | R1 主 Editor 编译通过；实际程序集名核对 | Feel 已有程序集，无需重复拆分 |
+| P6-2 | Runtime / Editor 程序集 | todo | | | |
+| P6-3 | 可选 UI 程序集 | done | 不采用 | 保留既有 UI 依赖 | 本轮边界为 Runtime / Editor / Tests |
+| P6-4 | EditMode 测试 | todo | | | |
 | P7 | 资源瘦身（需 D7） | todo | | | |
 
 ## 决策

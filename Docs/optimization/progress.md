@@ -30,8 +30,8 @@
 | P2-5a | RoomUI 名单快照 | doing | 63335d6 | | |
 | P2-5b | BlackCurtain 目标缓存 | doing | 5df211b | | |
 | P2-5c | 组件查询缓存 | doing | d09c941 | | |
-| P2-5d | UI 文本快照 | doing | | | |
-| P2-5e | 热路径去浪费 | todo | | | |
+| P2-5d | UI 文本快照 | doing | 6927cb8 | | |
+| P2-5e | motor 调试摘要惰性构建 | doing | | | |
 | P2-5f | 热路径去浪费 | todo | | | |
 | P2-5g | 热路径去浪费 | todo | | | |
 | P3-1 | SkillAction 基类公共方法 | todo | | | |

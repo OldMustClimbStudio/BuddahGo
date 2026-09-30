@@ -14,6 +14,8 @@ namespace NewBuddah.PredictionV2.Debugging
         [SerializeField] private bool mirrorSummaryToConsole = true;
         [SerializeField, Min(0.1f)] private float consoleMirrorIntervalSeconds = 0.5f;
 
+        public bool NeedsDebugSummaries => isActiveAndEnabled && (mirrorSummaryToConsole
+            || (bootstrap != null && bootstrap.DebugSettings != null && bootstrap.DebugSettings.enableOnScreenDebug));
         private NetworkObject _networkObject;
         private float _lastConsoleMirrorTime = float.NegativeInfinity;
         private string _lastConsoleMirrorSummary = string.Empty;

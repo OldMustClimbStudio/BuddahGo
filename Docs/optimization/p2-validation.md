@@ -59,3 +59,7 @@ PlayerCamera.GetCameraScaleMultiplier 已具备 self→parent→children 缓存�
 ## P2-5d
 
 LeaderboardTMPUI 在 StringBuilder/插值/Split 之前比较全部显示输入快照，保留刷新间隔、事件订阅和所有格式文本。可见排名使用精确字段比较（原 RankEntry.Equals 的 Approximate 不适合作为文本缓存判据）；外部改写文本也会恢复。重复读取进度合并为同次刷新的一次无副作用读取。ObsessionUI 实际没有字符串拼接，SkillSlotUI 已按 skillId 跳过相同展示，不增加无意义缓存；它们按不同组件查找的 P2-4 例外保留。I6 不合并不同 UI 行为。R 项待集中验证。
+
+## P2-5e
+
+预检读 BuildModifierSummary、BuildPendingSummary 和六个摘要赋值：只生成字符串/DebugState，不改模拟。仅给六个赋值及 writer-relinquished 状态插值加门控。motor.Update 的 RefreshInputBridge、SyncModifierDebugState 的数值状态、UpdateHandoffDebug 内 RefreshLaunchState、ConsumeReady 及 tick 顺序全部原位保留，不能整段跳过。门控包含现有屏幕/verbose/dump 开关、全局 verbose，以及 Overlay 独立 mirrorSummaryToConsole（即使屏幕关闭仍保留镜像文本）。默认开关不改。I6 不适用；R1/R4/R5/R7/R8 待集中验证。

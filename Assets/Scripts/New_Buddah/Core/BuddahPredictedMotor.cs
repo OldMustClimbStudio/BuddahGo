@@ -213,7 +213,8 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.predictionBlockReason = GetPredictionBlockReason();
             var impulseChannel = bootstrap.CommandBus != null ? bootstrap.CommandBus.ImpulseChannel : null;
             bootstrap.DebugState.pendingImpulseCount = impulseChannel != null ? impulseChannel.Count : 0;
-            bootstrap.DebugState.pendingImpulseSummary = impulseChannel != null ? impulseChannel.BuildPendingSummary() : "none";
+            if (bootstrap.ShouldBuildDebugSummaries)
+                bootstrap.DebugState.pendingImpulseSummary = impulseChannel != null ? impulseChannel.BuildPendingSummary() : "none";
             bootstrap.DebugState.introControlActive = _introControlActive;
             bootstrap.DebugState.externalKinematicControlActive = _externalKinematicControlActive;
         }
@@ -448,7 +449,7 @@ namespace NewBuddah.PredictionV2.Core
 
                 FinalizeImpulseDebugAfterSimulate();
                 UpdateHandoffDebug(currentTick);
-                UpdateReplicateDebug(data, state, $"writer-relinquished:{writerReason}");
+                UpdateReplicateDebug(data, state, bootstrap != null && bootstrap.ShouldBuildDebugSummaries ? $"writer-relinquished:{writerReason}" : string.Empty);
                 LogPredictionIntroWriterState(currentTick, true, writerReason, introControlActive, externalControlActive, authoritativePending);
                 return;
             }
@@ -605,9 +606,10 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.reconcileHadCorrection =
                 bootstrap.DebugState.lastReconcilePositionDelta > 0.001f ||
                 bootstrap.DebugState.lastReconcileVelocityDelta > 0.001f;
-            bootstrap.DebugState.reconcileSummary =
-                $"tick={data.GetTick()} speed={data.PlanarSpeed:0.00} posDelta={bootstrap.DebugState.lastReconcilePositionDelta:0.000} velDelta={bootstrap.DebugState.lastReconcileVelocityDelta:0.000} " +
-                $"planarVelDelta={bootstrap.DebugState.lastReconcileVelocityPlanarDelta:0.000} verticalVelDelta={bootstrap.DebugState.lastReconcileVelocityVerticalDelta:0.000}";
+            if (bootstrap.ShouldBuildDebugSummaries)
+                bootstrap.DebugState.reconcileSummary =
+                    $"tick={data.GetTick()} speed={data.PlanarSpeed:0.00} posDelta={bootstrap.DebugState.lastReconcilePositionDelta:0.000} velDelta={bootstrap.DebugState.lastReconcileVelocityDelta:0.000} " +
+                    $"planarVelDelta={bootstrap.DebugState.lastReconcileVelocityPlanarDelta:0.000} verticalVelDelta={bootstrap.DebugState.lastReconcileVelocityVerticalDelta:0.000}";
             SyncModifierDebugState(data.GetTick());
             UpdateHandoffDebug(data.GetTick());
 
@@ -743,8 +745,9 @@ namespace NewBuddah.PredictionV2.Core
 
             bootstrap.DebugState.lastReplicateTick = data.GetTick();
             bootstrap.DebugState.planarSpeed = planarVelocity.magnitude;
-            bootstrap.DebugState.replicateSummary =
-                $"tick={data.GetTick()} steer={data.Steering:0.00} throttle={data.Throttle:0.00} {status}";
+            if (bootstrap.ShouldBuildDebugSummaries)
+                bootstrap.DebugState.replicateSummary =
+                    $"tick={data.GetTick()} steer={data.Steering:0.00} throttle={data.Throttle:0.00} {status}";
 
             if (bootstrap.DebugSettings.dumpReplicate)
                 bootstrap.LogVerbose(
@@ -1743,7 +1746,8 @@ namespace NewBuddah.PredictionV2.Core
             if (bootstrap != null)
             {
                 bootstrap.DebugState.pendingImpulseCount = channel.Count;
-                bootstrap.DebugState.pendingImpulseSummary = channel.BuildPendingSummary();
+                if (bootstrap.ShouldBuildDebugSummaries)
+                    bootstrap.DebugState.pendingImpulseSummary = channel.BuildPendingSummary();
             }
         }
 
@@ -2200,10 +2204,12 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.pushGraceUntilTick = _modifierState.PushGraceUntilTick;
             bootstrap.DebugState.suppressSteeringUntilTick = _modifierState.SuppressSteeringUntilTick;
             bootstrap.DebugState.roomBypassUntilTick = _modifierState.RoomBypassUntilTick;
-            bootstrap.DebugState.activeModifiers = BuildModifierSummary(tick);
+            if (bootstrap.ShouldBuildDebugSummaries)
+                bootstrap.DebugState.activeModifiers = BuildModifierSummary(tick);
             var impulseChannelDbg = bootstrap.CommandBus != null ? bootstrap.CommandBus.ImpulseChannel : null;
             bootstrap.DebugState.pendingImpulseCount = impulseChannelDbg != null ? impulseChannelDbg.Count : 0;
-            bootstrap.DebugState.pendingImpulseSummary = impulseChannelDbg != null ? impulseChannelDbg.BuildPendingSummary() : "none";
+            if (bootstrap.ShouldBuildDebugSummaries)
+                bootstrap.DebugState.pendingImpulseSummary = impulseChannelDbg != null ? impulseChannelDbg.BuildPendingSummary() : "none";
             UpdateHandoffDebug(tick);
         }
 

@@ -40,6 +40,21 @@ namespace NewBuddah.PredictionV2.Bootstrap
         private bool _compatibilityRegistryAutoAdded;
         private bool _runtimeHealthReportAutoAdded;
 
+        private BuddahPredictionDebugOverlay _debugOverlay;
+        public bool ShouldBuildDebugSummaries
+        {
+            get
+            {
+                if (debugSettings != null && (debugSettings.enableOnScreenDebug || debugSettings.enableVerboseLogs
+                    || debugSettings.dumpReplicate || debugSettings.dumpReconcile || debugSettings.dumpGateState))
+                    return true;
+                if (SteamMultiplayer.Network.NetDebug.EnableVerboseLog)
+                    return true;
+                if (_debugOverlay == null)
+                    _debugOverlay = GetComponent<BuddahPredictionDebugOverlay>();
+                return _debugOverlay != null && _debugOverlay.NeedsDebugSummaries;
+            }
+        }
         public BuddahMovementModeSwitcher ModeSwitcher => modeSwitcher;
         public Core.BuddahPredictedMotor PredictedMotor => predictedMotor;
         public BuddahPredictedMotorConfig PredictedMotorConfig => predictedMotorConfig;

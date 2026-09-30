@@ -39,3 +39,7 @@ I6：不适用。R1/R4（小地图）：待阶段集中验证。
 refscan 对 ConnectionManager 的一个文本命中来自 Plugins/FishyFacepunch/Core/FishyConnectionManager.cs；该脚本编译在 firstpass，`using Steamworks`，继承 Steamworks.ConnectionManager 并 override OnMessage，不能引用 Assembly-CSharp 中的旧 UI ConnectionManager。因此不是待删除类型的调用者，第三方脚本保持原样。LobbyPlayer 仅在本旧链路使用，随其定义文件一并删除。
 
 删除两个脚本及 meta、空 Legacy 目录 meta、GNM 的空 legacy 字段和 spawn 方法/调用；MainMenu 的旧 null YAML 条目保持原样。文档链路同步为现用 GameNetworkManager。I6 不适用，R1/R4 待阶段集中验证。
+
+## P1-4（blocked，保留）
+
+虽然 DebugRaceFinishButton 已删除，RaceMap.unity:6858 仍通过 UnityEvent 直接绑定 `RaceFinishManager, Assembly-CSharp` 的 `TriggerDebugFinishRaceFromLocalUi`，m_CallState=2。该函数继续调用 CanUseLocalDebugFinishButton / RequestDebugChampionFinishServerRpc，因此整个路径仍存活。按照本步骤“Inspector 或 UnityEvent 绑定的方法必须保留”的约束，未修改 RaceFinishManager 或其场景绑定。继续执行无依赖的后续清理。

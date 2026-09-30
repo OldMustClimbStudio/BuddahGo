@@ -161,12 +161,12 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _hasSplineDiagnosticSample = false;
         _lastSplineDiagnosticLogTime = float.NegativeInfinity;
         _lastLoggedIntroPhase = IntroPhase.None;
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroState][Body:{name}] Assignment prepared seq={assignment.sequenceId} ownerId={OwnerId} " +
             $"isLocalOwner={(networkObject != null && networkObject.IsOwner)} objId={(networkObject != null ? networkObject.ObjectId : -1)} " +
             $"spline={splinePath.SplineId} introStart={assignment.introStartNetworkTime:0.000} go={assignment.goNetworkTime:0.000} " +
             $"now={GetSmoothedNetworkTimeSeconds():0.000} shellEntered={_introShellEntered} visualStarted={_visualStarted}");
-        Debug.Log($"[IntroVisual][Body:{name}] Waiting visual start seq={assignment.sequenceId}; no intro shell enter and no visible snap during prepared phase.");
+        GameLog.Verbose($"[IntroVisual][Body:{name}] Waiting visual start seq={assignment.sequenceId}; no intro shell enter and no visible snap during prepared phase.");
         _runtimeState = IntroRuntimeState.IntroPrepared;
     }
 
@@ -174,19 +174,19 @@ public class RaceBodyIntroStateController : MonoBehaviour
     {
         if (!_hasAssignment || sequenceId != _activeSequenceId || _assignedPath == null || targetRigidbody == null)
         {
-            Debug.Log($"[SequenceGuard][Body:{name}] Ignored visual start seq={sequenceId} active={_activeSequenceId} hasAssignment={_hasAssignment}");
+            GameLog.Verbose($"[SequenceGuard][Body:{name}] Ignored visual start seq={sequenceId} active={_activeSequenceId} hasAssignment={_hasAssignment}");
             return;
         }
 
         if (_goApplied)
         {
-            Debug.Log($"[SequenceGuard][Body:{name}] Ignored late visual start after go seq={sequenceId} goApplied={_goApplied} authoritativeGo={_authoritativeGoIssued}");
+            GameLog.Verbose($"[SequenceGuard][Body:{name}] Ignored late visual start after go seq={sequenceId} goApplied={_goApplied} authoritativeGo={_authoritativeGoIssued}");
             return;
         }
 
         if (_visualStarted)
         {
-            Debug.Log($"[IntroVisual][Body:{name}] Duplicate visual start seq={sequenceId} ignored (already started).");
+            GameLog.Verbose($"[IntroVisual][Body:{name}] Duplicate visual start seq={sequenceId} ignored (already started).");
             return;
         }
 
@@ -208,25 +208,25 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _runtimeState = IntroTimeUtility.HasReachedGo(timing, now)
             ? IntroRuntimeState.WaitingForGo
             : IntroRuntimeState.VisualStarted;
-        Debug.Log($"[IntroVisual][Body:{name}] Visual start seq={sequenceId} now={now:0.000} seekTime={driveTime:0.000} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000}");
+        GameLog.Verbose($"[IntroVisual][Body:{name}] Visual start seq={sequenceId} now={now:0.000} seekTime={driveTime:0.000} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000}");
     }
 
     public void ApplyAuthoritativeGo(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)
     {
         if (!_hasAssignment || sequenceId != _activeSequenceId)
         {
-            Debug.Log($"[SequenceGuard][Body:{name}] Ignored authoritative go seq={sequenceId} active={_activeSequenceId} hasAssignment={_hasAssignment}");
+            GameLog.Verbose($"[SequenceGuard][Body:{name}] Ignored authoritative go seq={sequenceId} active={_activeSequenceId} hasAssignment={_hasAssignment}");
             return;
         }
 
         if (_goApplied)
         {
-            Debug.Log($"[IntroGo][Body:{name}] Duplicate authoritative go ignored seq={sequenceId} goIssued={goIssuedNetworkTime:0.000}");
+            GameLog.Verbose($"[IntroGo][Body:{name}] Duplicate authoritative go ignored seq={sequenceId} goIssued={goIssuedNetworkTime:0.000}");
             return;
         }
 
         if (!_visualStarted)
-            Debug.Log($"[LateJoin][Body:{name}] Authoritative go arrived before visual start seq={sequenceId} goIssued={goIssuedNetworkTime:0.000}");
+            GameLog.Verbose($"[LateJoin][Body:{name}] Authoritative go arrived before visual start seq={sequenceId} goIssued={goIssuedNetworkTime:0.000}");
 
         double resolvedScheduledGo = scheduledGoNetworkTime >= 0d ? scheduledGoNetworkTime : _resolvedGoNetworkTime;
         _authoritativeScheduledGoNetworkTime = resolvedScheduledGo;
@@ -238,7 +238,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _runtimeState = IntroRuntimeState.AuthoritativeGoIssued;
         double now = GetSmoothedNetworkTimeSeconds();
         bool transitionDelayed = now < resolvedScheduledGo;
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroGo][Body:{name}] Authoritative go approved seq={sequenceId} goIssuedNow={goIssuedNetworkTime:0.000} " +
             $"scheduledGoTime={resolvedScheduledGo:0.000} rpcScheduledGo={scheduledGoNetworkTime:0.000} localNow={now:0.000} " +
             $"delayUntilScheduledGo={transitionDelayed}");
@@ -253,7 +253,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
         ResolveReferences();
         _introShellEntered = true;
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroVisual][Body:{name}] EnterIntroState shell seq={_activeSequenceId} ownerId={OwnerId} isLocalOwner={(networkObject != null && networkObject.IsOwner)} " +
             $"rbKinematicBefore={(targetRigidbody != null && targetRigidbody.isKinematic)}");
 
@@ -318,7 +318,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
             : GetSmoothedNetworkTimeSeconds();
         SampleSnapshotAtTime(resolvedHandoffTime, out LaunchHandoffSnapshot snapshot);
         _latestSplineSnapshot = snapshot;
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroGo][Body:{name}] CompleteGoTransition seq={_activeSequenceId} ownerId={OwnerId} isLocalOwner={isLocalOwner} " +
             $"goIssuedNow={_authoritativeGoIssuedNetworkTime:0.000} scheduledGoTime={_resolvedGoNetworkTime:0.000} handoffSampleTime={resolvedHandoffTime:0.000} " +
             $"snapshotPos={snapshot.Position} snapshotSpeed={snapshot.Velocity.magnitude:0.00} " +
@@ -328,7 +328,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         {
             _runtimeState = IntroRuntimeState.AuthoritativeHandoffPending;
             RoomStateManager.Instance?.ReportLocalGameplayLive(_activeSequenceId);
-            Debug.Log($"[IntroHandoff][Body:{name}] Local owner launching handoff seq={_activeSequenceId}.");
+            GameLog.Verbose($"[IntroHandoff][Body:{name}] Local owner launching handoff seq={_activeSequenceId}.");
             movementController.BeginLaunchHandoff(
                 snapshot,
                 Mathf.Max(0.1f, GetHandoffLeadTime()),
@@ -340,7 +340,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         else
         {
             _runtimeState = IntroRuntimeState.AuthoritativeHandoffApplied;
-            Debug.Log($"[IntroHandoff][Body:{name}] Remote authoritative go applied without local handoff seq={_activeSequenceId}.");
+            GameLog.Verbose($"[IntroHandoff][Body:{name}] Remote authoritative go applied without local handoff seq={_activeSequenceId}.");
         }
 
         if (movementController != null && !isLocalOwner)
@@ -375,7 +375,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (currentNetworkTime < scheduledGoTime)
             return;
 
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroGo][Body:{name}] Scheduled go reached seq={_activeSequenceId} localNow={currentNetworkTime:0.000} " +
             $"scheduledGoTime={scheduledGoTime:0.000} issuingCompleteTransition=true visualStarted={_visualStarted}");
         CompleteGoTransition();
@@ -471,7 +471,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
             return;
 
         _lastLoggedIntroPhase = _phase;
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroSplineDiag][Body:{name}] Phase -> {_phase} seq={_activeSequenceId} owner={(networkObject != null && networkObject.IsOwner)} " +
             $"net={networkTime:0.000} introStart={_resolvedIntroStartNetworkTime:0.000} go={_resolvedGoNetworkTime:0.000}");
     }
@@ -519,7 +519,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _lastSplineDiagnosticNetworkTime = networkTime;
         _hasSplineDiagnosticSample = true;
 
-        Debug.Log(
+        GameLog.Verbose(
             $"[IntroSplineDiag][Body:{name}] seq={_activeSequenceId} phase={_phase} t={normalizedT:0.000} net={networkTime:0.000} " +
             $"prePos={prePosition} snapPos={snapshot.Position} appliedDist={appliedDistance:0.000} appliedForward={appliedForward:0.000} " +
             $"sampleDist={sampledDistance:0.000} sampleForward={sampledForward:0.000} expectedStep={expectedStep:0.000} " +

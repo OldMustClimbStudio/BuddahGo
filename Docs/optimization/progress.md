@@ -22,8 +22,8 @@
 | P2-1 | 新增 Foundation 模块 | done | dc3bcda | R1 通过：已加载 GameLog 类型、无 C# error | 暂不接入调用点；Registry 明确 activeInHierarchy/禁用组件语义，并首次查询补齐 Awake 顺序差异。 |
 | P2-2a | New_Buddah 日志迁移 | doing | 1b62bcf | 待 P2 集中验证 | 27 处调用；原消息、context、开关不变。 |
 | P2-2b | Buddah 日志迁移 | doing | bc0459b | 待 P2 集中验证 | 77 处调用；原消息、context、开关不变。 |
-| P2-2c | Network 日志迁移 | doing | | | |
-| P2-2d | 日志迁移 | todo | | | |
+| P2-2c | Network 日志迁移 | doing | aaa5382 | 待 P2 集中验证 | 50 处调用；原消息、context、开关不变。 |
+| P2-2d | RaceIntro 日志迁移 | doing | | | |
 | P2-2e | 日志迁移 | todo | | | |
 | P2-3 | 常量与身份收敛 | todo | | | |
 | P2-4 | 接入 PlayerRegistry | todo | | | |

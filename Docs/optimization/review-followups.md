@@ -29,3 +29,7 @@ SlowTrap 旧矩阵的 root/force 恢复结论限定 server/host；纯 client 时
 ## PR #53
 
 五个 importer meta 保持 GUID 并补全；SerializedObject 使用 using；纠正 LoadAssetAtPath 可触发 OnEnable。ApplyScaleServer 两个 duration 参数保留 SkillExecutor 转发签名，注释说明仅 presentation 消费，server physics 不读取，未改调用/行为。
+
+## PR #54
+
+补全旧 modifier clock 的 importer meta，随后在 #57 与 BuddahTickMath 统一时删除旧 helper/meta。TimeManager.Tick 回调校正造成 modifier 短暂复活是未证实风险，本轮保持既有语义；静态 deadline 测试不证明实际 timing-update 行为。历史原始日志不补造。

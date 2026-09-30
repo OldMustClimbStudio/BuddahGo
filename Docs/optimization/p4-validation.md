@@ -33,3 +33,15 @@ R1：P4-1–3 主 Editor 编译无新增 C# error/warning。48 个辅助规则�
 ## P4-4 结算文件分区
 
 仅给 PlayerProgressReporter 的 5 个 server 入口、进度依赖、5 个结算 RPC/本地演出添加 region。去除 region/空白后源码 token 完全相同；RPC/UnityEvent 名称与顺序、Update 重复计算未变。R4 随阶段回归验证。
+
+## 阶段运行验证（0d56d02）
+
+2026-09-30 06:53 UTC，两端主流程完成：真实 ready→全员提交配装→开赛→95s 普通/100s 100ms 延迟→场景 EndMatch UnityEvent→再来一局→客户端故意不提交配装→资源配置的 60s 超时自动补全→第二轮开赛→客户端投票回房间。两端各施放 6 次；336/166 条心跳全部 loc/tel/mod/hof div=0，未采集到 Exception 或 Unknown vfxId。主 Editor 与 clone 均编译成功，48 项辅助规则检查各自通过。
+
+两端首轮配装完全相同。第二轮 host 已提交配置保持 slowtrap/blackcurtain/push_projectile_hands，client 自动补成 acceleration/slowtrap/blackcurtain，两端 cache 一致。回房间后两端名单 host ready=true/client ready=false，go/movement/waiting/countdown 全 false。服务器 cacheCount=0、客户端仍为 2；原清理入口只在服务器执行，客户端沿用原选择场景退出时保留缓存的逻辑，本步未改清理时机，不把它报告为两端均已清空。
+
+2026-09-30 06:57 UTC，独立断线专项完成：客户端在技能选择开始约 3s 调用真实 ClientManager.StopConnection。服务器约 0.12s 后 Participants 仅剩 host，已移除离开者选择记录；保持原计时器而不新增立即推进。60s 到时自动补全后进入 RaceMap，约 100.77s（含开场流程）解锁 gameplay，仅有 host 名单/配装，最终 completed=true。
+
+R4/R9 是本机 Tugboat + ParrelSync 两 Editor 的替代验证；未验证外部 Steam 大厅、跨机器连接、Dev Build 对端以及实际跑满三圈，因此各 P4 步骤仍为 done-unverified。结算调用的是真实场景绑定按钮，不是绕过状态机直接改 phase。
+
+本机原始证据：两端 Logs/p4-regression-*.jsonl、Logs/p4-disconnect-*.jsonl；辅助检查源码 Tools/Validation/session-helper-cases.cs.txt。

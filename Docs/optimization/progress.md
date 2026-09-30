@@ -38,10 +38,10 @@
 | P3-2 | Anti 公共实现共享（保留继承） | done | dc86d79 | R1/资产快照/实际赛道画面通过；R5 加 N7 时长复测通过 | 用户以功能保留为准；原继承和资源原样，见 p3-validation.md。 |
 | P3-3 | SkillExecutor 下沉 | done-unverified | ecb5406 | R1/R7/本机重开回房间通过；R5 加 N7 时长复测通过，R6 普通推击不完整 | 5 个查找显式区分 parent-first 与 children-first。 |
 | P3-4 | 配置交叉校验（编辑器） | done | 694daed | R1 编译通过，菜单报告 0 error / 6 既有漂移 warning，12 技能资源逐值不变 | Push 18/15 vs 12/10 与四个未使用 VFX 字段，见 p3-validation.md；D5 不改数据。 |
-| P4-1 | RoomStateManager 下沉 | doing | 96fd9dc | R1 通过；R4/R9 待集中回归 | reset 矩阵见 p4-validation.md |
-| P4-2 | RSM 三件套参数化 | doing | 6f99c5e | R4/R9 待集中回归 | 原 guard/空集合语义保持 |
-| P4-3 | PropertiesSelectionManager 下沉 | doing | | | |
-| P4-4 | PlayerProgressReporter 分区 | doing | | | |
+| P4-1 | RoomStateManager 下沉 | done-unverified | 96fd9dc | R1、两轮本机 R4/R9 通过；336/166 心跳 div=0 | 7 集合 reset 矩阵与 room ready/旗标复位通过 |
+| P4-2 | RSM 三件套参数化 | done-unverified | 6f99c5e | 双端开赛/重开/回房间与 100ms 通过 | 原 guard/空集合语义保持；48 辅助检查通过 |
+| P4-3 | PropertiesSelectionManager 下沉 | done-unverified | d6876cb | R1；全员提交、60s 超时自动补全、真实 client 断线通过 | cache 重建时机保持；完整 Steam/三圈矩阵未执行 |
+| P4-4 | PlayerProgressReporter 分区 | done-unverified | 0d56d02 | 两轮实际结算 UnityEvent、重开和回房间通过 | 去掉 region 后 token 相同；完整 R4 未执行 |
 | P5-1 | motor 拆成 partial 文件 | todo | | | |
 | P5-2 | RunInputs 收尾抽取 | todo | | | |
 | P5-3 | 工具函数去重 | todo | | | |

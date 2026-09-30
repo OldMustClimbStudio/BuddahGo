@@ -26,6 +26,9 @@ public class Skill_PushProjectileHands_Anti : SkillAction
     [SerializeField] private string observersFeelEventId = string.Empty;
     [SerializeField] private string observersFeelStopEventId = string.Empty;
 
+    public GameObject ChargedProjectileVfxPrefab => chargedProjectileVfxPrefab;
+    public string ChargedProjectileProgressProperty => chargedProjectileProgressProperty;
+
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
         if (caster == null)
@@ -38,20 +41,7 @@ public class Skill_PushProjectileHands_Anti : SkillAction
             return;
         }
 
-        handControl.FireChargedProjectileBurstServerOnly(
-            projectileCount,
-            projectileSpacing,
-            buildUpSeconds,
-            projectileSpeed,
-            projectileLifetimeSeconds,
-            projectileImpulseStrength,
-            projectileColliderSize,
-            reverseDirection: true,
-            allowSelfHit: true,
-            ignoreSolidWorld: true,
-            hitTurnTorqueImpulse: hitTurnTorqueImpulse,
-            additionalForwardSpawnOffset: additionalForwardSpawnOffset,
-            additionalHeightSpawnOffset: additionalHeightSpawnOffset);
+        handControl.FireChargedProjectileBurstReplicated(this);
 
         GameLog.Verbose($"[Skill_PushProjectileHands_Anti][Server] Fired reverse burst count={projectileCount}, spacing={projectileSpacing}, extraSpawn=({additionalForwardSpawnOffset},{additionalHeightSpawnOffset}), speed={projectileSpeed}, hitTurnTorqueImpulse={hitTurnTorqueImpulse}");
     }
@@ -61,24 +51,7 @@ public class Skill_PushProjectileHands_Anti : SkillAction
         if (caster == null)
             return;
 
-        BuddahHandControl handControl = caster.GetComponent<BuddahHandControl>();
-        if (handControl != null)
-        {
-            handControl.SpawnChargedProjectileBurstVisualLocal(
-                projectileCount,
-                projectileSpacing,
-                buildUpSeconds,
-                projectileSpeed,
-                projectileLifetimeSeconds,
-                projectileColliderSize,
-                reverseDirection: true,
-                additionalForwardSpawnOffset: additionalForwardSpawnOffset,
-                additionalHeightSpawnOffset: additionalHeightSpawnOffset,
-                visualPrefabOverride: chargedProjectileVfxPrefab,
-                progressPropertyOverride: chargedProjectileProgressProperty);
-        }
-
         float feelDuration = Mathf.Max(0.05f, buildUpSeconds + projectileLifetimeSeconds);
-        caster.PlayFeelLocalTimed(observersFeelEventId, observersFeelStopEventId, feelDuration, $"{skillId}_observers");
+        PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, feelDuration);
     }
 }

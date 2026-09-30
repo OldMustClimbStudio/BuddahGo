@@ -80,3 +80,9 @@ refscan 对 ConnectionManager 的一个文本命中来自 Plugins/FishyFacepunch
 | BuddahMovement | SetInputSource（保留） | RefreshInputSourceForCurrentControlState 在运行时调用，删除前提不成立 |
 
 使用 Unity 自带 Roslyn 按 owner、名称和参数个数移除精确声明（含文档/属性）；每个修改后文件重新语法解析均无诊断错误。SkillVfxReplicator 未列入删除清单的 ObserversRpc 保留，不额外改变其 RPC 编号。仅移除计划明确列出的 SkillLoadout.SetSlotServerRpc 与 BuddahMovement.ApplyPushImpulseTargetRpc；所有测试/运行端必须同构建。I6 不适用。语法解析不等于语义编译，R1/R4/R5 待阶段集中验证。
+
+## P1-6
+
+预检：IBuddahInputSource 仅有 PlayerBuddahInputSource 与 DisabledBuddahInputSource 两个 sealed 实现，UseDirectHeadingControl 都是字面量 false。三个 directHeading 序列化字段只被不可达的 ApplyDirectHeadingControl 使用，外部只有 Buddah.prefab 的旧值，无配置/反射调用。
+
+移除该方法、不可达分支、RotationMode 私有枚举/字段/赋值；TorqueSteering 的恒真条件简化，现用施力、扭矩、衰减和调用顺序保持原样。按 I1 的“确认无用字段”例外删除三个专属字段，prefab 的旧 YAML 值不改写。输入接口及两个实现保持原样。Roslyn 语法解析通过；I6 不适用，R1/R4 待阶段集中验证。

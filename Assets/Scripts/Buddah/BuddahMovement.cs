@@ -9,11 +9,6 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(NetworkObject))]
 public class BuddahMovement : NetworkBehaviour
 {
-    private enum RotationMode
-    {
-        TorqueSteering,
-        DirectHeadingControl
-    }
 
     private enum LaunchState
     {
@@ -28,11 +23,6 @@ public class BuddahMovement : NetworkBehaviour
     [SerializeField] public float turnDecayPerSecond = 8f;
     [SerializeField] public float maxSpeed = 8f;
     [SerializeField] public float turnInputMultiplier = 1f;
-
-    [Header("Direct Heading Control")]
-    [SerializeField, Min(1f)] private float directHeadingDegreesPerSecond = 420f;
-    [SerializeField, Min(0f)] private float directHeadingAngularDamping = 18f;
-    [SerializeField, Min(0f)] private float directHeadingSnapAngle = 2.5f;
 
     [Header("Push Reaction")]
     [SerializeField] public float pushGraceSeconds = 0.25f;
@@ -56,7 +46,6 @@ public class BuddahMovement : NetworkBehaviour
     private float _roomStateBypassTimer;
     private bool _inputInitialized;
     private int _skillRootCount;
-    private RotationMode _rotationMode;
     private LaunchState _launchState;
     private float _launchStateTimer;
     private Vector3 _launchInheritedVelocity;
@@ -121,7 +110,6 @@ public class BuddahMovement : NetworkBehaviour
 
         IBuddahInputSource inputSource = _currentInputSource ?? _disabledInputSource;
         inputSource.Tick(Time.fixedDeltaTime, transform, rb);
-        _rotationMode = inputSource.UseDirectHeadingControl ? RotationMode.DirectHeadingControl : RotationMode.TorqueSteering;
 
         if (IsRaceGameplayBlocked() && _roomStateBypassTimer <= 0f && !inputSource.AllowMovementWhenGameplayBlocked)
         {
@@ -154,9 +142,6 @@ public class BuddahMovement : NetworkBehaviour
             forwardDir = Vector3.forward;
         forwardDir.Normalize();
 
-        if (_rotationMode == RotationMode.DirectHeadingControl)
-            ApplyDirectHeadingControl(inputSource.GetDesiredForward(), Time.fixedDeltaTime);
-
         forwardDir = transform.forward;
         forwardDir.y = 0f;
         if (forwardDir.sqrMagnitude < 0.0001f)
@@ -165,11 +150,11 @@ public class BuddahMovement : NetworkBehaviour
 
         rb.AddForce(forwardDir * (forwardForce * throttle), ForceMode.Force);
 
-        if (_rotationMode == RotationMode.TorqueSteering && Mathf.Abs(steering) > 0.001f)
+        if (Mathf.Abs(steering) > 0.001f)
         {
             rb.AddTorque(Vector3.up * steering * turnTorque, ForceMode.Force);
         }
-        else if (_rotationMode == RotationMode.TorqueSteering && turnDecayPerSecond > 0f)
+        else if (turnDecayPerSecond > 0f)
         {
             Vector3 angular = rb.angularVelocity;
             angular.y = Mathf.MoveTowards(angular.y, 0f, turnDecayPerSecond * Time.fixedDeltaTime);
@@ -206,9 +191,6 @@ public class BuddahMovement : NetworkBehaviour
         _currentInputSource?.OnDeactivated(transform, rb);
         _currentInputSource = next;
         _currentInputSource?.OnActivated(transform, rb);
-        _rotationMode = _currentInputSource != null && _currentInputSource.UseDirectHeadingControl
-            ? RotationMode.DirectHeadingControl
-            : RotationMode.TorqueSteering;
     }
 
     public void SetIntroControlActive(bool active)
@@ -466,41 +448,6 @@ public class BuddahMovement : NetworkBehaviour
             inputActions.Enable();
         else
             inputActions.Disable();
-    }
-
-    private void ApplyDirectHeadingControl(Vector3 desiredForward, float deltaTime)
-    {
-        desiredForward.y = 0f;
-        if (desiredForward.sqrMagnitude < 0.0001f)
-            return;
-
-        desiredForward.Normalize();
-
-        Vector3 currentForward = transform.forward;
-        currentForward.y = 0f;
-        if (currentForward.sqrMagnitude < 0.0001f)
-            currentForward = desiredForward;
-        currentForward.Normalize();
-
-        float angleToTarget = Vector3.Angle(currentForward, desiredForward);
-        Quaternion currentRotation = rb.rotation;
-        Quaternion targetRotation = Quaternion.LookRotation(desiredForward, Vector3.up);
-
-        if (angleToTarget <= directHeadingSnapAngle)
-        {
-            rb.MoveRotation(targetRotation);
-        }
-        else
-        {
-            Quaternion nextRotation = Quaternion.RotateTowards(currentRotation, targetRotation, directHeadingDegreesPerSecond * deltaTime);
-            rb.MoveRotation(nextRotation);
-        }
-
-        Vector3 angular = rb.angularVelocity;
-        angular.x = 0f;
-        angular.z = 0f;
-        angular.y = Mathf.MoveTowards(angular.y, 0f, directHeadingAngularDamping * deltaTime);
-        rb.angularVelocity = angular;
     }
 
     private float GetLaunchBlend01()

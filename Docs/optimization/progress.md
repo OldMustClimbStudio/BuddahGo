@@ -15,8 +15,8 @@
 | P1-2 | 删除 MiniMap 半成品三件套 | doing | 9319ae1 | R1/R4 待 P1 集中验证 | Presenter 无引用；Locator/Mapper 仅被 Presenter 引用，三件套外部引用为 0；MiniMapController 保持原样。 |
 | P1-3 | 删除旧大厅链路 | doing | 4aff429 | R1/R4 待 P1 集中验证 | 两脚本 YAML 引用为 0；MainMenu legacy prefab 为 null；仅旧链路内部与可移除 spawn 分支依赖。 |
 | P1-4 | 删除 RaceFinishManager 调试结束路径 | blocked | 9205b7b | 不删除：预检发现活跃 UnityEvent | RaceMap.unity:6858 直接绑定 TriggerDebugFinishRaceFromLocalUi；按方案必须保留该方法及其调用链。 |
-| P1-5 | 删除无调用者 API | blocked | | 已删 29 个无调用声明；R1/R4/R5 待阶段验证 | SetInputSource 有实际控制路径调用，保留该项；其余 API 逐项引用/绑定复核后删除。 |
-| P1-6 | 删除 DirectHeadingControl 分支 | todo | | | |
+| P1-5 | 删除无调用者 API | blocked | 8f02f68 | 已删 29 个无调用声明；R1/R4/R5 待阶段验证 | SetInputSource 有实际控制路径调用，保留该项；其余 API 逐项引用/绑定复核后删除。 |
+| P1-6 | 删除 DirectHeadingControl 分支 | doing | | R1/R4 待阶段验证 | 两个 sealed 输入源的 UseDirectHeadingControl 均为字面量 false；保留输入接口，移除不可达模式及专属无用字段。 |
 | P1-7 | 移除未使用的包，锁定 ParrelSync 版本 | todo | | | |
 | P1-8 | 移除 FishNet Demos，重新生成 DefaultPrefabObjects | todo | | | |
 | P2-1 | 新增 Foundation 模块 | todo | | | |
@@ -71,4 +71,3 @@
 - 本机联机启动修复：[PR #48](https://github.com/OldMustClimbStudio/BuddahGo/pull/48)，提交 `be7c0fd`，从 dev 单独分支；正常 host 身份、场景注册和开赛交接已恢复。本机两端各运行约 195 秒（普通 95 秒 + 100ms LatencySim 100 秒），D-LOC 非零窗口/FATAL/SceneId 错误均为 0。
 - 2026-09-29 用户更新：后续使用 stacked PR，最后统一处理，不逐阶段合并 dev。当前依赖为 #48（base dev）→ #47（base fix/local-multiplayer-flow）→ P1（base refactor/architecture-optimization）。P0 已通过 d6439a6 纳入联机修复基线。
 - 按用户要求，阶段内先记录问题并完成修改，再集中执行相关构建/本机回归；每步仍保留独立实现提交及预检证据。
-

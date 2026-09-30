@@ -48,10 +48,10 @@
 | P5-4 | BuddahHandControl 下沉 | done-unverified | 1304d81 | R1/22 helper 通过；N8/N9 修复后本机 R6 专项通过 | 外部条件/通用碰撞等价性未验证 |
 | P5-5 | 影子对比表驱动（可选） | done | 不采用 | 原影子逻辑/格式不变 | 可选项无必要行为收益，本轮只拆文件 |
 | P6-1 | 第三方程序集前置 | done | 3a79e6f | R1 主 Editor 编译通过；实际程序集名核对 | Feel 已有程序集，无需重复拆分 |
-| P6-2 | Runtime / Editor 程序集 | doing | 5a26a36 | 编译及构建/联机待验证 | 六处游戏 UnityEvent 程序集名迁移 |
+| P6-2 | Runtime / Editor 程序集 | done-unverified | 5a26a36 | R1/R2/R3/R10 与本机 R4/R9 通过；336/166 心跳 div=0 | 外部 Steam/Dev 双端及三圈未验证；六绑定实际触发 |
 | P6-3 | 可选 UI 程序集 | done | 不采用 | 保留既有 UI 依赖 | 本轮边界为 Runtime / Editor / Tests |
-| P6-4 | EditMode 测试 | done | 待回填 | 主/clone 各 43/43 通过，零失败/跳过 | Editor-only，internal 使用 friend assembly |
-| P7 | 资源瘦身（需 D7） | todo | | | |
+| P6-4 | EditMode 测试 | done | d9a8f96 | 主/clone 各 43/43 通过，零失败/跳过 | Editor-only，internal 使用 friend assembly |
+| P7 | 资源瘦身（需 D7） | blocked | 用户暂缓 | 未执行 | 等待美术确认，不改写历史 |
 
 ## 决策
 
@@ -110,3 +110,11 @@
 - P5：[PR #56](https://github.com/OldMustClimbStudio/BuddahGo/pull/56)，base refactor/architecture-p4；实现和初测完成，R6 等待独立 N8/N9 修复回归。
 
 - N8/N9：[PR #57](https://github.com/OldMustClimbStudio/BuddahGo/pull/57)，base refactor/architecture-p5，55aa5ab；20 项矩阵及四项受控近战完成，654/326 + 90/45 心跳 div=0。全部投射物、有效距离推击及 owner 复活消费通过；此前超射程未命中如实保留。
+
+- P6：[PR #58](https://github.com/OldMustClimbStudio/BuddahGo/pull/58)，base fix/owner-event-clocks；两种构建及启动、两端各 43 EditMode、主菜单/Timeline UnityEvent、0/100ms 两轮回归全部完成。详见 p6-validation.md。
+
+## 本轮收尾
+
+P0–P6 的可执行改动已实现并以 stacked draft PR 提交，未合并 dev。P1-4、P1-5、P1-7、P2-4 中预检不成立的部分继续标 blocked：活跃 UnityEvent/API/SoftMask、不同语义查询均保留，以避免破坏现有功能；不是遗漏删除。其余 done-unverified 行保留各项环境与基线限制，后续 N1/N2、N5、N6/B11、N7、N8/N9 修复与复测见对应阶段记录。
+
+P7 按用户决定等待美术确认。原工作区既有 PackageManagerSettings.asset 修改保留；本轮 worktree 的 Unity 自动生成无关改动已恢复。当前交付顶端为 refactor/architecture-p6，完整堆叠证据在以上 PR 与各阶段验证文档。

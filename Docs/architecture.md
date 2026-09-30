@@ -2,7 +2,7 @@
 
 | 系统 | 主要代码位置（相对 `Assets/Scripts/`） | 状态负责人 |
 |---|---|---|
-| 连接与房间 | `Network/Core/`、`Network/Room/` | `GameNetworkManager`、`ConnectionManager`、`RoomStateManager` |
+| 连接与房间 | `Network/Core/`、`Network/Room/` | `GameNetworkManager`、`RoomStateManager` |
 | 大厅与选择 | `Network/Lobby/`、`Network/Session/PropertySelection/` | `SteamLobbyManager`、`PropertiesSelectionManager` |
 | 预测运动 | `New_Buddah/` | `BuddahPredictedMotor`、reconcile 数据与相关 bridge |
 | 技能 | `Buddah/ComboSkill/` | `SkillExecutor` |
@@ -22,7 +22,7 @@
 
 ```text
 SteamLobbyManager 创建/加入大厅
-  → ConnectionManager 启动连接，GameNetworkManager 绑定网络管理器
+  → GameNetworkManager 启动连接并绑定网络管理器
   → RoomStateManager 进入选择场景
   → PropertiesSelectionManager 校验属性、配装与 ready 状态
   → RoomStateManager 加载赛道，IntroSequenceManager 协调开场

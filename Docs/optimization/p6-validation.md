@@ -16,3 +16,5 @@
 P6-1：FishyFacepunch 独立 asmdef 导入后主 Editor 编译通过，实际程序集名为 FishyFacepunch；MMF_Player 仍为 MoreMountains.Tools。第三方源码及 DLL 导入设置未改。
 
 P6-2：主 Editor 完整编译通过，实际类型程序集确认 Runtime / Editor / FishyFacepunch。首次刷新被“场景外部修改”重载提示阻挡，加载磁盘上迁移后的 MainMenu 后恢复。场景 diff 仅六处程序集限定名；既有 C#、脚本 GUID、网络协议和字段布局未改。克隆端将连同测试程序集集中刷新。
+
+P6-4：两端实际发现并运行 43 项 EditMode 测试，全通过、0 failed / 0 skipped（主 1.459s，clone 0.146s）。测试程序集仅 Editor，autoReferenced=false；生产 helper 保持 internal。首次导入发现 TestAssemblies 与显式 TestRunner 引用重复，去掉后又发现纯测试对平台 Steam DLL 的间接签名依赖；PlayerIdentity 的 nullable Lobby 调用改用反射，从而无需固定 Windows DLL 名称。初次误启动的零测试结果未计为通过。并发导入期间出现一次源文件时间戳过期，刷新后编译及实际测试均完成。

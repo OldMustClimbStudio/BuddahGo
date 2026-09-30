@@ -32,28 +32,14 @@ public class SkillVfxReplicator : NetworkBehaviour
         TryStartPrewarm("Start");
     }
 
-    public void ForcePrewarmNow()
-    {
-        TryStartPrewarm("ForcePrewarmNow");
-    }
-
     private void TryStartPrewarm(string source)
     {
         if (!prewarmOnStart || prewarmStarted)
             return;
 
         prewarmStarted = true;
-        Debug.Log($"[SkillVfxReplicator] Prewarm started from {source}.", this);
+        GameLog.Verbose($"[SkillVfxReplicator] Prewarm started from {source}.", this);
         StartCoroutine(PrewarmAllVfx());
-    }
-
-    /// <summary>
-    /// Server-side call: play a VFX on ALL clients for durationSeconds.
-    /// </summary>
-    public void PlayVfxAll(string vfxId, float durationSeconds)
-    {
-        if (!IsServerInitialized) return;
-        PlayVfxAllObserversRpc(vfxId, durationSeconds);
     }
 
     /// <summary>
@@ -63,30 +49,6 @@ public class SkillVfxReplicator : NetworkBehaviour
     {
         if (!IsServerInitialized) return;
         PlayVfxAllObserversRpcCustom(vfxId, durationSeconds, localOffset, localEuler, stopPlayingBeforeEndSeconds);
-    }
-
-    /// <summary>
-    /// Client/local call: play a VFX locally for durationSeconds.
-    /// </summary>
-    public void PlayVfxLocal(string vfxId, float durationSeconds)
-    {
-        PlayVfxInternal(vfxId, durationSeconds, DefaultLocalOffset, DefaultLocalEuler, DefaultStopPlayingBeforeEndSeconds);
-    }
-
-    /// <summary>
-    /// Client/local call: play a VFX locally with skill-defined local transform.
-    /// </summary>
-    public void PlayVfxLocal(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler)
-    {
-        PlayVfxInternal(vfxId, durationSeconds, localOffset, localEuler, DefaultStopPlayingBeforeEndSeconds);
-    }
-
-    /// <summary>
-    /// Client/local call: play a VFX locally with skill-defined local transform and particle stop timing.
-    /// </summary>
-    public void PlayVfxLocal(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler, float stopPlayingBeforeEndSeconds)
-    {
-        PlayVfxInternal(vfxId, durationSeconds, localOffset, localEuler, stopPlayingBeforeEndSeconds);
     }
 
     [ObserversRpc]
@@ -185,7 +147,7 @@ public class SkillVfxReplicator : NetworkBehaviour
             yield return null;
         }
 
-        Debug.Log($"[SkillVfxReplicator] Prewarm finished. warmed={warmedCount}", this);
+        GameLog.Verbose($"[SkillVfxReplicator] Prewarm finished. warmed={warmedCount}", this);
     }
 
     private TimedVfxInstance FindExisting(string vfxId)

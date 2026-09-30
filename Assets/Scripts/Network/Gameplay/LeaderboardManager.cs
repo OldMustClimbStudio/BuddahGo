@@ -84,7 +84,7 @@ public class LeaderboardManager : NetworkBehaviour
         _progressByClientId[clientId] = new PlayerProgress
         {
             ClientId = clientId,
-            DisplayName = string.IsNullOrWhiteSpace(displayName) ? $"Player {clientId}" : displayName,
+            DisplayName = string.IsNullOrWhiteSpace(displayName) ? PlayerIdentity.FallbackName(clientId) : displayName,
             CheckpointIndex = 0,
             FinishOrder = 0,
             FinishServerTime = -1d
@@ -104,26 +104,6 @@ public class LeaderboardManager : NetworkBehaviour
         }
     }
 
-    public bool TryAdvanceCheckpoint(int clientId, int checkpointId)
-    {
-        if (!IsServerInitialized || _rankingsFrozen)
-            return false;
-
-        if (!_progressByClientId.TryGetValue(clientId, out PlayerProgress progress))
-        {
-            RegisterPlayer(clientId, $"Player {clientId}");
-            progress = _progressByClientId[clientId];
-        }
-
-        if (checkpointId != progress.CheckpointIndex + 1)
-            return false;
-
-        progress.CheckpointIndex = checkpointId;
-        _progressByClientId[clientId] = progress;
-        _rankingsDirty = true;
-        return true;
-    }
-
     public void ReportSplineProgress(
         int clientId,
         float distanceOnTrack,
@@ -140,7 +120,7 @@ public class LeaderboardManager : NetworkBehaviour
 
         if (!_progressByClientId.TryGetValue(clientId, out PlayerProgress progress))
         {
-            RegisterPlayer(clientId, $"Player {clientId}");
+            RegisterPlayer(clientId, PlayerIdentity.FallbackName(clientId));
             progress = _progressByClientId[clientId];
         }
 
@@ -164,7 +144,7 @@ public class LeaderboardManager : NetworkBehaviour
 
         BuildRankings();
         _rankingsFrozen = true;
-        Debug.Log($"[Leaderboard] Rankings frozen count={Rankings.Count}");
+        GameLog.Verbose($"[Leaderboard] Rankings frozen count={Rankings.Count}");
     }
 
     public List<FinalMatchResultEntry> BuildFinalResultsSnapshot(Func<int, string> playerNameResolver = null)
@@ -283,7 +263,7 @@ public class LeaderboardManager : NetworkBehaviour
         _leaderboardSnapshotText.Value = BuildLeaderboardSnapshotText(list);
 
         if (EnableVerboseRankingLogs)
-            Debug.Log($"[Leaderboard] BuildRankings count={list.Count}");
+            GameLog.Verbose($"[Leaderboard] BuildRankings count={list.Count}");
         _rankingsDirty = false;
     }
 
@@ -327,7 +307,7 @@ public class LeaderboardManager : NetworkBehaviour
                 if (_progressByClientId.ContainsKey(clientId))
                     continue;
 
-                RegisterPlayer(clientId, $"Player {clientId}");
+                RegisterPlayer(clientId, PlayerIdentity.FallbackName(clientId));
             }
         }
 
@@ -343,7 +323,7 @@ public class LeaderboardManager : NetworkBehaviour
                 continue;
 
             string displayName = string.IsNullOrWhiteSpace(reporter.gameObject.name)
-                ? $"Player {clientId}"
+                ? PlayerIdentity.FallbackName(clientId)
                 : $"{reporter.gameObject.name} #{clientId}";
 
             RegisterPlayer(clientId, displayName);

@@ -1,4 +1,4 @@
-#if BUDDAH_PREDICTION_PERF_PROBE
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_PERF_PROBE
 using System;
 using NewBuddah.PredictionV2.Core;
 using Unity.Profiling;
@@ -186,7 +186,7 @@ namespace NewBuddah.PredictionV2.Debugging
             double gcAvgBytes = Avg(_gcBytesBuffer);
 
             const double nsToMs = 1e-6;
-            Debug.Log(
+            GameLog.Verbose(
                 $"{_logPrefix} frame={Time.frameCount} window={window}\n" +
                 $"  rep-avg-ms={repAvgNs * nsToMs:F4} rep-p99-ms={repP99Ns * nsToMs:F4} rep-max-ms={repMaxNs * nsToMs:F4}\n" +
                 $"  gc-alloc-avg-b={gcAvgBytes:F1} gc-alloc-p99-b={gcP99Bytes} gc-alloc-max-b={gcMaxBytes}",

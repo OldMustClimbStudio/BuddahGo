@@ -58,14 +58,6 @@ public class SkillConfigRepository
         return fallbackValue ?? string.Empty;
     }
 
-    public string GetBehaviorType(string skillId, string fallbackValue = "")
-    {
-        if (TryGetDefinition(skillId, out SkillDefinitionRecord record) && !string.IsNullOrWhiteSpace(record.behaviorType))
-            return record.behaviorType;
-
-        return fallbackValue ?? string.Empty;
-    }
-
     public int GetSortOrder(string skillId, int fallbackValue = 0)
     {
         if (TryGetDefinition(skillId, out SkillDefinitionRecord record))
@@ -114,14 +106,6 @@ public class SkillConfigRepository
         return true;
     }
 
-    public List<SkillEffectParamRecord> GetAllParams(string skillId)
-    {
-        if (_effectParamsBySkillId.TryGetValue(NormalizeId(skillId), out List<SkillEffectParamRecord> records))
-            return new List<SkillEffectParamRecord>(records);
-
-        return new List<SkillEffectParamRecord>();
-    }
-
     public bool TryGetFloat(string skillId, string effectType, string paramKey, out float value)
     {
         value = 0f;
@@ -131,30 +115,9 @@ public class SkillConfigRepository
         return float.TryParse(record.paramValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 
-    public float GetFloat(string skillId, string effectType, string paramKey, float defaultValue)
-    {
-        return TryGetFloat(skillId, effectType, paramKey, out float value) ? value : defaultValue;
-    }
-
     public bool TryGetParam(string skillId, string effectType, string paramKey, out SkillEffectParamRecord record)
     {
         return _effectParamByCompositeKey.TryGetValue(BuildEffectKey(skillId, effectType, paramKey), out record);
-    }
-
-    public List<string> GetSkillIdsByTag(string tag)
-    {
-        if (_skillIdsByTag.TryGetValue((tag ?? string.Empty).Trim(), out HashSet<string> ids))
-            return new List<string>(ids);
-
-        return new List<string>();
-    }
-
-    public List<string> GetSkillIdsByBehaviorType(string behaviorType)
-    {
-        if (_skillIdsByBehaviorType.TryGetValue((behaviorType ?? string.Empty).Trim(), out HashSet<string> ids))
-            return new List<string>(ids);
-
-        return new List<string>();
     }
 
     private void BuildDefinitions(List<SkillDefinitionRecord> records)

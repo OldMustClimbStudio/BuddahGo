@@ -1,0 +1,4 @@
+var method=typeof(NewBuddah.PredictionV2.Core.BuddahPredictedMotor).Assembly.GetType("NewBuddah.PredictionV2.Core.BuddahTickMath").GetMethod("ServerEventToLocalTick",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+uint[][] cases={new uint[]{35000,37477,34560,32083},new uint[]{37477,37477,34560,34560},new uint[]{37480,37477,34560,34563},new uint[]{0,0,100,100},new uint[]{1,3000,10,0},new uint[]{uint.MaxValue,0,1,uint.MaxValue},new uint[]{100,100,100,100},new uint[]{100,90,200,210}};
+foreach(var c in cases){uint result=(uint)method.Invoke(null,new object[]{c[0],c[1],c[2]});if(result!=c[3])throw new System.Exception("clock expected "+c[3]+" got "+result);}
+return new{passed=cases.Length};

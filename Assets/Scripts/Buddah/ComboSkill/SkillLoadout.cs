@@ -39,17 +39,6 @@ public class SkillLoadout : NetworkBehaviour
         return SlotSkillIds[slotIndex] ?? string.Empty;
     }
 
-    /// <summary>
-    /// Client calls this to request changing loadout from menu/UI.
-    /// </summary>
-    public void RequestSetSlot(int slotIndex, string skillId)
-    {
-        if (!IsOwner)
-            return;
-
-        SetSlotServerRpc(slotIndex, skillId);
-    }
-
     [Server]
     public void SetSlotsServer(IReadOnlyList<string> skillIds)
     {
@@ -72,7 +61,7 @@ public class SkillLoadout : NetworkBehaviour
 
         EnsureSlotCountServer();
         SlotSkillIds[slotIndex] = skillId ?? string.Empty;
-        Debug.Log($"[SkillLoadout][Server] Set slot {slotIndex} -> '{SlotSkillIds[slotIndex]}'");
+        GameLog.Verbose($"[SkillLoadout][Server] Set slot {slotIndex} -> '{SlotSkillIds[slotIndex]}'");
     }
 
     [Server]
@@ -89,7 +78,7 @@ public class SkillLoadout : NetworkBehaviour
         }
 
         SetSlotsServer(resolvedLoadout);
-        Debug.Log($"[SkillLoadout][Server] Applied property selection loadout for player {playerId}.");
+        GameLog.Verbose($"[SkillLoadout][Server] Applied property selection loadout for player {playerId}.");
         return true;
     }
 
@@ -131,12 +120,6 @@ public class SkillLoadout : NetworkBehaviour
         LogFinalLoadout("ApplyDefaultSkillsServer");
     }
 
-    [ServerRpc(RequireOwnership = true)]
-    private void SetSlotServerRpc(int slotIndex, string skillId)
-    {
-        SetSlotServer(slotIndex, skillId);
-    }
-
     [Server]
     private void EnsureSlotCountServer()
     {
@@ -151,7 +134,7 @@ public class SkillLoadout : NetworkBehaviour
     [Server]
     private void LogFinalLoadout(string context)
     {
-        Debug.Log(
+        GameLog.Verbose(
             $"[SkillLoadout][Server] {context} final slots: " +
             $"0='{GetSkillId(0)}', 1='{GetSkillId(1)}', 2='{GetSkillId(2)}'");
     }

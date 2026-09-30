@@ -135,8 +135,26 @@ public class LapAddLineUITrigger : MonoBehaviour
         TakeLapSnapshot();
     }
 
-    private static LapProgress FindOwnedLapProgressOn<T>() where T : MonoBehaviour
+    private readonly System.Collections.Generic.List<BuddahMovement> _playerQuery = new System.Collections.Generic.List<BuddahMovement>();
+
+    private LapProgress FindOwnedLapProgressOn<T>() where T : MonoBehaviour
     {
+        if (typeof(T) == typeof(BuddahMovement))
+        {
+            PlayerRegistry.CopyActiveTo(_playerQuery);
+            for (int i = 0; i < _playerQuery.Count; i++)
+            {
+                BuddahMovement movement = _playerQuery[i];
+                if (movement == null || !movement.IsOwner)
+                    continue;
+
+                LapProgress progress = movement.GetComponent<LapProgress>();
+                if (progress != null && progress.IsOwner)
+                    return progress;
+            }
+            return null;
+        }
+
         T[] all = FindObjectsByType<T>(FindObjectsSortMode.None);
         for (int i = 0; i < all.Length; i++)
         {

@@ -1,0 +1,80 @@
+# P0 验证记录
+
+日期：2026-09-29（America/New_York）。目标分支：`refactor/architecture-optimization`。
+
+## P0-3：正式包编译修复
+
+- 预检：逐个检查 motor 中 20 个 Editor/Dev 条件字段。唯一未守卫的有效代码引用是 `_reconcileCallbackCount++`；另一命中只是 `_realScratch` 注释。
+- 修改：递增语句使用与声明相同的 `(UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW`。
+- I6：不适用，没有合并重复实现。32 种宏组合静态比较：12 种保留逐字相同的有效源码，20 种仅移除无效的计数器递增。
+- R1：Editor C# 编译 0 error；无新增 C# warning（首次全量 11 条已有 warning，增量 Assembly-CSharp 9 条）。
+- R3 构建：Windows64 / 非 Development 成功，0 error、44 build warning，687.4 秒，1137.62 MB。输出 `Builds/ArchitectureP0Release/BuddahGo.exe`，MCP job `build-1f84e09cbf`。
+- R3 启动：已实际启动并观察到 Create Room / Browse Rooms / Join Room 主菜单。当前未启动 Steam，日志首先报告 `SteamApi_Init failed with NoSteamClient`，随后 PredictionManager 有连带 NullReferenceException；不能视为 Steam 联机成功。正式包中仍出现 D-PERF，这是 P0-4 将处理的已知 B2。
+- 本机证据：`Logs/architecture-editor.log`、`Logs/p0-3-release-player.log`（生成日志，不提交）。
+
+## 首轮本机多端测试（补充验证）
+
+拓扑：原 worktree 的 Unity Editor 为 host，ParrelSync `BuddahGo_clone_0` 的独立 Unity Editor 为 client；两端均为 Unity 2022.3.55f1c1。使用已安装的 ParrelSync，通过其 `CreateCloneFromCurrent()` 创建。MainMenu 在内存中临时将 TransportManager 指向 Tugboat，监听 `127.0.0.1:17845`，停用 FishyFacepunch；不保存场景。两端限制为 60 fps、后台运行。
+
+参考：[FishNet Tugboat](https://fish-networking.gitbook.io/docs/fishnet-building-blocks/transports/tugboat)、[ParrelSync](https://github.com/VeriorPies/ParrelSync)、[FishNet 延迟模拟](https://fish-networking.gitbook.io/docs/tutorials/simple/simulating-bad-network-connections)。当前测试不覆盖 Steam 大厅、P2P relay 或真实公网条件，也不是计划 R4 要求的 Dev Build host 拓扑。
+
+已观察到的结果：
+
+1. host ClientId=0，纯 client ClientId=1，host 的 `ServerManager.Clients.Count=2`。
+2. client 调用原有 `RequestToggleReady()`；host 上玩家 1 的 Ready 从 false 变 true；client 收到相同名单。没有直接写 Ready 状态。
+3. 无 Steam 大厅时，本地 host 的名单条目初始 `IsHost=false`。为隔离下游测试，仅在本轮测试夹具中于本地连接就绪后重新调用原有 `AddOrUpdatePlayer(localConnection)`，得到 host=true、ready=true。该辅助刷新不计作正常大厅流程通过，也未修改产品代码。
+4. host 经原有 `RequestStartGame()` 进入 PropertySelection。client 通过原有 RPC 选择 acceleration / giant / reverseturn，host 选择 slowtrap / blackcurtain / push_projectile_hands；服务器收到全部 6 个槽位。
+5. 两端均加载 RaceMap，并观察到相同网络 ObjectId=2/3、OwnerId=0/1，每端仅自身玩家的 IsOwner=true。
+6. client 报告 RaceMap 场景对象找不到 SceneId，涉及 LeaderBoardManager、ResultRuntime、ResultDecisionManager、IntroSequenceManager 与 DebugboxCanPush 等。观察时控制权未解锁；本轮在记录问题后停止，没有强行绕过开赛门控。
+7. 日志汇总：host 153 条 D-LOC 心跳、client 34 条；四项 div 非零窗口数均为 0，未发现 D-LOC FATAL。但 client 最后 hof-compared=0、rec-cb=3；host 最后 hof-compared=1、rec-cb=0。未完成有效开赛后的双端 90 秒测试，因此 **R7 不通过验收 / 未完成**，不能用静止阶段的零 divergence 代替。
+
+R4 仅部分路径验证，R5 仅配装提交验证、没有完整技能施放矩阵；R6、R8、R9 未完成。P0-3 保留 `done-unverified`。
+
+## 首轮发现，后续集中处理
+
+| 编号 | 现象 | 处理边界 |
+|---|---|---|
+| N1 | 无 Steam 的本机 Tugboat host 连接建立后，房间名单未识别 host，阻挡正常开始按钮路径 | blocked：已记录，产品修复应按 D8 单独处理；本轮仅明确记录测试夹具的名单刷新。 |
+| N2 | 同源 ParrelSync client 加载 RaceMap 时多个 SceneId 未注册；开赛控制权没有完成解锁 | blocked：保留日志与截图，定位/修复后再集中回归，不重复重跑当前失败场景。 |
+| N3 | Steam 未运行时初始化异常引发 PredictionManager 连带异常 | 环境限制及启动健壮性问题，未在架构提交中修复。 |
+| N4 | 首次导入有空动画、LightingData 不兼容警告，选择 UI 出现中文字体缺字 | 基线资源告警，不作为本次源码改动产生的新 warning。 |
+
+按用户要求：本轮发现先记录；相关修复完成后再做一次针对性回归，避免同一问题反复测试。
+
+## P0-4：探针编译边界
+
+- 共修改 6 处守卫：motor 3、bootstrap 1、PerfProbe 1、VisualShakeProbe 1。`ProjectSettings` 宏保持原样。
+- 预检扫描 22 处 prediction 条件，修改后没有未限定的 `#if BUDDAH_PREDICTION...`。
+- 192 组 Editor/Dev 条件编译比较均与 P0-3 有效源码逐字相同；正式条件下两类探针及其调用点均消失。I6 不适用。
+- R1：修改后的 Editor C# 编译成功，没有新增 C# warning。Console 的 `Timings:` 是基线 Burst 编译统计输出。
+- R2：Windows64 Development 构建成功，0 error、15 warning，38.1 秒，1166.51 MB。输出 `Builds/ArchitectureP0Dev/BuddahGo.exe`，job `build-5529727967`。已实际启动并截图确认主菜单。
+- R3：Windows64 非 Development 构建成功，0 error、12 warning，24.1 秒，1137.62 MB。输出 `Builds/ArchitectureP0ReleaseFinal/BuddahGo.exe`，job `build-4ad68008e0`。已实际启动并截图确认主菜单。
+- 产物检查：Dev 的 Assembly-CSharp.dll 含 PerfProbe、VisualShakeProbe、PerfProbeScope 与计时字段的元数据名字；最终正式包四者均不存在。
+- Player.log 检查：Dev 有 182 条 D-PERF 心跳，最终正式包为 0；两者均无 Exception 行。此时观察到 Steam 进程已运行，与 P0-3 首次无 Steam 的启动条件不同；不将此差异归因于本步骤代码。
+- R7：首轮记录的 N2 尚未处理；按用户要求不重复执行同一受阻测试，保持 `done-unverified`。已完成的编译/启动检查不能替代 R7。
+- 本机日志：`Logs/p0-4-dev-player.log`、`Logs/p0-4-release-player.log`。测试进程均已关闭。
+- Clone 生成的 ParrelSync 本地设置与 MCP 连接辅助脚本只保留为本地测试配置，不提交。Unity 自动删除的两份孤立 meta 和 PackageManagerSettings 自动改动已恢复。
+
+## 独立行为修复与一次集中回归
+
+N1/N2 在独立 `fix/local-multiplayer-flow` 分支修复，提交 `be7c0fd`，见 [PR #48](https://github.com/OldMustClimbStudio/BuddahGo/pull/48)。修复不混入 P0 的编译守卫提交。本节补充首轮失败之后的结果，不覆盖或改写上面的首次测试记录。
+
+- MainMenu 新增使用现有 SceneCondition 的 ObserverManager，RoomStateManager prefab 标记为全局网络对象；host 在本地客户端就绪后刷新其名单条目。
+- 一次双 Editor/ParrelSync/Tugboat 回归自动完成 Ready → 属性/技能选择 → RaceMap → 权威 GO / 移动解锁，不再使用 host 身份测试补丁。
+- host/client 活跃运行 195.095 / 195.003 秒，均包含约 95 秒普通条件和 100 秒启用 100ms LatencySim 的阶段。
+- D-LOC 心跳 236 / 91 条，四项 divergence 的非零窗口数均为 0，没有 FATAL、SceneId 查询失败或新连接后的 Exception 行。client reconcile 回调达到 9581。
+- 两端各请求施放 6 次，观察到一致的 6 技能及 blackcurtain anti 播报；两端都记录到 Giant 的 scale=4。
+- 这是本机预测/同步回归结果；仍不覆盖完整 Steam 大厅/P2P、三圈结算与投票、所有 base/anti 组合、完整物理交互和性能对比。P0-1 的完整基线仍为 done-unverified。
+- 可复核证据见 PR #48 中 `agent-exchange/console/2026-09-29-local-flow-regression.md`；本机 JSONL 日志和截图保留在两端各自的 Logs 中。
+
+## 审查补充（F4/F6）
+
+P0-5 取消跟踪的日志会在其他人更新到该提交时从其工作区删除；有本地需要的记录应先备份。可从删除前提交取回，例如：
+
+```powershell
+git show '9f12e5f^:agent-exchange/console/raw/host-player-log-2026-04-19.log'
+```
+
+通用形式为 `git show 9f12e5f^:<path>`。以上提醒及命令需同步到现有 PR #47 的描述；本轮只完成本地文档，尚未发布 PR 描述。
+
+`BUDDAH_SERGATE_DEBUG` 当前只有该宏守卫，没有额外 Editor/Development 限定；正式包显式开启该宏时仍可能包含对应路径。本轮仅记录，不改变团队未决的调试默认值。

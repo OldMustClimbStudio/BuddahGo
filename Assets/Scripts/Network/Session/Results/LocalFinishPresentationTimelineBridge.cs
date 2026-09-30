@@ -84,7 +84,7 @@ namespace SteamMultiplayer.Network.Results
         private void DebugLog(string message)
         {
             if (enableDebugLogs)
-                Debug.Log($"[LocalFinishPresentationTimelineBridge] {message}");
+                GameLog.Verbose($"[LocalFinishPresentationTimelineBridge] {message}");
         }
     }
 }

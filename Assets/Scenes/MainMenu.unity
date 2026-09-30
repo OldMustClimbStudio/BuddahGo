@@ -1492,7 +1492,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1802809107}
-        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, Assembly-CSharp
+        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, BuddahGo.Runtime
         m_MethodName: ShowCreateRoom
         m_Mode: 1
         m_Arguments:
@@ -6262,6 +6262,7 @@ GameObject:
   - component: {fileID: 1186892268}
   - component: {fileID: 1186892269}
   - component: {fileID: 1186892270}
+  - component: {fileID: 1186892271}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -6409,6 +6410,22 @@ MonoBehaviour:
   _tickRate: 60
   _pingInterval: 1
   _physicsMode: 0
+--- !u!114 &1186892271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186892261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d331f979d46e8e4a9fc90070c596d44, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  _updateHostVisibility: 1
+  _maximumTimedObserversDuration: 10
+  _defaultConditions:
+  - {fileID: 11400000, guid: 2033f54fd2794464bae08fa5a55c8996, type: 2}
 --- !u!1 &1200910288
 GameObject:
   m_ObjectHideFlags: 0
@@ -7143,7 +7160,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1802809107}
-        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, Assembly-CSharp
+        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, BuddahGo.Runtime
         m_MethodName: ShowJoinById
         m_Mode: 1
         m_Arguments:
@@ -11981,7 +11998,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1802809107}
-        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, Assembly-CSharp
+        m_TargetAssemblyTypeName: SteamMultiplayer.UI.MainMenuUI, BuddahGo.Runtime
         m_MethodName: ShowBrowseRooms
         m_Mode: 1
         m_Arguments:

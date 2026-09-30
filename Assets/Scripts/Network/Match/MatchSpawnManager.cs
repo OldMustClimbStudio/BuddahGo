@@ -175,7 +175,7 @@ namespace SteamMultiplayer.Network.Match
         private static void DebugLog(string message)
         {
             if (NetDebug.EnableVerboseLog)
-                Debug.Log(message);
+                GameLog.Verbose(message);
         }
 
         private void ApplyResolvedSkillLoadout(NetworkObject playerInstance, int playerId)
@@ -194,7 +194,7 @@ namespace SteamMultiplayer.Network.Match
             if (!appliedResolvedLoadout)
                 skillLoadout.ApplyDefaultSkillsServer();
 
-            Debug.Log(
+            GameLog.Verbose(
                 $"[MatchSpawnManager] Applied skill loadout for player {playerId}. " +
                 $"resolved={appliedResolvedLoadout}, slots=('{skillLoadout.GetSkillId(0)}','{skillLoadout.GetSkillId(1)}','{skillLoadout.GetSkillId(2)}')");
         }

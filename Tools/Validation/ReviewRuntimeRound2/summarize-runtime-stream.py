@@ -23,10 +23,10 @@ for peer in ('host','client'):
    for event,target in [('pushAccepted','pushes'),('pushAnimation','animations'),('impulse','impulses'),('actorCollision','collisions'),('respawnRequest','respawns')]:
     if k==event:c[target].append(r)
   if k=='run' and r['handoffId']>0 and 'Replayed' not in (r['replicateState'] or ''):
-   key=(r['handoffId'],r['phase']);previous=lastphase.get(owner)
+   key=(r.get('obj'),r['handoffId'],r['phase']);previous=lastphase.get(owner)
    if key!=previous:
-    o['phases'].append({a:r[a] for a in ['localTick','serverTick','inputTick','phase','handoffId','start','inheritEnd','blendEnd']})
-    if previous and previous[0]==key[0] and previous[1]=='Normal' and key[1]!='Normal':o['resurrections'].append(r)
+    o['phases'].append({a:r[a] for a in ['obj','localTick','serverTick','inputTick','phase','handoffId','start','inheritEnd','blendEnd']})
+    if previous and previous[:2]==key[:2] and previous[2]=='Normal' and key[2]!='Normal':o['resurrections'].append(r)
     lastphase[owner]=key
    o['phaseSamples'][r['phase']]+=1
   if k=='transformCorrection' and goUtc is not None and 0<=(datetime.fromisoformat(r['utc'])-goUtc).total_seconds()<1:o['corrections'].append(r)
@@ -36,7 +36,7 @@ for peer in ('host','client'):
     o['jumps'].append({a:r[a] for a in ['localTick','serverTick','snapshotTick','phase','rawPhase','start','rawStart','inheritEnd','rawInheritEnd','blendEnd','rawBlendEnd','modifiers','rawModifiers']}|{'offset':offset,'jump':None if owner not in lastoffset else offset-lastoffset[owner]})
     lastoffset[owner]=offset
    for axis,deadline in enumerate(r['rawModifiers']):
-    key=(owner,axis,deadline)
+    key=(owner,r.get('obj'),axis,deadline)
     if deadline==0:continue
     active=r['modifiers'][axis]>tick
     if active and expired.get(key):resurrections.append({'owner':owner,'axis':axis,'deadline':deadline,'row':r});expired[key]=False

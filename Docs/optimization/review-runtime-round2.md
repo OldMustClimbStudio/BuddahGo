@@ -87,11 +87,52 @@ This is not proof that arbitrary clock jumps cannot revive an expired state. Kee
 100 ms active-window resurrection question open pending focused evidence; do not change
 the mapping algorithm solely from a static suspicion.
 
-#52 remains open: old captures do not establish a correct observer camera and contain
-magenta effect rendering. A new controlled owner/observer capture and shader diagnosis
-are in progress. The authority/world-space visual design is unchanged; acceptance is
-the user's decision. R8 scene measurements are also still in progress; no allocation or
-frame-time improvement percentage is claimed from method tests.
+An additional 100 ms session (`visual-corrected-100`) records a +1 offset change at
+client local tick 8050/server 9367, snapshot client/server ticks 8028/9354, pass 1160.
+The historical snapshot is still Blend; its translated end moves 8043 -> 8042.
+Forward simulation immediately before and after remains Normal/inactive. Reading the
+historical snapshot's active flag alone would falsely classify this as resurrection.
+This observation does not exercise a negative jump crossing a just-expired deadline;
+that specific boundary remains unobserved. No clock algorithm change is justified by
+this sample. [Selected original records](evidence/review-round2/cycle-r9-selected.jsonl)
+include both sides of the update and both peers' completed rematch/return-to-room flow.
+
+## High-speed visual capture and shader environment
+
+The original magenta rectangles are an actual import-cache error: affected fire/smoke
+materials resolved to `Hidden/GraphErrorShader2` rather than their source ShaderGraph.
+The main graph and its four SubGraphs contain valid text and retain their dependencies.
+Force-reimporting only `Assets/Plugins/Piloto Studio/Shaders_Reforged/UberFXSG.shadergraph`
+restores `Piloto Studio/UberFXSG` without modifying any source asset, renderer, color or
+effect scale. The reimport does not reproduce the original graph error, so its original
+cause is not established. `isSupported=true` on the error shader was not a valid check.
+
+The next run still showed Unity's cyan asynchronous-compilation placeholder. The final
+`visual-warm-100` run synchronously compiles all passes of the seven referenced materials
+before capture, including a readiness barrier in RaceMap. Both peers completed; all
+137 recorded frames have `shaderCompiling=false`. Inspected frames show the expected
+orange/yellow fire, without the earlier magenta/cyan rectangles. Material, texture,
+camera and frame records are in [visual evidence](evidence/review-round2/visual-warm-summary.json).
+
+Case 12 follows host caster object 2 on the host (owner) and pure client (observer).
+The authoritative caster stays at 80 u/s through all 31 owner frames; the observer has
+38 frames. Simulation latency is enabled at 100 ms on both peers; recorded RTT is
+240 ms. Case 13 follows client caster object 3; the first shot is near the 80 u/s segment,
+but later frames slow down, so the entire clip must not be described as constant speed.
+Observer Rigidbody velocity is not a measurement of interpolated visual-root speed.
+
+The host-caster emission samples place the authoritative start about 20.00 units behind
+the owner renderer's configured emission anchor; corresponding observer samples are
+0.00 and 18.47 units ahead. These are measured at visual creation, relative to the
+configured anchor after its authored offsets, not an animated hand-bone distance.
+They include reconciliation/interpolation and recording overhead; the simplified
+80 u/s * 100 ms = 8-unit estimate is not the measured result of this session.
+The authority/world-space design remains unchanged. Recordings contain only game
+rendering and remain local pending permission to publish; final visual acceptance is
+the user's decision. Earlier magenta/cyan diagnostic clips are not acceptance footage.
+
+R8 scene measurements are still in progress; no allocation or frame-time improvement
+percentage is claimed from method tests.
 
 ## Reproduction and evidence
 

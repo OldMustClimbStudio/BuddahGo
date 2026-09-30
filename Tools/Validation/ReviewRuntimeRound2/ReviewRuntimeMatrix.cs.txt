@@ -25,7 +25,7 @@ public static partial class ReviewRuntimeDriver
     private static int matrixIndex=-1,observedIndex=-1;
     private static double matrixBegan,nextSample,nextCapture;
     private static int captureFrame;
-    private static bool castSent,retrySent,respawnSent,meleeAligned;
+    private static bool castSent,retrySent,respawnSent,meleeAligned,visualMaterialsPrepared;
     private static readonly string[] Cases={"collision","push","ordinary","charged","burst","respawn"};
     private static readonly Dictionary<int,Vector3> TrackPositions=new Dictionary<int,Vector3>();
     private static readonly Dictionary<int,Quaternion> TrackRotations=new Dictionary<int,Quaternion>();
@@ -33,7 +33,7 @@ public static partial class ReviewRuntimeDriver
     private static void PostReplay(uint clientTick,uint serverTick)=>PhysicsSample("postReplay",clientTick,serverTick);
     private static void PhysicsSample(string kind,uint clientReplayTick,uint serverReplayTick)
     {
-        if(writer==null)return;
+        if(writer==null||!BuddahReviewTrace.Detailed)return;
         foreach(var motor in Motors())
         {
             var rb=motor.GetComponent<Rigidbody>();
@@ -46,6 +46,10 @@ public static partial class ReviewRuntimeDriver
     {
         // Leave the natural start untouched; sample its first seconds before fixture setup.
         if(now-unlocked<4)return;
+        if(Arg("-reviewMode")=="visual"&&Arg("-reviewPrepareVisual")=="true") {
+            if(!visualMaterialsPrepared) {PrepareVisualMaterials();visualMaterialsPrepared=true;File.WriteAllText(Path.Combine(output,role+"-visual-ready.flag"),DateTime.UtcNow.ToString("O"));}
+            if(!File.Exists(Path.Combine(output,"host-visual-ready.flag"))||!File.Exists(Path.Combine(output,"client-visual-ready.flag")))return;
+        }
         if(testKeyboard==null)
         {
             if(Arg("-reviewMode")=="visual")matrixIndex=11;
@@ -167,7 +171,7 @@ public static partial class ReviewRuntimeDriver
                 var hands=casterMotor.GetComponent<BuddahHandControl>();
                 var anchor=(Vector3)typeof(BuddahHandControl).GetMethod("GetHandWorldPositionSnapshot",Fields).Invoke(hands,new object[]{true});
                 anchor+=Vector3.up*30;
-                Record(new{kind="videoFrame",index,frame=captureFrame-1,elapsed,file,owner=caster,localOwner=casterMotor.IsOwner,
+                Record(new{kind="videoFrame",shaderCompiling=UnityEditor.ShaderUtil.anythingCompiling,index,frame=captureFrame-1,elapsed,file,owner=caster,localOwner=casterMotor.IsOwner,
                     simulatedLatency=InstanceFinder.NetworkManager.TransportManager.LatencySimulator.GetLatency(),latencyEnabled=InstanceFinder.NetworkManager.TransportManager.LatencySimulator.GetEnabled(),rtt=InstanceFinder.TimeManager.RoundTripTime,
                     modelHandAnchor=Vec(anchor),position=Vec(casterMotor.transform.position),velocity=Vec(casterMotor.GetComponent<Rigidbody>().velocity),
                     projectiles=UnityEngine.Object.FindObjectsByType<ChargedHandProjectileRuntime>(FindObjectsSortMode.None).Select(p=>new{

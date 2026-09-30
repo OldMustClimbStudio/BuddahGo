@@ -155,6 +155,11 @@ P7 按用户决定等待美术确认。原工作区既有 PackageManagerSettings
 
 Functional corrections and actual local two-process evidence are tracked in
 [review-runtime-round2.md](review-runtime-round2.md). The impulse replay timing fix,
-diagnostic log sampling and session-helper documentation are staged locally.
+diagnostic log sampling and session-helper documentation were published to their existing
+PR branches through ordinary commits/stack merges. Integrated EditMode passed 75/75.
+The material cache was repaired without source-art changes; a warmed owner/observer
+capture now has no shader-compilation placeholder frames. Recorded visuals remain local
+pending publication permission and user acceptance. Both peers also completed rematch
+and return-to-room in the follow-up session.
 R8 scene measurements and #52 visual acceptance remain open; this entry does not
 claim all new comments resolved. No history rewrite or dev/main merge is performed.

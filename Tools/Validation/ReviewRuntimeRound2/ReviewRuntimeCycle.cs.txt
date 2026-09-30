@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.IO;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
 using UnityEngine;
@@ -34,7 +35,11 @@ public static partial class ReviewRuntimeDriver
         }
         var room=RoomStateManager.Instance;
         if(reviewRound==2&&room!=null&&room.CurrentMatchSessionPhase.ToString()=="InRoom"&&UnityEngine.SceneManagement.SceneManager.GetActiveScene().name=="MainMenu")
-        {Record(new{kind="returnedRoom",round=reviewRound});Finish("completed");}
+        {
+            string marker=Path.Combine(output,role+"-returned.flag");
+            if(!File.Exists(marker)){File.WriteAllText(marker,DateTime.UtcNow.ToString("O"));Record(new{kind="returnedRoom",round=reviewRound});}
+            if(File.Exists(Path.Combine(output,"host-returned.flag"))&&File.Exists(Path.Combine(output,"client-returned.flag")))Finish("completed");
+        }
         if(now-began>600)Finish("cycle-timeout");
     }
 }

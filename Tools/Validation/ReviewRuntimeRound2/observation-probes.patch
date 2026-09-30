@@ -75,10 +75,10 @@ index 28881ed..066760f 100644
                  $"impulse consumed (NEW authoritative) entryId={entry.Id} logicalId={entry.LogicalId} source={(BuddahPredictedImpulseSourceType)cmd.SourceType} tick={currentTick} " +
 diff --git a/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.ReviewTrace.cs b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.ReviewTrace.cs
 new file mode 100644
-index 0000000..692d6aa
+index 0000000..5441225
 --- /dev/null
 +++ b/Assets/Scripts/New_Buddah/Core/BuddahPredictedMotor.ReviewTrace.cs
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,56 @@
 +#if UNITY_EDITOR || DEVELOPMENT_BUILD
 +using System;
 +using UnityEngine;
@@ -88,6 +88,7 @@ index 0000000..692d6aa
 +    public static class BuddahReviewTrace
 +    {
 +        public static Action<object> Sink;
++        public static bool Detailed = true;
 +    }
 +    public partial class BuddahPredictedMotor
 +    {
@@ -100,7 +101,7 @@ index 0000000..692d6aa
 +            BuddahPredictedLaunchHandoffState raw = default, BuddahPredictedModifierState rawModifier = default,
 +            uint eventId = 0, uint eventTick = 0, uint logicalId = 0)
 +        {
-+            if (BuddahReviewTrace.Sink == null) return;
++            if (BuddahReviewTrace.Sink == null || !BuddahReviewTrace.Detailed) return;
 +            if (kind == "reconcile") _reviewReconcilePass++;
 +            if (kind == "impulse") _reviewConsumptionSequence++;
 +            BuddahReviewTrace.Sink(new {

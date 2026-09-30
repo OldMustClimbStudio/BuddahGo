@@ -21,6 +21,7 @@ public static partial class ReviewRuntimeDriver
     private static double began,unlocked=-1,nextDrive,nextFlush,nextStatus;
     private static string output,role,stage="";
     private static int latency;
+    private static double nextConnectRetry;
     private static StreamWriter writer;
     private static string Arg(string key,string fallback="")
     {
@@ -32,8 +33,29 @@ public static partial class ReviewRuntimeDriver
     {
         if (Arg("-reviewRole")!="") EditorApplication.update+=Update;
     }
+    public static void ReimportShaders()
+    {
+        string path="Assets/Plugins/Piloto Studio/Shaders_Reforged/UberFXSG.shadergraph";
+        var before=AssetDatabase.LoadAssetAtPath<Shader>(path);Debug.Log("[Review shader] before="+(before==null?"null":before.name));
+        AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceUpdate|ImportAssetOptions.ForceSynchronousImport);
+        var after=AssetDatabase.LoadAssetAtPath<Shader>(path);Debug.Log("[Review shader] after="+(after==null?"null":after.name));
+    }
+    private static void PrepareVisualMaterials()
+    {
+        var paths=AssetDatabase.GetDependencies(new[]{"Assets/VFX/如来神掌/射击特效.prefab","Assets/VFX/如来神掌/如来神掌VFXGraph.prefab"},true);
+        var materials=paths.Where(p=>p.EndsWith(".mat")).Select(p=>AssetDatabase.LoadAssetAtPath<Material>(p)).Where(m=>m!=null).ToArray();
+        foreach(var material in materials)for(int pass=0;pass<material.passCount;pass++)ShaderUtil.CompilePass(material,pass,true);
+        string folder=Arg("-reviewOutput");Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder,Arg("-reviewRole")+"-material-readiness.json"),JsonConvert.SerializeObject(new {
+            compiling=ShaderUtil.anythingCompiling,scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
+            materials=materials.Select(m=>new {material=m.name,path=AssetDatabase.GetAssetPath(m),shader=m.shader.name,supported=m.shader.isSupported,
+                passes=Enumerable.Range(0,m.passCount).Select(i=>new{index=i,compiled=ShaderUtil.IsPassCompiled(m,i)}).ToArray(),
+                textures=m.GetTexturePropertyNames().Select(n=>new{name=n,path=AssetDatabase.GetAssetPath(m.GetTexture(n)),width=m.GetTexture(n)==null?0:m.GetTexture(n).width,height=m.GetTexture(n)==null?0:m.GetTexture(n).height}).ToArray(),
+                messages=ShaderUtil.GetShaderMessages(m.shader).Select(x=>new{x.message,x.severity}).ToArray()}).ToArray()},Formatting.Indented));
+    }
     public static void Launch()
     {
+        if(Arg("-reviewReimportShaders")=="true")ReimportShaders();
         if (Arg("-reviewClone")=="true")
         {
             Type manager=AppDomain.CurrentDomain.GetAssemblies()
@@ -42,6 +64,7 @@ public static partial class ReviewRuntimeDriver
             if (clone==null) throw new InvalidOperationException("Clone creation failed");
         }
         EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity",OpenSceneMode.Single);
+        if(Arg("-reviewPrepareVisual")=="true")PrepareVisualMaterials();
         var nm=UnityEngine.Object.FindObjectOfType<NetworkManager>();
         if(nm==null)throw new InvalidOperationException("MainMenu NetworkManager missing");
         var tm=nm.GetComponent<TransportManager>();
@@ -77,6 +100,7 @@ public static partial class ReviewRuntimeDriver
         began=Time.realtimeSinceStartupAsDouble;
         Application.runInBackground=true;Application.targetFrameRate=60;
         BuddahReviewTrace.Sink=Record;
+        BuddahReviewTrace.Detailed=Arg("-reviewMode")!="visual";
         Application.logMessageReceived+=CaptureLog;
         Record(new{kind="start",role,latency,project=Application.dataPath,version=Arg("-reviewVersion","95e57a0"),mode=Arg("-reviewMode","n10")});
         var view=EditorWindow.GetWindow(typeof(Editor).Assembly.GetType("UnityEditor.GameView"));
@@ -99,12 +123,14 @@ public static partial class ReviewRuntimeDriver
                 // Latency is configured before connection/selection/GO on both peers.
                 nm.TransportManager.LatencySimulator.SetLatency(latency);
                 nm.TransportManager.LatencySimulator.SetEnabled(latency>0);
-                connected=true;
+                connected=true;nextConnectRetry=now+5;
                 nm.TimeManager.OnPostTick+=PostTick;
                 nm.GetComponent<FishNet.Managing.Predicting.PredictionManager>().OnPostReplicateReplay+=PostReplay;
                 if(host)game.StartHost();else game.StartClient("127.0.0.1");
                 Record(new{kind="connect",role,latency,tick=nm.TimeManager.LocalTick});
             }
+            if(connected&&!host&&nm!=null&&game!=null&&!nm.ClientManager.Started&&now>=nextConnectRetry&&nm.TransportManager.Transport.GetConnectionState(false)==FishNet.Transporting.LocalConnectionState.Stopped)
+            {nextConnectRetry=now+5;game.StartClient("127.0.0.1");Record(new{kind="connectionRetry"});}
             if(room!=null&&nm!=null&&nm.ClientManager.Started&&room.Players.Count==2)
             {
                 if(host&&!started&&room.CanHostStartGame&&room.CurrentMatchSessionPhase.ToString()=="InRoom")

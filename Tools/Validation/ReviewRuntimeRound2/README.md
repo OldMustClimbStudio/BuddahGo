@@ -18,8 +18,19 @@ host JSON status to confirm `server:true`, then launch the clone with the same a
 and `-reviewRole client`. Results are written separately; output directories must be new.
 Do not mix versions within a session. `push` mode runs two static contact fixtures;
 `visual` mode runs the two high-speed camera cases. `-reviewCycle true` uses real existing
-EndMatch/result choices for restart/room return. These latter enhanced camera/cycle paths
-are still being validated at the staged publication and are not claimed passed.
+EndMatch/result choices for restart/room return. Both peers completed this cycle in
+`visual-corrected-100`. A shared completion barrier prevents the host exiting before
+the client's return-to-room observation.
+
+For warmed visual capture use a new output directory and `-reviewMode visual
+-reviewPrepareVisual true -reviewDuration 75`. This synchronously prepares referenced
+material passes in MainMenu and RaceMap; each endpoint waits for both readiness flags.
+If the source shader resolves to GraphErrorShader, the optional one-time
+`-reviewReimportShaders true` reimports only the affected ShaderGraph. Do not clear the
+whole Library or change renderer/material appearance to hide the error. Per-frame
+`shaderCompiling`, simulator latency/RTT, and explicit camera target identities accompany
+the PNGs. Visual mode suppresses detailed simulation traces to reduce capture overhead;
+use matrix/cycle mode for R6/R9 evidence. No scene or prefab is saved.
 
 Latency is set before connection. First-second correction uses GO UTC, not a drifting
 tick window. `summarize-runtime-stream.py <run-directory>` generates a completed-run

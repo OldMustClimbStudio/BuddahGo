@@ -9,3 +9,7 @@ R1：主 Editor 编译无新错误。R3/R7/R9 待 P5 阶段集中运行；核心
 ## P5-2 提前返回收尾
 
 I6 预检推翻“三个分支完全相同”的假设：writer relinquishment 有 ClearPendingForces 或 SimulateZeroVelocityPredictionStep 分支，之后还更新 handoff 并记录 writer；保持原样。仅 movement-blocked 和 rooted 两处完全相同的 ClearPendingForces→SetPredictionVelocitiesSafely→Simulate→FinalizeImpulseDebug→UpdateReplicateDebug 合并，status 参数仍各自为 blocked/rooted。调用位置与 return 保持，R7/R9 随阶段验证。
+
+## P5-3 秒转 tick
+
+三个计算表达式逐字相同，抽出 BuddahTickMath.DurationToTicks；保留外围三种 guard/返回语义，TimeManager.TickDelta 原位读取，CeilToInt、0.0001f 下限、uint cast 与 deadline 加法不变。两个拖尾重置循环存在 Unity `!= null` 与 CLR `?.` 差异，motor 还更新 debug 旗标，按 I6 不合并。R7 随阶段验证。

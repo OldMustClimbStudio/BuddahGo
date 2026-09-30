@@ -340,7 +340,7 @@ namespace NewBuddah.PredictionV2.Core
                 if (durationSeconds <= 0f)
                     return currentTick;
 
-                uint durationTicks = (uint)Mathf.CeilToInt(durationSeconds / Mathf.Max(0.0001f, (float)TimeManager.TickDelta));
+                uint durationTicks = BuddahTickMath.DurationToTicks(durationSeconds, (float)TimeManager.TickDelta);
                 return currentTick + durationTicks;
             }
 
@@ -699,7 +699,7 @@ namespace NewBuddah.PredictionV2.Core
             if (TimeManager == null || durationSeconds <= 0f)
                 return currentTick;
 
-            uint durationTicks = (uint)Mathf.CeilToInt(durationSeconds / Mathf.Max(0.0001f, (float)TimeManager.TickDelta));
+            uint durationTicks = BuddahTickMath.DurationToTicks(durationSeconds, (float)TimeManager.TickDelta);
             return currentTick + durationTicks;
         }
 
@@ -708,7 +708,7 @@ namespace NewBuddah.PredictionV2.Core
             if (TimeManager == null || durationSeconds <= 0f)
                 return 0u;
 
-            return (uint)Mathf.CeilToInt(durationSeconds / Mathf.Max(0.0001f, (float)TimeManager.TickDelta));
+            return BuddahTickMath.DurationToTicks(durationSeconds, (float)TimeManager.TickDelta);
         }
 
         private bool IsLocalPreHandoffBypassActive(uint currentTick)

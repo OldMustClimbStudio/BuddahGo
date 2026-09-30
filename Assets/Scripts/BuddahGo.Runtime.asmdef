@@ -1,0 +1,27 @@
+{
+    "rootNamespace": "",
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "name": "BuddahGo.Runtime",
+    "references": [
+        "FishNet.Runtime",
+        "Unity.InputSystem",
+        "Cinemachine",
+        "Unity.Splines",
+        "Unity.TextMeshPro",
+        "Unity.VisualEffectGraph.Runtime",
+        "MoreMountains.Tools",
+        "Unity.Mathematics",
+        "Unity.Timeline",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "UnityEngine.UI"
+    ]
+}

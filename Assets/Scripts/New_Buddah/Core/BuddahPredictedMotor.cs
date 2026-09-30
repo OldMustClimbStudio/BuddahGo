@@ -529,11 +529,14 @@ namespace NewBuddah.PredictionV2.Core
                 return;
 
             _modifierState = data.ModifierState;
-            // Reconcile carries server-clock deadlines; LocalTick is not synchronized on clients.
-            if (!IsServerInitialized && TimeManager != null)
-                _modifierState = BuddahModifierTickClock.ToLocal(_modifierState, TimeManager.Tick, TimeManager.LocalTick);
-            _computedStats = data.ComputedStats;
             _handoffState = data.HandoffState;
+            uint stateTick = data.GetTick();
+            // Use the tick pair belonging to this authoritative snapshot. The live estimated
+            // server clock can jump during timing updates; it must not move snapshot deadlines.
+            // Only working copies are translated; wire/history states retain server timestamps.
+            stateTick = BuddahTickMath.ReconcileToLocal(ref _modifierState, ref _handoffState, stateTick,
+                IsServerInitialized, IsOwner, PredictionManager.ServerStateTick, PredictionManager.ClientStateTick);
+            _computedStats = data.ComputedStats;
             _introControlActive = data.IntroControlActive;
             _externalKinematicControlActive = data.ExternalKinematicControlActive;
 
@@ -565,8 +568,8 @@ namespace NewBuddah.PredictionV2.Core
             _consoleLogSnapshot.CaptureReconcile(data.GetTick(), data.PlanarSpeed,
                 bootstrap.DebugState.lastReconcilePositionDelta, bootstrap.DebugState.lastReconcileVelocityDelta,
                 bootstrap.DebugState.lastReconcileVelocityPlanarDelta, bootstrap.DebugState.lastReconcileVelocityVerticalDelta);
-            SyncModifierDebugState(data.GetTick());
-            UpdateHandoffDebug(data.GetTick());
+            SyncModifierDebugState(stateTick);
+            UpdateHandoffDebug(stateTick);
 
             if (bootstrap.DebugSettings.dumpReconcile)
                 bootstrap.LogVerbose($"reconcile tick={data.GetTick()} allowed={data.MovementAllowed} speed={data.PlanarSpeed:0.00}");

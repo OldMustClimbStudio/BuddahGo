@@ -45,3 +45,7 @@ N6 修复回归：8 个普通/反噬弹体用例中，服务器、host 视觉、
 **新发现 N7，R5 尚不标为完全通过**：进一步检查数值持续时间发现 SlowTrap anti 的服务器定身约 1 秒后为 force=60/speed=83，再恢复 50/80；客户端在该 21 秒用例内一直 rooted，未进入加速段。P2 原始记录同样存在，非 P3 引入。FishNet LocalTick 明确不跨客户端同步，而 modifier deadline 随 reconcile 直接从服务器复制，疑似时基错配。按用户技能正确性要求另开 fix PR 处理并复测，P3 重构不混入修复。完整三圈/外部 Steam 双机与普通非蓄力推击的完整 R6 矩阵仍未执行。
 
 原始日志与截图：两端 Logs/p3-skill-matrix；全屏采样 Logs/p3-feel-samples.jsonl；分析器 Logs/audit-p3-presentation.py。R1 已通过；R7 与本机重开/回房间通过；R5 因 N7 保持 blocked。P4–P6 继续前先定位并修复 N7。
+
+## N7 独立修复后的补验
+
+2026-09-30 06:36 UTC，fix/modifier-deadline-clock 完成 16 个双端/延迟用例，覆盖主要 modifier 类别的持续时间和恢复；两端结束时刻最大差 0.110 秒，全部 SlowTrap anti 均进入定身后加速。570/283 心跳全零，重开/回房间完成，解除上述 N7 阻塞；完整 R6 普通推击尚留给 P5 专项。详见 n7-modifier-clock-validation.md。

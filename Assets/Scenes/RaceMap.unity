@@ -6674,7 +6674,7 @@ MonoBehaviour:
         m_Calls:
         - m_Target: {fileID: 1953746673}
           m_TargetAssemblyTypeName: SteamMultiplayer.Network.Results.ResultPresentationTimelineBridge,
-            Assembly-CSharp
+            BuddahGo.Runtime
           m_MethodName: HandleTimelineBlackScreenReachedSignal
           m_Mode: 1
           m_Arguments:
@@ -6689,7 +6689,7 @@ MonoBehaviour:
         m_Calls:
         - m_Target: {fileID: 1953746673}
           m_TargetAssemblyTypeName: SteamMultiplayer.Network.Results.ResultPresentationTimelineBridge,
-            Assembly-CSharp
+            BuddahGo.Runtime
           m_MethodName: HandleResultPresentationCompleteSignal
           m_Mode: 1
           m_Arguments:
@@ -6854,7 +6854,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1360732761}
-        m_TargetAssemblyTypeName: RaceFinishManager, Assembly-CSharp
+        m_TargetAssemblyTypeName: RaceFinishManager, BuddahGo.Runtime
         m_MethodName: TriggerDebugFinishRaceFromLocalUi
         m_Mode: 1
         m_Arguments:

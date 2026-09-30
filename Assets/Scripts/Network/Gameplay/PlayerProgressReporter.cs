@@ -116,6 +116,8 @@ public class PlayerProgressReporter : NetworkBehaviour
         _lapTracker?.TryAdvanceCheckpoint(checkpointId);
     }
 
+    #region Result area server entry points
+
     [Server]
     public void EnterResultAreaServer(Vector3 worldPosition, Quaternion worldRotation)
     {
@@ -153,6 +155,10 @@ public class PlayerProgressReporter : NetworkBehaviour
         ApplyResultAreaInteractiveLocally(allowMovement, allowSkills);
         EnterResultAreaInteractiveObserversRpc(allowMovement, allowSkills);
     }
+
+    #endregion
+
+    #region Progress dependencies and registration
 
     private void ResolveProgressDependencies()
     {
@@ -211,6 +217,10 @@ public class PlayerProgressReporter : NetworkBehaviour
 
         return RaceRules.DefaultLapsToFinish;
     }
+
+    #endregion
+
+    #region Result area RPCs and local presentation
 
     [ObserversRpc]
     private void SyncResultAreaTeleportObserversRpc(Vector3 worldPosition, Quaternion worldRotation)
@@ -290,4 +300,6 @@ public class PlayerProgressReporter : NetworkBehaviour
         ApplyResultAreaTeleportLocally(worldPosition, worldRotation);
         _finishPresentationController?.EnterHiddenInResultAreaWaitingReveal();
     }
+    #endregion
+
 }

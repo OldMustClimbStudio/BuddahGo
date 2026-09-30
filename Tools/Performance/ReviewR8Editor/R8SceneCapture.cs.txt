@@ -1,0 +1,147 @@
+// Copy this identical file to Assets/Scripts/Testing/R8SceneCapture.cs in EACH
+// disposable benchmark checkout. It is opt-in via -r8Capture, and never builds logs
+// or writes files inside the measured window. Do not ship it with normal builds.
+using System;
+using System.Globalization;
+using System.IO;
+using Unity.Profiling;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public sealed class R8SceneCapture : MonoBehaviour
+{
+    [Serializable]
+    private sealed class Metadata
+    {
+        public string label, revision, role, unity, scene, operatingSystem, cpu, gpu, build;
+        public int run, width, height, quality, targetFps, vSync, frames;
+        public double warmupSeconds, requestedSeconds, measuredSeconds;
+        public string status;
+    }
+
+    private struct Frame
+    {
+        public int index;
+        public double elapsed, frameMs;
+        public long mainThreadNs, gcBytes;
+    }
+
+    private ProfilerRecorder _main, _gc;
+    private Frame[] _frames;
+    private int _count;
+    private double _sceneAt = -1, _startedAt = -1;
+    private string _output;
+    private Metadata _metadata;
+    private bool _done;
+    private bool _gameplayUnlocked;
+    public void BeginAfterGameplayUnlock() { _gameplayUnlocked=true; _sceneAt=Time.realtimeSinceStartupAsDouble; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Install()
+    {
+        if (Array.IndexOf(Environment.GetCommandLineArgs(), "-r8Capture") < 0) return;
+        var go = new GameObject("R8 scene capture (opt-in)");
+        DontDestroyOnLoad(go);
+        go.AddComponent<R8SceneCapture>();
+    }
+
+    private static string Argument(string key, string fallback)
+    {
+        var args = Environment.GetCommandLineArgs();
+        int index = Array.IndexOf(args, key);
+        return index >= 0 && index + 1 < args.Length ? args[index + 1] : fallback;
+    }
+
+    private void Awake()
+    {
+        _output = Argument("-r8Output", Path.Combine(Application.persistentDataPath, "R8"));
+        _metadata = new Metadata
+        {
+            label = Argument("-r8Label", "UNSPECIFIED"), revision = Argument("-r8Revision", "UNSPECIFIED"),
+            role = Argument("-r8Role", "host"), scene = Argument("-r8Scene", "RaceMap"),
+            run = int.Parse(Argument("-r8Run", "1"), CultureInfo.InvariantCulture),
+            warmupSeconds = double.Parse(Argument("-r8Warmup", "30"), CultureInfo.InvariantCulture),
+            requestedSeconds = double.Parse(Argument("-r8Seconds", "120"), CultureInfo.InvariantCulture),
+            unity = Application.unityVersion, operatingSystem = SystemInfo.operatingSystem,
+            cpu = SystemInfo.processorType, gpu = SystemInfo.graphicsDeviceName,
+            build = Application.isEditor ? "Editor" : Debug.isDebugBuild ? "Development" : "Release",
+            quality = QualitySettings.GetQualityLevel()
+        };
+        // These settings are identical for every cell, and only applied to opt-in captures.
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 60;
+        _metadata.targetFps = Application.targetFrameRate;
+        _metadata.vSync = QualitySettings.vSyncCount;
+        _metadata.width = Screen.width;
+        _metadata.height = Screen.height;
+        _frames = new Frame[60000];
+        _main = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "Main Thread", 1);
+        _gc = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Allocated In Frame", 1);
+        if (!_main.Valid || !_gc.Valid) Finish("INVALID: profiler counter unavailable");
+        SceneManager.activeSceneChanged += SceneChanged;
+    }
+
+    private void SceneChanged(Scene previous, Scene current)
+    {
+        if (_startedAt >= 0 && !_done) Finish("INVALID: scene changed during capture");
+        _sceneAt = -1;
+    }
+
+    private void Update()
+    {
+        if (_done || !_gameplayUnlocked) return;
+        double now = Time.realtimeSinceStartupAsDouble;
+        if (_sceneAt < 0)
+        {
+            if (SceneManager.GetActiveScene().name != _metadata.scene) return;
+            _sceneAt = now;
+        }
+        if (now - _sceneAt < _metadata.warmupSeconds) return;
+        if (_startedAt < 0)
+        {
+            _startedAt = now;
+            return; // Recorder LastValue describes the previous completed frame.
+        }
+        if (_count == _frames.Length) { Finish("INVALID: frame buffer full"); return; }
+        if (_main.Count == 0 || _gc.Count == 0) { Finish("INVALID: empty profiler counter"); return; }
+        _frames[_count++] = new Frame
+        {
+            index = Time.frameCount - 1, elapsed = now - _startedAt,
+            frameMs = Time.unscaledDeltaTime * 1000.0,
+            mainThreadNs = _main.LastValue, gcBytes = _gc.LastValue
+        };
+        if (now - _startedAt >= _metadata.requestedSeconds) Finish("complete");
+    }
+
+    private void Finish(string status)
+    {
+        if (_done) return;
+        _done = true;
+        _main.Dispose();
+        _gc.Dispose();
+        _metadata.status = status;
+        _metadata.frames = _count;
+        _metadata.measuredSeconds = _count == 0 ? 0 : _frames[_count - 1].elapsed;
+        Directory.CreateDirectory(_output);
+        string stem = Path.Combine(_output, _metadata.label + "-" + _metadata.role + "-" + _metadata.run);
+        File.WriteAllText(stem + ".json", JsonUtility.ToJson(_metadata, true));
+        using (var writer = new StreamWriter(stem + ".csv"))
+        {
+            writer.WriteLine("frame,elapsed_seconds,frame_ms,main_thread_ns,gc_allocated_bytes");
+            for (int i = 0; i < _count; i++)
+            {
+                var frame = _frames[i];
+                writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0},{1:R},{2:R},{3},{4}",
+                    frame.index, frame.elapsed, frame.frameMs, frame.mainThreadNs, frame.gcBytes));
+            }
+        }
+        Debug.Log("[R8] " + status + " frames=" + _count + " output=" + stem);
+    }
+
+    private void OnApplicationQuit() { if (!_done) Finish("INVALID: quit before complete"); }
+    private void OnDestroy()
+    {
+        SceneManager.activeSceneChanged -= SceneChanged;
+        if (!_done) { _main.Dispose(); _gc.Dispose(); }
+    }
+}

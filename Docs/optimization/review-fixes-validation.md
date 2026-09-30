@@ -12,7 +12,7 @@
 - 整数边界测试确认转换不会 uint 下溢/上溢回绕。现有 resolver 使用普通大小比较，FromData 的加法本身不是环形时钟协议；本轮没有将整个预测系统改为跨 uint 回绕语义。饱和边界附近可能截短窗口，不能宣称跨完整时钟周期阶段时长仍保持。
 - 原 prediction-helper-cases 的 22 项已由 BuddahTickMathTests、ProjectileBurstPlannerTests 覆盖，本轮核对后不重复迁移。Handshake 测试改用语义 API，并保留重置、断线、序列号、空名单和 guard 测试。
 
-## 本轮结果
+## 首轮本地结果（分配到 PR 前）
 
 - Unity 2022.3.55f1c1 batch EditMode 实际运行：**60/60 通过，失败 0、跳过 0**，NUnit 执行时长 0.086154 秒（不含首次导入）。其中 HandoffClockTests 17、BuddahTickMathTests 16、ProjectileBurstPlannerTests 12、RaceStartHandshakeTests 5、LoadoutRulesTests 6、PlayerIdentityTests 4。
 - R1：本轮 Runtime/Editor/Tests 及项目 C# 编译通过，最终日志没有 `error CS`。首次尝试发现 Handshake 诊断调用方仍直接访问已私有化集合（CS0122），已同步修正 RoomDiagnostics，最终编译及上述测试通过。
@@ -30,14 +30,14 @@
 - 外部 Steam、跨机 Dev 双端、实际驾驶三圈。
 - 可比较的 dev R8 GC.Alloc 基线及同负载 0/100ms 双端性能对照。
 
-## 已有 PR 的归属方案（尚未发布）
+## 已有 PR 的分配结果
 
-保持 `#48 → #47 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58`，底层 dev；本地汇总验证不等于更新远端。发布前向主会话报告验证结果，再按以下文件/片段分配并顺序处理依赖，不强推、不新开 PR。
+保持 `#48 → #47 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58`，底层 dev；修复已在独立 review-publish-20260930 工作区按下表分配，以普通 merge 传播下层变更，未重写历史。远端发布结果以最终逐 PR SHA 台账为准。
 
 | PR | 应归入的修复 |
 |---|---|
 | #48 | networking.md 的 SceneCondition/global/非 BufferLast RPC 规则。 |
-| #47 | p0-validation 的日志删除影响与 `git show 9f12e5f^:<path>` 恢复说明，以及 SERGATE 守卫限制；PR 描述仍待发布。 |
+| #47 | p0-validation 的日志删除影响与 `git show 9f12e5f^:<path>` 恢复说明，以及 SERGATE 守卫限制；PR 描述同步补充。 |
 | #49 | 删除遗留 ProBuilder Settings.json；无调用的 PlayVfxAllObserversRpc 只记录，保留协议声明。 |
 | #50 | baseline/p2-validation 的范围与默认配置收益更正；F3 不执行。 |
 | #52 | BuddahHandControl 两个无调用 burst API 删除、空 skillId warning，以及 N6 视觉取舍文档。 |
@@ -48,7 +48,7 @@
 | #57 | N10 reconcile 工作副本转换、统一时钟 helper及 owner/observer 时钟边界。 |
 | #58 | 新 N10 EditMode、Handshake 测试适配、identity 反射精确签名/断言、测试宏约束、Runtime 无用引用删除、六个 UnityEvent 文档更新、汇总 progress。 |
 
-不得直接将整个本地汇总提交 cherry-pick 到每个 PR；应按表中的文件/片段归属更新，之后重新验证最终堆叠。
+各 PR 使用对应文件/片段的追加提交，不整体 cherry-pick 汇总提交；最终堆叠已重新验证。
 
 ## 本地交付
 
@@ -56,4 +56,31 @@
 - `81d5fc1`：其余审查整理、16 个 GUID 不变的 importer meta、Handshake/identity 测试适配及程序集配置。
 - `docs: record review fixes and validation`：本文件及 F4/F5/F7、progress 更新。
 
-这三个提交仅保存到隔离分支，不代表已按上述归属表发布到各 PR。F3 历史保持，D1/视觉设计/P7 不变。
+上述三提交及后续 8901fd2 保存在原隔离修复分支，作为本地可追溯来源；现有 PR 使用独立分配的追加/merge 提交。F3 历史保持，D1/视觉设计/P7 不变。
+
+
+## 最终堆叠验证与发布收尾
+
+- 最终测试代码树对应 prepared #58 f9565f4；后续仅追加本文/progress/证据索引，无代码变化。Unity 2022.3.55f1c1 实际编译成功，**61/61 EditMode 通过，0 失败、0 跳过**。比首轮新增一个 identity transport 测试：非空 transport 下，空 connection 不访问 transport；非空 connection 转发 ClientId，null/空白地址为空，有效地址原样保留。它不启动 Steam 或 socket。
+- 原 17 个 N10 测试再次通过。证据：Logs/review-stack-editmode.xml、Logs/review-stack-editmode.log。源码和 wire 验证、12 个原 head/下层祖先检查、diff --check 通过，摘要 Logs/review-stack-invariants.json。各早期分支按当时结构适配，未逐个启动 Unity；61 项结果只归最终堆叠。
+- 使用当前目录已有 Windows 短路径作为 projectPath（未修改系统长路径、安全设置或其他工作区）。本次增量启动/编译/测试没有 DirectoryNotFoundException；Unity 内部仍显示规范化长路径，因此不能据此声称首次失败资源均已重新导入或长路径问题根治。
+- 现有 P6 本机 host/client driver 依赖两个已配置的 Editor/ParrelSync 和注入的 HOST_ROLE/DRY_RUN；它在 GO 后约 95 秒才设置 100ms，并每 10 秒采样，无法直接给出“100ms 开赛 handoff”或“首秒校正量”。N8 driver 还写入固定旧 BuddahGo/Logs 控制路径，不能原样用于隔离工作区。本轮没有改旧场景/工作区或启动该 driver；N10 双端 0/100ms 仍未执行。最小后续工作是为隔离的第二客户端配置现有 localhost 工具，将延迟设定前移到 GO 前并记录逐 tick 阶段/首秒校正，然后运行两组；这是新夹具适配，留后续专项，未当作测试失败或通过。
+- F3 用户确认保留历史；用户要求具体历史编译故障最后单独诊断，本轮发布不做历史 fixup。
+- 每个审查项的修复、保留理由及未测边界见 [逐 PR 跟进](review-followups.md)。评论回复由主会话统一协调，本代码发布任务没有重复发评论。
+
+## 找回的历史原始证据
+
+旧 P6 工作区及其 clone 的日志只读可访问。本轮重新读取文件头尾、case sample 索引及完成记录，并计算 SHA256；不是重新运行矩阵，也不是逐行重新判定全部业务断言。P2 两端均有 0–47 的 sample；host 的 cases=48 是控制用例数，client 完成记录 cases=0 不表示没有采样。P3 同样有 48 个样例索引，N7 有 16，N8 有 20。原图像也仍在旧目录；未重新进行视觉验收。
+
+定位：C:/Users/dwh88/.codex/worktrees/architecture-optimization/{BuddahGo|BuddahGo_clone_0}/Logs/<目录>/<peer>.jsonl。原始文件未复制进仓库；只读核验清单在当前验证工作区 Logs/review-evidence-manifest.json。
+
+| 历史目录 | peer | bytes | SHA256 | 最后 UTC / 完成标记 |
+|---|---|---:|---|---|
+| p2-skill-matrix | host | 10827123 | e6866b7c94e522eece3bd55a9fb8ef9d177bf597f6c7de86450983f482adf12b | 2026-09-30T05:33:12.9465319Z / completed=True |
+| p2-skill-matrix | client | 9897554 | 54a640f1122cc5bfa9bbe286b9e0200775841fffd9b73a241ef0d9c3254e94fa | 2026-09-30T05:33:13.1663074Z / completed=True |
+| p3-skill-matrix | host | 10827805 | 798bb3399cd5d200efaaed096c03a6126d06d75dd4ff88169a365c9c019774c7 | 2026-09-30T06:17:09.1458644Z / completed=True |
+| p3-skill-matrix | client | 9967018 | 672d2e233b28db1fa2aad42fc4f7bf51c0dc8c8b5e8f70f9f40f20fd5aa465f8 | 2026-09-30T06:17:09.3020327Z / completed=True |
+| n7-modifier-matrix | host | 4189754 | e8640ce70c12c8ebf9ee54ca1b0728039cb1e57800a642682740b265ecb84d96 | 2026-09-30T06:36:45.4918731Z / completed=True |
+| n7-modifier-matrix | client | 3931732 | 75975fd0eaf4d68b8ff4da606918542a9744101146bba478c015f32f47931700 | 2026-09-30T06:36:45.7216938Z / completed=True |
+| n8-owner-events | host | 6232131 | c085b8ddf2654574d87960e397aeeacde5b3b85b1b6bff160890ac7323ef6837 | 2026-09-30T07:45:25.3529606Z / completed=True |
+| n8-owner-events | client | 5765333 | 4a4ea920d59f4fe713356fb298d5f407eb34ec64956e2b2742d9ff1f9f620af4 | 2026-09-30T07:45:25.5391287Z / completed=True |

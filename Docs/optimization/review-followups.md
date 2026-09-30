@@ -49,3 +49,8 @@ N10 纯 client reconcile 工作副本统一平移六个 handoff tick，区分零
 ## PR #58
 
 新增 N10 17 例测试，Handshake 语义 API 测试，identity 精确反射签名和非空 transport/空或非空 connection/空白或有效地址测试；测试宏约束、Runtime 无用程序集引用清理。最终编译/EditMode 及静态验证以 review-fixes-validation.md 的本轮结果为准。
+
+
+## 历史证据定位补充
+
+本轮后续只读追查找到旧 P6 + clone 的 P2/P3/N7/N8 双端原始 JSONL 与 P2 图像，不是原始数据已丢失。文件大小、SHA256、时间及完成标记见 [验证记录](review-fixes-validation.md#找回的历史原始证据)。这些本机文件未在仓库中，GitHub 审阅者仍不能仅凭摘要重做全部断言；本轮只核验来源/范围，不把历史执行当成当前修复的 runtime 通过。#51 的 SlowTrap 旧结论仍限定 server/host，#54 timing 回跳与 #57 replay 冲量风险仍未证实。

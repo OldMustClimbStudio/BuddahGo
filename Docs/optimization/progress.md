@@ -144,3 +144,8 @@ P7 按用户决定等待美术确认。原工作区既有 PackageManagerSettings
 用户最新优先级为 review 中的功能性问题，网络问题后续集中处理。报告中除 N10 外没有另一项已确认的游戏功能缺陷；F2 为导入元数据完整性，F6 空 skillId warning 为诊断补充，其余主要为代码卫生、文档或待验收事项。已完成的无害整理保留，不据此扩大功能范围。用户随后明确回答 N10“这次一起修复”；本轮已纳入，实现与其余整理可分离，其他网络整改仍留后续。
 
 本地提交台账：`bcdbedc`（N10 及 17 项测试）、`81d5fc1`（其余整理/meta/测试适配）、本记录所在的 `docs: record review fixes and validation`。上述均在隔离分支，尚未发布到现有 PR；F4/F5/F7 的文档提交可通过该唯一标题在本分支定位。最终可运行结果与未验证项见 review-fixes-validation.md。
+
+
+### 2026-09-30 现有 PR 审查跟进发布
+
+按 #48 → #47 → #49–58 的原 head 创建独立本地分支，逐层普通 merge 传播，按归属追加修复；不改 dev/main、不新 PR、不强推、不历史重写。补齐 #58 非空 transport 测试与 #50/#53 注释，最终栈 R1 编译通过、EditMode **61/61**（本轮实际执行），结构/GUID/祖先关系检查通过。各 PR 的 disposition 见 [review-followups.md](review-followups.md)，测试和找回历史原始日志的 SHA256 见 [review-fixes-validation.md](review-fixes-validation.md)。N10 live 双端、N6 人工高速、完整 R6/跨机 Steam/R8 未执行，不以 helper 结果替代。F3 历史编译问题按用户要求留最后单独诊断。

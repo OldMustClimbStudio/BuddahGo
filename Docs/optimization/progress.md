@@ -25,8 +25,8 @@
 | P2-2c | Network 日志迁移 | doing | aaa5382 | 待 P2 集中验证 | 50 处调用；原消息、context、开关不变。 |
 | P2-2d | RaceIntro 日志迁移 | doing | 2b7f6d0 | 待 P2 集中验证 | 52 处调用；原消息、context、开关不变。 |
 | P2-2e | UI 日志迁移 | doing | dbc5ba4 | 待 P2 集中验证 | 8 处调用；原消息、context、开关不变。 |
-| P2-3 | 常量与身份收敛 | doing | | | |
-| P2-4 | 接入 PlayerRegistry | todo | | | |
+| P2-3 | 常量与身份收敛 | doing | 8dfe69b | | |
+| P2-4 | 接入 PlayerRegistry | blocked | | 5 处等价 movement 查询已接入，待阶段验证 | 其余实际查找不同组件或包含 inactive，保留以满足 I5；见 p2-validation.md。 |
 | P2-5a–g | 热路径去浪费 | todo | | | |
 | P3-1 | SkillAction 基类公共方法 | todo | | | |
 | P3-2 | Anti 类改为继承 | todo | | | |
@@ -53,8 +53,8 @@
 | D3 | 删除预测协议里的死字段 | 待定 | |
 | D4 | RaceGateState 枚举 | 待定 | |
 | D5 | JSON 兜底配置，SO 与配置表的漂移 | 待定 | |
-| D6 | 第三方 asmdef 与程序集拆分 | 待定 | |
-| D7 | 资源瘦身，是否改写历史 | 待定 | |
+| D6 | 第三方 asmdef 与程序集拆分 | 授权 P6 | 用户 / 2026-09-30 |
+| D7 | 资源瘦身，是否改写历史 | P7 暂缓，等待美术确认；不改写历史 | 用户 / 2026-09-30 |
 | D8 | 修复缺陷 B3–B14 | 既有 B3–B14 仍待定；本轮新发现 N1/N2 按用户“记录问题、修复后集中回归”要求单独修复，见 PR #48 | 用户 / 2026-09-29 |
 
 ## 新发现

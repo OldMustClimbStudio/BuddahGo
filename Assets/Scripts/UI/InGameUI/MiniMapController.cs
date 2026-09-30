@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class MiniMapController : MonoBehaviour
 {
+    private readonly System.Collections.Generic.List<BuddahMovement> _playerQuery = new System.Collections.Generic.List<BuddahMovement>();
+
     private enum PositionSource
     {
         Transform,
@@ -252,8 +254,9 @@ public class MiniMapController : MonoBehaviour
 
     private Transform FindLocalOwner()
     {
-        BuddahMovement[] movers = FindObjectsByType<BuddahMovement>(FindObjectsSortMode.None);
-        for (int i = 0; i < movers.Length; i++)
+        PlayerRegistry.CopyActiveTo(_playerQuery);
+        var movers = _playerQuery;
+        for (int i = 0; i < movers.Count; i++)
         {
             if (movers[i] != null && movers[i].IsOwner)
             {

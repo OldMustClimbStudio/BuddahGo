@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class IntroClientController : MonoBehaviour
 {
+    private readonly System.Collections.Generic.List<BuddahMovement> _playerQuery = new System.Collections.Generic.List<BuddahMovement>();
+
     private sealed class SequenceRuntimeRecord
     {
         public readonly Dictionary<int, IntroAssignmentData> PendingAssignmentsByObjectId = new Dictionary<int, IntroAssignmentData>();
@@ -354,8 +356,9 @@ public class IntroClientController : MonoBehaviour
 
     private void EnsureBodyControllersPresent()
     {
-        BuddahMovement[] movements = FindObjectsByType<BuddahMovement>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        for (int i = 0; i < movements.Length; i++)
+        PlayerRegistry.CopyActiveTo(_playerQuery);
+        var movements = _playerQuery;
+        for (int i = 0; i < movements.Count; i++)
         {
             BuddahMovement movement = movements[i];
             if (movement == null || movement.GetComponent<RaceBodyIntroStateController>() != null)

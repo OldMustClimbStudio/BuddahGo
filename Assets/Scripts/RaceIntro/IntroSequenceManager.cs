@@ -8,6 +8,8 @@ using UnityEngine.Playables;
 
 public class IntroSequenceManager : NetworkBehaviour
 {
+    private readonly System.Collections.Generic.List<BuddahMovement> _playerQuery = new System.Collections.Generic.List<BuddahMovement>();
+
     [Serializable]
     public class IntroLayout
     {
@@ -473,8 +475,9 @@ public class IntroSequenceManager : NetworkBehaviour
 
     private RaceBodyIntroStateController[] FindIntroBodies()
     {
-        BuddahMovement[] movements = FindObjectsByType<BuddahMovement>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        for (int i = 0; i < movements.Length; i++)
+        PlayerRegistry.CopyActiveTo(_playerQuery);
+        var movements = _playerQuery;
+        for (int i = 0; i < movements.Count; i++)
         {
             BuddahMovement movement = movements[i];
             if (movement == null || movement.GetComponent<RaceBodyIntroStateController>() != null)

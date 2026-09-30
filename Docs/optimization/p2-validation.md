@@ -35,3 +35,11 @@ R1：Unity 2022.3.55f1c1 完整刷新后，GameLog 已实际加载到 Assembly-C
 I6：Roslyn token 逐字比较（忽略空白）显示 GetLocalClientId 三份、ResolvePlayerName 两份、GetSteamIdForConnection 两份、IsHostConnection 两份各只有一种实现。合并前三者；IsHostConnection 保留会话中的 lobby-host 判定及仅在必要时读取本机连接的短路顺序，避免门面强迫提前求值。原调用方的网络单例空链保留，Foundation 只接收连接/Transport/Lobby。显示名按 lobby→有效本机 Steam→Player id 原顺序，原名字清洗与 Host 身份策略不变；数字回退统一为 FallbackName。
 
 6 个场景名默认值改为同值常量，序列化字段留在原类。三个默认圈数位置（RFM 字段、RaceCompletionTracker 常量、PPR 返回值）均为 3，兜底条件保持。未编辑 prefab/scene/asset。R1/R4 待阶段验证。
+
+## P2-4（符合语义的调用点接入，其余保留）
+
+I5 逐点预检：ISM/ICC 查找 active BuddahMovement 为缺少 controller 的对象 AddComponent；MiniMap/LeaderboardTMPUI 为 owner 过滤并保留原 self GetComponent 顺序；LapAddLine 的泛型第一层查询 BuddahMovement 后才回退 PlayerCamera 和 LapProgress。以上五处改用每个调用者独立 List，保留原循环体、owner 检查、回退和未激活过滤。组件 Awake 注册、OnDestroy 注销；不在 OnDisable 注销。FindObjectsSortMode.None 本无排序契约，ISM 后续原有确定性排序仍保留。
+
+与计划不符：LeaderboardManager/MRPC/RFM 实际查询 PlayerProgressReporter；RSM 的两处为包含 inactive 的 RaceBodyIntroStateController；SkillSlot/Obsession/Leaderboard 的技能、执念查询以及 Lap 的后续回退也不以 BuddahMovement 存在为前提。仅移动组件注册表不能证明返回集合一致，按 I5 保留原实现并标 blocked（部分完成）。业务代码显式 FindObjectsByType<BuddahMovement> 已为 0；Foundation 首次查询仍有一次 seed，避免查询先于 Awake/禁用域重载造成漏查，不能声称整个项目调用为 0。
+
+I6：没有合并具有不同语义的查询。待集中 R1/R4/R5/R8 和实际 registry 集合对照验证；没有提前宣称性能下降。

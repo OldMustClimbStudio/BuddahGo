@@ -6,6 +6,8 @@ using UnityEngine;
 
 public class LeaderboardTMPUI : MonoBehaviour
 {
+    private readonly System.Collections.Generic.List<BuddahMovement> _playerQuery = new System.Collections.Generic.List<BuddahMovement>();
+
     [Header("References")]
     [SerializeField] private TextMeshProUGUI outputText;
 
@@ -105,8 +107,9 @@ public class LeaderboardTMPUI : MonoBehaviour
 
     private void TryFindLocalProgressComponents()
     {
-        var movers = FindObjectsByType<BuddahMovement>(FindObjectsSortMode.None);
-        for (int i = 0; i < movers.Length; i++)
+        PlayerRegistry.CopyActiveTo(_playerQuery);
+        var movers = _playerQuery;
+        for (int i = 0; i < movers.Count; i++)
         {
             if (movers[i] == null || !movers[i].IsOwner)
                 continue;

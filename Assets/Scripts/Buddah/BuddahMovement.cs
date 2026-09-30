@@ -65,6 +65,7 @@ public class BuddahMovement : NetworkBehaviour
 
     private void Awake()
     {
+        PlayerRegistry.Register(this);
         inputActions = new InputSystem_Actions();
         movementAction = inputActions.Player.Movement;
         _playerInputSource = new PlayerBuddahInputSource(movementAction);
@@ -75,6 +76,11 @@ public class BuddahMovement : NetworkBehaviour
             rb = GetComponent<Rigidbody>();
         if (predictionHandoffBridge == null)
             predictionHandoffBridge = GetComponent<BuddahPredictionHandoffBridge>();
+    }
+
+    private void OnDestroy()
+    {
+        PlayerRegistry.Unregister(this);
     }
 
     public override void OnStartClient()

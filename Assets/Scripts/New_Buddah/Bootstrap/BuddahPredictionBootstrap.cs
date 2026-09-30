@@ -40,21 +40,10 @@ namespace NewBuddah.PredictionV2.Bootstrap
         private bool _compatibilityRegistryAutoAdded;
         private bool _runtimeHealthReportAutoAdded;
 
-        private BuddahPredictionDebugOverlay _debugOverlay;
-        public bool ShouldBuildDebugSummaries
-        {
-            get
-            {
-                if (debugSettings != null && (debugSettings.enableOnScreenDebug || debugSettings.enableVerboseLogs
-                    || debugSettings.dumpReplicate || debugSettings.dumpReconcile || debugSettings.dumpGateState))
-                    return true;
-                if (global::NetDebug.EnableVerboseLog)
-                    return true;
-                if (_debugOverlay == null)
-                    _debugOverlay = GetComponent<BuddahPredictionDebugOverlay>();
-                return _debugOverlay != null && _debugOverlay.NeedsDebugSummaries;
-            }
-        }
+        // Health diagnostics have their own log consumer; console mirroring does not use them.
+        public bool HasHealthLogConsumer => BuddahDiagnosticLogSampling.VerboseCompiledIn
+            && ((debugSettings != null && debugSettings.enableVerboseLogs) || global::NetDebug.EnableVerboseLog);
+
         public BuddahMovementModeSwitcher ModeSwitcher => modeSwitcher;
         public Core.BuddahPredictedMotor PredictedMotor => predictedMotor;
         public BuddahPredictedMotorConfig PredictedMotorConfig => predictedMotorConfig;
@@ -183,10 +172,10 @@ namespace NewBuddah.PredictionV2.Bootstrap
             debugState.predictedMotorEnabled = predictedMotor != null && predictedMotor.enabled;
             debugState.legacyMovementEnabled = legacyComponentRefs.Movement != null && legacyComponentRefs.Movement.enabled;
             debugState.lastLifecycleMessage = lifecycleMessage;
-            compatibilityRegistry?.RefreshRegistry();
             runtimeHealthReport?.RefreshHealthReport();
         }
 
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         public void LogVerbose(string message)
         {
             if (debugSettings == null)

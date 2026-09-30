@@ -58,7 +58,8 @@ public class ComboSkillInput : NetworkBehaviour
     private readonly List<Token> _buffer = new();
     private float _lastInputTime = -999f;
 
-    [SerializeField] private bool debugHud = true;
+    // Retained for serialized compatibility; gameplay HUD uses OnComboProgress.
+    [SerializeField, HideInInspector] private bool debugHud;
 
     private void Awake()
     {
@@ -291,12 +292,4 @@ public class ComboSkillInput : NetworkBehaviour
         }
     }
 
-    private void OnGUI()
-    {
-        if (!debugHud || !IsOwner)
-            return;
-
-        GUI.Label(new Rect(10, 10, 800, 30), $"Combo Buffer: {string.Join(",", _buffer)}");
-        GUI.Label(new Rect(10, 30, 800, 30), $"Last Input dt: {(Time.time - _lastInputTime):0.00}s / Window {stepWindowSeconds:0.00}s");
-    }
 }

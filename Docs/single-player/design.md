@@ -384,6 +384,23 @@ FishNet 的 tick 按 `unscaledDeltaTime` 累加（`TimeManager.cs:700`），所�
 
 所有占位资源都放在 `Assets/Placeholder/`，方便以后统一替换。
 
+### 5.8 AI 名字
+
+AI 名字放在配置里（不写在代码中），当前列表如下：
+
+| 名字 | English | 由来 |
+|---|---|---|
+| 漂移禅师 | Drift Zen Master | 这个游戏本来就以漂移为主 |
+| 轮回圈王 | Lap King of Samsara | 跑圈就是在轮回 |
+| 面壁达摩 | Wall-Facing Bodhidharma | 专门撞墙的那位 |
+| 金刚不刹 | Diamond No-Brakes | 金刚不坏，也不刹车 |
+| 回头是岸 | Turn-Back Shore | 逆行专业户 |
+
+**分配规则**
+- 每局开始时，把列表随机打乱后依次分给 AI，同一局里名字不重复。
+- "再来一局"时沿用上一局的分配，名字不变（§2 的"流程"一行）。
+- 列表长度不足 AI 数量时，不够的用占位名"AI {序号}"补齐。
+
 ## 6. 风险
 
 | 风险 | 应对 |

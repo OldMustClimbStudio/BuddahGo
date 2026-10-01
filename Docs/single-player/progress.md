@@ -1,12 +1,12 @@
 # 单机模式进度
 
-最新验证详见 [选择页与新采样复核](validation-2026-10-01.md)；本页维护当前结论，旧检查点按各自源码保留。
+最新有界验证见 [Solo 呈现时间契约](solo-presentation-timeline.md)；此前选择页与 Development 证据见 [选择页与新采样复核](validation-2026-10-01.md)。旧检查点按各自源码保留。
 
 状态：`todo` / `doing` / `paused` / `blocked` / `done` / `done-unverified`。流程见 [HANDOFF.md](HANDOFF.md)。
 
 ## 当前状态与验收边界（2026-10-01 恢复后）
 
-S1 为 `doing`，尚非 user-ready；S1.5 未开始。文档同步 HEAD `af72b22`，最新实际构建/运行源码 `9cca08e`。选择页复核、53 项 Unity 回归和 Development 窗口已有结果；handoff 残留、完整自然生命周期、V3 精度、V12 来源资格与预算仍未闭合。AI 计划保持 `17eb1c9` 的用户开始条件。
+S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新实际构建/运行生产代码为 `cb4a9ad`：统一 Solo 开场/驾驶呈现时间，65 项 Unity 回归通过，两组首局/Rematch 实测及受控历史重置回归通过。完整自然生命周期、V3 精度、V12 来源资格/预算及原粒子 shader 紫色问题仍待独立完成。AI 计划保持 `17eb1c9` 的用户开始条件。
 
 **AI 启动前置（2026-10-01 用户最新决定）**：先完成 S1 单人 Practice，再由用户逐项试玩技能，最后等待用户明确发出开始 AI 的信号。三个条件缺一不可；S1 完成、自动测试通过、文档批准或经过一段时间都不等于开始信号。包括 S1.5 在内的任何 AI 实现、接管调试、采集/可视化工具实现与 AI 运行测试均不得提前开始；信号前只做 AI 文档规划。此前“完成后直接推进 S1.5”的指令已被覆盖。
 
@@ -20,16 +20,16 @@ S1 为 `doing`，尚非 user-ready；S1.5 未开始。文档同步 HEAD `af72b22
 |---|---|---|
 | S1 实现 | Yak 离线启动、自动选择、Practice 计时/结算、退出与失败恢复已有代码和测试用例 | 架构差异见下表；已实现不等于整个 S1 通过 |
 | V1 / V3 | 历史可见 Editor 三圈自然完赛 734.000 s；合成场景测试覆盖结果与一次 Rematch；三阶段 Esc 退出已有历史记录 | 完整结果页停留/实际 Return 按钮和后续流程仍未闭合；Player 启动冒烟不等于完整比赛 |
-| V7 / 本地 handoff | 第二次修复 `525600e` 后，非 Development 首次/Rematch 共 5386 帧、0 错误；GO 速度保留，重复视觉锁定消失，邻域未见水平倒退 | 每轮仍有一次水平视觉停留，body 水平前进约 0.966 m；整体流畅性未通过，LateUpdate 证据不足以确定残留根因 |
+| V7 / 本地 handoff | `cb4a9ad` 两组非 Development 首局/真实 Rematch 均各 5380 帧、0 错误；边界最低有符号速度约 57.97 m/s，无停留或倒退；最终渲染/相机姿态一致，五次控制/传送历史重置通过 | 只覆盖有界 handoff 与受控控制事件；未替代自然完整比赛、自然复活或六技能试玩 |
 | V8 | `27685f9` 真实 selection/intro/driving 三阶段 Esc、清理及重开回执 VALID；client/server 停止，Buddah/Reporter 为 0，Clock/Timing 清空，捕获错误为 0 | 结果页连续 3 次 Rematch、Return 后重开及完整生命周期仍未闭合；不能把 Esc 重开等同结果按钮验收 |
-| V10 / R1 / R3 / R10 | 最新 Unity 相关回归 53/53；非 Development 观察包 0 errors/20 warnings，独立 Development 包 0 errors/15 warnings；选择场景保存后重进已复核 | 53 项不是重跑历史全套 152 项；首次 48/53 的夹具失败保留，`9cca08e` 修正 owner 前置后复跑通过；观察包不等同最终普通发行包验收 |
+| V10 / R1 / R3 / R10 | 最新相关原生回归 65/65；统一时间线非 Development 观察包 0 errors/18 warnings，控制回归包 0 errors/20 warnings | 不是重跑全项目测试；私有观察包不等同普通发行包验收。被构建打断的 MCP 任务及初版首步速度失败均保留，不计通过 |
 | V11 | 历史 strict14 在首场主样本完成前中断；本轮最终 strict14 尚未开始，**未完成、未通过** | 最终源码的完整生命周期、对象计数和 Player 内存趋势；短帧窗口或历史 heap 局部观测不能证明稳定 |
 | V12 | 新独立 Development 三窗口各 3600 帧、共 10800 帧，原生 GC 零缺失、0 运行错误，窗口 `VALID`；measured actual 与 Home 配置分开 | **完整 V12/基线未通过**：预算全 null，clean-source 与最终源码 strict14/Esc 等证据未齐；Development frame/GC 成组使用，不当 Release 结果，不拼接旧被拒采样 |
-| 用户技能试玩准备度 | 替代材质与摘要遮挡复核通过；六技能正常 UI 入口添加/移除/替换、Confirm/皮肤 Select、Esc 清理重进已核对；720p/1080p 布局修复后复核 | 不是鼠标命中或六技能效果验收；handoff 与完整 Practice 仍未完成，**尚非 user-ready** |
-| 来源资格 / 文件恢复 | 设置与两项 FishNet meta 删除保持原状，未重试恢复；旧来源证据保留 | 仅 feature worktree 的三文件恢复仍待用户许可，clean-source 未通过；主根 dev 设置不在恢复范围 |
+| 用户技能试玩准备度 | UI 布局/动作路径及本地 handoff 已有有界复核 | 原粒子插件 shader 紫色问题和六技能效果仍待验收；完整 Practice 未完成，**尚非 user-ready** |
+| 来源资格 / 文件恢复 | 三文件曾按用户授权备份恢复成功；随后 Unity 自动删除两项孤立 meta 并重写设置，证据及 dirty 状态保留 | 不循环 restore、不清无关 dirty；clean-source 未通过；主根 dev 未改动 |
 | V2 / Steam 双客户端 / Solo–Online 交替 | **N/A，不执行，不标通过** | 无单机验收前置 |
 
-本次文档更新只读核对执行任务的检查点及已提交验证报告，未运行 Unity、Player 或测试。详细新数据、初次失败与复跑、UI 回调/鼠标测试边界、两种独立构建及 Development 指标集中记录在 [validation-2026-10-01.md](validation-2026-10-01.md)，不重复追加流水账。
+此前文档 worker 的更新只读核对检查点，本次时间线模块另外实际执行了 Unity 回归与 Player 采样。当前模块的失败候选、修正与验证边界见 [时间线报告](solo-presentation-timeline.md)；UI/Development 历史证据继续保留。
 
 选择页 `26dd6df` 的替代 URP Lit/摘要修复已实际复核；随后发现 720p 固定像素 Canvas 导致标题/Confirm 越界，`affbd6f` 只调整三个 CanvasScaler 字段。保存后重进 720p/1080p 检查通过；皮肤页使用同样字段的运行时预览，比赛标题隐藏与退出清理已核对。原缺失美术未还原，不将动作回调测试写成鼠标命中或技能效果通过。
 

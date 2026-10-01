@@ -1,4 +1,5 @@
 using FishNet.Object;
+using BuddahGo.Match;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
 using UnityEngine;
@@ -41,6 +42,7 @@ public class LapProgress : NetworkBehaviour
     private float _nextAllowedCrossTime = 0f;
     private float _lastProgress01 = 0f;
     private bool _hasLastProgressSample = false;
+    private readonly AcceptedLapTiming _acceptedLapTiming = new AcceptedLapTiming();
 
     public int CurrentLap => currentLap;
     public bool HasStartedLap => hasStartedLap;
@@ -51,6 +53,27 @@ public class LapProgress : NetworkBehaviour
     {
         _tracker = GetComponent<SplineProgressTracker>();
         ResolveStartPointReference();
+    }
+
+    public override void OnStartNetwork()
+    {
+        base.OnStartNetwork();
+        _acceptedLapTiming.Reset();
+    }
+
+    public override void OnStopNetwork()
+    {
+        _acceptedLapTiming.Reset();
+        base.OnStopNetwork();
+    }
+
+    private bool HasLocalTimingAuthority => IsOwner && IsServerInitialized
+        && MatchRules.Current.ReturnTarget == MatchReturnTarget.MainMenuHome;
+
+    internal void ObserveAcceptedLapTimes(RacerId racer, int lapsToFinish)
+    {
+        if (HasLocalTimingAuthority)
+            _acceptedLapTiming.ObservePending(MatchServices.Clock, MatchServices.Timing, racer, lapsToFinish);
     }
 
     private void Update()
@@ -97,6 +120,7 @@ public class LapProgress : NetworkBehaviour
         {
             hasStartedLap = true;
             currentLap = 1;
+            _acceptedLapTiming.Reset(); // Initial line entry starts lap 1; GO remains the timing origin.
             ResetCrossState();
             SetLastProgressSample(currentProgress);
             _nextAllowedCrossTime = Time.time + minimumCrossingCooldownSeconds;
@@ -109,6 +133,9 @@ public class LapProgress : NetworkBehaviour
             return;
 
         currentLap += 1;
+        // Capture only validated local server crossings. Reporting/finishing stays outside the trigger.
+        if (HasLocalTimingAuthority)
+            _acceptedLapTiming.Capture(currentLap - 1, MatchServices.Clock, MatchServices.Timing);
         ResetCrossState();
         SetLastProgressSample(currentProgress);
         _nextAllowedCrossTime = Time.time + minimumCrossingCooldownSeconds;

@@ -28,6 +28,8 @@ S1 为 `doing`，S1.5 未开始且等待用户后续明确 AI 开始信号。本
 
 前一文档同步只读核对检查点；后续实际执行结果见下节，按各自源码与构建区分，不把工具测试写成真实采样通过。已知早期测试输入失败随后修复；strict14 属于人为中断，结果页操作器提前结束属于验收未执行，均不可据此推断新的产品失败。
 
+选择页独立修复已集成为 `26dd6df`：绘马墙/桌子使用场景已有 URP Lit 替代失效引用（原美术材质缺失，不宣称还原）；Practice 隐藏覆盖卡牌的通用摘要并保留阶段/选三技能提示。仅两个文件的有界改动，静态核对其余 227 场景对象块不变；**尚未执行集成后的 Unity 编译、构建或界面复核**。下一短 session 验证首次进入、六技能选择/移除/替换、皮肤确认、Esc 返回重进及比赛中标题隐藏；不运行联机测试。前述 handoff 构建先于此 UI 修复，不能据此标记最终 UI 通过。
+
 ### S1 handoff 局部复核 — 2026-10-01（游戏修复 ec2bac2）
 
 - 实际 Unity EditMode 相关回归 **40 passed / 0 failed / 0 skipped**：新增 IntroHandoffContinuity 12、HandoffClock 20、RaceStartHandshake 5、SoloSessionFlow 2、SoloTransport 1。MCP 的首个异步测试状态滞留不计作结果；以独立 TestRunner 回调落盘结果为准。

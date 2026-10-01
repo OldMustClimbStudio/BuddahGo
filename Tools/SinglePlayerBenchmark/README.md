@@ -22,12 +22,12 @@ Unity/Player coordinator.
 
 ## Player capture integration
 
-The two C# templates now supply the opt-in sampler and the real-input operator:
-`SoloContinuousAcceptanceRuntime.cs.txt` and `SoloBenchmarkFrames.cs.txt`.
+The three C# templates now supply the opt-in sampler and the real-input operator:
+`SoloContinuousAcceptanceRuntime.cs.txt`, `SoloBenchmarkFrames.cs.txt` and `SoloCrossingProbe.cs.txt`.
 Copy them as `.cs` files into a temporary `Assets/Scripts/Match/` location, build a
 Windows x64 Player with `BuildOptions.None` and the extra scripting define
 `BUDDAH_PRIVATE_SOLO_ACCEPTANCE`, then remove the temporary assets and their metas.
-Do not add that define to normal project settings. Neither template executes in
+Do not add that define to normal project settings. None of the templates execute in
 the Editor or without the explicit command line. Use the same built artifact and
 committed game source for all three modes:
 
@@ -53,3 +53,18 @@ counter samples remain blank. The existing feedback controller's queries and
 one-second diagnostic output remain part of this named instrumentation; it is
 not a fixed-input tape or a production AI planner. Runtime settings are restored
 on cleanup. Raw logs, screenshots and machine-local paths stay private.
+
+The capture applies the requested frame cap after host/scene initialization and
+before driving warmup, because FishNet updates the cap on connection startup.
+The first rejected integration attempt observed 500 FPS requested by the host;
+it produced no measured frames and is not a baseline.
+
+In strict14 only, the read-only crossing witness records the actual start-line
+OnTriggerEnter clock bracket and accepted lap changes, plus the exact stored GO
+origin. `crossings.jsonl` is separate timing-accuracy evidence; the existing
+polling residuals alone still do not prove trigger precision. No gameplay object
+position, velocity, lap, progress or finish state is written by the witness.
+
+Latest sampler refinement compiled in a non-Development Windows x64 Player.
+Its corrected frame cap and trigger witness still require a fresh runtime capture;
+compilation does not establish frame-counter availability or timing accuracy.

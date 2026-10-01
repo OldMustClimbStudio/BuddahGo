@@ -1,0 +1,76 @@
+#if BUDDAH_PRIVATE_SOLO_ACCEPTANCE && !UNITY_EDITOR
+// Read-only trigger witness for strict14 timing accuracy. Never changes game state.
+using System;
+using System.IO;
+using System.Reflection;
+using BuddahGo.Match;
+using UnityEngine;
+
+internal sealed class SoloCrossingProbe : MonoBehaviour
+{
+    private LapProgress lap;
+    private Transform line;
+    private string output;
+    private int serial, main, lastLap, triggerFrame=-1, triggerCount;
+    private bool extra, originRecorded;
+    private double lower, upper;
+    private static readonly FieldInfo StartPoint = typeof(LapProgress).GetField("startPointObject",BindingFlags.Instance|BindingFlags.NonPublic);
+    private static readonly FieldInfo Timing = typeof(RaceTimingSync).GetField("_timing",BindingFlags.Instance|BindingFlags.NonPublic);
+    private static readonly FieldInfo Begun = typeof(RaceTiming).GetField("_begun",BindingFlags.Instance|BindingFlags.NonPublic);
+    private static readonly FieldInfo StartTime = typeof(RaceTiming).GetField("_startTime",BindingFlags.Instance|BindingFlags.NonPublic);
+
+    public void Initialize(string filename,int raceSerial,int mainIndex,bool isExtra)
+    {
+        output=filename;serial=raceSerial;main=mainIndex;extra=isExtra;
+        lap=GetComponent<LapProgress>(); lastLap=lap.CurrentLap;
+        var point=StartPoint.GetValue(lap) as GameObject;
+        if(point==null) point=GameObject.FindWithTag("StartingPoint");
+        if(point==null) throw new InvalidOperationException("Timing witness could not resolve the actual start line");
+        line=point.transform;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if(output==null || line==null || !(other.transform==line || other.transform.IsChildOf(line)) || MatchServices.Clock==null) return;
+        double clock=MatchServices.Clock.Now;
+        if(triggerFrame!=Time.frameCount) {triggerFrame=Time.frameCount;triggerCount=0;lower=clock;}
+        upper=clock;triggerCount++;
+        Write(new Row {kind="line-trigger",lap=lap.CurrentLap,clock=clock,lowerClock=lower,upperClock=upper,triggerCount=triggerCount});
+    }
+    private void LateUpdate()
+    {
+        if(output==null || lap==null) return;
+        if(!originRecorded && MatchServices.Timing is RaceTimingSync sync)
+        {
+            var timing=Timing.GetValue(sync);
+            if((bool)Begun.GetValue(timing))
+            {
+                originRecorded=true;
+                Write(new Row {kind="go-origin",clock=(double)StartTime.GetValue(timing)});
+            }
+        }
+        int current=lap.CurrentLap;
+        if(current>lastLap)
+        {
+            bool witnessed=triggerFrame==Time.frameCount && triggerCount>0;
+            Write(new Row {kind=witnessed?"lap-accepted":"lap-without-trigger-witness",lap=current,
+                clock=MatchServices.Clock!=null?MatchServices.Clock.Now:-1,
+                lowerClock=witnessed?lower:-1,upperClock=witnessed?upper:-1,triggerCount=witnessed?triggerCount:0});
+        }
+        lastLap=current;
+    }
+    private void Write(Row row)
+    {
+        row.raceSerial=serial;row.mainIndex=main;row.extra=extra;
+        row.frame=Time.frameCount;row.realtime=Time.realtimeSinceStartupAsDouble;
+        File.AppendAllText(output,JsonUtility.ToJson(row)+"\n");
+    }
+    [Serializable] private sealed class Row
+    {
+        public string kind;
+        public int raceSerial,mainIndex,frame,lap,triggerCount;
+        public bool extra;
+        public double clock,lowerClock,upperClock,realtime;
+    }
+}
+#endif

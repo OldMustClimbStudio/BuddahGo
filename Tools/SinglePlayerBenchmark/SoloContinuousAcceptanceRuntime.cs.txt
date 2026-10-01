@@ -29,6 +29,7 @@ internal sealed class SoloContinuousAcceptanceRuntime : MonoBehaviour
     private const double RaceTimeout = 1500, TotalTimeout = 25200; // 25 min per race; 7 h overall.
     private static string plan, path, state, failure;
     private static SoloBenchmarkFrames benchmark;
+    private static SoloCrossingProbe crossingProbe;
     private static int benchmarkSteering;
     private static EscapeReceipt escapeReceipt;
     private static bool IsEscapeProbe => plan == "escapes3";
@@ -142,6 +143,15 @@ internal sealed class SoloContinuousAcceptanceRuntime : MonoBehaviour
                 Event("heartbeat", "remainingStageSeconds=" + (stageDeadline-now).ToString("F1", CultureInfo.InvariantCulture));
             }
             ObserveGoAndLaps();
+            if(plan=="strict14" && crossingProbe==null)
+            {
+                var racer=LocalPlayer();
+                if(racer!=null)
+                {
+                    crossingProbe=racer.gameObject.AddComponent<SoloCrossingProbe>();
+                    crossingProbe.Initialize(Path.Combine(Path.GetDirectoryName(path),"crossings.jsonl"),raceSerial,mainIndex,isExtra);
+                }
+            }
             var selection = PropertiesSelectionManager.Instance;
             switch (state)
             {

@@ -80,7 +80,16 @@ internal sealed class SoloBenchmarkFrames : IDisposable
         }
     }
 
-    public void DrivingStarted() => drivingStart = Time.realtimeSinceStartupAsDouble;
+    public void DrivingStarted()
+    {
+        // FishNet sets the host render cap when the transports start. Apply the
+        // capture-only request after scene/host initialization, before warmup.
+        QualitySettings.SetQualityLevel(2, true);
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 60;
+        Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
+        drivingStart = Time.realtimeSinceStartupAsDouble;
+    }
 
     // Called once on the normal Dynamic InputSystem update. Buffered until the window ends.
     public void ObserveInput(int frame, uint tick, int steering)
@@ -138,8 +147,8 @@ internal sealed class SoloBenchmarkFrames : IDisposable
         capture.error_count = errors; capture.reason = reason;
         capture.loadout = selectedSkills; capture.skin_id = selectedSkin;
         capture.actual = Settings();
-        capture.gc_reason = capture.gc_available ? "available" : "GC Allocated In Frame unavailable or empty in this Player";
-        capture.main_reason = capture.main_available ? "available" : "Main Thread unavailable or empty in this Player";
+        capture.gc_reason = capture.gc_available ? "available" : count==0 ? "not measured: no captured frame" : "GC Allocated In Frame unavailable or empty in this Player";
+        capture.main_reason = capture.main_available ? "available" : count==0 ? "not measured: no captured frame" : "Main Thread unavailable or empty in this Player";
         // Unavailable samples stay blank; an unavailable counter never supplies a zero.
         using (var writer = new StreamWriter(Path.Combine(output, "frames.csv"), false, new UTF8Encoding(false)))
         {

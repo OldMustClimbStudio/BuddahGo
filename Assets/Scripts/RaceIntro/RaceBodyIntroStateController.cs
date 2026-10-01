@@ -1,4 +1,5 @@
 using FishNet.Object;
+using NewBuddah.PredictionV2.Integration;
 using SteamMultiplayer.Network;
 using UnityEngine;
 
@@ -28,6 +29,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
     [SerializeField, Min(0f)] private float defaultHandoffLeadTime = 0.5f;
     [SerializeField, Min(0.001f)] private float velocitySampleDeltaSeconds = 0.02f;
 
+    private BuddahPredictionHandoffBridge _predictionHandoffBridge;
     private IntroAssignmentData _assignment;
     private SplineIntroPath _assignedPath;
     private IntroPhase _phase = IntroPhase.None;
@@ -120,6 +122,18 @@ public class RaceBodyIntroStateController : MonoBehaviour
     {
         position = default;
         rotation = Quaternion.identity;
+
+        // GO queues the owner handoff for the next motor tick. Until it is consumed,
+        // the visual bridge still owns the graphical pose while the rigidbody may be
+        // one fixed step behind. Keep the GO pose available instead of falling back
+        // to that older rigidbody pose (and pulling the follow camera backwards).
+        if (_goApplied && _runtimeState == IntroRuntimeState.AuthoritativeHandoffPending
+            && _predictionHandoffBridge != null && _predictionHandoffBridge.IsAuthoritativeLaunchHandoffPending())
+        {
+            position = _latestSplineSnapshot.Position;
+            rotation = _latestSplineSnapshot.Rotation;
+            return true;
+        }
 
         if (!_hasAssignment || _assignedPath == null || _goApplied || !_visualStarted)
             return false;
@@ -430,7 +444,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
         float elapsedSeconds = Mathf.Max(0f, (float)(networkTime - _resolvedIntroStartNetworkTime));
         float distance = elapsedSeconds * GetIntroSpeedMetersPerSecond();
         float totalLength = Mathf.Max(0.0001f, _assignedPath.TotalLength);
-        return _assignedPath.TAtDistance(Mathf.Min(distance, totalLength));
+        // EvaluatePosition/EvaluateTangent accept normalized distance and perform
+        // their own arc-length lookup. Passing TAtDistance here converts twice.
+        return Mathf.Clamp01(distance / totalLength);
     }
 
     private float GetHandoffLeadTime()
@@ -553,6 +569,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
         if (movementController == null)
             movementController = GetComponent<BuddahMovement>();
+
+        if (_predictionHandoffBridge == null)
+            _predictionHandoffBridge = GetComponent<BuddahPredictionHandoffBridge>();
     }
 
     private void SetCollisionsEnabled(bool enabled)

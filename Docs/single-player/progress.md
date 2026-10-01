@@ -4,7 +4,7 @@
 
 ## 当前状态与验收边界（2026-10-01 恢复后）
 
-S1 为 `doing`，S1.5 未开始且等待用户后续明确 AI 开始信号。本次文档基于实现分支 `ec2bac2`；AI 计划已通过 `17eb1c9` 集成，`24c022d` 记录的运行证据对应游戏源码 `27685f9`。后续 handoff 修复不能沿用这些结果宣告通过；下表区分已集成、已验证与待验证。
+S1 为 `doing`，S1.5 未开始且等待用户后续明确 AI 开始信号。本次文档基于集成分支 `06a440f`（游戏修复 `ec2bac2`，实际 handoff 构建 HEAD `6e9f851`）；AI 计划已通过 `17eb1c9` 集成，`24c022d` 记录的运行证据对应游戏源码 `27685f9`。后续 handoff 修复已有下述独立新证据，但不能沿用旧结果宣告全部通过；下表区分已集成、已验证与待验证。
 
 **AI 启动前置（2026-10-01 用户最新决定）**：先完成 S1 单人 Practice，再由用户逐项试玩技能，最后等待用户明确发出开始 AI 的信号。三个条件缺一不可；S1 完成、自动测试通过、文档批准或经过一段时间都不等于开始信号。包括 S1.5 在内的任何 AI 实现、接管调试、采集/可视化工具实现与 AI 运行测试均不得提前开始；信号前只做 AI 文档规划。此前“完成后直接推进 S1.5”的指令已被覆盖。
 
@@ -18,24 +18,35 @@ S1 为 `doing`，S1.5 未开始且等待用户后续明确 AI 开始信号。本
 |---|---|---|
 | S1 实现 | Yak 离线启动、自动选择、Practice 计时/结算、退出与失败恢复已有代码和测试用例 | 架构差异见下表；已实现不等于整个 S1 通过 |
 | V1 / V3 | 历史可见 Editor 三圈自然完赛 734.000 s；合成场景测试覆盖结果与一次 Rematch；三阶段 Esc 退出已有历史记录 | 完整结果页停留/实际 Return 按钮和后续流程仍未闭合；Player 启动冒烟不等于完整比赛 |
-| V7 / 本地 handoff | `ec2bac2` 已集成 GO 姿态保持与路径距离求值修正及相关测试源；尚无本次可核实的修复后测试结果 | 新源码构建、正常帧率下姿态/镜头/输入交接与重开衔接的真实流畅性证据；此前 60 FPS 窗口开始于解锁后 |
+| V7 / 本地 handoff | 修复后 Unity 相关测试 40/40；新非 Development Player 首次/Rematch 两次真实 60 FPS 开场，共 5379 帧、0 错误，GO 邻域无观察到倒退 | 每轮 GO 后仍有两次单帧视觉位置停留（一次仅 body 竖向移动），整体手感不标通过；pending 分支仅测试覆盖，真实采样时已同帧消费 |
 | V8 | `27685f9` 真实 selection/intro/driving 三阶段 Esc、清理及重开回执 VALID；client/server 停止，Buddah/Reporter 为 0，Clock/Timing 清空，捕获错误为 0 | 结果页连续 3 次 Rematch、Return 后重开及完整生命周期仍未闭合；不能把 Esc 重开等同结果按钮验收 |
 | V10 / R1 / R3 / R10 | 历史全套 152/152、Editor 编译/序列化检查通过；非 Development 构建成功，0 errors / 18 warnings | 今天文档任务未重新执行这些检查；全套历史结果不引入联机 gate，后续代码变化需对应验证 |
 | V11 | 历史 strict14 在首场主样本完成前中断；本轮最终 strict14 尚未开始，**未完成、未通过** | 最终源码的完整生命周期、对象计数和 Player 内存趋势；短帧窗口或历史 heap 局部观测不能证明稳定 |
-| V12 | 分析器 42/42；三个真实窗口各 3600 帧、实测约 59.99 FPS，无报告丢帧/捕获错误；**仅诊断，未通过** | 10800 帧 GC 全缺失；Home 摘要 500 FPS 与窗口 60 FPS 冲突导致拒绝；来源资格及预算未闭合，不能冒充合格基线 |
+| V12 | `06a440f` 已集成采样修复；分析器 51/51、隔离采样测试 8/8；旧 Release 三窗口仍仅诊断，**未通过** | 新 Development Player 的逐帧 GC 与三个真实窗口尚未采集；来源资格及预算未闭合，不混用旧 Release 数据 |
 | 用户技能试玩准备度 | 六技能选择入口可用；仅验证可选，未验证每项施放/效果 | 选择页洋红材质/文字叠放待修复复核，完整 Practice 验收未闭合；**尚不可标 user-ready** |
 | V2 / Steam 双客户端 / Solo–Online 交替 | **N/A，不执行，不标通过** | 无单机验收前置 |
 
-本次只读核对执行任务的检查点、结构化证据汇总及 Git 集成记录，更新可确证事实；未重新运行分析器或 Unity/Player，不把正在修复的采样器或 handoff 写成验证通过。已知早期测试输入失败随后修复；strict14 属于人为中断，结果页操作器提前结束属于验收未执行，均不可据此推断新的产品失败。
+前一文档同步只读核对检查点；后续实际执行结果见下节，按各自源码与构建区分，不把工具测试写成真实采样通过。已知早期测试输入失败随后修复；strict14 属于人为中断，结果页操作器提前结束属于验收未执行，均不可据此推断新的产品失败。
+
+### S1 handoff 局部复核 — 2026-10-01（游戏修复 ec2bac2）
+
+- 实际 Unity EditMode 相关回归 **40 passed / 0 failed / 0 skipped**：新增 IntroHandoffContinuity 12、HandoffClock 20、RaceStartHandshake 5、SoloSessionFlow 2、SoloTransport 1。MCP 的首个异步测试状态滞留不计作结果；以独立 TestRunner 回调落盘结果为准。
+- 新 Windows x64 非 Development 私有观察构建基于 `6e9f851`（含 `ec2bac2`），**0 errors / 15 compiler warnings**。首次与真实 Rematch 按钮后的第二次开场分别记录 2689/2690 帧，从选择/开场前即固定 targetFPS 60、vSync 0；不是解锁后才限帧。捕获错误为 0，最终 Home 的 client/server 均停止且 Clock/Timing 清空，Player 正常退出。
+- 两次 GO 前后 [-0.5, +1] 秒内未观察到视觉位置沿当前车头方向倒退；GO 帧视觉与终点快照误差分别为 0 / 0.000000477 m。该邻域最大 frame delta 为 16.980 / 16.757 ms，最大视觉单帧位移 1.1951 / 1.1956 m，最大镜头位移 1.9442 / 1.9080 m；镜头旋转未变，FOV 最大单帧变化 0.7635 / 0.7539 度。这些是观察量，不是自定性能或手感阈值。
+- 每轮仍有两次 GO 后 body 移动而视觉位置单帧停留：首次分别为 frame 2442（body 仅竖向约 0.167 m）、2445（body 位移约 0.985 m）；重开为 5505/5508。因此只确认本次未见倒退，不宣告整体流畅性通过。两次采样均未捕获 pending 帧：GO 在同帧已被 motor 消费，新增 pending 姿态保持分支仍只有测试证据。每个新 racer 的 handoff eventId 为 1，不将跨对象相同 ID 推断为重复执行。
+- movement unlock 在 GO 后约 17.8 / 15.9 ms，转向抑制在约 145.6 / 149.1 ms 后解除；后续普通 Input System A/D 均实际产生正负转向。为到达 Rematch，第一轮使用一次明确标记的受控终点登记，**不是自然完赛、V3 精度或 V11 长测**。未运行 AI 或任何联机测试。
+- `06a440f` 集成独立 benchmark 修复：测量 actual 与退出后设置分开、检查新鲜 GC 样本、缺失保持 null，新增单独 Development 构建协议。集成后 51 Python 与 8 隔离 C# 测试通过；实际新 Development 采样未执行，下一短 session 重建后完成三个 30 秒预热/60 秒测量窗口，不与旧 Release 帧数据拼接。预算仍待定。
+- 选择页只读定位：`PropertySelection.unity` 的 `地图/绘马墙` 与 `地图/桌子` MeshRenderer 材质引用为 null；标题对象为 `Canvas/SharedUIRoot/Header/PageTitleText` 与 `StageTitleText`。交给独立 UI 任务处理，本次未改场景。原始帧、截图、构建与来源哈希均只在私有证据中保存。
+- 受保护设置及两项删除 meta 未恢复，dirty 来源资格仍未闭合；主根用户 WIP 不变。S1 仍 doing，strict14/V3/V12 与用户试玩准备度未通过。
 
 ### S1 本轮真实验收 — 2026-10-01（游戏源码 27685f9）
 
 - 已核验 instrumented non-Development Player 的全部构建文件哈希与交接清单一致，三个私有辅助源码与已提交模板一致；普通发行构建、此前三项场景测试仍按各自历史记录引用。本轮 Python 分析器 42/42 通过。
 - **三阶段 Esc 新证据通过**：selection、intro-before-GO、driving-after-GO 均真实打开确认框、屏蔽输入、通过 ConfirmQuit 回 Home 并重开。每次 client/server 停止，Buddah/Reporter 为 0，Clock/Timing 清空，捕获错误为 0；独立回执分析返回 VALID。这不替代结果页 Rematch/Return 或 strict14。
 - **V12 未通过**：三个真实物理驾驶窗口各预热至少 30 秒、测量约 60 秒，各 3600 连续帧，窗口配置均为 1280×720、quality 2、vSync 0、targetFPS 60，报告丢帧为 0，捕获错误为 0。原始 frame mean/p95/p99（ms）：16.6692/16.8968/17.0080、16.6679/16.8968/17.0021、16.6687/16.9109/17.0262；仅为诊断分布，不是已合格基线。
-- **采样器待修复/补测**：三个窗口共 10800 帧的 GC 分配列全部缺失，Release 的 `GC Allocated In Frame` 不可用/空；Main Thread 样本可用。`Finish` 在回 Home 后记录全局 actual，此时 host 恢复 targetFPS 500，导致分析器报 `Window settings changed`。须区分测量配置与退出后配置，并确定独立 GC 采样方案；禁止把 heap 差值或缺失值填成分配量。预算仍未确定，不编造通过。
+- **旧采样缺陷（后续工具修复见上节，真实补测仍待办）**：三个窗口共 10800 帧的 GC 分配列全部缺失，Release 的 `GC Allocated In Frame` 不可用/空；Main Thread 样本可用。`Finish` 在回 Home 后记录全局 actual，此时 host 恢复 targetFPS 500，导致分析器报 `Window settings changed`。须区分测量配置与退出后配置，并确定独立 GC 采样方案；禁止把 heap 差值或缺失值填成分配量。预算仍未确定，不编造通过。
 - 构建来源仍含保留的设置/孤立 meta 差异；没有恢复受保护 WIP，也没有把 dirty 来源改写成 clean。该状态不能取得工具要求的干净源码资格。
-- **handoff 流畅度仍未验证**：本次窗口开始前的 intro/GO/unlock 按 host targetFPS 500 运行；60 FPS 在 movement-unlocked 之后才施加，不能据此宣称正常帧率下开场到驾驶平顺。此后 `ec2bac2` 已集成修复：等待 motor 消费 launch handoff 时保持 GO 姿态，并修正路径距离的重复转换；相关测试源已加入，但本次没有修复后运行结果。唯一 Unity 验收任务负责新构建及真实姿态/镜头/输入连续性验证；最终 strict14 与新 V3 触发精度长测仍未完成。
+- **handoff 流畅度仍未验证**：本次窗口开始前的 intro/GO/unlock 按 host targetFPS 500 运行；60 FPS 在 movement-unlocked 之后才施加，不能据此宣称正常帧率下开场到驾驶平顺。此后 `ec2bac2` 已集成修复：等待 motor 消费 launch handoff 时保持 GO 姿态，并修正路径距离的重复转换；当时没有修复后运行结果；其后独立构建与局部运行结果见上节。唯一 Unity 验收任务负责新构建及真实姿态/镜头/输入连续性验证；最终 strict14 与新 V3 触发精度长测仍未完成。
 - 当前 Editor 实际技能选择提供六个 unlocked ID：acceleration、slowtrap、blackcurtain、giant、push_projectile_hands、reverseturn。此项证明选择入口可用，不代表每项技能效果已验收。反转转向正常效果排除施法者，0 AI Practice 无法验证其对手效果；不新增 AI 靶子。选择场景截图同时出现洋红材质和文字叠放，列为待修复复核的独立资源/UI 项，未推定其来源。当前不能标为 user-ready；六个选项可用不等于完整界面或六项技能表现通过。
 - 原始日志、配置、CSV、回执、来源清单和实际界面截图均私有保存；截图已在工作对话展示，不上传公共 PR。S1 保持 doing；AI 仍等待 Practice 完成、用户逐项试玩及明确开始信号。
 
@@ -58,7 +69,7 @@ Practice 的目标是让本地单机完整承接既有联机流程与表现，�
 | 阶段 | 目标 | 状态 | PR | 验证结果 | 备注 |
 |---|---|---|---|---|---|
 | S0 | 同步重构结果 | done | — | 文档事实已按合并后的 dev 复核 | 2026-09-30 合并 dev（含 #47–#58） |
-| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 历史 V10 152/152、R3 构建通过；新三阶段 Esc VALID、分析器 42/42；V3/V7/V8/V11/V12 未全部闭合；V2 不适用 | 源码 ec2bac2；运行证据 27685f9；尚非 user-ready；AI 未开始 |
+| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 历史 V10 152/152、R3 构建通过；新三阶段 Esc VALID、分析器 42/42；V3/V7/V8/V11/V12 未全部闭合；V2 不适用 | 集成 06a440f；handoff 局部证据 6e9f851，旧 Esc 27685f9；尚非 user-ready；AI 未开始 |
 | S1.5 | 规划器可行性验证 | todo | | 未开始；等待用户 AI 开始信号 | Practice 完成、用户逐项技能试玩、明确开始信号三项齐备才启动 |
 | S2 | Racer 身份 | todo | | | 仅单机验收 |
 | S3a | AI 完整跑完一局 | todo | | | |

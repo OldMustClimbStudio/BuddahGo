@@ -31,7 +31,7 @@ production gameplay change, or new AI is provided by these tools.
    14 races just to collect three performance windows. An interrupted/old-head
    strict14 cannot be promoted into current-head completion evidence.
 7. Attach three independently completed Esc checks as `escapes.jsonl` (selection,
-   driving, results). Each is an additional probe outside measured windows;
+   intro-before-GO, driving-after-GO). Each is an additional probe outside measured windows;
    do not count an aborted race among strict14's 14 complete races.
 
 ## Frame CSV
@@ -102,7 +102,7 @@ treated as measured values. No raw note/stack/position/username is copied to rep
 {"stage":"selection","escape_pressed_seconds":1.0,"dialog_seconds":1.1,"confirm_seconds":1.2,"home_seconds":2.0,"reopened_seconds":3.0,"input_blocked":true,"dialog_visible":true,"confirm_button":"ConfirmQuit","home_clean":true,"buddahs":0,"reporters":0,"client_started":false,"server_started":false,"clock_cleared":true,"timing_cleared":true,"reopened":true,"error_count":0}
 ```
 
-Repeat with stage `driving` and `results`. Observe actual Esc/dialog/input block,
+Repeat with stage `intro` (before GO) and `driving` (after GO). Results use ReturnHome, not Esc. Observe actual Esc/dialog/input block,
 click the normal confirmation button, wait for clean Home, then reopen Practice.
 Do not fabricate receipts from configuration or a successful summary alone.
 
@@ -110,6 +110,6 @@ Do not fabricate receipts from configuration or a successful summary alone.
 
 This Python package verifies evidence consistency, not the authenticity of arbitrary
 files. Hashes bind artifacts against accidental mixing; the coordinator retains raw
-logs and audited driver/build provenance privately. The sampler has not been
-implemented/compiled by this package. Missing production measurements remain
+logs and audited driver/build provenance privately. The included sampler/operator templates have been compiled in the coordinator's
+instrumented non-Development Player; actual measurement is still pending. Missing production measurements remain
 `NOT_PASSED`; no placeholder becomes a performance result.

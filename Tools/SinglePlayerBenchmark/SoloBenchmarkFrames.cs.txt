@@ -1,0 +1,207 @@
+#if BUDDAH_PRIVATE_SOLO_ACCEPTANCE && !UNITY_EDITOR
+// Opt-in capture companion for the real-input Solo operator. No gameplay writes.
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using Unity.Profiling;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+internal sealed class SoloBenchmarkFrames : IDisposable
+{
+    private const int Capacity = 120000;
+    private const int Seed = 1729;
+    private readonly string output;
+    private readonly Frame[] frames = new Frame[Capacity];
+    private readonly Input[] inputs = new Input[Capacity];
+    private readonly Capture capture = new Capture();
+    private ProfilerRecorder gc, main;
+    private int count, inputCount, repeat, windowStartIndex, inputStartIndex, previousFrame;
+    private double drivingStart = -1, windowStart = -1, previousStamp;
+    private bool disposed, complete;
+    private readonly int oldQuality, oldVsync, oldFps, oldWidth, oldHeight;
+    private readonly FullScreenMode oldFullscreen;
+    private readonly UnityEngine.Random.State oldRandom;
+    private string[] selectedSkills;
+    private string selectedSkin;
+
+    public SoloBenchmarkFrames(string directory)
+    {
+        output = directory;
+        Directory.CreateDirectory(output);
+        oldQuality = QualitySettings.GetQualityLevel(); oldVsync = QualitySettings.vSyncCount;
+        oldFps = Application.targetFrameRate; oldWidth = Screen.width; oldHeight = Screen.height;
+        oldFullscreen = Screen.fullScreenMode; oldRandom = UnityEngine.Random.state;
+        if (QualitySettings.names.Length <= 2) throw new InvalidOperationException("Benchmark quality index 2 is unavailable");
+        QualitySettings.SetQualityLevel(2, true);
+        QualitySettings.vSyncCount = 0; Application.targetFrameRate = 60;
+        Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
+        capture.unity = Application.unityVersion; capture.version = Application.version;
+        capture.build = Debug.isDebugBuild ? "Development" : "Release";
+#if ENABLE_IL2CPP
+        capture.backend = "IL2CPP";
+#else
+        capture.backend = "Mono";
+#endif
+        capture.os = SystemInfo.operatingSystem; capture.cpu = SystemInfo.processorType;
+        capture.gpu = SystemInfo.graphicsDeviceName; capture.graphics_api = SystemInfo.graphicsDeviceType.ToString();
+        capture.ram_mb = SystemInfo.systemMemorySize;
+        gc = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Allocated In Frame", 1);
+        main = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "Main Thread", 1);
+    }
+
+    public void SeedSession(int value)
+    {
+        if (value < 1 || value > 3) throw new ArgumentOutOfRangeException(nameof(value));
+        repeat = value; UnityEngine.Random.InitState(Seed);
+        drivingStart = windowStart = -1;
+        inputStartIndex = inputCount;
+    }
+
+    public void Selection(string[] skills, string skin)
+    {
+        if (skills != null)
+        {
+            if (selectedSkills == null) selectedSkills = (string[])skills.Clone();
+            else
+            {
+                if (skills.Length != selectedSkills.Length) throw new InvalidOperationException("Loadout length changed");
+                for (int i = 0; i < skills.Length; i++)
+                    if (skills[i] != selectedSkills[i]) throw new InvalidOperationException("Seeded loadout differs between repeats");
+            }
+        }
+        if (skin != null)
+        {
+            if (selectedSkin == null) selectedSkin = skin;
+            else if (skin != selectedSkin) throw new InvalidOperationException("Seeded skin differs between repeats");
+        }
+    }
+
+    public void DrivingStarted() => drivingStart = Time.realtimeSinceStartupAsDouble;
+
+    // Called once on the normal Dynamic InputSystem update. Buffered until the window ends.
+    public void ObserveInput(int frame, uint tick, int steering)
+    {
+        if (drivingStart < 0 || complete) return;
+        if (inputCount == inputs.Length) throw new InvalidOperationException("Input buffer overflow");
+        inputs[inputCount++] = new Input { frame = frame, tick = tick, steering = steering };
+    }
+
+    // Invoke before the operator computes this frame's steering. LastValue belongs
+    // to frameCount-1; elapsed is the measured interval between identical Update points.
+    public bool DrivingTick()
+    {
+        if (drivingStart < 0) throw new InvalidOperationException("Driving start not observed");
+        if (SceneManager.GetActiveScene().name != "RaceMap" || Time.timeScale != 1f)
+            throw new InvalidOperationException("Measured driving context changed");
+        double now = Time.realtimeSinceStartupAsDouble;
+        if (windowStart < 0)
+        {
+            if (now - drivingStart < 30) return false;
+            RequireSettings();
+            windowStart = previousStamp = now; previousFrame = Time.frameCount - 1;
+            windowStartIndex = count;
+            capture.gc_available |= gc.Valid && gc.Count > 0;
+            capture.main_available |= main.Valid && main.Count > 0 && main.LastValue > 0;
+            return false;
+        }
+        int frame = Time.frameCount - 1;
+        if (frame != previousFrame + 1 || count == frames.Length)
+            throw new InvalidOperationException("Frame buffer overflow or noncontiguous samples");
+        double dt = now - previousStamp;
+        if (dt <= 0) throw new InvalidOperationException("Nonpositive frame interval");
+        bool gcValid = gc.Valid && gc.Count > 0;
+        bool mainValid = main.Valid && main.Count > 0 && main.LastValue > 0;
+        frames[count++] = new Frame { repeat = repeat, frame = frame, elapsed = now-windowStart,
+            frameMs = dt*1000, gcBytes = gcValid ? gc.LastValue : -1, mainNs = mainValid ? main.LastValue : -1 };
+        previousFrame = frame; previousStamp = now;
+        if (now-windowStart < 60) return false;
+        RequireSettings();
+        var window = new Window { repeat = repeat, seed = Seed, route_id = "RaceMap", scene = "RaceMap",
+            race_id = repeat, stage = "driving", actual = Settings(), warmup_actual_seconds = windowStart-drivingStart,
+            start_seconds = windowStart, end_seconds = now, duration_seconds = now-windowStart,
+            driving_start_seconds = drivingStart, driving_end_seconds = now, frames = count-windowStartIndex,
+            dropped_frames=0,forced_gc_count=0,scene_change_count=0,ai_count=0,
+            input_sha256 = HashInputs(inputStartIndex, inputCount) };
+        capture.windows.Add(window);
+        drivingStart = -1;
+        return true;
+    }
+
+    public void Finish(bool succeeded, int errors, string reason)
+    {
+        complete = true;
+        capture.complete = succeeded && capture.windows.Count == 3 && errors == 0;
+        capture.error_count = errors; capture.reason = reason;
+        capture.loadout = selectedSkills; capture.skin_id = selectedSkin;
+        capture.actual = Settings();
+        capture.gc_reason = capture.gc_available ? "available" : "GC Allocated In Frame unavailable or empty in this Player";
+        capture.main_reason = capture.main_available ? "available" : "Main Thread unavailable or empty in this Player";
+        // Unavailable samples stay blank; an unavailable counter never supplies a zero.
+        using (var writer = new StreamWriter(Path.Combine(output, "frames.csv"), false, new UTF8Encoding(false)))
+        {
+            writer.WriteLine("repeat,frame,elapsed_seconds,frame_ms,gc_allocated_bytes,main_thread_ns");
+            for (int i=0; i<count; i++)
+            {
+                var f=frames[i];
+                writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0},{1},{2:R},{3:R},{4},{5}",
+                    f.repeat,f.frame,f.elapsed,f.frameMs,
+                    f.gcBytes < 0 || !capture.gc_available ? "" : f.gcBytes.ToString(CultureInfo.InvariantCulture),
+                    f.mainNs < 0 || !capture.main_available ? "" : f.mainNs.ToString(CultureInfo.InvariantCulture)));
+            }
+        }
+        File.WriteAllText(Path.Combine(output,"capture.json"), JsonUtility.ToJson(capture,true));
+    }
+
+    private static Configuration Settings() => new Configuration { width=Screen.width,height=Screen.height,
+        quality=QualitySettings.GetQualityLevel(),target_fps=Application.targetFrameRate,vsync=QualitySettings.vSyncCount };
+    private static void RequireSettings()
+    {
+        var s=Settings();
+        if (s.width!=1280 || s.height!=720 || s.quality!=2 || s.target_fps!=60 || s.vsync!=0)
+            throw new InvalidOperationException("Requested and actual benchmark settings differ");
+    }
+    private string HashInputs(int first,int end)
+    {
+        using(var algorithm=SHA256.Create())
+        using(var buffer=new MemoryStream())
+        using(var writer=new BinaryWriter(buffer))
+        {
+            for(int i=first;i<end;i++) { writer.Write(inputs[i].frame);writer.Write(inputs[i].tick);writer.Write(inputs[i].steering); }
+            writer.Flush();
+            var bytes=algorithm.ComputeHash(buffer.ToArray());
+            return BitConverter.ToString(bytes).Replace("-","").ToLowerInvariant();
+        }
+    }
+    public void Dispose()
+    {
+        if(disposed) return; disposed=true;
+        gc.Dispose();main.Dispose();
+        QualitySettings.SetQualityLevel(oldQuality,true); QualitySettings.vSyncCount=oldVsync;
+        Application.targetFrameRate=oldFps; Screen.SetResolution(oldWidth,oldHeight,oldFullscreen);
+        UnityEngine.Random.state=oldRandom;
+    }
+    private struct Frame { public int repeat,frame; public double elapsed,frameMs; public long gcBytes,mainNs; }
+    private struct Input { public int frame,steering; public uint tick; }
+    [Serializable] private sealed class Configuration { public int width,height,quality,target_fps,vsync; }
+    [Serializable] private sealed class Window
+    {
+        public int repeat,seed,race_id,frames,dropped_frames,forced_gc_count,scene_change_count,ai_count;
+        public string route_id,scene,stage,input_sha256;
+        public Configuration actual;
+        public double warmup_actual_seconds,start_seconds,end_seconds,duration_seconds,driving_start_seconds,driving_end_seconds;
+    }
+    [Serializable] private sealed class Capture
+    {
+        public bool complete,gc_available,main_available;
+        public int error_count,ram_mb;
+        public string unity,version,build,backend,os,cpu,gpu,graphics_api,reason,gc_reason,main_reason,skin_id;
+        public string[] loadout;
+        public Configuration actual;
+        public List<Window> windows=new List<Window>();
+    }
+}
+#endif

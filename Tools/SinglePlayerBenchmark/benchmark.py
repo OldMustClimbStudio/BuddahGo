@@ -399,7 +399,7 @@ def endurance_analysis(rows):
 
 
 def escapes_analysis(rows):
-    need(len(rows) == 3 and {r["stage"] for r in rows} == {"selection", "driving", "results"}, "Three Esc stages required")
+    need(len(rows) == 3 and {r["stage"] for r in rows} == {"selection", "intro", "driving"}, "Three Esc stages required")
     for row in rows:
         times = [number(row[key], key) for key in ("escape_pressed_seconds", "dialog_seconds", "confirm_seconds", "home_seconds", "reopened_seconds")]
         need(all(a < b for a, b in zip(times, times[1:])), "Esc stage ordering invalid")
@@ -410,7 +410,7 @@ def escapes_analysis(rows):
         for key in ("buddahs", "reporters", "error_count"):
             need(integer(row[key], key) == 0, "Esc cleanup/error check failed")
         need(row["confirm_button"] == "ConfirmQuit", "Normal confirmation button required")
-    return dict(stages=["selection", "driving", "results"], status="VALID")
+    return dict(stages=["selection", "intro", "driving"], status="VALID")
 
 
 def compare(candidate, baseline):

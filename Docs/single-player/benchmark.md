@@ -2,7 +2,7 @@
 
 本协议只测 **Solo / Practice / 0 AI**。联机 V2、Steam 双人、Solo/Online 交替和旧多人 Editor R8 均不属于前置或通过门槛；没有执行的联机项应写“不适用”，不能写“通过”。保留已有联机资产，不修改它们。0 AI 的结果不能外推成 1/3/5 AI 性能。
 
-当前交付是离线工具、采样协议与合成测试；**尚未由本工具交付实际游戏性能基线，也未实现或编译 Unity 采样接点**。实际采集由主集成任务的唯一 Unity/Player 操作者执行。工具不会启动 Unity、Player、Steam、第二个驾驶器或后台服务。
+当前交付包括离线分析器、协议与 opt-in Player 采样/操作器源码模板；采样接点已在 Unity 2022.3.55f1c1 非 Development Player 编译成功，**真实性能窗口和完整耐久验收仍待执行**。Python 分析器不会启动进程；主集成任务统一构建、运行唯一 Player。运行入口见工具 README，数据状态以 progress.md 的实际验收记录为准。
 
 工具入口：[benchmark.py](../../Tools/SinglePlayerBenchmark/benchmark.py)。字段与主接点详见 [sampler-interface.md](../../Tools/SinglePlayerBenchmark/sampler-interface.md)。既有单机功能要求见 [phases.md](phases.md) 和 [design.md](design.md)。
 
@@ -11,7 +11,7 @@
 | 轨道 | 必须具备的证据 | 不能据此声称什么 |
 |---|---|---|
 | 性能窗口 | 独立 Player、3 次同配置物理驾驶，每次至少 30 秒驾驶预热、连续 60 秒逐帧采样 | 不能仅凭窗口证明完整生命周期或全部 S1 验收 |
-| 功能与生命周期 | 既有 strict14 的自然完赛、计时、真实结果按钮、清理/重开；另附 selection/driving/results 三阶段 Esc 回执 | `sequencePassed` 不能替代 frame time、分配率、内存预算或计时精度结论 |
+| 功能与生命周期 | 既有 strict14 的自然完赛、计时、真实结果按钮、清理/重开；另附 selection/intro/driving 三阶段 Esc 回执 | `sequencePassed` 不能替代 frame time、分配率、内存预算或计时精度结论 |
 
 可以复用已完成 strict14，不要求为了逐帧采样另跑 14 局。两条轨道必须有相同的**已提交游戏源码 HEAD**，并分别保留构建产物和采样/驾驶器 SHA256；不同 instrumentation 构建应如实标记。未完成、旧 HEAD、无法确认构建来源的数据不能冒充本次完整验收。工具拒绝 dirty 源码资格认定，避免跨构建只凭相同 HEAD 混入不同玩法代码；私有采样辅助源单独哈希留档，不伪装成普通发行包。
 

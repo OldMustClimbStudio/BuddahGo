@@ -82,7 +82,7 @@ def make_fixture(directory):
     emit("summary", sequencePassed=True, mainCompleted=10, extrasCompleted=4, rematchClicks=10, homeReturns=4, errorCount=0)
     write_rows(directory / "endurance.jsonl", rows)
     escapes = []
-    for stage in ("selection", "driving", "results"):
+    for stage in ("selection", "intro", "driving"):
         escapes.append(dict(stage=stage, escape_pressed_seconds=1, dialog_seconds=2, confirm_seconds=3,
             home_seconds=4, reopened_seconds=5, input_blocked=True, dialog_visible=True, confirm_button="ConfirmQuit",
             home_clean=True, buddahs=0, reporters=0, client_started=False, server_started=False,
@@ -106,6 +106,16 @@ def save_manifest(directory, meta):
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_esc_stages_match_s1_design_not_results(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)
+            make_fixture(path)
+            rows = b.read_jsonl(path / "escapes.jsonl")
+            self.assertEqual(b.escapes_analysis(rows)["stages"], ["selection", "intro", "driving"])
+            rows[1]["stage"] = "results"
+            with self.assertRaises(b.Invalid):
+                b.escapes_analysis(rows)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

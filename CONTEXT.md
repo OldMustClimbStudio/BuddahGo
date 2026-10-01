@@ -22,6 +22,18 @@ _Avoid_: single-player mode, offline mode, bot match
 A Solo Match with zero AI Racers. Results show times only, with no placement.
 _Avoid_: free roam, training mode, time trial
 
+**Match Rules**:
+The set of behaviours that differ between an Online Match and a Solo Match, such as voting versus rematch/return buttons, selection timeouts, early finish and Pause.
+_Avoid_: mode flags, solo checks
+
+**Match Clock**:
+The single pausable clock that every in-race timer and timing record uses. It stops while the race is paused.
+_Avoid_: game time, timer, real time
+
+**Lap Time**:
+The Match Clock duration a Racer needs for one lap. The sum of all Lap Times is that Racer's race time.
+_Avoid_: split, lap duration
+
 **Skip Spectating**:
 The Human Player's choice, after crossing the finish line in a Solo Match, to end the race at once instead of watching the remaining AI Racers. Placement then follows the same rule as when the post-finish countdown runs out.
 _Avoid_: skip, end race, forfeit
@@ -34,6 +46,10 @@ A state, available only in a Solo Match, in which the race is frozen until the H
 **Racer**:
 Anyone taking part in a race, whether a Human Player or an AI Racer. Progress, finishing, placement and results belong to a Racer, not to a network connection.
 _Avoid_: player (when AI Racers are included), participant, entry
+
+**RacerId**:
+The identity of a Racer within one Match. For a Human Player it equals their connection's client id; AI Racers use 10000 plus their index.
+_Avoid_: client id (for Racers), player id, owner id
 
 **Human Player**:
 A person controlling a Buddah from their own device.
@@ -52,6 +68,10 @@ _Avoid_: AI level, skill level
 **Steering Plan**:
 An AI Racer's choice of which steering key to hold for the next few moments. It is made by predicting ahead with the same movement rules that govern every Buddah. AI Racers press the same left/none/right keys that a Human Player has.
 _Avoid_: AI path, autopilot
+
+**Stuck Recovery**:
+The server returning an AI Racer to the track after its progress along the track has stalled or it has driven the wrong way for too long.
+_Avoid_: unstuck, AI respawn
 
 **Fumble**:
 An AI Racer's deliberate, occasional wrong key press, which keeps its driving comical. The Fumble rate is tuned separately from Difficulty.

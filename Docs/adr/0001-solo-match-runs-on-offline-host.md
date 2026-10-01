@@ -9,5 +9,5 @@ A Solo Match starts FishNet as host (server and client in one process) on FishNe
 
 ## Consequences
 
-- FishyFacepunch calls `SteamClient.Init` as soon as it initializes, so it must not be the active transport in a Solo Match. The transport is chosen before the NetworkManager starts.
+- The NetworkManager uses Multipass with FishyFacepunch (online) and Yak (solo), and the session launcher picks which one to start. Multipass initializes every child transport, so FishyFacepunch must tolerate a missing Steam client (ADR 0004).
 - Anything keyed by connection or Steam identity (roster, names, placement, owner-targeted RPCs) has to work for owner-less AI Racers.

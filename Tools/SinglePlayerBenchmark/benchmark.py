@@ -82,15 +82,18 @@ def plan():
     return {
         "schema_version": 1, "profile": PROFILE, "evidence_kind": "real", "complete": False,
         "source": {"head": None, "dirty": False, "patch_sha256": None},
-        "build": {"type": "Release", "unity": None, "version": None, "backend": None, "artifact_sha256": None},
+        "build": {"type": "Development", "unity": None, "version": None, "backend": None, "artifact_sha256": None},
         "device": dict(os=None, cpu=None, gpu=None, graphics_api=None, ram_mb=None),
-        "settings": {"requested": settings, "actual": None},
+        "settings": {"requested": settings, "actual": None, "post_cleanup_actual": None,
+                     "snapshot_policy": "measured-window-v2"},
         "workload": dict(seed=1729, seed_applied=False, route_id="RaceMap", route_sha256=None,
                          controller_id="solo-physical-feedback-ad-v1", controller_sha256=None,
                          input_method="dynamic-keyboard-ad", loadout=None, skin_id=None, ai_count=0,
                          physical_driving=True, teleports=0, synthetic_finishes=0, time_scale=1, laps_to_finish=3),
         "sampling": dict(policy="s1-30s-60s-3-v1", warmup_seconds=30, measure_seconds=60, repeats=3,
-                         gc_counter={"available": False, "reason": "not captured"},
+                         gc_counter={"available": False, "reason": "not captured",
+                                     "method": "ProfilerRecorder", "name": "GC Allocated In Frame",
+                                     "unit": "bytes", "sample_policy": "nonwrapping-count-advance-v2"},
                          main_counter={"available": False, "reason": "not captured"}),
         "windows": [], "frames_sha256": None, "error_count": None,
         "endurance": dict(head=None, build_sha256=None, operator_sha256=None, sha256=None),
@@ -108,10 +111,11 @@ def strict14_order():
     return result
 
 
-def check_settings(settings):
+def check_settings(settings, cleanup=False):
     need(isinstance(settings, dict) and set(settings) == set(SETTINGS), "Settings fields incomplete")
     for name in SETTINGS:
-        integer(settings[name], name, 1 if name in ("width", "height", "target_fps") else 0)
+        integer(settings[name], name, -1 if cleanup and name == "target_fps" else
+                1 if name in ("width", "height", "target_fps") else 0)
 
 
 def metadata(meta):
@@ -138,6 +142,10 @@ def metadata(meta):
     for key in ("requested", "actual"):
         check_settings(meta["settings"][key])
     need(meta["settings"]["requested"] == meta["settings"]["actual"], "Requested/actual settings differ")
+    policy = meta["settings"].get("snapshot_policy")
+    need(policy in (None, "measured-window-v2"), "Unsupported settings snapshot policy")
+    if policy is not None:
+        check_settings(meta["settings"]["post_cleanup_actual"], cleanup=True)
     work = meta["workload"]
     need(integer(work["ai_count"], "ai_count") == 0, "AI is not an S1 workload")
     integer(work["seed"], "seed")
@@ -162,6 +170,13 @@ def metadata(meta):
         need(type(counter["available"]) is bool, key + ": availability required")
         if not counter["available"]:
             label(counter["reason"], key + ".reason")
+    gc = sampling["gc_counter"]
+    if meta["settings"].get("snapshot_policy") == "measured-window-v2":
+        need((gc.get("method"), gc.get("name"), gc.get("unit"), gc.get("sample_policy")) ==
+             ("ProfilerRecorder", "GC Allocated In Frame", "bytes", "nonwrapping-count-advance-v2"),
+             "GC capture method provenance missing or unsupported")
+        need(not gc["available"] or build["type"] == "Development",
+             "GC Allocated In Frame requires Development capture; do not relabel Release samples")
     for key in ("endurance", "escapes"):
         evidence = meta[key]
         digest(evidence["head"], key + ".head", 40)
@@ -220,6 +235,11 @@ def frames_analysis(meta, path):
             need(integer(window[key], key) == 0, "Window contaminated: " + key)
         check_settings(window["actual"])
         need(window["actual"] == meta["settings"]["actual"], "Window settings changed")
+        if meta["settings"].get("snapshot_policy") == "measured-window-v2":
+            check_settings(window["actual_end"])
+            need(window["actual_end"] == window["actual"], "Window end settings changed")
+            need(integer(window["settings_change_count"], "settings_change_count") == 0,
+                 "Settings changed inside measured window")
         warmup = number(window["warmup_actual_seconds"], "warmup_actual_seconds")
         need(warmup >= 30, "Insufficient driving warmup")
         start = number(window["start_seconds"], "start_seconds")
@@ -415,9 +435,13 @@ def escapes_analysis(rows):
 
 def compare(candidate, baseline):
     # Deliberately compare raw, validated bundles, not a user-edited summary report.
-    keys = ("profile", "device", "settings", "workload", "sampling")
+    keys = ("profile", "device", "workload", "sampling")
     for key in keys:
         need(candidate[key] == baseline[key], "Baseline incompatible: " + key)
+    # Home cleanup configuration is retained as evidence, outside the workload.
+    # Never ignore either requested settings or measured settings in comparisons.
+    for key in ("requested", "actual", "snapshot_policy"):
+        need(candidate["settings"].get(key) == baseline["settings"].get(key), "Baseline incompatible: settings")
     for key in ("type", "unity", "backend"):
         need(candidate["build"][key] == baseline["build"][key], "Baseline build configuration differs")
     need(candidate["evidence_kind"] == baseline["evidence_kind"] == "real", "Only real Solo baselines can be compared")

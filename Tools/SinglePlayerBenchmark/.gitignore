@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+bin/
+obj/
+# Authored offline regression project; Unity-generated projects remain ignored.
+!sampler-tests.csproj

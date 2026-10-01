@@ -24,9 +24,10 @@ def make_fixture(directory):
     meta["build"].update(unity="2022.3.synthetic", version="test-only", backend="Mono", artifact_sha256=HASH)
     meta["device"].update(os="Synthetic OS", cpu="Synthetic CPU", gpu="Synthetic GPU", graphics_api="Synthetic API", ram_mb=16384)
     meta["settings"]["actual"] = copy.deepcopy(meta["settings"]["requested"])
+    meta["settings"]["post_cleanup_actual"] = dict(meta["settings"]["actual"], target_fps=500)
     meta["workload"].update(seed_applied=True, route_sha256=HASH, controller_sha256=HASH,
                             loadout=["skill1", "skill2", "skill3"], skin_id="skin1")
-    meta["sampling"]["gc_counter"] = dict(available=True, reason=None)
+    meta["sampling"]["gc_counter"].update(available=True, reason=None)
     meta["sampling"]["main_counter"] = dict(available=True, reason=None)
     meta["budgets"] = dict(frame_mean_ms=50, frame_p95_ms=50, frame_p99_ms=50,
                            gc_bytes_per_frame=2, gc_bytes_per_second=40,
@@ -38,6 +39,7 @@ def make_fixture(directory):
             start = 30 + (repeat-1) * 100
             meta["windows"].append(dict(repeat=repeat, seed=1729, route_id="RaceMap", scene="RaceMap",
                 input_sha256=HASH, actual=copy.deepcopy(meta["settings"]["actual"]),
+                actual_end=copy.deepcopy(meta["settings"]["actual"]), settings_change_count=0,
                 warmup_actual_seconds=30, start_seconds=start, end_seconds=start+60,
                 duration_seconds=60, frames=1200, dropped_frames=0, race_id=repeat, stage="driving",
                 driving_start_seconds=start-30, driving_end_seconds=start+60,
@@ -207,7 +209,7 @@ class BenchmarkTests(unittest.TestCase):
         path = self.root / "frames.csv"
         text = path.read_text().replace(",2,1000000", ",,1000000")
         path.write_text(text)
-        self.meta["sampling"]["gc_counter"] = dict(available=False, reason="unsupported")
+        self.meta["sampling"]["gc_counter"].update(available=False, reason="unsupported")
         report = self.report()
         self.assertTrue(report["evidence_valid"])
         self.assertIsNone(report["windows"][0]["gc_bytes_per_frame"])
@@ -222,8 +224,69 @@ class BenchmarkTests(unittest.TestCase):
         self.assertIsNone(report["windows"][0]["gc_bytes_per_second"])
 
     def test_unavailable_counter_cannot_report_zero(self):
-        self.meta["sampling"]["gc_counter"] = dict(available=False, reason="unsupported")
+        self.meta["sampling"]["gc_counter"].update(available=False, reason="unsupported")
         self.invalid()
+
+    def test_home_500_does_not_replace_measured_60(self):
+        report = self.report()
+        self.assertTrue(report["evidence_valid"])
+        self.assertEqual(report["settings"]["actual"]["target_fps"], 60)
+        self.assertEqual(report["settings"]["post_cleanup_actual"]["target_fps"], 500)
+        self.meta["settings"]["actual"]["target_fps"] = 500
+        self.invalid()
+
+    def test_window_end_or_interior_settings_change_rejected(self):
+        w = self.meta["windows"][0]
+        w["actual_end"]["target_fps"] = 500
+        self.invalid()
+        w["actual_end"]["target_fps"] = 60
+        w["settings_change_count"] = 1
+        self.invalid()
+
+    def test_new_snapshot_requires_boundary_evidence(self):
+        del self.meta["windows"][0]["actual_end"]
+        self.invalid()
+
+    def test_legacy_home_overwrite_remains_rejected(self):
+        del self.meta["settings"]["snapshot_policy"]
+        self.meta["settings"]["actual"]["target_fps"] = 500
+        with self.assertRaisesRegex(b.Invalid, "Window settings changed"):
+            b.frames_analysis(self.meta, self.root / "frames.csv")
+
+    def test_release_cannot_claim_development_gc_samples(self):
+        self.meta["build"]["type"] = "Release"
+        self.invalid()
+
+    def test_gc_method_provenance_required(self):
+        del self.meta["sampling"]["gc_counter"]["method"]
+        self.invalid()
+
+    def test_partial_gc_keeps_observed_values_but_never_passes(self):
+        self.meta["evidence_kind"] = "real"  # synthetic branch exercise only
+        path = self.root / "frames.csv"
+        path.write_text(path.read_text().replace(",2,1000000", ",,1000000", 1))
+        report = self.report()
+        self.assertTrue(report["evidence_valid"])
+        self.assertFalse(report["benchmark_passed"])
+        self.assertFalse(report["baseline_candidate"])
+        self.assertEqual(report["windows"][1]["gc_bytes_per_frame"], 2)
+
+    def test_baseline_compares_measurement_not_home_settings(self):
+        a, c = copy.deepcopy(self.meta), copy.deepcopy(self.meta)
+        a["evidence_kind"] = c["evidence_kind"] = "real"
+        c["settings"]["post_cleanup_actual"]["target_fps"] = -1
+        b.metadata(c)
+        b.compare(a, c)
+        c["settings"]["actual"]["target_fps"] = 500
+        with self.assertRaisesRegex(b.Invalid, "settings"):
+            b.compare(a, c)
+
+    def test_development_release_baselines_incompatible(self):
+        a, c = copy.deepcopy(self.meta), copy.deepcopy(self.meta)
+        a["evidence_kind"] = c["evidence_kind"] = "real"
+        c["build"]["type"] = "Release"
+        with self.assertRaisesRegex(b.Invalid, "build configuration"):
+            b.compare(a, c)
 
     def test_frame_corruption(self):
         path = self.root / "frames.csv"

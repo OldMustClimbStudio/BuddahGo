@@ -46,7 +46,12 @@ repeat,frame,elapsed_seconds,frame_ms,gc_allocated_bytes,main_thread_ns
 window. `elapsed_seconds` starts after zero and is cumulative frame interval sum;
 the final value equals `window.duration_seconds`. `frame_ms` is actual unscaled
 frame interval, not CPU main-thread time. Blank GC/main cells mean unavailable.
-Allocation zero is valid ONLY with available recorder and a valid sample. Record
+Allocation zero is valid ONLY with available recorder and a fresh valid sample.
+The supplied template uses `ProfilerRecorder` on a Development Player, starts
+recorders before each driving warmup, and requires exactly one new nonwrapping
+recorder sample per completed frame. Capacity saturation, stale values and missing
+samples remain unavailable. A post-warmup GC preflight failure aborts the capture;
+it does not synthesize values or proceed as qualified evidence. Record
 counter availability and reason in the manifest. GC heap differences are NOT
 allocated bytes. Use bytes, milliseconds, nanoseconds exactly as the header says.
 
@@ -61,13 +66,26 @@ Generate with `benchmark.py plan --out <private>/run.json`; top-level fields:
 - `device`: non-identifying OS/CPU/GPU/API strings and RAM MiB; no account, device
   serial, machine name or absolute paths.
 - `settings.requested` and `.actual`: width, height, quality (index), target_fps,
-  vsync. Each window also records actual settings. Differences fail comparability.
+  vsync. `actual` is the first measured window's start snapshot, never Finish/Home.
+  The current template adds `snapshot_policy=measured-window-v2` and
+  `post_cleanup_actual` (Home/cleanup receipt; excluded from baseline comparison).
+  Each window records `actual`, `actual_end`, and `settings_change_count=0` backed
+  by per-sampled-update checks. Requested/start/end differences and in-window
+  changes fail validation. Missing new-policy boundary evidence also fails.
+  Legacy manifests remain readable without the policy; their settings checks are
+  unchanged, so the old Home-overwritten evidence is still rejected.
 - `workload`: seed, seed_applied, route ID/hash, controller ID/hash, input_method,
   chosen loadout IDs and skin ID, ai_count=0, physical_driving=true, teleports=0,
   synthetic_finishes=0, time_scale=1, laps_to_finish=3. Hash controller with its parameter set; use
   fixed selection identities rather than silently selecting new random options.
 - `sampling`: warmup_seconds, measure_seconds, repeats, gc_counter and main_counter
   availability/reason; `policy` fixes the versioned defaults to 30/60/3.
+  For the new snapshot policy, `gc_counter` also records `method=ProfilerRecorder`,
+  `name=GC Allocated In Frame`, `unit=bytes`, and
+  `sample_policy=nonwrapping-count-advance-v2`. Availability means at least one
+  measured sample exists; partial captures preserve blanks and cannot pass.
+  This counter requires a Development capture; Release values cannot be relabeled.
+  Runtime receipts also retain observed/missing sample counts for both counters.
 - `windows`: repeat, seed, start_seconds/end_seconds (monotonic Player clock),
   warmup_actual_seconds (driving-only), frames, duration_seconds, dropped_frames,
   actual settings, input_sha256 (observed ordered tick/key stream), scene, route_id.
@@ -110,6 +128,9 @@ Do not fabricate receipts from configuration or a successful summary alone.
 
 This Python package verifies evidence consistency, not the authenticity of arbitrary
 files. Hashes bind artifacts against accidental mixing; the coordinator retains raw
-logs and audited driver/build provenance privately. The included sampler/operator templates have been compiled in the coordinator's
-instrumented non-Development Player; actual measurement is still pending. Missing production measurements remain
+logs and audited driver/build provenance privately. Prior non-Development samples
+contained no GC observations; see README for the Development recapture procedure
+and explicit limitations. Pure regression tests and compilation cannot establish
+native recorder availability. Fresh final-code runtime measurement remains with
+the sole coordinator. Missing measurements or undecided budgets remain
 `NOT_PASSED`; no placeholder becomes a performance result.

@@ -5,6 +5,7 @@
 - 分支 `fix/online-prediction-handoff`，worktree `.worktree/online-prediction-handoff`，HEAD 含 EXP-0 探针、§1 修复与文档提交（见下表）。工作区干净；`Mono.Cecil.sln.meta` / `LiteNetLib.csproj.meta` 的删除是 Unity 清理被忽略文件的孤儿 meta，与本任务无关，不要提交。
 - 已完成：EXP-0（探针）、EXP-1 / §1（Physics Mode → TimeManager）。用户单端实测：症状 A 消失，症状 B 不再强行拉回起点，但交接切换瞬间仍有一次小卡顿。双端实测与 0/100 ms 延迟矩阵**未做**。
 - 先决条件：EXP-2 是否需要做，取决于一次**双端、100 ms** 的开场测试（纯 client 作 owner）。R3 只在有延迟的纯 client 上触发，host 单端看不到。若 client 开场不再被向后拉、位置单调向前，则 EXP-2 跳过，B 记为达标；切换瞬间的小卡顿若不可接受再做 EXP-3（R4/R5）。若 client 仍被向后拉，则做 EXP-2。
+- 交接瞬间的小卡顿已静态分析为本地系统切换不连续（findings.md R7：相机速度源、GO 到消费的死区、视觉参考系切换、角速度清零、重力/碰撞恢复），单机也有同样现象，与网络无关；修复方向见 R7 末尾，待用户选择架构方案（spline 进 motor 状态）或最小方案后实施。
 - 若需要：按 experiments.md 做 **EXP-2**（§2.0 携带服务器消费 id + §2.A 确认门控，D1 已倾向方案 A，待用户确认），针对交接切换瞬间的小卡顿；之后 EXP-3（D2 倾向 D2-a）。实现前先在 100 ms 下看 `[HandoffDebug] consuming queued handoff` 之后 1 到 3 tick 内的 `[ReconcileDelta]`，确认预检序列。
 - 环境恢复步骤：
   1. 用 2022.3.55f1c1 打开本 worktree（`Logs/online-repair/Editor.log`），在编辑器 "MCP for Unity" 标签页点 Connect，再 `set_active_instance online-prediction-handoff@41b28e58f7c667d2`。
@@ -64,6 +65,8 @@
 ## 新发现
 
 （与本任务无关、不在本分支修复的缺陷记在这里。）
+
+- 2026-10-01：交接瞬间小卡顿的本地根因候选记为 findings.md R7；其中 R7.1（相机以 `rb.velocity` 为速度源，开场期间恒为 0）与 R7.2（GO 到下一 tick 消费之间的 1–2 帧死区）在 host 与单机上都成立，属本分支范围内的交接问题，不是无关缺陷。
 
 - 2026-10-01：findings.md 假设 host 自己的身体不会出现 A/B，但用户回报改动前 host 端也有，且 EXP-1 后在单端测试中消失。说明 host 本地 client 侧的 reconcile（`_createLocalStates` 的本地状态回退）在 Unity 物理模式下同样是真实回跳；根因排序不变，EXP-4 的"多写入者"暂不需要提前。
 - 2026-10-01：Physics Mode 改为 TimeManager 后，FishNet 把 `Physics.simulationMode` 持久化为 Script。Editor 里直接 Play 不含 NetworkManager 的场景时刚体不会步进，属已知代价，不在本分支处理。

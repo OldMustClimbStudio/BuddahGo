@@ -25,7 +25,7 @@ A1/A2 对应 S1.5 的先一圈、后三圈两个步骤；A2 通过后才逐步�
 
 **目标**：不开 Steam，也能从主菜单完整玩完一局 Practice（0 个 AI），完整适配既有联机流程与表现到本地；联机体验不变。
 
-Practice 的目标是让本地单机完整承接既有联机流程与表现，特别是加载/场景 handoff、开场镜头/动画/倒计时到驾驶的姿态、镜头和输入控制权交接，并真实验证流畅。此要求是本地适配与验收，不是运行联机测试；也不授权全局移除 prediction。用户报告当前 handoff 表现一般，原因及修复效果需代码与运行证据，不能静态宣告通过。
+Practice 的目标是让本地单机完整承接既有联机流程与表现，特别是加载/场景 handoff、开场镜头/动画/倒计时到驾驶的姿态、镜头和输入控制权交接，并真实验证流畅。此要求是本地适配与验收，不是运行联机测试；也不授权全局移除 prediction。用户此前提出的本地 handoff 问题已由 `cb4a9ad` 在已测首局/Rematch 与控制事件范围内修复验证，见 [Solo 呈现时间契约](solo-presentation-timeline.md)；此结论不替代完整 Practice、自然生命周期或技能/VFX 验收。
 
 **涉及模块**
 - 契约层：`IMatchRules`/`MatchRules.Current`、`ISessionControl`/`SessionControl.Current`、`ILocalInputBlock`、`IMatchClock`、`RacerId`（本阶段只用 `RacerId.FromClient`）
@@ -69,7 +69,7 @@ Practice 的目标是让本地单机完整承接既有联机流程与表现，�
 | 比赛→结算 | 自然完赛、结算演出/镜头、Practice 计时展示与按钮激活衔接正确 | 区分 Race End、ResultInteractive 和 UI 实际可操作，避免过早终止观察 |
 | Rematch / 返回 / Esc | 重开重新经过加载与开场；返回或退出恢复可用主菜单，网络/输入/计时/镜头状态清理且能再进入 | 反复走实际流程；一次合成重开不等于 V8/V11 完成 |
 
-用户提出的 handoff 质量问题保持待核实/待验证状态；评估本地 prediction 与平滑路径后再选修复，不擅自全局删除共享预测功能。流畅性新增数值阈值未给定，不捏造已批准门槛；记录具体可见问题、复现条件及修复前后证据。
+本地 handoff 在 `cb4a9ad` 的首局/Rematch 及受控历史重置范围内已验证通过，详见 [呈现时间契约](solo-presentation-timeline.md)。共享 prediction 保留；以下验收要求继续约束后续改动与完整生命周期，不再将旧停留列为待修复现状。实测边界最低约 57.97 m/s 是观察结果，不是新批准的通用阈值。
 
 **验证**：V1、V3、V7（S1 本地 handoff/镜头/输入衔接范围）、V8、V10、V11、V12。
 

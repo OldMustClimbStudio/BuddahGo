@@ -1,5 +1,7 @@
 # S1 选择页与新采样复核（2026-10-01）
 
+**历史检查点，游戏源码 `9cca08e`。** 本文保留该次运行的结果；其中 handoff 单帧停留已由后续 `cb4a9ad` 修复并验证，最新结论见 [Solo 呈现时间契约](solo-presentation-timeline.md)。此处 Development 窗口也不代表新源码或完整 V12 通过。
+
 S1 仍为 **doing，尚非 user-ready**。本次运行的已提交游戏源码为 `9cca08e`；仅完成选择页、相关 handoff 回归及独立 Development 性能窗口。strict14、V3 精度留给下一短 session；AI 和联机测试均未启动。
 
 ## 选择页
@@ -18,7 +20,7 @@ S1 仍为 **doing，尚非 user-ready**。本次运行的已提交游戏源码�
 
 两轮 GO 当帧速度与快照均约60m/s，重复 post-intro-visual-lock 消失；GO [-0.5,+1]秒未见水平倒退。实际 tick间隔1/60秒、附近每采样帧最多一次 OnPostTick，记录了平滑队列长度/头tick。
 
-**整体流畅性仍未通过**：两轮 GO 后约14.1/15.8ms各有一帧视觉水平停留，刚体水平前进0.966128m、竖向约0.166650m；不能当成仅竖向修正。当前为最终 LateUpdate 观察，未捕获所有物理/队列写入前后状态，不据此宣告残留原因或完整手感通过。
+**该检查点整体流畅性未通过（后续已修复验证）**：两轮 GO 后约14.1/15.8ms各有一帧视觉水平停留，刚体水平前进0.966128m、竖向约0.166650m；不能当成仅竖向修正。当前为最终 LateUpdate 观察，未捕获所有物理/队列写入前后状态，不据此宣告残留原因或完整手感通过。
 
 ## Development 性能窗口
 
@@ -36,7 +38,7 @@ S1 仍为 **doing，尚非 user-ready**。本次运行的已提交游戏源码�
 
 以上 **Development 的 frame与GC数据必须一起使用**，不当作普通 Release 性能，不与旧 Release 数据拼接。旧 Release 10800缺失GC行保留且未获资格。
 
-## 仍未闭合
+## 该检查点的未闭合项（当前状态见 progress.md）
 
 - 预算全部 null，未虚构门槛；独立窗口有效不等于完整 benchmark/V12或基线通过。
 - 三处受保护差异完全保留：PackageManagerSettings 与两项已删除 FishNet meta；主根 dev用户设置未动。clean-source资格仍未通过，未重试此前被拒绝的恢复。

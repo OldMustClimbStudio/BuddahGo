@@ -24,7 +24,7 @@ S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新实际构建/运行�
 | V8 | `27685f9` 真实 selection/intro/driving 三阶段 Esc、清理及重开回执 VALID；client/server 停止，Buddah/Reporter 为 0，Clock/Timing 清空，捕获错误为 0 | 结果页连续 3 次 Rematch、Return 后重开及完整生命周期仍未闭合；不能把 Esc 重开等同结果按钮验收 |
 | V10 / R1 / R3 / R10 | 最新相关原生回归 65/65；统一时间线非 Development 观察包 0 errors/18 warnings，控制回归包 0 errors/20 warnings | 不是重跑全项目测试；私有观察包不等同普通发行包验收。被构建打断的 MCP 任务及初版首步速度失败均保留，不计通过 |
 | V11 | 历史 strict14 在首场主样本完成前中断；本轮最终 strict14 尚未开始，**未完成、未通过** | 最终源码的完整生命周期、对象计数和 Player 内存趋势；短帧窗口或历史 heap 局部观测不能证明稳定 |
-| V12 | 新独立 Development 三窗口各 3600 帧、共 10800 帧，原生 GC 零缺失、0 运行错误，窗口 `VALID`；measured actual 与 Home 配置分开 | **完整 V12/基线未通过**：预算全 null，clean-source 与最终源码 strict14/Esc 等证据未齐；Development frame/GC 成组使用，不当 Release 结果，不拼接旧被拒采样 |
+| V12 | `9cca08e` 的独立 Development 三窗口各 3600 帧、共 10800 帧，原生 GC 零缺失、0 运行错误，窗口 `VALID`；measured actual 与 Home 配置分开，不外推为新 handoff 源码性能 | **完整 V12/基线未通过**：预算全 null，clean-source 与最终源码 strict14/Esc 等证据未齐；Development frame/GC 成组使用，不当 Release 结果，不拼接旧被拒采样 |
 | 用户技能试玩准备度 | UI 布局/动作路径及本地 handoff 已有有界复核 | 原粒子插件 shader 紫色问题和六技能效果仍待验收；完整 Practice 未完成，**尚非 user-ready** |
 | 来源资格 / 文件恢复 | 三文件曾按用户授权备份恢复成功；随后 Unity 自动删除两项孤立 meta 并重写设置，证据及 dirty 状态保留 | 不循环 restore、不清无关 dirty；clean-source 未通过；主根 dev 未改动 |
 | V2 / Steam 双客户端 / Solo–Online 交替 | **N/A，不执行，不标通过** | 无单机验收前置 |
@@ -57,9 +57,9 @@ S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新实际构建/运行�
 - 当前 Editor 实际技能选择提供六个 unlocked ID：acceleration、slowtrap、blackcurtain、giant、push_projectile_hands、reverseturn。此项证明选择入口可用，不代表每项技能效果已验收。反转转向正常效果排除施法者，0 AI Practice 无法验证其对手效果；不新增 AI 靶子。选择场景截图同时出现洋红材质和文字叠放，列为待修复复核的独立资源/UI 项，未推定其来源。当前不能标为 user-ready；六个选项可用不等于完整界面或六项技能表现通过。
 - 原始日志、配置、CSV、回执、来源清单和实际界面截图均私有保存；截图已在工作对话展示，不上传公共 PR。S1 保持 doing；AI 仍等待 Practice 完成、用户逐项试玩及明确开始信号。
 
-### 当前 Practice 质量要求（待验证）
+### 当前 Practice 质量边界
 
-Practice 的目标是让本地单机完整承接既有联机流程与表现，特别是加载/场景 handoff、开场镜头/动画/倒计时到驾驶的姿态、镜头和输入控制权交接，并真实验证流畅。此要求是本地适配与验收，不是运行联机测试；也不授权全局移除 prediction。用户报告当前 handoff 表现一般，原因及修复效果需代码与运行证据，不能静态宣告通过。当前未收到覆盖这些完整动态交接的新通过证据；静态修复和已有局部流程结果不自动关闭此项。S1 主任务负责唯一 Unity 验收执行，handoff 模块修复结果按实际构建和运行记录集成。
+Practice 的目标是让本地单机完整承接既有联机流程与表现，特别是加载/场景 handoff、开场镜头/动画/倒计时到驾驶的姿态、镜头和输入控制权交接，并真实验证流畅。此要求是本地适配与验收，不是运行联机测试；也不授权全局移除 prediction。用户此前提出的本地 handoff 问题已由 `cb4a9ad` 在已测首局/Rematch 与控制事件范围内修复验证，见 [Solo 呈现时间契约](solo-presentation-timeline.md)；此结论不替代完整 Practice、自然生命周期或技能/VFX 验收。65 项 Unity 回归、两组各 5380 帧的首局/真实 Rematch 及五次历史重置已有独立证据，不再将旧单帧停留列为当前阻塞。原粒子 VFX 紫色、自然复活/全部技能、strict14/V3 与完整 V12 仍待各自验证；运行由当前唯一 Unity 任务负责。
 
 ### 设计与实现待核对
 
@@ -76,7 +76,7 @@ Practice 的目标是让本地单机完整承接既有联机流程与表现，�
 | 阶段 | 目标 | 状态 | PR | 验证结果 | 备注 |
 |---|---|---|---|---|---|
 | S0 | 同步重构结果 | done | — | 文档事实已按合并后的 dev 复核 | 2026-09-30 合并 dev（含 #47–#58） |
-| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 最新 Unity 53/53、选择页复核、Development 窗口 VALID；V3/V7/V8/V11/V12 未全部闭合；V2 不适用 | 同步 af72b22；新运行源码 9cca08e；尚非 user-ready；AI 未开始 |
+| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 最新 Unity 65/65、本地 handoff 在已测范围内通过；选择页复核与旧源码 Development 窗口 VALID；V3/V8/V11/V12 未全部闭合，V2 不适用 | 同步 a5de97e；handoff 生产代码 cb4a9ad；尚非 user-ready；AI 未开始 |
 | S1.5 | 规划器可行性验证 | todo | | 未开始；等待用户 AI 开始信号 | Practice 完成、用户逐项技能试玩、明确开始信号三项齐备才启动 |
 | S2 | Racer 身份 | todo | | | 仅单机验收 |
 | S3a | AI 完整跑完一局 | todo | | | |

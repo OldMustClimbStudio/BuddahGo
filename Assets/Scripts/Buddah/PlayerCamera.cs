@@ -27,6 +27,11 @@ public class PlayerCamera : NetworkBehaviour
     [SerializeField] private float maxSpeedFieldOfView = 72f;
     [SerializeField] private float maxSpeedDistanceOffset = 12f;
     [SerializeField] private float speedZoomSmoothTime = 0.2f;
+    [Header("Intro Exit")]
+    [Tooltip("Smooth time used for the speed zoom and directional offset right after the stable intro camera ends (GO), so the dynamic camera eases in instead of snapping within speedZoomSmoothTime.")]
+    [SerializeField, Min(0f)] private float stableIntroExitSmoothTime = 0.6f;
+    [Tooltip("Seconds over which stableIntroExitSmoothTime fades back to the regular smooth times after the stable intro camera ends.")]
+    [SerializeField, Min(0f)] private float stableIntroExitBlendDuration = 1.2f;
     [Header("Scale Adaptation")]
     [SerializeField] private bool adaptToPlayerScale = true;
     [SerializeField] private float cameraDistanceScaleFactor = 1f;
@@ -48,6 +53,8 @@ public class PlayerCamera : NetworkBehaviour
     private float _baseFramingCameraDistance;
     private float _speedDistanceOffset;
     private float _speedDistanceVelocity;
+    private bool _wasStableIntroCamera;
+    private float _stableIntroExitBlendRemaining;
     private PlayerScaleEffect _scaleEffect;
     private bool _missingScaleEffectLogged;
     private Transform _followTargetOverride;
@@ -117,10 +124,13 @@ public class PlayerCamera : NetworkBehaviour
         {
             ResetDynamicCameraOffsets();
             ApplyStableCameraState();
+            _wasStableIntroCamera = true;
             return;
         }
 
-        Vector3 absoluteVelocity = activeFollowRigidbody.velocity;
+        TickStableIntroExitBlend();
+
+        Vector3 absoluteVelocity = ResolveFollowVelocity(activeFollowRigidbody);
         float absoluteSpeed = absoluteVelocity.magnitude;
 
         Vector3 planarVelocity = absoluteVelocity;
@@ -134,7 +144,7 @@ public class PlayerCamera : NetworkBehaviour
             Mathf.Clamp(targetOffset.y, -maxDirectionalOffset.y, maxDirectionalOffset.y),
             Mathf.Clamp(targetOffset.z, -maxDirectionalOffset.z, maxDirectionalOffset.z));
 
-        float smoothTime = Mathf.Max(0.001f, offsetSmoothTime);
+        float smoothTime = GetStableIntroExitSmoothTime(offsetSmoothTime);
         float lerpFactor = 1f - Mathf.Exp(-Time.deltaTime / smoothTime);
         _directionalOffset = Vector3.Lerp(_directionalOffset, targetOffset, lerpFactor);
 
@@ -330,7 +340,7 @@ public class PlayerCamera : NetworkBehaviour
 
         float targetFieldOfView = Mathf.Lerp(minSpeedFieldOfView, maxSpeedFieldOfView, normalizedSpeed);
         float targetDistanceOffset = normalizedSpeed * maxSpeedDistanceOffset;
-        float safeSmoothTime = Mathf.Max(0.001f, speedZoomSmoothTime);
+        float safeSmoothTime = GetStableIntroExitSmoothTime(speedZoomSmoothTime);
         _speedFieldOfView = Mathf.SmoothDamp(_speedFieldOfView, targetFieldOfView, ref _speedFovVelocity, safeSmoothTime);
         _speedDistanceOffset = Mathf.SmoothDamp(_speedDistanceOffset, targetDistanceOffset, ref _speedDistanceVelocity, safeSmoothTime);
     }
@@ -385,6 +395,55 @@ public class PlayerCamera : NetworkBehaviour
 
         RoomStateManager room = RoomStateManager.Instance;
         return room != null && room.IsMatchPhaseActive && !room.IsGameplayMovementUnlocked;
+    }
+
+    private Vector3 ResolveFollowVelocity(Rigidbody followRigidbody)
+    {
+        // During the intro and the GO-to-consume gap the body is kinematic and driven by spline position writes,
+        // so rb.velocity reads zero although the body moves at intro speed. Read the spline velocity instead so
+        // the speed-driven zoom and offsets see a continuous speed across the handoff.
+        if (followRigidbody.isKinematic
+            && _introStateController != null
+            && _introStateController.TryGetSplineDrivenVelocity(out Vector3 splineVelocity))
+            return splineVelocity;
+
+        return followRigidbody.velocity;
+    }
+
+    private void TickStableIntroExitBlend()
+    {
+        if (_wasStableIntroCamera)
+        {
+            _wasStableIntroCamera = false;
+            _stableIntroExitBlendRemaining = stableIntroExitBlendDuration;
+            return;
+        }
+
+        if (_stableIntroExitBlendRemaining > 0f)
+            _stableIntroExitBlendRemaining = Mathf.Max(0f, _stableIntroExitBlendRemaining - Time.deltaTime);
+    }
+
+    private float GetStableIntroExitSmoothTime(float regularSmoothTime)
+    {
+        return BlendStableIntroExitSmoothTime(
+            regularSmoothTime,
+            stableIntroExitSmoothTime,
+            _stableIntroExitBlendRemaining,
+            stableIntroExitBlendDuration);
+    }
+
+    /// <summary>
+    /// Smooth time to use while easing out of the stable intro camera: starts at the larger of the regular and
+    /// exit smooth times and fades linearly back to the regular one over the blend duration. Pure; unit tested.
+    /// </summary>
+    public static float BlendStableIntroExitSmoothTime(float regularSmoothTime, float exitSmoothTime, float blendRemaining, float blendDuration)
+    {
+        float regular = Mathf.Max(0.001f, regularSmoothTime);
+        if (blendRemaining <= 0f || blendDuration <= 0f)
+            return regular;
+
+        float blendWeight = Mathf.Clamp01(blendRemaining / blendDuration);
+        return Mathf.Max(regular, Mathf.Lerp(regular, exitSmoothTime, blendWeight));
     }
 
     private void ResetDynamicCameraOffsets()

@@ -57,6 +57,19 @@ public class RaceBodyIntroStateController : MonoBehaviour
     public int ActiveSequenceId => _activeSequenceId;
     public bool HasAssignment => _hasAssignment;
 
+    /// <summary>
+    /// Velocity the intro spline currently imposes on the kinematic body. The rigidbody is driven by direct
+    /// position writes, so <c>rb.velocity</c> reads zero during the intro and in the GO-to-consume gap even
+    /// though the body moves at intro speed. Returns false once the motor owns the body again.
+    /// </summary>
+    public bool TryGetSplineDrivenVelocity(out Vector3 velocity)
+    {
+        bool splineOwnsBody = IsIntroActive
+            || (_goApplied && _runtimeState == IntroRuntimeState.AuthoritativeHandoffPending);
+        velocity = splineOwnsBody ? _latestSplineSnapshot.Velocity : Vector3.zero;
+        return splineOwnsBody;
+    }
+
     private void Awake()
     {
         ResolveReferences();

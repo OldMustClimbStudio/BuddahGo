@@ -7,7 +7,7 @@
 | 阶段 | 目标 | 状态 | PR | 验证结果 | 备注 |
 |---|---|---|---|---|---|
 | S0 | 同步重构结果 | done | — | 文档事实已按合并后的 dev 复核 | 2026-09-30 合并 dev（含 #47–#58） |
-| S1 | 离线单人 Practice 跑通 | doing | Draft pending | Unity 场景闭环通过；V10 149/149；R3 非 Development 构建通过；V1/V2/V3/V8/V11 尚未全部验收 | 2026-10-01：基于 0abc432，dev 7389ec8 为祖先；0 AI；不进入 S1.5 |
+| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | Unity 场景闭环通过；V10 149/149；R3 非 Development 构建通过；V1/V2/V3/V8/V11 尚未全部验收 | 2026-10-01：基于 0abc432，dev 7389ec8 为祖先；0 AI；不进入 S1.5 |
 | S1.5 | 规划器可行性验证 | todo | | | 不通过则停下来，由团队决策 |
 | S2 | Racer 身份 | todo | | | 联机做冒烟检查 |
 | S3a | AI 完整跑完一局 | todo | | | |

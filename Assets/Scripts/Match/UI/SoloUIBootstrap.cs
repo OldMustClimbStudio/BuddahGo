@@ -78,7 +78,7 @@ namespace SteamMultiplayer.UI
             _onlineStatus = SoloUIFactory.Label(home.transform, "OnlineAvailability", string.Empty,
                 new Vector2(0f, -255f), new Vector2(900f, 58f), font, 20f);
             RefreshOnlineAvailability();
-            SoloUIFactory.Focus(solo);
+            if (menu.CurrentPanel == MainMenuUI.MenuPanel.Home) SoloUIFactory.Focus(solo);
         }
 
         private void Update() => RefreshOnlineAvailability();

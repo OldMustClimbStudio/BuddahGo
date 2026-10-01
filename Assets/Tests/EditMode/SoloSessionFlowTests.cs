@@ -54,12 +54,12 @@ namespace BuddahGo.Tests
         }
 
         [UnityTest]
-        public IEnumerator StartupRollback_AfterSelectionLoad_ReturnsHomeAndPreservesError()
+        public IEnumerator StartupRollback_AfterSelectionLoad_RestoresVisibleSetupSettingsAndError()
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");
             yield return new EnterPlayMode();
             yield return null;
-            Assert.That(SessionControl.Current.StartSoloHost(new SoloMatchSettings(0, SoloDifficulty.Normal)), Is.True);
+            Assert.That(SessionControl.Current.StartSoloHost(new SoloMatchSettings(0, SoloDifficulty.Hard)), Is.True);
             float deadline = Time.realtimeSinceStartup + 45f;
             while (Time.realtimeSinceStartup < deadline && (PropertiesSelectionManager.Instance == null ||
                 !PropertiesSelectionManager.Instance.IsClientInitialized || !PropertiesSelectionManager.Instance.IsStageCountdownActive))
@@ -81,18 +81,21 @@ namespace BuddahGo.Tests
             Assert.That(SessionControl.Current.LastError, Is.EqualTo("Injected startup failure"));
             Assert.That(LocalInputBlock.IsBlocked, Is.False);
             deadline = Time.realtimeSinceStartup + 5f;
-            while (Time.realtimeSinceStartup < deadline && (GameObject.Find("OnlineAvailability") == null ||
-                GameObject.Find("OnlineAvailability").GetComponent<TMPro.TMP_Text>().text != "Injected startup failure"))
+            while (Time.realtimeSinceStartup < deadline && GameObject.Find("StartPractice") == null)
                 yield return null;
-            Assert.That(GameObject.Find("OnlineAvailability"), Is.Not.Null);
-            Assert.That(GameObject.Find("OnlineAvailability").GetComponent<TMPro.TMP_Text>().text,
-                Is.EqualTo("Injected startup failure"), "Home displays the failure before reopening setup.");
-            Object.FindFirstObjectByType<MainMenuUI>().ShowSoloSetup();
-            yield return null;
+            var menu = Object.FindFirstObjectByType<MainMenuUI>();
+            Assert.That(menu.CurrentPanel, Is.EqualTo(MainMenuUI.MenuPanel.SoloSetup));
+            Assert.That(menu.HomePanel.activeInHierarchy, Is.False);
             Assert.That(GameObject.Find("StartPractice").GetComponent<Button>().interactable, Is.True);
             var setup = Object.FindFirstObjectByType<SoloSetupPanel>();
+            Assert.That(setup.gameObject.activeInHierarchy, Is.True);
             Assert.That(System.Array.Exists(setup.GetComponentsInChildren<TMPro.TMP_Text>(),
-                label => label.text == "Injected startup failure"), Is.True, "Reopened setup keeps the startup error visible.");
+                label => label.text == "Injected startup failure"), Is.True, "Setup displays the error without another click.");
+            Assert.That(System.Array.Exists(setup.GetComponentsInChildren<TMPro.TMP_Text>(),
+                label => label.text == "● 困难"), Is.True, "Restore the failed request, not the saved default.");
+            Assert.That(MatchServices.Clock, Is.Null);
+            Assert.That(MatchServices.Timing, Is.Null);
+            Assert.That(Object.FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None).Length, Is.Zero);
             yield return new ExitPlayMode();
         }
 

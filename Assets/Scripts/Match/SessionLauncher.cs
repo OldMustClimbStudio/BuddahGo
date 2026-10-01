@@ -16,6 +16,7 @@ namespace BuddahGo.Match
         private readonly NetworkManager _network;
         private int _stopRequestedFrame = -1;
         private float _startupDeadline;
+        private SoloMatchSettings _failedSoloSettings;
         public SoloMatchSettings Settings { get; private set; }
         public bool IsStarting { get; private set; }
         public string LastError { get; private set; } = string.Empty;
@@ -57,6 +58,7 @@ namespace BuddahGo.Match
         private bool StartHost(int index, IMatchRules rules, SoloMatchSettings settings)
         {
             if (!TryGetTransport(out Multipass transport)) return false;
+            _failedSoloSettings = null;
             LastError = string.Empty;
             MatchRules.Current = rules;
             Settings = settings;
@@ -82,6 +84,7 @@ namespace BuddahGo.Match
             if (!IsOnlineAvailable) return Fail("Steam 不可用，请启动 Steam 后重开游戏");
             if (string.IsNullOrWhiteSpace(hostSteamId)) return Fail("主机地址为空。");
             if (!TryGetTransport(out Multipass transport)) return false;
+            _failedSoloSettings = null;
             LastError = string.Empty;
             MatchRules.Reset();
             Settings = null;
@@ -126,10 +129,18 @@ namespace BuddahGo.Match
             else if (Time.realtimeSinceStartup >= _startupDeadline) Rollback("连接超时，请重试。");
         }
 
+        public SoloMatchSettings TakeFailedSoloSettings()
+        {
+            var settings = _failedSoloSettings;
+            _failedSoloSettings = null;
+            return settings;
+        }
+
         private bool Rollback(string message)
         {
             if (SceneManager.GetActiveScene().name != SceneNames.MainMenu)
             {
+                _failedSoloSettings = Settings;
                 // Authentication/selection readiness can fail after the menu unloaded.
                 // Return through the same next-frame stop boundary as an explicit quit.
                 IsStarting = false;

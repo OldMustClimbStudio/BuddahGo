@@ -39,6 +39,7 @@ namespace SteamMultiplayer.UI
 
         public MenuPanel CurrentPanel => _currentPanel;
         public GameObject HomePanel => homePanel;
+        private bool _started;
         private GameObject _soloSetupPanel;
         private GameObject _homeDefaultSelection;
 
@@ -47,9 +48,20 @@ namespace SteamMultiplayer.UI
             _soloSetupPanel = panel;
             _homeDefaultSelection = homeDefaultSelection;
             SetPanelActive(panel, _currentPanel == MenuPanel.SoloSetup);
+            TryRestoreFailedSoloSetup();
         }
 
         public void ShowSoloSetup() => ShowPanel(MenuPanel.SoloSetup, true);
+
+        private void TryRestoreFailedSoloSetup()
+        {
+            // Start and bootstrap registration may run in either order. Consume once both are ready.
+            if (!_started || _soloSetupPanel == null) return;
+            var settings = SessionControl.Current?.TakeFailedSoloSettings();
+            if (settings == null) return;
+            _soloSetupPanel.GetComponent<SoloSetupPanel>().RestoreSettings(settings);
+            ShowSoloSetup();
+        }
 
         private void Awake()
         {
@@ -63,6 +75,8 @@ namespace SteamMultiplayer.UI
             ResolveManager();
             Subscribe();
             ShowHome();
+            _started = true;
+            TryRestoreFailedSoloSetup();
             RefreshRootVisibility();
         }
 

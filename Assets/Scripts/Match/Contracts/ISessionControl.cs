@@ -9,6 +9,7 @@ namespace BuddahGo.Match
         bool StartOnlineClient(string hostSteamId);
         bool StartSoloHost(SoloMatchSettings settings);
         void RequestStopSession();
+        SoloMatchSettings TakeFailedSoloSettings();
     }
 
     public static class SessionControl

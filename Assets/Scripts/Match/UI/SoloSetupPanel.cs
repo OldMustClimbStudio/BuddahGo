@@ -49,6 +49,12 @@ namespace SteamMultiplayer.UI
             RefreshDifficulty();
         }
 
+        public void RestoreSettings(SoloMatchSettings settings)
+        {
+            _difficulty = settings.Difficulty;
+            RefreshDifficulty();
+        }
+
         private void OnEnable()
         {
             if (_start == null) return;

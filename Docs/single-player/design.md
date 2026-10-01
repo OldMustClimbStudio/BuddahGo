@@ -3,7 +3,7 @@
 - 术语以根目录 [CONTEXT.md](../../CONTEXT.md) 为准。
 - 不可轻易回退的决策见 [Docs/adr/](../adr/)。
 - 分阶段目标见 [phases.md](phases.md)；执行入口见 [HANDOFF.md](HANDOFF.md)。
-- **事实基线**：`dev` 已合入架构重构（PR #47–#58）。行号以合并后的代码为准，只作定位提示，以符号名为准。
+- **设计事实基线**：`dev` 已合入架构重构（PR #47–#58）；§3.3 的旧代码定位和改造描述以 2026-09-30 基线为背景，不表示这些改造仍未实现。当前 S1 实现与验收状态以 [progress.md](progress.md) 为准（2026-10-01 审计 HEAD `9f2839e`）；设计目标未因局部测试结果而放宽。行号只作定位提示，以符号名为准。
 
 ## 0. 首要原则：稳定性优先
 
@@ -18,7 +18,7 @@
    - 启动失败、AI 卡死、对象缺失都要有兜底：回到设置面板、Stuck Recovery、使用占位或跳过。
    - 不能让玩家卡在半途。
 4. **单机验收独立**（2026-10-01 用户更新）：单机任务不运行任何联机测试；V2、Steam 双端和 Solo/Online 交替移出所有单机阶段门槛，标为不适用而非通过。共享契约和现有联机行为仍须保留，联机验证资产留给独立联机任务。
-5. **单机有自己的 benchmark**：独立入口、配置和协议见 `benchmark.md`（待实现）。S1 测 0 AI Practice，后续阶段使用对应 AI 人数/难度；固定种子、路由与明确命名的输入/控制器，记录 warmup、采样轮数/时间、构建/分辨率/质量/FPS、frame time mean/p95/p99、GC/frame 与 GC/秒、内存/对象残留及完整比赛/重开完整性。只与可比的单机基线对照，不套用联机 Editor R8 数据；实机与合成证据分开。
+5. **单机有自己的 benchmark**：独立入口、配置和协议由专属 benchmark 任务在 `benchmark.md` 中维护（正在开发，尚待集成和实测）。S1 测 0 AI Practice，后续阶段使用对应 AI 人数/难度；固定种子、路由与明确命名的输入/控制器，记录 warmup、采样轮数/时间、构建/分辨率/质量/FPS、frame time mean/p95/p99、GC/frame 与 GC/秒、内存/对象残留及完整比赛/重开完整性。只与可比的单机基线对照，不套用联机 Editor R8 数据；实机与合成证据分开。
 
 ## 1. 目标与功能清单
 
@@ -101,7 +101,7 @@
    - `AIRacerDriver`、`AISkillCaster` 是普通 MonoBehaviour，也预先放在 prefab 上，默认禁用，由服务器在指定 AI 角色时启用。
 6. **联机行为不变**：所有模式差异都通过 `IMatchRules` 查询，`OnlineMatchRules` 返回的就是现有行为。
 
-**程序集与目录**：都放在 `BuddahGo.Runtime` 程序集内。
+**程序集与目录**：都放在 `BuddahGo.Runtime` 程序集内。以下为设计布局；S1 当前 UI 位于 `Assets/Scripts/Match/UI/`，与目录及依赖规则相关的未决差异见 progress.md，尚未据此修改设计边界。
 
 | 目录 | 命名空间 | 内容 |
 |---|---|---|
@@ -228,16 +228,16 @@ StopSession() 的顺序：ClientManager.StopConnection() → ServerManager.StopC
 
 ### 5.1 离线启动与会话（S1）
 
-**N3 现状**
+**N3 原始问题（S1 前基线；当前容错已实现）**
 - `FishyFacepunch.Initialize` 里的 `SteamClient.Init`（`FishyFacepunch.cs:98-101`）会抛出 `NoSteamClient`，紧接着的 `SteamNetworking.AllowP2PPacketRelay`（`:103`）同样依赖 Steam。
 - 异常发生在 `NetworkManager.InitializeComponents` 的 TransportManager 一步，之后的各个 Manager 都不会初始化。
 - `Multipass.Initialize` 会逐个初始化所有子传输层（`:150-161`）。
-- 结论：必须先完成 ADR 0004 的容错。
+- 原始结论：必须先完成 ADR 0004 的容错。当前 `FishyFacepunch.Initialize` 已捕获 Steam 初始化异常并继续初始化传输层；历史离线启动验证见 progress.md。
 
-**Multipass 的用法（已对照 FishNet 4.7.1 源码确认，S1 只需实测）**
+**Multipass 的用法（当前 S1 已实现，历史 Yak 传输验证见 progress.md）**
 
 *前置配置*
-- `MainMenu.unity:6353` 的 `TransportManager.Transport` 现在直接引用 FishyFacepunch，要改为引用 Multipass。Multipass 的子传输层固定为 `[0]=FishyFacepunch, [1]=Yak`。
+- S1 已将 MainMenu 的 `TransportManager.Transport` 从 FishyFacepunch 改为 Multipass。子传输层固定为 `[0]=FishyFacepunch, [1]=Yak`；旧场景行号不再代表当前序列化位置。
 - `GlobalServerActions` 保持 true。设为 false 会让 `ServerManager.StartConnection` 和 `StopConnection` 直接报错并失败（`Multipass.cs:517-525/831/881`）。
 
 *为什么不能走 `ServerManager.StartConnection()`*
@@ -278,8 +278,8 @@ StopSession() 的顺序：ClientManager.StopConnection() → ServerManager.StopC
 - **RacerRegistry 必须新建**：现有的 `PlayerRegistry` 只是 `BuddahMovement` 的列表，没有 id 索引。
 - **同步载体是 Buddah 上的 `RacerIdentity`**：服务器在生成时写入 RacerId、显示名和 IsAI，每一端都由它建立索引。这样联机时头顶名字也能用。
 - **计时**
-  - 现状：完赛时间用 `Time.unscaledTimeAsDouble`（`RaceFinishManager.cs:125`），GO 时间用 tick 换算出的网络时间（`IntroSequenceManager :201`、`IntroTimeUtility.cs:39-47`），两者不能相减。
-  - 做法：`RaceTiming` 统一用 Match Clock 记录。
+  - S1 前的问题：完赛时间用 `Time.unscaledTimeAsDouble`，GO 时间用 tick 换算出的网络时间，两者不能相减。
+  - 当前 S1 已用 Match Clock 记录 GO、`RaceTiming` 与完赛；S2 继续做身份迁移。服务器时钟精度不等于真人过线采样精度：圈数经 `PlayerProgressReporter` 约 100 ms 上报后观察，历史实测不能证明单 tick 冲线精度。
   - `RankEntry.FinishServerTime` 的含义保持不变，联机界面照旧使用它；Lap Time 放在 `RaceTimingSync` 里。
 - **改名的真正风险**：`RankEntry` 改名后，线上格式不变（所有端都是同一个构建），真正的风险在调用点，例如 `RaceSpectatorTargetResolver.cs:45/51`、`ObsessionFigure.cs:114`，S2 要逐个修改并回归。
 
@@ -367,7 +367,7 @@ FishNet 的 tick 按 `unscaledDeltaTime` 累加（`TimeManager.cs:700`），所�
 ### 5.7 可用性与占位美术
 
 **可用性**
-- 设置面板的默认值是上一次的选择（用 PlayerPrefs 记住），首次默认为 3 个 AI、普通难度。
+- 完整功能的设置默认值是上一次的选择（用 PlayerPrefs 记住），首次默认为 3 个 AI、普通难度。S1 按 phases.md 的阶段限制锁定 0 AI Practice，只保留难度选择；不能把此状态记为 0–5 AI 功能已完成。
 - 启动失败时留在设置面板，显示原因。
 - Steam 不可用的提示写明"请启动 Steam 后重开游戏"。
 - 结算界面上，"再来一局"是默认焦点。
@@ -407,7 +407,7 @@ AI 名字放在配置里（不写在代码中），当前列表如下：
 | 风险 | 应对 |
 |---|---|
 | 规划器无法稳定驾驭这套物理 | S1.5 提前验证；ADR 0003 保留经验公式作为备选 |
-| Multipass 只启动单个传输层的行为与预期不同 | S1 第一步就先实测 §5.1 的 API，再搭建其余部分 |
+| Multipass 只启动单个传输层的行为与预期不同 | S1 历史 Yak 启停验证已有结果，见 progress.md；传输实现改变时复核 §5.1 的 API |
 | 改 RacerId 时意外扩大共享代码范围 | S2 单独成阶段，遵守既有契约与兼容约束；联机测试属于独立任务，不进入单机 gate |
 | 长时间连续游玩时出现泄漏、状态累积或偶发异常 | 每个阶段都跑稳定性浸泡测试（V11） |
 | AI 卡在 owner 门槛上 | §3.3 已逐个列出接缝，S3a 的完成标准逐项覆盖 |

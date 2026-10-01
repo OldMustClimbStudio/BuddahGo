@@ -1,5 +1,7 @@
 # 交接：单机模式实现
 
+**当前状态：S1 paused（2026-10-01 用户要求暂停并关机）**。已完成与部分证据见 [progress.md](progress.md) 的暂停检查点；独立 benchmark 尚未实现或运行。收到用户继续指令后再恢复，不自动启动 Editor、测试或后续阶段。
+
 你负责在分支 `feat/single-player-mode` 上实现 Solo Match：一个 Human Player 对 0–5 个 AI Racer，完全离线，流程与 Online Match 一样完整。
 
 | 你需要什么 | 看哪里 |

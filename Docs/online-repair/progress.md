@@ -5,7 +5,7 @@
 - 分支 `fix/online-prediction-handoff`，worktree `.worktree/online-prediction-handoff`，HEAD 含 EXP-0 探针、§1 修复与文档提交（见下表）。工作区干净；`Mono.Cecil.sln.meta` / `LiteNetLib.csproj.meta` 的删除是 Unity 清理被忽略文件的孤儿 meta，与本任务无关，不要提交。
 - 已完成：EXP-0（探针）、EXP-1 / §1（Physics Mode → TimeManager）。用户单端实测：症状 A 消失，症状 B 不再强行拉回起点，但交接切换瞬间仍有一次小卡顿。双端实测与 0/100 ms 延迟矩阵**未做**。
 - 先决条件：EXP-2 是否需要做，取决于一次**双端、100 ms** 的开场测试（纯 client 作 owner）。R3 只在有延迟的纯 client 上触发，host 单端看不到。若 client 开场不再被向后拉、位置单调向前，则 EXP-2 跳过，B 记为达标；切换瞬间的小卡顿若不可接受再做 EXP-3（R4/R5）。若 client 仍被向后拉，则做 EXP-2。
-- 交接瞬间的小卡顿已静态分析为本地系统切换不连续（findings.md R7），只定位、未动手。它并入同一流程但排在最后：联机项（EXP-2/3/4/5）全部达标后再做 **EXP-6**（experiments.md，单端，五个单变量开关）→ **§6**（fix-spec.md）→ 验收「交接连续性」→ **D5**。硬约束：开场 spline 动画的播放效果不变。
+- 交接瞬间的小卡顿（R7）已拆到独立分支 `fix/launch-handoff-continuity`（`.worktree/launch-handoff-continuity`，`Docs/handoff-continuity/`），本分支只做联机问题；开场 spline 动画播放效果不变仍是本分支的验收不变项。
 - 若需要：按 experiments.md 做 **EXP-2**（§2.0 携带服务器消费 id + §2.A 确认门控，D1 已倾向方案 A，待用户确认），针对交接切换瞬间的小卡顿；之后 EXP-3（D2 倾向 D2-a）。实现前先在 100 ms 下看 `[HandoffDebug] consuming queued handoff` 之后 1 到 3 tick 内的 `[ReconcileDelta]`，确认预检序列。
 - 环境恢复步骤：
   1. 用 2022.3.55f1c1 打开本 worktree（`Logs/online-repair/Editor.log`），在编辑器 "MCP for Unity" 标签页点 Connect，再 `set_active_instance online-prediction-handoff@41b28e58f7c667d2`。
@@ -25,7 +25,6 @@
 | EXP-3 投影与回放时钟 | B | | todo | | | | |
 | EXP-4 多写入者 | A/B | | todo | | | | |
 | EXP-5 视觉参考系 | A | | todo | | | | |
-| EXP-6 本地交接连续性（R7） | 切换卡顿 | 待做：单端复现；比较 GO tick 与 consume tick | todo（联机 A/B 达标后） | | | 子实验 1–5 待填 | 由结果选 §6.1 / §6.2（D5）；开场动画效果不变 |
 
 ## 正式修复表
 
@@ -37,7 +36,6 @@
 | §3.2 | 服务器侧远端身体 kinematic | EXP-4.1 | todo | | |
 | §4 | 回放时钟 | EXP-3.2 | todo | | |
 | §5 | 视觉参考系（D3） | EXP-5 | todo | | |
-| §6 | 本地交接连续性（相机速度源、死区、视觉参考系、角速度、高度；D5） | EXP-6 | todo（§1–§5 之后） | | |
 | 收尾 | 全矩阵回归、文档更新、探针移除 | 全部 | todo | | |
 
 ## 基线表（EXP-0 填写）
@@ -63,13 +61,12 @@
 | D2 | handoff 快照是否改为服务器直接采样（D2-b）或服务器同样投影（D2-a） | 实现者建议先 D2-a，有残余再 D2-b，待用户确认 | 2026-10-01 待定 |
 | D3 | spectator 插值策略与 teleport 阈值 | | |
 | D4 | acceptance.md 中标注"待定"的阈值 | | |
-| D5 | §6 采用最小方案（D5-a）还是 spline 进 motor 状态（D5-b） | 实现者建议先 §6.1 + D5-a 验证，再评估 D5-b | 2026-10-01 待定 |
 
 ## 新发现
 
 （与本任务无关、不在本分支修复的缺陷记在这里。）
 
-- 2026-10-01：交接瞬间小卡顿的本地根因候选记为 findings.md R7；其中 R7.1（相机以 `rb.velocity` 为速度源，开场期间恒为 0）与 R7.2（GO 到下一 tick 消费之间的 1–2 帧死区）在 host 与单机上都成立，属本分支范围内的交接问题，不是无关缺陷。用户决定：先修联机，再修它（EXP-6/§6）。
+- 2026-10-01：交接瞬间小卡顿的本地根因候选记为 findings.md R7；其中 R7.1（相机以 `rb.velocity` 为速度源，开场期间恒为 0）与 R7.2（GO 到下一 tick 消费之间的 1–2 帧死区）在 host 与单机上都成立，属本分支范围内的交接问题，不是无关缺陷。用户决定：拆成独立分支 `fix/launch-handoff-continuity`，单机模式可直接合入；本分支只做联机。
 
 - 2026-10-01：findings.md 假设 host 自己的身体不会出现 A/B，但用户回报改动前 host 端也有，且 EXP-1 后在单端测试中消失。说明 host 本地 client 侧的 reconcile（`_createLocalStates` 的本地状态回退）在 Unity 物理模式下同样是真实回跳；根因排序不变，EXP-4 的"多写入者"暂不需要提前。
 - 2026-10-01：Physics Mode 改为 TimeManager 后，FishNet 把 `Physics.simulationMode` 持久化为 Script。Editor 里直接 Play 不含 NetworkManager 的场景时刚体不会步进，属已知代价，不在本分支处理。

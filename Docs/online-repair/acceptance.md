@@ -1,6 +1,6 @@
 # 联机修复：目标效果与测试计划
 
-本文定义修复完成时应观察到的行为，以及每个阶段必须跑的测试。根因编号 R1–R6 见 [findings.md](findings.md)。阈值中标注“待定”的，在 P0 基线采集后由团队确认并回填。
+本文定义修复完成时应观察到的行为，以及每个阶段必须跑的测试。根因编号 R1–R6 见 [findings.md](findings.md)，实现细节见 [fix-spec.md](fix-spec.md)，实验顺序见 [experiments.md](experiments.md)。阈值中标注“待定”的，在 P0 基线采集后由团队确认并回填。
 
 ## 最终需求效果
 
@@ -29,7 +29,7 @@
 - 沿用团队做法：host 用 Development Build，client 用 Editor 或 ParrelSync 克隆。Standalone 保留 `BUDDAH_PREDICTION_SHADOW`，看 `[D-LOC HEARTBEAT]` 的 `loc-div/tel-div/mod-div/hof-div`。
 - 延迟矩阵：FishNet 延迟模拟 0 ms 与 100 ms（双端），再加一次真实 Steam 会话。
 - 视角矩阵：host-owner、client-owner、host 观察 client、client 观察 host。
-- 采样：`dumpReconcile` 打开，记录 `reconcile tick= … posDelta/velDelta`（来自 `DebugState.lastReconcilePositionDelta` 等）；`motorVisualPosDelta`；`[HandoffDebug]`、`[IntroHandoff]`、`[IntroSplineDiag]`；需要时打开 `VisualJitterDiagnostic`。
+- 采样：按 experiments.md 的"指标采集"表执行；每次 reconcile 的校正量来自 fix-spec §0 的 `[ReconcileDelta]` 探针（现有 `[PredictionIntro][Reconcile]` 有去重，不能算分布）。
 
 ## 阶段与测试
 

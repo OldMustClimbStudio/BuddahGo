@@ -1,6 +1,33 @@
 # VFX asset recovery — 2026-10-01
 
-Partial recovery is complete. The original acceleration particle prefab and its original FreeQuickEffects material/texture have been restored. The reported Flecks material and its rendering dependencies already exist. A different shared particle material used by the palm launch effect remains missing; no substitute material was assigned. Unity import, shader compilation and gameplay validation have not been run.
+Original acceleration assets are restored. The Unity follow-up below repaired invalid local shader/VFX import artifacts and verified visible original effects. No replacement art or shader was assigned. Full six-skill acceptance remains open.
+
+## Unity follow-up — original effects restored (2026-10-01)
+
+In the single-player feature Editor, Unity 2022.3.55f1c1, URP/ShaderGraph/VFX Graph 14.0.11, Direct3D11, High Fidelity:
+
+- All 19 affected Piloto materials resolved their original shader GUID/fileID, but the imported shader was `Hidden/GraphErrorShader2`. It reported `isSupported=true`, one pass, `ShaderHasError=false`, and no `GetShaderMessages` errors. The graph importer had produced an error fallback; this was not a missing material binding. The actual palm-launch prefab visibly rendered solid magenta particle quads.
+- Force-reimporting the unchanged original `UberFXSG.shadergraph` produced `Piloto Studio/UberFXSG`, seven passes, supported with no shader errors. The same launch prefab rendered its original orange fragments, fire, flare and smoke. No graph, subgraph, material property, texture, GUID or pipeline setting was changed.
+- The four project VFX graphs initially had no imported shader subassets. In Practice the skill/backfire graphs and palm projectile had empty renderer material arrays and zero live particles. Reimporting the unchanged graphs regenerated 11 supported shader subassets: three each for skill/backfire, one for palm, four for the slow zone, with no compiler errors. HDRP installation or serialized output conversion was not necessary.
+- This establishes invalid/stale local import artifacts as the immediate cause. The initiating historical import failure is not established by retained logs. A clean new checkout or a different Editor's Library was not tested; do not claim a shader source incompatibility was fixed or another checkout was repaired.
+
+`Tools > BuddahGo > Repair Original VFX Imports` repeats the five targeted imports and checks for absent shader subassets, unsupported shaders, graph/internal error fallbacks and compiler errors. It is an explicit Edit-mode action, not an automatic startup hook. It preserves source assets. Other checkouts with the same stale import symptoms can run this after receiving the change; the user's main `dev` Editor was not modified.
+
+Observed validation and limits:
+
+| Effect | Actual evidence |
+| --- | --- |
+| Flecks / palm launch | Original prefab before/after render; real Practice normal palm cast and two hand-push invocations produced visible Piloto particles. Live Flecks renderers had particles and `Piloto Studio/UberFXSG`; the missing-material root had zero particles. |
+| Palm VFX Graph | After reimport, a real Practice cast rolled the existing anti variant and created five original palm graph instances, each reporting 30,000 particles with the generated original shader. A separate stationary Play-mode fixture visibly rendered the golden particle hand. Full normal-projectile charge/travel/expiry and repeat acceptance after graph recovery remains for the next skill pass. |
+| Buddah burst candidates | Identified the actual `技能Particle` and `反噬Particle` VFX renderers separately from Piloto. The Practice anti cast visibly produced an orange burst; separate Play-mode fixtures rendered both original graphs without magenta. The user's informal word “explosion” does not uniquely identify another asset; no claim is made about an unidentified effect. |
+| Acceleration restoration | Original prefab/material/texture imported; a normal acceleration request reached server execution in the first Practice run. The restored particle child/trail/expiry and its built-in particle shader still need isolated visible acceptance; this is not a full acceleration pass. |
+| Slow zone | Four generated shaders compiled; gameplay visual acceptance not performed. |
+
+The shipped recovery menu compiled and was executed successfully, reporting 1 + 3 + 3 + 1 + 4 supported shaders. Private probes and screenshots are excluded from commits; evidence is retained locally and shown only in the private task conversation. Runtime probes used actual `RequestCast` and the existing hand-push method, rather than keyboard combo input; fixture renders are identified separately. Existing Animator-controller errors occurred during Practice and are not claimed resolved. No AI, online clients, strict14, benchmark or broad test-suite rerun was performed. The earlier 65-test/handoff result is separate evidence, not a new result for this change.
+
+The restored original acceleration prefab contains a NetworkObject; Unity's FishNet generator added its original GUID to `DefaultPrefabObjects.asset`. This corresponding one-line registry update is included. Existing unrelated local settings/meta changes are preserved.
+
+The historical static recovery report follows; its “not executed” section describes the state before this follow-up.
 
 ## Integration
 

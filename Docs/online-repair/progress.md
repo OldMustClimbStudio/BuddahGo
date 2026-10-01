@@ -5,7 +5,7 @@
 - 分支 `fix/online-prediction-handoff`，worktree `.worktree/online-prediction-handoff`，HEAD 含 EXP-0 探针、§1 修复与文档提交（见下表）。工作区干净；`Mono.Cecil.sln.meta` / `LiteNetLib.csproj.meta` 的删除是 Unity 清理被忽略文件的孤儿 meta，与本任务无关，不要提交。
 - 已完成：EXP-0（探针）、EXP-1 / §1（Physics Mode → TimeManager）。用户单端实测：症状 A 消失，症状 B 不再强行拉回起点，但交接切换瞬间仍有一次小卡顿。双端实测与 0/100 ms 延迟矩阵**未做**。
 - 先决条件：EXP-2 是否需要做，取决于一次**双端、100 ms** 的开场测试（纯 client 作 owner）。R3 只在有延迟的纯 client 上触发，host 单端看不到。若 client 开场不再被向后拉、位置单调向前，则 EXP-2 跳过，B 记为达标；切换瞬间的小卡顿若不可接受再做 EXP-3（R4/R5）。若 client 仍被向后拉，则做 EXP-2。
-- 交接瞬间的小卡顿已静态分析为本地系统切换不连续（findings.md R7：相机速度源、GO 到消费的死区、视觉参考系切换、角速度清零、重力/碰撞恢复），单机也有同样现象，与网络无关；修复方向见 R7 末尾，待用户选择架构方案（spline 进 motor 状态）或最小方案后实施。
+- 交接瞬间的小卡顿已静态分析为本地系统切换不连续（findings.md R7），并入同一流程：实验 **EXP-1b**（experiments.md，单端可测，五个单变量开关）→ 规格 **§6**（fix-spec.md）→ 验收「交接连续性」（acceptance.md）→ 决策 **D5**。用户先做 EXP-1b 验证，再决定实施。
 - 若需要：按 experiments.md 做 **EXP-2**（§2.0 携带服务器消费 id + §2.A 确认门控，D1 已倾向方案 A，待用户确认），针对交接切换瞬间的小卡顿；之后 EXP-3（D2 倾向 D2-a）。实现前先在 100 ms 下看 `[HandoffDebug] consuming queued handoff` 之后 1 到 3 tick 内的 `[ReconcileDelta]`，确认预检序列。
 - 环境恢复步骤：
   1. 用 2022.3.55f1c1 打开本 worktree（`Logs/online-repair/Editor.log`），在编辑器 "MCP for Unity" 标签页点 Connect，再 `set_active_instance online-prediction-handoff@41b28e58f7c667d2`。
@@ -21,6 +21,7 @@
 |---|---|---|---|---|---|---|---|
 | EXP-0 基线（含 §0 探针） | A/B | `_physicsMode`=0 已确认；Editor 编译通过，EditMode 78/78 | done（无数值基线：用户在改动前只有目视记忆，两端都有 A/B） | 8046598 | 目视：改前有速度相关重影 | 目视：改前交接后被拉回起点重新加速 | 探针保留在 `dumpReconcile` 门控下；数值基线未采 |
 | EXP-1 Physics Mode | A | 前提满足：`_physicsMode`=0、Rigidbody 插值 None、fixedDeltaTime=1/60（MCP 实测） | done（单端目视达标；双端与延迟矩阵未测） | 3a8b997, 28414ce | 用户 2026-10-01 单端实测：重影消失 | 不再强行拉回起点；交接切换瞬间仍有一次小卡顿 | 保留；A 的双端复核并入 EXP-2 的测试；B 残余进入 EXP-2 |
+| EXP-1b 本地交接连续性（R7） | B 残余 | 待做：单端复现切换卡顿；比较 GO tick 与 consume tick | todo（下一步，单端即可） | | | 子实验 1–5 待填 | 由结果选 §6.1 / §6.2（D5） |
 | EXP-2 消费后屏蔽窗口 | B | 待做：100 ms 下看 consume 后 1–3 tick 的 `[ReconcileDelta]` | todo（下一步） | | | | D1 倾向方案 A，待用户确认 |
 | EXP-3 投影与回放时钟 | B | | todo | | | | |
 | EXP-4 多写入者 | A/B | | todo | | | | |
@@ -31,6 +32,7 @@
 | 章节 | 内容 | 前置实验 | 状态 | 提交 | 验收结果 |
 |---|---|---|---|---|---|
 | §1 | Physics Mode → TimeManager + 不变量断言 | EXP-1 | done（验收矩阵未跑） | 3a8b997, 28414ce | 场景运行时 `PhysicsMode=TimeManager`、Buddah 刚体插值 None、graphical=VisualRoot（MCP execute_code 读取）；验收矩阵待跑 |
+| §6 | 本地交接连续性（相机速度源、死区、视觉参考系、角速度、高度；D5） | EXP-1b | todo | | |
 | §2 | handoff / teleport 回放安全（D1 选 A 或 B） | EXP-2 | todo | | |
 | §3.1 | 投影锚点统一（D2） | EXP-3 | todo | | |
 | §3.2 | 服务器侧远端身体 kinematic | EXP-4.1 | todo | | |
@@ -61,6 +63,7 @@
 | D2 | handoff 快照是否改为服务器直接采样（D2-b）或服务器同样投影（D2-a） | 实现者建议先 D2-a，有残余再 D2-b，待用户确认 | 2026-10-01 待定 |
 | D3 | spectator 插值策略与 teleport 阈值 | | |
 | D4 | acceptance.md 中标注"待定"的阈值 | | |
+| D5 | §6 采用最小方案（D5-a）还是 spline 进 motor 状态（D5-b） | 实现者建议先 §6.1 + D5-a 验证，再评估 D5-b | 2026-10-01 待定 |
 
 ## 新发现
 

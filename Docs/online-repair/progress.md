@@ -4,7 +4,8 @@
 
 - 分支 `fix/online-prediction-handoff`，worktree `.worktree/online-prediction-handoff`，HEAD 含 EXP-0 探针、§1 修复与文档提交（见下表）。工作区干净；`Mono.Cecil.sln.meta` / `LiteNetLib.csproj.meta` 的删除是 Unity 清理被忽略文件的孤儿 meta，与本任务无关，不要提交。
 - 已完成：EXP-0（探针）、EXP-1 / §1（Physics Mode → TimeManager）。用户单端实测：症状 A 消失，症状 B 不再强行拉回起点，但交接切换瞬间仍有一次小卡顿。双端实测与 0/100 ms 延迟矩阵**未做**。
-- 下一步：按 experiments.md 做 **EXP-2**（§2.0 携带服务器消费 id + §2.A 确认门控，D1 已倾向方案 A，待用户确认），针对交接切换瞬间的小卡顿；之后 EXP-3（D2 倾向 D2-a）。实现前先在 100 ms 下看 `[HandoffDebug] consuming queued handoff` 之后 1 到 3 tick 内的 `[ReconcileDelta]`，确认预检序列。
+- 先决条件：EXP-2 是否需要做，取决于一次**双端、100 ms** 的开场测试（纯 client 作 owner）。R3 只在有延迟的纯 client 上触发，host 单端看不到。若 client 开场不再被向后拉、位置单调向前，则 EXP-2 跳过，B 记为达标；切换瞬间的小卡顿若不可接受再做 EXP-3（R4/R5）。若 client 仍被向后拉，则做 EXP-2。
+- 若需要：按 experiments.md 做 **EXP-2**（§2.0 携带服务器消费 id + §2.A 确认门控，D1 已倾向方案 A，待用户确认），针对交接切换瞬间的小卡顿；之后 EXP-3（D2 倾向 D2-a）。实现前先在 100 ms 下看 `[HandoffDebug] consuming queued handoff` 之后 1 到 3 tick 内的 `[ReconcileDelta]`，确认预检序列。
 - 环境恢复步骤：
   1. 用 2022.3.55f1c1 打开本 worktree（`Logs/online-repair/Editor.log`），在编辑器 "MCP for Unity" 标签页点 Connect，再 `set_active_instance online-prediction-handoff@41b28e58f7c667d2`。
   2. 双端测试用 ParrelSync 克隆 `.worktree/online-prediction-handoff_clone_0`（Clones Manager 打开，或 Hub 添加该目录）。

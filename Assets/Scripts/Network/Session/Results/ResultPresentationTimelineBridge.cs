@@ -221,7 +221,7 @@ namespace SteamMultiplayer.Network.Results
         private void DebugLog(string message)
         {
             if (enableDebugLogs)
-                Debug.Log($"[ResultPresentationTimelineBridge] {message}");
+                GameLog.Verbose($"[ResultPresentationTimelineBridge] {message}");
         }
     }
 }

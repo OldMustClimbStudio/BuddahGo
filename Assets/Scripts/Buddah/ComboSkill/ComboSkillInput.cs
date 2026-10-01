@@ -58,7 +58,8 @@ public class ComboSkillInput : NetworkBehaviour
     private readonly List<Token> _buffer = new();
     private float _lastInputTime = -999f;
 
-    [SerializeField] private bool debugHud = true;
+    // Retained for serialized compatibility; gameplay HUD uses OnComboProgress.
+    [SerializeField, HideInInspector] private bool debugHud;
 
     private void Awake()
     {
@@ -149,7 +150,7 @@ public class ComboSkillInput : NetworkBehaviour
 
         if (now - _lastInputTime > stepWindowSeconds)
         {
-            Debug.Log($"[Combo] window expired ({now - _lastInputTime:0.00}s), clearing buffer");
+            GameLog.Verbose($"[Combo] window expired ({now - _lastInputTime:0.00}s), clearing buffer");
             _buffer.Clear();
         }
 
@@ -160,7 +161,7 @@ public class ComboSkillInput : NetworkBehaviour
 
         RaiseComboProgressEvents();
 
-        Debug.Log($"[Combo] +{token} | buffer = {string.Join(",", _buffer)}");
+        GameLog.Verbose($"[Combo] +{token} | buffer = {string.Join(",", _buffer)}");
 
         ComboBinding matched = FindExactMatchOnSuffix(_buffer);
         if (matched != null)
@@ -173,7 +174,7 @@ public class ComboSkillInput : NetworkBehaviour
 
         if (!CouldBePrefixOfAnyCombo(_buffer))
         {
-            Debug.Log($"[Combo] dead-end buffer, clearing: {string.Join(",", _buffer)}");
+            GameLog.Verbose($"[Combo] dead-end buffer, clearing: {string.Join(",", _buffer)}");
             _buffer.Clear();
             RaiseComboProgressEvents();
         }
@@ -291,12 +292,4 @@ public class ComboSkillInput : NetworkBehaviour
         }
     }
 
-    private void OnGUI()
-    {
-        if (!debugHud || !IsOwner)
-            return;
-
-        GUI.Label(new Rect(10, 10, 800, 30), $"Combo Buffer: {string.Join(",", _buffer)}");
-        GUI.Label(new Rect(10, 30, 800, 30), $"Last Input dt: {(Time.time - _lastInputTime):0.00}s / Window {stepWindowSeconds:0.00}s");
-    }
 }

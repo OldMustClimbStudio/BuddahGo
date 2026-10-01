@@ -1,4 +1,4 @@
-#if BUDDAH_PREDICTION_VISUAL_PROBE
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_VISUAL_PROBE
 using System;
 using FishNet.Object;
 using NewBuddah.PredictionV2.Visual;
@@ -149,7 +149,7 @@ namespace NewBuddah.PredictionV2.Debugging
             float rotDp99 = _sortBuffer[Mathf.Clamp(Mathf.FloorToInt(window * 0.99f), 0, window - 1)];
             float rotDavg = Avg(_rotDeltaBuffer);
 
-            Debug.Log(
+            GameLog.Verbose(
                 $"{_logPrefix} frame={Time.frameCount} owner={isOwner} window={window}\n" +
                 $"  pos-dmax={posDmax:F5} pos-dp99={posDp99:F5} pos-davg={posDavg:F5}\n" +
                 $"  rot-dmax={rotDmax:F3} rot-dp99={rotDp99:F3} rot-davg={rotDavg:F3}",

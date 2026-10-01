@@ -20,6 +20,7 @@ public class TrackEdgeVisibility : MonoBehaviour
 
     private Material _resolvedMaterial;
     private int _visibilityPropertyId;
+    private string _cachedVisibilityProperty;
     private MaterialPropertyBlock _propertyBlock;
 
     private void Awake()
@@ -68,7 +69,7 @@ public class TrackEdgeVisibility : MonoBehaviour
         }
 
         ApplyVisibility(targetValue);
-        Debug.Log($"[TrackEdgeVisibility] SetVisibility t={t:0.###}, targetValue={targetValue:0.###}, material='{_resolvedMaterial?.name ?? "property-block-only"}', shader='{_resolvedMaterial?.shader?.name ?? "unknown"}'");
+        GameLog.Verbose($"[TrackEdgeVisibility] SetVisibility t={t:0.###}, targetValue={targetValue:0.###}, material='{_resolvedMaterial?.name ?? "property-block-only"}', shader='{_resolvedMaterial?.shader?.name ?? "unknown"}'");
     }
 
     private void CachePropertyId()
@@ -76,6 +77,9 @@ public class TrackEdgeVisibility : MonoBehaviour
         if (string.IsNullOrWhiteSpace(visibilityProperty))
             return;
 
+        if (_cachedVisibilityProperty == visibilityProperty)
+            return;
+        _cachedVisibilityProperty = visibilityProperty;
         _visibilityPropertyId = Shader.PropertyToID(visibilityProperty);
     }
 

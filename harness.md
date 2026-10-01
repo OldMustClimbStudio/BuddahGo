@@ -11,6 +11,7 @@ Unity 2022.3.55f1c1 · FishNet · FishyFacepunch · Steam.
 
 - Creating a worktree, branch, commit or PR: [CONTRIBUTING.md](CONTRIBUTING.md), including validation and asset rules.
 - Understanding a system or using Unity MCP: [Docs/README.md](Docs/README.md).
+- Executing the architecture optimization plan: [Docs/optimization/HANDOFF.md](Docs/optimization/HANDOFF.md).
 - Domain terms and decisions: [CONTEXT.md](CONTEXT.md), [Docs/adr/](Docs/adr/).
 - Implementing the solo match: [Docs/single-player/HANDOFF.md](Docs/single-player/HANDOFF.md).
 

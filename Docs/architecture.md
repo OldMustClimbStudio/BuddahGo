@@ -2,7 +2,7 @@
 
 | 系统 | 主要代码位置（相对 `Assets/Scripts/`） | 状态负责人 |
 |---|---|---|
-| 连接与房间 | `Network/Core/`、`Network/Room/` | `GameNetworkManager`、`ConnectionManager`、`RoomStateManager` |
+| 连接与房间 | `Network/Core/`、`Network/Room/` | `GameNetworkManager`、`RoomStateManager` |
 | 大厅与选择 | `Network/Lobby/`、`Network/Session/PropertySelection/` | `SteamLobbyManager`、`PropertiesSelectionManager` |
 | 预测运动 | `New_Buddah/` | `BuddahPredictedMotor`、reconcile 数据与相关 bridge |
 | 技能 | `Buddah/ComboSkill/` | `SkillExecutor` |
@@ -18,11 +18,21 @@
 - `RoomStateManager` 负责多人场景流转。`ResultDecisionManager` 负责投票结果，再请求房间系统切场景。
 - 控制权交接、复活和模式切换需要同时处理运动限制、队列与表现状态，避免遗留旧状态。
 
+## 程序集与测试
+
+- `BuddahGo.Runtime` 覆盖 `Assets/Scripts` 下的游戏代码；`BuddahGo.Editor` 覆盖其中的 `Editor` 目录。UI 也在 Runtime 中。
+- `FishyFacepunch` 独立引用 FishNet.Runtime，Steamworks DLL 继续由插件的平台导入设置选择。Feel 已归入 MoreMountains.Tools，不另建 MMFeedbacks 程序集。
+- `Assets/Editor` 留在默认 Editor 程序集；Scripts 以外的场景/示例脚本保持原程序集。不要把它们的 UnityEvent 类型名一并替换。
+- `Assets/Tests/EditMode` 中的 `BuddahGo.Tests` 仅在 Editor 编译，通过 friend assembly 访问纯逻辑 helper，不进入 Player。打开 Unity 的 Test Runner，选择 EditMode 下该程序集运行；也可用 Unity MCP 的 `run_tests`，指定 `mode=EditMode` 和 `assembly_names=["BuddahGo.Tests"]`。
+- 游戏场景的 UnityEvent 持久目标使用 `BuddahGo.Runtime`。新增程序集边界或迁移类型时，需要同时复核场景/预制体中的程序集限定名和实际按钮、Timeline 回调。
+
+房间名单、握手、配装和身份 helper 的职责、调用约束及测试范围见 [会话辅助规则](session-helpers.md)。
+
 ## 一场比赛的链路
 
 ```text
 SteamLobbyManager 创建/加入大厅
-  → ConnectionManager 启动连接，GameNetworkManager 绑定网络管理器
+  → GameNetworkManager 启动连接并绑定网络管理器
   → RoomStateManager 进入选择场景
   → PropertiesSelectionManager 校验属性、配装与 ready 状态
   → RoomStateManager 加载赛道，IntroSequenceManager 协调开场

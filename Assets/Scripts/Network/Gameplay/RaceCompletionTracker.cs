@@ -7,7 +7,7 @@ using UnityEngine;
 [RequireComponent(typeof(LapProgress))]
 public class RaceCompletionTracker : NetworkBehaviour
 {
-    private const int DefaultLapsToFinish = 3;
+    private const int DefaultLapsToFinish = RaceRules.DefaultLapsToFinish;
 
     [Header("Wrong-Way Lock")]
     [SerializeField, Range(0f, 1f)] private float wrongWayWrapStartThreshold = 0.2f;

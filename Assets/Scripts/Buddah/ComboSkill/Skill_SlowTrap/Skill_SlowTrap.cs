@@ -57,16 +57,16 @@ public class Skill_SlowTrap : SkillAction
             debugReferenceLocalScale);
 
         var vfx = caster.GetComponent<SkillVfxReplicator>();
-        float actualVfxDuration = vfxDurationSeconds > 0f ? vfxDurationSeconds : zoneDurationSeconds;
+        float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, zoneDurationSeconds);
         if (vfx != null)
             vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
 
-        Debug.Log($"[Skill_SlowTrap][Server] TriggerTrap zoneDuration={zoneDurationSeconds}s, slow=({slowForwardForce},{slowMaxSpeed}) for {slowDurationSeconds}s, vfx={actualVfxDuration}s");
+        GameLog.Verbose($"[Skill_SlowTrap][Server] TriggerTrap zoneDuration={zoneDurationSeconds}s, slow=({slowForwardForce},{slowMaxSpeed}) for {slowDurationSeconds}s, vfx={actualVfxDuration}s");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
     {
-        Debug.Log($"[Skill_SlowTrap][Observers] '{skillId}' triggered (slot {slotIndex})");
+        GameLog.Verbose($"[Skill_SlowTrap][Observers] '{skillId}' triggered (slot {slotIndex})");
         // VFX replication is sent from server in ExecuteServer().
     }
 }

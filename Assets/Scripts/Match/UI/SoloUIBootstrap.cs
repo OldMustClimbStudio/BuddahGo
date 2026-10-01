@@ -64,12 +64,13 @@ namespace SteamMultiplayer.UI
 
             var setupCanvas = SoloUIFactory.Canvas(transform, "SoloSetupCanvas", 200);
             setupCanvas.gameObject.SetActive(false);
-            setupCanvas.gameObject.AddComponent<SoloSetupPanel>().Initialize(menu, font);
+            var setup = setupCanvas.gameObject.AddComponent<SoloSetupPanel>();
+            setup.Initialize(menu, font);
             var solo = SoloUIFactory.Button(home.transform, "SoloMatchButton", "单人游戏",
                 new Vector2(0f, 180f), new Vector2(448f, 70f), font);
             solo.GetComponentInChildren<TMP_Text>().fontSize = 42f;
             solo.onClick.AddListener(menu.ShowSoloSetup);
-            menu.RegisterSoloSetupPanel(setupCanvas.gameObject, solo.gameObject);
+            menu.RegisterSoloSetupPanel(setupCanvas.gameObject, solo.gameObject, setup.RestoreSettings);
             for (int i = 0; i < existing.Length; i++)
             {
                 var rect = existing[i].transform as RectTransform;

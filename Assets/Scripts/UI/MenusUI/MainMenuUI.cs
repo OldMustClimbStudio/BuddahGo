@@ -42,10 +42,13 @@ namespace SteamMultiplayer.UI
         private bool _started;
         private GameObject _soloSetupPanel;
         private GameObject _homeDefaultSelection;
+        private Action<SoloMatchSettings> _restoreSoloSettings;
 
-        public void RegisterSoloSetupPanel(GameObject panel, GameObject homeDefaultSelection)
+        public void RegisterSoloSetupPanel(GameObject panel, GameObject homeDefaultSelection,
+            Action<SoloMatchSettings> restoreSettings)
         {
             _soloSetupPanel = panel;
+            _restoreSoloSettings = restoreSettings;
             _homeDefaultSelection = homeDefaultSelection;
             SetPanelActive(panel, _currentPanel == MenuPanel.SoloSetup);
             TryRestoreFailedSoloSetup();
@@ -56,10 +59,10 @@ namespace SteamMultiplayer.UI
         private void TryRestoreFailedSoloSetup()
         {
             // Start and bootstrap registration may run in either order. Consume once both are ready.
-            if (!_started || _soloSetupPanel == null) return;
+            if (!_started || _soloSetupPanel == null || _restoreSoloSettings == null) return;
             var settings = SessionControl.Current?.TakeFailedSoloSettings();
             if (settings == null) return;
-            _soloSetupPanel.GetComponent<SoloSetupPanel>().RestoreSettings(settings);
+            _restoreSoloSettings(settings);
             ShowSoloSetup();
         }
 

@@ -308,6 +308,10 @@ namespace SteamMultiplayer.UI
 
         private static int ScoreAnimator(Animator animator)
         {
+            // Scene scans include decorative and inactive Animators which cannot answer HasState.
+            if (!CanQueryStates(animator))
+                return 0;
+
             int score = 0;
             string objectName = animator.gameObject.name;
             string controllerName = animator.runtimeAnimatorController != null
@@ -342,13 +346,18 @@ namespace SteamMultiplayer.UI
 
         private static bool HasAnyFadeState(Animator animator)
         {
-            if (animator == null)
+            if (!CanQueryStates(animator))
                 return false;
 
             return animator.HasState(0, Animator.StringToHash(DefaultFadeInState))
                 || animator.HasState(0, Animator.StringToHash(AlternateFadeInState))
                 || animator.HasState(0, Animator.StringToHash(DefaultFadeOutState))
                 || animator.HasState(0, Animator.StringToHash(AlternateFadeOutState));
+        }
+
+        private static bool CanQueryStates(Animator animator)
+        {
+            return animator != null && animator.runtimeAnimatorController != null && animator.isInitialized;
         }
     }
 }

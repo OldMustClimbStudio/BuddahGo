@@ -58,6 +58,51 @@ namespace NewBuddah.PredictionV2.Core
         }
 
         private BuddahPredictionLogSnapshot _consoleLogSnapshot;
+        private Vector3 _lastSpectatorPostTickPosition;
+        private bool _hasSpectatorPostTickPosition;
+
+        // §0 probe: one line per reconcile with the correction magnitude. The [PredictionIntro][Reconcile]
+        // log above is de-duplicated and cannot be used to compute a distribution.
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private void LogReconcileDeltaProbe(in BuddahPredictedReconcileData data, bool skipped, string reason, float positionDelta, float velocityDelta)
+        {
+            if (bootstrap == null || !bootstrap.DebugSettings.dumpReconcile)
+                return;
+
+            uint localTick = TimeManager != null ? TimeManager.LocalTick : 0u;
+            bootstrap.LogVerbose(
+                $"[ReconcileDelta] tick={data.GetTick()} local={localTick} owner={IsOwner} server={IsServerInitialized} " +
+                $"skipped={skipped} reason={reason} posDelta={positionDelta:0.000} velDelta={velocityDelta:0.000} speed={data.PlanarSpeed:0.00} " +
+                $"handoff={data.HandoffState.CurrentState} srvHandoffId={data.LastConsumedHandoffId} localHandoffId={_lastConsumedLaunchHandoffEventId} " +
+                $"srvTeleportId={data.LastConsumedTeleportId} localTeleportId={_lastConsumedTeleportEventId}");
+        }
+
+        // §0 probe: per-tick displacement of a spectated body along its own forward axis. Negative values
+        // are backward jumps the spectator sees after a reconcile.
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private void LogSpectatorStepProbe()
+        {
+            if (IsOwner || IsServerInitialized || rb == null || bootstrap == null || !bootstrap.DebugSettings.dumpReconcile)
+            {
+                _hasSpectatorPostTickPosition = false;
+                return;
+            }
+
+            Vector3 position = rb.position;
+            if (_hasSpectatorPostTickPosition)
+            {
+                Vector3 step = position - _lastSpectatorPostTickPosition;
+                float forwardStep = Vector3.Dot(step, transform.forward);
+                Vector3 planarVelocity = rb.velocity;
+                planarVelocity.y = 0f;
+                bootstrap.LogVerbose(
+                    $"[SpectatorStep] tick={(TimeManager != null ? TimeManager.LocalTick : 0u)} forwardStep={forwardStep:0.000} " +
+                    $"step={step.magnitude:0.000} speed={planarVelocity.magnitude:0.00}");
+            }
+
+            _lastSpectatorPostTickPosition = position;
+            _hasSpectatorPostTickPosition = true;
+        }
 
         // Called only when the console consumer samples. Capture methods never format strings.
         [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]

@@ -205,6 +205,8 @@ namespace NewBuddah.PredictionV2.Core
             _shadowScratch = default;
 #endif
 
+            LogSpectatorStepProbe();
+
             if (!IsServerInitialized)
                 return;
 
@@ -556,6 +558,8 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.movementAllowed = data.MovementAllowed;
             bootstrap.DebugState.lastReconcilePositionDelta = Vector3.Distance(preReconcilePosition, postReconcilePosition);
             bootstrap.DebugState.lastReconcileVelocityDelta = Vector3.Distance(preReconcileVelocity, postReconcileVelocity);
+            LogReconcileDeltaProbe(data, skipOwnerIntroReconcile, reconcileReason,
+                bootstrap.DebugState.lastReconcilePositionDelta, bootstrap.DebugState.lastReconcileVelocityDelta);
             Vector3 prePlanarVelocity = preReconcileVelocity;
             prePlanarVelocity.y = 0f;
             Vector3 postPlanarVelocity = postReconcileVelocity;

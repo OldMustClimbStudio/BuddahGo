@@ -32,4 +32,4 @@
 
 仍有可选 Feel 事件未映射、受控完赛时 kinematic 速度写入和停服时 SyncVar 警告；需在后续自然生命周期中核定，未归因于 Animator，也未声称全局控制台无警告。原始测试回执、采样、运行日志和截图私有保留，未随文档公开。
 
-整体状态见 [progress.md](progress.md)。AI 仍须等待 Practice 完成、用户逐项技能试玩、明确开始信号，见 [ai-testing.md](ai-testing.md)。
+整体状态见 [progress.md](progress.md)。用户初步试玩反馈技能可用，并于 2026-10-01 23:51 UTC 明确授权从 A1 开始；AI 尚未实现，此授权不改变本页验收边界，见 [ai-testing.md](ai-testing.md)。

@@ -110,4 +110,4 @@ python Tools/SinglePlayerBenchmark/benchmark.py run --bundle "$env:TEMP/solo-syn
 
 后续 AI 阶段应新增版本化 profile，声明 1/3/5 AI、难度、规划/技能负载与独立基线，再扩 schema/采样/测试；本版本直接拒绝非 0 AI。本任务不实现 AI，也不改变单机生产玩法或已有联机验证资产。
 
-后续 AI 实施/验收顺序与用户启动门槛见 [ai-testing.md](ai-testing.md)；当前只维护文档计划，不实现 AI 采样或测试。
+后续 AI 实施/验收顺序与用户启动门槛见 [ai-testing.md](ai-testing.md)；23:51 UTC 已明确授权在 PR #59 从 A1 开始，所需最小采样/验证按该阶段实施；本轮文档交接未执行 AI 采样或测试，现有 0 AI benchmark 的未验证项不因此变成通过。

@@ -64,6 +64,8 @@ namespace NewBuddah.PredictionV2.Core
         private SplineProgressTracker _splineProgressTracker;
         private SkillExecutor _skillExecutor;
         private float _baseMass = 1f;
+        internal uint PresentationRevision { get; private set; }
+        private bool _presentationWasRooted;
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_PERF_PROBE
         // V13 perf probe — Stopwatch-backed per-frame accumulator consumed by
@@ -375,6 +377,11 @@ namespace NewBuddah.PredictionV2.Core
             ConsumePendingImpulseEvents_Authoritative(currentTick);
             RefreshLaunchState(currentTick);
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
+            if (_presentationWasRooted != _computedStats.IsRooted)
+            {
+                _presentationWasRooted = _computedStats.IsRooted;
+                PresentationRevision++;
+            }
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             // Phase 3c — snapshot _modifierState at the authoritative post-consume moment
             // (struct by value, independent of subsequent motor writes), then run the shadow

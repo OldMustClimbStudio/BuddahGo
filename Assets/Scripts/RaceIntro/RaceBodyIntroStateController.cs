@@ -1,5 +1,7 @@
 using FishNet.Object;
 using NewBuddah.PredictionV2.Integration;
+using NewBuddah.PredictionV2.Visual;
+using NewBuddah.PredictionV2.Core;
 using SteamMultiplayer.Network;
 using UnityEngine;
 
@@ -51,6 +53,11 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private bool _hasSplineDiagnosticSample;
     private float _lastSplineDiagnosticLogTime = float.NegativeInfinity;
     private IntroPhase _lastLoggedIntroPhase = IntroPhase.None;
+    private BuddahPredictionVisualRootBridge _visualBridge;
+    private BuddahPredictedMotor _soloMotor;
+    private IntroSequenceManager _sequenceManager;
+    private bool _soloPhysicsClock;
+    private double _soloGoFixedTime;
 
     public int OwnerId => networkObject != null ? networkObject.OwnerId : -1;
     public NetworkObject NetworkObject => networkObject;
@@ -104,7 +111,15 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (!_hasAssignment || _assignedPath == null || targetRigidbody == null || _goApplied || !_visualStarted)
             return;
 
-        double now = GetSmoothedNetworkTimeSeconds();
+        double now = _soloPhysicsClock
+            ? _resolvedGoNetworkTime + Time.fixedTimeAsDouble - _soloGoFixedTime
+            : GetSmoothedNetworkTimeSeconds();
+        if (_soloPhysicsClock)
+        {
+            double stepStart = now - Time.fixedDeltaTime;
+            if (_sequenceManager == null) _sequenceManager = FindObjectOfType<IntroSequenceManager>();
+            _sequenceManager?.TryIssueSoloGoBeforePhysics(_activeSequenceId, stepStart + 0.000001d);
+        }
         TryCompleteAuthoritativeGoTransition(now);
         if (_goApplied)
             return;
@@ -158,6 +173,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
             return;
 
         _assignment = assignment;
+        _soloPhysicsClock = false;
+        _visualBridge?.ResetSoloPresentationHistory();
         _assignedPath = splinePath;
         _activeSequenceId = assignment.sequenceId;
         _hasAssignment = true;
@@ -217,6 +234,15 @@ public class RaceBodyIntroStateController : MonoBehaviour
         EnterIntroState();
         _visualStarted = true;
         double now = GetSmoothedNetworkTimeSeconds();
+        _soloPhysicsClock = _visualBridge != null && _visualBridge.UsesSoloTimeline;
+        if (_soloPhysicsClock)
+        {
+            // Quantize the entire physical intro once, by less than one physics step.
+            // No time offset is introduced or changed at GO; schedule/UI are unchanged.
+            _soloGoFixedTime = SoloPresentationTimeline.AlignGoToPhysics(Time.timeAsDouble, now,
+                goNetworkTime, Time.fixedTimeAsDouble, Time.fixedDeltaTime);
+            _visualBridge.ResetSoloPresentationHistory();
+        }
         double driveTime = IntroTimeUtility.GetClampedIntroNetworkTime(timing, System.Math.Max(now, introStartNetworkTime));
         DriveSplinePose(driveTime);
         _runtimeState = IntroTimeUtility.HasReachedGo(timing, now)
@@ -285,6 +311,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
     public void ForceExitIntroState()
     {
+        _soloPhysicsClock = false;
+        _visualBridge?.ResetSoloPresentationHistory();
         _assignment = default;
         _assignedPath = null;
         _phase = IntroPhase.None;
@@ -350,6 +378,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
                 false,
                 _activeSequenceId,
                 false);
+            if (_soloPhysicsClock)
+                _soloMotor?.ConsumeSoloLaunchBeforePhysics();
         }
         else
         {
@@ -379,6 +409,16 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
         if (!_visualStarted)
             return;
+
+        if (_soloPhysicsClock)
+        {
+            // The endpoint is the previous completed fixed step. Consume once, before
+            // integrating the next step, instead of recording the endpoint twice.
+            if (!Time.inFixedTimeStep
+                || Time.fixedTimeAsDouble - Time.fixedDeltaTime + 0.000001d < _soloGoFixedTime)
+                return;
+            currentNetworkTime = _resolvedGoNetworkTime;
+        }
 
         double scheduledGoTime = _authoritativeScheduledGoNetworkTime >= 0d
             ? _authoritativeScheduledGoNetworkTime
@@ -572,6 +612,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
         if (_predictionHandoffBridge == null)
             _predictionHandoffBridge = GetComponent<BuddahPredictionHandoffBridge>();
+        if (_visualBridge == null) _visualBridge = GetComponent<BuddahPredictionVisualRootBridge>();
+        if (_soloMotor == null) _soloMotor = GetComponent<BuddahPredictedMotor>();
     }
 
     private void SetCollisionsEnabled(bool enabled)

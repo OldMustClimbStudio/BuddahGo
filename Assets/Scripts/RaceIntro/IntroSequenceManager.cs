@@ -72,6 +72,18 @@ public class IntroSequenceManager : NetworkBehaviour
         ResetTimelineToIntroStart();
     }
 
+    // The Solo body calls at the beginning of a physics step using its fixed clock
+    // established at visual start. The normal server state and idempotent GO consumer
+    // remain the authority; this only avoids the loopback transport/frame delay.
+    internal void TryIssueSoloGoBeforePhysics(int sequenceId, double stepStartNetworkTime)
+    {
+        if (!Time.inFixedTimeStep || !IsServerInitialized || sequenceId != _activeSequenceId
+            || BuddahGo.Match.MatchRules.Current.ReturnTarget != BuddahGo.Match.MatchReturnTarget.MainMenuHome
+            || stepStartNetworkTime < _serverAssignedGoNetworkTime)
+            return;
+        TriggerGoAndHandoff();
+    }
+
     private void Update()
     {
         TryResolveRoomStateManager();
@@ -201,6 +213,8 @@ public class IntroSequenceManager : NetworkBehaviour
         double goIssuedNow = IntroTimeUtility.GetNetworkTimeSeconds();
         roomStateManager?.MarkAuthoritativeGoIssuedServer();
         GameLog.Verbose($"[IntroGo][Server] Authoritative go issued seq={_activeSequenceId} goIssuedNow={goIssuedNow:0.000} scheduledGoTime={_serverAssignedGoNetworkTime:0.000}");
+        if (BuddahGo.Match.MatchRules.Current.ReturnTarget == BuddahGo.Match.MatchReturnTarget.MainMenuHome)
+            ApplyGoLocally(_activeSequenceId, _serverAssignedGoNetworkTime, goIssuedNow);
         NotifyGoObserversRpc(_activeSequenceId, _serverAssignedGoNetworkTime, goIssuedNow);
         _authorityState = IntroAuthorityState.GoBroadcast;
     }
@@ -393,6 +407,11 @@ public class IntroSequenceManager : NetworkBehaviour
 
     [ObserversRpc(BufferLast = true)]
     private void NotifyGoObserversRpc(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)
+    {
+        ApplyGoLocally(sequenceId, scheduledGoNetworkTime, goIssuedNetworkTime);
+    }
+
+    private void ApplyGoLocally(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)
     {
         if (sequenceId < _activeSequenceId)
         {

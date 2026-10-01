@@ -554,8 +554,24 @@ namespace FishNet.Component.Transforming
         /// Returns if prediction can be used on this rigidbody.
         /// </summary>
         /// <returns></returns>
+        private bool _presentationSuspended;
+
+        /// <summary>Transfers graphical ownership without changing prediction or physics.</summary>
+        public void SetPresentationSuspended(bool suspended)
+        {
+            if (_presentationSuspended == suspended)
+                return;
+            _presentationSuspended = suspended;
+            _preTicked = false;
+            ClearTransformPropertiesQueue();
+            if (!suspended && _graphicalObject != null)
+                Teleport();
+        }
+
         private bool CanSmooth()
         {
+            if (_presentationSuspended)
+                return false;
             if (_graphicalObject == null)
                 return false;
             if (_networkObject != null && _networkObject.EnablePrediction && !_networkObject.EnableStateForwarding && !_networkObject.IsController)
@@ -653,6 +669,7 @@ namespace FishNet.Component.Transforming
 
         public void ResetState()
         {
+            _presentationSuspended = false;
             if (_initializeType == InitializeType.Unset)
                 return;
 

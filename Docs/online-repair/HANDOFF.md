@@ -4,6 +4,7 @@
 
 - 观察与根因：[findings.md](findings.md)
 - 目标效果与测试计划：[acceptance.md](acceptance.md)
+- 按可能性排序的排查实验：[experiments.md](experiments.md)
 - 进度的唯一来源：[progress.md](progress.md)
 
 仓库通用规则仍以 [harness.md](../../harness.md) 和 [CONTRIBUTING.md](../../CONTRIBUTING.md) 为准。
@@ -12,7 +13,7 @@
 
 1. 建 worktree：`git worktree add .worktree/online-prediction-handoff fix/online-prediction-handoff`，执行 `git lfs pull`。
 2. `git merge origin/dev`，有冲突先解决并记入 progress.md。
-3. 先完成 acceptance.md 的 P0 基线采集，再动代码。没有基线，后面的阶段无法证明收益。
+3. 先完成 experiments.md 的 EXP-0 基线采集，再按 EXP-1 → EXP-5 的顺序做实验；某个症状达标就停止为它安排的后续实验。被证实的假设再按 acceptance.md 做正式修复。
 
 ## 执行顺序
 

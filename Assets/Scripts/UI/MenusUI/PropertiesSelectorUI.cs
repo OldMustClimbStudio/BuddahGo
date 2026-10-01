@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BuddahGo.Match;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -159,7 +160,7 @@ namespace SteamMultiplayer.UI
             if (sharedUiRoot != null)
                 sharedUiRoot.SetActive(true);
 
-            SetText(pageTitleText, "Properties Selector");
+            SetText(pageTitleText, MatchRules.Current is SoloMatchRules ? "Practice" : "Properties Selector");
 
             if (readyButton != null)
                 readyButton.gameObject.SetActive(false);
@@ -187,10 +188,14 @@ namespace SteamMultiplayer.UI
         {
             if (pageTitleText != null) pageTitleText.gameObject.SetActive(visible);
             if (stageTitleText != null) stageTitleText.gameObject.SetActive(visible);
-            if (statusText != null) statusText.gameObject.SetActive(visible);
-            if (countdownText != null) countdownText.gameObject.SetActive(visible);
-            if (playersSelectionText != null) playersSelectionText.gameObject.SetActive(visible);
-            if (resolvedMapText != null) resolvedMapText.gameObject.SetActive(visible);
+            // Practice already chose its map and has no peer readiness or selection timer.
+            // These legacy summaries sit over the 3D skill cards; keep the stage heading instead.
+            // Recompute on refresh so returning to online selection restores the original HUD.
+            bool showSessionSummary = visible && !(MatchRules.Current is SoloMatchRules);
+            if (statusText != null) statusText.gameObject.SetActive(showSessionSummary);
+            if (countdownText != null) countdownText.gameObject.SetActive(showSessionSummary);
+            if (playersSelectionText != null) playersSelectionText.gameObject.SetActive(showSessionSummary);
+            if (resolvedMapText != null) resolvedMapText.gameObject.SetActive(showSessionSummary);
         }
 
         private void RefreshStatusTexts()
@@ -203,7 +208,11 @@ namespace SteamMultiplayer.UI
             }
             else if (_selectionManager.TryGetCurrentStageDefinition(out SelectablePropertyDefinition definition))
             {
-                SetText(stageTitleText, $"Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {definition.DisplayName}");
+                string stageLabel = MatchRules.Current is SoloMatchRules
+                    && _selectionManager.CurrentStagePropertyKey == PropertiesSelectionManager.SkillLoadoutStageKey
+                    ? $"Choose {SkillLoadout.SlotCount} skills"
+                    : definition.DisplayName;
+                SetText(stageTitleText, $"Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel}");
                 SetText(statusText, BuildStageStatusText(definition));
                 SetText(countdownText, BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
                     ? $"Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s" : string.Empty);

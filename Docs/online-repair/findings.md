@@ -96,5 +96,5 @@ owner 按 `LocalTick − StartTick`（≈ RTT − 2 tick）投影，服务器不
 ## 未验证与边界
 
 - 没有运行 Unity，没有新采集日志；数值来自代码推导和仓库既有记录。
-- 没有确认用户观察到现象的是 host 还是纯 client。按分析，host 自己的身体不会出现 R1/R3；host 看远端玩家会出现 R1 的 spectator 分支和 R2。
+- 用户回报（2026-10-01）：改动前 host 与纯 client 都有现象 1 和 2，与「host 自己的身体不会出现 R1/R3」的推断不符；EXP-1 后 host 单端测试中现象 1 消失、现象 2 不再拉回起点。host 本地 client 侧的本地状态回退在 Unity 物理模式下同样是真实回跳，详见 progress.md 的「新发现」。
 - 技能命中正常，与分析一致：命中判定在物理根和服务器上，不依赖 VisualRoot。

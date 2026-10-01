@@ -1,4 +1,5 @@
 using FishNet.Object;
+using BuddahGo.Match;
 using System.Collections;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
@@ -87,6 +88,9 @@ public class PlayerProgressReporter : NetworkBehaviour
         int lapsToFinish = GetConfiguredLapsToFinish();
         _completionTracker.UpdateCompletionFromLapAndSpline(lap, progress01, lapsToFinish, previousProgress01, forwardDot);
 
+        if (MatchServices.Clock != null)
+            MatchServices.Timing?.ObserveCompletedLaps(RacerId.FromClient(OwnerId), Mathf.Clamp(lap - 1, 0, lapsToFinish), MatchServices.Clock.Now);
+
         RaceFinishManager finishManager = RaceFinishManager.Instance;
         if (finishManager != null && _completionTracker.ShouldMarkFinished(lapsToFinish))
         {
@@ -103,6 +107,7 @@ public class PlayerProgressReporter : NetworkBehaviour
             _completionTracker.IsFinished,
             _completionTracker.FinishOrder,
             _completionTracker.FinishServerTime);
+        finishManager?.EvaluateRaceEndServer();
     }
 
     public void ReportCheckpoint(int checkpointId)

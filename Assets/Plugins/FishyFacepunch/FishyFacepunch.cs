@@ -17,6 +17,7 @@ namespace FishyFacepunch
         #region Public.
         [System.NonSerialized]
         public ulong LocalUserSteamID;
+        public bool IsSteamAvailable => !_steamInitializationFailed && SteamClient.IsValid;
         #endregion
 
         #region Serialized.
@@ -116,7 +117,7 @@ namespace FishyFacepunch
                     // as System.Exception. Keep this boundary limited to Steam startup.
                     _steamInitializationFailed = true;
                     Debug.LogWarning($"FishyFacepunch Steam initialization failed. Online play is unavailable; " +
-                        $"start Steam and restart the game. Other transports remain available.\n{exception}");
+                        $"start Steam and restart the game. Other transports remain available. ({exception.GetType().Name})");
                     if (initializeSteam && SteamClient.IsValid)
                         SteamClient.Shutdown();
                 }

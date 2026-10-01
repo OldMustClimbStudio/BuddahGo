@@ -54,6 +54,7 @@ namespace SteamMultiplayer.UI
             Subscribe();
             RebuildCurrentStageIfNeeded();
 
+            RefreshSelectionVisibility();
             if (forceRefreshEveryFrame || _selectionManager != null)
                 RefreshUi();
         }
@@ -142,8 +143,19 @@ namespace SteamMultiplayer.UI
             _spawnedGroups.Add(group);
         }
 
+        private bool RefreshSelectionVisibility()
+        {
+            // This UI lives on the shared HUD. Its selection labels must not persist into racing/results.
+            RoomStateManager room = RoomStateManager.Instance;
+            bool showSelection = room == null || (!room.IsMatchPhaseActive && !room.IsResultPhaseActive);
+            SetSelectionSummaryVisible(showSelection);
+            return showSelection;
+        }
+
         private void RefreshUi()
         {
+            if (!RefreshSelectionVisibility()) return;
+
             if (sharedUiRoot != null)
                 sharedUiRoot.SetActive(true);
 
@@ -171,6 +183,16 @@ namespace SteamMultiplayer.UI
             RefreshStatusTexts();
         }
 
+        private void SetSelectionSummaryVisible(bool visible)
+        {
+            if (pageTitleText != null) pageTitleText.gameObject.SetActive(visible);
+            if (stageTitleText != null) stageTitleText.gameObject.SetActive(visible);
+            if (statusText != null) statusText.gameObject.SetActive(visible);
+            if (countdownText != null) countdownText.gameObject.SetActive(visible);
+            if (playersSelectionText != null) playersSelectionText.gameObject.SetActive(visible);
+            if (resolvedMapText != null) resolvedMapText.gameObject.SetActive(visible);
+        }
+
         private void RefreshStatusTexts()
         {
             if (_selectionManager.IsTransitioningToMatch)
@@ -183,7 +205,8 @@ namespace SteamMultiplayer.UI
             {
                 SetText(stageTitleText, $"Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {definition.DisplayName}");
                 SetText(statusText, BuildStageStatusText(definition));
-                SetText(countdownText, $"Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s");
+                SetText(countdownText, BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
+                    ? $"Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s" : string.Empty);
             }
             else if (_selectionManager.TotalStageCount <= 0)
             {
@@ -212,8 +235,10 @@ namespace SteamMultiplayer.UI
             {
                 PropertySelectionMode.Vote => "Everyone is voting on the current stage option.",
                 PropertySelectionMode.HostOnly => "Only the host can choose during this stage.",
-                PropertySelectionMode.Multi => "Choose all desired options before the timer ends.",
-                _ => "Each player chooses one option before the timer ends."
+                PropertySelectionMode.Multi => BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
+                    ? "Choose all desired options before the timer ends." : "Choose all desired options.",
+                _ => BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
+                    ? "Each player chooses one option before the timer ends." : "Each player chooses one option."
             };
         }
 

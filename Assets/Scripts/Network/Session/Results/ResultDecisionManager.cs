@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -202,7 +203,8 @@ namespace SteamMultiplayer.Network.Results
                 }
             }
 
-            _decisionCountdownRoutine = StartCoroutine(DecisionCountdownCoroutine());
+            if (MatchRules.Current.ResultDecisionTimeoutEnabled)
+                _decisionCountdownRoutine = StartCoroutine(DecisionCountdownCoroutine());
             GameLog.Verbose($"[ResultDecisionManager] Decision phase started. participants={PlayerDecisions.Count}");
         }
 
@@ -290,6 +292,13 @@ namespace SteamMultiplayer.Network.Results
             }
 
             GameLog.Verbose($"[ResultDecisionManager] Finalized result decision={finalDecision} reason={reason}");
+
+            if (finalDecision == ResultFinalDecision.ReturnToRoom
+                && MatchRules.Current.ReturnTarget == MatchReturnTarget.MainMenuHome)
+            {
+                SessionControl.Current?.RequestStopSession();
+                return;
+            }
 
             if (RoomStateManager.Instance == null)
             {

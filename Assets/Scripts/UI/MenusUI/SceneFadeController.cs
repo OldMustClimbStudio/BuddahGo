@@ -53,6 +53,21 @@ namespace SteamMultiplayer.UI
             controller.ReleaseHeldBlackScreenInternal();
         }
 
+        public static void ResetSessionTransition()
+        {
+            _playFadeOutOnNextSceneLoad = false;
+            _holdBlackUntilReleased = false;
+            if (_instance == null) return;
+            _instance.StopAllCoroutines();
+            if (_instance.crossFadeAnimator != null) _instance.crossFadeAnimator.enabled = false;
+            if (_instance.crossFadeCanvasGroup != null)
+            {
+                _instance.crossFadeCanvasGroup.alpha = 0f;
+                _instance.crossFadeCanvasGroup.blocksRaycasts = false;
+            }
+            if (_instance.crossFadeGraphic != null) _instance.crossFadeGraphic.gameObject.SetActive(false);
+        }
+
         public static void RegisterPersistentFadeCarrier(Animator animator, CanvasGroup canvasGroup = null)
         {
             if (animator == null && canvasGroup == null)
@@ -166,6 +181,7 @@ namespace SteamMultiplayer.UI
                 return;
             }
 
+            crossFadeAnimator.enabled = true;
             crossFadeAnimator.gameObject.SetActive(true);
             crossFadeAnimator.Rebind();
             crossFadeAnimator.Update(0f);

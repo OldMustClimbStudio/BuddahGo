@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using System;
 using System.Collections.Generic;
 using FishNet.Transporting;
@@ -315,7 +316,7 @@ namespace SteamMultiplayer.Network
 
             // Stop networking
             if (GameNetworkManager.Instance != null)
-                GameNetworkManager.Instance.StopConnection();
+                SessionControl.Current?.RequestStopSession();
 
             OnLobbyLeft?.Invoke();
             SetFlowState(LobbyFlowState.Idle, "Left lobby.");
@@ -427,7 +428,7 @@ namespace SteamMultiplayer.Network
             if (GameNetworkManager.Instance != null)
             {
                 SetFlowState(LobbyFlowState.StartingHost, "Starting host...");
-                GameNetworkManager.Instance.StartHost();
+                SessionControl.Current?.StartOnlineHost();
             }
             else
             {
@@ -489,7 +490,7 @@ namespace SteamMultiplayer.Network
                 if (GameNetworkManager.Instance != null)
                 {
                     SetFlowState(LobbyFlowState.ConnectingToHost, $"Connecting to host {hostSteamId}...");
-                    GameNetworkManager.Instance.StartClient(hostSteamId);
+                    SessionControl.Current?.StartOnlineClient(hostSteamId);
                 }
                 else
                 {
@@ -617,7 +618,7 @@ namespace SteamMultiplayer.Network
 
             // Stop networking — let UI / GameFlowManager handle scene transition
             if (GameNetworkManager.Instance != null)
-                GameNetworkManager.Instance.StopConnection();
+                SessionControl.Current?.RequestStopSession();
 
             OnHostLeft?.Invoke();   // UI should navigate back to main menu on this event
             OnLobbyLeft?.Invoke();

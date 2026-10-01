@@ -211,12 +211,13 @@ public class LeaderboardTMPUI : MonoBehaviour
             sb.AppendLine("Gap To Leader: (local obsession not found)");
         }
 
-        sb.AppendLine();
+        // This legacy diagnostic view is log-only; the normal race HUD owns presentation.
 
         if (LeaderboardManager.Instance == null)
         {
             sb.AppendLine("(no data)");
-            outputText.text = _lastRenderedText = sb.ToString();
+            if (NetDebug.EnableVerboseLog) GameLog.Verbose("[RaceHUD] " + sb.ToString());
+            outputText.text = _lastRenderedText = string.Empty;
             return;
         }
 
@@ -242,7 +243,8 @@ public class LeaderboardTMPUI : MonoBehaviour
                 sb.AppendLine("(empty)");
         }
 
-        outputText.text = _lastRenderedText = sb.ToString();
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose("[RaceHUD] " + sb.ToString());
+        outputText.text = _lastRenderedText = string.Empty;
     }
 
     private bool RankingsTextChanged()

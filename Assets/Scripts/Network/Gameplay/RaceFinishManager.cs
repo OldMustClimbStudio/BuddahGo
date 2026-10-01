@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BuddahGo.Match;
 using FishNet;
 using FishNet.Connection;
 using FishNet.Object;
@@ -72,16 +73,7 @@ public class RaceFinishManager : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsServerInitialized || !hasFirstFinisher || isRaceForceEnded)
-            return;
-
-        double elapsed = Time.unscaledTimeAsDouble - _countdownStartServerTime;
-        countdownRemaining = Mathf.Max(0f, PostFirstFinishCountdownSeconds - (float)elapsed);
-
-        if (countdownRemaining <= 0f)
-        {
-            ForceEndRaceServer();
-        }
+        EvaluateRaceEndServer();
     }
 
     public override void OnStopServer()
@@ -118,11 +110,13 @@ public class RaceFinishManager : NetworkBehaviour
             return false;
 
         int clientId = completionTracker.OwnerId;
-        if (_finishedClientIds.Contains(clientId))
+        if (clientId < 0 || clientId >= 10000 || _finishedClientIds.Contains(clientId))
             return false;
 
+        if (MatchServices.Clock == null) return false;
         int finishOrder = _nextFinishOrder++;
-        double finishTime = Time.unscaledTimeAsDouble;
+        double finishTime = MatchServices.Clock.Now;
+        MatchServices.Timing?.Finish(RacerId.FromClient(clientId), LapsToFinish, finishTime);
 
         _finishedClientIds.Add(clientId);
         completionTracker.MarkFinishedServer(finishOrder, finishTime);
@@ -137,6 +131,21 @@ public class RaceFinishManager : NetworkBehaviour
         }
 
         return true;
+    }
+
+    // Call only after the final leaderboard write so immediate Practice results include the finish.
+    public void EvaluateRaceEndServer()
+    {
+        if (!IsServerInitialized || isRaceForceEnded || MatchServices.Clock == null || MatchServices.EndPolicy == null)
+            return;
+        double now = MatchServices.Clock.Now;
+        if (hasFirstFinisher)
+            countdownRemaining = Mathf.Max(0f, PostFirstFinishCountdownSeconds - (float)(now - _countdownStartServerTime));
+        int racers = RoomStateManager.Instance != null ? RoomStateManager.Instance.Players.Count : 0;
+        if (MatchServices.EndPolicy.ShouldEnd(MatchRules.Current, racers, _finishedClientIds.Count,
+            _finishedClientIds.Count > 0, now, hasFirstFinisher ? (double?)_countdownStartServerTime : null,
+            PostFirstFinishCountdownSeconds))
+            ForceEndRaceServer();
     }
 
     public void ForceEndRaceServer()
@@ -204,6 +213,7 @@ public class RaceFinishManager : NetworkBehaviour
                 finishOrder: completionTracker.FinishOrder,
                 finishServerTime: completionTracker.FinishServerTime);
         }
+        EvaluateRaceEndServer();
     }
 
     [Server]

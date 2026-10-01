@@ -1,4 +1,5 @@
 using System;
+using BuddahGo.Match;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -13,7 +14,8 @@ namespace SteamMultiplayer.UI
             Home,
             CreateRoom,
             BrowseRooms,
-            JoinById
+            JoinById,
+            SoloSetup
         }
 
         [Header("Panels")]
@@ -36,6 +38,18 @@ namespace SteamMultiplayer.UI
         private InputAction _menuCancelAction;
 
         public MenuPanel CurrentPanel => _currentPanel;
+        public GameObject HomePanel => homePanel;
+        private GameObject _soloSetupPanel;
+        private GameObject _homeDefaultSelection;
+
+        public void RegisterSoloSetupPanel(GameObject panel, GameObject homeDefaultSelection)
+        {
+            _soloSetupPanel = panel;
+            _homeDefaultSelection = homeDefaultSelection;
+            SetPanelActive(panel, _currentPanel == MenuPanel.SoloSetup);
+        }
+
+        public void ShowSoloSetup() => ShowPanel(MenuPanel.SoloSetup, true);
 
         private void Awake()
         {
@@ -77,20 +91,26 @@ namespace SteamMultiplayer.UI
         {
             _history.Clear();
             ShowPanel(MenuPanel.Home, false);
+            if (_homeDefaultSelection != null && _homeDefaultSelection.activeInHierarchy
+                && UnityEngine.EventSystems.EventSystem.current != null)
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(_homeDefaultSelection);
         }
 
         public void ShowCreateRoom()
         {
+            if (SessionControl.Current == null || !SessionControl.Current.IsOnlineAvailable) return;
             ShowPanel(MenuPanel.CreateRoom, true);
         }
 
         public void ShowBrowseRooms()
         {
+            if (SessionControl.Current == null || !SessionControl.Current.IsOnlineAvailable) return;
             ShowPanel(MenuPanel.BrowseRooms, true);
         }
 
         public void ShowJoinById()
         {
+            if (SessionControl.Current == null || !SessionControl.Current.IsOnlineAvailable) return;
             ShowPanel(MenuPanel.JoinById, true);
         }
 
@@ -103,7 +123,8 @@ namespace SteamMultiplayer.UI
             }
 
             MenuPanel previous = _history.Pop();
-            ShowPanel(previous, false);
+            if (previous == MenuPanel.Home) ShowHome();
+            else ShowPanel(previous, false);
         }
 
         private void ShowPanel(MenuPanel panel, bool pushCurrent)
@@ -117,6 +138,7 @@ namespace SteamMultiplayer.UI
             SetPanelActive(createRoomPanel, panel == MenuPanel.CreateRoom);
             SetPanelActive(browseRoomsPanel, panel == MenuPanel.BrowseRooms);
             SetPanelActive(joinByIdPanel, panel == MenuPanel.JoinById);
+            SetPanelActive(_soloSetupPanel, panel == MenuPanel.SoloSetup);
             RefreshRootVisibility();
         }
 
@@ -156,7 +178,9 @@ namespace SteamMultiplayer.UI
 
         private void HandleMenuCancelPerformed(InputAction.CallbackContext context)
         {
-            if (!allowEscapeBack || !context.performed)
+            if (!allowEscapeBack || !context.performed || LocalInputBlock.IsBlocked
+                || (_currentPanel == MenuPanel.SoloSetup && SessionControl.Current != null
+                    && (SessionControl.Current.IsStarting || MatchRules.Current.AutoStartRoom)))
                 return;
 
             if (_steamLobbyManager != null && _steamLobbyManager.IsInLobby)

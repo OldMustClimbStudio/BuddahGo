@@ -27,9 +27,10 @@
 1. 在 progress.md 中把该阶段标为 `doing`。
 2. 读完 phases.md 里该阶段的全部内容，以及它引用的 design.md 章节。
 3. 先读受影响的代码，再动手。design.md §3.3 的接缝表是起点，不是完整清单。
-4. 写代码时遵守 design.md §3.1 的五条依赖规则。其中最常被违反的两条：
-   - 新模块放在规定的目录和命名空间下；纯逻辑写成普通类，并配 EditMode 测试。
-   - 不在运行时添加 NetworkBehaviour；AI 组件预先放在 prefab 上，默认禁用。
+4. 写代码时遵守 design.md §3.1 的依赖规则。其中最常被违反的几条：
+   - 现有代码只通过契约层（`Assets/Scripts/Match/Contracts/`）访问新模块。
+   - 纯逻辑写成普通类，并配 EditMode 测试。
+   - 不在运行时添加 NetworkBehaviour：`RacerIdentity`、AI 组件都预先放在 prefab 上。
 5. 按 CONTRIBUTING 的格式小步提交，例如 `feat: [S3a] spawn owner-less AI racers`。
 6. 跑该阶段要求的 V 项，并在 progress.md 记录结果。当前环境跑不了的项，写"未执行 + 原因"，不能写成通过。
 7. 完成标准逐条满足后，标为 `done`，向 `dev` 开 PR。PR 的 Validation 一节列出各 V 项的结果。
@@ -49,6 +50,9 @@
 ## 必须知道的事实
 
 - **没有 Steam 时，现在连 host 都起不来（N3）**：`SteamClient.Init` 抛异常会中断整个 NetworkManager 的初始化。Multipass 会初始化它下面的所有传输层，所以就算走 Yak，也必须先完成 ADR 0004 的容错。
+- **Multipass 默认在所有传输层上启动 server**：`ServerManager.StartConnection()` 会这样做。单机必须按 design.md §5.1，只在 Yak 上启动，client 启动前先 `SetClientTransport`。S1 的第一步就是实测这一点。
+- **单人房间不会自己开始**：全仓库只有 `RoomUI` 的按钮会调用 `RequestStartGame`，所以要用 `TryStartSoloMatchServer` 自动开始。另外，结算后的"返回"路径（`ReturnToRoomMenuKeepingSessionServer`）不会关闭网络，单机必须改走 `StopSession`。
+- **AI 的计圈和复活复用现有代码**：只把 owner 门槛改为 `IsProgressAuthority`，不要另写一套计圈规则。
 - **单机不会遇到预测回滚问题**：纯 host 会话里没有 reconcile 和回放。单机里如果出现抖动，先查视觉平滑层（V7），不要去改预测逻辑。
 - **AI 的 owner 是无效的**：AI 的 `OwnerId` 恒为 -1，`Owner` 是 EmptyConnection，不是 null。任何按 owner 做的判断或键，都会把所有 AI 当成同一个对象。按 owner 区分的代码见 design.md §3.3，统一改用 RacerId（ADR 0002）。
 - **比赛是自动全油门的**：油门固定为 1，AI 只需要转向和施法。

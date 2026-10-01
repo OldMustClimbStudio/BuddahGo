@@ -17,25 +17,34 @@
 **目标**：不开 Steam，也能从主菜单完整玩完一局 Practice（0 个 AI）；联机体验不变。
 
 **涉及模块**
-- `SessionLauncher`、`IMatchRules`（Online/Solo）、`SoloMatchSettings`、`MatchClock`、`RaceTiming`（只记真人）、`RaceEndPolicy`
+- 契约层：`IMatchRules`/`MatchRules.Current`、`IMatchClock`
+- `SessionLauncher`（Multipass：FishyFacepunch + Yak）、`Online/SoloMatchRules`、`SoloMatchSettings`、`MatchClock` + `MatchClockSync`、`RaceTiming`（只记真人）、`RaceEndPolicy`
 - Solo UI：设置面板、结算视图、退出确认
 - FishyFacepunch 容错（ADR 0004）
+- design.md §3.3 中的这些接缝：启动与传输层、单人房间自动开始、结算决策、选择阶段、名字、主菜单
 
 **完成标准**
-1. Steam 关闭时：
+1. 第一步先实测 design.md §5.1 的 Multipass 用法：只在 Yak 上启动 server 和 client，ServerManager 和 ClientManager 的连接事件都正常触发，FishyFacepunch 没有启动 server。实测结论记进 progress.md。
+2. Steam 关闭时：
    - 能进入主菜单，启动日志里没有 `NoSteamClient` 及其连带异常（N3）。
-   - 联机入口显示"Steam 不可用"并且不可用；"单人游戏"可用。
-2. 设置面板能选择 AI 数量（0–5）和难度，默认值是上次的选择。本阶段 AI 数量大于 0 时，先按 0 处理，或暂时禁用该选项。
-3. 通过 Yak 起本机 host，完整走完一局：
+   - 联机入口显示"Steam 不可用，请启动 Steam 后重开游戏"并且不可用；"单人游戏"可用。
+   Steam 开启时：联机的建房和加入都改走 `SessionLauncher`，行为不变。
+3. 设置面板能选择 AI 数量（0–5）和难度，默认值是上次的选择。本阶段 AI 数量大于 0 时，先按 0 处理，或暂时禁用该选项。
+4. 通过 Yak 起本机 host，完整走完一局：
+   - 单人房间自动开始，不需要 ready。
    - 选择阶段：没有超时，跳过地图投票。
    - 入场 → 比赛 → 冲线后立即结算。
    - 结算显示总用时和每圈 Lap Time。
-   - 可以"再来一局"或"返回"。
-4. Esc 确认退出：结束对局，完整关闭会话，回到主菜单首页；之后可以再开单机或联机。
-5. 联机与单机的所有差异都通过 `IMatchRules` 查询，代码里没有散落的 `if (solo)`。
-6. 比赛内的计时器全部改读 Match Clock（design.md §5.6）。联机下各计时器的数值和顺序不变。
-7. 单机进行中收到的 Steam 邀请先挂起，回主菜单后再提示。
-8. `IMatchRules`、`RaceEndPolicy`、`RaceTiming` 的计算部分有 EditMode 测试。
+   - 结算没有超时；可以"再来一局"或"返回"。"返回"会完整关闭会话（`StopSession`），不会留下运行中的 host。
+   - 启动失败时：留在设置面板并显示原因。
+   - 没有 Steam 时，玩家名显示为"玩家"。
+5. Esc 确认退出（选择、开场、比赛阶段都可用）：
+   - 对话框打开期间屏蔽玩家车辆的转向输入。
+   - 确认后完整关闭会话，回到主菜单首页；之后可以再开单机或联机。
+6. 联机与单机的所有差异都通过 `IMatchRules` 查询，代码里没有散落的 `if (solo)`。
+7. `RaceTiming`、`RaceEndPolicy` 和"第一名冲线后 15 秒"倒计时改用 Match Clock（服务器 tick 为基准，design.md §5.6 中的 S1 范围）；联机下倒计时的时长不变。其余计时器留到 S7。
+8. 现有代码只通过契约层访问新模块，不引用 Solo 或 AI 的具体类。
+9. `IMatchRules`、`RaceEndPolicy`、`RaceTiming`、`MatchClock` 的计算部分有 EditMode 测试。
 
 **验证**：V1、V2、V3、V8、V10。
 
@@ -43,13 +52,14 @@
 
 **目标**：在投入 S2/S3 之前，证明"往前推演、只按左/不按/右"的规划器能够稳定驾驭现有物理（ADR 0003）。
 
-**涉及模块**：`BuddahMotionModel`、`ISteeringPlanner`/`ForwardSimPlanner`、`IRacingLine`/`SplineRacingLine`、`AIRacerDriver`、`AIDifficultyProfile`（先只做一档）。
+**涉及模块**：`ISteeringOverride` 接缝（"owner 本身"这条分支）、`BuddahMotionModel`、`ISteeringPlanner`/`ForwardSimPlanner`、`IRacingLine`/`SplineRacingLine`、`AIRacerDriver`、`AIDifficultyProfile`（先只做一档）。
 
 **完成标准**
 1. `BuddahMotionModel` 与 motor 一致：同样的初始状态和按键序列，推演 60 tick 后的位置、朝向、速度与实际模拟的偏差在约定阈值内（无碰撞路段）。这一项写成 EditMode 测试，再加一次场景内对照。
 2. 在 Practice 中打开调试开关，让 `AIRacerDriver` 接管玩家自己那台 Buddah 的转向：能连续完成 3 圈，并记录圈速、撞墙次数和平均偏离。
 3. 规划器只输出 -1/0/+1；在加速、巨大化等改变 `Final*` 的效果下仍能跑完。
-4. 结论写进 progress.md 的调参记录，然后二选一：
+4. 调试开关关闭时，玩家输入路径与之前完全一致。
+5. 结论写进 progress.md 的调参记录，然后二选一：
    - 跑通：继续往下做。
    - 跑不通：停下来，由团队决定是否启用经验公式方案。
 
@@ -59,14 +69,15 @@
 
 **目标**：比赛数据的归属从"连接"改为"Racer"（ADR 0002），联机行为完全不变。
 
-**涉及模块**：`RacerRegistry`、`RacerIdentity`、`RaceTiming`（按 RacerId），以及 design.md §3.3 中的排行榜、完赛、结算演出、观战、开场排序、执念值。
+**涉及模块**：契约层的 `RacerId`、`IRacerDirectory`、`RacerIdentity`（预先放在 `Buddah.prefab` 上）；`RacerRegistry`、`RaceTiming`（按 RacerId）+ `RaceTimingSync`；design.md §3.3 中的排行榜、完赛与结算（包括 `firstFinisherClientId`、`TryGetOwnedCompletionTracker`、`ResolvePlayerNameForClient`、`FinalMatchResultEntry.ClientId`）、结算演出、观战、开场排序、执念值。
 
 **完成标准**
 1. 以下数据全部以 RacerId 为键：进度、完赛登记、名次和排行榜、Lap Time、结算演出、观战目标、执念值中"离领先者的距离"、开场排序、显示名。
 2. 进度、完赛、名次、观战这些代码路径里，不再用 OwnerId 或 ClientId 作为键。名单、ready、投票、owner 定向 RPC 这类按连接的逻辑保持原样。
 3. `RankEntry.ClientId` 改名为 `RacerId`，类型和顺序不变。排行榜显示名取自 RacerRegistry。
 4. 已提供"注册一个没有连接的 Racer"的服务器入口，并有 EditMode 测试覆盖。
-5. 联机回归结果与 S2 之前一致，包括排行榜显示的名字。如果显示名从 `gameObject.name #id` 变成了玩家名，要在 PR 里写明这是有意的改动。
+5. 联机回归结果与 S2 之前一致。排行榜显示名从 `gameObject.name #id` 改为玩家名，是有意的改动，要在 PR 里写明。
+6. 改动 `Buddah.prefab` 后，R10（序列化）检查通过：现有字段的值不变，只多了 `RacerIdentity` 组件。
 
 **验证**：V2（必须）、V3、V10。
 
@@ -74,7 +85,7 @@
 
 **目标**：AI Racer 作为服务器持有、没有 owner 的 Buddah，能完整参加一局。本阶段 AI 可以用 S1.5 的规划器，也可以直线全速。
 
-**涉及模块**：生成接缝、出发交接接缝、`ServerProgressReporter`、`StuckDetector`、服务器侧复活，以及 `RaceEndPolicy`（全员完赛）。
+**涉及模块**：生成、开场、出发交接接缝；进度与计圈接缝（owner 门槛统一改为 `IsProgressAuthority`）、`ServerProgressReporter`、复活接缝、`StuckDetector`、结算区停放、`RaceEndPolicy`（全员完赛）。
 
 **完成标准**
 1. 按 `SoloMatchSettings` 生成 N 个 AI：
@@ -82,11 +93,11 @@
    - 出生点不冲突。
    - 名字取自配置列表（列表为空时用占位名）。
    - 配装按 design.md §5.4 生成。
-2. 开场布局能容纳实际人数。4–6 人用占位布局，联机 4–6 人时同样生效。
+2. 出生点补到 6 个（占位），开场布局能容纳实际人数（4–6 人用占位布局），联机 4–6 人时同样生效。AI 和真人在同一轮生成，并且在开赛就绪判定之前完成。
 3. AI 能正常出发：服务器权威交接，不会被设成 kinematic 锁住。
-4. AI 的进度、计圈、Lap Time、完赛都在服务器上正确记录，名次、结算、观战、排行榜中都以各自的名字出现。
+4. AI 的进度、计圈、Lap Time、完赛都在服务器上正确记录：复用 `LapProgress`、`RaceCompletionTracker` 的原有逻辑，没有另写一套计圈规则。名次、结算、观战、排行榜中都以各自的名字出现。
 5. AI 的逆行修正、贴地复活、Stuck Recovery 都在服务器侧生效。
-6. "全员完赛立即结算"生效。
+6. "全员完赛立即结算"生效；AI 完赛后停止驾驶，停放在结算区锚点，不在结算区乱跑。
 7. 再来一局时：AI 数量、难度和名字沿用，配装重新随机，没有重复生成或残留对象。
 
 **验证**：V4、V8、V10。
@@ -117,8 +128,8 @@
    - 可以指定 AI 数量、难度和旋钮值，让 AI 自动跑 N 圈。
    - 输出每圈用时、撞墙次数、平均偏离和每 tick 的规划耗时。
    - 运行中可以手动或按脚本对 AI 施加干扰：技能效果、推一下、临时调高 Fumble。
-3. 三档难度的实测结果写入 progress.md。验收以"团队观看后认可"为准，不设圈速目标。
-4. 5 个 AI 同场时没有明显排成一列；被推、被遮挡后都能恢复。
+3. 三档难度的实测指标写入 progress.md：每圈用时、撞墙/圈、平均横向偏离、AI 之间的横向离散度、超车次数、`AI.Plan` 耗时。三档之间的指标要有可区分的差异；滑稽感的最终认可由团队观看后决定，不设圈速目标。
+4. 5 个 AI 同场时，横向离散度不低于约定阈值（在调参时确定并记录）；被推、被遮挡后，都能在约定时间内回到走线。
 
 **验证**：V6、V7、V9、V10。
 
@@ -150,21 +161,22 @@
 **目标**：Solo Match 可以暂停。
 
 **完成标准**
-1. 暂停时 Match Clock、FishNet tick 和物理都停下；继续后状态与暂停前一致。
-2. 暂停菜单提供：继续 / 重来 / 回主菜单 / 设置；Esc 确认框并入暂停菜单。
-3. 选择阶段和结算阶段的暂停行为有明确定义。
+1. 其余比赛计时器迁移到 Match Clock（design.md §5.6 的 S7 范围）。其中跑在 owner 客户端上的复活和推人判定框，读取同步后的时钟。
+2. 暂停时 Match Clock、FishNet tick 和物理都停下；继续后状态与暂停前一致。
+3. 暂停菜单提供：继续 / 重来 / 回主菜单 / 设置；Esc 确认框并入暂停菜单。
+4. 选择阶段和结算阶段的暂停行为有明确定义。
 
 ## 验证项
 
 | ID | 内容 |
 |---|---|
 | V1 | Steam 关闭：能进入主菜单，没有 N3 异常；联机入口提示不可用；单机完整走完一局 |
-| V2 | Steam 开启：联机回归，按 `Docs/optimization/refactor-plan.md` §5 的 R4/R5/R7/R9，结果与基线一致 |
-| V3 | Practice：选择阶段没有超时、没有地图投票；冲线立即结算；总用时和 Lap Time 正确；再来一局 / 返回 / Esc 退出都能反复走通 |
+| V2 | Steam 开启：联机回归，按 `Docs/optimization/refactor-plan.md` §5 的 R1（编辑器编译）、R3（非 Development 构建）、R4/R5/R7/R9，以及改动 prefab 或场景时的 R10（序列化），结果与基线一致 |
+| V3 | Practice：自动开始；选择阶段没有超时、没有地图投票；冲线立即结算；总用时和 Lap Time 正确；结算没有超时；再来一局 / 返回 / Esc 退出都能反复走通，"返回"后没有残留的 host |
 | V4 | 带 1 / 3 / 5 个 AI，三档难度：完赛、名次、名字、观战、排行榜、Lap Time 都正确；全员完赛立即结算；跳过观战的结果与倒计时到期一致 |
 | V5 | 技能矩阵：玩家对 AI、AI 对玩家、AI 对 AI，每个技能及反噬版都生效，在 host 画面中可见，没有 TargetRpc warning |
 | V6 | 调参场景：每档难度跑 ≥5 圈的统计；施加干扰后能恢复；没有排成一列 |
 | V7 | 视觉：host 画面中玩家和 AI 没有异常抖动（重点观察 TickSmoother） |
 | V8 | 生命周期：连续再来一局 3 次、返回后再开一局、单机与联机交替进行，不残留状态，也不重复生成对象 |
-| V9 | 性能：记录 5 个 AI 时每帧 AI 规划的总耗时；发布构建目标 < 1ms |
+| V9 | 性能：用 profiler marker `AI.Plan` 统计 5 个 AI 时每帧的规划总耗时；发布构建目标 < 1ms |
 | V10 | `BuddahGo.Tests` 全部通过，新增的纯逻辑模块都有对应测试 |

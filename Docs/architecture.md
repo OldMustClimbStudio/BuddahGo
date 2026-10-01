@@ -42,4 +42,6 @@ SteamLobbyManager 创建/加入大厅
   → RoomStateManager 执行场景转换
 ```
 
+单机对局（Solo Match，设计中）复用同一条链路：由 SessionLauncher 在 Yak 上启动本机 host 取代大厅，单人房间自动进入选择场景，结算以"再来一局 / 返回"按钮取代投票。设计与实现入口见 [single-player/HANDOFF.md](single-player/HANDOFF.md)。
+
 网络细节见 [networking.md](networking.md)，运动设计见 [prediction-design.md](prediction-design.md)。

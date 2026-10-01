@@ -38,6 +38,10 @@ _Avoid_: split, lap duration
 The Human Player's choice, after crossing the finish line in a Solo Match, to end the race at once instead of watching the remaining AI Racers. Placement then follows the same rule as when the post-finish countdown runs out.
 _Avoid_: skip, end race, forfeit
 
+**Result Area**:
+The walkable end-of-race zone where finished Racers are placed while results are shown. Finished AI Racers are parked there and stop driving.
+_Avoid_: end field, podium
+
 **Pause**:
 A state, available only in a Solo Match, in which the race is frozen until the Human Player resumes it.
 
@@ -68,6 +72,14 @@ _Avoid_: AI level, skill level
 **Steering Plan**:
 An AI Racer's choice of which steering key to hold for the next few moments. It is made by predicting ahead with the same movement rules that govern every Buddah. AI Racers press the same left/none/right keys that a Human Player has.
 _Avoid_: AI path, autopilot
+
+**Racing Line**:
+The path an AI Racer aims to follow: the track spline plus a configurable lateral offset per AI Racer.
+_Avoid_: AI path, waypoints
+
+**Catch-up**:
+Adjusting AI Racers' decision quality by their distance to the leader: those behind fumble less and plan more precisely. It never changes the movement rules.
+_Avoid_: rubber banding, boost
 
 **Stuck Recovery**:
 The server returning an AI Racer to the track after its progress along the track has stalled or it has driven the wrong way for too long.

@@ -27,7 +27,7 @@ The set of behaviours that differ between an Online Match and a Solo Match, such
 _Avoid_: mode flags, solo checks
 
 **Match Clock**:
-The single pausable clock that every in-race timer and timing record uses. It stops while the race is paused.
+The single pausable clock for in-race timing, based on the server tick. Race timing and the end-of-race countdown use it from the start; the remaining in-race timers move onto it when Pause is built. It stops while the race is paused.
 _Avoid_: game time, timer, real time
 
 **Lap Time**:

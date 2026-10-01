@@ -12,6 +12,13 @@
 
 仓库通用规则以 [harness.md](../../harness.md) 与 [CONTRIBUTING.md](../../CONTRIBUTING.md) 为准；重构后的 helper 约定见 [Docs/session-helpers.md](../session-helpers.md)。
 
+## 首要原则
+
+**单机稳定性高于一切**（design.md §0）。
+- 每个阶段都要保证单机能反复完整游玩，并通过 V11 浸泡测试。
+- 宁可把功能推迟，也不交付不稳定的部分。
+- 联机只做冒烟检查（V2），遇到网络层面的疑难问题，记进 progress.md 的"新发现"后继续推进，不在单机分支里深挖。
+
 ## 开工条件
 
 已满足：重构（#47–#58）已经合入 `dev`，本分支已同步，S0 已完成。从 S1 开始。
@@ -41,7 +48,8 @@
 
 - 需要改变 CONTEXT.md 中某个术语的含义，或者需要推翻某个 ADR。
 - S1.5 证明规划器跑不通（ADR 0003 的备选方案要由团队决定）。
-- S2 之后，联机回归（V2）与基线不一致，而且找不到原因。
+- 联机冒烟（V2）失败，也就是建房、加入或完成一局走不通。网络细节问题只记录，不阻塞。
+- V11 浸泡测试出现无法定位的偶发问题。
 - AI 必须修改运动组件本身、或者修改物理参数才能工作。这违反 ADR 0003。
 - 难度和 Fumble 的数值需要团队看过才能定（S4 的验收本来就要求团队确认）。
 
@@ -50,7 +58,8 @@
 ## 必须知道的事实
 
 - **没有 Steam 时，现在连 host 都起不来（N3）**：`SteamClient.Init` 抛异常会中断整个 NetworkManager 的初始化。Multipass 会初始化它下面的所有传输层，所以就算走 Yak，也必须先完成 ADR 0004 的容错。
-- **Multipass 默认在所有传输层上启动 server**：`ServerManager.StartConnection()` 会这样做。单机必须按 design.md §5.1，只在 Yak 上启动，client 启动前先 `SetClientTransport`。S1 的第一步就是实测这一点。
+- **Multipass 默认在所有传输层上启动 server**：`ServerManager.StartConnection()` 会这样做。单机必须按 design.md §5.1 的顺序，只在 Yak 上启动；每次启动 client 前都要先 `SetClientTransport`；`GlobalServerActions` 保持 true。这套做法已经对照源码确认可行，S1 的第一步是实测它。
+- **不要在 RPC 调用栈里停止会话**：会销毁正在执行的 NetworkBehaviour。统一用 `SessionControl.Current.RequestStopSession()`，它会在下一帧执行。
 - **单人房间不会自己开始**：全仓库只有 `RoomUI` 的按钮会调用 `RequestStartGame`，所以要用 `TryStartSoloMatchServer` 自动开始。另外，结算后的"返回"路径（`ReturnToRoomMenuKeepingSessionServer`）不会关闭网络，单机必须改走 `StopSession`。
 - **AI 的计圈和复活复用现有代码**：只把 owner 门槛改为 `IsProgressAuthority`，不要另写一套计圈规则。
 - **单机不会遇到预测回滚问题**：纯 host 会话里没有 reconcile 和回放。单机里如果出现抖动，先查视觉平滑层（V7），不要去改预测逻辑。

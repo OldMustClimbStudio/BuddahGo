@@ -5,6 +5,20 @@
 - 分阶段目标见 [phases.md](phases.md)；执行入口见 [HANDOFF.md](HANDOFF.md)。
 - **事实基线**：`dev` 已合入架构重构（PR #47–#58）。行号以合并后的代码为准，只作定位提示，以符号名为准。
 
+## 0. 首要原则：稳定性优先
+
+1. **单机内容本身的稳定性高于功能完整度。** 这里指单机玩法和流程在玩家手里稳定运行，不是网络层的严谨程度。
+   - 任何阶段交付时，Solo Match 都必须能从头到尾反复游玩，不崩溃、不卡死、没有 Exception 或 Error 日志。
+   - 功能做不完可以推迟到下一阶段，但已交付的部分不能不稳定。
+2. **选最简单、最可预测的实现**：
+   - 能复用现有代码路径的，就不另写。
+   - 能在服务器上同步完成的，就不引入异步或协程链。
+   - 状态必须有明确的初始化和清理点（§4.3 的 `StopSession`）。
+3. **失败要可恢复。**
+   - 启动失败、AI 卡死、对象缺失都要有兜底：回到设置面板、Stuck Recovery、使用占位或跳过。
+   - 不能让玩家卡在半途。
+4. **联机只做冒烟检查**：单机改动触及的联机路径只验证"能建房、能加入、能完成一局、能返回"，不做完整的网络专项回归。网络问题另行处理。
+
 ## 1. 目标与功能清单
 
 **Solo Match**：一名 Human Player 对 0–5 名 AI Racer，完全离线（Steam 可以不运行），一局的流程与 Online Match 一样完整。AI 数量为 0 时称为 **Practice**。
@@ -68,13 +82,16 @@
 └──────────────▼ 只依赖 ──────────────────────────────────────────────────┘
 ┌──────────── 契约层 Contracts（新增，最底层）─────────────────────────┐
 │ IMatchRules + MatchRules.Current · RacerId · IRacerDirectory ·        │
-│ ISteeringOverride · IMatchClock · RacerIdentity（Buddah 上的同步组件） │
+│ ISteeringOverride · ILocalInputBlock · ISessionControl · IMatchClock ·│
+│ RaceTiming 数据（按 RacerId）· RacerIdentity（Buddah 上的同步组件）     │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
 **依赖规则**
 
-1. **现有代码只依赖契约层。** 它读取 `MatchRules.Current`、`IRacerDirectory`、`ISteeringOverride`、`IMatchClock`，不引用任何 AI 或 Solo 的具体类。上层模块实现这些接口，或者直接调用现有代码的公开入口。
+1. **现有代码只依赖契约层。**
+   - 它读取 `MatchRules.Current`、`IRacerDirectory`、`ISteeringOverride`、`ILocalInputBlock`、`IMatchClock`，并通过 `SessionControl.Current`（`ISessionControl`）启动和停止会话。
+   - 它不引用任何 AI 或 Solo 的具体类。上层模块实现这些接口，或者直接调用现有代码的公开入口。
 2. **规则的持有方式**：`SessionLauncher` 在启动会话时设置 `MatchRules.Current`（Online 或 Solo），在 `StopSession` 时复位为 Online。Solo Match 只在 host 进程中存在，所以远端客户端始终是 Online 规则。
 3. **纯逻辑与 Unity/网络分离**：规划器、运动模型、技能规则、卡死判定、计时计算和规则对象都是普通类，在 `BuddahGo.Tests` 里写 EditMode 测试。
 4. **AI 只在服务器运行**：AI 组件在 `!IsServerInitialized` 时保持禁用，客户端不执行任何 AI 逻辑。
@@ -106,6 +123,8 @@ AI 和 Solo 只依赖契约层与现有代码的公开入口，所以以后可�
 | `IRacerDirectory` | 按 RacerId 查询 Racer | `TryGet(RacerId, out RacerInfo)`、`All`、`TryGetByObject(NetworkObject)`；`RacerInfo` = Buddah 对象、显示名、IsAI、连接（AI 没有连接） |
 | `ISteeringOverride` | 让 motor 从别处取得转向与"是否行驶" | `bool TryGetOverride(out int steering, out bool drive)` |
 | `IMatchClock` | 比赛时间的唯一来源 | `Now`（秒，基准为服务器 tick）、`IsPaused` |
+| `ILocalInputBlock` | 让本地玩家输入暂时失效，例如 Esc 对话框打开期间；由 owner 输入桥读取 | `IsBlocked` |
+| `ISessionControl` / `SessionControl.Current` | 现有代码（SteamLobbyManager、GameNetworkManager、ResultDecisionManager）启动和停止会话的入口；由 `SessionLauncher` 实现 | `StartOnlineHost()`、`StartOnlineClient(hostSteamId)`、`StartSoloHost(settings)`、`RequestStopSession()`（在下一帧执行） |
 | `RacerIdentity` | Buddah 上的同步组件，作为 Racer 信息的同步载体 | SyncVar：`RacerId`、`DisplayName`、`IsAI` |
 
 **上层实现**
@@ -115,8 +134,8 @@ AI 和 Solo 只依赖契约层与现有代码的公开入口，所以以后可�
 | `SessionLauncher` | 普通类，由 GameNetworkManager 持有 | 选择传输层并启动或停止会话（细节见 §5.1）；设置和复位 `MatchRules.Current` | 本地测试、LAN 模式 |
 | `OnlineMatchRules` / `SoloMatchRules` | 纯逻辑 | 两种模式的规则值 | 新增模式时只加一个实现 |
 | `SoloMatchSettings` | 不可变数据 | AI 数量、难度、AI 名字（再来一局时沿用） | 调参场景、自动化测试 |
-| `MatchClock` | 服务器侧；暂停偏移由 RaceMap 场景里预放的 `MatchClockSync`（NetworkBehaviour）同步 | `Now = (服务器 tick − 暂停累计 tick) × TickDelta` | 暂停、计时 |
-| `RaceTiming` | 服务器侧，按 RacerId | 记录开赛、每次过线、完赛的时刻，算出 Lap Time 和总用时；结果由 RaceMap 场景里的 `RaceTimingSync`（SyncList）同步 | 联机结算以后也能显示圈速 |
+| `MatchClock` | 服务器侧；暂停偏移由 RaceMap 场景里预放的 `MatchClockSync`（NetworkBehaviour）同步。S1 只预放该组件，偏移恒为 0 | `Now = (服务器 tick − 暂停累计 tick) × TickDelta` | 暂停、计时 |
+| `RaceTiming` | 服务器侧，按 RacerId（S1 就以 RacerId 为键，此时只有 `RacerId.FromClient`） | 记录开赛、每次过线、完赛的时刻，算出 Lap Time 和总用时；结果由 RaceMap 场景里的 `RaceTimingSync`（SyncList）同步。S1 就交付 | 联机结算以后也能显示圈速 |
 | `RaceEndPolicy` | 纯逻辑 | 按规则和 Racer 状态决定何时结算 | — |
 | `RacerRegistry` | 每一端都有 | 由场景中所有 `RacerIdentity` 建立 RacerId 索引，实现 `IRacerDirectory`；服务器负责分配 RacerId | 联机 AI 补位 |
 | `ServerProgressReporter` | 服务器侧 | 对没有 owner 的 Racer，把原本走 ServerRpc 的进度上报改成服务器上直接调用同一个登记入口 | 服务器权威计圈 |
@@ -137,17 +156,18 @@ AI 和 Solo 只依赖契约层与现有代码的公开入口，所以以后可�
 | 接缝 | 位置 | 做法 |
 |---|---|---|
 | **启动与传输层** | `GameNetworkManager.StartHost`（`:99`，内部先 `ServerManager.StartConnection` 再 `ClientManager.StartConnection`）；调用方 `SteamLobbyManager.cs:318/430/492/620`；MainMenu 的 NetworkManager（`MainMenu.unity:6267`，目前只挂了 FishyFacepunch） | 改用 Multipass，子传输层顺序固定为 `[0]=FishyFacepunch, [1]=Yak`；所有启动和停止都走 `SessionLauncher`（§5.1） |
-| **单人房间自动开始** | `RoomStateManager.RequestStartGame`（`:266`，现在唯一的调用方是 `RoomUI.cs:199`）、`StartGameServerRpc`（`:271`）要求调用者是 host、host 标记在 `OnStartClient` 刷新（`:156-159`） | 新增服务器侧 `TryStartSoloMatchServer()`：在 host 刷新之后，`MatchRules.Current.AutoStartRoom` 为真时，直接进入选择场景，不经过 ready |
+| **单人房间自动开始** | `RoomStateManager.RequestStartGame`（`:266`，现在唯一的调用方是 `RoomUI.cs:199`）调用 `StartGameServerRpc`（`:352`，host 校验在 `:362`）；host 标记在 `OnStartClient` 刷新（`:156-159`）；第一个 host 会自动 ready（`:569`），`CanHostStartGame`（`:78`）随即成立 | 新增服务器侧 `TryStartSoloMatchServer()`：在 host 刷新之后，`MatchRules.Current.AutoStartRoom` 为真时，**延后一帧**（或者等 `OnClientLoadedStartScenes` 之后）调用 `TransitionToPropertiesSelector`（`:629`）。不经过 ready UI |
 | **转向与行驶** | `BuddahPredictedMotor.BuildReplicateData`（`:284`，读转向在 `:292`，油门固定为 `movementAllowed ? 1 : 0`，在 `:293`） | 如果本端对该对象有权威（服务器且无 owner，或者 owner 本身），并且存在启用的 `ISteeringOverride`，就使用它给出的转向和 `drive`；否则走原来的 owner 输入桥。S1.5 的调试接管走"owner 本身"这条分支 |
-| **生成** | `MatchSpawnManager`（`:97`、`:117`、`:123`；出生点列表只有 3 个，`RaceMap.unity:7743-7746`；`GetSpawnPoint` 按 `%` 循环，`:158`） | 真人和 AI 在同一轮生成，并且在开赛就绪判定和开场收集车身之前完成：AI 无 owner、分配 RacerId、出生点序号接在真人之后；用 `SkillLoadout.SetSlotsServer`（`:42`）写入配装。出生点补到 6 个（占位） |
+| **本地输入屏蔽** | `BuddahPredictionOwnerInputBridge.ReadSteering`（`:42-48`） | `ILocalInputBlock.IsBlocked` 为真时返回 0（Esc 对话框打开期间） |
+| **生成** | `MatchSpawnManager`（`:97`、`:117`、`:123`；出生点列表只有 3 个，`RaceMap.unity:7743-7746`；`GetSpawnPoint` 按 `%` 循环，`:158`） | 真人和 AI 在同一轮生成，并且在开赛就绪判定和开场收集车身之前完成：AI 无 owner、分配 RacerId、出生点序号接在真人之后；用 `SkillLoadout.SetSlotsServer`（`:43`）写入配装。出生点补到 6 个（占位） |
 | **开场** | `IntroSequenceManager`：布局只有 1–3 人（`RaceMap.unity:13424-13434`）；用 `FindObjectsByType` 收集车身（`:489`）；排序比较函数在 `:491-500` | 4–6 人用占位布局；按 RacerId 排序，真人在前 |
 | **出发交接** | `RaceBodyIntroStateController`（`:301`、`:353` 会把非本地 owner 的车设为 kinematic）；`TryApplyServerAuthoritativeLaunchHandoff`（`BuddahPredictedMotor.Events.cs:175`） | 没有 owner 的车在服务器上走权威交接路径，不设 kinematic |
-| **进度与计圈** | `LapProgress`（`Update`、`OnTriggerEnter` 和 `:119` 都有 `!IsOwner` 门槛，在 `:58/:75`）；`RaceCompletionTracker`（`:61`、`:248`，逆行判定 `EvaluateWrongWayState` 在 `:188-222`）；`PlayerProgressReporter`（`:28` 有 IsOwner 门槛，ServerRpc 在 `:74`）；`SplineProgressTracker`（没有门槛） | **复用，不重写**：把这些 owner 门槛统一改为 `IsProgressAuthority = IsOwner \|\| (IsServerInitialized && !Owner.IsValid)`。`ServerProgressReporter` 只负责把"ServerRpc 上报"这一步换成服务器上的直接调用。在 host 上，AI 的刚体真实参与物理，trigger 会正常触发 |
+| **进度与计圈** | `LapProgress`（`Update`、`OnTriggerEnter`、`:119` 和 `TryAdvanceCheckpoint :296` 都有 owner 门槛，前两处在 `:58/:75`）；`PlayerProgressReporter.ReportCheckpoint`（`:110`）；`RaceCompletionTracker`（`:61`、`:248`，逆行判定 `EvaluateWrongWayState` 在 `:188-222`）；`PlayerProgressReporter`（`:28` 有 IsOwner 门槛，ServerRpc 在 `:74`）；`SplineProgressTracker`（没有门槛） | **复用，不重写**：把这些 owner 门槛统一改为 `IsProgressAuthority = IsOwner \|\| (IsServerInitialized && !Owner.IsValid)`。`ServerProgressReporter` 只负责把"ServerRpc 上报"这一步换成服务器上的直接调用。在 host 上，AI 的刚体真实参与物理，trigger 会正常触发 |
 | **排行榜** | `LeaderboardManager._progressByClientId`（`:21`）、`RankEntry`（`:350`）、显示名 `"{gameObject.name} #{OwnerId}"`（`PlayerProgressReporter.cs:193-195`） | 键改为 RacerId；`RankEntry.ClientId` 改名为 `RacerId`；显示名取自 `IRacerDirectory` |
 | **完赛与结算** | `RaceFinishManager`：`_finishedClientIds`（`:27`、`:120-127`）、`firstFinisherClientId`、`TryGetOwnedCompletionTracker`、`ResolvePlayerNameForClient`（只查 RoomStateManager）、15 秒倒计时（`:76-84`）；`FinalMatchResultEntry.ClientId` | 全部改为 RacerId；名字从 `IRacerDirectory` 取；结算时机交给 `RaceEndPolicy` |
 | **结算演出** | `MatchResultPresentationCoordinator`（`:47`、`:119`、`TryGetReporter :248-254`） | 键改为 RacerId；在 `ResultInteractive` 阶段，单机用 `SoloResultsView` 替换 `ResultDecisionUI` |
-| **结算决策** | `ResultDecisionManager`：60 秒超时（`:20`、`:212-219`）、参与者（`:191`）、`FinalizeDecisionServer`（`:223`）调用 `ReturnToRoomMenuKeepingSessionServer`（`:307`，会加载 MainMenu，但不关闭网络） | 单机下不计超时；"再来一局"沿用现有的重开路径；"返回"由 `FinalizeDecisionServer` 根据 `ReturnTarget=MainMenuHome` 改为调用 `SessionLauncher.StopSession()` |
-| **结算区** | `RaceResultAreaManager`（6 个 EndFieldSpawnPoint）、`allowMovementInResultArea: 1`（`RaceMap.unity:12485`） | AI 完赛后 `drive=false`，并在服务器上传送到结算区的锚点停放 |
+| **结算决策** | `ResultDecisionManager`：60 秒超时（`:20`、`:212-219`，超时分支在 `:223` 调用 `FinalizeDecisionServer`）、参与者（`:191`）、`FinalizeDecisionServer`（定义在 `:277`）调用 `ReturnToRoomMenuKeepingSessionServer`（`:307`，会加载 MainMenu，但不关闭网络） | 单机下不计超时；"再来一局"沿用现有的重开路径；"返回"由 `FinalizeDecisionServer` 根据 `ReturnTarget=MainMenuHome` 改为调用 `SessionControl.Current.RequestStopSession()`。**不能在 RPC 调用栈里同步停止会话**，否则会销毁正在执行的 NetworkBehaviour，所以要延到下一帧执行 |
+| **结算区** | 现有停放发生在黑屏时：`MatchResultPresentationCoordinator.HandleTimelineBlackScreenFullyCoveredServer`（`:173-203`）按 `FinalRank-1` 取锚点，然后调用 `PlayerProgressReporter.TeleportToHiddenResultAreaServer`（`:139`）；`RaceResultAreaManager._placedClientIds`（`:26`）和 `NotifyPlacementApplied(int clientId)`（`:91`）按 ClientId 记录；`allowMovementInResultArea: 1`（`RaceMap.unity:12485`） | AI 完赛时只设 `drive=false`。黑屏时由现有逻辑按 RacerId 停放（`_placedClientIds` 和 `NotifyPlacementApplied` 改为按 RacerId）。AI 在结算区里始终保持 `drive=false` |
 | **观战** | `RaceSpectatorTargetResolver`（`:45-51`）、`CinemachineLocalPlayerFollower`（`:60-72`） | 按 RacerId 查找目标，规则不变 |
 | **施法** | `SkillExecutor.CastSlotServerRpc`（`:176`）已经拆成 `TryResolveCast`（`:185`）、`ResolveCastVariant`（`:224`）、`QueueCast`（`:261`） | 新增服务器侧 `CastSlotServer(slot)`，复用这三步 |
 | **owner 表现** | `Apply*ToOwner` 的 TargetRpc（`SkillExecutor :350-417`，只判断 `conn == null`，EmptyConnection 仍会发送） | 没有 owner 时不发 TargetRpc；拖尾、缩放、Feel 改为由 observers 路径在 host 上播放 |
@@ -164,9 +184,9 @@ AI 和 Solo 只依赖契约层与现有代码的公开入口，所以以后可�
 ```text
 主菜单「单人游戏」→ SoloSetupPanel（默认取上次的选择）
   → SessionLauncher.StartSoloHost(settings)
-      MatchRules.Current = Solo；按 §5.1 只在 Yak 上启动 server 和 client
-      失败时：留在设置面板，显示错误信息，并调用 StopSession() 清理
-  → RoomStateManager.OnStartClient 刷新 host → TryStartSoloMatchServer() → 选择场景
+      按 §5.1 的顺序启动；失败时回滚，留在设置面板显示错误信息
+  → RoomStateManager.OnStartClient 刷新 host（第一个 host 自动 ready）
+  → TryStartSoloMatchServer()（延后一帧）→ TransitionToPropertiesSelector → 选择场景
   → 选择：技能配装 → 皮肤（占位）；没有超时，跳过地图投票
   → RaceMap：同一轮生成真人和 N 个 AI，登记 RacerIdentity
   → Intro：按 Racer 数量选布局（4–6 人用占位）；服务器权威交接
@@ -192,14 +212,14 @@ RaceEndPolicy：
   联机 → 第一名冲线后 15 秒
   单机 → 15 秒，或者全员完赛（取先到者）；Practice 中玩家冲线立即结束
   跳过观战 → 立即结束，未完赛的 Racer 按"倒计时到期"的规则排名
-AI 完赛 → drive=false → 传送到结算区锚点停放
+AI 完赛 → drive=false；黑屏时由现有逻辑按 RacerId 停放到结算区锚点
 结算（ResultInteractive）：SoloResultsView 显示名次（Practice 不显示）、总用时、每圈 Lap Time；没有超时
   再来一局 → 沿用现有的重开路径回到选择场景；SoloMatchSettings 和 AI 名字沿用，配装重新随机
-  返回     → FinalizeDecisionServer → SessionLauncher.StopSession()
+  返回     → FinalizeDecisionServer → SessionControl.Current.RequestStopSession()（下一帧执行）
 Esc（选择、开场、比赛阶段）→ QuitConfirmDialog：
-  对话框打开期间，比赛仍在进行（还没有暂停），但玩家车辆的转向输入被屏蔽
+  对话框打开期间，比赛仍在进行（还没有暂停），但 ILocalInputBlock 屏蔽玩家车辆的转向输入
   确认 → StopSession()（不结算）；取消 → 恢复输入
-StopSession() 的顺序：停 client → 停 server → MatchRules.Current 复位为 Online
+StopSession() 的顺序：ClientManager.StopConnection() → ServerManager.StopConnection(true) → MatchRules.Current 复位为 Online
   → 清理 SoloMatchSettings 和 ResolvedPropertySelectionCache → LoadScene(MainMenu)（参照 RoomUI.cs:203-208 的现有做法）
 ```
 
@@ -213,20 +233,38 @@ StopSession() 的顺序：停 client → 停 server → MatchRules.Current 复�
 - `Multipass.Initialize` 会逐个初始化所有子传输层（`:150-161`）。
 - 结论：必须先完成 ADR 0004 的容错。
 
-**Multipass 的正确用法（按 FishNet 4.7.1 源码）**
-- `ServerManager.StartConnection()` 会调用 `Multipass.StartConnection(true)`。在 `GlobalServerActions` 为默认值 true 时，它会在**所有**子传输层上启动 server（`Multipass.cs:826-838`）。
-  - 没有 Steam 时，FishyFacepunch 的启动会失败，导致 `StartHost` 中止。
-  - 有 Steam 时，单机会顺带开一个 Steam server。
-- 所以 `SessionLauncher` 用 `multipass.StartConnection(true, index)` 只启动指定的传输层，不经过 `ServerManager.StartConnection()`。
-- client 端每次 `ClientManager.StartConnection()` 之前，都要先 `SetClientTransport(index)`。`StartConnection(false, index)` 不看 index，只使用 `ClientTransport`（`:846-857`）；没有设置时会报错，并退回第 0 个（`:65-86`）。
-- 实现时要先对照 FishNet 官方 Multipass 文档，确认"只启动指定传输层"之后，ServerManager 的连接状态事件照常触发。
+**Multipass 的用法（已对照 FishNet 4.7.1 源码确认，S1 只需实测）**
 
-**SessionLauncher 接口**
-- `StartOnlineHost()`：给 SteamLobbyManager 建大厅后调用。
-- `StartOnlineClient(hostSteamId)`：给加入大厅时调用。
-- `StartSoloHost(settings)`。
-- `StopSession()`。
-- `SteamLobbyManager` 中现有的 4 处启动和停止调用（`:318/430/492/620`）都改为调用 `SessionLauncher`。
+*前置配置*
+- `MainMenu.unity:6353` 的 `TransportManager.Transport` 现在直接引用 FishyFacepunch，要改为引用 Multipass。Multipass 的子传输层固定为 `[0]=FishyFacepunch, [1]=Yak`。
+- `GlobalServerActions` 保持 true。设为 false 会让 `ServerManager.StartConnection` 和 `StopConnection` 直接报错并失败（`Multipass.cs:517-525/831/881`）。
+
+*为什么不能走 `ServerManager.StartConnection()`*
+- 它只是透传给 `Transport.StartConnection(true)`（`ServerManager.cs:357-360`），而 Multipass 会在所有子传输层上启动 server（`Multipass.cs:826-838`）。
+- 没有 Steam 时，FishyFacepunch 只记录错误并返回 false（`FishyFacepunch.cs:398-401`），但 Yak 仍然会被启动，留下一个"半启动"的 server。
+
+*直接启动指定传输层是安全的*
+- `ServerManager.Started`、场景对象的建立都发生在事件回调 `Transport_OnServerConnectionState` 里（`ServerManager.cs:520-553`；`Started = IsAnyServerStarted()`）。
+- `ServerObjects` 只在 `IsOnlyOneServerStarted()` 时才执行 `SetupSceneObjects`，这本来就是为 Multipass 设计的。
+- 所以直接调用 `multipass.StartConnection(true, index)` 时，ServerManager、场景加载、对象生成都照常工作。
+
+*启动和停止的顺序*
+
+| 场景 | 顺序 |
+|---|---|
+| 单机 | `MatchRules.Current = Solo` → `mp.StartConnection(true, 1)`（失败则回滚并报错）→ `mp.SetClientTransport(1)` → `ClientManager.StartConnection()`（失败则停止 server、回滚并报错） |
+| 联机 host | `MatchRules.Current = Online` → `mp.StartConnection(true, 0)` → `mp.SetClientTransport(0)` → `ClientManager.StartConnection()` |
+| 联机 client | `mp.SetClientTransport(0)` → `mp.SetClientAddress(steamId, 0)` → `ClientManager.StartConnection()` |
+| 停止 | `ClientManager.StopConnection()` → `ServerManager.StopConnection(true)` |
+
+- **停止时**：`ServerManager.StopConnection(true)` 会停止所有子传输层，没有启动的那个返回 false 属于正常情况，不能当作失败处理。
+- **每次启动前都要重设 `ClientTransport`**：它是持久字段，切换模式后不会自动复位。`StartConnection(false, index)` 不看 index，只使用 `ClientTransport`（`:857-872`）。
+- **Yak 的特性**：
+  - 只支持一个本地 client。
+  - client 先于 server 启动时会停在 Starting，server 启动后自动转为 Started。
+  - `GetConnectionAddress` 返回空串（`Yak.cs:55-58`），所以 host 判定会回退为"本地连接就是 host"（`RoomStateManager :578-590`）。
+
+**SessionLauncher**：实现 `ISessionControl`（契约层），接口见 §3.2。`SteamLobbyManager` 中现有的 4 处启动和停止调用（`:318/430/492/620`），都改为通过 `SessionControl.Current` 调用。
 
 **单人房间**
 - host 身份已由 #48（N1）修正：没有大厅时，"本地连接就是 host"。
@@ -352,7 +390,8 @@ FishNet 的 tick 按 `unscaledDeltaTime` 累加（`TimeManager.cs:700`），所�
 |---|---|
 | 规划器无法稳定驾驭这套物理 | S1.5 提前验证；ADR 0003 保留经验公式作为备选 |
 | Multipass 只启动单个传输层的行为与预期不同 | S1 第一步就先实测 §5.1 的 API，再搭建其余部分 |
-| 改 RacerId 时改变了联机行为 | S2 单独成阶段，必须跑联机回归（V2） |
+| 改 RacerId 时改变了联机行为 | S2 单独成阶段，做联机冒烟（V2）；网络细节不做专项验证 |
+| 长时间连续游玩时出现泄漏、状态累积或偶发异常 | 每个阶段都跑稳定性浸泡测试（V11） |
 | AI 卡在 owner 门槛上 | §3.3 已逐个列出接缝，S3a 的完成标准逐项覆盖 |
 | 单机和联机之间状态残留 | 统一由 `StopSession` 清理；V8 交替运行验证 |
 | host 上的视觉平滑层（TickSmoother）出现抖动 | V7 专项观察；不要改预测逻辑 |

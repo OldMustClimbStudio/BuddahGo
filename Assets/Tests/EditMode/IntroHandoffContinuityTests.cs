@@ -156,7 +156,7 @@ namespace BuddahGo.Tests
                 var manager = managerObject.AddComponent<NetworkManager>();
                 var client = managerObject.AddComponent<ClientManager>();
                 SetProperty(manager, "ClientManager", client);
-                var owner = new NetworkConnection();
+                var owner = new NetworkConnection { ClientId = 0 };
                 SetProperty(owner, "NetworkManager", manager);
                 client.Connection = owner;
                 SetProperty(network, "Owner", owner);

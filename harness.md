@@ -13,7 +13,7 @@ Unity 2022.3.55f1c1 · FishNet · FishyFacepunch · Steam.
 - Understanding a system or using Unity MCP: [Docs/README.md](Docs/README.md).
 - Executing the architecture optimization plan: [Docs/optimization/HANDOFF.md](Docs/optimization/HANDOFF.md).
 - Domain terms and decisions: [CONTEXT.md](CONTEXT.md), [Docs/adr/](Docs/adr/).
-- Implementing the solo match: [Docs/single-player/HANDOFF.md](Docs/single-player/HANDOFF.md).
+- Implementing or validating Solo Match: [Docs/single-player/HANDOFF.md](Docs/single-player/HANDOFF.md). Solo tasks exclude online tests (including Steam two-client smoke and Solo/Online alternation); use the independent Solo benchmark requirements in [phases.md](Docs/single-player/phases.md) (the dedicated benchmark package/protocol is pending) and Solo evidence. Preserve existing online test assets for separately requested online work.
 
 This is the shared policy for `Agent.md`, `AGENTS.md` and `CLAUDE.md`.
 Historical reports in `agent-exchange/` are evidence, not current instructions or a task queue.

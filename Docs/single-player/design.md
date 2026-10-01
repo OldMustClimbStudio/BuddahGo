@@ -17,7 +17,8 @@
 3. **失败要可恢复。**
    - 启动失败、AI 卡死、对象缺失都要有兜底：回到设置面板、Stuck Recovery、使用占位或跳过。
    - 不能让玩家卡在半途。
-4. **联机只做冒烟检查**：单机改动触及的联机路径只验证"能建房、能加入、能完成一局、能返回"，不做完整的网络专项回归。网络问题另行处理。
+4. **单机验收独立**（2026-10-01 用户更新）：单机任务不运行任何联机测试；V2、Steam 双端和 Solo/Online 交替移出所有单机阶段门槛，标为不适用而非通过。共享契约和现有联机行为仍须保留，联机验证资产留给独立联机任务。
+5. **单机有自己的 benchmark**：独立入口、配置和协议见 `benchmark.md`（待实现）。S1 测 0 AI Practice，后续阶段使用对应 AI 人数/难度；固定种子、路由与明确命名的输入/控制器，记录 warmup、采样轮数/时间、构建/分辨率/质量/FPS、frame time mean/p95/p99、GC/frame 与 GC/秒、内存/对象残留及完整比赛/重开完整性。只与可比的单机基线对照，不套用联机 Editor R8 数据；实机与合成证据分开。
 
 ## 1. 目标与功能清单
 
@@ -270,7 +271,7 @@ StopSession() 的顺序：ClientManager.StopConnection() → ServerManager.StopC
 - host 身份已由 #48（N1）修正：没有大厅时，"本地连接就是 host"。
 - 自动开始见 §3.3 的"单人房间自动开始"。
 
-**会话清理**：`StopSession()` 必须让再开单机或联机时不残留任何状态（V8），包括 global 的 `RoomStateManager`、`MatchRules.Current`、`SoloMatchSettings`、静态缓存。
+**会话清理**：`StopSession()` 必须清除 global 的 `RoomStateManager`、`MatchRules.Current`、`SoloMatchSettings` 和静态缓存。单机 V8 通过 Solo → Home → Solo 的退出、重开和连续 Rematch 验证残留，不运行 Solo/Online 交替。
 
 ### 5.2 Racer、名字与计时（S2）
 
@@ -407,9 +408,9 @@ AI 名字放在配置里（不写在代码中），当前列表如下：
 |---|---|
 | 规划器无法稳定驾驭这套物理 | S1.5 提前验证；ADR 0003 保留经验公式作为备选 |
 | Multipass 只启动单个传输层的行为与预期不同 | S1 第一步就先实测 §5.1 的 API，再搭建其余部分 |
-| 改 RacerId 时改变了联机行为 | S2 单独成阶段，做联机冒烟（V2）；网络细节不做专项验证 |
+| 改 RacerId 时意外扩大共享代码范围 | S2 单独成阶段，遵守既有契约与兼容约束；联机测试属于独立任务，不进入单机 gate |
 | 长时间连续游玩时出现泄漏、状态累积或偶发异常 | 每个阶段都跑稳定性浸泡测试（V11） |
 | AI 卡在 owner 门槛上 | §3.3 已逐个列出接缝，S3a 的完成标准逐项覆盖 |
-| 单机和联机之间状态残留 | 统一由 `StopSession` 清理；V8 交替运行验证 |
+| 单机会话重开时状态残留 | 统一由 `StopSession` 清理；V8 验证 Solo、Home、Solo 及 Rematch 循环 |
 | host 上的视觉平滑层（TickSmoother）出现抖动 | V7 专项观察；不要改预测逻辑 |
 | 5 个 AI 的规划开销 | V9：用 `AI.Plan` marker 统计，发布构建中每帧总耗时 < 1ms |

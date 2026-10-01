@@ -462,6 +462,16 @@ namespace NewBuddah.PredictionV2.Visual
             if (_networkObject == null || !_networkObject.IsOwner)
                 return false;
 
+            // An authoritative owner has no reconcile displacement to correct. Its
+            // graphical lag is the smoother's intentional tick buffer. Snapping to
+            // physics here overtakes that buffer, then holds while it catches up.
+            // Only skip during the launch: keep later presentation/respawn recovery,
+            // remote owners and roots without a smoother intact.
+            if (_networkObject.IsServerInitialized
+                && predictedMotor != null && predictedMotor.IsPredictionLaunchHandoffConsumedOrActive
+                && IsFishNetPredictionSmoothingVisualRoot(resolvedVisualRoot))
+                return false;
+
             if (presentationBridge != null && presentationBridge.IsPresentationControlActive)
                 return false;
 

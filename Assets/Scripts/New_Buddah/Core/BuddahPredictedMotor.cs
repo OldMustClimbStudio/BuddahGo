@@ -367,7 +367,9 @@ namespace NewBuddah.PredictionV2.Core
             }
 #endif
             ConsumePendingTeleportEvent(currentTick);
+            uint handoffIdBeforeConsume = _lastConsumedLaunchHandoffEventId;
             ConsumePendingLaunchHandoffEvent(currentTick);
+            bool handoffConsumedThisTick = _lastConsumedLaunchHandoffEventId != handoffIdBeforeConsume;
             // Phase 4b V2b Step 1 / V4 — sole impulse drain path. NEW (CommandBus.ImpulseChannel
             // ConsumeReady) is rb-writing authority. OLD queue + LEG shadow compare retired in V4.
             ConsumePendingImpulseEvents_Authoritative(currentTick);
@@ -417,7 +419,12 @@ namespace NewBuddah.PredictionV2.Core
 
             LogPredictionIntroWriterState(currentTick, false, "prediction-active", introControlActive, externalControlActive, authoritativePending);
 
-            if (!data.MovementAllowed)
+            // Input was built before the queued GO event was consumed. Its old room
+            // gate must not zero the velocity we just inherited from that event.
+            // Only this consumption tick can use the newly authoritative bypass;
+            // writer ownership, rooting and steering suppression still apply.
+            if (!BuddahPredictedLaunchHandoffResolver.IsMovementAllowedAfterConsume(
+                    data.MovementAllowed, handoffConsumedThisTick, _computedStats.IsRoomBypassActive))
             {
                 CompleteStoppedPredictionStep(data, state, "blocked");
                 return;

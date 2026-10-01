@@ -1,4 +1,10 @@
 using System.Reflection;
+using FishNet.Component.Transforming;
+using FishNet.Connection;
+using FishNet.Managing;
+using FishNet.Managing.Client;
+using FishNet.Object;
+using NewBuddah.PredictionV2.Visual;
 using NewBuddah.PredictionV2.Bootstrap;
 using NewBuddah.PredictionV2.Core;
 using NewBuddah.PredictionV2.Integration;
@@ -129,6 +135,64 @@ namespace BuddahGo.Tests
             float distance01 = (float)typeof(RaceBodyIntroStateController)
                 .GetMethod("GetNormalizedDistanceT", PrivateInstance).Invoke(_intro, new object[] { now });
             Assert.That(distance01, Is.EqualTo(expected).Within(0.00001f));
+        }
+
+        [TestCase(true, true, true, false)]
+        [TestCase(true, false, true, true)]
+        [TestCase(false, true, true, true)]
+        [TestCase(false, false, true, true)]
+        [TestCase(true, true, false, true)]
+        public void PostIntroLockDoesNotOvertakeAuthoritativeSmootherBuffer(
+            bool server, bool hasSmoother, bool activeLaunch, bool expectedLock)
+        {
+            var managerObject = new GameObject("inactive ownership fixture");
+            managerObject.SetActive(false);
+            var visual = new GameObject("graphical root");
+            visual.transform.SetParent(_body.transform);
+            var network = _body.GetComponent<NetworkObject>() ?? _body.AddComponent<NetworkObject>();
+            try
+            {
+                // Wire ownership only. No transports, sessions or simulation are started.
+                var manager = managerObject.AddComponent<NetworkManager>();
+                var client = managerObject.AddComponent<ClientManager>();
+                SetProperty(manager, "ClientManager", client);
+                var owner = new NetworkConnection();
+                SetProperty(owner, "NetworkManager", manager);
+                client.Connection = owner;
+                SetProperty(network, "Owner", owner);
+                SetProperty(network, "IsClientInitialized", true);
+                SetProperty(network, "IsServerInitialized", server);
+                Set(network, "_graphicalObject", visual.transform);
+                SetProperty(network, "PredictionSmoother", hasSmoother ? new TransformTickSmoother() : null);
+                Assert.That(network.IsOwner, Is.True);
+
+                Set(_motor, "_handoffState", new BuddahPredictedLaunchHandoffState { IsActive = activeLaunch });
+                var bridge = _body.AddComponent<BuddahPredictionVisualRootBridge>();
+                Set(bridge, "bootstrap", _body.GetComponent<BuddahPredictionBootstrap>());
+                Set(bridge, "predictedMotor", _motor);
+                Set(bridge, "_networkObject", network);
+                Set(bridge, "_lastIntroOrExternalActiveFrame", Time.frameCount);
+                // A one-tick lag at 60 m/s exceeds the old 0.75m snap threshold.
+                visual.transform.position = _body.transform.position - Vector3.forward;
+                bool held = (bool)typeof(BuddahPredictionVisualRootBridge)
+                    .GetMethod("ShouldHoldPostIntroVisualLock", PrivateInstance)
+                    .Invoke(bridge, new object[] { _body.transform, visual.transform });
+                Assert.That(held, Is.EqualTo(expectedLock));
+            }
+            finally
+            {
+                SetProperty(network, "IsClientInitialized", false);
+                SetProperty(network, "IsServerInitialized", false);
+                SetProperty(network, "PredictionSmoother", null);
+                Object.DestroyImmediate(managerObject);
+                Object.DestroyImmediate(visual);
+            }
+        }
+
+        private static void SetProperty(object target, string property, object value)
+        {
+            target.GetType().GetProperty(property, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .SetValue(target, value);
         }
 
         private static void Set(object target, string field, object value)

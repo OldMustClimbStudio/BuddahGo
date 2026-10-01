@@ -2,7 +2,7 @@
 
 本协议只测 **Solo / Practice / 0 AI**。联机 V2、Steam 双人、Solo/Online 交替和旧多人 Editor R8 均不属于前置或通过门槛；没有执行的联机项应写“不适用”，不能写“通过”。保留已有联机资产，不修改它们。0 AI 的结果不能外推成 1/3/5 AI 性能。
 
-当前交付包括离线分析器、协议与 opt-in Player 采样/操作器源码模板；采样接点已在 Unity 2022.3.55f1c1 非 Development Player 编译成功，**真实性能窗口和完整耐久验收仍待执行**。Python 分析器不会启动进程；主集成任务统一构建、运行唯一 Player。运行入口见工具 README，数据状态以 progress.md 的实际验收记录为准。
+当前交付包括离线分析器、协议与 opt-in Player 采样/操作器源码模板；采样接点已在 Unity 2022.3.55f1c1 非 Development Player 编译成功，**已取得三个 Release 诊断窗口，但 GC 缺失和退出后配置摘要冲突尚未解决，完整耐久验收未完成**。Python 分析器不会启动进程；主集成任务统一构建、运行唯一 Player。运行入口见工具 README，数据状态以 progress.md 的实际验收记录为准。
 
 工具入口：[benchmark.py](../../Tools/SinglePlayerBenchmark/benchmark.py)。字段与主接点详见 [sampler-interface.md](../../Tools/SinglePlayerBenchmark/sampler-interface.md)。既有单机功能要求见 [phases.md](phases.md) 和 [design.md](design.md)。
 
@@ -109,3 +109,5 @@ python Tools/SinglePlayerBenchmark/benchmark.py run --bundle "$env:TEMP/solo-syn
 合成目录必须不存在，避免覆盖证据。最后命令预期 `SYNTHETIC_ONLY`/退出 1，不应改成“实际基准通过”。测试包含完整与损坏输入、数值单位、分位数、GC 缺失、时序/圈数/阶段、对象残留、内存趋势、哈希错配、配置不兼容和输出保护。
 
 后续 AI 阶段应新增版本化 profile，声明 1/3/5 AI、难度、规划/技能负载与独立基线，再扩 schema/采样/测试；本版本直接拒绝非 0 AI。本任务不实现 AI，也不改变单机生产玩法或已有联机验证资产。
+
+后续 AI 实施/验收顺序与用户启动门槛见 [ai-testing.md](ai-testing.md)；当前只维护文档计划，不实现 AI 采样或测试。

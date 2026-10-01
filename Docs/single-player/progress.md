@@ -27,6 +27,17 @@ S1 为 `doing`，S1.5 未开始且等待用户后续明确 AI 开始信号。本
 
 本次更新仅同步用户 AI 开始条件、测试方案与可核实的集成状态，未运行 Unity/Player，也不更新进行中的验收结论。已知早期测试输入失败随后修复；strict14 属于人为中断，结果页操作器提前结束属于验收未执行，均不可据此推断新的产品失败。
 
+### S1 本轮真实验收 — 2026-10-01（游戏源码 27685f9）
+
+- 已核验 instrumented non-Development Player 的全部构建文件哈希与交接清单一致，三个私有辅助源码与已提交模板一致；普通发行构建、此前三项场景测试仍按各自历史记录引用。本轮 Python 分析器 42/42 通过。
+- **三阶段 Esc 新证据通过**：selection、intro-before-GO、driving-after-GO 均真实打开确认框、屏蔽输入、通过 ConfirmQuit 回 Home 并重开。每次 client/server 停止，Buddah/Reporter 为 0，Clock/Timing 清空，捕获错误为 0；独立回执分析返回 VALID。这不替代结果页 Rematch/Return 或 strict14。
+- **V12 未通过**：三个真实物理驾驶窗口各预热至少 30 秒、测量约 60 秒，各 3600 连续帧，窗口配置均为 1280×720、quality 2、vSync 0、targetFPS 60，报告丢帧为 0，捕获错误为 0。原始 frame mean/p95/p99（ms）：16.6692/16.8968/17.0080、16.6679/16.8968/17.0021、16.6687/16.9109/17.0262；仅为诊断分布，不是已合格基线。
+- **采样器待修复/补测**：三个窗口共 10800 帧的 GC 分配列全部缺失，Release 的 `GC Allocated In Frame` 不可用/空；Main Thread 样本可用。`Finish` 在回 Home 后记录全局 actual，此时 host 恢复 targetFPS 500，导致分析器报 `Window settings changed`。须区分测量配置与退出后配置，并确定独立 GC 采样方案；禁止把 heap 差值或缺失值填成分配量。预算仍未确定，不编造通过。
+- 构建来源仍含保留的设置/孤立 meta 差异；没有恢复受保护 WIP，也没有把 dirty 来源改写成 clean。该状态不能取得工具要求的干净源码资格。
+- **handoff 流畅度仍未验证**：本次窗口开始前的 intro/GO/unlock 按现有 host 帧率运行；60 FPS 在 movement-unlocked 之后才施加，不能据此宣称正常帧率下开场到驾驶平顺。由独立 handoff 代码任务与唯一运行操作者协同完成修复前后验证；本轮未开始最终 strict14 或新 V3 触发精度长测。
+- 当前 Editor 实际技能选择提供六个 unlocked ID：acceleration、slowtrap、blackcurtain、giant、push_projectile_hands、reverseturn。此项证明选择入口可用，不代表每项技能效果已验收。反转转向正常效果排除施法者，0 AI Practice 无法验证其对手效果；不新增 AI 靶子。选择场景截图同时出现洋红材质和文字叠放，列为独立资源/UI 复核项，未推定其来源。
+- 原始日志、配置、CSV、回执、来源清单和实际界面截图均私有保存；截图已在工作对话展示，不上传公共 PR。S1 保持 doing；AI 仍等待 Practice 完成、用户逐项试玩及明确开始信号。
+
 ### 当前 Practice 质量要求（待验证）
 
 Practice 的目标是让本地单机完整承接既有联机流程与表现，特别是加载/场景 handoff、开场镜头/动画/倒计时到驾驶的姿态、镜头和输入控制权交接，并真实验证流畅。此要求是本地适配与验收，不是运行联机测试；也不授权全局移除 prediction。用户报告当前 handoff 表现一般，原因及修复效果需代码与运行证据，不能静态宣告通过。当前未收到覆盖这些完整动态交接的新通过证据；静态修复和已有局部流程结果不自动关闭此项。S1 主任务负责唯一 Unity 验收执行，handoff 模块修复结果按实际构建和运行记录集成。

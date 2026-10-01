@@ -1,12 +1,12 @@
 # 单机模式进度
 
-最新 VFX 局部恢复见 [VFX 恢复记录](../vfx-asset-recovery.md)，此前有界 handoff 验证见 [Solo 呈现时间契约](solo-presentation-timeline.md)；此前选择页与 Development 证据见 [选择页与新采样复核](validation-2026-10-01.md)。旧检查点按各自源码保留。
+最新技能本地验收见 [技能验收范围](skill-acceptance.md)；原 VFX 导入恢复见 [VFX 恢复记录](../vfx-asset-recovery.md)，此前 handoff 见 [Solo 呈现时间契约](solo-presentation-timeline.md)，选择页/Development 见 [历史复核](validation-2026-10-01.md)。旧检查点按各自源码保留。
 
 状态：`todo` / `doing` / `paused` / `blocked` / `done` / `done-unverified`。流程见 [HANDOFF.md](HANDOFF.md)。
 
 ## 当前状态与验收边界（2026-10-01 恢复后）
 
-S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新集成检查点为 `aa7fb05`，已在 feature Editor 验证 VFX 定向重导入及局部可见效果；没有新 Player 构建或整套回归结果。此前 `cb4a9ad` 统一 Solo 开场/驾驶呈现时间，65 项 Unity 回归通过，两组首局/Rematch 实测及受控历史重置回归通过。完整自然生命周期、V3 精度、V12 来源资格/预算及六技能完整验收仍待独立完成；原粒子紫色及空 VFX 导入已有局部恢复证据，见 [VFX 恢复记录](../vfx-asset-recovery.md)。AI 计划保持 `17eb1c9` 的用户开始条件。
+S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新检查点 `9e428c1` 已验证六技能正常/反噬组合触发及本地到期恢复、正常掌形生命周期、神足通原粒子/拖尾、所测 Rematch 与活跃特效退出清理，针对性回归 14/14。Animator 扫描警告在所测流程修复。对手效果、反噬掌形/爆发完整画面、用户手感、自然生命周期/strict14、V3 与完整 V12 仍未闭合。此前 `cb4a9ad` 的 65 项回归与 handoff Player 采样未在此重跑，没有新 Player 构建或性能结果；AI 启动条件不变。
 
 **AI 启动前置（2026-10-01 用户最新决定）**：先完成 S1 单人 Practice，再由用户逐项试玩技能，最后等待用户明确发出开始 AI 的信号。三个条件缺一不可；S1 完成、自动测试通过、文档批准或经过一段时间都不等于开始信号。包括 S1.5 在内的任何 AI 实现、接管调试、采集/可视化工具实现与 AI 运行测试均不得提前开始；信号前只做 AI 文档规划。此前“完成后直接推进 S1.5”的指令已被覆盖。
 
@@ -21,15 +21,15 @@ S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新集成检查点为 `
 | S1 实现 | Yak 离线启动、自动选择、Practice 计时/结算、退出与失败恢复已有代码和测试用例 | 架构差异见下表；已实现不等于整个 S1 通过 |
 | V1 / V3 | 历史可见 Editor 三圈自然完赛 734.000 s；合成场景测试覆盖结果与一次 Rematch；三阶段 Esc 退出已有历史记录 | 完整结果页停留/实际 Return 按钮和后续流程仍未闭合；Player 启动冒烟不等于完整比赛 |
 | V7 / 本地 handoff | `cb4a9ad` 两组非 Development 首局/真实 Rematch 均各 5380 帧、0 错误；边界最低有符号速度约 57.97 m/s，无停留或倒退；最终渲染/相机姿态一致，五次控制/传送历史重置通过 | 只覆盖有界 handoff 与受控控制事件；未替代自然完整比赛、自然复活或六技能试玩 |
-| V8 | `27685f9` 真实 selection/intro/driving 三阶段 Esc、清理及重开回执 VALID；client/server 停止，Buddah/Reporter 为 0，Clock/Timing 清空，捕获错误为 0 | 结果页连续 3 次 Rematch、Return 后重开及完整生命周期仍未闭合；不能把 Esc 重开等同结果按钮验收 |
-| V10 / R1 / R3 / R10 | 最新相关原生回归 65/65；统一时间线非 Development 观察包 0 errors/18 warnings，控制回归包 0 errors/20 warnings | 不是重跑全项目测试；私有观察包不等同普通发行包验收。被构建打断的 MCP 任务及初版首步速度失败均保留，不计通过 |
+| V8 | 历史三阶段 Esc 通过；`9e428c1` 实际 Rematch 后新角色/冷却与旧特效清理通过，活跃反噬掌形/黑幕退出后相关对象归零 | Rematch 由受控完赛到达；连续 3 次结果页 Rematch、实际 Return 后重开及自然完整生命周期仍未闭合 |
+| V10 / R1 / R3 / R10 | `9e428c1` 针对性 EditMode 14/14，修复及移除私有 probe 编译无 C# 错误；旧 `cb4a9ad` 65/65 和两观察包结果保留 | 没有新 Player 构建或全项目重跑；丢失进度的首次 MCP 任务不计通过；旧回归不冒充本轮结果 |
 | V11 | 历史 strict14 在首场主样本完成前中断；本轮最终 strict14 尚未开始，**未完成、未通过** | 最终源码的完整生命周期、对象计数和 Player 内存趋势；短帧窗口或历史 heap 局部观测不能证明稳定 |
 | V12 | `9cca08e` 的独立 Development 三窗口各 3600 帧、共 10800 帧，原生 GC 零缺失、0 运行错误，窗口 `VALID`；measured actual 与 Home 配置分开，不外推为新 handoff 源码性能 | **完整 V12/基线未通过**：预算全 null，clean-source 与最终源码 strict14/Esc 等证据未齐；Development frame/GC 成组使用，不当 Release 结果，不拼接旧被拒采样 |
-| VFX / 用户技能试玩准备度 | `aa7fb05`：19 项 Piloto 材质恢复原 shader，四个 VFX Graph 重新生成 11 个受支持 shader；Flecks、发射粒子、掌形和释放/反噬爆发有局部可见证据。UI 与 handoff 保留各自有界结果 | 正常掌形完整生命周期、神足通粒子/拖尾/消失、六技能真实组合输入及全面效果未验收；Animator-controller 错误待查。完整 Practice 未完成，**尚非 user-ready** |
+| VFX / 用户技能试玩准备度 | `9e428c1` 六技能正常/反噬本地触发与到期、正常掌形生命周期、神足通原粒子/拖尾及所测清理通过；Animator 扫描警告修复，详见 [技能验收](skill-acceptance.md) | 对手效果、反噬掌形/爆发完整画面和用户手感未验证；可选 Feel 绑定及剩余生命周期警告待核定。完整 Practice 未完成，**尚非 user-ready** |
 | 来源资格 / 文件恢复 | 三文件曾按用户授权备份恢复成功；随后 Unity 自动删除两项孤立 meta 并重写设置，证据及 dirty 状态保留 | 不循环 restore、不清无关 dirty；clean-source 未通过；主根 dev 未改动 |
 | V2 / Steam 双客户端 / Solo–Online 交替 | **N/A，不执行，不标通过** | 无单机验收前置 |
 
-文档 worker 仅只读核对证据；65 项回归与 Player 采样来自此前 handoff 模块，不是 VFX 修复后的新结果。VFX 当前直接原因是本地导入产物失效（`Hidden/GraphErrorShader2` / 缺少生成 shader），首次导入失败的历史原因未确证。仅定向重导入原资产，未替换原材质、修改 graph 或安装新包；其他 checkout 的 Library 不会仅因拉取提交而自动修复。技能调用与独立 Play fixture 不等于键盘组合输入或完整技能生命周期通过；详见 [VFX 恢复记录](../vfx-asset-recovery.md)。UI/Development 历史证据继续保留。
+文档 worker 仅只读核对证据。`aa7fb05` 的导入恢复/fixture、`9e428c1` 的虚拟键盘实际技能输入、此前 handoff 的 Player 采样分开引用，不合并为完整验收。首次导入失败的历史原因仍未知；其他 checkout 的 Library 不会仅因拉取提交而自动修复。0 AI 未覆盖任何对手命中或受控效果，不因此启动 AI。
 
 选择页 `26dd6df` 的替代 URP Lit/摘要修复已实际复核；随后发现 720p 固定像素 Canvas 导致标题/Confirm 越界，`affbd6f` 只调整三个 CanvasScaler 字段。保存后重进 720p/1080p 检查通过；皮肤页使用同样字段的运行时预览，比赛标题隐藏与退出清理已核对。原缺失美术未还原，不将动作回调测试写成鼠标命中或技能效果通过。
 
@@ -59,7 +59,7 @@ S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新集成检查点为 `
 
 ### 当前 Practice 质量边界
 
-Practice 的目标是让本地单机完整承接既有联机流程与表现，特别是加载/场景 handoff、开场镜头/动画/倒计时到驾驶的姿态、镜头和输入控制权交接，并真实验证流畅。此要求是本地适配与验收，不是运行联机测试；也不授权全局移除 prediction。用户此前提出的本地 handoff 问题已由 `cb4a9ad` 在已测首局/Rematch 与控制事件范围内修复验证，见 [Solo 呈现时间契约](solo-presentation-timeline.md)；此结论不替代完整 Practice、自然生命周期或技能/VFX 验收。65 项 Unity 回归、两组各 5380 帧的首局/真实 Rematch 及五次历史重置已有独立证据，不再将旧单帧停留列为当前阻塞。原粒子 VFX 已在 feature Editor 重导入恢复并完成局部可见验证；自然复活/全部技能、strict14/V3 与完整 V12 仍待各自验证；运行由当前唯一 Unity 任务负责。
+Practice 的目标是让本地单机完整承接既有联机流程与表现，特别是加载/场景 handoff、开场镜头/动画/倒计时到驾驶的姿态、镜头和输入控制权交接，并真实验证流畅。此要求是本地适配与验收，不是运行联机测试；也不授权全局移除 prediction。用户此前提出的本地 handoff 问题已由 `cb4a9ad` 在已测首局/Rematch 与控制事件范围内修复验证，见 [Solo 呈现时间契约](solo-presentation-timeline.md)；此结论不替代完整 Practice、自然生命周期或技能/VFX 验收。65 项 Unity 回归、两组各 5380 帧的首局/真实 Rematch 及五次历史重置已有独立证据，不再将旧单帧停留列为当前阻塞。原 VFX 导入及六技能本地行为已有分项证据；自然复活、对手效果/部分完整画面/手感、strict14/V3 与完整 V12 仍待各自验证；运行由当前唯一 Unity 任务负责。
 
 ### 设计与实现待核对
 
@@ -76,7 +76,7 @@ Practice 的目标是让本地单机完整承接既有联机流程与表现，�
 | 阶段 | 目标 | 状态 | PR | 验证结果 | 备注 |
 |---|---|---|---|---|---|
 | S0 | 同步重构结果 | done | — | 文档事实已按合并后的 dev 复核 | 2026-09-30 合并 dev（含 #47–#58） |
-| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 最新 Unity 65/65、本地 handoff 在已测范围内通过；选择页复核与旧源码 Development 窗口 VALID；V3/V8/V11/V12 未全部闭合，V2 不适用 | 同步 aa7fb05，VFX 局部恢复；65 项回归与 handoff 结果属 cb4a9ad；尚非 user-ready；AI 未开始 |
+| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 最新技能针对性回归 14/14、本地技能范围通过；旧 handoff 65/65 与 Development 窗口各按原源码保留；V3/V8/V11/V12 未全部闭合，V2 不适用 | 同步 9e428c1；对手效果、部分画面和手感未验证；尚非 user-ready；AI 未开始 |
 | S1.5 | 规划器可行性验证 | todo | | 未开始；等待用户 AI 开始信号 | Practice 完成、用户逐项技能试玩、明确开始信号三项齐备才启动 |
 | S2 | Racer 身份 | todo | | | 仅单机验收 |
 | S3a | AI 完整跑完一局 | todo | | | |

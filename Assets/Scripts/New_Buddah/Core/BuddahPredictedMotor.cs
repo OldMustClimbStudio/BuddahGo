@@ -1,5 +1,6 @@
 using FishNet.Object;
 using FishNet.Connection;
+using FishNet.Managing.Timing;
 using FishNet.Object.Prediction;
 using FishNet.Transporting;
 using FishNet.Utility.Template;
@@ -211,6 +212,30 @@ namespace NewBuddah.PredictionV2.Core
                 return;
 
             CreateReconcile();
+        }
+
+        public override void OnStartNetwork()
+        {
+            base.OnStartNetwork();
+            ValidatePredictionInvariants();
+        }
+
+        // Prediction replay only integrates physics when FishNet owns the physics step. These are
+        // configuration invariants, not runtime state; a violation means reconcile replays are no-ops.
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private void ValidatePredictionInvariants()
+        {
+            if (TimeManager == null || rb == null || bootstrap == null || !bootstrap.IsPredictionModeActive())
+                return;
+
+            if (TimeManager.PhysicsMode != PhysicsMode.TimeManager)
+                Debug.LogError($"[BuddahPredictionV2] invariant: TimeManager.PhysicsMode={TimeManager.PhysicsMode}; client-side prediction requires PhysicsMode.TimeManager (NetworkManager > TimeManager).", this);
+            if (rb.interpolation != RigidbodyInterpolation.None)
+                Debug.LogError($"[BuddahPredictionV2] invariant: Rigidbody.interpolation={rb.interpolation}; predicted rigidbody must use None.", this);
+            if (!Mathf.Approximately(Time.fixedDeltaTime, (float)TimeManager.TickDelta))
+                Debug.LogError($"[BuddahPredictionV2] invariant: Time.fixedDeltaTime={Time.fixedDeltaTime} != TickDelta={TimeManager.TickDelta}.", this);
+            if (NetworkObject != null && NetworkObject.GetGraphicalObject() == null)
+                Debug.LogError("[BuddahPredictionV2] invariant: NetworkObject has no graphical object; tick smoothing is not configured.", this);
         }
 
         public override void CreateReconcile()

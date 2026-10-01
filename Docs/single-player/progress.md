@@ -1,12 +1,12 @@
 # 单机模式进度
 
-最新有界验证见 [Solo 呈现时间契约](solo-presentation-timeline.md)；此前选择页与 Development 证据见 [选择页与新采样复核](validation-2026-10-01.md)。旧检查点按各自源码保留。
+最新 VFX 局部恢复见 [VFX 恢复记录](../vfx-asset-recovery.md)，此前有界 handoff 验证见 [Solo 呈现时间契约](solo-presentation-timeline.md)；此前选择页与 Development 证据见 [选择页与新采样复核](validation-2026-10-01.md)。旧检查点按各自源码保留。
 
 状态：`todo` / `doing` / `paused` / `blocked` / `done` / `done-unverified`。流程见 [HANDOFF.md](HANDOFF.md)。
 
 ## 当前状态与验收边界（2026-10-01 恢复后）
 
-S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新实际构建/运行生产代码为 `cb4a9ad`：统一 Solo 开场/驾驶呈现时间，65 项 Unity 回归通过，两组首局/Rematch 实测及受控历史重置回归通过。完整自然生命周期、V3 精度、V12 来源资格/预算及六技能完整验收仍待独立完成；原粒子紫色及空 VFX 导入已有局部恢复证据，见 [VFX 恢复记录](../vfx-asset-recovery.md)。AI 计划保持 `17eb1c9` 的用户开始条件。
+S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新集成检查点为 `aa7fb05`，已在 feature Editor 验证 VFX 定向重导入及局部可见效果；没有新 Player 构建或整套回归结果。此前 `cb4a9ad` 统一 Solo 开场/驾驶呈现时间，65 项 Unity 回归通过，两组首局/Rematch 实测及受控历史重置回归通过。完整自然生命周期、V3 精度、V12 来源资格/预算及六技能完整验收仍待独立完成；原粒子紫色及空 VFX 导入已有局部恢复证据，见 [VFX 恢复记录](../vfx-asset-recovery.md)。AI 计划保持 `17eb1c9` 的用户开始条件。
 
 **AI 启动前置（2026-10-01 用户最新决定）**：先完成 S1 单人 Practice，再由用户逐项试玩技能，最后等待用户明确发出开始 AI 的信号。三个条件缺一不可；S1 完成、自动测试通过、文档批准或经过一段时间都不等于开始信号。包括 S1.5 在内的任何 AI 实现、接管调试、采集/可视化工具实现与 AI 运行测试均不得提前开始；信号前只做 AI 文档规划。此前“完成后直接推进 S1.5”的指令已被覆盖。
 
@@ -25,11 +25,11 @@ S1 为 `doing`，尚非 user-ready；S1.5 未开始。最新实际构建/运行�
 | V10 / R1 / R3 / R10 | 最新相关原生回归 65/65；统一时间线非 Development 观察包 0 errors/18 warnings，控制回归包 0 errors/20 warnings | 不是重跑全项目测试；私有观察包不等同普通发行包验收。被构建打断的 MCP 任务及初版首步速度失败均保留，不计通过 |
 | V11 | 历史 strict14 在首场主样本完成前中断；本轮最终 strict14 尚未开始，**未完成、未通过** | 最终源码的完整生命周期、对象计数和 Player 内存趋势；短帧窗口或历史 heap 局部观测不能证明稳定 |
 | V12 | `9cca08e` 的独立 Development 三窗口各 3600 帧、共 10800 帧，原生 GC 零缺失、0 运行错误，窗口 `VALID`；measured actual 与 Home 配置分开，不外推为新 handoff 源码性能 | **完整 V12/基线未通过**：预算全 null，clean-source 与最终源码 strict14/Esc 等证据未齐；Development frame/GC 成组使用，不当 Release 结果，不拼接旧被拒采样 |
-| 用户技能试玩准备度 | UI 布局/动作路径及本地 handoff 已有有界复核 | 原材质及 VFX 导入已修复并局部可见验证，六技能完整效果仍待验收；完整 Practice 未完成，**尚非 user-ready** |
+| VFX / 用户技能试玩准备度 | `aa7fb05`：19 项 Piloto 材质恢复原 shader，四个 VFX Graph 重新生成 11 个受支持 shader；Flecks、发射粒子、掌形和释放/反噬爆发有局部可见证据。UI 与 handoff 保留各自有界结果 | 正常掌形完整生命周期、神足通粒子/拖尾/消失、六技能真实组合输入及全面效果未验收；Animator-controller 错误待查。完整 Practice 未完成，**尚非 user-ready** |
 | 来源资格 / 文件恢复 | 三文件曾按用户授权备份恢复成功；随后 Unity 自动删除两项孤立 meta 并重写设置，证据及 dirty 状态保留 | 不循环 restore、不清无关 dirty；clean-source 未通过；主根 dev 未改动 |
 | V2 / Steam 双客户端 / Solo–Online 交替 | **N/A，不执行，不标通过** | 无单机验收前置 |
 
-此前文档 worker 的更新只读核对检查点，本次时间线模块另外实际执行了 Unity 回归与 Player 采样。当前模块的失败候选、修正与验证边界见 [时间线报告](solo-presentation-timeline.md)；UI/Development 历史证据继续保留。
+文档 worker 仅只读核对证据；65 项回归与 Player 采样来自此前 handoff 模块，不是 VFX 修复后的新结果。VFX 当前直接原因是本地导入产物失效（`Hidden/GraphErrorShader2` / 缺少生成 shader），首次导入失败的历史原因未确证。仅定向重导入原资产，未替换原材质、修改 graph 或安装新包；其他 checkout 的 Library 不会仅因拉取提交而自动修复。技能调用与独立 Play fixture 不等于键盘组合输入或完整技能生命周期通过；详见 [VFX 恢复记录](../vfx-asset-recovery.md)。UI/Development 历史证据继续保留。
 
 选择页 `26dd6df` 的替代 URP Lit/摘要修复已实际复核；随后发现 720p 固定像素 Canvas 导致标题/Confirm 越界，`affbd6f` 只调整三个 CanvasScaler 字段。保存后重进 720p/1080p 检查通过；皮肤页使用同样字段的运行时预览，比赛标题隐藏与退出清理已核对。原缺失美术未还原，不将动作回调测试写成鼠标命中或技能效果通过。
 
@@ -76,7 +76,7 @@ Practice 的目标是让本地单机完整承接既有联机流程与表现，�
 | 阶段 | 目标 | 状态 | PR | 验证结果 | 备注 |
 |---|---|---|---|---|---|
 | S0 | 同步重构结果 | done | — | 文档事实已按合并后的 dev 复核 | 2026-09-30 合并 dev（含 #47–#58） |
-| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 最新 Unity 65/65、本地 handoff 在已测范围内通过；选择页复核与旧源码 Development 窗口 VALID；V3/V8/V11/V12 未全部闭合，V2 不适用 | 同步 a5de97e；handoff 生产代码 cb4a9ad；尚非 user-ready；AI 未开始 |
+| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 最新 Unity 65/65、本地 handoff 在已测范围内通过；选择页复核与旧源码 Development 窗口 VALID；V3/V8/V11/V12 未全部闭合，V2 不适用 | 同步 aa7fb05，VFX 局部恢复；65 项回归与 handoff 结果属 cb4a9ad；尚非 user-ready；AI 未开始 |
 | S1.5 | 规划器可行性验证 | todo | | 未开始；等待用户 AI 开始信号 | Practice 完成、用户逐项技能试玩、明确开始信号三项齐备才启动 |
 | S2 | Racer 身份 | todo | | | 仅单机验收 |
 | S3a | AI 完整跑完一局 | todo | | | |

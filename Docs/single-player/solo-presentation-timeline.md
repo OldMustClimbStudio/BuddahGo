@@ -27,4 +27,4 @@ Solo 本地 host 的 actor 和相机 follow target 从开场起读取同一份�
 
 ## 仍需独立完成
 
-受控完赛仅用于到达真实 Rematch 按钮，两组均没有自然完整比赛。strict14、V3 精度、完整 V12/预算、自然复活与全部技能试玩未在此模块完成。另有原粒子插件 shader 紫色问题需要独立 Unity 渲染检查；本模块没有替换材质或修改 prefab。两项孤立 meta 删除及 Unity 重写的设置保留，不能声称 clean-source。Practice 尚不能整体交付用户试玩，AI 仍等待 Practice 完成、用户技能试玩、明确开始信号。
+受控完赛仅用于到达真实 Rematch 按钮，两组均没有自然完整比赛。strict14、V3 精度、完整 V12/预算、自然复活与全部技能试玩未在此模块完成。本模块当时遗留的原粒子 shader 紫色及空 VFX 导入，后由 `aa7fb05` 定向重导入修复并局部可见验证，见 [VFX 恢复记录](../vfx-asset-recovery.md)；六技能完整验收和 Animator-controller 错误仍未闭合，不计入本模块通过范围。两项孤立 meta 删除及 Unity 重写的设置保留，不能声称 clean-source。Practice 尚不能整体交付用户试玩，AI 仍等待 Practice 完成、用户技能试玩、明确开始信号。

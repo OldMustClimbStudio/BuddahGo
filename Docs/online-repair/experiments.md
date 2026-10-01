@@ -67,23 +67,6 @@
   - A 无变化 → 保留改动（FishNet 预测的硬前提，不回退），进入 EXP-4。
 - **预期**：A 大幅改善；B 不变，甚至因为回放开始真正执行而更清楚地显示为"消费后被拉回起点"。
 
-## EXP-1b 本地交接连续性（R7，针对 B 的残余「切换瞬间小卡顿」，单端可测）
-
-- **假设**：EXP-1 之后剩余的卡顿来自 spline 驱动到 motor 驱动的本地切换（findings.md R7），host 与单机同样出现，与网络无关。
-- **预检**：单端（host 或单机）开场仍能看到切换瞬间卡一下；`[HandoffDebug] consuming queued handoff` 的 `currentTick` 比 `[IntroGo] CompleteGoTransition` 所在 tick 大 1 以上。
-- **采集**：GO 前后各 0.5 s 逐帧记录 VisualRoot 位置、物理根位置、`rb.velocity`、相机 FOV 与跟随偏移（临时探针，见 fix-spec §6.0）。判定口径见 acceptance.md「交接连续性」。
-- **干预**（每次只开一个，分别测，全部可在 Inspector 或一行代码内完成，不进正式提交）：
-  1. **R7.1 相机**：`Buddah.prefab` → PlayerCamera 的 `zoomBySpeed` 置 0 且 `directionalOffsetPerSpeed` 置 (0,0,0)。卡顿消失或明显减弱 → 相机速度源是主因。
-  2. **R7.2 死区**：在 `RaceBodyIntroStateController.DriveSplinePose` 末尾临时加 `targetRigidbody.velocity = snapshot.Velocity`，并在 `CompleteGoTransition` 里打印 `TimeManager.LocalTick`，与 consume 的 tick 比较。差值 ≥1 即确认死区存在；同时观察相机是否因速度连续而不再顿挫（与 1 交叉验证）。
-  3. **R7.3 视觉参考系**：`Buddah.prefab` → BuddahPredictionVisualRootBridge 的 `lockVisualRootDuringIntroAndPresentation` 置 0。切换处「停、吸、再跟」是否消失；开场期间是否出现新的视觉滞后（预期 1 tick）。
-  4. **R7.4 角速度**：查看所用 spline 末端是否为直线（SplineIntroPath 末段切线变化）；若有曲率，临时把 `ApplyLaunchInheritedVelocity` 中的角速度参数改为 `rb.angularVelocity`。
-  5. **R7.5 高度**：日志打印消费时 `snapshot.Position.y` 与消费后第 10 tick 的 `rb.position.y`，差值 > 0.05 u 即存在落差。
-- **判定**：
-  - 1 或 2 单独就让卡顿消失 → 按 fix-spec §6.1 实施相机与速度源修复（最小方案），其余子项按需。
-  - 1、2 之后仍有位置停顿 → 3 也成立，按 §6.2 决定最小方案（渲染采样偏移 + 删 post-intro 锁 + GO 当帧消费）还是架构方案（spline 进 motor 状态，D5）。
-  - 全部干预后仍有卡顿 → 记入 progress.md「新发现」，回到 EXP-2 的双端流程。
-- **预期**：host 与单机在本项后交接连续；纯 client 的残余（RTT 死区与投影差）仍由 EXP-2/EXP-3 处理。
-
 ## EXP-2 延长 handoff 消费后的 reconcile 屏蔽窗口（R3，针对 B）
 
 - **假设**：消费 handoff 后，更早的服务器快照把刚体和 handoff 状态覆盖回起点。
@@ -125,6 +108,25 @@
   3. `_enableTeleport` → 1，阈值从 2 u 起试。
 - **判定**：目视和 `motorVisualPosDelta` 达标 → 结束。否则把剩余现象、数据和视频记入 progress.md 的"新发现"，停下来找人。
 
+## EXP-6 本地交接连续性（R7，针对「切换瞬间小卡顿」，单端可测，联机修复完成后再做）
+
+- **顺序约束**：本项排在 EXP-2 到 EXP-5 之后。先把联机（reconcile、handoff 回放安全、投影）修正并验收，再处理本地切换，避免两类改动互相掩盖。
+- **硬约束**：开场 spline 动画的播放效果（路径、速度、相机稳定模式、时长）必须保持与现在一致；任何干预或修复若改变开场动画观感，即判为不通过。
+- **假设**：EXP-1 之后剩余的卡顿来自 spline 驱动到 motor 驱动的本地切换（findings.md R7），host 与单机同样出现，与网络无关。
+- **预检**：单端（host 或单机）开场仍能看到切换瞬间卡一下；`[HandoffDebug] consuming queued handoff` 的 `currentTick` 比 `[IntroGo] CompleteGoTransition` 所在 tick 大 1 以上。
+- **采集**：GO 前后各 0.5 s 逐帧记录 VisualRoot 位置、物理根位置、`rb.velocity`、相机 FOV 与跟随偏移（临时探针，见 fix-spec §6.0）。判定口径见 acceptance.md「交接连续性」。
+- **干预**（每次只开一个，分别测，全部可在 Inspector 或一行代码内完成，不进正式提交）：
+  1. **R7.1 相机**：`Buddah.prefab` → PlayerCamera 的 `zoomBySpeed` 置 0 且 `directionalOffsetPerSpeed` 置 (0,0,0)。卡顿消失或明显减弱 → 相机速度源是主因。
+  2. **R7.2 死区**：在 `RaceBodyIntroStateController.DriveSplinePose` 末尾临时加 `targetRigidbody.velocity = snapshot.Velocity`，并在 `CompleteGoTransition` 里打印 `TimeManager.LocalTick`，与 consume 的 tick 比较。差值 ≥1 即确认死区存在；同时观察相机是否因速度连续而不再顿挫（与 1 交叉验证）。
+  3. **R7.3 视觉参考系**：`Buddah.prefab` → BuddahPredictionVisualRootBridge 的 `lockVisualRootDuringIntroAndPresentation` 置 0。切换处「停、吸、再跟」是否消失；开场期间是否出现新的视觉滞后（预期 1 tick）。
+  4. **R7.4 角速度**：查看所用 spline 末端是否为直线（SplineIntroPath 末段切线变化）；若有曲率，临时把 `ApplyLaunchInheritedVelocity` 中的角速度参数改为 `rb.angularVelocity`。
+  5. **R7.5 高度**：日志打印消费时 `snapshot.Position.y` 与消费后第 10 tick 的 `rb.position.y`，差值 > 0.05 u 即存在落差。
+- **判定**：
+  - 1 或 2 单独就让卡顿消失 → 按 fix-spec §6.1 实施相机与速度源修复（最小方案），其余子项按需。
+  - 1、2 之后仍有位置停顿 → 3 也成立，按 §6.2 决定最小方案（渲染采样偏移 + 删 post-intro 锁 + GO 当帧消费）还是架构方案（spline 进 motor 状态，D5）。
+  - 全部干预后仍有卡顿 → 记入 progress.md「新发现」，停下来找人。
+- **预期**：host 与单机在本项后交接连续；纯 client 的 RTT 死区与投影差已在 EXP-2/EXP-3 处理完毕，本项不再涉及。
+
 ---
 
 ## 顺序总览
@@ -133,8 +135,9 @@
 EXP-0 基线（含 §0 探针）
   ├─ A: EXP-1 ──达标──> 结束A
   │        └─未达标──> EXP-4 ──> EXP-5
-  └─ B: EXP-1b（本地切换，单端）──> EXP-2（双端）──达标──> 结束B
-                                        └─残余──> EXP-3 ──> EXP-4
+  └─ B: EXP-2 ──达标──> 结束B
+           └─残余──> EXP-3 ──> EXP-4
+联机 A/B 全部达标后 ──> EXP-6（本地交接连续性，单端；开场动画效果不变）
 ```
 
-EXP-1 永远第一个做，且无论结果都保留。EXP-1b 只需单端，放在双端条件具备之前做；EXP-2 依赖 EXP-1 之后的回放真实执行，否则读数不可信。
+EXP-1 永远第一个做，且无论结果都保留。EXP-2 依赖 EXP-1 之后的回放真实执行，否则读数不可信。EXP-6 只需单端，但必须等联机项全部达标后再做。

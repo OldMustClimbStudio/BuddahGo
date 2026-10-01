@@ -117,9 +117,9 @@
 
 ## §6 本地交接连续性（R7）
 
-对应 EXP-1b。只实现被子实验证实的条目。通用约束同上：刚体写入只在 Replicate 及其直接调用的消费函数内；§6.0 探针与 `DriveSplinePose` 的 kinematic 速度写入是明确的例外（开场期间刚体 kinematic，由 intro 控制器单写入）。
+对应 EXP-6，在 §1–§5 的联机修复验收通过之后实施。只实现被子实验证实的条目。硬约束：开场 spline 动画的播放效果（路径、速度、时长、相机稳定模式）保持不变；D5-b 若把 spline 驱动移进 motor，必须以同一 networkTime 采样同一 spline，视觉上不可区分。通用约束同上：刚体写入只在 Replicate 及其直接调用的消费函数内；§6.0 探针与 `DriveSplinePose` 的 kinematic 速度写入是明确的例外（开场期间刚体 kinematic，由 intro 控制器单写入）。
 
-### 6.0 观察探针（EXP-1b 前置，实验后移除或留在 `dumpReconcile` 门控）
+### 6.0 观察探针（EXP-6 前置，实验后移除或留在 `dumpReconcile` 门控）
 
 - owner 的 `BuddahPredictionVisualRootBridge.LateUpdate` 末尾，GO 前后 ±0.5 s 内每帧输出一行 `[HandoffFrame] frame= tick= visualPos= rootPos= rbVel= camFov= camOffset=`，FOV 与偏移从 `PlayerCamera` 暴露只读属性取得。
 - 统计脚本扩展 `summarize-reconcile-deltas.py`：按帧计算 VisualRoot 前向位移，输出零位移帧数、负位移帧数、FOV 单帧最大变化。
@@ -148,7 +148,7 @@
 ### 6.3 角速度与高度（R7.4、R7.5）
 
 - `ApplyLaunchInheritedVelocity`（`Events.cs:674-692`）：Inherit 期间角速度取 `_handoffState.SnapshotAngularVelocity`，Blend 期间按 alpha 向当前角速度过渡，而不是恒为零。
-- 高度：若 EXP-1b.5 测得落差 > 0.05 u，把 spline 末端采样高度对齐为静止高度（在 `SampleSnapshotAtTime` 对 y 做一次地面射线修正），或在消费时保留 `velocity.y = 0` 并调用 `Physics.SyncTransforms` 后再开碰撞。
+- 高度：若 EXP-6.5 测得落差 > 0.05 u，把 spline 末端采样高度对齐为静止高度（在 `SampleSnapshotAtTime` 对 y 做一次地面射线修正），或在消费时保留 `velocity.y = 0` 并调用 `Physics.SyncTransforms` 后再开碰撞。
 - 测试：`BuddahPredictedLaunchHandoffResolver` 若新增角速度过渡函数，保持纯函数并加 EditMode 用例。
 
 ## 收尾

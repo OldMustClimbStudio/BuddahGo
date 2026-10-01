@@ -1,5 +1,7 @@
 # 单机模式进度
 
+**最新有界验证（游戏源码 `9cca08e`）**：见 [选择页与新采样复核](validation-2026-10-01.md)。53项Unity回归通过；选择页720p/1080p修复复核完成；新Development窗口已取得原生GC。handoff仍有每轮一次水平视觉停留，clean-source、strict14/V3与预算未闭合，S1继续doing。以下较早检查点按各自HEAD保留为历史证据。
+
 状态：`todo` / `doing` / `paused` / `blocked` / `done` / `done-unverified`。流程见 [HANDOFF.md](HANDOFF.md)。
 
 ## 当前状态与验收边界（2026-10-01 恢复后）

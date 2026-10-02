@@ -80,6 +80,23 @@ public static class IntroTimeUtility
         return System.Math.Max(networkTimeSeconds, timing.IntroStartNetworkTime);
     }
 
+    /// <summary>
+    /// Seconds the body may keep moving past the scheduled GO time while the authoritative GO has not been
+    /// applied yet. Zero before the scheduled GO time or when no GO time is resolved; never more than
+    /// <paramref name="maxOvershootSeconds"/> so a late/lost GO RPC parks the body instead of flying it off.
+    /// </summary>
+    public static double GetGoOvershootSeconds(double resolvedGoNetworkTime, double networkTimeSeconds, double maxOvershootSeconds)
+    {
+        if (resolvedGoNetworkTime < 0d)
+            return 0d;
+
+        double overshoot = networkTimeSeconds - resolvedGoNetworkTime;
+        if (overshoot <= 0d)
+            return 0d;
+
+        return System.Math.Min(overshoot, System.Math.Max(0d, maxOvershootSeconds));
+    }
+
     public static double GetTickDeltaSeconds()
     {
         if (InstanceFinder.TimeManager == null)

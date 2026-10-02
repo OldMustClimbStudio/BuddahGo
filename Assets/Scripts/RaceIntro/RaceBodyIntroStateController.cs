@@ -26,6 +26,10 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
     [Header("Handoff")]
     [SerializeField, Min(0f)] private float defaultHandoffLeadTime = 0.5f;
+    [Tooltip("After the scheduled GO time the body keeps moving along the spline end tangent at intro speed until the authoritative GO arrives, but never longer than this. Beyond it the body parks (kinematic, colliders off) and a warning is logged once per sequence.")]
+    [SerializeField, Min(0f)] private float maxGoOvershootSeconds = 0.15f;
+    [Tooltip("Ticks the intro render-time sample trails behind network time. Must match the owner graphical smoother lag: Buddah.prefab NetworkObject > Prediction > Owner Interpolation (1). If that value changes, change this too or the GO switch shows a step of the difference.")]
+    [SerializeField, Min(0)] private int introVisualLagTicks = 1;
     [SerializeField, Min(0.001f)] private float velocitySampleDeltaSeconds = 0.02f;
 
     private IntroAssignmentData _assignment;
@@ -36,6 +40,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private int _activeSequenceId = -1;
     private LaunchHandoffSnapshot _latestSplineSnapshot;
     private IntroRuntimeState _runtimeState = IntroRuntimeState.Idle;
+    private int _goOvershootCapLoggedSequenceId = -1;
     private bool _visualStarted;
     private bool _authoritativeGoIssued;
     private bool _introShellEntered;
@@ -68,10 +73,19 @@ public class RaceBodyIntroStateController : MonoBehaviour
     /// </summary>
     public bool TryGetSplineDrivenVelocity(out Vector3 velocity)
     {
-        bool splineOwnsBody = IsIntroActive
-            || (_goApplied && _runtimeState == IntroRuntimeState.AuthoritativeHandoffPending);
+        // Gate on the motor's live handoff state: once the handoff is consumed the motor owns the body and
+        // rb.velocity is authoritative again. _runtimeState is not usable here because it stays at
+        // AuthoritativeHandoffPending for the rest of the race.
+        bool handoffPendingConsume = movementController != null && movementController.IsAuthoritativeLaunchHandoffPending;
+        bool splineOwnsBody = ResolveSplineOwnsBody(IsIntroActive, _goApplied, handoffPendingConsume);
         velocity = splineOwnsBody ? _latestSplineSnapshot.Velocity : Vector3.zero;
         return splineOwnsBody;
+    }
+
+    /// <summary>Pure decision behind <see cref="TryGetSplineDrivenVelocity"/>; unit tested.</summary>
+    public static bool ResolveSplineOwnsBody(bool introActive, bool goApplied, bool handoffPendingConsume)
+    {
+        return introActive || (goApplied && handoffPendingConsume);
     }
 
     private void Awake()
@@ -144,10 +158,12 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (!TryGetResolvedTiming(out IntroSequenceTiming timing))
             return false;
 
-        // Sample one tick behind render time: after the handoff the VisualRoot is driven by the FishNet owner
-        // smoother, which trails the physics root by one tick. Matching that lag during the intro makes the
-        // driver switch at GO continuous instead of a one-tick backward step.
-        double renderTime = GetSmoothedNetworkTimeSeconds() - IntroTimeUtility.GetTickDeltaSeconds();
+        // Sample introVisualLagTicks behind render time: after the handoff the VisualRoot is driven by the
+        // FishNet owner smoother, which trails the physics root by the NetworkObject's owner interpolation
+        // (1 tick on Buddah.prefab). Matching that lag during the intro makes the driver switch at GO continuous
+        // instead of a backward step. FishNet exposes no runtime getter for the owner interpolation, so the
+        // value is mirrored in introVisualLagTicks.
+        double renderTime = GetSmoothedNetworkTimeSeconds() - introVisualLagTicks * IntroTimeUtility.GetTickDeltaSeconds();
         double driveTime = IntroTimeUtility.GetDriveIntroNetworkTime(timing, renderTime);
         SampleSnapshotAtTime(driveTime, out LaunchHandoffSnapshot snapshot);
         position = snapshot.Position;
@@ -432,14 +448,28 @@ public class RaceBodyIntroStateController : MonoBehaviour
         float speed = GetIntroSpeedMetersPerSecond();
         Vector3 velocity = tangent * speed;
 
-        // Past the scheduled GO time the spline is exhausted but the authoritative GO may not have been applied
-        // yet. Keep the body moving along the end tangent at intro speed so there is no dead stop at the end of
-        // the spline. Before the scheduled GO time this is a no-op, so the intro animation itself is unchanged.
-        float overshootSeconds = _resolvedGoNetworkTime >= 0d
-            ? (float)System.Math.Max(0d, networkTime - _resolvedGoNetworkTime)
-            : 0f;
-        if (overshootSeconds > 0f)
-            position += velocity * overshootSeconds;
+        // Past the scheduled GO time the authoritative GO may not have been applied yet (Update + RPC latency,
+        // RTT/2 on a pure client). Keep the body moving along the end tangent at intro speed so there is no dead
+        // stop at the end of the spline, capped at maxGoOvershootSeconds: the body is kinematic with colliders
+        // off here, so an unbounded extrapolation would fly it through walls on a late or lost GO.
+        // Before the scheduled GO time this is a no-op, so the intro animation itself is unchanged.
+        // Precondition: the server schedules GO at introStart + max(timeline, longestSpline / introSpeed)
+        // (IntroSequenceManager.GetConfiguredIntroDurationSecondsServer), so the spline is exhausted at or
+        // before the scheduled GO time and the extrapolation continues from its end. If that formula ever
+        // allows duration < length / speed, the body would still be on the spline here and this term would
+        // add a second velocity on top of the spline motion.
+        double overshootSeconds = IntroTimeUtility.GetGoOvershootSeconds(_resolvedGoNetworkTime, networkTime, maxGoOvershootSeconds);
+        if (overshootSeconds > 0d)
+        {
+            position += velocity * (float)overshootSeconds;
+            if (networkTime - _resolvedGoNetworkTime > maxGoOvershootSeconds && _goOvershootCapLoggedSequenceId != _activeSequenceId)
+            {
+                _goOvershootCapLoggedSequenceId = _activeSequenceId;
+                Debug.LogWarning(
+                    $"[IntroGo][Body:{name}] Authoritative go is {networkTime - _resolvedGoNetworkTime:0.000}s late; " +
+                    $"spline overshoot capped at {maxGoOvershootSeconds:0.000}s, body parked until go arrives. seq={_activeSequenceId}");
+            }
+        }
         Vector3 angularVelocity = EstimateAngularVelocity(networkTime, t, rotation);
 
         snapshot = new LaunchHandoffSnapshot

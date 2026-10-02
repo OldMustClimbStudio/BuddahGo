@@ -10,10 +10,6 @@ namespace NewBuddah.PredictionV2.Visual
     [DisallowMultipleComponent]
     public class BuddahPredictionVisualRootBridge : MonoBehaviour
     {
-        // Post-intro visual lock only engages briefly after intro/external control ends, so the
-        // one-shot snap covers the handoff transition without fighting FishNet's graphical smoother
-        // during normal high-speed gameplay.
-
         [SerializeField] private BuddahPredictionBootstrap bootstrap;
         [SerializeField] private BuddahPredictedMotor predictedMotor;
         [SerializeField] private BuddahPredictionPresentationBridge presentationBridge;
@@ -112,7 +108,9 @@ namespace NewBuddah.PredictionV2.Visual
             }
 
             if (_handoffProbeCamera == null)
-                _handoffProbeCamera = GetComponent<PlayerCamera>() ?? GetComponentInChildren<PlayerCamera>(true);
+                _handoffProbeCamera = GetComponent<PlayerCamera>();
+            if (_handoffProbeCamera == null)
+                _handoffProbeCamera = GetComponentInChildren<PlayerCamera>(true);
 
             Rigidbody rb = GetMovementRigidbody();
             uint tick = _networkObject.TimeManager != null ? _networkObject.TimeManager.LocalTick : 0u;

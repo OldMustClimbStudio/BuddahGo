@@ -31,6 +31,10 @@ namespace NewBuddah.PredictionV2.Visual
         [Header("Owner Visual Stabilization")]
         [SerializeField] private bool stabilizeOwnerVisualRootInPrediction = true;
         [SerializeField] private bool lockVisualRootDuringIntroAndPresentation = true;
+        [Header("EXP-H.0 Probe")]
+        [Tooltip("Owner only: log one [HandoffFrame] line per frame from the handoff window until shortly after GO.")]
+        [SerializeField] private bool logHandoffFrames = true;
+        [SerializeField, Min(1)] private int logHandoffFramesAfterGo = 45;
 
         private NetworkObject _networkObject;
         private bool _hasCachedVisualLocalPose;
@@ -42,6 +46,8 @@ namespace NewBuddah.PredictionV2.Visual
         private bool _fishNetGraphicalSmoothingSuppressed;
         private RaceBodyIntroStateController _introStateController;
         private int _lastIntroOrExternalActiveFrame = int.MinValue / 2;
+        private int _handoffProbeGoFrame = -1;
+        private PlayerCamera _handoffProbeCamera;
 
         private void Awake()
         {
@@ -87,6 +93,54 @@ namespace NewBuddah.PredictionV2.Visual
                     ? "intro"
                     : (debugState.externalKinematicControlActive ? "external" : "none");
             }
+
+            LogHandoffFrameProbe(resolvedMovementRoot, resolvedVisualRoot, debugState);
+        }
+
+        // EXP-H.0: per-frame continuity probe around the launch handoff (owner only).
+        private void LogHandoffFrameProbe(Transform resolvedMovementRoot, Transform resolvedVisualRoot, BuddahPredictionDebugState debugState)
+        {
+            if (!logHandoffFrames || _introStateController == null || _networkObject == null || !_networkObject.IsOwner)
+                return;
+
+            bool goApplied = _introStateController.IsGoApplied;
+            if (!goApplied)
+            {
+                _handoffProbeGoFrame = -1;
+                if (!_introStateController.IsInHandoffWindow)
+                    return;
+            }
+            else
+            {
+                if (_handoffProbeGoFrame < 0)
+                    _handoffProbeGoFrame = Time.frameCount;
+                if (Time.frameCount - _handoffProbeGoFrame > logHandoffFramesAfterGo)
+                    return;
+            }
+
+            if (_handoffProbeCamera == null)
+                _handoffProbeCamera = GetComponent<PlayerCamera>() ?? GetComponentInChildren<PlayerCamera>(true);
+
+            Rigidbody rb = GetMovementRigidbody();
+            uint tick = _networkObject.TimeManager != null ? _networkObject.TimeManager.LocalTick : 0u;
+            bool pending = predictedMotor != null && predictedMotor.IsAuthoritativeLaunchHandoffPending;
+            bool consumed = predictedMotor != null && predictedMotor.IsPredictionLaunchHandoffConsumedOrActive;
+            bool introCtl = predictedMotor != null && predictedMotor.IsPredictionIntroControlActive;
+            Vector3 rootPos = resolvedMovementRoot != null ? resolvedMovementRoot.position : Vector3.zero;
+            Vector3 visPos = resolvedVisualRoot != null ? resolvedVisualRoot.position : Vector3.zero;
+            Vector3 rbVel = rb != null ? rb.velocity : Vector3.zero;
+            bool kinematic = rb != null && rb.isKinematic;
+            float fov = _handoffProbeCamera != null ? _handoffProbeCamera.CurrentFieldOfView : 0f;
+            Vector3 camOffset = _handoffProbeCamera != null ? _handoffProbeCamera.CurrentDirectionalOffset : Vector3.zero;
+            float camDist = _handoffProbeCamera != null ? _handoffProbeCamera.CurrentSpeedDistanceOffset : 0f;
+
+            Debug.Log(
+                $"[HandoffFrame] f={Time.frameCount} t={Time.unscaledTime:0.0000} dt={Time.unscaledDeltaTime:0.0000} tick={tick} " +
+                $"phase={_introStateController.DebugPhaseLabel} go={goApplied} pending={pending} consumed={consumed} introCtl={introCtl} kin={kinematic} " +
+                $"root={rootPos.ToString("F3")} vis={visPos.ToString("F3")} rbVel={rbVel.ToString("F2")} speed={rbVel.magnitude:0.00} " +
+                $"allowed={debugState.movementAllowed} gateBlocked={debugState.gateBlocked} replTick={debugState.lastReplicateTick} " +
+                $"stab={_lastStabilizationReason}/{_lastStabilizationApplied} smootherSuppressed={_fishNetGraphicalSmoothingSuppressed} " +
+                $"fov={fov:0.00} camOff={camOffset.ToString("F2")} camDist={camDist:0.00}");
         }
 
         private void OnDisable()

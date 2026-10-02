@@ -56,6 +56,10 @@ public class RaceBodyIntroStateController : MonoBehaviour
     public bool IsIntroActive => _phase == IntroPhase.IntroKinematic || _phase == IntroPhase.HandoffWindow;
     public int ActiveSequenceId => _activeSequenceId;
     public bool HasAssignment => _hasAssignment;
+    // EXP-H.0 probe accessors (read-only).
+    public bool IsGoApplied => _goApplied;
+    public bool IsInHandoffWindow => _phase == IntroPhase.HandoffWindow;
+    public string DebugPhaseLabel => $"{_phase}/{_runtimeState}";
 
     /// <summary>
     /// Velocity the intro spline currently imposes on the kinematic body. The rigidbody is driven by direct

@@ -62,6 +62,10 @@ public class PlayerCamera : NetworkBehaviour
     private BuddahPredictionCameraBridge _predictionCameraBridge;
     private RaceBodyIntroStateController _introStateController;
     public CameraPresentationMode CurrentPresentationMode { get; private set; } = CameraPresentationMode.Normal;
+    // EXP-H.0 probe accessors (read-only).
+    public float CurrentFieldOfView => _cinemachineCamera != null ? _cinemachineCamera.m_Lens.FieldOfView : 0f;
+    public Vector3 CurrentDirectionalOffset => _directionalOffset;
+    public float CurrentSpeedDistanceOffset => _speedDistanceOffset;
 
     private void Awake()
     {

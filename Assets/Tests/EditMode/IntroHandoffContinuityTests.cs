@@ -60,55 +60,33 @@ namespace BuddahGo.Tests
             Object.DestroyImmediate(_pathObject);
         }
 
-        [Test]
-        public void QueuedGoKeepsEndpointVisibleWithoutMovingPhysicsAndReleasesOnConsume()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GoReleasesSplineSamplerEvenWhileMotorEventIsPending(bool solo)
         {
-            var endpoint = new Vector3(0f, 0f, 10f);
-            var rotation = Quaternion.Euler(0f, 25f, 0f);
+            Set(_intro, "_soloPhysicsClock", solo);
             Set(_intro, "_goApplied", true);
             Set(_intro, "_runtimeState", IntroRuntimeState.AuthoritativeHandoffPending);
-            Set(_intro, "_latestSplineSnapshot", new LaunchHandoffSnapshot { Position = endpoint, Rotation = rotation });
             Set(_motor, "_hasPendingLaunchHandoffEvent", true);
-            Set(_motor, "_externalKinematicControlActive", true);
-            Assert.That(_intro.HasAssignment, Is.False, "GO has already retired the spline assignment.");
-
-            for (int frame = 0; frame < 3; frame++)
-            {
-                Assert.That(_intro.TrySampleVisualPoseAtRenderTime(out var position, out var sampledRotation), Is.True);
-                Assert.That(position, Is.EqualTo(endpoint));
-                Assert.That(sampledRotation, Is.EqualTo(rotation));
-                Assert.That(_intro.TargetRigidbody.position, Is.EqualTo(new Vector3(0f, 0f, 9f)));
-                Assert.That(_intro.TargetRigidbody.isKinematic, Is.True);
-            }
-
-            Set(_motor, "_hasPendingLaunchHandoffEvent", false);
-            Set(_motor, "_externalKinematicControlActive", false);
-            Assert.That(_intro.TrySampleVisualPoseAtRenderTime(out _, out _), Is.False,
-                "After consume, the motor/smoother alone owns the pose.");
-            Set(_motor, "_externalKinematicControlActive", true);
-            Assert.That(_intro.TrySampleVisualPoseAtRenderTime(out _, out _), Is.False,
-                "A later external presentation must not revive the old GO pose.");
+            Assert.False(_intro.TrySampleVisualPoseAtRenderTime(out _, out _),
+                "Solo history or the network smoother owns the graphical pose after GO.");
+            Assert.That(_intro.TargetRigidbody.position, Is.EqualTo(new Vector3(0f, 0f, 9f)));
         }
 
-        [TestCase(true)]
-        [TestCase(false)]
-        public void CancelAndNextAssignmentCannotReusePendingGoPose(bool cancelFirst)
+        [Test]
+        public void SoloIntroNeverSuppliesSecondDelayedSplinePose()
         {
-            Set(_intro, "_goApplied", true);
-            Set(_intro, "_runtimeState", IntroRuntimeState.AuthoritativeHandoffPending);
-            Set(_motor, "_hasPendingLaunchHandoffEvent", true);
-            Assert.That(_intro.TrySampleVisualPoseAtRenderTime(out _, out _), Is.True);
-            if (cancelFirst)
-            {
-                _intro.ForceExitIntroState();
-                Assert.That(_intro.TrySampleVisualPoseAtRenderTime(out _, out _), Is.False);
-            }
-
             _intro.ApplyIntroAssignment(new IntroAssignmentData { sequenceId = 2 }, _path);
-            Assert.That(_intro.ActiveSequenceId, Is.EqualTo(2));
-            Assert.That(_intro.HasAssignment, Is.True);
-            Assert.That(_intro.TrySampleVisualPoseAtRenderTime(out _, out _), Is.False,
-                "Rematch must wait for its own visual start, even with an old motor event pending.");
+            Set(_intro, "_visualStarted", true);
+            Set(_intro, "_soloPhysicsClock", true);
+            Set(_intro, "_resolvedIntroStartNetworkTime", 0d);
+            Set(_intro, "_resolvedGoNetworkTime", 100d);
+            Assert.False(_intro.TrySampleVisualPoseAtRenderTime(out _, out _));
+            _intro.ForceExitIntroState();
+            Assert.False(_intro.TrySampleVisualPoseAtRenderTime(out _, out _));
+            _intro.ApplyIntroAssignment(new IntroAssignmentData { sequenceId = 3 }, _path);
+            Assert.That(_intro.ActiveSequenceId, Is.EqualTo(3));
+            Assert.False(_intro.TrySampleVisualPoseAtRenderTime(out _, out _), "Rematch waits for its own start.");
         }
 
         [TestCase(IntroRuntimeState.AuthoritativeHandoffApplied)]
@@ -119,6 +97,30 @@ namespace BuddahGo.Tests
             Set(_intro, "_runtimeState", state);
             Set(_motor, "_hasPendingLaunchHandoffEvent", true);
             Assert.That(_intro.TrySampleVisualPoseAtRenderTime(out _, out _), Is.False);
+        }
+
+        [TestCase(true, 0f)]
+        [TestCase(false, 0.4f)]
+        public void LateSnapshotExtrapolatesOnlyTheNetworkPath(bool solo, float expectedDistance)
+        {
+            _intro.ApplyIntroAssignment(new IntroAssignmentData { sequenceId = 1, introSpeedMetersPerSecond = 10f }, _path);
+            Set(_intro, "_resolvedIntroStartNetworkTime", 10d);
+            Set(_intro, "_resolvedGoNetworkTime", 20d);
+            Set(_intro, "_soloPhysicsClock", solo);
+            // This fixture deliberately has no authored spline knots. Supply the terminal
+            // anchor/forward used by the real launch slots instead of sampling an empty spline.
+            _path.BindTerminalPose(_body.transform, _body.transform);
+            Set(_path, "lockTerminalForwardToSlot", true);
+            Set(_path, "_cacheDirty", false);
+            var method = typeof(RaceBodyIntroStateController).GetMethod("SampleSnapshotAtTime", PrivateInstance);
+            object[] endpointArgs = { 20d, null };
+            object[] lateArgs = { 20.04d, null };
+            method.Invoke(_intro, endpointArgs);
+            method.Invoke(_intro, lateArgs);
+            var endpoint = (LaunchHandoffSnapshot)endpointArgs[1];
+            var late = (LaunchHandoffSnapshot)lateArgs[1];
+            Assert.That(Vector3.Distance(endpoint.Position, late.Position), Is.EqualTo(expectedDistance).Within(0.0001f));
+            Assert.That(late.Velocity, Is.EqualTo(endpoint.Velocity), "Timing isolation does not retune launch speed.");
         }
 
         [TestCase(9d, 0f)]
@@ -137,13 +139,13 @@ namespace BuddahGo.Tests
             Assert.That(distance01, Is.EqualTo(expected).Within(0.00001f));
         }
 
-        [TestCase(true, true, true, false)]
-        [TestCase(true, false, true, true)]
-        [TestCase(false, true, true, true)]
-        [TestCase(false, false, true, true)]
-        [TestCase(true, true, false, true)]
+        [TestCase(true, true, true)]
+        [TestCase(true, false, true)]
+        [TestCase(false, true, true)]
+        [TestCase(false, false, true)]
+        [TestCase(true, true, false)]
         public void PostIntroLockDoesNotOvertakeAuthoritativeSmootherBuffer(
-            bool server, bool hasSmoother, bool activeLaunch, bool expectedLock)
+            bool server, bool hasSmoother, bool activeLaunch)
         {
             var managerObject = new GameObject("inactive ownership fixture");
             managerObject.SetActive(false);
@@ -171,13 +173,12 @@ namespace BuddahGo.Tests
                 Set(bridge, "bootstrap", _body.GetComponent<BuddahPredictionBootstrap>());
                 Set(bridge, "predictedMotor", _motor);
                 Set(bridge, "_networkObject", network);
-                Set(bridge, "_lastIntroOrExternalActiveFrame", Time.frameCount);
                 // A one-tick lag at 60 m/s exceeds the old 0.75m snap threshold.
                 visual.transform.position = _body.transform.position - Vector3.forward;
                 bool held = (bool)typeof(BuddahPredictionVisualRootBridge)
-                    .GetMethod("ShouldHoldPostIntroVisualLock", PrivateInstance)
-                    .Invoke(bridge, new object[] { _body.transform, visual.transform });
-                Assert.That(held, Is.EqualTo(expectedLock));
+                    .GetMethod("ShouldLockVisualRootDuringIntroOrPresentation", PrivateInstance)
+                    .Invoke(bridge, new object[] { _body.transform, visual.transform, null });
+                Assert.False(held, "PR60 removes the post-intro lock for every network owner.");
             }
             finally
             {

@@ -10,6 +10,7 @@
 | 代码评估与架构优化计划（执行入口） | [optimization/HANDOFF.md](optimization/HANDOFF.md) |
 | 单机模式设计与实现入口 | [single-player/HANDOFF.md](single-player/HANDOFF.md) |
 | 术语表 / 架构决策 | [../CONTEXT.md](../CONTEXT.md) · [adr/](adr/) |
+| 开场交接切换的本地卡顿修复（执行入口） | [handoff-continuity/HANDOFF.md](handoff-continuity/HANDOFF.md) |
 
 执行入口见 [harness.md](../harness.md)，提交、PR 和验证规则见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 旧阶段合同、详细设计原稿和复盘过程可从 Git 历史查阅，例如 `git log -- Docs/prediction-refactor-plan/`。

@@ -67,6 +67,44 @@ public static class IntroTimeUtility
         return System.Math.Min(System.Math.Max(networkTimeSeconds, timing.IntroStartNetworkTime), timing.GoNetworkTime);
     }
 
+    /// <summary>
+    /// Like <see cref="GetClampedIntroNetworkTime"/> but without the upper clamp: once the scheduled GO time has
+    /// passed and the authoritative GO has not been applied yet, the body keeps moving past the spline end at intro
+    /// speed instead of parking there (see RaceBodyIntroStateController.SampleSnapshotAtTime).
+    /// </summary>
+    public static double GetDriveIntroNetworkTime(IntroSequenceTiming timing, double networkTimeSeconds)
+    {
+        if (!timing.IsValid)
+            return networkTimeSeconds;
+
+        return System.Math.Max(networkTimeSeconds, timing.IntroStartNetworkTime);
+    }
+
+    /// <summary>
+    /// Seconds the body may keep moving past the scheduled GO time while the authoritative GO has not been
+    /// applied yet. Zero before the scheduled GO time or when no GO time is resolved; never more than
+    /// <paramref name="maxOvershootSeconds"/> so a late/lost GO RPC parks the body instead of flying it off.
+    /// </summary>
+    public static double GetGoOvershootSeconds(double resolvedGoNetworkTime, double networkTimeSeconds, double maxOvershootSeconds)
+    {
+        if (resolvedGoNetworkTime < 0d)
+            return 0d;
+
+        double overshoot = networkTimeSeconds - resolvedGoNetworkTime;
+        if (overshoot <= 0d)
+            return 0d;
+
+        return System.Math.Min(overshoot, System.Math.Max(0d, maxOvershootSeconds));
+    }
+
+    public static double GetTickDeltaSeconds()
+    {
+        if (InstanceFinder.TimeManager == null)
+            return Time.fixedDeltaTime;
+
+        return InstanceFinder.TimeManager.TickDelta;
+    }
+
     public static double GetTimelineSeekSeconds(IntroSequenceTiming timing, double networkTimeSeconds, double timelineDurationSeconds)
     {
         double introDuration = GetIntroDurationSeconds(timing);

@@ -442,12 +442,13 @@ namespace NewBuddah.PredictionV2.Core
 
             LogPredictionIntroWriterState(currentTick, false, "prediction-active", introControlActive, externalControlActive, authoritativePending);
 
-            // Input was built before the queued GO event was consumed. Its old room
-            // gate must not zero the velocity we just inherited from that event.
-            // Only this consumption tick can use the newly authoritative bypass;
-            // writer ownership, rooting and steering suppression still apply.
-            if (!BuddahPredictedLaunchHandoffResolver.IsMovementAllowedAfterConsume(
-                    data.MovementAllowed, handoffConsumedThisTick, _computedStats.IsRoomBypassActive))
+            // Solo retains its consumption-tick gate. Network play keeps PR60's
+            // live room bypass after modifier/handoff consumption.
+            bool movementAllowedAfterConsume = MatchRules.Current.ReturnTarget == MatchReturnTarget.MainMenuHome
+                ? BuddahPredictedLaunchHandoffResolver.IsMovementAllowedAfterConsume(
+                    data.MovementAllowed, handoffConsumedThisTick, _computedStats.IsRoomBypassActive)
+                : data.MovementAllowed || _computedStats.IsRoomBypassActive;
+            if (!movementAllowedAfterConsume)
             {
                 CompleteStoppedPredictionStep(data, state, "blocked");
                 return;

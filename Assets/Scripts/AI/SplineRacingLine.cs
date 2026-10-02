@@ -7,9 +7,10 @@ namespace BuddahGo.AI
     {
         public readonly Vector3 Point, Tangent;
         public readonly float Distance, Lateral;
+        public readonly float Pace;
         public readonly int Segment;
-        public LineProjection(Vector3 point, Vector3 tangent, float distance, float lateral, int segment)
-        { Point = point; Tangent = tangent; Distance = distance; Lateral = lateral; Segment = segment; }
+        public LineProjection(Vector3 point, Vector3 tangent, float distance, float lateral, int segment, float pace = float.PositiveInfinity)
+        { Point = point; Tangent = tangent; Distance = distance; Lateral = lateral; Segment = segment; Pace = pace; }
     }
 
     public interface IRacingLine
@@ -23,6 +24,8 @@ namespace BuddahGo.AI
         public Vector3[] Points { get; }
         public float Length { get; }
         private readonly float _step;
+        private float[] _pace;
+        private float _paceAcceleration, _paceTarget, _paceFactor;
         public SplineRacingLine(Vector3[] points, float length)
         {
             if (points == null || points.Length < 3 || length <= 0f) throw new ArgumentException("A closed racing line needs at least three samples.");
@@ -35,6 +38,27 @@ namespace BuddahGo.AI
             for (int i = 0; i < count; i++)
                 track.TryEvaluateWorldPoseAtProgress01((float)i / count, out points[i], out _);
             return new SplineRacingLine(points, track.TrackLength);
+        }
+        // A planning preference derived from route curvature and current available force.
+        // Backward braking propagation anticipates tight bends without extending the search horizon.
+        public void PreparePace(float acceleration, float target, float factor)
+        {
+            if (_pace != null && _paceAcceleration == acceleration && _paceTarget == target && _paceFactor == factor) return;
+            _paceAcceleration = acceleration; _paceTarget = target; _paceFactor = factor;
+            _pace = new float[Points.Length];
+            int span = Mathf.Clamp(Mathf.RoundToInt(12f / _step), 1, Mathf.Max(1, (Points.Length - 1) / 2));
+            for (int i = 0; i < Points.Length; i++)
+            {
+                Vector3 before = Points[i] - Points[(i - span + Points.Length) % Points.Length];
+                Vector3 after = Points[(i + span) % Points.Length] - Points[i];
+                float curvature = Vector3.Angle(before, after) * Mathf.Deg2Rad / Mathf.Max(1f, (before.magnitude + after.magnitude) * .5f);
+                _pace[i] = Mathf.Min(target, Mathf.Sqrt(Mathf.Max(1f, acceleration) * factor / Mathf.Max(.0001f, curvature)));
+            }
+            for (int k = Points.Length * 2 - 1; k >= 0; k--)
+            {
+                int i = k % Points.Length; float next = _pace[(i + 1) % Points.Length];
+                _pace[i] = Mathf.Min(_pace[i], Mathf.Sqrt(next * next + 2f * acceleration * .5f * _step));
+            }
         }
         public LineProjection Project(Vector3 position, int nearSegment, int searchSegments = 12)
         {
@@ -56,7 +80,8 @@ namespace BuddahGo.AI
                 distance = (i + t) * _step;
             }
             float lateral = Vector3.Dot(position - point, Vector3.Cross(Vector3.up, tangent));
-            return new LineProjection(point, tangent, distance, lateral, segment);
+            return new LineProjection(point, tangent, distance, lateral, segment,
+                _pace != null ? _pace[segment] : float.PositiveInfinity);
         }
     }
 }

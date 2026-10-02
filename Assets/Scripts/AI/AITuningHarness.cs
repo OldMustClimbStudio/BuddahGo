@@ -5,19 +5,25 @@ using System.Linq;
 using BuddahGo.Match;
 using NewBuddah.PredictionV2.Core;
 using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace BuddahGo.AI
 {
     // Explicit opt-in observer/operator. Steering always comes from AIRacerDriver on the prefab.
-    // A1 stops observing after one authoritative lap; it never finishes a three-lap Match synthetically.
+    // A1 observes one lap; A2 observes the unchanged three-lap Match through ResultInteractive.
     public sealed class AITuningHarness : MonoBehaviour
     {
         public string OutputDirectory { get; private set; }
         public string Status { get; private set; } = "created";
         public AIDifficultyProfile Profile;
         private StreamWriter _samples, _events;
+        private int _plannedLaps = 1;
+        private double[] _lapSeconds = Array.Empty<double>();
+        private bool _productFinished;
+        private double _finishObserved;
+        private string _lastResultStage;
         private AIRacerDriver _driver;
         private BuddahPredictedMotor _motor;
         private Rigidbody _body;
@@ -40,24 +46,28 @@ namespace BuddahGo.AI
         private static void FromCommandLine()
         {
             string[] args = Environment.GetCommandLineArgs();
-            int flag = Array.IndexOf(args, "--ai-a1-output");
-            int profile = Array.IndexOf(args, "--ai-a1-profile");
+            int a2 = Array.IndexOf(args, "--ai-a2-output");
+            int flag = a2 >= 0 ? a2 : Array.IndexOf(args, "--ai-a1-output");
+            int profile = Array.IndexOf(args, a2 >= 0 ? "--ai-a2-profile" : "--ai-a1-profile");
             if (flag >= 0 && flag + 1 < args.Length)
-                Begin(args[flag + 1], profile >= 0 && profile + 1 < args.Length ? args[profile + 1] : null);
+                Begin(args[flag + 1], profile >= 0 && profile + 1 < args.Length ? args[profile + 1] : null, a2 >= 0 ? 3 : 1);
         }
 
-        public static AITuningHarness Begin(string directory, string profileJsonPath = null)
+        public static AITuningHarness Begin(string directory, string profileJsonPath = null, int plannedLaps = 1)
         {
             if (!Application.isPlaying) throw new InvalidOperationException("A1 requires Play mode.");
             if (FindFirstObjectByType<AITuningHarness>() != null) throw new InvalidOperationException("A1 already running.");
             if (SceneManager.GetActiveScene().name != "MainMenu" || MatchServices.Clock != null)
                 throw new InvalidOperationException("Start A1 from an idle MainMenu.");
             if (!Path.IsPathRooted(directory)) throw new ArgumentException("Use an absolute private evidence directory.");
+            if (plannedLaps != 1 && plannedLaps != 3) throw new ArgumentOutOfRangeException(nameof(plannedLaps));
+            if (Directory.Exists(directory) && Directory.EnumerateFileSystemEntries(directory).Any())
+                throw new InvalidOperationException("Evidence directory must be empty; never overwrite a previous run.");
             string profileJson = profileJsonPath != null ? File.ReadAllText(profileJsonPath) : null;
             Directory.CreateDirectory(directory);
             var host = new GameObject("A1 Tuning Harness"); DontDestroyOnLoad(host);
             var harness = host.AddComponent<AITuningHarness>();
-            harness.OutputDirectory = directory;
+            harness.OutputDirectory = directory; harness._plannedLaps = plannedLaps;
             harness._samples = new StreamWriter(Path.Combine(directory, "trajectory.jsonl"), false);
             harness._events = new StreamWriter(Path.Combine(directory, "events.jsonl"), false) { AutoFlush = true };
             harness._oldBackground = Application.runInBackground; harness._oldTargetFps = Application.targetFrameRate;
@@ -66,7 +76,8 @@ namespace BuddahGo.AI
             harness._createdAt = Time.realtimeSinceStartupAsDouble;
             harness.Profile = ScriptableObject.CreateInstance<AIDifficultyProfile>();
             if (profileJson != null) JsonUtility.FromJsonOverwrite(profileJson, harness.Profile);
-            harness.Event("run", "A1 host-owner takeover; plannedLaps=1; productLaps unchanged; no skills; deterministic planner (no RNG); samples every >=0.1s on server ticks; collision=OnCollisionEnter; stall=less than 2m forward progress for 5s; discontinuity=distance exceeds speed*dt+10m; no custom recovery/teleport; model tolerance at 60 ticks: 0.5m position, 3deg yaw, 0.5m/s velocity");
+            harness.Profile.ValidateConfiguration();
+            harness.Event("run", $"AI host-owner takeover; plannedLaps={plannedLaps}; productLaps unchanged; no skills; deterministic planner (no RNG); samples every >=0.1s on server ticks; collision=OnCollisionEnter; stall=less than 2m forward progress for 5s; discontinuity=distance exceeds speed*dt+10m; no custom recovery/teleport; model tolerance at 60 ticks: 0.5m position, 3deg yaw, 0.5m/s velocity");
             Application.logMessageReceived += harness.OnLog;
             harness.Status = "starting";
             return harness;
@@ -77,7 +88,7 @@ namespace BuddahGo.AI
             if (_finished) return;
             try
             {
-                if (Time.realtimeSinceStartupAsDouble - _createdAt > 420) { Complete(false, "run-timeout"); return; }
+                if (Time.realtimeSinceStartupAsDouble - _createdAt > (_plannedLaps == 3 ? 900 : 420)) { Complete(false, "run-timeout"); return; }
                 var selection = PropertiesSelectionManager.Instance;
                 if (!_started && SessionControl.Current != null)
                 {
@@ -108,14 +119,42 @@ namespace BuddahGo.AI
                     Status = "driving"; Event("go-observed", "Official lap time is read from RaceTiming, not this observation.");
                 }
                 if (!_go || MatchServices.Clock == null) return;
-                Sample();
+                if (!_productFinished) Sample();
+                var presentation = MatchResultPresentationCoordinator.Instance;
+                string stage = presentation != null ? presentation.CurrentStage.ToString() : "missing";
+                if (stage != _lastResultStage) { _lastResultStage = stage; Event("result-stage", stage); }
                 if (_lap.CurrentLap != _lastLap || _lap.NextCheckpointIndex != _lastCheckpoint)
                 { _lastLap = _lap.CurrentLap; _lastCheckpoint = _lap.NextCheckpointIndex; Event("checkpoint", "lap=" + _lastLap + "; next=" + _lastCheckpoint); }
-                if (MatchServices.Timing != null && MatchServices.Timing.TryGetResult(RacerId.FromClient(_motor.OwnerId), out var result)
-                    && result.LapSeconds.Length >= 1)
-                { Complete(true, "authoritative-natural-lap", result.LapSeconds[0]); return; }
+                if (MatchServices.Timing != null && MatchServices.Timing.TryGetResult(RacerId.FromClient(_motor.OwnerId), out var result))
+                {
+                    if (result.LapSeconds.Length > _lapSeconds.Length)
+                    {
+                        _lapSeconds = result.LapSeconds;
+                        Event("authoritative-lap", JsonUtility.ToJson(new LapEvent { completedLaps = _lapSeconds.Length,
+                            lapSeconds = _lapSeconds[_lapSeconds.Length - 1], totalSeconds = result.TotalSeconds }));
+                    }
+                    if (_plannedLaps == 1 && _lapSeconds.Length >= 1)
+                    { Complete(true, "authoritative-natural-lap"); return; }
+                    if (result.Finished && !_productFinished)
+                    {
+                        _productFinished = true; _finishObserved = MatchServices.Clock.Now;
+                        Event("authoritative-finish", "total=" + result.TotalSeconds.ToString("R") + "; laps=" + _lapSeconds.Length);
+                    }
+                }
                 double now = MatchServices.Clock.Now;
-                if (now - _goObserved > 240) { Complete(false, "lap-timeout"); return; }
+                if (_productFinished)
+                {
+                    if (presentation != null && presentation.CurrentStage == MatchResultPresentationStage.ResultInteractive
+                        && ResultDecisionManager.Instance != null && ResultDecisionManager.Instance.IsDecisionActive)
+                    {
+                        bool stopped = _driver.TryGetOverride(out int endSteering, out bool drive) && !drive && endSteering == 0;
+                        Event("finish-input", "drive=" + drive + "; steering=" + endSteering);
+                        Complete(_lapSeconds.Length == 3 && stopped && _runtimeErrors == 0 && _teleports == 0,
+                            stopped ? "authoritative-three-lap-results" : "finish-input-failed"); return;
+                    }
+                    if (now - _finishObserved > 45) { Complete(false, "results-timeout"); return; }
+                }
+                else if (now - _goObserved > 240 * _plannedLaps) { Complete(false, "lap-timeout"); return; }
                 if (now >= _nextHeartbeat)
                 {
                     _nextHeartbeat = now + 10;
@@ -174,10 +213,31 @@ namespace BuddahGo.AI
                 planMs = _driver.LastPlanMilliseconds, gapTicks = _sampleId > 1 ? tick - _lastSampleTick : 0,
                 discontinuity = discontinuity, stalled = stalled };
             _samples.WriteLine(JsonUtility.ToJson(row)); _samples.Flush();
-            if (_sampleId == 300) ScreenCapture.CaptureScreenshot(Path.Combine(OutputDirectory, "driving.png"));
+            if (_sampleId == 300) CaptureCamera("driving-camera.png");
             _lastPosition = _body.position; _lastClock = now; _lastSampleTick = tick;
             if (_driver.Line != null && !File.Exists(Path.Combine(OutputDirectory, "racing-line.json")))
                 File.WriteAllText(Path.Combine(OutputDirectory, "racing-line.json"), JsonUtility.ToJson(new LineRow { points = _driver.Line.Points }));
+        }
+
+        private void CaptureCamera(string filename)
+        {
+            var camera = Camera.main;
+            if (camera == null) { Event("camera-unavailable", filename); return; }
+            var target = new RenderTexture(960, 540, 24);
+            var oldTarget = camera.targetTexture; var oldActive = RenderTexture.active;
+            var texture = new Texture2D(960, 540, TextureFormat.RGB24, false);
+            try
+            {
+                camera.targetTexture = target; camera.Render(); RenderTexture.active = target;
+                texture.ReadPixels(new Rect(0, 0, 960, 540), 0, 0); texture.Apply();
+                File.WriteAllBytes(Path.Combine(OutputDirectory, filename), texture.EncodeToPNG());
+                Event("camera-capture", filename + "; camera=" + camera.name + "; rendered from current scene state");
+            }
+            finally
+            {
+                camera.targetTexture = oldTarget; RenderTexture.active = oldActive;
+                Destroy(texture); target.Release(); Destroy(target);
+            }
         }
 
         private void Collision(Collision collision)
@@ -200,18 +260,19 @@ namespace BuddahGo.AI
                 clock = MatchServices.Clock != null ? MatchServices.Clock.Now : -1,
                 position = _body != null ? _body.position : Vector3.zero }));
         }
-        public void Complete(bool success, string reason, double lapSeconds = -1)
+        public void Complete(bool success, string reason)
         {
             if (_finished) return;
             _finished = true; Status = reason;
             Event("end", reason);
-            if (success) ScreenCapture.CaptureScreenshot(Path.Combine(OutputDirectory, "lap-complete.png"));
+            if (success) CaptureCamera("complete-camera.png");
             File.WriteAllText(Path.Combine(OutputDirectory, "summary.json"), JsonUtility.ToJson(new Summary {
-                success = success, reason = reason, plannedLaps = 1, completedLaps = success ? 1 : 0,
-                lapSeconds = lapSeconds, samples = _sampleId, collisions = _collisions,
-                discontinuities = _teleports, runtimeErrors = _runtimeErrors, productMatchFinished = false }, true));
+                success = success, reason = reason, plannedLaps = _plannedLaps, completedLaps = _lapSeconds.Length,
+                lapSeconds = _lapSeconds.Length > 0 ? _lapSeconds[0] : -1, laps = _lapSeconds,
+                totalSeconds = _lapSeconds.Sum(), averageLapSeconds = _lapSeconds.Length > 0 ? _lapSeconds.Average() : -1, samples = _sampleId, collisions = _collisions,
+                discontinuities = _teleports, runtimeErrors = _runtimeErrors, productMatchFinished = _productFinished }, true));
             Restore();
-            Debug.Log($"[AI A1] END success={success} reason={reason} lapSeconds={lapSeconds:F3} output={OutputDirectory}");
+            Debug.Log($"[AI A1] END success={success} reason={reason} completedLaps={_lapSeconds.Length} totalSeconds={_lapSeconds.Sum():F3} output={OutputDirectory}");
             // End the observation through the ordinary session stop, without synthetic Finish or physics writes.
             SessionControl.Current?.RequestStopSession();
         }
@@ -239,7 +300,8 @@ namespace BuddahGo.AI
         [Serializable] private class SampleRow { public int sample, lap, nextCheckpoint, steering; public uint tick, gapTicks; public double clock, elapsed, planMs; public Vector3 position, velocity; public float yaw, yawRate, progress, lateral; public bool discontinuity, stalled; }
         [Serializable] private class EventRow { public string kind, detail; public double clock; public Vector3 position; }
         [Serializable] private class LineRow { public Vector3[] points; }
-        [Serializable] private class Summary { public bool success, productMatchFinished; public string reason; public int plannedLaps, completedLaps, samples, collisions, discontinuities, runtimeErrors; public double lapSeconds; }
+        [Serializable] private class LapEvent { public int completedLaps; public double lapSeconds, totalSeconds; }
+        [Serializable] private class Summary { public bool success, productMatchFinished; public string reason; public int plannedLaps, completedLaps, samples, collisions, discontinuities, runtimeErrors; public double lapSeconds, totalSeconds, averageLapSeconds; public double[] laps; }
     }
 }
 #endif

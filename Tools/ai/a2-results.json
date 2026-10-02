@@ -1,0 +1,396 @@
+{
+  "candidates": [
+    {
+      "candidate": "V1",
+      "evidence": "V1",
+      "configuration": {
+        "TargetSpeed": 65.0,
+        "SpeedWeight": 0.15000000596046448,
+        "ProgressWeight": 3.0,
+        "HorizonSeconds": 3.0,
+        "ControlSeconds": 0.10000000149011612,
+        "BeamWidth": 48,
+        "LateralWeight": 4.0,
+        "LateralVelocityWeight": 0.699999988079071,
+        "LateralOffset": 0.0,
+        "ReplanTicks": 3,
+        "ReactionTicks": 0
+      },
+      "summary": {
+        "success": false,
+        "productMatchFinished": false,
+        "reason": "lap-timeout",
+        "plannedLaps": 1,
+        "completedLaps": 0,
+        "samples": 2400,
+        "collisions": 10,
+        "discontinuities": 0,
+        "runtimeErrors": 0,
+        "lapSeconds": -1.0,
+        "totalSeconds": 0.0,
+        "averageLapSeconds": -1.0,
+        "laps": []
+      },
+      "wrong_way_entries": 271,
+      "stalls": 16,
+      "boxes_restored": 5,
+      "delta_to_90_seconds": null
+    },
+    {
+      "candidate": "V2",
+      "evidence": "V2",
+      "configuration": {
+        "TargetSpeed": 65.0,
+        "SpeedWeight": 0.15000000596046448,
+        "ProgressWeight": 3.0,
+        "HorizonSeconds": 3.0,
+        "ControlSeconds": 0.15000000596046448,
+        "BeamWidth": 24,
+        "LateralWeight": 1.0,
+        "LateralVelocityWeight": 0.699999988079071,
+        "LateralOffset": 0.0,
+        "BoundaryWeight": 25.0,
+        "ReplanTicks": 3,
+        "ReactionTicks": 0
+      },
+      "summary": {
+        "success": false,
+        "productMatchFinished": false,
+        "reason": "lap-timeout",
+        "plannedLaps": 1,
+        "completedLaps": 0,
+        "samples": 2401,
+        "collisions": 20,
+        "discontinuities": 0,
+        "runtimeErrors": 0,
+        "lapSeconds": -1.0,
+        "totalSeconds": 0.0,
+        "averageLapSeconds": -1.0,
+        "laps": []
+      },
+      "wrong_way_entries": 195,
+      "stalls": 1,
+      "boxes_restored": 5,
+      "delta_to_90_seconds": null
+    },
+    {
+      "candidate": "V3",
+      "evidence": "V3",
+      "configuration": {
+        "TargetSpeed": 80.0,
+        "SpeedWeight": 1.0,
+        "ProgressWeight": 5.0,
+        "HorizonSeconds": 3.0,
+        "ControlSeconds": 0.15000000596046448,
+        "BeamWidth": 24,
+        "LateralWeight": 1.0,
+        "LateralVelocityWeight": 0.699999988079071,
+        "LateralOffset": 0.0,
+        "BoundaryWeight": 25.0,
+        "CorneringFactor": 0.800000011920929,
+        "ReplanTicks": 3,
+        "ReactionTicks": 0
+      },
+      "summary": {
+        "success": true,
+        "productMatchFinished": false,
+        "reason": "authoritative-natural-lap",
+        "plannedLaps": 1,
+        "completedLaps": 1,
+        "samples": 1242,
+        "collisions": 32,
+        "discontinuities": 0,
+        "runtimeErrors": 0,
+        "lapSeconds": 124.01666666666668,
+        "totalSeconds": 124.01666666666668,
+        "averageLapSeconds": 124.01666666666668,
+        "laps": [
+          124.01666666666668
+        ]
+      },
+      "wrong_way_entries": 3,
+      "stalls": 0,
+      "boxes_restored": 5,
+      "delta_to_90_seconds": 34.01666666666668
+    },
+    {
+      "candidate": "V4",
+      "evidence": "V4-valid",
+      "configuration": {
+        "TargetSpeed": 65.0,
+        "SpeedWeight": 0.15000000596046448,
+        "ProgressWeight": 3.0,
+        "HorizonSeconds": 3.0,
+        "ControlSeconds": 0.15000000596046448,
+        "BeamWidth": 48,
+        "LateralWeight": 1.0,
+        "LateralVelocityWeight": 0.699999988079071,
+        "LateralOffset": 0.0,
+        "BoundaryWeight": 0.0,
+        "CorneringFactor": 0.0,
+        "DiverseSearch": true,
+        "ReplanTicks": 3,
+        "ReactionTicks": 0
+      },
+      "summary": {
+        "success": true,
+        "productMatchFinished": false,
+        "reason": "authoritative-natural-lap",
+        "plannedLaps": 1,
+        "completedLaps": 1,
+        "samples": 1295,
+        "collisions": 21,
+        "discontinuities": 0,
+        "runtimeErrors": 0,
+        "lapSeconds": 129.28333333333333,
+        "totalSeconds": 129.28333333333333,
+        "averageLapSeconds": 129.28333333333333,
+        "laps": [
+          129.28333333333333
+        ]
+      },
+      "wrong_way_entries": 3,
+      "stalls": 1,
+      "boxes_restored": 5,
+      "delta_to_90_seconds": 39.28333333333333
+    },
+    {
+      "candidate": "V5",
+      "evidence": "V5",
+      "configuration": {
+        "TargetSpeed": 80.0,
+        "SpeedWeight": 1.0,
+        "ProgressWeight": 5.0,
+        "HorizonSeconds": 3.0,
+        "ControlSeconds": 0.15000000596046448,
+        "BeamWidth": 48,
+        "LateralWeight": 1.0,
+        "LateralVelocityWeight": 0.699999988079071,
+        "LateralOffset": 0.0,
+        "BoundaryWeight": 0.0,
+        "CorneringFactor": 0.800000011920929,
+        "DiverseSearch": true,
+        "ReplanTicks": 3,
+        "ReactionTicks": 0
+      },
+      "summary": {
+        "success": true,
+        "productMatchFinished": false,
+        "reason": "authoritative-natural-lap",
+        "plannedLaps": 1,
+        "completedLaps": 1,
+        "samples": 1237,
+        "collisions": 15,
+        "discontinuities": 0,
+        "runtimeErrors": 0,
+        "lapSeconds": 123.58333333333333,
+        "totalSeconds": 123.58333333333333,
+        "averageLapSeconds": 123.58333333333333,
+        "laps": [
+          123.58333333333333
+        ]
+      },
+      "wrong_way_entries": 3,
+      "stalls": 0,
+      "boxes_restored": 5,
+      "delta_to_90_seconds": 33.58333333333333
+    }
+  ],
+  "final_three_laps": {
+    "summary": {
+      "success": true,
+      "productMatchFinished": true,
+      "reason": "authoritative-three-lap-results",
+      "plannedLaps": 3,
+      "completedLaps": 3,
+      "samples": 3498,
+      "collisions": 71,
+      "discontinuities": 0,
+      "runtimeErrors": 0,
+      "lapSeconds": 116.64999999999998,
+      "totalSeconds": 349.59999999999997,
+      "averageLapSeconds": 116.53333333333332,
+      "laps": [
+        116.64999999999998,
+        115.66666666666669,
+        117.2833333333333
+      ]
+    },
+    "event_counts": {
+      "run": 1,
+      "loadout-not-cast": 1,
+      "test-box-disabled": 5,
+      "configuration": 1,
+      "body": 1,
+      "go-observed": 1,
+      "result-stage": 4,
+      "checkpoint": 14,
+      "model-60-ticks": 349,
+      "collision": 71,
+      "wrong-way": 2,
+      "forward-again": 2,
+      "camera-capture": 2,
+      "authoritative-lap": 3,
+      "authoritative-finish": 1,
+      "finish-input": 1,
+      "end": 1,
+      "test-box-restored": 5
+    },
+    "sample_ids_contiguous": true,
+    "clock_monotonic": true,
+    "gap_ticks": {
+      "6": 3497
+    },
+    "lap_range_seconds": 1.6166666666666174,
+    "model_no_contact_windows": 304,
+    "model_no_contact_pass": 303,
+    "model_contact_windows": 45,
+    "latest_plan_mean_ms": 13.534649571183534,
+    "latest_plan_max_ms": 17.762,
+    "per_lap": [
+      {
+        "lap": 1,
+        "samples": 1167,
+        "mean_abs_lateral": 7.146497745350189,
+        "contacts": 21
+      },
+      {
+        "lap": 2,
+        "samples": 1157,
+        "mean_abs_lateral": 7.35044625888122,
+        "contacts": 32
+      },
+      {
+        "lap": 3,
+        "samples": 1174,
+        "mean_abs_lateral": 6.718433495437222,
+        "contacts": 17
+      }
+    ],
+    "driving_contacts": 70,
+    "post_finish_contacts": [
+      {
+        "kind": "collision",
+        "detail": "Plane (2); impulse=(0.00, 0.00, 0.00)",
+        "clock": 393.65,
+        "position": {
+          "x": 1493.199951171875,
+          "y": 4.397274971008301,
+          "z": -683.9666748046875
+        }
+      }
+    ]
+  },
+  "audit": {
+    "model_failures_without_contact": [
+      {
+        "Tick": 4287,
+        "PositionError": 8.346543312072754,
+        "VelocityError": 3.4542860984802246,
+        "YawError": 10.5772705078125,
+        "Collision": false
+      }
+    ],
+    "contacts_per_5percent_track": {
+      "0": 3,
+      "5": 10,
+      "10": 13,
+      "15": 4,
+      "20": 2,
+      "25": 4,
+      "40": 13,
+      "45": 2,
+      "50": 1,
+      "60": 2,
+      "70": 8,
+      "75": 3,
+      "80": 6
+    },
+    "last_contacts": [
+      {
+        "clock": 363.25,
+        "progress": 0.7328011989593506,
+        "position": {
+          "x": -68.77357482910156,
+          "y": 3.9157562255859375,
+          "z": -155.5763397216797
+        },
+        "detail": "\u5730\u56fe\u5916\u4fa7\u7a7a\u6c14\u5899; impulse=(35.69, 0.00, 0.44)"
+      },
+      {
+        "clock": 364.56666666666666,
+        "progress": 0.7444523572921753,
+        "position": {
+          "x": -52.6007194519043,
+          "y": 3.915764570236206,
+          "z": -80.82572937011719
+        },
+        "detail": "\u5730\u56fe\u5185\u4fa7\u7a7a\u6c14\u5899; impulse=(-79.11, -0.05, -46.74)"
+      },
+      {
+        "clock": 393.65,
+        "progress": 5.3025531087769195e-05,
+        "position": {
+          "x": 1493.199951171875,
+          "y": 4.397274971008301,
+          "z": -683.9666748046875
+        },
+        "detail": "Plane (2); impulse=(0.00, 0.00, 0.00)"
+      }
+    ],
+    "checkpoint_sequence": [
+      "lap=0; next=1",
+      "lap=1; next=1",
+      "lap=1; next=2",
+      "lap=1; next=3",
+      "lap=1; next=4",
+      "lap=2; next=1",
+      "lap=2; next=2",
+      "lap=2; next=3",
+      "lap=2; next=4",
+      "lap=3; next=1",
+      "lap=3; next=2",
+      "lap=3; next=3",
+      "lap=3; next=4",
+      "lap=4; next=1"
+    ],
+    "result_sequence": [
+      "Racing",
+      "InTransition",
+      "ResultReveal",
+      "ResultInteractive"
+    ],
+    "lap4_boundary_samples": 2
+  },
+  "checks": {
+    "final_ai": {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    "prior_timing_clock_session": {
+      "passed": 22
+    },
+    "initial_new_suite": {
+      "passed": 35,
+      "failed": 2,
+      "explanation": "First-action assertions revised to six-second closed-loop convergence; final AI group rerun."
+    }
+  },
+  "development_build": {
+    "project": "C:/Users/dwh88/UnityProject/BuddahGo/.worktree/single-player-mode/Assets",
+    "result": "Succeeded",
+    "errors": 0,
+    "warnings": 18,
+    "seconds": 29.2470613,
+    "output": "C:/Users/dwh88/Documents/Codex/2026-10-01/task-16/builds/Final/BuddahGoA2.exe"
+  },
+  "release_build": {
+    "project": "C:/Users/dwh88/UnityProject/BuddahGo/.worktree/single-player-mode/Assets",
+    "result": "Succeeded",
+    "errors": 0,
+    "warnings": 18,
+    "seconds": 25.268532,
+    "output": "C:/Users/dwh88/Documents/Codex/2026-10-01/task-16/builds/Release/BuddahGoA2.exe"
+  }
+}

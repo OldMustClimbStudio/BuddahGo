@@ -19,6 +19,7 @@ namespace BuddahGo.AI
         private BuddahPredictedMotor _motor;
         private BuddahPredictedMotorConfig _config;
         private Rigidbody _body;
+        private RaceCompletionTracker _completion;
         private readonly ISteeringPlanner _planner = new ForwardSimPlanner();
         private uint _lastPlanTick;
         private bool _hasPlan;
@@ -34,6 +35,7 @@ namespace BuddahGo.AI
         {
             _motor = GetComponent<BuddahPredictedMotor>(); _body = GetComponent<Rigidbody>();
             _config = GetComponent<BuddahPredictedMotorConfig>();
+            _completion = GetComponent<RaceCompletionTracker>();
         }
         private void OnDisable() { _hasPlan = false; Steering = 0; _forecastTicks = 0; _pending = false; }
         private void OnCollisionEnter(Collision collision)
@@ -71,6 +73,7 @@ namespace BuddahGo.AI
             steering = 0; drive = true;
             if (!isActiveAndEnabled || _motor == null || !_motor.IsServerInitialized
                 || !(_motor.IsOwner || !_motor.Owner.IsValid)) return false;
+            if (_completion != null && _completion.IsFinished) { Steering = 0; drive = false; return true; }
             if (Profile == null) { Profile = ScriptableObject.CreateInstance<AIDifficultyProfile>(); _ownsProfile = true; }
             var track = TrackSplineRef.Instance;
             if (track == null || track.TrackLength <= 0f || _motor.TimeManager == null) return true;

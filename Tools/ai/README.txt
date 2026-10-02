@@ -1,15 +1,15 @@
-A1 driving check (development only)
+A1/A2 driving checks (development only)
 
 This is the A1 single-racer, no-skill, one-natural-lap checkpoint. It uses the
-existing Practice host's sole racer. It does not create an A2/A3 race or change
+existing Practice host's sole racer. A2 observes the same sole racer through three natural laps. Neither changes
 the product's required lap count. AIRacerDriver is disabled on the prefab until
 the explicit harness enables it; ordinary Practice input is unchanged.
 
 Editor: open MainMenu, enter Play, then Tools > AI > A1 Run From Playing MainMenu.
 Player: make a Development Windows build containing MainMenu, PropertySelection,
 and RaceMap. Launch with an absolute private output folder:
-  BuddahGoA1.exe --ai-a1-output C:/Temp/a1-run -logFile C:/Temp/a1-run/Player.log
-Create the folder before launch. Do not reuse an existing evidence directory.
+  BuddahGoA1.exe --ai-a1-output C:/Temp/a1-run -logFile C:/Temp/a1-player.log
+The output directory must be absent or empty. Keep Player.log outside it.
 An optional --ai-a1-profile C:/Temp/profile.json overwrites fields on the default
 AIDifficultyProfile. Example JSON: {"HorizonSeconds":3.0,"TargetSpeed":65.0}.
 Use valid bounded values shown in AIDifficultyProfile. These are planning
@@ -39,8 +39,8 @@ planning cost, gaps and discontinuities at about 10Hz. events.jsonl records GO,
 checkpoint changes, side-contact enters, wrong-way/stall, restore, and 60-tick
 model comparisons. configuration.json and racing-line.json capture the observed run.
 summary.json uses the authoritative LapSeconds. Timeout/failure stays a failure.
-Side-contact-enter counts are not unique collision episodes. Screenshots from
-hidden Players may be black; do not treat them as visual driving evidence.
+Side-contact-enter counts are not unique collision episodes. Camera PNGs render
+the current scene camera; overlay UI is not guaranteed to appear in this capture.
 
 Render inspectable raw evidence using Python's standard library:
   python Tools/ai/plot_a1.py C:/Temp/a1-run
@@ -59,3 +59,25 @@ sliding friction, line wrap, and disabled prefab behavior. A1DrivingTools.RunChe
 also runs AcceptedLapTimingTests, MatchClockTests, and SoloSessionFlowTests, with
 durable receipts under Logs/ai-a1/tests across test-runner domain reloads.
 No online/Steam two-client tests are required by this A1 checkpoint.
+
+A2: Tools > AI > A2 Run From Playing MainMenu, or a private Development Player:
+  BuddahGoA2.exe --ai-a2-output C:/Temp/a2-run --ai-a2-profile C:/path/to/normal.json -logFile C:/Temp/a2-player.log
+A2 waits for three authoritative LapSeconds, Finished, ResultInteractive and
+stopped AI input; then restores the five boxes and requests ordinary teardown.
+It never calls synthetic Finish or substitutes three separate one-lap runs.
+An ordinary non-Development Player has no CLI observation harness.
+
+normal.json captures selected V5. Inspector context menu Restore Normal (V5)
+resets pace, precision and reaction together. TargetSpeed/SpeedWeight tune pace;
+CorneringFactor changes curve speed preference; BeamWidth/HorizonSeconds and
+ControlSeconds trade search resolution against cost; LateralWeight and
+LateralVelocityWeight tune tracking; ReplanTicks/ReactionTicks control cadence.
+These knobs are not calibrated Easy/Hard mappings. ValidateConfiguration rejects
+nonfinite/out-of-range values; use a fresh session after invalid CLI configuration.
+The five-candidate A2 budget is exhausted; future tuning needs a new task scope.
+
+A2 plot (Python + Pillow):
+  python Tools/ai/plot_a2.py C:/Temp/a2-run
+Writes equal-scale per-lap trajectory.png/svg and diagnostics.json, with contact
+markers and discontinuity breaks. Raw samples remain the source of truth.
+See Docs/single-player/a2-results.md and a2-results.json for measured outcomes.

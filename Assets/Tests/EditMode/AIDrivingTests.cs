@@ -109,4 +109,61 @@ public class AIDrivingTests
         Assert.That(prefab.GetComponent<Rigidbody>().mass, Is.EqualTo(2));
         Assert.That(prefab.GetComponent<Rigidbody>().drag, Is.Zero);
     }
+    [TestCase(-12f)]
+    [TestCase(12f)]
+    public void DiversePlannerConvergesTowardStraightCorridor(float offset)
+    {
+        var profile = ScriptableObject.CreateInstance<AIDifficultyProfile>();
+        try
+        {
+            var line = new SplineRacingLine(new[] { Vector3.zero, Vector3.forward * 1000,
+                new Vector3(1000, 0, 1000), Vector3.right * 1000 }, 4000);
+            var state = new MotionState { Position = new Vector3(offset, 0, 100), Velocity = Vector3.forward * 40 };
+            var parameters = new MotionParameters { Mass = 2, InverseYawInertia = .05f,
+                AngularDrag = .05f, MaxAngularVelocity = 50, TurnDecay = 3, TurnMultiplier = 1,
+                Stats = new BuddahPredictedMotorComputedStats { FinalForwardForce = 50, FinalTurnTorque = 30,
+                    FinalMaxSpeed = 80, FinalSteeringSign = 1 } };
+            var planner = new ForwardSimPlanner(); int key = 0;
+            for (int tick = 0; tick < 360; tick++)
+            {
+                if (tick % profile.ReplanTicks == 0) key = planner.Plan(state, parameters, line, profile, 1f / 60, key);
+                BuddahMotionModel.Step(ref state, parameters, key, 1f / 60);
+            }
+            // A neutral first action can rationally accelerate; test tracking over time, not an arbitrary first key.
+            Assert.That(Mathf.Abs(state.Position.x), Is.LessThan(Mathf.Abs(offset) * .5f));
+            Assert.That(state.Position.z, Is.GreaterThan(300f));
+        }
+        finally { Object.DestroyImmediate(profile); }
+    }
+
+    [Test]
+    public void CurvaturePaceUsesAvailableForceAndTighterCorners()
+    {
+        var points = new Vector3[120];
+        for (int i = 0; i < points.Length; i++)
+        { float angle = i * 2 * Mathf.PI / points.Length; points[i] = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * 40; }
+        var line = new SplineRacingLine(points, 80 * Mathf.PI);
+        line.PreparePace(25, 80, .8f);
+        float pace = line.Project(points[0], 0).Pace;
+        Assert.That(pace, Is.InRange(27f, 30f));
+        line.PreparePace(12.5f, 80, .8f);
+        Assert.That(line.Project(points[0], 0).Pace, Is.LessThan(pace));
+    }
+
+    [Test]
+    public void ProfileRejectsInvalidJsonValuesAndRestoresNormal()
+    {
+        var profile = ScriptableObject.CreateInstance<AIDifficultyProfile>();
+        try
+        {
+            profile.TargetSpeed = float.NaN;
+            Assert.Throws<System.ArgumentException>(() => profile.ValidateConfiguration());
+            profile.RestoreNormal(); profile.ValidateConfiguration();
+            Assert.That(profile.TargetSpeed, Is.EqualTo(80f)); Assert.That(profile.DiverseSearch, Is.True);
+            profile.ReplanTicks = 0;
+            Assert.Throws<System.ArgumentException>(() => profile.ValidateConfiguration());
+        }
+        finally { Object.DestroyImmediate(profile); }
+    }
+
 }

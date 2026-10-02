@@ -17,6 +17,8 @@ namespace BuddahGo.AI
         public int Plan(MotionState state, MotionParameters parameters, IRacingLine line,
             AIDifficultyProfile profile, float tickDelta, int previousKey)
         {
+            if (profile.CorneringFactor > 0f && line is SplineRacingLine spline)
+                spline.PreparePace(parameters.Stats.FinalForwardForce / Mathf.Max(.001f, parameters.Mass), profile.TargetSpeed, profile.CorneringFactor);
             for (int i = 0; i < profile.ReactionTicks; i++) BuddahMotionModel.Step(ref state, parameters, previousKey, tickDelta);
             var start = line.Project(state.Position, _nearSegment, 40);
             if (Mathf.Abs(start.Lateral) > 80f) start = line.Project(state.Position, -1);
@@ -47,11 +49,30 @@ namespace BuddahGo.AI
                         float crossSpeed = Vector3.Dot(candidate.State.Velocity, Vector3.Cross(Vector3.up, projected.Tangent));
                         float forwardSpeed = Vector3.Dot(candidate.State.Velocity, projected.Tangent);
                         float lateral = projected.Lateral - profile.LateralOffset;
+                        float targetSpeed = profile.CorneringFactor > 0f ? Mathf.Min(profile.TargetSpeed, projected.Pace) : profile.TargetSpeed;
                         candidate.Cost += block * tickDelta * (profile.LateralWeight * lateral * lateral
                             + profile.LateralVelocityWeight * crossSpeed * crossSpeed
-                            + profile.SpeedWeight * (forwardSpeed - profile.TargetSpeed) * (forwardSpeed - profile.TargetSpeed))
+                            + profile.SpeedWeight * (forwardSpeed - targetSpeed) * (forwardSpeed - targetSpeed))
                             - profile.ProgressWeight * advance;
                         candidate.Progress = projected.Distance; candidate.Segment = projected.Segment;
+                        // Preserve distinct future yaw/velocity states instead of filling the beam
+                        // with near-identical cheap prefixes. A later counter-steer needs alternatives.
+                        if (profile.DiverseSearch)
+                        {
+                            int similar = -1;
+                            for (int n = 0; n < nextCount; n++)
+                                if (Mathf.Abs(Mathf.DeltaAngle(_next[n].State.Yaw * Mathf.Rad2Deg, candidate.State.Yaw * Mathf.Rad2Deg)) < 5f
+                                    && Mathf.Abs(_next[n].State.YawRate - candidate.State.YawRate) < .1f
+                                    && (_next[n].State.Velocity - candidate.State.Velocity).sqrMagnitude < 4f
+                                    && (_next[n].State.Position - candidate.State.Position).sqrMagnitude < 4f)
+                                { similar = n; break; }
+                            if (similar >= 0)
+                            {
+                                if (_next[similar].Cost <= candidate.Cost) continue;
+                                for (int n = similar; n < nextCount - 1; n++) _next[n] = _next[n + 1];
+                                nextCount--;
+                            }
+                        }
                         int insert = nextCount;
                         while (insert > 0 && _next[insert - 1].Cost > candidate.Cost) insert--;
                         if (insert >= width) continue;

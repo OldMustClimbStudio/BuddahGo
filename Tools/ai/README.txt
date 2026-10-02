@@ -81,3 +81,16 @@ A2 plot (Python + Pillow):
 Writes equal-scale per-lap trajectory.png/svg and diagnostics.json, with contact
 markers and discontinuity breaks. Raw samples remain the source of truth.
 See Docs/single-player/a2-results.md and a2-results.json for measured outcomes.
+
+Corner-entry spin fix (2026-10-02): see Docs/single-player/ai-spin-fix.md.
+Normal profile is unchanged. The planner rejects extra heading windings relative
+to the locally turning route. Real three-lap average 126.044s is slower than V5;
+do not call this a pace improvement or resume the exhausted tuning search.
+Harness additionally writes plans.jsonl: tick/clock, target/tangent, segment,
+progress/lateral/pace, first-key costs, selected yaw change/rate, winding rejection
+count and viable-first-key count. Nonserializable in-memory MotionState and
+MotionParameters fields are not emitted by JsonUtility; real body pose/velocity
+and steering remain in trajectory.jsonl, with separate visualYaw/cameraYaw.
+plot_spin.py aligns each real sample to the latest plan without synthesizing
+physics samples. It requires matplotlib and a root containing evidence/baseline
+and evidence/fixed. Example: python Tools/ai/plot_spin.py <task-18-root>.

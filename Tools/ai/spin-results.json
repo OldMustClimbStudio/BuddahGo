@@ -1,0 +1,181 @@
+{
+  "baseline": {
+    "summary": {
+      "success": true,
+      "productMatchFinished": false,
+      "reason": "authoritative-natural-lap",
+      "plannedLaps": 1,
+      "completedLaps": 1,
+      "samples": 1182,
+      "collisions": 20,
+      "discontinuities": 0,
+      "runtimeErrors": 0,
+      "lapSeconds": 118.1,
+      "totalSeconds": 118.1,
+      "averageLapSeconds": 118.1,
+      "laps": [
+        118.1
+      ]
+    },
+    "continuousHeadingRange": [
+      -861.9069080610079,
+      486.06732902560736
+    ],
+    "samplesOutsideHeadingBranch": 782,
+    "plans": 2353,
+    "plannedYawOver360": 289,
+    "noViablePlans": 0,
+    "drivingContacts": 20,
+    "restoredBoxes": 5,
+    "stallEntries": 0,
+    "respawnEvents": 0,
+    "sampleIdsContiguous": true,
+    "clockMonotonic": true,
+    "sampleGapTicks": [
+      6,
+      7
+    ],
+    "modelUnflaggedWindows": 97,
+    "modelUnflaggedFailures": [
+      {
+        "Tick": 2531,
+        "PositionError": 1.3073331117630005,
+        "VelocityError": 0.3926008641719818,
+        "YawError": 0.4686431884765625,
+        "Collision": false
+      },
+      {
+        "Tick": 2591,
+        "PositionError": 0.3384639620780945,
+        "VelocityError": 0.7999019622802734,
+        "YawError": 4.917694091796875,
+        "Collision": false
+      },
+      {
+        "Tick": 2771,
+        "PositionError": 0.7014087438583374,
+        "VelocityError": 0.2163982093334198,
+        "YawError": 1.179107666015625,
+        "Collision": false
+      },
+      {
+        "Tick": 2891,
+        "PositionError": 1.4088153839111328,
+        "VelocityError": 0.05006472021341324,
+        "YawError": 0.24114990234375,
+        "Collision": false
+      },
+      {
+        "Tick": 3131,
+        "PositionError": 0.757950484752655,
+        "VelocityError": 0.5765998363494873,
+        "YawError": 1.20257568359375,
+        "Collision": false
+      },
+      {
+        "Tick": 3191,
+        "PositionError": 1.554335594177246,
+        "VelocityError": 0.9528868198394775,
+        "YawError": 2.477447509765625,
+        "Collision": false
+      },
+      {
+        "Tick": 3371,
+        "PositionError": 0.5200510025024414,
+        "VelocityError": 0.029926322400569916,
+        "YawError": 0.3548583984375,
+        "Collision": false
+      },
+      {
+        "Tick": 3611,
+        "PositionError": 0.5257274508476257,
+        "VelocityError": 0.1385335475206375,
+        "YawError": 0.493560791015625,
+        "Collision": false
+      },
+      {
+        "Tick": 4271,
+        "PositionError": 6.004380226135254,
+        "VelocityError": 4.343699932098389,
+        "YawError": 15.05010986328125,
+        "Collision": false
+      }
+    ],
+    "modelContactWindows": 20,
+    "maxPlanAge": 0.03333333333334565,
+    "maxVisualBodyYawDifference": 2.56329345703125
+  },
+  "fixed": {
+    "summary": {
+      "success": true,
+      "productMatchFinished": true,
+      "reason": "authoritative-three-lap-results",
+      "plannedLaps": 3,
+      "completedLaps": 3,
+      "samples": 3783,
+      "collisions": 67,
+      "discontinuities": 0,
+      "runtimeErrors": 0,
+      "lapSeconds": 126.78333333333333,
+      "totalSeconds": 378.1333333333333,
+      "averageLapSeconds": 126.04444444444444,
+      "laps": [
+        126.78333333333333,
+        123.5333333333333,
+        127.81666666666666
+      ]
+    },
+    "continuousHeadingRange": [
+      -179.26174179863887,
+      178.5902229227527
+    ],
+    "samplesOutsideHeadingBranch": 0,
+    "plans": 7555,
+    "plannedYawOver360": 1,
+    "noViablePlans": 40,
+    "drivingContacts": 66,
+    "restoredBoxes": 5,
+    "stallEntries": 0,
+    "respawnEvents": 0,
+    "sampleIdsContiguous": true,
+    "clockMonotonic": true,
+    "sampleGapTicks": [
+      6,
+      7
+    ],
+    "modelUnflaggedWindows": 297,
+    "modelUnflaggedFailures": [
+      {
+        "Tick": 4274,
+        "PositionError": 4.904468059539795,
+        "VelocityError": 3.3295416831970215,
+        "YawError": 10.93768310546875,
+        "Collision": false
+      },
+      {
+        "Tick": 16874,
+        "PositionError": 0.04127051308751106,
+        "VelocityError": 0.846694827079773,
+        "YawError": 0.22983551025390625,
+        "Collision": false
+      },
+      {
+        "Tick": 16934,
+        "PositionError": 0.5863975882530212,
+        "VelocityError": 0.6022727489471436,
+        "YawError": 1.190765380859375,
+        "Collision": false
+      },
+      {
+        "Tick": 17294,
+        "PositionError": 1.4279929399490356,
+        "VelocityError": 0.026000933721661568,
+        "YawError": 0.027313232421875,
+        "Collision": false
+      }
+    ],
+    "modelContactWindows": 80,
+    "maxPlanAge": 0.03333333333335986,
+    "maxVisualBodyYawDifference": 3.5234375
+  }
+}

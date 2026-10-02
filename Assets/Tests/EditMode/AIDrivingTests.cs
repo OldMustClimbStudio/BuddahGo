@@ -166,4 +166,67 @@ public class AIDrivingTests
         finally { Object.DestroyImmediate(profile); }
     }
 
+    [Test]
+    public void HeadingBranchPreservesWindingButWrapsRouteAngles()
+    {
+        Assert.That(ForwardSimPlanner.AdvanceHeadingError(0, 360, 0, 0), Is.EqualTo(360));
+        Assert.That(ForwardSimPlanner.AdvanceHeadingError(0, -360, 0, 0), Is.EqualTo(-360));
+        Assert.That(ForwardSimPlanner.AdvanceHeadingError(20, 4, 179, -177), Is.EqualTo(20).Within(.001));
+        Assert.That(ForwardSimPlanner.AdvanceHeadingError(-20, -4, -179, 177), Is.EqualTo(-20).Within(.001));
+    }
+
+    [System.Serializable] private class SpinFixture
+    { public float length; public Vector3[] points; public SpinState[] states; }
+    [System.Serializable] private class SpinState
+    { public Vector3 position, velocity; public float yaw, yawRate; }
+
+    [TestCase(1f)]
+    [TestCase(-1f)]
+    public void RecordedCornerEntryRejectsExtraWindingForEitherSteeringSign(float steeringSign)
+    {
+        var profile = ScriptableObject.CreateInstance<AIDifficultyProfile>();
+        try
+        {
+            string path = System.IO.Path.Combine(Application.dataPath, "../Tools/ai/fixtures/spin-entry.json");
+            var fixture = JsonUtility.FromJson<SpinFixture>(System.IO.File.ReadAllText(path));
+            var line = new SplineRacingLine(fixture.points, fixture.length);
+            var parameters = new MotionParameters { Mass = 2, InverseYawInertia = 1f / 12.45f,
+                AngularDrag = .05f, MaxAngularVelocity = 50, TurnDecay = 3, TurnMultiplier = 2,
+                GroundDeceleration = 1.962f,
+                Stats = new BuddahPredictedMotorComputedStats { FinalForwardForce = 50, FinalTurnTorque = 30,
+                    FinalMaxSpeed = 80, FinalSteeringSign = steeringSign } };
+            foreach (var sample in fixture.states)
+            {
+                var state = new MotionState { Position = sample.position, Velocity = sample.velocity,
+                    Yaw = sample.yaw * Mathf.Deg2Rad, YawRate = sample.yawRate };
+                var planner = new ForwardSimPlanner();
+                planner.Plan(state, parameters, line, profile, 1f / 60, 0);
+                var plan = planner.LastObservation;
+                TestContext.WriteLine($"yaw={sample.yaw}; selected rotation={plan.selectedYawChange}; rejected={plan.rejectedWinding}");
+                Assert.That(plan.viableFirstKeys, Is.GreaterThan(0));
+                Assert.That(plan.rejectedWinding, Is.GreaterThan(0));
+                Assert.That(Mathf.Abs(plan.selectedYawChange), Is.LessThan(360));
+            }
+        }
+        finally { Object.DestroyImmediate(profile); }
+    }
+
+    [Test]
+    public void InfeasibleWindingReleasesSteeringInsteadOfReusingStaleBeam()
+    {
+        var profile = ScriptableObject.CreateInstance<AIDifficultyProfile>();
+        try
+        {
+            var line = new SplineRacingLine(new[] { Vector3.zero, Vector3.forward * 1000,
+                new Vector3(1000, 0, 1000), Vector3.right * 1000 }, 4000);
+            var state = new MotionState { Position = Vector3.forward * 100, Yaw = 179 * Mathf.Deg2Rad, YawRate = 20 };
+            var parameters = new MotionParameters { Mass = 2, InverseYawInertia = .08f, MaxAngularVelocity = 50, TurnDecay = 3,
+                TurnMultiplier = 1, Stats = new BuddahPredictedMotorComputedStats { FinalMaxSpeed = 80, FinalSteeringSign = 1 } };
+            var planner = new ForwardSimPlanner();
+            Assert.That(planner.Plan(state, parameters, line, profile, 1f / 60, 1), Is.Zero);
+            Assert.That(planner.LastObservation.viableFirstKeys, Is.Zero);
+        }
+        finally { Object.DestroyImmediate(profile); }
+    }
+
 }

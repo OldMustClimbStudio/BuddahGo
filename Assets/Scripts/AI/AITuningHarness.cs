@@ -18,7 +18,8 @@ namespace BuddahGo.AI
         public string OutputDirectory { get; private set; }
         public string Status { get; private set; } = "created";
         public AIDifficultyProfile Profile;
-        private StreamWriter _samples, _events;
+        private StreamWriter _samples, _events, _plans;
+        private Transform _observedVisual;
         private int _plannedLaps = 1;
         private double[] _lapSeconds = Array.Empty<double>();
         private bool _productFinished;
@@ -68,6 +69,7 @@ namespace BuddahGo.AI
             var host = new GameObject("A1 Tuning Harness"); DontDestroyOnLoad(host);
             var harness = host.AddComponent<AITuningHarness>();
             harness.OutputDirectory = directory; harness._plannedLaps = plannedLaps;
+            harness._plans = new StreamWriter(Path.Combine(directory, "plans.jsonl"), false);
             harness._samples = new StreamWriter(Path.Combine(directory, "trajectory.jsonl"), false);
             harness._events = new StreamWriter(Path.Combine(directory, "events.jsonl"), false) { AutoFlush = true };
             harness._oldBackground = Application.runInBackground; harness._oldTargetFps = Application.targetFrameRate;
@@ -183,6 +185,10 @@ namespace BuddahGo.AI
             for (int i = 0; i < _boxes.Length; i++) { Event("test-box-disabled", "RaceMap/DebugBox/" + _boxes[i].name + "; original=" + _boxStates[i]); _boxes[i].SetActive(false); }
             _driver.Profile = Profile; _driver.enabled = true; _driver.Contact += Collision;
             _driver.ModelCompared += ModelCompared;
+            _driver.PlanObserved += PlanObserved;
+            var bridge = _motor.GetComponent<NewBuddah.PredictionV2.Visual.BuddahPredictionVisualRootBridge>();
+            if (bridge != null) _observedVisual = (Transform)typeof(NewBuddah.PredictionV2.Visual.BuddahPredictionVisualRootBridge)
+                .GetField("visualRoot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(bridge);
             Event("configuration", JsonUtility.ToJson(Profile));
             Event("body", $"mass={_body.mass}; inertia={_body.inertiaTensor}; inertiaRotation={_body.inertiaTensorRotation}; angularDrag={_body.angularDrag}; maxAngular={_body.maxAngularVelocity}; tickDelta={_motor.TimeManager.TickDelta}; owner={_motor.OwnerId}");
             File.WriteAllText(Path.Combine(OutputDirectory, "configuration.json"), JsonUtility.ToJson(Profile, true));
@@ -211,6 +217,8 @@ namespace BuddahGo.AI
                 yawRate = _body.angularVelocity.y, lap = _lap.CurrentLap, nextCheckpoint = _lap.NextCheckpointIndex,
                 progress = _progress.progress01, steering = _driver.Steering, lateral = projection.Lateral,
                 planMs = _driver.LastPlanMilliseconds, gapTicks = _sampleId > 1 ? tick - _lastSampleTick : 0,
+                visualYaw = _observedVisual != null ? _observedVisual.eulerAngles.y : float.NaN,
+                cameraYaw = Camera.main != null ? Camera.main.transform.eulerAngles.y : float.NaN,
                 discontinuity = discontinuity, stalled = stalled };
             _samples.WriteLine(JsonUtility.ToJson(row)); _samples.Flush();
             if (_sampleId == 300) CaptureCamera("driving-camera.png");
@@ -247,6 +255,10 @@ namespace BuddahGo.AI
             if (!side) return;
             _collisions++; Event("collision", collision.gameObject.name + "; impulse=" + collision.impulse);
         }
+        private void PlanObserved(uint tick, ForwardSimPlanner.PlanObservation plan)
+        {
+            _plans?.WriteLine(JsonUtility.ToJson(new PlanRow { tick = tick, clock = MatchServices.Clock.Now, plan = plan }));
+        }
         private void ModelCompared(AIRacerDriver.MotionComparison comparison) => Event("model-60-ticks", JsonUtility.ToJson(comparison));
         private void OnLog(string condition, string stack, LogType type)
         {
@@ -281,11 +293,12 @@ namespace BuddahGo.AI
             if (_restored) return;
             _restored = true;
             Application.logMessageReceived -= OnLog;
-            if (_driver != null) { _driver.Contact -= Collision; _driver.ModelCompared -= ModelCompared; _driver.enabled = false; }
+            if (_driver != null) { _driver.PlanObserved -= PlanObserved; _driver.Contact -= Collision; _driver.ModelCompared -= ModelCompared; _driver.enabled = false; }
             if (_skills != null) _skills.enabled = _skillWasEnabled;
             if (_boxes != null) for (int i = 0; i < _boxes.Length; i++) if (_boxes[i] != null)
             { _boxes[i].SetActive(_boxStates[i]); Event("test-box-restored", "RaceMap/DebugBox/" + _boxes[i].name + "; active=" + _boxes[i].activeSelf); }
             Application.runInBackground = _oldBackground; Application.targetFrameRate = _oldTargetFps; QualitySettings.vSyncCount = _oldVsync;
+            _plans?.Dispose(); _plans = null;
             _samples?.Dispose(); _samples = null; _events?.Dispose(); _events = null;
         }
         private void OnDestroy()
@@ -297,7 +310,8 @@ namespace BuddahGo.AI
         {
             if (!_finished && OutputDirectory != null) Complete(false, "operator-disabled-or-reloaded");
         }
-        [Serializable] private class SampleRow { public int sample, lap, nextCheckpoint, steering; public uint tick, gapTicks; public double clock, elapsed, planMs; public Vector3 position, velocity; public float yaw, yawRate, progress, lateral; public bool discontinuity, stalled; }
+        [Serializable] private class SampleRow { public int sample, lap, nextCheckpoint, steering; public uint tick, gapTicks; public double clock, elapsed, planMs; public Vector3 position, velocity; public float yaw, yawRate, progress, lateral, visualYaw, cameraYaw; public bool discontinuity, stalled; }
+        [Serializable] private class PlanRow { public uint tick; public double clock; public ForwardSimPlanner.PlanObservation plan; }
         [Serializable] private class EventRow { public string kind, detail; public double clock; public Vector3 position; }
         [Serializable] private class LineRow { public Vector3[] points; }
         [Serializable] private class LapEvent { public int completedLaps; public double lapSeconds, totalSeconds; }

@@ -15,12 +15,13 @@ namespace BuddahGo.AI
         public SplineRacingLine Line { get; private set; }
         public MotionParameters Parameters { get; private set; }
         public event System.Action<Collision> Contact;
+        public event System.Action<uint, ForwardSimPlanner.PlanObservation> PlanObserved;
         public event System.Action<MotionComparison> ModelCompared;
         private BuddahPredictedMotor _motor;
         private BuddahPredictedMotorConfig _config;
         private Rigidbody _body;
         private RaceCompletionTracker _completion;
-        private readonly ISteeringPlanner _planner = new ForwardSimPlanner();
+        private readonly ForwardSimPlanner _planner = new ForwardSimPlanner();
         private uint _lastPlanTick;
         private bool _hasPlan;
         private bool _ownsProfile;
@@ -98,6 +99,7 @@ namespace BuddahGo.AI
                 else { _pendingSteering = key; _pending = true; _applyTick = tick + (uint)Profile.ReactionTicks; }
                 LastPlanMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000d / System.Diagnostics.Stopwatch.Frequency;
                 _lastPlanTick = tick; _hasPlan = true;
+                PlanObserved?.Invoke(tick, _planner.LastObservation);
             }
             // Optional evidence only; no allocations or prediction samples without an observer.
             if (ModelCompared != null)

@@ -26,9 +26,9 @@ namespace NewBuddah.PredictionV2.Visual
         [Header("Owner Visual Stabilization")]
         [SerializeField] private bool stabilizeOwnerVisualRootInPrediction = true;
         [SerializeField] private bool lockVisualRootDuringIntroAndPresentation = true;
-        [Header("EXP-H.0 Probe")]
-        [Tooltip("Owner only: log one [HandoffFrame] line per frame from the handoff window until shortly after GO.")]
-        [SerializeField] private bool logHandoffFrames = true;
+        [Header("Handoff Probe")]
+        [Tooltip("Owner only, diagnostics: log one [HandoffFrame] line per frame from the handoff window until shortly after GO. Summarize with Tools/Validation/HandoffContinuity/summarize-handoff-frames.py. Off by default.")]
+        [SerializeField] private bool logHandoffFrames = false;
         [SerializeField, Min(1)] private int logHandoffFramesAfterGo = 45;
 
         private NetworkObject _networkObject;
@@ -90,7 +90,7 @@ namespace NewBuddah.PredictionV2.Visual
             LogHandoffFrameProbe(resolvedMovementRoot, resolvedVisualRoot, debugState);
         }
 
-        // EXP-H.0: per-frame continuity probe around the launch handoff (owner only).
+        // Diagnostics: per-frame continuity probe around the launch handoff (owner only, off by default).
         private void LogHandoffFrameProbe(Transform resolvedMovementRoot, Transform resolvedVisualRoot, BuddahPredictionDebugState debugState)
         {
             if (!logHandoffFrames || _introStateController == null || _networkObject == null || !_networkObject.IsOwner)

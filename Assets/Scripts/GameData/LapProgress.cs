@@ -45,6 +45,7 @@ public class LapProgress : NetworkBehaviour
     private readonly AcceptedLapTiming _acceptedLapTiming = new AcceptedLapTiming();
 
     public int CurrentLap => currentLap;
+    public int NextCheckpointIndex => nextCheckpointIndex;
     public bool HasStartedLap => hasStartedLap;
     public float TotalProgress01 => Mathf.Max(0f, Mathf.Max(0, currentLap - 1) + (_tracker != null ? _tracker.progress01 : 0f));
     public float TotalProgressPercent => TotalProgress01 * 100f;

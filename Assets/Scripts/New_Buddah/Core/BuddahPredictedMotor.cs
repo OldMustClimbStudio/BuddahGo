@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using FishNet.Object;
 using FishNet.Connection;
 using FishNet.Object.Prediction;
@@ -35,6 +36,9 @@ namespace NewBuddah.PredictionV2.Core
         [SerializeField] private BuddahPredictionBootstrap bootstrap;
         [SerializeField] private BuddahPredictedMotorConfig config;
         [SerializeField] private Rigidbody rb;
+
+        private MonoBehaviour[] _steeringProviders;
+        public BuddahPredictedMotorComputedStats CurrentComputedStats => _computedStats;
 
         private readonly BuddahPredictionOwnerInputBridge _ownerInputBridge = new();
         private readonly BuddahPredictionMovementGateBridge _movementGateBridge = new();
@@ -106,6 +110,7 @@ namespace NewBuddah.PredictionV2.Core
         private void Awake()
         {
             ResolveReferences();
+            _steeringProviders = GetComponents<MonoBehaviour>();
             InitializePredictionRigidbody();
             enabled = false;
         }
@@ -294,6 +299,17 @@ namespace NewBuddah.PredictionV2.Core
             float steering = movementAllowed ? (_ownerInputBridge.ReadSteering() * config.TurnInputMultiplier) : 0f;
             float throttle = movementAllowed ? 1f : 0f;
             bool ownerInputLive = IsOwner && movementAllowed;
+            if (movementAllowed && (IsOwner || (IsServerInitialized && !Owner.IsValid)))
+            {
+                foreach (MonoBehaviour provider in _steeringProviders)
+                {
+                    if (provider == null || !provider.isActiveAndEnabled || !(provider is ISteeringOverride source)) continue;
+                    if (!source.TryGetOverride(out int key, out bool drive)) continue;
+                    steering = Mathf.Clamp(key, -1, 1) * config.TurnInputMultiplier;
+                    throttle = drive ? 1f : 0f;
+                    break;
+                }
+            }
 
             if (bootstrap != null)
             {

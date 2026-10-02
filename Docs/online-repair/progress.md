@@ -2,7 +2,15 @@
 
 ## 当前状态与继续点（2026-10-01 暂停）
 
-- 分支 `fix/online-prediction-handoff`，worktree `.worktree/online-prediction-handoff`，HEAD 含 EXP-0 探针、§1 修复与文档提交（见下表）。工作区干净；`Mono.Cecil.sln.meta` / `LiteNetLib.csproj.meta` 的删除是 Unity 清理被忽略文件的孤儿 meta，与本任务无关，不要提交。
+- 分支 `fix/online-prediction-handoff`，worktree `.worktree/online-prediction-handoff`，HEAD 含 EXP-0 探针、§1 修复与文档提交（见下表）。
+- 2026-10-02：`dev` fc7ab59（PR #60，`fix/launch-handoff-continuity`，本地交接卡顿修复）已合入本分支（bd05136，仅 `Docs/README.md` 表格行冲突，两行都保留）；根 checkout 已快进到 fc7ab59。合并后 Editor 编译无错误，EditMode 92/92 通过。
+- 合入 PR #60 对本分支实验的影响（EXP-2/3 开始前复核）：
+  1. owner 的 handoff 请求现在在 GO 当刻按「当前时间」采样快照（含 GO 后沿末端切线外推），且 owner 身体在消费前持续外推，上限 `maxGoOvershootSeconds`=0.15 s。纯 client 的 GO→消费死区在 RTT ≤ 150 ms 时已被本地外推掩盖；RTT 更高时身体重新 park，R7.2 的停顿会回来。
+  2. R4 不对称未变：服务器按自己的 StartTick 消费、不投影；owner 消费时按 staleTicks 投影。消费后首个权威快照与 owner 仍相差 速度 × 单程延迟（100 ms、60 u/s 时约 3 u）。这是 EXP-2/EXP-3 现在应观察到的主要 B 残余。
+  3. motor 的 blocked 判断改为 `!data.MovementAllowed && !_computedStats.IsRoomBypassActive`（消费 tick 不再清零继承速度）。`_computedStats` 在 reconcile 中由 ModifierState 重算，回放安全；server 与 owner 的 bypass 起点各自来自本端消费 tick，仍有 ≤ 单程延迟的差异，由 R4 一并处理。
+  4. `introVisualLagTicks`=1 必须与 `Buddah.prefab` NetworkObject `_ownerInterpolation`=1 一致（已核对）。若 EXP-5 调整插值参数，要同步改它。
+  5. 开场动画：GO 之前的 spline 驱动未变，但 VisualRoot 全程改为落后 1 tick 渲染（60 u/s 下约 1 u，相机随 VisualRoot，相当于整体延后 16 ms）。是否肉眼可察由用户目视确认。R7.5（消费后 rb.y 3.30→3.92 上浮）在 PR #60 中仍未处理。
+工作区干净；`Mono.Cecil.sln.meta` / `LiteNetLib.csproj.meta` 的删除是 Unity 清理被忽略文件的孤儿 meta，与本任务无关，不要提交。
 - 已完成：EXP-0（探针）、EXP-1 / §1（Physics Mode → TimeManager）。用户单端实测：症状 A 消失，症状 B 不再强行拉回起点，但交接切换瞬间仍有一次小卡顿。双端实测与 0/100 ms 延迟矩阵**未做**。
 - 先决条件：EXP-2 是否需要做，取决于一次**双端、100 ms** 的开场测试（纯 client 作 owner）。R3 只在有延迟的纯 client 上触发，host 单端看不到。若 client 开场不再被向后拉、位置单调向前，则 EXP-2 跳过，B 记为达标；切换瞬间的小卡顿若不可接受再做 EXP-3（R4/R5）。若 client 仍被向后拉，则做 EXP-2。
 - 交接瞬间的小卡顿（R7）已拆到独立分支 `fix/launch-handoff-continuity`（`.worktree/launch-handoff-continuity`，`Docs/handoff-continuity/`），本分支只做联机问题；开场 spline 动画播放效果不变仍是本分支的验收不变项。

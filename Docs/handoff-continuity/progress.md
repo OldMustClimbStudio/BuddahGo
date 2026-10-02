@@ -7,8 +7,9 @@
 - 分支 `fix/launch-handoff-continuity`（从 `dev` 7389ec8 拉出），worktree `.worktree/launch-handoff-continuity`。
 - 用户决定（2026-10-01）：不先跑 EXP-H 开关，按根因可能性顺序直接实现并由用户实测；每完成一项修复就交给用户测试，再根据反馈决定下一项。约束：只改必要函数，开场动画播放效果不变。
 - §H.1（相机）已实现并实测：卡顿不变，相机不是主因。用户描述：GO 时玩家 prefab 原地停住很短时间，相机继续前进，之后直接满速。
-- EXP-H.0 探针（提交 cb86e13）单机实测抓到停顿全貌，见「探针证据」。据此一次实现了 §H.2 的 DH1-a 最小方案 + 消费 tick 门控修复（R7.2/R7.3），状态 `done-unverified`，等待用户实测；R7.5（地面高度）留到下一轮按残余决定。
-- 下一步：用户单机实测本轮修复；我从编辑器读 `[HandoffFrame]` 对比。探针仍默认开启，最终合入前移除或门控。
+- EXP-H.0 探针（提交 cb86e13）单机实测抓到停顿全貌，见「探针证据」。据此一次实现了 §H.2 的 DH1-a 最小方案 + 消费 tick 门控修复（R7.2/R7.3），用户单机实测「改善很多，已连续」，状态 `done`（定性验收；acceptance.md 的逐帧量化口径未用修复后数据复核，修复后那局的探针日志被控制台清掉）。R7.5（地面高度）未处理，用户决定先到此为止。
+- 探针改为默认关闭（`logHandoffFrames`，Inspector 可开），保留在代码里。已向 `dev` 开 draft PR 供用户 code review。
+- 未完成：R7.5 地面高度（GO 时 rb.y 3.30→3.92 的一次上浮，约 1 tick 水平减速）；host 模式与联机分支合入后的复测；修复后数据的逐帧量化验收。
 - 与联机分支的关系：`fix/online-prediction-handoff` 已把 FishNet Physics Mode 改为 TimeManager（其提交 3a8b997、28414ce）。本分支基线仍是 Unity 物理模式；若在联机 host 上验证本分支，建议先合入联机分支或在本地临时应用那两个提交，否则 reconcile 回跳会干扰观察。单机模式不受此影响。
 - 环境：用 2022.3.55f1c1 打开本 worktree；MCP 连接方式与克隆规则同联机分支（编辑器 "MCP for Unity" 标签页点 Connect）。
 
@@ -27,8 +28,8 @@
 
 | 章节 | 内容 | 前置实验 | 状态 | 提交 | 验收结果 |
 |---|---|---|---|---|---|
-| §H.1 | 相机速度源与开场速度 | EXP-H.1/H.2（跳过，用户直接实测修复） | done-unverified | 待提交 | 待用户实测。改动：`RaceBodyIntroStateController.TryGetSplineDrivenVelocity`（只读查询，intro 期间与 GO→消费死区内返回 spline 速度）；`PlayerCamera` 动态模式改读 `ResolveFollowVelocity`（刚体 kinematic 且 spline 仍持有身体时用 spline 速度，否则 `rb.velocity`）；退出稳定相机后 1.2 s 内 FOV/距离/方向偏移的平滑时间从 0.6 s 线性回落到原值（`stableIntroExitSmoothTime` / `stableIntroExitBlendDuration`，Inspector 可调，未改 prefab）。稳定模式本身逐帧行为未变（仍 reset + base FOV），开场动画不受影响。EditMode 测试 `PlayerCameraIntroExitTests` |
-| §H.2 | 死区与视觉参考系（DH1-a） | EXP-H.2/H.3 | done-unverified | 待提交 | 待用户实测。改动：(1) `IntroTimeUtility.GetDriveIntroNetworkTime` 去掉 GO 时间上钳；`SampleSnapshotAtTime` 在预定 GO 时间之后沿末端切线以 intro 速度外推，`CompleteGoTransition` 用当前时间采样快照，GO 延迟期间身体不再停在 spline 末端（预定 GO 前完全不变）。(2) `TrySampleVisualPoseAtRenderTime` 改为采样 `renderTime − TickDelta`，与交接后 FishNet owner 平滑器的 1 tick 滞后一致。(3) 删除 `BuddahPredictionVisualRootBridge` 的 post-intro 视觉锁及其帧跟踪。(4) `BuddahPredictedMotor.Replicate` 的 blocked 判断增加 `_computedStats.IsRoomBypassActive`，消费 tick 不再清零继承速度 |
+| §H.1 | 相机速度源与开场速度 | EXP-H.1/H.2（跳过，用户直接实测修复） | done（非主因，保留） | c77f26d | 用户实测单独无效，保留为 GO 后相机柔化。改动：`RaceBodyIntroStateController.TryGetSplineDrivenVelocity`（只读查询，intro 期间与 GO→消费死区内返回 spline 速度）；`PlayerCamera` 动态模式改读 `ResolveFollowVelocity`（刚体 kinematic 且 spline 仍持有身体时用 spline 速度，否则 `rb.velocity`）；退出稳定相机后 1.2 s 内 FOV/距离/方向偏移的平滑时间从 0.6 s 线性回落到原值（`stableIntroExitSmoothTime` / `stableIntroExitBlendDuration`，Inspector 可调，未改 prefab）。稳定模式本身逐帧行为未变（仍 reset + base FOV），开场动画不受影响。EditMode 测试 `PlayerCameraIntroExitTests` |
+| §H.2 | 死区与视觉参考系（DH1-a） | EXP-H.2/H.3 | done（定性） | 96d85f2 | 待用户实测。改动：(1) `IntroTimeUtility.GetDriveIntroNetworkTime` 去掉 GO 时间上钳；`SampleSnapshotAtTime` 在预定 GO 时间之后沿末端切线以 intro 速度外推，`CompleteGoTransition` 用当前时间采样快照，GO 延迟期间身体不再停在 spline 末端（预定 GO 前完全不变）。(2) `TrySampleVisualPoseAtRenderTime` 改为采样 `renderTime − TickDelta`，与交接后 FishNet owner 平滑器的 1 tick 滞后一致。(3) 删除 `BuddahPredictionVisualRootBridge` 的 post-intro 视觉锁及其帧跟踪。(4) `BuddahPredictedMotor.Replicate` 的 blocked 判断增加 `_computedStats.IsRoomBypassActive`，消费 tick 不再清零继承速度 |
 | §H.3 | 角速度与高度 | EXP-H.4/H.5 | todo | | R7.4 本 spline 无曲率；R7.5 待本轮实测后决定 |
 
 ## 决策表

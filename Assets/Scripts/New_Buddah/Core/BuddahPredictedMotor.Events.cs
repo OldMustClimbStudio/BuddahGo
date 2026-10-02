@@ -612,18 +612,28 @@ namespace NewBuddah.PredictionV2.Core
             if (bootstrap != null)
                 bootstrap.DebugState.preHandoffSpeed = new Vector3(preVelocity.x, 0f, preVelocity.z).magnitude;
 
+            // Measure the collider clearance on the current (upright, spline-driven) pose before moving the body.
+            float groundClearance = ComputeHandoffGroundClearance();
+
             _introControlActive = false;
             _externalKinematicControlActive = false;
             rb.isKinematic = false;
             _predictionRigidbody.ClearPendingForces();
-            rb.position = eventData.SnapshotPosition;
+            Vector3 landedPosition = eventData.SnapshotPosition;
+            if (TrySnapHandoffPositionToGround(eventData.SnapshotPosition, groundClearance, out Vector3 groundedPosition))
+            {
+                landedPosition = groundedPosition;
+                bootstrap?.LogVerbose(
+                    $"[HandoffDebug] ground snap eventId={eventData.EventId} y={eventData.SnapshotPosition.y:0.000}->{groundedPosition.y:0.000} clearance={groundClearance:0.000}");
+            }
+            rb.position = landedPosition;
             rb.rotation = eventData.SnapshotRotation;
             rb.velocity = eventData.SnapshotVelocity;
             rb.angularVelocity = eventData.SnapshotAngularVelocity;
             rb.Sleep();
             rb.WakeUp();
             InitializePredictionRigidbody();
-            _splineProgressTracker?.SnapToWorldPosition(eventData.SnapshotPosition);
+            _splineProgressTracker?.SnapToWorldPosition(landedPosition);
 
             if (eventData.SuppressSteeringDurationTicks > 0u)
                 _modifierState.SuppressSteeringUntilTick = Math.Max(_modifierState.SuppressSteeringUntilTick, _handoffState.SuppressSteeringUntilTick);
@@ -638,6 +648,71 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap?.LogVerbose(
                 $"handoff entered state={_handoffState.CurrentState} id={eventData.EventId} tick={currentTick} " +
                 $"speed={eventData.SnapshotVelocity.magnitude:0.00} suppressUntil={_handoffState.SuppressSteeringUntilTick} bypassUntil={_handoffState.RoomBypassUntilTick}");
+        }
+
+        // Launch-handoff ground snap (R7.5). The intro spline places the body at an authored height; when the
+        // handoff is consumed, colliders and gravity are live again and PhysX resolves any penetration over
+        // several ticks with no forward motion on the first one. Resting the colliders on the probed ground in
+        // the consume tick removes that stall. Runs identically in the owner and server consume paths; only
+        // the vertical component moves. Reads the physics scene (static track) but writes nothing outside rb.
+        private static readonly RaycastHit[] s_handoffGroundHits = new RaycastHit[8];
+        private Collider[] _handoffBodyColliders;
+
+        private float ComputeHandoffGroundClearance()
+        {
+            if (rb == null)
+                return -1f;
+
+            _handoffBodyColliders ??= GetComponentsInChildren<Collider>(true);
+            float lowestY = float.PositiveInfinity;
+            for (int i = 0; i < _handoffBodyColliders.Length; i++)
+            {
+                Collider bodyCollider = _handoffBodyColliders[i];
+                if (bodyCollider == null || !bodyCollider.enabled || bodyCollider.isTrigger)
+                    continue;
+                lowestY = Mathf.Min(lowestY, bodyCollider.bounds.min.y);
+            }
+
+            return float.IsPositiveInfinity(lowestY) ? -1f : rb.position.y - lowestY;
+        }
+
+        private bool TrySnapHandoffPositionToGround(Vector3 position, float clearance, out Vector3 snapped)
+        {
+            snapped = position;
+            if (config == null || clearance < 0f)
+                return false;
+
+            float maxSnap = config.HandoffGroundSnapMaxDistance;
+            float probeHeight = config.HandoffGroundProbeHeight;
+            if (maxSnap <= 0f)
+                return false;
+
+            float bottomY = position.y - clearance;
+            Vector3 origin = new Vector3(position.x, bottomY + probeHeight, position.z);
+            int hitCount = Physics.RaycastNonAlloc(origin, Vector3.down, s_handoffGroundHits, probeHeight + maxSnap,
+                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+
+            bool found = false;
+            float groundY = float.NegativeInfinity;
+            int ownLayer = gameObject.layer;
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider hitCollider = s_handoffGroundHits[i].collider;
+                if (hitCollider == null || hitCollider.transform.IsChildOf(transform) || hitCollider.gameObject.layer == ownLayer)
+                    continue;
+                float hitY = s_handoffGroundHits[i].point.y;
+                if (hitY > groundY)
+                {
+                    groundY = hitY;
+                    found = true;
+                }
+            }
+
+            if (!found || !BuddahHandoffGroundSnap.TryResolveRestY(position.y, clearance, groundY, maxSnap, out float restY))
+                return false;
+
+            snapped.y = restY;
+            return true;
         }
 
         // Phase 3d — thin wrapper over BuddahPredictedLaunchHandoffResolver.Advance.

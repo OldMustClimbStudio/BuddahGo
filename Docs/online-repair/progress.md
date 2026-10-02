@@ -13,7 +13,8 @@
 - 2026-10-02：用户决定 handoff 的残余也在本分支修（单端可验证，便于与联机修复一起验收）。合并 PR #60 后用户单端仍见「开场一点小停顿」，静态分析指向两处，均已在本分支修复（提交见修复表「§H 残余」行）：
   1. GO→消费窗口：`CompleteGoTransition` 后 `FixedUpdate` 与 `TrySampleVisualPoseAtRenderTime` 都因 `_goApplied` 退出，物理根停在最后一次 spline 写入处，VisualRoot 被 `ApplyVisualRootStabilization` 吸到物理根（抵消 1 tick 滞后），消费后平滑器再把滞后长回来，表现为视觉停一拍。修复：本地 owner 在 handoff 待消费期间（`BuddahMovement.IsAuthoritativeLaunchHandoffPending`）继续沿 spline 末端切线驱动刚体与渲染采样，外推上限 `maxGoOvershootSeconds + maxHandoffPendingOvershootSeconds`（0.15 + 0.35 s，Inspector 可调），同时覆盖纯 client 的 RTT 死区。
   2. R7.5 落地去穿透：消费 tick 身体被放在 spline 高度（低于碰撞体静止高度约 0.6 u），PhysX 以 `m_DefaultMaxDepenetrationVelocity: 10` 推出，首个 tick 无水平位移。修复：消费时按当前姿态测量碰撞体最低点到根的间距，向下射线找地面（忽略自身层与触发器），在 `handoffGroundSnapMaxDistance`（1.5 u）内把根高度直接设到静止高度，owner 与 server 同一路径（`BuddahHandoffGroundSnap.TryResolveRestY` 纯函数，EditMode 测试）。
-  验证：Editor 编译无错误，EditMode 98/98。用户单端目视与 `logHandoffFrames` 探针待跑；通过后再做双端 100 ms。
+  验证：Editor 编译无错误，EditMode 98/98。用户单端目视（2026-10-02）：开场仍有一点点停顿，但不影响体验，用户决定到此为止，不再追。探针数据未采。
+  若将来要继续追：先开 `logHandoffFrames` 跑 `summarize-handoff-frames.py` 确认剩余是零位移帧还是相机，再看 R7.4（Inherit/Blend 期间角速度清零）与 1 tick 视觉滞后在消费帧的对齐。
 工作区干净；`Mono.Cecil.sln.meta` / `LiteNetLib.csproj.meta` 的删除是 Unity 清理被忽略文件的孤儿 meta，与本任务无关，不要提交。
 - 已完成：EXP-0（探针）、EXP-1 / §1（Physics Mode → TimeManager）。用户单端实测：症状 A 消失，症状 B 不再强行拉回起点，但交接切换瞬间仍有一次小卡顿。双端实测与 0/100 ms 延迟矩阵**未做**。
 - 先决条件：EXP-2 是否需要做，取决于一次**双端、100 ms** 的开场测试（纯 client 作 owner）。R3 只在有延迟的纯 client 上触发，host 单端看不到。若 client 开场不再被向后拉、位置单调向前，则 EXP-2 跳过，B 记为达标；切换瞬间的小卡顿若不可接受再做 EXP-3（R4/R5）。若 client 仍被向后拉，则做 EXP-2。
@@ -42,7 +43,7 @@
 
 | 章节 | 内容 | 前置实验 | 状态 | 提交 | 验收结果 |
 |---|---|---|---|---|---|
-| §H 残余 | handoff 待消费期间 spline 持续驱动（R7.2/R7.3 残余）+ 消费时落地（R7.5） | PR #60 合入后用户单端复现 | done-unverified（编译 + EditMode 98/98；待用户单端目视与探针） | 见 git log `fix: keep the launch handoff continuous` | 待填 |
+| §H 残余 | handoff 待消费期间 spline 持续驱动（R7.2/R7.3 残余）+ 消费时落地（R7.5） | PR #60 合入后用户单端复现 | done（定性：仍有一点点停顿，用户接受） | 26742dd | 用户单端目视可接受；逐帧量化未做 |
 | §1 | Physics Mode → TimeManager + 不变量断言 | EXP-1 | done（验收矩阵未跑） | 3a8b997, 28414ce | 场景运行时 `PhysicsMode=TimeManager`、Buddah 刚体插值 None、graphical=VisualRoot（MCP execute_code 读取）；验收矩阵待跑 |
 | §2 | handoff / teleport 回放安全（D1 选 A 或 B） | EXP-2 | todo | | |
 | §3.1 | 投影锚点统一（D2） | EXP-3 | todo | | |

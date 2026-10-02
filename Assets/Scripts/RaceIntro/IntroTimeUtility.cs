@@ -67,6 +67,27 @@ public static class IntroTimeUtility
         return System.Math.Min(System.Math.Max(networkTimeSeconds, timing.IntroStartNetworkTime), timing.GoNetworkTime);
     }
 
+    /// <summary>
+    /// Like <see cref="GetClampedIntroNetworkTime"/> but without the upper clamp: once the scheduled GO time has
+    /// passed and the authoritative GO has not been applied yet, the body keeps moving past the spline end at intro
+    /// speed instead of parking there (see RaceBodyIntroStateController.SampleSnapshotAtTime).
+    /// </summary>
+    public static double GetDriveIntroNetworkTime(IntroSequenceTiming timing, double networkTimeSeconds)
+    {
+        if (!timing.IsValid)
+            return networkTimeSeconds;
+
+        return System.Math.Max(networkTimeSeconds, timing.IntroStartNetworkTime);
+    }
+
+    public static double GetTickDeltaSeconds()
+    {
+        if (InstanceFinder.TimeManager == null)
+            return Time.fixedDeltaTime;
+
+        return InstanceFinder.TimeManager.TickDelta;
+    }
+
     public static double GetTimelineSeekSeconds(IntroSequenceTiming timing, double networkTimeSeconds, double timelineDurationSeconds)
     {
         double introDuration = GetIntroDurationSeconds(timing);

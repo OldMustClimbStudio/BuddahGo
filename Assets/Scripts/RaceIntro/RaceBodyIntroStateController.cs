@@ -127,7 +127,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (!TryGetResolvedTiming(out IntroSequenceTiming timing))
             return;
 
-        DriveSplinePose(IntroTimeUtility.GetClampedIntroNetworkTime(timing, now));
+        DriveSplinePose(IntroTimeUtility.GetDriveIntroNetworkTime(timing, now));
     }
 
     // Samples the spline pose at the current render-time network tick (sub-tick precise).
@@ -144,8 +144,12 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (!TryGetResolvedTiming(out IntroSequenceTiming timing))
             return false;
 
-        double clampedTime = IntroTimeUtility.GetClampedIntroNetworkTime(timing, GetSmoothedNetworkTimeSeconds());
-        SampleSnapshotAtTime(clampedTime, out LaunchHandoffSnapshot snapshot);
+        // Sample one tick behind render time: after the handoff the VisualRoot is driven by the FishNet owner
+        // smoother, which trails the physics root by one tick. Matching that lag during the intro makes the
+        // driver switch at GO continuous instead of a one-tick backward step.
+        double renderTime = GetSmoothedNetworkTimeSeconds() - IntroTimeUtility.GetTickDeltaSeconds();
+        double driveTime = IntroTimeUtility.GetDriveIntroNetworkTime(timing, renderTime);
+        SampleSnapshotAtTime(driveTime, out LaunchHandoffSnapshot snapshot);
         position = snapshot.Position;
         rotation = snapshot.Rotation;
         return true;
@@ -333,6 +337,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
         double resolvedHandoffTime = _resolvedGoNetworkTime >= 0d
             ? System.Math.Max(_resolvedIntroStartNetworkTime, _resolvedGoNetworkTime)
             : GetSmoothedNetworkTimeSeconds();
+        // The authoritative GO arrives a frame or two after the scheduled GO time; the body has kept moving past
+        // the spline end meanwhile (SampleSnapshotAtTime overshoot), so hand off from where it actually is.
+        resolvedHandoffTime = System.Math.Max(resolvedHandoffTime, GetSmoothedNetworkTimeSeconds());
         SampleSnapshotAtTime(resolvedHandoffTime, out LaunchHandoffSnapshot snapshot);
         _latestSplineSnapshot = snapshot;
         GameLog.Verbose(
@@ -424,6 +431,15 @@ public class RaceBodyIntroStateController : MonoBehaviour
         Quaternion rotation = Quaternion.LookRotation(tangent, Vector3.up);
         float speed = GetIntroSpeedMetersPerSecond();
         Vector3 velocity = tangent * speed;
+
+        // Past the scheduled GO time the spline is exhausted but the authoritative GO may not have been applied
+        // yet. Keep the body moving along the end tangent at intro speed so there is no dead stop at the end of
+        // the spline. Before the scheduled GO time this is a no-op, so the intro animation itself is unchanged.
+        float overshootSeconds = _resolvedGoNetworkTime >= 0d
+            ? (float)System.Math.Max(0d, networkTime - _resolvedGoNetworkTime)
+            : 0f;
+        if (overshootSeconds > 0f)
+            position += velocity * overshootSeconds;
         Vector3 angularVelocity = EstimateAngularVelocity(networkTime, t, rotation);
 
         snapshot = new LaunchHandoffSnapshot

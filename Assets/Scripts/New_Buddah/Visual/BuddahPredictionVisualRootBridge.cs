@@ -10,14 +10,9 @@ namespace NewBuddah.PredictionV2.Visual
     [DisallowMultipleComponent]
     public class BuddahPredictionVisualRootBridge : MonoBehaviour
     {
-        private const float PostIntroVisualLockPositionThreshold = 0.75f;
-        private const float PostIntroVisualLockYawThreshold = 10f;
-        private const float PostIntroVisualUnlockPositionThreshold = 0.25f;
-        private const float PostIntroVisualUnlockYawThreshold = 4f;
         // Post-intro visual lock only engages briefly after intro/external control ends, so the
         // one-shot snap covers the handoff transition without fighting FishNet's graphical smoother
         // during normal high-speed gameplay.
-        private const int PostIntroVisualLockMaxFramesAfterExit = 4;
 
         [SerializeField] private BuddahPredictionBootstrap bootstrap;
         [SerializeField] private BuddahPredictedMotor predictedMotor;
@@ -45,7 +40,6 @@ namespace NewBuddah.PredictionV2.Visual
         private string _lastStabilizationReason = "init";
         private bool _fishNetGraphicalSmoothingSuppressed;
         private RaceBodyIntroStateController _introStateController;
-        private int _lastIntroOrExternalActiveFrame = int.MinValue / 2;
         private int _handoffProbeGoFrame = -1;
         private PlayerCamera _handoffProbeCamera;
 
@@ -65,7 +59,6 @@ namespace NewBuddah.PredictionV2.Visual
             BuddahPredictionDebugState debugState = bootstrap.DebugState;
             Transform resolvedMovementRoot = GetMovementRoot();
             Transform resolvedVisualRoot = GetVisualRoot();
-            UpdateIntroOrExternalActiveTracking();
             UpdateFishNetGraphicalSmoothingState(resolvedMovementRoot, resolvedVisualRoot);
             StabilizeOwnerVisualRootIfNeeded(resolvedMovementRoot, resolvedVisualRoot, debugState);
 
@@ -446,12 +439,10 @@ namespace NewBuddah.PredictionV2.Visual
                 && (introControlActive || externalControlActive);
             if (!presentationControl && !introControlled)
             {
-                if (ShouldHoldPostIntroVisualLock(resolvedMovementRoot, resolvedVisualRoot))
-                {
-                    reason = "post-intro-visual-lock";
-                    return true;
-                }
-
+                // No post-intro lock: once intro control ends the FishNet owner smoother takes over directly. Its
+                // queue was fed with physics-root poses throughout the intro (suppression only unsets the smoothed
+                // properties), so it continues from the previous tick without a snap. The intro render sample is
+                // already one tick behind to match (RaceBodyIntroStateController.TrySampleVisualPoseAtRenderTime).
                 reason = "intro-lock-inactive";
                 return false;
             }
@@ -479,75 +470,6 @@ namespace NewBuddah.PredictionV2.Visual
             introControlActive = state.introControlActive;
             externalControlActive = state.externalKinematicControlActive;
             return true;
-        }
-
-        private void UpdateIntroOrExternalActiveTracking()
-        {
-            if (IsIntroOrExternalControlCurrentlyActive())
-                _lastIntroOrExternalActiveFrame = Time.frameCount;
-        }
-
-        private bool IsIntroOrExternalControlCurrentlyActive()
-        {
-            if (predictedMotor != null && bootstrap != null && bootstrap.IsPredictionModeActive()
-                && (predictedMotor.IsPredictionIntroControlActive || predictedMotor.IsPredictionExternalKinematicControlActive))
-            {
-                return true;
-            }
-
-            if (_introStateController != null && _introStateController.IsIntroActive)
-                return true;
-
-            BuddahPredictionDebugState state = bootstrap != null ? bootstrap.DebugState : null;
-            if (state != null && (state.introControlActive || state.externalKinematicControlActive))
-                return true;
-
-            return false;
-        }
-
-        private bool ShouldHoldPostIntroVisualLock(Transform resolvedMovementRoot, Transform resolvedVisualRoot)
-        {
-            if (bootstrap == null || !bootstrap.IsPredictionModeActive())
-                return false;
-
-            if (_networkObject == null)
-                _networkObject = GetComponent<NetworkObject>();
-
-            if (_networkObject == null || !_networkObject.IsOwner)
-                return false;
-
-            if (presentationBridge != null && presentationBridge.IsPresentationControlActive)
-                return false;
-
-            if (TryGetIntroVisualLockState(out bool introControlActive, out bool externalControlActive)
-                && (introControlActive || externalControlActive))
-            {
-                return false;
-            }
-
-            if (resolvedMovementRoot == null || resolvedVisualRoot == null || resolvedMovementRoot == resolvedVisualRoot)
-                return false;
-
-            // Only engage for a brief window after intro/external control actually ended. Without
-            // this gate, per-tick physics displacement (~1.2m at 60 m/s) keeps the position/yaw
-            // delta above the threshold indefinitely, re-suppressing FishNet's smoother and
-            // producing 50Hz stair-stepping during normal gameplay.
-            int framesSinceIntroExit = Time.frameCount - _lastIntroOrExternalActiveFrame;
-            if (framesSinceIntroExit < 0 || framesSinceIntroExit > PostIntroVisualLockMaxFramesAfterExit)
-                return false;
-
-            float positionDelta = Vector3.Distance(resolvedMovementRoot.position, resolvedVisualRoot.position);
-            float yawDelta = Quaternion.Angle(resolvedMovementRoot.rotation, resolvedVisualRoot.rotation);
-            bool wasHoldingPostIntro = _lastStabilizationApplied
-                && string.Equals(_lastStabilizationReason, "post-intro-visual-lock", System.StringComparison.Ordinal);
-            float positionThreshold = wasHoldingPostIntro
-                ? PostIntroVisualUnlockPositionThreshold
-                : PostIntroVisualLockPositionThreshold;
-            float yawThreshold = wasHoldingPostIntro
-                ? PostIntroVisualUnlockYawThreshold
-                : PostIntroVisualLockYawThreshold;
-
-            return positionDelta >= positionThreshold || yawDelta >= yawThreshold;
         }
 
         // Drives the visual root from the intro spline sampled at sub-tick render time, bypassing

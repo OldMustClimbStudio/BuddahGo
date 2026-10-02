@@ -1,0 +1,812 @@
+{
+  "baseline-full": {
+    "frames": 55,
+    "wall_seconds": 9.153291500000009,
+    "frame_wall_ms": {
+      "median": 161.878600000009,
+      "p95": 232.882399999994,
+      "max": 255.622099999997
+    },
+    "dt_ms": {
+      "median": 161.357298493385,
+      "p95": 236.930400133133,
+      "max": 253.814190626144
+    },
+    "net_ticks": 165.0,
+    "physics_events": 555.0,
+    "fixed_seconds": 8.983334805816405,
+    "gc_collections": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "main_ns": {
+      "median": 161574800.0,
+      "p95": 237002800.0,
+      "max": 253965000.0
+    },
+    "gc_bytes": {
+      "median": -1.0,
+      "p95": -1.0,
+      "max": -1.0
+    },
+    "gpu_ns": {
+      "median": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "scopes": {
+      "ai0": {
+        "ms": 1652.0216,
+        "count": 55.0,
+        "wall_percent": 18.04838838575171,
+        "per_call_ms": 30.036756363636364
+      },
+      "ai1": {
+        "ms": 1230.0292,
+        "count": 55.0,
+        "wall_percent": 13.438108029226413,
+        "per_call_ms": 22.364167272727272
+      },
+      "ai2": {
+        "ms": 1666.1249,
+        "count": 55.0,
+        "wall_percent": 18.202467385639345,
+        "per_call_ms": 30.29318
+      },
+      "ai3": {
+        "ms": 1611.4814,
+        "count": 55.0,
+        "wall_percent": 17.605485414727568,
+        "per_call_ms": 29.299661818181818
+      },
+      "ai4": {
+        "ms": 1504.872,
+        "count": 55.0,
+        "wall_percent": 16.440774337843372,
+        "per_call_ms": 27.361309090909092
+      },
+      "other_ai": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "build_inclusive": {
+        "ms": 7698.1188,
+        "count": 990.0,
+        "wall_percent": 84.10219209122744,
+        "per_call_ms": 7.775877575757576
+      },
+      "runinputs": {
+        "ms": 30.4877,
+        "count": 990.0,
+        "wall_percent": 0.33307908963677135,
+        "per_call_ms": 0.030795656565656564
+      },
+      "tracker": {
+        "ms": 314.2185,
+        "count": 330.0,
+        "wall_percent": 3.4328470802006,
+        "per_call_ms": 0.9521772727272727
+      },
+      "observer": {
+        "ms": 45.7189,
+        "count": 110.0,
+        "wall_percent": 0.49948043280387117,
+        "per_call_ms": 0.4156263636363636
+      },
+      "project": {
+        "ms": 3363.220900000004,
+        "count": 545399.0,
+        "wall_percent": 36.74329502125001,
+        "per_call_ms": 0.006166532941937928
+      },
+      "model": {
+        "ms": 2819.560000000007,
+        "count": 4906116.0,
+        "wall_percent": 30.803782442632844,
+        "per_call_ms": 0.0005747030848842562
+      },
+      "net": {
+        "ms": 0.0,
+        "count": 165.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "phys": {
+        "ms": 0.0,
+        "count": 555.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "driver_inclusive": {
+        "ms": 7676.0343,
+        "count": 825.0,
+        "wall_percent": 83.86091822815862,
+        "per_call_ms": 9.304284
+      },
+      "vjitter": {
+        "ms": 9.0965,
+        "count": 330.0,
+        "wall_percent": 0.09937955106094887,
+        "per_call_ms": 0.027565151515151518
+      }
+    }
+  },
+  "baseline-light": {
+    "frames": 55,
+    "wall_seconds": 8.976088999999998,
+    "frame_wall_ms": {
+      "median": 168.557700000001,
+      "p95": 195.492299999998,
+      "max": 216.982000000002
+    },
+    "dt_ms": {
+      "median": 169.223606586456,
+      "p95": 196.012005209923,
+      "max": 216.379001736641
+    },
+    "net_ticks": 165.0,
+    "physics_events": 540.0,
+    "fixed_seconds": 8.833334781229496,
+    "gc_collections": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "main_ns": {
+      "median": 169113600.0,
+      "p95": 196039300.0,
+      "max": 216357900.0
+    },
+    "gc_bytes": {
+      "median": -1.0,
+      "p95": -1.0,
+      "max": -1.0
+    },
+    "gpu_ns": {
+      "median": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "scopes": {
+      "ai0": {
+        "ms": 1583.8123,
+        "count": 55.0,
+        "wall_percent": 17.64479273768342,
+        "per_call_ms": 28.796587272727272
+      },
+      "ai1": {
+        "ms": 1322.1377,
+        "count": 55.0,
+        "wall_percent": 14.729552035413198,
+        "per_call_ms": 24.038867272727273
+      },
+      "ai2": {
+        "ms": 1513.369,
+        "count": 55.0,
+        "wall_percent": 16.860004396123973,
+        "per_call_ms": 27.5158
+      },
+      "ai3": {
+        "ms": 1670.9697,
+        "count": 55.0,
+        "wall_percent": 18.615788011905856,
+        "per_call_ms": 30.381267272727275
+      },
+      "ai4": {
+        "ms": 1689.1772,
+        "count": 55.0,
+        "wall_percent": 18.818632480136955,
+        "per_call_ms": 30.712312727272728
+      },
+      "other_ai": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "build_inclusive": {
+        "ms": 7810.9355,
+        "count": 990.0,
+        "wall_percent": 87.01936333296162,
+        "per_call_ms": 7.889833838383838
+      },
+      "runinputs": {
+        "ms": 28.3172,
+        "count": 990.0,
+        "wall_percent": 0.3154736990687147,
+        "per_call_ms": 0.028603232323232322
+      },
+      "tracker": {
+        "ms": 291.7498,
+        "count": 330.0,
+        "wall_percent": 3.2502997686408865,
+        "per_call_ms": 0.884090303030303
+      },
+      "observer": {
+        "ms": 1.066,
+        "count": 110.0,
+        "wall_percent": 0.011875996327576523,
+        "per_call_ms": 0.009690909090909092
+      },
+      "project": {
+        "ms": 3432.1414000000145,
+        "count": 608129.0,
+        "wall_percent": 38.23649030217966,
+        "per_call_ms": 0.005643771962856589
+      },
+      "model": {
+        "ms": 2840.3329000000185,
+        "count": 5470686.0,
+        "wall_percent": 31.643323723728887,
+        "per_call_ms": 0.0005191913591823801
+      },
+      "net": {
+        "ms": 0.0,
+        "count": 165.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "phys": {
+        "ms": 0.0,
+        "count": 540.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "driver_inclusive": {
+        "ms": 7789.7909,
+        "count": 825.0,
+        "wall_percent": 86.78379748685649,
+        "per_call_ms": 9.442170787878787
+      },
+      "vjitter": {
+        "ms": 8.2845,
+        "count": 330.0,
+        "wall_percent": 0.09229520785723049,
+        "per_call_ms": 0.025104545454545452
+      }
+    }
+  },
+  "baseline-quiet": {
+    "frames": 42,
+    "wall_seconds": 8.956195399999999,
+    "frame_wall_ms": {
+      "median": 206.0573999999985,
+      "p95": 305.064900000005,
+      "max": 378.1508
+    },
+    "dt_ms": {
+      "median": 206.281751394272,
+      "p95": 305.852502584457,
+      "max": 385.650187730789
+    },
+    "net_ticks": 126.0,
+    "physics_events": 534.0,
+    "fixed_seconds": 8.650001417845495,
+    "gc_collections": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "main_ns": {
+      "median": 206228850.0,
+      "p95": 306435100.0,
+      "max": 385990100.0
+    },
+    "gc_bytes": {
+      "median": -1.0,
+      "p95": -1.0,
+      "max": -1.0
+    },
+    "gpu_ns": {
+      "median": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "scopes": {
+      "ai0": {
+        "ms": 1580.5827,
+        "count": 42.0,
+        "wall_percent": 17.647925591261664,
+        "per_call_ms": 37.63292142857143
+      },
+      "ai1": {
+        "ms": 1093.2557,
+        "count": 42.0,
+        "wall_percent": 12.206697723455209,
+        "per_call_ms": 26.029897619047617
+      },
+      "ai2": {
+        "ms": 1595.3639,
+        "count": 42.0,
+        "wall_percent": 17.8129644201376,
+        "per_call_ms": 37.984854761904764
+      },
+      "ai3": {
+        "ms": 1716.5297,
+        "count": 42.0,
+        "wall_percent": 19.16583575208732,
+        "per_call_ms": 40.869754761904765
+      },
+      "ai4": {
+        "ms": 1577.8856,
+        "count": 42.0,
+        "wall_percent": 17.617811241590378,
+        "per_call_ms": 37.56870476190476
+      },
+      "other_ai": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "build_inclusive": {
+        "ms": 7590.4688,
+        "count": 756.0,
+        "wall_percent": 84.75104060369206,
+        "per_call_ms": 10.040302645502646
+      },
+      "runinputs": {
+        "ms": 33.5364,
+        "count": 756.0,
+        "wall_percent": 0.37444917738172623,
+        "per_call_ms": 0.04436031746031746
+      },
+      "tracker": {
+        "ms": 313.2279,
+        "count": 252.0,
+        "wall_percent": 3.49733213725998,
+        "per_call_ms": 1.242967857142857
+      },
+      "observer": {
+        "ms": 0.9541,
+        "count": 84.0,
+        "wall_percent": 0.010652960965992324,
+        "per_call_ms": 0.011358333333333333
+      },
+      "project": {
+        "ms": 3264.231900000005,
+        "count": 437439.0,
+        "wall_percent": 36.44663558814277,
+        "per_call_ms": 0.00746214192150221
+      },
+      "model": {
+        "ms": 2799.4750000007457,
+        "count": 3935061.0,
+        "wall_percent": 31.257413164531293,
+        "per_call_ms": 0.0007114184506925676
+      },
+      "net": {
+        "ms": 0.0,
+        "count": 126.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "phys": {
+        "ms": 0.0,
+        "count": 534.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "driver_inclusive": {
+        "ms": 7573.2204,
+        "count": 630.0,
+        "wall_percent": 84.55845436333381,
+        "per_call_ms": 12.020984761904762
+      },
+      "vjitter": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      }
+    }
+  },
+  "compare-legacy": {
+    "frames": 60,
+    "wall_seconds": 9.008849500000009,
+    "frame_wall_ms": {
+      "median": 147.878850000005,
+      "p95": 185.434199999989,
+      "max": 192.2718
+    },
+    "dt_ms": {
+      "median": 149.0247547626495,
+      "p95": 178.079798817635,
+      "max": 207.175403833389
+    },
+    "net_ticks": 180.0,
+    "physics_events": 542.0,
+    "fixed_seconds": 8.850001450628,
+    "gc_collections": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "main_ns": {
+      "median": 149019800.0,
+      "p95": 178103300.0,
+      "max": 207286500.0
+    },
+    "gc_bytes": {
+      "median": -1.0,
+      "p95": -1.0,
+      "max": -1.0
+    },
+    "gpu_ns": {
+      "median": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "scopes": {
+      "ai0": {
+        "ms": 1659.7893,
+        "count": 60.0,
+        "wall_percent": 18.423987435909527,
+        "per_call_ms": 27.663155
+      },
+      "ai1": {
+        "ms": 937.4462,
+        "count": 60.0,
+        "wall_percent": 10.405837060548064,
+        "per_call_ms": 15.624103333333332
+      },
+      "ai2": {
+        "ms": 1668.4202,
+        "count": 60.0,
+        "wall_percent": 18.5197921221794,
+        "per_call_ms": 27.807003333333334
+      },
+      "ai3": {
+        "ms": 1774.8185,
+        "count": 60.0,
+        "wall_percent": 19.700834163119254,
+        "per_call_ms": 29.580308333333335
+      },
+      "ai4": {
+        "ms": 1637.1479,
+        "count": 60.0,
+        "wall_percent": 18.172663446092624,
+        "per_call_ms": 27.285798333333332
+      },
+      "other_ai": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "build_inclusive": {
+        "ms": 7711.0661,
+        "count": 1080.0,
+        "wall_percent": 85.59434920074969,
+        "per_call_ms": 7.139876018518518
+      },
+      "runinputs": {
+        "ms": 32.210300000000004,
+        "count": 1080.0,
+        "wall_percent": 0.357540660436163,
+        "per_call_ms": 0.029824351851851855
+      },
+      "tracker": {
+        "ms": 333.3616,
+        "count": 360.0,
+        "wall_percent": 3.7003792770652866,
+        "per_call_ms": 0.9260044444444445
+      },
+      "observer": {
+        "ms": 1.177,
+        "count": 120.0,
+        "wall_percent": 0.013064931321141494,
+        "per_call_ms": 0.009808333333333334
+      },
+      "project": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "model": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "net": {
+        "ms": 0.0,
+        "count": 180.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "phys": {
+        "ms": 0.0,
+        "count": 542.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "driver_inclusive": {
+        "ms": 7689.1237,
+        "count": 900.0,
+        "wall_percent": 85.35078424831042,
+        "per_call_ms": 8.543470777777777
+      },
+      "vjitter": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      }
+    }
+  },
+  "compare-optimized": {
+    "frames": 90,
+    "wall_seconds": 9.018171899999988,
+    "frame_wall_ms": {
+      "median": 97.5204500000011,
+      "p95": 162.381699999997,
+      "max": 197.635300000002
+    },
+    "dt_ms": {
+      "median": 98.4726995229721,
+      "p95": 162.727296352386,
+      "max": 196.875393390656
+    },
+    "net_ticks": 249.0,
+    "physics_events": 546.0,
+    "fixed_seconds": 8.950001467019305,
+    "gc_collections": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "main_ns": {
+      "median": 98606100.0,
+      "p95": 163229200.0,
+      "max": 196676400.0
+    },
+    "gc_bytes": {
+      "median": -1.0,
+      "p95": -1.0,
+      "max": -1.0
+    },
+    "gpu_ns": {
+      "median": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "scopes": {
+      "ai0": {
+        "ms": 1281.4487,
+        "count": 83.0,
+        "wall_percent": 14.209628228532676,
+        "per_call_ms": 15.43914096385542
+      },
+      "ai1": {
+        "ms": 1140.1625,
+        "count": 83.0,
+        "wall_percent": 12.642944852271016,
+        "per_call_ms": 13.736897590361444
+      },
+      "ai2": {
+        "ms": 1743.1774,
+        "count": 83.0,
+        "wall_percent": 19.329609363511935,
+        "per_call_ms": 21.00213734939759
+      },
+      "ai3": {
+        "ms": 1753.1307,
+        "count": 83.0,
+        "wall_percent": 19.439978738928257,
+        "per_call_ms": 21.122056626506023
+      },
+      "ai4": {
+        "ms": 1379.1519,
+        "count": 83.0,
+        "wall_percent": 15.29303183941306,
+        "per_call_ms": 16.61628795180723
+      },
+      "other_ai": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "build_inclusive": {
+        "ms": 7343.1123,
+        "count": 1494.0,
+        "wall_percent": 81.4257299752737,
+        "per_call_ms": 4.915068473895582
+      },
+      "runinputs": {
+        "ms": 46.2053,
+        "count": 1494.0,
+        "wall_percent": 0.51235772074826,
+        "per_call_ms": 0.030927242302543508
+      },
+      "tracker": {
+        "ms": 517.2138,
+        "count": 540.0,
+        "wall_percent": 5.735239976962522,
+        "per_call_ms": 0.9578033333333333
+      },
+      "observer": {
+        "ms": 2.1788,
+        "count": 180.0,
+        "wall_percent": 0.02416010721640827,
+        "per_call_ms": 0.012104444444444444
+      },
+      "project": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "model": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "net": {
+        "ms": 0.0,
+        "count": 249.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "phys": {
+        "ms": 0.0,
+        "count": 546.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "driver_inclusive": {
+        "ms": 7312.6355,
+        "count": 1245.0,
+        "wall_percent": 81.08778121650143,
+        "per_call_ms": 5.8736028112449805
+      },
+      "vjitter": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      }
+    }
+  },
+  "compare-final": {
+    "frames": 101,
+    "wall_seconds": 8.965385999999999,
+    "frame_wall_ms": {
+      "median": 93.1835000000021,
+      "p95": 128.387199999999,
+      "max": 143.348499999995
+    },
+    "dt_ms": {
+      "median": 97.7028012275696,
+      "p95": 127.552598714828,
+      "max": 143.360704183578
+    },
+    "net_ticks": 291.0,
+    "physics_events": 539.0,
+    "fixed_seconds": 8.8833347894251,
+    "gc_collections": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "main_ns": {
+      "median": 97629000.0,
+      "p95": 127538100.0,
+      "max": 143198400.0
+    },
+    "gc_bytes": {
+      "median": -1.0,
+      "p95": -1.0,
+      "max": -1.0
+    },
+    "gpu_ns": {
+      "median": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "scopes": {
+      "ai0": {
+        "ms": 1328.455,
+        "count": 97.0,
+        "wall_percent": 14.817599599169519,
+        "per_call_ms": 13.69541237113402
+      },
+      "ai1": {
+        "ms": 927.6881,
+        "count": 97.0,
+        "wall_percent": 10.347441816782904,
+        "per_call_ms": 9.563794845360825
+      },
+      "ai2": {
+        "ms": 1675.8502,
+        "count": 97.0,
+        "wall_percent": 18.692448936387127,
+        "per_call_ms": 17.27680618556701
+      },
+      "ai3": {
+        "ms": 1728.928,
+        "count": 97.0,
+        "wall_percent": 19.284479218184252,
+        "per_call_ms": 17.824
+      },
+      "ai4": {
+        "ms": 1530.3584,
+        "count": 97.0,
+        "wall_percent": 17.069632026998057,
+        "per_call_ms": 15.776890721649485
+      },
+      "other_ai": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "build_inclusive": {
+        "ms": 7242.7788,
+        "count": 1746.0,
+        "wall_percent": 80.78602304462966,
+        "per_call_ms": 4.14821237113402
+      },
+      "runinputs": {
+        "ms": 49.776799999999994,
+        "count": 1746.0,
+        "wall_percent": 0.5552108966641258,
+        "per_call_ms": 0.028509049255441003
+      },
+      "tracker": {
+        "ms": 550.0939,
+        "count": 606.0,
+        "wall_percent": 6.135752548746926,
+        "per_call_ms": 0.907745709570957
+      },
+      "observer": {
+        "ms": 2.0942,
+        "count": 202.0,
+        "wall_percent": 0.023358726551204825,
+        "per_call_ms": 0.010367326732673267
+      },
+      "project": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "model": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      },
+      "net": {
+        "ms": 0.0,
+        "count": 291.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "phys": {
+        "ms": 0.0,
+        "count": 539.0,
+        "wall_percent": 0.0,
+        "per_call_ms": 0.0
+      },
+      "driver_inclusive": {
+        "ms": 7209.2906,
+        "count": 1455.0,
+        "wall_percent": 80.41249534598958,
+        "per_call_ms": 4.954838900343643
+      },
+      "vjitter": {
+        "ms": 0.0,
+        "count": 0.0,
+        "wall_percent": 0.0,
+        "per_call_ms": null
+      }
+    }
+  }
+}

@@ -1,15 +1,8 @@
+// Frozen a9c9a17 implementation: independent cost-optimization equivalence oracle.
 using UnityEngine;
-
-namespace BuddahGo.AI
-{
-    public interface ISteeringPlanner
-    {
-        int Plan(MotionState state, MotionParameters parameters, IRacingLine line,
-            AIDifficultyProfile profile, float tickDelta, int previousKey);
-    }
-
+namespace BuddahGo.AI {
     // Bounded beam search over actual digital key holds. Each candidate uses the motor's force rules.
-    public sealed class ForwardSimPlanner : ISteeringPlanner
+    public sealed class LegacyForwardSimPlanner : ISteeringPlanner
     {
         private struct Candidate { public MotionState State; public float Cost, Progress, HeadingError, TangentYaw; public int Segment; }
         private Candidate[] _beam = new Candidate[64], _next = new Candidate[64];
@@ -31,11 +24,9 @@ namespace BuddahGo.AI
         public int Plan(MotionState state, MotionParameters parameters, IRacingLine line,
             AIDifficultyProfile profile, float tickDelta, int previousKey)
         {
-            var preparedMotion = new BuddahMotionModel.PreparedMotion(parameters, tickDelta);
-            if (profile.CorneringFactor > 0f && line is SplineRacingLine spline)
+            if (profile.CorneringFactor > 0f && line is LegacySplineRacingLine spline)
                 spline.PreparePace(parameters.Stats.FinalForwardForce / Mathf.Max(.001f, parameters.Mass), profile.TargetSpeed, profile.CorneringFactor);
-            var previousControl = preparedMotion.Control(previousKey);
-            for (int i = 0; i < profile.ReactionTicks; i++) BuddahMotionModel.Step(ref state, preparedMotion, previousControl);
+            for (int i = 0; i < profile.ReactionTicks; i++) LegacyBuddahMotionModel.Step(ref state, parameters, previousKey, tickDelta);
             var start = line.Project(state.Position, _nearSegment, 40);
             if (Mathf.Abs(start.Lateral) > 80f) start = line.Project(state.Position, -1);
             _nearSegment = start.Segment;
@@ -64,8 +55,7 @@ namespace BuddahGo.AI
                         int key = d == 0 ? firstKey : choice == 0 ? 0 : choice == 1 ? -1 : 1;
                         Candidate candidate = _beam[b];
                         float previousYaw = candidate.State.Yaw;
-                        var control = preparedMotion.Control(key);
-                        for (int tick = 0; tick < block; tick++) BuddahMotionModel.Step(ref candidate.State, preparedMotion, control);
+                        for (int tick = 0; tick < block; tick++) LegacyBuddahMotionModel.Step(ref candidate.State, parameters, key, tickDelta);
                         var projected = line.Project(candidate.State.Position, candidate.Segment);
                         float tangentYaw = Mathf.Atan2(projected.Tangent.x, projected.Tangent.z) * Mathf.Rad2Deg;
                         candidate.HeadingError = AdvanceHeadingError(candidate.HeadingError,

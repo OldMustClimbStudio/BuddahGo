@@ -63,6 +63,11 @@ public class BuddahMovement : NetworkBehaviour
         ? bridge.IsLaunchHandoffActive()
         : _launchState != LaunchState.Normal || _externalKinematicControlActive || _introControlActive || _authoritativeHandoffPending || _predictionLaunchHandoffActive;
 
+    /// <summary>True from BeginLaunchHandoff until the motor has consumed the authoritative handoff.</summary>
+    public bool IsAuthoritativeLaunchHandoffPending => TryGetPredictionHandoffBridge(out BuddahPredictionHandoffBridge bridge) && bridge.IsPredictionHandoffActive()
+        ? bridge.IsAuthoritativeLaunchHandoffPending()
+        : _authoritativeHandoffPending;
+
     private void Awake()
     {
         PlayerRegistry.Register(this);

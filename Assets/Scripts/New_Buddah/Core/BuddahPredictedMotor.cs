@@ -417,7 +417,10 @@ namespace NewBuddah.PredictionV2.Core
 
             LogPredictionIntroWriterState(currentTick, false, "prediction-active", introControlActive, externalControlActive, authoritativePending);
 
-            if (!data.MovementAllowed)
+            // data.MovementAllowed was evaluated before the handoff/modifier events above were consumed. The
+            // launch handoff opens a room bypass in the same tick it is consumed; honour it here, otherwise the
+            // first tick after GO zeroes the velocity the handoff just inherited and the body stalls for a tick.
+            if (!data.MovementAllowed && !_computedStats.IsRoomBypassActive)
             {
                 CompleteStoppedPredictionStep(data, state, "blocked");
                 return;

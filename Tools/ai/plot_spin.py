@@ -2,12 +2,19 @@ import pathlib,json,math,bisect,csv,sys
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import numpy as np
 ROOT=pathlib.Path(sys.argv[1]) if len(sys.argv)>1 else pathlib.Path(__file__).parent
 def wrap(a):return (a+180)%360-180
 def load(run):
  p=ROOT/'evidence'/run
  rows=[json.loads(s) for s in (p/'trajectory.jsonl').read_text(encoding='utf-8').splitlines()]
  plans=[json.loads(s) for s in (p/'plans.jsonl').read_text(encoding='utf-8').splitlines()]
+ points=json.loads((p/'racing-line.json').read_text())['points']
+ line=np.array([[v['x'],v['z']] for v in points]);segments=np.roll(line,-1,axis=0)-line
+ squared=(segments*segments).sum(axis=1)
+ first=plans[0]['plan'];i=first['segment'];target=np.array([first['target']['x'],first['target']['z']])
+ fraction=np.dot(target-line[i],segments[i])/max(squared[i],.0001)
+ length=first['progress']/(i+fraction)*len(line);step=length/len(line)
  events=[json.loads(s) for s in (p/'events.jsonl').read_text(encoding='utf-8').splitlines()]
  finish=next((e['clock'] for e in events if e['kind']=='authoritative-finish'),float('inf'))
  rows=[r for r in rows if r['clock']<=finish]
@@ -15,13 +22,21 @@ def load(run):
  for r in rows:
   idx=bisect.bisect_right(times,r['clock'])-1
   if idx<0:continue
-  p=plans[idx]['plan'];v=p['tangent'];t=math.degrees(math.atan2(v['x'],v['z']))
+  p=plans[idx]['plan'];v=p['tangent'];planTangent=math.degrees(math.atan2(v['x'],v['z']))
+  offset=np.array([r['position']['x'],r['position']['z']])-line
+  fraction=np.clip((offset*segments).sum(axis=1)/np.maximum(squared,.0001),0,1)
+  segment=int(np.argmin(((offset-segments*fraction[:,None])**2).sum(axis=1)))
+  routeDistance=(segment+fraction[segment])*step
+  t=math.degrees(math.atan2(segments[segment,0],segments[segment,1]))
   if lastT is None:error=wrap(r['yaw']-t)
   else:error+=wrap(r['yaw']-lastYaw)-wrap(t-lastT)
   lastYaw=r['yaw'];lastT=t
   data.append(dict(elapsed=r['elapsed'],lap=r['lap'],progress=r['progress'],x=r['position']['x'],z=r['position']['z'],
     heading=r['yaw'],visualYaw=r['visualYaw'],cameraYaw=r['cameraYaw'],speed=math.hypot(r['velocity']['x'],r['velocity']['z']),
     yawRate=r['yawRate'],steering=r['steering'],targetX=p['target']['x'],targetZ=p['target']['z'],tangentYaw=t,
+    planTangentYaw=planTangent,routeProgress=routeDistance/length,
+    planProjectionDifference=abs((p['progress']-routeDistance+length/2)%length-length/2),
+    trackerProjectionDifference=abs((r['progress']*length-routeDistance+length/2)%length-length/2),
     continuousHeadingError=error,segment=p['segment'],planClock=plans[idx]['clock'],planAge=r['clock']-plans[idx]['clock'],
     plannedYawChange=p['selectedYawChange'],neutralCost=p['neutralCost'],leftCost=p['leftCost'],rightCost=p['rightCost'],
     viableFirstKeys=p.get('viableFirstKeys',3),rejectedWinding=p.get('rejectedWinding',0)))
@@ -43,6 +58,8 @@ def load(run):
     sampleGapTicks=sorted(set(r['gapTicks'] for r in rows[1:])),
     modelUnflaggedWindows=len(clean),modelUnflaggedFailures=fail,modelContactWindows=len(models)-len(clean),
     maxPlanAge=max(r['planAge'] for r in data),maxVisualBodyYawDifference=max(abs(wrap(r['heading']-r['visualYaw'])) for r in data))
+ metrics['maxPlanVsGlobalMeters']=max(r['planProjectionDifference'] for r in data)
+ metrics['maxTrackerVsGlobalMeters']=max(r['trackerProjectionDifference'] for r in data)
  return data,metrics
 before,bm=load('baseline');after,am=load('fixed')
 (ROOT/'evidence/comparison.json').write_text(json.dumps({'baseline':bm,'fixed':am},indent=2),encoding='utf-8')
@@ -54,12 +71,12 @@ for ax,data,title,color in [(axes[0,0],before,'Before: V5, one natural lap','#cf
  ax.set_aspect('equal');ax.set_title(title);ax.set_xlabel('World X (m)');ax.set_ylabel('World Z (m)');ax.legend(fontsize=8)
 for data,name,color in [(before,'Before','#cf4939'),([r for r in after if r['lap']<=1],'After lap 1','#187a98')]:
  axes[1,0].plot([r['elapsed'] for r in data],[r['continuousHeadingError'] for r in data],label=name,color=color,lw=1)
- section=[r for r in data if .15<=r['progress']<=.30]
- axes[1,1].plot([r['progress']*100 for r in section],[r['continuousHeadingError'] for r in section],label=name,color=color,lw=1.5)
+ section=[r for r in data if .15<=r['routeProgress']<=.30]
+ axes[1,1].plot([r['routeProgress']*100 for r in section],[r['continuousHeadingError'] for r in section],label=name,color=color,lw=1.5)
 for ax in axes[1]:
  ax.axhline(180,color='#777',ls='--');ax.axhline(-180,color='#777',ls='--');ax.set_ylabel('Continuous body yaw relative to route (deg)');ax.legend();ax.grid(alpha=.2)
 axes[1,0].set_xlabel('Natural driving time (s)');axes[1,0].set_title('Extra winding stays visible; angles are not wrapped away')
-axes[1,1].set_xlabel('Track progress (%)');axes[1,1].set_title('Same 15–30% track section')
+axes[1,1].set_xlabel('Independent geometric route progress (%)');axes[1,1].set_title('Same 15–30% track section')
 fig.suptitle('AI corner-entry spin diagnosis — observed positions and headings',fontsize=15)
 fig.savefig(ROOT/'evidence/spin-comparison.png',dpi=150);fig.savefig(ROOT/'evidence/spin-comparison.svg')
 print(json.dumps({'baseline':bm,'fixed':am},indent=2))

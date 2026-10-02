@@ -18,8 +18,8 @@
       ]
     },
     "continuousHeadingRange": [
-      -861.9069080610079,
-      486.06732902560736
+      -861.9069089650343,
+      486.3899449522038
     ],
     "samplesOutsideHeadingBranch": 782,
     "plans": 2353,
@@ -103,7 +103,9 @@
     ],
     "modelContactWindows": 20,
     "maxPlanAge": 0.03333333333334565,
-    "maxVisualBodyYawDifference": 2.56329345703125
+    "maxVisualBodyYawDifference": 2.56329345703125,
+    "maxPlanVsGlobalMeters": 2.6493980726745576,
+    "maxTrackerVsGlobalMeters": 35.54049261107002
   },
   "fixed": {
     "summary": {
@@ -126,8 +128,8 @@
       ]
     },
     "continuousHeadingRange": [
-      -179.26174179863887,
-      178.5902229227527
+      -179.8794641167965,
+      178.59022368790355
     ],
     "samplesOutsideHeadingBranch": 0,
     "plans": 7555,
@@ -176,6 +178,8 @@
     ],
     "modelContactWindows": 80,
     "maxPlanAge": 0.03333333333335986,
-    "maxVisualBodyYawDifference": 3.5234375
+    "maxVisualBodyYawDifference": 3.5234375,
+    "maxPlanVsGlobalMeters": 2.680654010628132,
+    "maxTrackerVsGlobalMeters": 119.29559133998464
   }
 }

@@ -10,6 +10,7 @@
 - EXP-H.0 探针（提交 cb86e13）单机实测抓到停顿全貌，见「探针证据」。据此一次实现了 §H.2 的 DH1-a 最小方案 + 消费 tick 门控修复（R7.2/R7.3），用户单机实测「改善很多，已连续」，状态 `done`（定性验收；acceptance.md 的逐帧量化口径未用修复后数据复核，修复后那局的探针日志被控制台清掉）。R7.5（地面高度）未处理，用户决定先到此为止。
 - 探针改为默认关闭（`logHandoffFrames`，Inspector 可开），保留在代码里。已向 `dev` 开 draft PR 供用户 code review。
 - 未完成：R7.5 地面高度（GO 时 rb.y 3.30→3.92 的一次上浮，约 1 tick 水平减速）；host 模式与联机分支合入后的复测；修复后数据的逐帧量化验收。
+- PR #60 code review（2026-10-02）处理：(1) `TryGetSplineDrivenVelocity` 改为用 `BuddahMovement.IsAuthoritativeLaunchHandoffPending`（motor 真实待消费状态）门控，消费后返回 false，纯函数 `ResolveSplineOwnsBody` 加测试；(2) GO 后外推加上限 `maxGoOvershootSeconds`（默认 0.15 s，Inspector 可调），超限时 park 并每序列告警一次，`IntroTimeUtility.GetGoOvershootSeconds` 纯函数加测试，注释写明前提（服务器 GO 时间 ≥ introStart + 最长 spline / 速度）；(3) 渲染采样滞后改为 `introVisualLagTicks`（默认 1，须与 Buddah.prefab NetworkObject Owner Interpolation 一致，FishNet 无运行时读取接口）；(4) 删除桥顶部描述已删 post-intro 锁的注释；(5) 探针相机查找改显式判空；(6) 新增 `IntroHandoffTimingTests`；(7) 纯 client 模式仍待用户实测。
 - 与联机分支的关系：`fix/online-prediction-handoff` 已把 FishNet Physics Mode 改为 TimeManager（其提交 3a8b997、28414ce）。本分支基线仍是 Unity 物理模式；若在联机 host 上验证本分支，建议先合入联机分支或在本地临时应用那两个提交，否则 reconcile 回跳会干扰观察。单机模式不受此影响。
 - 环境：用 2022.3.55f1c1 打开本 worktree；MCP 连接方式与克隆规则同联机分支（编辑器 "MCP for Unity" 标签页点 Connect）。
 

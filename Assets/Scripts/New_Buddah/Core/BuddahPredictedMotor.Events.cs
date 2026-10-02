@@ -215,7 +215,7 @@ namespace NewBuddah.PredictionV2.Core
                 enableDebugLogs);
 
             bool queuedOnServer = TryQueueLaunchHandoffEvent(eventData);
-            QueueLaunchHandoffTargetRpc(
+            if (Owner.IsValid) QueueLaunchHandoffTargetRpc(
                 Owner,
                 eventData.EventId,
                 clientStartTick,
@@ -583,7 +583,7 @@ namespace NewBuddah.PredictionV2.Core
         // RunInputs still owns input, modifiers, skills and subsequent motor ticks.
         internal bool ConsumeSoloLaunchBeforePhysics()
         {
-            if (!Time.inFixedTimeStep || !ShouldRunPrediction() || !IsOwner || !IsServerInitialized
+            if (!Time.inFixedTimeStep || !ShouldRunPrediction() || (!IsOwner && Owner.IsValid) || !IsServerInitialized
                 || BuddahGo.Match.MatchRules.Current.ReturnTarget != BuddahGo.Match.MatchReturnTarget.MainMenuHome
                 || !_hasPendingLaunchHandoffEvent || TimeManager == null)
                 return false;

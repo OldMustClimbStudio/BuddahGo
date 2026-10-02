@@ -13,6 +13,7 @@ namespace BuddahGo.Match
         public static IRaceEndPolicy EndPolicy { get; set; }
         public static void Reset()
         {
+            RacerDirectory.Current = null;
             Clock = null;
             Timing = null;
             EndPolicy = null;

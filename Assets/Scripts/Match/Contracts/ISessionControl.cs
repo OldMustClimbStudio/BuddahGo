@@ -14,6 +14,7 @@ namespace BuddahGo.Match
 
     public static class SessionControl
     {
+        public static SoloMatchSettings SoloSettings { get; internal set; }
         public static ISessionControl Current { get; set; }
     }
 }

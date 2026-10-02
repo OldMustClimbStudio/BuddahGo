@@ -31,9 +31,7 @@ namespace BuddahGo.Match
         public bool StartSoloHost(SoloMatchSettings settings)
         {
             if (settings == null) return Fail("单机设置缺失。");
-            // S1 supports Practice only. Preserve the selected difficulty, never spawn unsupported AI.
-            return StartHost(1, new SoloMatchRules(new SoloMatchSettings(0, settings.Difficulty)),
-                new SoloMatchSettings(0, settings.Difficulty, settings.AINames));
+            return StartHost(1, new SoloMatchRules(settings), settings);
         }
 
         public bool StartOnlineHost()
@@ -62,6 +60,7 @@ namespace BuddahGo.Match
             LastError = string.Empty;
             MatchRules.Current = rules;
             Settings = settings;
+            SessionControl.SoloSettings = settings;
             try
             {
                 // ServerManager subscribes to transport state events. Never start every child transport.
@@ -88,6 +87,7 @@ namespace BuddahGo.Match
             LastError = string.Empty;
             MatchRules.Reset();
             Settings = null;
+            SessionControl.SoloSettings = null;
             try
             {
                 transport.SetClientTransport(0);
@@ -164,6 +164,7 @@ namespace BuddahGo.Match
             _network?.ServerManager?.StopConnection(true);
             MatchRules.Reset();
             Settings = null;
+            SessionControl.SoloSettings = null;
             ResolvedPropertySelectionCache.Clear();
             LocalInputBlock.Current = null;
             MatchServices.Reset();

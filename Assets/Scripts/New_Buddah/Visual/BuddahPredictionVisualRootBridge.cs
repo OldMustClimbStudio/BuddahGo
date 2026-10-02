@@ -43,7 +43,7 @@ namespace NewBuddah.PredictionV2.Visual
         private uint _soloRevision;
         private bool _soloOwnsGraphical;
 
-        internal bool UsesSoloTimeline => _networkObject != null && _networkObject.IsOwner
+        internal bool UsesSoloTimeline => _networkObject != null && (_networkObject.IsOwner || !_networkObject.Owner.IsValid)
             && _networkObject.IsServerInitialized && MatchRules.Current.ReturnTarget == MatchReturnTarget.MainMenuHome
             && bootstrap != null && bootstrap.IsPredictionModeActive();
 

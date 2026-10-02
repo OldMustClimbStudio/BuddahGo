@@ -64,6 +64,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private bool _soloPhysicsClock;
     private double _soloGoFixedTime;
 
+    private bool HasMovementAuthority => networkObject != null && (networkObject.IsOwner
+        || (networkObject.IsServerInitialized && !networkObject.Owner.IsValid));
     public int OwnerId => networkObject != null ? networkObject.OwnerId : -1;
     public NetworkObject NetworkObject => networkObject;
     public Rigidbody TargetRigidbody => targetRigidbody;
@@ -365,7 +367,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _hasSplineDiagnosticSample = false;
         _lastSplineDiagnosticLogTime = float.NegativeInfinity;
         _lastLoggedIntroPhase = IntroPhase.None;
-        bool isLocalOwner = networkObject != null && networkObject.IsOwner;
+        bool isLocalOwner = HasMovementAuthority;
 
         if (movementController != null)
         {
@@ -388,7 +390,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _authoritativeGoPendingTransition = false;
         _phase = IntroPhase.RaceLive;
 
-        bool isLocalOwner = networkObject != null && networkObject.IsOwner;
+        bool isLocalOwner = HasMovementAuthority;
         double resolvedHandoffTime = _resolvedGoNetworkTime >= 0d
             ? System.Math.Max(_resolvedIntroStartNetworkTime, _resolvedGoNetworkTime)
             : GetSmoothedNetworkTimeSeconds();
@@ -407,7 +409,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (movementController != null && isLocalOwner)
         {
             _runtimeState = IntroRuntimeState.AuthoritativeHandoffPending;
-            RoomStateManager.Instance?.ReportLocalGameplayLive(_activeSequenceId);
+            if (networkObject.IsOwner)
+                RoomStateManager.Instance?.ReportLocalGameplayLive(_activeSequenceId);
             GameLog.Verbose($"[IntroHandoff][Body:{name}] Local owner launching handoff seq={_activeSequenceId}.");
             movementController.BeginLaunchHandoff(
                 snapshot,

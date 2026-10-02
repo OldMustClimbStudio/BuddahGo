@@ -12,6 +12,11 @@ namespace BuddahGo.Match
             if (clientId < 0 || clientId >= 10000) throw new ArgumentOutOfRangeException(nameof(clientId));
             return new RacerId(clientId);
         }
+        public static RacerId ForAI(int index)
+        {
+            if (index < 0 || index >= 5) throw new ArgumentOutOfRangeException(nameof(index));
+            return new RacerId(10000 + index);
+        }
         public bool Equals(RacerId other) => Value == other.Value;
         public override bool Equals(object obj) => obj is RacerId other && Equals(other);
         public override int GetHashCode() => Value;

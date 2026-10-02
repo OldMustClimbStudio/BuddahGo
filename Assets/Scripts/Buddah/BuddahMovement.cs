@@ -426,7 +426,7 @@ public class BuddahMovement : NetworkBehaviour
     {
         SyncPredictionHandoffStateFromBridge();
         bool shouldEnableOwnerInput = ShouldEnableOwnerInputNow(out string inputGateReason);
-        bool allowLocalControl = IsOwner;
+        bool allowLocalControl = IsOwner || (IsServerInitialized && !Owner.IsValid);
         if (rb != null)
         {
             bool useKinematic = !allowLocalControl || _externalKinematicControlActive;

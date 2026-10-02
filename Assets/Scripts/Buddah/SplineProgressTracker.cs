@@ -32,7 +32,8 @@ public class SplineProgressTracker : NetworkBehaviour
     [SerializeField] private float jumpMetersThreshold = 8f;
     [SerializeField] private float windowRadiusT = 0.1f;
     [SerializeField] private int windowSteps = 40;
-    [SerializeField] private float maxProjectionDistance = 40f;
+    [Tooltip("Maximum world-space distance to both global and continuity-selected projections, in meters.")]
+    [SerializeField] private float maxProjectionDistance = 30f;
     [SerializeField] private float maxStepFactor = 1.5f;
 
     public float PreviousProgress01 => previousProgress01;
@@ -48,8 +49,17 @@ public class SplineProgressTracker : NetworkBehaviour
             introStateController = GetComponent<RaceBodyIntroStateController>();
     }
 
-    private void Update()
+    private void Update() => UpdateProgress(Time.deltaTime);
+
+    // Explicit delta time allows deterministic saved-position regression replay.
+    private void UpdateProgress(float dt)
     {
+        // A rejected/missing projection is a held sample, never a repeated wrap.
+        previousProgress01 = progress01;
+        rawProgressDelta01 = 0f;
+        wrappedFromStartToEndThisFrame = false;
+        wrappedFromEndToStartThisFrame = false;
+
         var track = TrackSplineRef.Instance;
         if (track == null || track.container == null)
             return;
@@ -61,7 +71,6 @@ public class SplineProgressTracker : NetworkBehaviour
         if (L <= 1e-6f)
             return;
 
-        float dt = Time.deltaTime;
         float speed = (rb != null) ? rb.velocity.magnitude : 0f;
         float maxStepMeters = Mathf.Max(2f, speed * dt * maxStepFactor);
         bool introActive = introStateController != null && introStateController.IsIntroActive;
@@ -86,10 +95,8 @@ public class SplineProgressTracker : NetworkBehaviour
         Vector3 pGlobalW = container.transform.TransformPoint((Vector3)posGlobalL);
         if ((posW - pGlobalW).sqrMagnitude > maxProjectionDistance * maxProjectionDistance)
         {
-            if (!_hasLast)
-            {
-                ApplyProgressState(dGlobal / L, dGlobal, tGlobal);
-            }
+            if (_hasLast)
+                UpdateForwardDot(track, _lastT01);
             return;
         }
 
@@ -116,26 +123,25 @@ public class SplineProgressTracker : NetworkBehaviour
             chosenDelta = deltaLocal;
         }
 
+        // The global candidate can be on a nearby, disconnected road. Validate
+        // the continuity-selected branch too, before advancing/clamping toward it.
+        Vector3 chosenPositionW = container.EvaluatePosition(chosenT);
+        if ((posW - chosenPositionW).sqrMagnitude > maxProjectionDistance * maxProjectionDistance)
+        {
+            UpdateForwardDot(track, _lastT01);
+            return;
+        }
+
         if (Mathf.Abs(chosenDelta) > maxStepMeters)
         {
             chosenDelta = Mathf.Clamp(chosenDelta, -maxStepMeters, maxStepMeters);
             chosenD = Mathf.Repeat(_lastDistance + chosenDelta, L);
-            chosenT = _lastT01;
+            chosenT = track.TAtDistance(chosenD);
         }
 
         ApplyProgressState(chosenD / L, chosenD, chosenT);
 
-        float3 posL, tanL, upL;
-        SplineUtility.Evaluate(spline, chosenT, out posL, out tanL, out upL);
-        Vector3 tangentW = container.transform.TransformDirection((Vector3)tanL);
-        tangentW.y = 0f;
-        tangentW = tangentW.sqrMagnitude > 0.0001f ? tangentW.normalized : transform.forward;
-
-        Vector3 v = rb ? rb.velocity : Vector3.zero;
-        v.y = 0f;
-        Vector3 vDir = v.sqrMagnitude > 0.01f ? v.normalized : transform.forward;
-
-        forwardDot = Vector3.Dot(vDir, tangentW);
+        UpdateForwardDot(track, chosenT);
         UpdateWrapFlags();
         MaybeLogProjectionDiagnostics(
             introActive,
@@ -151,6 +157,21 @@ public class SplineProgressTracker : NetworkBehaviour
             chosenD,
             chosenDelta,
             globalLooksJump);
+    }
+
+    private void UpdateForwardDot(TrackSplineRef track, float t01)
+    {
+        float3 posL, tanL, upL;
+        SplineUtility.Evaluate(track.container.Spline, t01, out posL, out tanL, out upL);
+        Vector3 tangentW = track.container.transform.TransformDirection((Vector3)tanL);
+        tangentW.y = 0f;
+        tangentW = tangentW.sqrMagnitude > 0.0001f ? tangentW.normalized : transform.forward;
+
+        Vector3 v = rb ? rb.velocity : Vector3.zero;
+        v.y = 0f;
+        Vector3 vDir = v.sqrMagnitude > 0.01f ? v.normalized : transform.forward;
+
+        forwardDot = Vector3.Dot(vDir, tangentW);
     }
 
     public void SnapToTrackProgress(float targetProgress01)

@@ -16,7 +16,9 @@
         "BuddahGo.Runtime",
         "FishNet.Runtime",
         "Unity.InputSystem",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.Splines",
+        "Unity.Mathematics"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"

@@ -897,7 +897,7 @@ MonoBehaviour:
   jumpMetersThreshold: 8
   windowRadiusT: 0.2
   windowSteps: 40
-  maxProjectionDistance: 20
+  maxProjectionDistance: 30
   maxStepFactor: 1.5
 --- !u!114 &6266714261208666547
 MonoBehaviour:

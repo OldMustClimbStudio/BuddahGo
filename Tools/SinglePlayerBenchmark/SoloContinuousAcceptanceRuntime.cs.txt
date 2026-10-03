@@ -79,7 +79,7 @@ internal sealed class SoloContinuousAcceptanceRuntime : MonoBehaviour
             Application.Quit(2); return;
         }
         plan = args[modeArg+1];
-        if (plan != "strict14" && plan != "draft10-selection-exit" && plan != "benchmark3" && plan != "escapes3")
+        if (plan != "precision3" && plan != "strict14" && plan != "draft10-selection-exit" && plan != "benchmark3" && plan != "escapes3")
         {
             Debug.LogError("Unknown private solo acceptance sequence"); Application.Quit(2); return;
         }
@@ -143,7 +143,7 @@ internal sealed class SoloContinuousAcceptanceRuntime : MonoBehaviour
                 Event("heartbeat", "remainingStageSeconds=" + (stageDeadline-now).ToString("F1", CultureInfo.InvariantCulture));
             }
             ObserveGoAndLaps();
-            if(plan=="strict14" && crossingProbe==null)
+            if((plan=="strict14" || plan=="precision3") && crossingProbe==null)
             {
                 var racer=LocalPlayer();
                 if(racer!=null)
@@ -284,6 +284,20 @@ internal sealed class SoloContinuousAcceptanceRuntime : MonoBehaviour
                         completedExtra++; Click("ReturnHome"); Move("home", 120); break;
                     }
                     completedMain++;
+                    if (plan == "precision3")
+                    {
+                        if (mainIndex == 1)
+                        {
+                            if (!Click("Rematch")) throw new Exception("Precision Rematch unavailable");
+                            rematches++; mainIndex++; raceSerial++; Move("selection",120);
+                        }
+                        else
+                        {
+                            if (!Click("ReturnHome")) throw new Exception("Precision ReturnHome unavailable");
+                            Move("home",120);
+                        }
+                        break;
+                    }
                     if (plan != "strict14" && mainIndex == MainSampleTarget)
                     {
                         Click("ReturnHome"); Move("home", 120); break;
@@ -303,6 +317,12 @@ internal sealed class SoloContinuousAcceptanceRuntime : MonoBehaviour
                 case "home":
                     if (!HomeClean()) return;
                     homes++; Snapshot("home-clean", true);
+                    if (plan == "precision3" && completedMain == 3)
+                    {
+                        Finish(rematches == 1 && homes == 2 && errors == 0,
+                            "Three natural races: initial, real Rematch, ReturnHome/re-entry; independently analyze precision");
+                        break;
+                    }
                     if (completedMain == MainSampleTarget)
                     {
                         int expectedHomeReturns = (MainSampleTarget+2)/3;

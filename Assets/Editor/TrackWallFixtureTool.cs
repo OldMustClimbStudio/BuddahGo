@@ -15,7 +15,6 @@ public static class TrackWallFixtureTool
 
     public static void Build()
     {
-        if (!Application.dataPath.Replace('\\', '/').EndsWith("/.worktree/single-player-mode/Assets")) throw new Exception("Wrong project");
         string fixtures = Path.Combine(Application.dataPath, "../Tools/ai/fixtures");
         var route = JsonUtility.FromJson<Route>(File.ReadAllText(Path.Combine(fixtures, "spin-entry.json")));
         EditorSceneManager.OpenScene("Assets/Scenes/RaceMap.unity", OpenSceneMode.Single);
@@ -29,6 +28,6 @@ public static class TrackWallFixtureTool
             source = "RaceMap colliders, sideways rays 1.5 m above each spin-entry.json sample, 80 m max, triggers ignored",
             count = route.points.Length, length = route.length, left = left, right = right }));
         Debug.Log($"[TrackWallFixtureTool] samples={route.points.Length} leftHits={leftHits} rightHits={rightHits}");
-        EditorApplication.Exit(0);
+        if (Application.isBatchMode) EditorApplication.Exit(0);
     }
 }

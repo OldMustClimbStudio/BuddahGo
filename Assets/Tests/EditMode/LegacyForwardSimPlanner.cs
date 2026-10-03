@@ -2,7 +2,8 @@
 using UnityEngine;
 namespace BuddahGo.AI {
     // Bounded beam search over actual digital key holds. Each candidate uses the motor's force rules.
-    public sealed class LegacyForwardSimPlanner : ISteeringPlanner
+    // Frozen snapshot with its own observation type; used only as a concrete oracle.
+    public sealed class LegacyForwardSimPlanner
     {
         private struct Candidate { public MotionState State; public float Cost, Progress, HeadingError, TangentYaw; public int Segment; }
         private Candidate[] _beam = new Candidate[64], _next = new Candidate[64];

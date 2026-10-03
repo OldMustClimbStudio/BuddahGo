@@ -1,9 +1,13 @@
 # Thrust-vector acceptance scripts (2026-10-02)
 
 Both scripts drive the Development Player built by `Assets/Editor/ThrustVectorAcceptanceBuild.cs`
-(`Unity.exe -batchmode -quit -executeMethod ThrustVectorAcceptanceBuild.Build`), expected at
-`C:/Users/dwh88/Documents/Codex/2026-10-02/claude-thrust/build/BuddahGoThrust.exe`. Edit `ROOT` to move it.
-Each run copies summary/configuration/events/perf (and race-results) into `../player/<name>/`.
+(`Unity.exe -batchmode -quit -executeMethod ThrustVectorAcceptanceBuild.Build`). Since 2026-10-03 both the
+build and the scripts default to the git-ignored project `Logs/` folder: the Player at
+`Logs/thrust-vector-build/BuddahGoThrust.exe` (build env `THRUST_BUILD_OUTPUT`, script env `THRUST_EXE`) and full
+runs under `Logs/thrust-vector/runs/<name>/` (script env `THRUST_ROOT`). The 2026-10-02 runs used
+`C:/Users/dwh88/Documents/Codex/2026-10-02/claude-thrust/`.
+Each run copies summary/configuration/events/perf (and race-results) into `../rollout-2026-10-02/player/<name>/`,
+resolved relative to the script; those copies are committed, with CSV/JSONL stored via Git LFS.
 
 - `lap.sh <name> <profile.json> <laps 1|3> <aiCount> [timeoutSec]` — one racer driven by the profile
   (`--ai-a1-output` / `--ai-a2-output`), optional server AI sharing the same profile (`--ai-count`),

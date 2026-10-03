@@ -26,6 +26,8 @@ namespace BuddahGo.Match
             && mp.GetTransport(0) is FishyFacepunch.FishyFacepunch steam
             && steam.IsSteamAvailable;
 
+        public const string SteamUnavailableMessage = "Steam 不可用，请启动 Steam 后重开游戏";
+
         public SessionLauncher(NetworkManager network) { _network = network; }
 
         public bool StartSoloHost(SoloMatchSettings settings)
@@ -36,7 +38,7 @@ namespace BuddahGo.Match
 
         public bool StartOnlineHost()
         {
-            if (!IsOnlineAvailable) return Fail("Steam 不可用，请启动 Steam 后重开游戏");
+            if (!IsOnlineAvailable) return Fail(SteamUnavailableMessage);
             return StartHost(0, new OnlineMatchRules(), null);
         }
 
@@ -80,7 +82,7 @@ namespace BuddahGo.Match
 
         public bool StartOnlineClient(string hostSteamId)
         {
-            if (!IsOnlineAvailable) return Fail("Steam 不可用，请启动 Steam 后重开游戏");
+            if (!IsOnlineAvailable) return Fail(SteamUnavailableMessage);
             if (string.IsNullOrWhiteSpace(hostSteamId)) return Fail("主机地址为空。");
             if (!TryGetTransport(out Multipass transport)) return false;
             _failedSoloSettings = null;
@@ -162,8 +164,15 @@ namespace BuddahGo.Match
             // Also stop Starting connections; Started alone misses a partially started transport.
             _network?.ClientManager?.StopConnection();
             _network?.ServerManager?.StopConnection(true);
-            MatchRules.Reset();
             Settings = null;
+            ResetMatchGlobals();
+        }
+
+        // Every per-session static (rules, Solo request, input block, clock/timing/end policy,
+        // racer directory, selection cache) is cleared here and nowhere else.
+        internal static void ResetMatchGlobals()
+        {
+            MatchRules.Reset();
             SessionControl.SoloSettings = null;
             ResolvedPropertySelectionCache.Clear();
             LocalInputBlock.Current = null;

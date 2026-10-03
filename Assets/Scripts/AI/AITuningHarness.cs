@@ -358,7 +358,7 @@ namespace BuddahGo.AI
             if (!side) return;
             _collisions++; Event("collision", collision.gameObject.name + "; impulse=" + collision.impulse);
         }
-        private void PlanObserved(uint tick, ForwardSimPlanner.PlanObservation plan)
+        private void PlanObserved(uint tick, PlanObservation plan)
         {
             _plans?.WriteLine(JsonUtility.ToJson(new PlanRow { tick = tick, clock = MatchServices.Clock.Now, plan = plan }));
         }
@@ -425,7 +425,7 @@ namespace BuddahGo.AI
             if (!_finished && OutputDirectory != null) Complete(false, "operator-disabled-or-reloaded");
         }
         [Serializable] private class SampleRow { public int sample, lap, nextCheckpoint, steering; public uint tick, gapTicks; public double clock, elapsed, planMs; public Vector3 position, velocity; public float yaw, yawRate, progress, lateral, visualYaw, cameraYaw; public bool discontinuity, stalled; }
-        [Serializable] private class PlanRow { public uint tick; public double clock; public ForwardSimPlanner.PlanObservation plan; }
+        [Serializable] private class PlanRow { public uint tick; public double clock; public PlanObservation plan; }
         [Serializable] private class EventRow { public string kind, detail; public double clock; public Vector3 position; }
         [Serializable] private class LineRow { public Vector3[] points; }
         [Serializable] private class LapEvent { public int completedLaps; public double lapSeconds, totalSeconds; }

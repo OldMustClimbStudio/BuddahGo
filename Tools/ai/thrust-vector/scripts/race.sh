@@ -1,8 +1,11 @@
 #!/bin/bash
 # usage: runrace.sh <name> "<profile0;profile1;...>" [extra player args]   (profile0 = harness racer, 1..5 = server AI by RacerId; 3-lap race, 5 AI)
 NAME="$1"; PROFILES="$2"; shift 2; EXTRA="$@"
-ROOT="C:/Users/dwh88/Documents/Codex/2026-10-02/claude-thrust"; EXE="$ROOT/build/BuddahGoThrust.exe"; OUT="$ROOT/runs/$NAME"
-REPO="C:/Users/dwh88/UnityProject/BuddahGo/.worktree/single-player-mode/Tools/ai/thrust-vector/rollout-2026-10-02/player/$NAME"
+HERE="$(cd "$(dirname "$0")" && pwd)"; PROJECT="$(cd "$HERE/../../../.." && pwd)"
+# Defaults match ThrustVectorAcceptanceBuild (git-ignored Logs/); override with THRUST_ROOT / THRUST_EXE.
+ROOT="${THRUST_ROOT:-$PROJECT/Logs/thrust-vector}"; EXE="${THRUST_EXE:-$PROJECT/Logs/thrust-vector-build/BuddahGoThrust.exe}"
+OUT="$ROOT/runs/$NAME"
+REPO="$HERE/../rollout-2026-10-02/player/$NAME"
 if [ -e "$OUT" ]; then echo "exists: $OUT"; exit 1; fi
 mkdir -p "$ROOT/runs" "$REPO"
 "$EXE" -screen-width 1280 -screen-height 720 -screen-fullscreen 0 -logFile "$ROOT/runs/$NAME.player.log" --ai-a2-output "$OUT" --ai-count 5 --ai-profiles "$PROFILES" $EXTRA &

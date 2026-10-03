@@ -96,9 +96,7 @@ namespace SteamMultiplayer.Network
             {
                 Instance = null;
                 SessionControl.Current = null;
-                MatchRules.Reset();
-                LocalInputBlock.Current = null;
-                MatchServices.Reset();
+                SessionLauncher.ResetMatchGlobals();
             }
         }
 

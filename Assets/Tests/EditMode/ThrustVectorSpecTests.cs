@@ -10,6 +10,8 @@ using UnityEngine;
 
 public class ThrustVectorSpecTests
 {
+    // Lap() turns on per-plan candidate capture; never leak those allocations into later tests.
+    [TearDown] public void ResetCandidateCapture() => ThrustVectorPlanner.CaptureCandidates = false;
     [Serializable] public class Fixture { public float length; public Vector3[] points; }
     [Serializable] public class BrakingFixture { public float speed,pace,lateralAcceleration; }
     [Serializable] public class HeadingFixture { public float carErrorDegrees,targetErrorDegrees,yawRate; }
@@ -68,7 +70,7 @@ public class ThrustVectorSpecTests
         p.AttitudeDeadbandDegrees=1.5f;p.AttitudeHysteresisDegrees=.5f;p.TargetSpeed=80;p.ReactionTicks=0;p.ReplanTicks=1;
         return p;
     }
-    static string Invariants(ForwardSimPlanner.PlanObservation o,ForwardSimPlanner.PlanObservation previous,bool hasPrevious)
+    static string Invariants(PlanObservation o,PlanObservation previous,bool hasPrevious)
     {
         if(o.selectedKey < -1 || o.selectedKey > 1)return "digital key outside {-1,0,+1}";
         // 0.0001deg only covers the float degree/radian roundtrip, not controller slack.
@@ -87,7 +89,7 @@ public class ThrustVectorSpecTests
         var t=planner.LastCandidateThetas;var c=planner.LastCandidateCosts;if(t==null)return "";
         var sb=new StringBuilder();for(int i=0;i<t.Length;i++){if(i>0)sb.Append(' ');sb.Append(FormattableString.Invariant($"{t[i]:F0}:{c[i]:F1}"));}return sb.ToString();
     }
-    static void Trace(StringBuilder csv,int tick,MotionState state,ForwardSimPlanner.PlanObservation o,
+    static void Trace(StringBuilder csv,int tick,MotionState state,PlanObservation o,
         float postError,float relative,float progress,float advance,int independentSegment,string violation,string candidates="")
     {
         if(csv==null)return;
@@ -103,7 +105,7 @@ public class ThrustVectorSpecTests
         var result=new Run{name=name,k=p.PredictionGain,tau=p.LookaheadSeconds,margin=p.SpeedMargin,paceFactor=p.ThrustPaceFactor,
             brakePlan=p.PlanningBrakeAcceleration,deadband=p.AttitudeDeadbandDegrees};
         var csv=new StringBuilder(TraceHeader);int key=0,near=0;float distance=0,progress=0,sum=0,relative=0,lastTangent=state.Yaw;
-        ForwardSimPlanner.PlanObservation previous=default;
+        PlanObservation previous=default;
         for(int tick=0;tick<60*240;tick++)
         {
             key=planner.Plan(state,parameters,line,p,Dt,key);var o=planner.LastObservation;
@@ -202,7 +204,7 @@ public class ThrustVectorSpecTests
     {
         var p=Design();var line=new StraightLine();var planner=new ThrustVectorPlanner();var parameters=Parameters();parameters.Stats.FinalSteeringSign=sign;
         var state=new MotionState{Position=new Vector3(10,0,0),Velocity=Vector3.forward*50};var result=new StraightResult{steeringSign=sign,minimumError=10};
-        int key=0;var csv=new StringBuilder(TraceHeader);ForwardSimPlanner.PlanObservation previous=default;
+        int key=0;var csv=new StringBuilder(TraceHeader);PlanObservation previous=default;
         try {
             for(int tick=0;tick<480;tick++) {
                 float before=state.Position.x;key=planner.Plan(state,parameters,line,p,Dt,key);var o=planner.LastObservation;
@@ -234,7 +236,7 @@ public class ThrustVectorSpecTests
         // asin(v^2 k / a) away from its velocity. A tangent-aligned heading is not a feasible start.
         float drift=Mathf.Asin(speed*speed/150f/25f)*(rightTurn?1:-1);
         var state=new MotionState{Position=start.Point,Velocity=start.Tangent*speed,Yaw=Mathf.Atan2(start.Tangent.x,start.Tangent.z)+drift};
-        int key=0,near=0;float maxEarly=0,maxLate=0,firstTheta=0;var csv=new StringBuilder(TraceHeader);ForwardSimPlanner.PlanObservation previous=default;
+        int key=0,near=0;float maxEarly=0,maxLate=0,firstTheta=0;var csv=new StringBuilder(TraceHeader);PlanObservation previous=default;
         try {
             for(int tick=0;tick<300;tick++) {
                 key=planner.Plan(state,parameters,line,p,Dt,key);var o=planner.LastObservation;if(tick==0)firstTheta=o.chosenThetaDegrees;

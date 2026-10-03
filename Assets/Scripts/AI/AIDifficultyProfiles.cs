@@ -20,7 +20,7 @@ namespace BuddahGo.AI
             var source = Load(difficulty);
             if (source == null)
             {
-                Debug.LogWarning($"[AI] No Resources/{ResourcePath}{difficulty} profile asset; using the default profile.");
+                Debug.LogError($"[AI] No Resources/{ResourcePath}{difficulty} profile asset; AI will drive a blank default profile.");
                 return ScriptableObject.CreateInstance<AIDifficultyProfile>();
             }
             var profile = Object.Instantiate(source);

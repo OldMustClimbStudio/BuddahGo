@@ -43,7 +43,7 @@ namespace BuddahGo.AI
         }
         internal float[] LastCandidateThetas => _candidateThetas;
         internal float[] LastCandidateCosts => _candidateCosts;
-        public ForwardSimPlanner.PlanObservation LastObservation { get; private set; }
+        public PlanObservation LastObservation { get; private set; }
         internal void NotifyCollision() => _collisionSeconds = .5f;
 
         internal static int AttitudeKey(float phi, float omega, float beta, float deadband,
@@ -313,7 +313,7 @@ namespace BuddahGo.AI
             int key = parameters.Stats.IsRooted || parameters.Stats.IsSteeringSuppressed || parameters.TurnMultiplier == 0f ? 0
                 : sign * AttitudeKey(phi, state.YawRate, parameters.TurnDecay, deadband, hysteresis, previousKey * sign);
             bool recovering = referenceRecovery || reanchored;
-            LastObservation = new ForwardSimPlanner.PlanObservation {
+            LastObservation = new PlanObservation {
                 start = state, parameters = parameters, target = projection.Point, tangent = tangent,
                 segment = projection.Segment, progress = projection.Distance, lateral = projection.Lateral, pace = pace,
                 selectedKey = key, desiredYaw = desiredYaw,

@@ -9,6 +9,7 @@ namespace SteamMultiplayer.UI
     {
         private const string DifficultyKey = "SoloMatch.Difficulty";
         private const string CountKey = "SoloMatch.AICount";
+        private static readonly string[] DifficultyLabels = { "简单", "普通", "困难" };
         private readonly Button[] _difficultyButtons = new Button[3];
         private MainMenuUI _menu;
         private TMP_Text _status;
@@ -31,13 +32,12 @@ namespace SteamMultiplayer.UI
             _mode.onClick.AddListener(() => { _aiCount = _aiCount == 0 ? 5 : 0; RefreshMode(); });
             SoloUIFactory.Label(card, "PracticeExplanation", "点击切换：单人赛 / Practice",
                 new Vector2(0f, 70f), new Vector2(600f, 42f), font, 21f);
-            SoloUIFactory.Label(card, "DifficultyLabel", "难度（AI 当前使用普通配置）",
+            SoloUIFactory.Label(card, "DifficultyLabel", "难度",
                 new Vector2(0f, 15f), new Vector2(600f, 40f), font, 22f);
-            string[] labels = { "简单", "普通", "困难" };
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < DifficultyLabels.Length; i++)
             {
                 int index = i;
-                _difficultyButtons[i] = SoloUIFactory.Button(card, "Difficulty" + labels[i], labels[i],
+                _difficultyButtons[i] = SoloUIFactory.Button(card, "Difficulty" + DifficultyLabels[i], DifficultyLabels[i],
                     new Vector2(-180f + 180f * i, -40f), new Vector2(160f, 48f), font);
                 _difficultyButtons[i].onClick.AddListener(() => SelectDifficulty((SoloDifficulty)index));
             }
@@ -86,10 +86,9 @@ namespace SteamMultiplayer.UI
 
         private void RefreshDifficulty()
         {
-            string[] labels = { "简单", "普通", "困难" };
             for (int i = 0; i < _difficultyButtons.Length; i++)
                 _difficultyButtons[i].GetComponentInChildren<TMP_Text>().text =
-                    ((int)_difficulty == i ? "● " : string.Empty) + labels[i];
+                    ((int)_difficulty == i ? "● " : string.Empty) + DifficultyLabels[i];
         }
 
         private void StartPractice()

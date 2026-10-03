@@ -16,7 +16,7 @@ namespace BuddahGo.AI
         public SplineRacingLine Line { get; private set; }
         public MotionParameters Parameters { get; private set; }
         public event System.Action<Collision> Contact;
-        public event System.Action<uint, ForwardSimPlanner.PlanObservation> PlanObserved;
+        public event System.Action<uint, PlanObservation> PlanObserved;
         public event System.Action<MotionComparison> ModelCompared;
         private BuddahPredictedMotor _motor;
         private BuddahPredictedMotorConfig _config;
@@ -60,8 +60,10 @@ namespace BuddahGo.AI
         }
         private void ObserveContacts(Collision collision)
         {
-            foreach (var contact in collision.contacts)
+            // GetContact avoids the ContactPoint[] that Collision.contacts allocates on every physics step.
+            for (int i = 0, count = collision.contactCount; i < count; i++)
             {
+                ContactPoint contact = collision.GetContact(i);
                 if (Mathf.Abs(contact.normal.y) < 0.7f)
                 {
                     _forecastCollided = true;
@@ -92,7 +94,13 @@ namespace BuddahGo.AI
                 || !(_motor.IsOwner || !_motor.Owner.IsValid)) return false;
             if ((_completion != null && _completion.IsFinished) || !ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
             { Steering = 0; _pending = false; _hasPlan = false; drive = false; return true; }
-            if (Profile == null) { Profile = ScriptableObject.CreateInstance<AIDifficultyProfile>(); _ownsProfile = true; }
+            if (Profile == null)
+            {
+                // Spawners always adopt a product profile; a missing one is a setup error, not a reason
+                // to fall back to the retired beam planner that a blank profile would select.
+                Debug.LogError($"[AI] {name} has no difficulty profile; using the Normal product profile.", this);
+                Profile = AIDifficultyProfiles.Resolve(SoloDifficulty.Normal, 0); _ownsProfile = true;
+            }
             var track = TrackSplineRef.Instance;
             if (track == null || track.TrackLength <= 0f || _motor.TimeManager == null) return true;
             if (Line == null) Line = SplineRacingLine.Capture(track);
@@ -122,7 +130,7 @@ namespace BuddahGo.AI
                 else { _pendingSteering = key; _pending = true; _applyTick = tick + (uint)Profile.ReactionTicks + (uint)ReactionJitter(); }
                 LastPlanMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000d / System.Diagnostics.Stopwatch.Frequency;
                 _lastPlanTick = tick; _hasPlan = true;
-                PlanObserved?.Invoke(tick, _planner is ThrustVectorPlanner thrust ? thrust.LastObservation : ((ForwardSimPlanner)_planner).LastObservation);
+                PlanObserved?.Invoke(tick, _planner.LastObservation);
             }
             // Optional evidence only; no allocations or prediction samples without an observer.
             if (ModelCompared != null)

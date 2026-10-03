@@ -53,7 +53,7 @@ namespace BuddahGo.AI
             carErrorDegrees = state.Car + state.Offset;
             return phi;
         }
-        public ForwardSimPlanner.PlanObservation LastObservation { get; private set; }
+        public PlanObservation LastObservation { get; private set; }
 
         internal static int AttitudeKey(float phi, float omega, float beta, float deadband,
             float hysteresis, int previousPhysicalKey)
@@ -138,7 +138,7 @@ namespace BuddahGo.AI
             int key = parameters.Stats.IsRooted || parameters.Stats.IsSteeringSuppressed || parameters.TurnMultiplier == 0f ? 0
                 : sign * AttitudeKey(phi, state.YawRate, parameters.TurnDecay,
                     profile.AttitudeDeadbandDegrees * Mathf.Deg2Rad, profile.AttitudeHysteresisDegrees * Mathf.Deg2Rad, previousKey * sign);
-            LastObservation = new ForwardSimPlanner.PlanObservation {
+            LastObservation = new PlanObservation {
                 start = state, parameters = parameters, target = projection.Point, tangent = tangent,
                 segment = projection.Segment, progress = projection.Distance, lateral = projection.Lateral, pace = pace,
                 selectedKey = key, desiredYaw = desiredYaw, desiredAcceleration = desired, headingError = phi,

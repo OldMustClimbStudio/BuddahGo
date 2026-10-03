@@ -10,7 +10,6 @@ public static class AIDifficultyAssetTool
 {
     public static void Build()
     {
-        if (!Application.dataPath.Replace('\\', '/').EndsWith("/.worktree/single-player-mode/Assets")) throw new Exception("Wrong project");
         string tools = Path.Combine(Application.dataPath, "../Tools/ai");
         Directory.CreateDirectory(Path.Combine(Application.dataPath, "Resources/AI"));
         foreach (string tier in new[] { "Easy", "Normal", "Hard" })

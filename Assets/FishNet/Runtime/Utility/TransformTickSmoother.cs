@@ -550,10 +550,8 @@ namespace FishNet.Component.Transforming
         /// <returns></returns>
         private TransformProperties GetNetworkObjectWorldPropertiesWithOffset() => _networkObject.transform.GetWorldProperties(_gfxInitializedOffsetValues);
 
-        /// <summary>
-        /// Returns if prediction can be used on this rigidbody.
-        /// </summary>
-        /// <returns></returns>
+        // BuddahGo patch (Solo presentation timeline, see Docs/single-player/solo-presentation-timeline.md):
+        // lets BuddahPredictionVisualRootBridge take over the graphical object. Reapply after FishNet upgrades.
         private bool _presentationSuspended;
 
         /// <summary>Transfers graphical ownership without changing prediction or physics.</summary>
@@ -568,6 +566,10 @@ namespace FishNet.Component.Transforming
                 Teleport();
         }
 
+        /// <summary>
+        /// Returns if prediction can be used on this rigidbody.
+        /// </summary>
+        /// <returns></returns>
         private bool CanSmooth()
         {
             if (_presentationSuspended)

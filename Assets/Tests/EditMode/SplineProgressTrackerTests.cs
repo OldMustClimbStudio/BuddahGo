@@ -146,7 +146,7 @@ namespace BuddahGo.Tests
                 track=scene.GetRootGameObjects().SelectMany(x=>x.GetComponentsInChildren<TrackSplineRef>(true)).Single();
                 typeof(TrackSplineRef).GetMethod("Awake",Flags).Invoke(track,null);
                 ApplyPrefabSettings();
-                var rows=File.ReadAllLines("Tools/tracker/fixtures/stall-entry.jsonl").Select(JsonUtility.FromJson<Replay>).ToArray();
+                var rows=File.ReadAllLines(Path.Combine(Application.dataPath, "../Tools/tracker/fixtures/stall-entry.jsonl")).Select(JsonUtility.FromJson<Replay>).ToArray();
                 tracker.SnapToTrackProgress(rows[0].progress);
                 float maxLag=0, maxStep=0; int plateau=0;
                 for(int j=1;j<rows.Length;j++)

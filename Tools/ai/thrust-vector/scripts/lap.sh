@@ -1,10 +1,11 @@
 #!/bin/bash
 # usage: runplayer.sh <name> <profile.json> <laps:1|3> <aiCount> [timeoutSec]
 NAME="$1"; PROFILE="$2"; LAPS="${3:-1}"; AI="${4:-0}"; TMO="${5:-600}"
-ROOT="C:/Users/dwh88/Documents/Codex/2026-10-02/claude-thrust"
-EXE="$ROOT/build/BuddahGoThrust.exe"
+HERE="$(cd "$(dirname "$0")" && pwd)"; PROJECT="$(cd "$HERE/../../../.." && pwd)"
+# Defaults match ThrustVectorAcceptanceBuild (git-ignored Logs/); override with THRUST_ROOT / THRUST_EXE.
+ROOT="${THRUST_ROOT:-$PROJECT/Logs/thrust-vector}"; EXE="${THRUST_EXE:-$PROJECT/Logs/thrust-vector-build/BuddahGoThrust.exe}"
 OUT="$ROOT/runs/$NAME"
-REPO="C:/Users/dwh88/UnityProject/BuddahGo/.worktree/single-player-mode/Tools/ai/thrust-vector/rollout-2026-10-02/player/$NAME"
+REPO="$HERE/../rollout-2026-10-02/player/$NAME"
 if [ -e "$OUT" ]; then echo "exists: $OUT"; exit 1; fi
 mkdir -p "$ROOT/runs" "$REPO"
 FLAG="--ai-a1-output"; [ "$LAPS" = "3" ] && FLAG="--ai-a2-output"

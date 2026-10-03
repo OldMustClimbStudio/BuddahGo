@@ -1,0 +1,9 @@
+# Spline tracker saved-position regression
+
+`fixtures/stall-entry.jsonl` contains 70 unchanged pose/velocity samples from the natural three-lap, spin-fixed run recorded on 2026-10-02 (`93dc855`, evidence documented by `eae9f66`). Source: `task-18/evidence/fixed/trajectory.jsonl`, elapsed 358.033333–364.933333 seconds. Only elapsed, position, velocity, yaw and original tracker progress fields are retained. SHA-256: `50884ec366eaa28798dcea795d87ed117382ee30ed73deb28b803e00c9fdf8cc`.
+
+`SplineProgressTrackerTests.SavedRaceMapPositionsDoNotPlateauOrAccumulateCatchup` opens the real RaceMap additively, loads the actual Buddah prefab tracker settings, and drives the real tracker with these saved positions. Between approximately 10 Hz recorded samples, positions/velocities are interpolated to approximately 60 Hz. This is deterministic geometry/state replay, not reconstruction of the original rendered frames, physics simulation, AI pace measurement or a new natural lap/finish test. Only the initial tracker progress is seeded; no lap counts or race results are written.
+
+The regression asserts that the known 360.233333–362.533333 plateau disappears, lag stays below 5 m, individual replay steps stay at or below 3.51 m (the existing high-speed floor is 3.5 m), and distance/parameter state agrees within the track inverse lookup tolerance. Synthetic tests cover forward/reverse clamps and wraps, held-sample flags/direction, out-of-corridor initialization, nearby parallel/crossing branches, distant/elevated branches, and the existing sequential checkpoint direction gate.
+
+Full baseline/fixed replay evidence, branch probes and build/test logs are private in `C:/Users/dwh88/Documents/Codex/2026-10-02/task`. The editor-only branch sampler is removed from the delivered runtime source. See [tracker fix evidence](../../Docs/single-player/tracker-fix-2026-10-02.md) for results and limitations.

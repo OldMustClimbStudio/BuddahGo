@@ -1,0 +1,106 @@
+A1/A2 driving checks (development only)
+
+This is the A1 single-racer, no-skill, one-natural-lap checkpoint. It uses the
+existing Practice host's sole racer. A2 observes the same sole racer through three natural laps. Neither changes
+the product's required lap count. AIRacerDriver is disabled on the prefab until
+the explicit harness enables it; ordinary Practice input is unchanged.
+
+Editor: open MainMenu, enter Play, then Tools > AI > A1 Run From Playing MainMenu.
+Player: make a Development Windows build containing MainMenu, PropertySelection,
+and RaceMap. Launch with an absolute private output folder:
+  BuddahGoA1.exe --ai-a1-output C:/Temp/a1-run -logFile C:/Temp/a1-player.log
+The output directory must be absent or empty. Keep Player.log outside it.
+An optional --ai-a1-profile C:/Temp/profile.json overwrites fields on the default
+AIDifficultyProfile. Example JSON: {"HorizonSeconds":3.0,"TargetSpeed":65.0}.
+Use valid bounded values shown in AIDifficultyProfile. These are planning
+preferences, not Rigidbody force/speed changes. Only Normal is experimental;
+Easy/Hard mappings and multi-racer tuning remain future work.
+
+The harness starts a Solo Practice host, submits a legal loadout/skin, disables
+skill input, and enables the prefab's server AIRacerDriver. The driver outputs
+only digital steering through ISteeringOverride; normal motor throttle, forces,
+launch handoff, checkpoints, lap crossings, and authoritative timing still run.
+There is no custom teleport/recovery or synthetic Finish. It stops observation
+after RaceTiming reports one real lap, then requests the usual session teardown.
+summary.success means the A1 lap milestone, not a product Match completion.
+
+Only these five objects are temporarily disabled; original activeSelf values
+are recorded and restored on completion/interruption:
+  RaceMap/DebugBox/DebugboxCanPush
+  RaceMap/DebugBox/DebugboxCanPush (1)
+  RaceMap/DebugBox/DebugboxCanPush (2)
+  RaceMap/DebugBox/DebugboxCanPush (3)
+  RaceMap/DebugBox/DebugboxTriggerPush
+The scene asset and all other track collisions are unchanged.
+
+Evidence: trajectory.jsonl records actual server tick/clock, position, velocity,
+yaw, steering, lap, next checkpoint, track progress, lateral error, sampled last
+planning cost, gaps and discontinuities at about 10Hz. events.jsonl records GO,
+checkpoint changes, side-contact enters, wrong-way/stall, restore, and 60-tick
+model comparisons. configuration.json and racing-line.json capture the observed run.
+summary.json uses the authoritative LapSeconds. Timeout/failure stays a failure.
+Side-contact-enter counts are not unique collision episodes. Camera PNGs render
+the current scene camera; overlay UI is not guaranteed to appear in this capture.
+
+Render inspectable raw evidence using Python's standard library:
+  python Tools/ai/plot_a1.py C:/Temp/a1-run
+This writes trajectory.svg and diagnostics.json. The gray spline reference is
+not a surveyed track boundary. The plot preserves equal world X/Z scale.
+
+Model boundaries: shared BuddahLocomotionStep force rules, real mass/yaw inertia,
+drag/turn release, speed caps, steering suppression/sign, flat sliding friction.
+It does not forecast wall collision resolution, arbitrary slopes, or skills.
+Ground friction is inferred from current supporting collider materials; normal
+physics is never changed. Runtime model windows with side contacts are reported
+separately. Declared 60-tick tolerances: 0.5m position, 0.5m/s velocity, 3deg yaw.
+
+Checks: AIDrivingTests contains the 30/60Hz real PhysX parity cases, actual floor
+sliding friction, line wrap, and disabled prefab behavior. A1DrivingTools.RunChecks
+also runs AcceptedLapTimingTests, MatchClockTests, and SoloSessionFlowTests, with
+durable receipts under Logs/ai-a1/tests across test-runner domain reloads.
+No online/Steam two-client tests are required by this A1 checkpoint.
+
+A2: Tools > AI > A2 Run From Playing MainMenu, or a private Development Player:
+  BuddahGoA2.exe --ai-a2-output C:/Temp/a2-run --ai-a2-profile C:/path/to/normal.json -logFile C:/Temp/a2-player.log
+A2 waits for three authoritative LapSeconds, Finished, ResultInteractive and
+stopped AI input; then restores the five boxes and requests ordinary teardown.
+It never calls synthetic Finish or substitutes three separate one-lap runs.
+An ordinary non-Development Player has no CLI observation harness.
+
+normal.json captures selected V5. Inspector context menu Restore Normal (V5)
+resets pace, precision and reaction together. TargetSpeed/SpeedWeight tune pace;
+CorneringFactor changes curve speed preference; BeamWidth/HorizonSeconds and
+ControlSeconds trade search resolution against cost; LateralWeight and
+LateralVelocityWeight tune tracking; ReplanTicks/ReactionTicks control cadence.
+These knobs are not calibrated Easy/Hard mappings. ValidateConfiguration rejects
+nonfinite/out-of-range values; use a fresh session after invalid CLI configuration.
+The five-candidate A2 budget is exhausted; future tuning needs a new task scope.
+
+A2 plot (Python + Pillow):
+  python Tools/ai/plot_a2.py C:/Temp/a2-run
+Writes equal-scale per-lap trajectory.png/svg and diagnostics.json, with contact
+markers and discontinuity breaks. Raw samples remain the source of truth.
+See Docs/single-player/a2-results.md and a2-results.json for measured outcomes.
+
+Corner-entry spin fix (2026-10-02): see Docs/single-player/ai-spin-fix.md.
+Normal profile is unchanged. The planner rejects extra heading windings relative
+to the locally turning route. Real three-lap average 126.044s is slower than V5;
+do not call this a pace improvement or resume the exhausted tuning search.
+Harness additionally writes plans.jsonl: tick/clock, target/tangent, segment,
+progress/lateral/pace, first-key costs, selected yaw change/rate, winding rejection
+count and viable-first-key count. Nonserializable in-memory MotionState and
+MotionParameters fields are not emitted by JsonUtility; real body pose/velocity
+and steering remain in trajectory.jsonl, with separate visualYaw/cameraYaw.
+plot_spin.py aligns each real sample to the latest plan without synthesizing
+physics samples. It requires matplotlib and a root containing evidence/baseline
+and evidence/fixed. Example: python Tools/ai/plot_spin.py <task-18-root>.
+
+---- 2026-10-03 thrust-vector controller and difficulty tiers ----
+Profiles: difficulty-{easy,normal,hard}.json are the shipped tiers (generated into
+Assets/Resources/AI/*.asset by AIDifficultyAssetTool.Build). thrust-vector-*.json are the
+raced variants (design = line follower without walls; wall* = wall corridor; nobrake* = Hard
+lineage). normal.json remains the V5 beam baseline (UseThrustVector absent/false).
+Harness flags: --ai-count N (server AI), --ai-profiles "p0;p1;..;p5" (one profile per car,
+p0 = this racer), --ai-product-profiles (keep the spawner's difficulty profiles),
+--ai-difficulty easy|normal|hard, GO+2..11 s frame window in summary.json, race-results.json
+per racer. Scripts and evidence: thrust-vector/scripts/README.md, thrust-vector/rollout-2026-10-02/.

@@ -23,7 +23,7 @@ namespace SteamMultiplayer.Network.Results
         [Header("Debug")]
         [SerializeField] private bool enableDebugLogs = true;
 
-        private readonly HashSet<int> _placedClientIds = new HashSet<int>();
+        private readonly HashSet<int> _placedRacerIds = new HashSet<int>();
         private bool _warnedMissingAnchors;
         private bool _warnedOverflowAnchors;
 
@@ -59,7 +59,7 @@ namespace SteamMultiplayer.Network.Results
         public override void OnStopServer()
         {
             base.OnStopServer();
-            _placedClientIds.Clear();
+            _placedRacerIds.Clear();
             _warnedMissingAnchors = false;
             _warnedOverflowAnchors = false;
             if (Instance == this)
@@ -88,18 +88,18 @@ namespace SteamMultiplayer.Network.Results
         }
 
         [Server]
-        public void NotifyPlacementApplied(int clientId)
+        public void NotifyPlacementApplied(int racerId)
         {
             if (!IsServerInitialized)
                 return;
 
-            _placedClientIds.Add(clientId);
+            _placedRacerIds.Add(racerId);
         }
 
         [Server]
-        public bool HasPlacementApplied(int clientId)
+        public bool HasPlacementApplied(int racerId)
         {
-            return IsServerInitialized && _placedClientIds.Contains(clientId);
+            return IsServerInitialized && _placedRacerIds.Contains(racerId);
         }
 
         private void ResolvePlacementTransform(int placementIndex, out Vector3 worldPosition, out Quaternion worldRotation)

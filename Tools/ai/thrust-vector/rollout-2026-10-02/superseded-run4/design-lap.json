@@ -1,0 +1,23 @@
+{
+    "name": "design-lap",
+    "failure": "projection advance >10m",
+    "lapSeconds": "",
+    "complete": false,
+    "k": 0.30000001192092898,
+    "tau": 1.0,
+    "margin": 2.0,
+    "paceFactor": 0.8999999761581421,
+    "brakePlan": 10.0,
+    "deadband": 1.5,
+    "seconds": 32.38333511352539,
+    "progress": 1252.766357421875,
+    "rms": 67.66622924804688,
+    "maxError": 170.33592224121095,
+    "minHeading": -172.89295959472657,
+    "maxHeading": 135.45494079589845,
+    "terminalAdvance": 14.379150390625,
+    "ticks": 1943,
+    "sideChanges": 31,
+    "invariantViolations": 0,
+    "firstInvariant": ""
+}

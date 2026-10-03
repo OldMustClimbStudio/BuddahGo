@@ -1,0 +1,490 @@
+{
+  "thrust-lap.csv": {
+    "csv": "thrust-lap.csv",
+    "sha256": "21b64baf35b9c527bb4e3762d8cc7f145bb8a492dbaacfd3fdf31c902a990a32",
+    "rows": 3226,
+    "seconds": 53.766666666666666,
+    "counts": {
+      "braking": 1717,
+      "holding": 358,
+      "recovery": 203,
+      "backwards": 203,
+      "recent_collision": 0
+    },
+    "branch_seconds": {
+      "braking": 28.616666666666667,
+      "holding": 5.966666666666667,
+      "recovery": 3.3833333333333333,
+      "backwards": 3.3833333333333333,
+      "recent_collision": 0.0
+    },
+    "branch_percent": {
+      "braking": 53.22380657160571,
+      "holding": 11.097334159950403,
+      "recovery": 6.292622442653441,
+      "backwards": 6.292622442653441,
+      "recent_collision": 0.0
+    },
+    "side_changes": 14,
+    "first_independent_heading_crossing": {
+      "tick": 3122,
+      "time": 52.03333333333333,
+      "relative_yaw": -180.1239,
+      "lateral": 172.8413,
+      "progress": 1429.646
+    },
+    "histogram": [
+      {
+        "bin": "below120",
+        "raw_ticks": 0,
+        "raw_seconds": 0.0,
+        "raw_percent": 0.0,
+        "effective_ticks": 0,
+        "effective_seconds": 0.0,
+        "effective_percent": 0.0
+      },
+      {
+        "bin": "120 floor +/-0.01",
+        "raw_ticks": 888,
+        "raw_seconds": 14.8,
+        "raw_percent": 51.71811298776936,
+        "effective_ticks": 888,
+        "effective_seconds": 14.8,
+        "effective_percent": 51.71811298776936
+      },
+      {
+        "bin": "120.01..<125",
+        "raw_ticks": 45,
+        "raw_seconds": 0.75,
+        "raw_percent": 2.6208503203261504,
+        "effective_ticks": 45,
+        "effective_seconds": 0.75,
+        "effective_percent": 2.6208503203261504
+      },
+      {
+        "bin": "125..<130",
+        "raw_ticks": 40,
+        "raw_seconds": 0.6666666666666666,
+        "raw_percent": 2.3296447291788,
+        "effective_ticks": 40,
+        "effective_seconds": 0.6666666666666666,
+        "effective_percent": 2.3296447291788
+      },
+      {
+        "bin": "130..<135",
+        "raw_ticks": 61,
+        "raw_seconds": 1.0166666666666666,
+        "raw_percent": 3.5527082119976705,
+        "effective_ticks": 71,
+        "effective_seconds": 1.1833333333333333,
+        "effective_percent": 4.135119394292371
+      },
+      {
+        "bin": "135..<140",
+        "raw_ticks": 61,
+        "raw_seconds": 1.0166666666666666,
+        "raw_percent": 3.5527082119976705,
+        "effective_ticks": 68,
+        "effective_seconds": 1.1333333333333333,
+        "effective_percent": 3.9603960396039604
+      },
+      {
+        "bin": "140..<145",
+        "raw_ticks": 73,
+        "raw_seconds": 1.2166666666666666,
+        "raw_percent": 4.25160163075131,
+        "effective_ticks": 72,
+        "effective_seconds": 1.2,
+        "effective_percent": 4.19336051252184
+      },
+      {
+        "bin": "145..<150",
+        "raw_ticks": 89,
+        "raw_seconds": 1.4833333333333334,
+        "raw_percent": 5.18345952242283,
+        "effective_ticks": 105,
+        "effective_seconds": 1.75,
+        "effective_percent": 6.11531741409435
+      },
+      {
+        "bin": "150..<155",
+        "raw_ticks": 46,
+        "raw_seconds": 0.7666666666666667,
+        "raw_percent": 2.6790914385556204,
+        "effective_ticks": 143,
+        "effective_seconds": 2.3833333333333333,
+        "effective_percent": 8.328479906814211
+      },
+      {
+        "bin": "155..<160",
+        "raw_ticks": 78,
+        "raw_seconds": 1.3,
+        "raw_percent": 4.542807221898661,
+        "effective_ticks": 57,
+        "effective_seconds": 0.95,
+        "effective_percent": 3.3197437390797906
+      },
+      {
+        "bin": "160..<165",
+        "raw_ticks": 87,
+        "raw_seconds": 1.45,
+        "raw_percent": 5.06697728596389,
+        "effective_ticks": 77,
+        "effective_seconds": 1.2833333333333334,
+        "effective_percent": 4.48456610366919
+      },
+      {
+        "bin": "165..<170",
+        "raw_ticks": 103,
+        "raw_seconds": 1.7166666666666666,
+        "raw_percent": 5.998835177635411,
+        "effective_ticks": 59,
+        "effective_seconds": 0.9833333333333333,
+        "effective_percent": 3.43622597553873
+      },
+      {
+        "bin": "170..<177.99",
+        "raw_ticks": 108,
+        "raw_seconds": 1.8,
+        "raw_percent": 6.29004076878276,
+        "effective_ticks": 66,
+        "effective_seconds": 1.1,
+        "effective_percent": 3.84391380314502
+      },
+      {
+        "bin": "178 cap +/-0.01",
+        "raw_ticks": 38,
+        "raw_seconds": 0.6333333333333333,
+        "raw_percent": 2.21316249271986,
+        "effective_ticks": 26,
+        "effective_seconds": 0.43333333333333335,
+        "effective_percent": 1.5142690739662201
+      },
+      {
+        "bin": "above178",
+        "raw_ticks": 0,
+        "raw_seconds": 0.0,
+        "raw_percent": 0.0,
+        "effective_ticks": 0,
+        "effective_seconds": 0.0,
+        "effective_percent": 0.0
+      }
+    ],
+    "switches": [
+      {
+        "tick": 276,
+        "time": 4.6,
+        "theta": -8.025151,
+        "lateral": -3.490195,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 355,
+        "time": 5.916666666666667,
+        "theta": 172.8785,
+        "lateral": 3.099359,
+        "recovery": "False",
+        "braking": "True"
+      },
+      {
+        "tick": 744,
+        "time": 12.4,
+        "theta": -7.471865,
+        "lateral": -3.250983,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 972,
+        "time": 16.2,
+        "theta": 7.102324,
+        "lateral": 3.091043,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 1070,
+        "time": 17.833333333333332,
+        "theta": -171.8784,
+        "lateral": -3.531878,
+        "recovery": "False",
+        "braking": "True"
+      },
+      {
+        "tick": 1409,
+        "time": 23.483333333333334,
+        "theta": 8.168921,
+        "lateral": 3.5523,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 1571,
+        "time": 26.183333333333334,
+        "theta": -7.19789,
+        "lateral": -3.132417,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 1812,
+        "time": 30.2,
+        "theta": 172.5997,
+        "lateral": 3.220011,
+        "recovery": "False",
+        "braking": "True"
+      },
+      {
+        "tick": 2078,
+        "time": 34.63333333333333,
+        "theta": -6.988517,
+        "lateral": -3.041761,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 2220,
+        "time": 37.0,
+        "theta": 8.259081,
+        "lateral": 3.591237,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 2599,
+        "time": 43.31666666666667,
+        "theta": -172.3711,
+        "lateral": -3.31892,
+        "recovery": "False",
+        "braking": "True"
+      },
+      {
+        "tick": 2677,
+        "time": 44.61666666666667,
+        "theta": 168.5883,
+        "lateral": 4.946439,
+        "recovery": "False",
+        "braking": "True"
+      },
+      {
+        "tick": 2777,
+        "time": 46.28333333333333,
+        "theta": -165.9771,
+        "lateral": -6.057747,
+        "recovery": "False",
+        "braking": "True"
+      },
+      {
+        "tick": 3091,
+        "time": 51.516666666666666,
+        "theta": 6.923727,
+        "lateral": 3.013699,
+        "recovery": "True",
+        "braking": "False"
+      }
+    ],
+    "weighting": "Each pre-step command held one model tick of 1/60 s; recovery and holding excluded from braking. Raw theta histogram and effective commanded (boundedTarget - velocityError) shown separately; no physical-trajectory angle substituted. Partial run if DNF."
+  },
+  "seam-profile-lap.csv": {
+    "csv": "seam-profile-lap.csv",
+    "sha256": "11e43653a72a197ff8376fcb0a6358b3bc5401ce26d96459ba04e3303bb180e4",
+    "rows": 1261,
+    "seconds": 21.016666666666666,
+    "counts": {
+      "braking": 798,
+      "holding": 62,
+      "recovery": 0,
+      "backwards": 0,
+      "recent_collision": 0
+    },
+    "branch_seconds": {
+      "braking": 13.3,
+      "holding": 1.0333333333333334,
+      "recovery": 0.0,
+      "backwards": 0.0,
+      "recent_collision": 0.0
+    },
+    "branch_percent": {
+      "braking": 63.28310864393338,
+      "holding": 4.9167327517842985,
+      "recovery": 0.0,
+      "backwards": 0.0,
+      "recent_collision": 0.0
+    },
+    "side_changes": 4,
+    "first_independent_heading_crossing": null,
+    "histogram": [
+      {
+        "bin": "below120",
+        "raw_ticks": 0,
+        "raw_seconds": 0.0,
+        "raw_percent": 0.0,
+        "effective_ticks": 0,
+        "effective_seconds": 0.0,
+        "effective_percent": 0.0
+      },
+      {
+        "bin": "120 floor +/-0.01",
+        "raw_ticks": 421,
+        "raw_seconds": 7.016666666666667,
+        "raw_percent": 52.75689223057645,
+        "effective_ticks": 421,
+        "effective_seconds": 7.016666666666667,
+        "effective_percent": 52.75689223057645
+      },
+      {
+        "bin": "120.01..<125",
+        "raw_ticks": 46,
+        "raw_seconds": 0.7666666666666667,
+        "raw_percent": 5.764411027568922,
+        "effective_ticks": 46,
+        "effective_seconds": 0.7666666666666667,
+        "effective_percent": 5.764411027568922
+      },
+      {
+        "bin": "125..<130",
+        "raw_ticks": 42,
+        "raw_seconds": 0.7,
+        "raw_percent": 5.263157894736842,
+        "effective_ticks": 42,
+        "effective_seconds": 0.7,
+        "effective_percent": 5.263157894736842
+      },
+      {
+        "bin": "130..<135",
+        "raw_ticks": 46,
+        "raw_seconds": 0.7666666666666667,
+        "raw_percent": 5.764411027568922,
+        "effective_ticks": 46,
+        "effective_seconds": 0.7666666666666667,
+        "effective_percent": 5.764411027568922
+      },
+      {
+        "bin": "135..<140",
+        "raw_ticks": 29,
+        "raw_seconds": 0.48333333333333334,
+        "raw_percent": 3.634085213032581,
+        "effective_ticks": 43,
+        "effective_seconds": 0.7166666666666667,
+        "effective_percent": 5.3884711779448615
+      },
+      {
+        "bin": "140..<145",
+        "raw_ticks": 23,
+        "raw_seconds": 0.38333333333333336,
+        "raw_percent": 2.882205513784461,
+        "effective_ticks": 47,
+        "effective_seconds": 0.7833333333333333,
+        "effective_percent": 5.889724310776942
+      },
+      {
+        "bin": "145..<150",
+        "raw_ticks": 24,
+        "raw_seconds": 0.4,
+        "raw_percent": 3.007518796992481,
+        "effective_ticks": 18,
+        "effective_seconds": 0.3,
+        "effective_percent": 2.2556390977443606
+      },
+      {
+        "bin": "150..<155",
+        "raw_ticks": 6,
+        "raw_seconds": 0.1,
+        "raw_percent": 0.7518796992481203,
+        "effective_ticks": 3,
+        "effective_seconds": 0.05,
+        "effective_percent": 0.37593984962406013
+      },
+      {
+        "bin": "155..<160",
+        "raw_ticks": 6,
+        "raw_seconds": 0.1,
+        "raw_percent": 0.7518796992481203,
+        "effective_ticks": 2,
+        "effective_seconds": 0.03333333333333333,
+        "effective_percent": 0.2506265664160401
+      },
+      {
+        "bin": "160..<165",
+        "raw_ticks": 34,
+        "raw_seconds": 0.5666666666666667,
+        "raw_percent": 4.260651629072681,
+        "effective_ticks": 31,
+        "effective_seconds": 0.5166666666666667,
+        "effective_percent": 3.8847117794486214
+      },
+      {
+        "bin": "165..<170",
+        "raw_ticks": 19,
+        "raw_seconds": 0.31666666666666665,
+        "raw_percent": 2.380952380952381,
+        "effective_ticks": 15,
+        "effective_seconds": 0.25,
+        "effective_percent": 1.8796992481203008
+      },
+      {
+        "bin": "170..<177.99",
+        "raw_ticks": 85,
+        "raw_seconds": 1.4166666666666667,
+        "raw_percent": 10.651629072681704,
+        "effective_ticks": 73,
+        "effective_seconds": 1.2166666666666666,
+        "effective_percent": 9.147869674185463
+      },
+      {
+        "bin": "178 cap +/-0.01",
+        "raw_ticks": 17,
+        "raw_seconds": 0.2833333333333333,
+        "raw_percent": 2.1303258145363406,
+        "effective_ticks": 11,
+        "effective_seconds": 0.18333333333333332,
+        "effective_percent": 1.3784461152882206
+      },
+      {
+        "bin": "above178",
+        "raw_ticks": 0,
+        "raw_seconds": 0.0,
+        "raw_percent": 0.0,
+        "effective_ticks": 0,
+        "effective_seconds": 0.0,
+        "effective_percent": 0.0
+      }
+    ],
+    "switches": [
+      {
+        "tick": 290,
+        "time": 4.833333333333333,
+        "theta": -6.993029,
+        "lateral": -3.043715,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 441,
+        "time": 7.35,
+        "theta": 6.903333,
+        "lateral": 3.004865,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 807,
+        "time": 13.45,
+        "theta": -7.413684,
+        "lateral": -3.225811,
+        "recovery": "False",
+        "braking": "False"
+      },
+      {
+        "tick": 1151,
+        "time": 19.183333333333334,
+        "theta": 172.7167,
+        "lateral": 3.169408,
+        "recovery": "False",
+        "braking": "True"
+      }
+    ],
+    "weighting": "Each pre-step command held one model tick of 1/60 s; recovery and holding excluded from braking. Raw theta histogram and effective commanded (boundedTarget - velocityError) shown separately; no physical-trajectory angle substituted. Partial run if DNF."
+  }
+}

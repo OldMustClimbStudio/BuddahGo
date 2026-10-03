@@ -1,0 +1,113 @@
+{
+    "racers": [
+        {
+            "racerId": 10004,
+            "name": "AI 5",
+            "profile": "thrust-vector-nobrake.json",
+            "collisions": 311,
+            "samples": 125578,
+            "speedSum": 2146049.0175202374,
+            "maxSpeed": 80.79987335205078,
+            "finished": true,
+            "totalSeconds": 247.85000000000003,
+            "laps": [
+                82.88333333333333,
+                82.99999999999999,
+                81.9666666666667
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 10003,
+            "name": "AI 4",
+            "profile": "thrust-vector-wall-120.json",
+            "collisions": 268,
+            "samples": 125578,
+            "speedSum": 2069992.2776675709,
+            "maxSpeed": 80.80115509033203,
+            "finished": false,
+            "totalSeconds": 179.31666666666667,
+            "laps": [
+                90.45000000000002,
+                88.86666666666665
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 10002,
+            "name": "AI 3",
+            "profile": "thrust-vector-wall.json",
+            "collisions": 169,
+            "samples": 125578,
+            "speedSum": 1970048.341621703,
+            "maxSpeed": 80.80033111572266,
+            "finished": false,
+            "totalSeconds": 185.95000000000003,
+            "laps": [
+                93.30000000000001,
+                92.65
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 10001,
+            "name": "AI 2",
+            "profile": "thrust-vector-wall-tail0.json",
+            "collisions": 266,
+            "samples": 125578,
+            "speedSum": 1917331.3435847993,
+            "maxSpeed": 80.798828125,
+            "finished": false,
+            "totalSeconds": 196.11666666666668,
+            "laps": [
+                96.75,
+                99.36666666666668
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 10000,
+            "name": "AI 1",
+            "profile": "thrust-vector-design.json",
+            "collisions": 69,
+            "samples": 125578,
+            "speedSum": 1643786.8300499118,
+            "maxSpeed": 81.51150512695313,
+            "finished": false,
+            "totalSeconds": 217.48333333333336,
+            "laps": [
+                109.01666666666668,
+                108.46666666666667
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 0,
+            "name": "玩家",
+            "profile": "normal.json",
+            "collisions": 55,
+            "samples": 125578,
+            "speedSum": 1517872.3647733799,
+            "maxSpeed": 80.79269409179688,
+            "finished": false,
+            "totalSeconds": 243.51666666666666,
+            "laps": [
+                121.70000000000002,
+                121.81666666666664
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        }
+    ]
+}

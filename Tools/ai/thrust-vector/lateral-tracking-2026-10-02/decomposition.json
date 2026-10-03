@@ -1,0 +1,257 @@
+{
+  "formal": {
+    "source": "formal-terms.csv",
+    "sha256": "fb494bdf5fcb48a391e29d0ef95ab989952ce2b9009fe49280f57f0d8b3b1fc6",
+    "selection": "All raw |theta| within0.01deg of120; applied braking subset separately; fixed dt1/60. Formula raw=c-p-d. Absolute shares denom integral(|c|+|p|+|d|)dt, never divide by signed net.",
+    "all_floor": {
+      "ticks": 888,
+      "seconds": 14.8,
+      "terms": {
+        "v2k": {
+          "mean": -1.5823833671802927,
+          "min": -108.378891,
+          "max": 36.0436859,
+          "median": 9.6047325,
+          "mean_abs": 25.95639164237849,
+          "positive_ticks": 623,
+          "negative_ticks": 265,
+          "zero_ticks": 0,
+          "absolute_integral": 384.15459630720164,
+          "absolute_share_percent": 45.01292865041971,
+          "largest_component_ticks": 433
+        },
+        "kp_e": {
+          "mean": -2.6122374931506758,
+          "min": -20.82575,
+          "max": 28.3600636,
+          "median": -4.13224912,
+          "mean_abs": 9.21569546309662,
+          "positive_ticks": 256,
+          "negative_ticks": 632,
+          "zero_ticks": 0,
+          "absolute_integral": 136.39229285383,
+          "absolute_share_percent": 15.981629806628728,
+          "largest_component_ticks": 78
+        },
+        "kd_edot": {
+          "mean": 2.748608736245383,
+          "min": -33.94609,
+          "max": 62.5801849,
+          "median": -6.09233269,
+          "mean_abs": 22.492216063868806,
+          "positive_ticks": 332,
+          "negative_ticks": 556,
+          "zero_ticks": 0,
+          "absolute_integral": 332.88479774525837,
+          "absolute_share_percent": 39.00544154295156,
+          "largest_component_ticks": 377
+        }
+      },
+      "absolute_integral_denominator": 853.43168690629,
+      "signed_sum_mean": -1.718754610275,
+      "net_abs_mean": 53.647999188162615,
+      "net_abs_min": 21.65003845,
+      "net_abs_max": 177.60257430000001,
+      "cancellation_ticks": 249,
+      "cancellation_fraction_weighted": 0.06964974447686556,
+      "cancellation_median": 0.0,
+      "cancellation_max": 0.7314493578099666,
+      "curvature_greater_than_combined_PD_ticks": 350,
+      "PD_greater_than_curvature_ticks": 538,
+      "net_over_25_ticks": 755
+    },
+    "braking_floor": {
+      "ticks": 888,
+      "seconds": 14.8,
+      "terms": {
+        "v2k": {
+          "mean": -1.5823833671802927,
+          "min": -108.378891,
+          "max": 36.0436859,
+          "median": 9.6047325,
+          "mean_abs": 25.95639164237849,
+          "positive_ticks": 623,
+          "negative_ticks": 265,
+          "zero_ticks": 0,
+          "absolute_integral": 384.15459630720164,
+          "absolute_share_percent": 45.01292865041971,
+          "largest_component_ticks": 433
+        },
+        "kp_e": {
+          "mean": -2.6122374931506758,
+          "min": -20.82575,
+          "max": 28.3600636,
+          "median": -4.13224912,
+          "mean_abs": 9.21569546309662,
+          "positive_ticks": 256,
+          "negative_ticks": 632,
+          "zero_ticks": 0,
+          "absolute_integral": 136.39229285383,
+          "absolute_share_percent": 15.981629806628728,
+          "largest_component_ticks": 78
+        },
+        "kd_edot": {
+          "mean": 2.748608736245383,
+          "min": -33.94609,
+          "max": 62.5801849,
+          "median": -6.09233269,
+          "mean_abs": 22.492216063868806,
+          "positive_ticks": 332,
+          "negative_ticks": 556,
+          "zero_ticks": 0,
+          "absolute_integral": 332.88479774525837,
+          "absolute_share_percent": 39.00544154295156,
+          "largest_component_ticks": 377
+        }
+      },
+      "absolute_integral_denominator": 853.43168690629,
+      "signed_sum_mean": -1.718754610275,
+      "net_abs_mean": 53.647999188162615,
+      "net_abs_min": 21.65003845,
+      "net_abs_max": 177.60257430000001,
+      "cancellation_ticks": 249,
+      "cancellation_fraction_weighted": 0.06964974447686556,
+      "cancellation_median": 0.0,
+      "cancellation_max": 0.7314493578099666,
+      "curvature_greater_than_combined_PD_ticks": 350,
+      "PD_greater_than_curvature_ticks": 538,
+      "net_over_25_ticks": 755
+    },
+    "nonbraking_floor": {
+      "ticks": 0
+    },
+    "net_PD_cross_check": {
+      "curvature_share_of_absC_plus_absPplusD_percent": 45.5824674090766,
+      "curvature_larger_than_net_PD_ticks": 368,
+      "P_and_D_oppose_ticks": 118
+    }
+  },
+  "diagnostic": {
+    "source": "diagnostic-terms.csv",
+    "sha256": "aa91205a9ebbb1afdc7b2054af537105edc47cfc2c5728fe7d625317476bbf05",
+    "selection": "All raw |theta| within0.01deg of120; applied braking subset separately; fixed dt1/60. Formula raw=c-p-d. Absolute shares denom integral(|c|+|p|+|d|)dt, never divide by signed net.",
+    "all_floor": {
+      "ticks": 421,
+      "seconds": 7.016666666666667,
+      "terms": {
+        "v2k": {
+          "mean": 12.065693164756295,
+          "min": -43.81431,
+          "max": 46.7859573,
+          "median": 18.7749119,
+          "mean_abs": 22.524107549554394,
+          "positive_ticks": 351,
+          "negative_ticks": 70,
+          "zero_ticks": 0,
+          "absolute_integral": 158.04415463937332,
+          "absolute_share_percent": 60.82510113139712,
+          "largest_component_ticks": 302
+        },
+        "kp_e": {
+          "mean": -0.7720413114133017,
+          "min": -11.2974148,
+          "max": 16.9346962,
+          "median": -3.49231553,
+          "mean_abs": 6.697611521152019,
+          "positive_ticks": 114,
+          "negative_ticks": 307,
+          "zero_ticks": 0,
+          "absolute_integral": 46.99490750675,
+          "absolute_share_percent": 18.086527833194506,
+          "largest_component_ticks": 75
+        },
+        "kd_edot": {
+          "mean": -2.2883681682992876,
+          "min": -15.14704,
+          "max": 14.6775217,
+          "median": -3.626934,
+          "mean_abs": 7.809222317942993,
+          "positive_ticks": 119,
+          "negative_ticks": 302,
+          "zero_ticks": 0,
+          "absolute_integral": 54.7947099309,
+          "absolute_share_percent": 21.088371035408375,
+          "largest_component_ticks": 44
+        }
+      },
+      "absolute_integral_denominator": 259.83377207702335,
+      "signed_sum_mean": 15.126102644468883,
+      "net_abs_mean": 29.525914330538242,
+      "net_abs_min": 21.6760873,
+      "net_abs_max": 44.102689579999996,
+      "cancellation_ticks": 165,
+      "cancellation_fraction_weighted": 0.20266908635521697,
+      "cancellation_median": 0.0,
+      "cancellation_max": 0.5640933651377124,
+      "curvature_greater_than_combined_PD_ticks": 301,
+      "PD_greater_than_curvature_ticks": 120,
+      "net_over_25_ticks": 262
+    },
+    "braking_floor": {
+      "ticks": 421,
+      "seconds": 7.016666666666667,
+      "terms": {
+        "v2k": {
+          "mean": 12.065693164756295,
+          "min": -43.81431,
+          "max": 46.7859573,
+          "median": 18.7749119,
+          "mean_abs": 22.524107549554394,
+          "positive_ticks": 351,
+          "negative_ticks": 70,
+          "zero_ticks": 0,
+          "absolute_integral": 158.04415463937332,
+          "absolute_share_percent": 60.82510113139712,
+          "largest_component_ticks": 302
+        },
+        "kp_e": {
+          "mean": -0.7720413114133017,
+          "min": -11.2974148,
+          "max": 16.9346962,
+          "median": -3.49231553,
+          "mean_abs": 6.697611521152019,
+          "positive_ticks": 114,
+          "negative_ticks": 307,
+          "zero_ticks": 0,
+          "absolute_integral": 46.99490750675,
+          "absolute_share_percent": 18.086527833194506,
+          "largest_component_ticks": 75
+        },
+        "kd_edot": {
+          "mean": -2.2883681682992876,
+          "min": -15.14704,
+          "max": 14.6775217,
+          "median": -3.626934,
+          "mean_abs": 7.809222317942993,
+          "positive_ticks": 119,
+          "negative_ticks": 302,
+          "zero_ticks": 0,
+          "absolute_integral": 54.7947099309,
+          "absolute_share_percent": 21.088371035408375,
+          "largest_component_ticks": 44
+        }
+      },
+      "absolute_integral_denominator": 259.83377207702335,
+      "signed_sum_mean": 15.126102644468883,
+      "net_abs_mean": 29.525914330538242,
+      "net_abs_min": 21.6760873,
+      "net_abs_max": 44.102689579999996,
+      "cancellation_ticks": 165,
+      "cancellation_fraction_weighted": 0.20266908635521697,
+      "cancellation_median": 0.0,
+      "cancellation_max": 0.5640933651377124,
+      "curvature_greater_than_combined_PD_ticks": 301,
+      "PD_greater_than_curvature_ticks": 120,
+      "net_over_25_ticks": 262
+    },
+    "nonbraking_floor": {
+      "ticks": 0
+    },
+    "net_PD_cross_check": {
+      "curvature_share_of_absC_plus_absPplusD_percent": 66.63281535802678,
+      "curvature_larger_than_net_PD_ticks": 302,
+      "P_and_D_oppose_ticks": 121
+    }
+  },
+  "replay_metrics_identical": true
+}

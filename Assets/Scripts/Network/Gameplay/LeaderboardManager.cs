@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ public class LeaderboardManager : NetworkBehaviour
 
     public readonly SyncList<RankEntry> Rankings = new SyncList<RankEntry>();
     private readonly SyncVar<string> _leaderboardSnapshotText = new SyncVar<string>();
-    private readonly Dictionary<int, PlayerProgress> _progressByClientId = new Dictionary<int, PlayerProgress>();
+    private readonly Dictionary<int, PlayerProgress> _progressByRacerId = new Dictionary<int, PlayerProgress>();
     private bool _rankingsDirty;
     private bool _rankingsFrozen;
 
@@ -54,7 +55,7 @@ public class LeaderboardManager : NetworkBehaviour
         base.OnStopServer();
         Rankings.Clear();
         _leaderboardSnapshotText.Value = string.Empty;
-        _progressByClientId.Clear();
+        _progressByRacerId.Clear();
         _rankingsFrozen = false;
         if (Instance == this)
             Instance = null;
@@ -73,18 +74,18 @@ public class LeaderboardManager : NetworkBehaviour
             Instance = null;
     }
 
-    public void RegisterPlayer(int clientId, string displayName)
+    public void RegisterPlayer(int racerId, string displayName)
     {
         if (!IsServerInitialized || _rankingsFrozen)
             return;
 
-        if (_progressByClientId.ContainsKey(clientId))
-            return;
+        if (!RacerId.IsValidValue(racerId)) return;
+        if (_progressByRacerId.ContainsKey(racerId)) return;
 
-        _progressByClientId[clientId] = new PlayerProgress
+        _progressByRacerId[racerId] = new PlayerProgress
         {
-            ClientId = clientId,
-            DisplayName = string.IsNullOrWhiteSpace(displayName) ? PlayerIdentity.FallbackName(clientId) : displayName,
+            RacerId = racerId,
+            DisplayName = string.IsNullOrWhiteSpace(displayName) ? PlayerIdentity.FallbackName(racerId) : displayName,
             CheckpointIndex = 0,
             FinishOrder = 0,
             FinishServerTime = -1d
@@ -93,19 +94,19 @@ public class LeaderboardManager : NetworkBehaviour
         BuildRankings();
     }
 
-    public void UnregisterPlayer(int clientId)
+    public void UnregisterPlayer(int racerId)
     {
         if (!IsServerInitialized || _rankingsFrozen)
             return;
 
-        if (_progressByClientId.Remove(clientId))
+        if (_progressByRacerId.Remove(racerId))
         {
             BuildRankings();
         }
     }
 
     public void ReportSplineProgress(
-        int clientId,
+        int racerId,
         float distanceOnTrack,
         float forwardDot,
         int lap,
@@ -118,10 +119,10 @@ public class LeaderboardManager : NetworkBehaviour
         if (!IsServerInitialized || _rankingsFrozen)
             return;
 
-        if (!_progressByClientId.TryGetValue(clientId, out PlayerProgress progress))
+        if (!_progressByRacerId.TryGetValue(racerId, out PlayerProgress progress))
         {
-            RegisterPlayer(clientId, PlayerIdentity.FallbackName(clientId));
-            progress = _progressByClientId[clientId];
+            RegisterPlayer(racerId, PlayerIdentity.FallbackName(racerId));
+            progress = _progressByRacerId[racerId];
         }
 
         progress.DistanceOnTrack = Mathf.Max(0f, distanceOnTrack);
@@ -133,7 +134,7 @@ public class LeaderboardManager : NetworkBehaviour
         progress.FinishOrder = isFinished ? Mathf.Max(1, finishOrder) : 0;
         progress.FinishServerTime = isFinished ? finishServerTime : -1d;
 
-        _progressByClientId[clientId] = progress;
+        _progressByRacerId[racerId] = progress;
         _rankingsDirty = true;
     }
 
@@ -159,14 +160,19 @@ public class LeaderboardManager : NetworkBehaviour
         for (int i = 0; i < Rankings.Count; i++)
         {
             RankEntry entry = Rankings[i];
-            string playerName = playerNameResolver?.Invoke(entry.ClientId);
+            string playerName = playerNameResolver?.Invoke(entry.RacerId);
             if (string.IsNullOrWhiteSpace(playerName))
                 playerName = entry.DisplayName;
 
+            bool hasTiming = MatchServices.Timing != null && MatchServices.Timing.TryGetResult(BuddahGo.Match.RacerId.FromValue(entry.RacerId), out _);
+            RaceTimingResult timing = default;
+            if (hasTiming) MatchServices.Timing.TryGetResult(BuddahGo.Match.RacerId.FromValue(entry.RacerId), out timing);
             snapshot.Add(new FinalMatchResultEntry
             {
-                ClientId = entry.ClientId,
+                RacerId = entry.RacerId,
                 PlayerName = playerName,
+                TotalSeconds = hasTiming && timing.Finished ? timing.TotalSeconds : -1d,
+                LapSeconds = hasTiming ? timing.LapSeconds : Array.Empty<double>(),
                 FinalRank = i + 1,
                 FinalCompletionPercent = entry.FinalCompletionPercent,
                 IsFinished = entry.IsFinished,
@@ -206,13 +212,13 @@ public class LeaderboardManager : NetworkBehaviour
         if (!IsServerInitialized)
             return;
 
-        List<RankEntry> list = new List<RankEntry>(_progressByClientId.Count);
-        foreach (KeyValuePair<int, PlayerProgress> kvp in _progressByClientId)
+        List<RankEntry> list = new List<RankEntry>(_progressByRacerId.Count);
+        foreach (KeyValuePair<int, PlayerProgress> kvp in _progressByRacerId)
         {
             PlayerProgress progress = kvp.Value;
             list.Add(new RankEntry
             {
-                ClientId = progress.ClientId,
+                RacerId = progress.RacerId,
                 DisplayName = progress.DisplayName,
                 Checkpoints = progress.CheckpointIndex,
                 Lap = progress.Lap,
@@ -299,18 +305,6 @@ public class LeaderboardManager : NetworkBehaviour
         if (!IsServerInitialized || _rankingsFrozen)
             return;
 
-        if (InstanceFinder.ServerManager != null)
-        {
-            foreach (KeyValuePair<int, FishNet.Connection.NetworkConnection> kvp in InstanceFinder.ServerManager.Clients)
-            {
-                int clientId = kvp.Key;
-                if (_progressByClientId.ContainsKey(clientId))
-                    continue;
-
-                RegisterPlayer(clientId, PlayerIdentity.FallbackName(clientId));
-            }
-        }
-
         PlayerProgressReporter[] reporters = FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None);
         for (int i = 0; i < reporters.Length; i++)
         {
@@ -318,21 +312,20 @@ public class LeaderboardManager : NetworkBehaviour
             if (reporter == null || !reporter.IsSpawned)
                 continue;
 
-            int clientId = reporter.OwnerId;
-            if (_progressByClientId.ContainsKey(clientId))
+            int racerId = reporter.RacerIdValue;
+            if (racerId < 0) continue;
+            if (_progressByRacerId.ContainsKey(racerId))
                 continue;
 
-            string displayName = string.IsNullOrWhiteSpace(reporter.gameObject.name)
-                ? PlayerIdentity.FallbackName(clientId)
-                : $"{reporter.gameObject.name} #{clientId}";
+            string displayName = reporter.RacerName;
 
-            RegisterPlayer(clientId, displayName);
+            RegisterPlayer(racerId, displayName);
         }
     }
 
     private struct PlayerProgress
     {
-        public int ClientId;
+        public int RacerId;
         public string DisplayName;
         public int CheckpointIndex;
         public int Lap;
@@ -349,7 +342,7 @@ public class LeaderboardManager : NetworkBehaviour
 [Serializable]
 public struct RankEntry : IEquatable<RankEntry>
 {
-    public int ClientId;
+    public int RacerId;
     public string DisplayName;
     public int Checkpoints;
     public int Lap;
@@ -362,7 +355,7 @@ public struct RankEntry : IEquatable<RankEntry>
 
     public bool Equals(RankEntry other)
     {
-        return ClientId == other.ClientId
+        return RacerId == other.RacerId
             && DisplayName == other.DisplayName
             && Checkpoints == other.Checkpoints
             && Lap == other.Lap
@@ -377,7 +370,7 @@ public struct RankEntry : IEquatable<RankEntry>
     public override int GetHashCode()
     {
         return HashCode.Combine(
-            HashCode.Combine(ClientId, DisplayName, Checkpoints, Lap, DistanceOnTrack),
+            HashCode.Combine(RacerId, DisplayName, Checkpoints, Lap, DistanceOnTrack),
             HashCode.Combine(LapProgress01, FinalCompletionPercent, IsFinished, FinishOrder),
             FinishServerTime);
     }

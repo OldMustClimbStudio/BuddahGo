@@ -288,7 +288,19 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
             return;
 
         Vector3 effectPosition = transform.position + _launchEffectWorldOffset;
-        Instantiate(_launchEffectPrefab, effectPosition, Quaternion.LookRotation(_direction, Vector3.up));
+        GameObject effect = Instantiate(_launchEffectPrefab, effectPosition, Quaternion.LookRotation(_direction, Vector3.up));
+        // This detached burst outlives the projectile, but must not accumulate empty roots per shot.
+        float lifetime = 0f;
+        foreach (ParticleSystem particles in effect.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            var main = particles.main;
+            if (!particles.emission.enabled)
+                continue;
+            lifetime = Mathf.Max(lifetime,
+                (main.startDelay.constantMax + main.duration + main.startLifetime.constantMax)
+                / Mathf.Max(0.01f, main.simulationSpeed));
+        }
+        Destroy(effect, Mathf.Max(0.1f, lifetime));
     }
 
     private void FollowChargingTargetPosition()

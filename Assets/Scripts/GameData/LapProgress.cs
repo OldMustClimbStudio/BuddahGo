@@ -1,4 +1,5 @@
 using FishNet.Object;
+using BuddahGo.Match;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
 using UnityEngine;
@@ -41,8 +42,10 @@ public class LapProgress : NetworkBehaviour
     private float _nextAllowedCrossTime = 0f;
     private float _lastProgress01 = 0f;
     private bool _hasLastProgressSample = false;
+    private readonly AcceptedLapTiming _acceptedLapTiming = new AcceptedLapTiming();
 
     public int CurrentLap => currentLap;
+    public int NextCheckpointIndex => nextCheckpointIndex;
     public bool HasStartedLap => hasStartedLap;
     public float TotalProgress01 => Mathf.Max(0f, Mathf.Max(0, currentLap - 1) + (_tracker != null ? _tracker.progress01 : 0f));
     public float TotalProgressPercent => TotalProgress01 * 100f;
@@ -53,9 +56,30 @@ public class LapProgress : NetworkBehaviour
         ResolveStartPointReference();
     }
 
+    public override void OnStartNetwork()
+    {
+        base.OnStartNetwork();
+        _acceptedLapTiming.Reset();
+    }
+
+    public override void OnStopNetwork()
+    {
+        _acceptedLapTiming.Reset();
+        base.OnStopNetwork();
+    }
+
+    private bool HasLocalTimingAuthority => RacerAuthority.IsProgressAuthority(this) && IsServerInitialized
+        && MatchRules.Current.IsSolo;
+
+    internal void ObserveAcceptedLapTimes(RacerId racer, int lapsToFinish)
+    {
+        if (HasLocalTimingAuthority)
+            _acceptedLapTiming.ObservePending(MatchServices.Clock, MatchServices.Timing, racer, lapsToFinish);
+    }
+
     private void Update()
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
@@ -72,7 +96,7 @@ public class LapProgress : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
@@ -97,6 +121,7 @@ public class LapProgress : NetworkBehaviour
         {
             hasStartedLap = true;
             currentLap = 1;
+            _acceptedLapTiming.Reset(); // Initial line entry starts lap 1; GO remains the timing origin.
             ResetCrossState();
             SetLastProgressSample(currentProgress);
             _nextAllowedCrossTime = Time.time + minimumCrossingCooldownSeconds;
@@ -109,6 +134,9 @@ public class LapProgress : NetworkBehaviour
             return;
 
         currentLap += 1;
+        // Capture only validated local server crossings. Reporting/finishing stays outside the trigger.
+        if (HasLocalTimingAuthority)
+            _acceptedLapTiming.Capture(currentLap - 1, MatchServices.Clock, MatchServices.Timing);
         ResetCrossState();
         SetLastProgressSample(currentProgress);
         _nextAllowedCrossTime = Time.time + minimumCrossingCooldownSeconds;
@@ -116,7 +144,7 @@ public class LapProgress : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
@@ -293,7 +321,7 @@ public class LapProgress : NetworkBehaviour
 
     public bool TryAdvanceCheckpoint(int checkpointId)
     {
-        if (!IsOwner || !hasStartedLap || !useSequentialCheckpoints)
+        if (!RacerAuthority.IsProgressAuthority(this) || !hasStartedLap || !useSequentialCheckpoints)
             return false;
 
         int checkpointCount = GetRequiredCheckpointCount();

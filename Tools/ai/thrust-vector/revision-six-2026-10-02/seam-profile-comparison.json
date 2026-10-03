@@ -1,0 +1,28 @@
+{
+    "runs": [
+        {
+            "controller": "thrust",
+            "complete": false,
+            "seconds": 21.01666831970215,
+            "rms": 27.890214920043947,
+            "maxError": 62.995399475097659,
+            "minHeading": -179.4897918701172,
+            "maxHeading": 156.86277770996095,
+            "tau": 3.0,
+            "kp": 0.30000001192092898,
+            "kd": 0.5,
+            "deadband": 1.0,
+            "factor": 0.8999999761581421,
+            "targetSpeed": 80.0,
+            "plans": 1261,
+            "sideChanges": 4,
+            "brakingTicks": 798,
+            "holdingTicks": 62,
+            "recoveryTicks": 0,
+            "failure": "projection advance >10m; ",
+            "terminalAdvance": 27.9541015625,
+            "terminalLateral": -62.995399475097659,
+            "terminalProgress": 826.997802734375
+        }
+    ]
+}

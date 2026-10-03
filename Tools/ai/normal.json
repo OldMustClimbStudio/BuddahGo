@@ -1,0 +1,15 @@
+{
+  "TargetSpeed": 80,
+  "SpeedWeight": 1,
+  "ProgressWeight": 5,
+  "HorizonSeconds": 3,
+  "ControlSeconds": 0.15,
+  "BeamWidth": 48,
+  "LateralWeight": 1,
+  "LateralVelocityWeight": 0.7,
+  "LateralOffset": 0,
+  "ReplanTicks": 3,
+  "ReactionTicks": 0,
+  "CorneringFactor": 0.8,
+  "DiverseSearch": true
+}

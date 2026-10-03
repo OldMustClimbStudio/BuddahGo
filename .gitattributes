@@ -47,3 +47,7 @@ LightingData.asset binary
 *.bundle filter=lfs diff=lfs merge=lfs -text
 *.unitypackage filter=lfs diff=lfs merge=lfs -text
 *.sbsar filter=lfs diff=lfs merge=lfs -text
+
+# Recorded AI tuning telemetry stays as evidence but lives in LFS, out of text diffs and line counts.
+Tools/ai/**/*.csv filter=lfs diff=lfs merge=lfs -text
+Tools/ai/**/*.jsonl filter=lfs diff=lfs merge=lfs -text

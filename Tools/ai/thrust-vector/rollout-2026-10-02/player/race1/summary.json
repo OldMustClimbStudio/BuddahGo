@@ -1,0 +1,23 @@
+{
+    "success": false,
+    "productMatchFinished": false,
+    "reason": "lap-timeout",
+    "plannedLaps": 3,
+    "completedLaps": 2,
+    "samples": 7201,
+    "collisions": 55,
+    "discontinuities": 1,
+    "runtimeErrors": 0,
+    "aiCount": 5,
+    "perfFrames": 922,
+    "perfTicks": 540,
+    "lapSeconds": 121.70000000000002,
+    "totalSeconds": 243.51666666666666,
+    "averageLapSeconds": 121.75833333333333,
+    "perfMedianMs": 7.203499794006348,
+    "perfP95Ms": 20.80430030822754,
+    "laps": [
+        121.70000000000002,
+        121.81666666666664
+    ]
+}

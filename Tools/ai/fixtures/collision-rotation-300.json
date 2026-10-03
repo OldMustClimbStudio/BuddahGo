@@ -1,0 +1,7 @@
+{
+  "source": "Synthetic collision perturbation: instantaneous +300 degree rotation, no angular velocity; not a measured collision",
+  "tick": 0,
+  "carErrorDegrees": 300,
+  "targetErrorDegrees": 0,
+  "yawRate": 0
+}

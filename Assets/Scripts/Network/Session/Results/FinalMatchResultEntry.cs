@@ -5,7 +5,9 @@ namespace SteamMultiplayer.Network.Results
     [Serializable]
     public class FinalMatchResultEntry
     {
-        public int ClientId;
+        public int RacerId;
+        public double TotalSeconds = -1d;
+        public double[] LapSeconds = Array.Empty<double>();
         public string PlayerName;
         public int FinalRank;
         public float FinalCompletionPercent;

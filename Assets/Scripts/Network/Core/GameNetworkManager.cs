@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using System;
 using FishNet;
 using FishNet.Connection;
@@ -33,6 +34,7 @@ namespace SteamMultiplayer.Network
         [Header("References (auto-resolved if left empty)")]
         [Tooltip("Fish-Net NetworkManager on this GameObject or in the scene.")]
         [SerializeField] private NetworkManager _networkManager;
+        private SessionLauncher _sessionLauncher;
 
         [Header("Network Prefabs")]
         [Tooltip("RoomStateManager network prefab to spawn automatically when the host/server starts.")]
@@ -80,14 +82,22 @@ namespace SteamMultiplayer.Network
 
             ResolveNetworkManager();
             SubscribeEvents();
+            _sessionLauncher = new SessionLauncher(_networkManager);
+            SessionControl.Current = _sessionLauncher;
         }
+
+        private void Update() => _sessionLauncher?.Pump();
 
         private void OnDestroy()
         {
             UnsubscribeEvents();
 
             if (Instance == this)
+            {
                 Instance = null;
+                SessionControl.Current = null;
+                SessionLauncher.ResetMatchGlobals();
+            }
         }
 
         // ───────── Public API ─────────
@@ -96,98 +106,11 @@ namespace SteamMultiplayer.Network
         /// Start as Host (server + local client).
         /// Call this after creating / configuring a Steam lobby.
         /// </summary>
-        public void StartHost()
-        {
-            if (_networkManager == null)
-            {
-                NetLog.Error("Cannot StartHost – NetworkManager reference is missing.");
-                return;
-            }
+        public void StartHost() => SessionControl.Current?.StartOnlineHost();
 
-            NetLog.Info("Starting Host (Server + Client)...");
+        public void StartClient(string hostAddress) => SessionControl.Current?.StartOnlineClient(hostAddress);
 
-            // Start server first, then client
-            bool serverOk = _networkManager.ServerManager.StartConnection();
-            if (!serverOk)
-            {
-                NetLog.Error("ServerManager.StartConnection() returned false.");
-                return;
-            }
-
-            bool clientOk = _networkManager.ClientManager.StartConnection();
-            if (!clientOk)
-            {
-                NetLog.Error("[Host] ClientManager.StartConnection() failed after server started. Rolling back host startup.");
-
-                // Roll back to a clean stopped state to avoid half-started host instances.
-                if (_networkManager.ClientManager != null
-                    && _networkManager.ClientManager.Started)
-                {
-                    _networkManager.ClientManager.StopConnection();
-                }
-
-                if (_networkManager.ServerManager != null
-                    && _networkManager.ServerManager.Started)
-                {
-                    _networkManager.ServerManager.StopConnection(true);
-                }
-
-                NetLog.Warn("[Host] Host startup rolled back due to client start failure.");
-                return;
-            }
-
-            NetLog.Info("[Host] Host started successfully.");
-        }
-
-        /// <summary>
-        /// Start as Client and connect to a remote host.
-        /// <paramref name="hostAddress"/> is typically the host's SteamId as a string
-        /// when using FishyFacepunch transport.
-        /// </summary>
-        public void StartClient(string hostAddress)
-        {
-            if (_networkManager == null)
-            {
-                NetLog.Error("Cannot StartClient – NetworkManager reference is missing.");
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(hostAddress))
-            {
-                NetLog.Error("Cannot StartClient – hostAddress is null or empty.");
-                return;
-            }
-
-            NetLog.Info($"Starting Client → connecting to {hostAddress}...");
-
-            // FishyFacepunch uses SetClientAddress to set the target SteamId
-            _networkManager.TransportManager.Transport.SetClientAddress(hostAddress);
-            _networkManager.ClientManager.StartConnection();
-        }
-
-        /// <summary>
-        /// Gracefully stop all connections (both server and client).
-        /// Safe to call regardless of current role.
-        /// </summary>
-        public void StopConnection()
-        {
-            if (_networkManager == null) return;
-
-            NetLog.Info("Stopping all connections...");
-
-            // Stop client first so host-client gets cleaned up before server shuts down
-            if (_networkManager.ClientManager != null
-                && _networkManager.ClientManager.Started)
-            {
-                _networkManager.ClientManager.StopConnection();
-            }
-
-            if (_networkManager.ServerManager != null
-                && _networkManager.ServerManager.Started)
-            {
-                _networkManager.ServerManager.StopConnection(true);
-            }
-        }
+        public void StopConnection() => SessionControl.Current?.RequestStopSession();
 
         // ───────── Internal Helpers ─────────
 

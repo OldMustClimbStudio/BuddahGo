@@ -1,0 +1,283 @@
+#if BUDDAH_PRIVATE_SOLO_ACCEPTANCE && !UNITY_EDITOR
+// Opt-in capture companion for the real-input Solo operator. No gameplay writes.
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using Unity.Profiling;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+internal sealed class SoloBenchmarkFrames : IDisposable
+{
+    private const int Capacity = 120000;
+    private const int Seed = 1729;
+    private readonly string output;
+    private readonly Frame[] frames = new Frame[Capacity];
+    private readonly Input[] inputs = new Input[Capacity];
+    private readonly Capture capture = new Capture();
+    private ProfilerRecorder gc, main;
+    private int gcCursor, mainCursor;
+    private Configuration windowSettings;
+    private string gcStartReason, mainStartReason;
+    // No wrap: Count must advance once for each completed frame. A capacity-one
+    // ring can retain an old LastValue after a counter stops producing samples.
+    private const ProfilerRecorderOptions RecorderOptions =
+        ProfilerRecorderOptions.StartImmediately | ProfilerRecorderOptions.SumAllSamplesInFrame;
+    private int count, inputCount, repeat, windowStartIndex, inputStartIndex, previousFrame;
+    private double drivingStart = -1, windowStart = -1, previousStamp;
+    private bool disposed, complete;
+    private readonly int oldQuality, oldVsync, oldFps, oldWidth, oldHeight;
+    private readonly FullScreenMode oldFullscreen;
+    private readonly UnityEngine.Random.State oldRandom;
+    private string[] selectedSkills;
+    private string selectedSkin;
+
+    public SoloBenchmarkFrames(string directory)
+    {
+        output = directory;
+        Directory.CreateDirectory(output);
+        oldQuality = QualitySettings.GetQualityLevel(); oldVsync = QualitySettings.vSyncCount;
+        oldFps = Application.targetFrameRate; oldWidth = Screen.width; oldHeight = Screen.height;
+        oldFullscreen = Screen.fullScreenMode; oldRandom = UnityEngine.Random.state;
+        if (QualitySettings.names.Length <= 2) throw new InvalidOperationException("Benchmark quality index 2 is unavailable");
+        capture.unity = Application.unityVersion; capture.version = Application.version;
+        capture.build = Debug.isDebugBuild ? "Development" : "Release";
+#if ENABLE_IL2CPP
+        capture.backend = "IL2CPP";
+#else
+        capture.backend = "Mono";
+#endif
+        capture.os = SystemInfo.operatingSystem; capture.cpu = SystemInfo.processorType;
+        capture.gpu = SystemInfo.graphicsDeviceName; capture.graphics_api = SystemInfo.graphicsDeviceType.ToString();
+        capture.ram_mb = SystemInfo.systemMemorySize;
+        capture.requested = new Configuration { width=1280,height=720,quality=2,target_fps=60,vsync=0 };
+        capture.snapshot_policy = "measured-window-v2";
+        capture.gc_method = "ProfilerRecorder"; capture.gc_counter = "GC Allocated In Frame";
+        capture.gc_unit = "bytes"; capture.sample_policy = "nonwrapping-count-advance-v2";
+    }
+
+    public void SeedSession(int value)
+    {
+        if (value < 1 || value > 3) throw new ArgumentOutOfRangeException(nameof(value));
+        repeat = value; UnityEngine.Random.InitState(Seed);
+        drivingStart = windowStart = -1;
+        inputStartIndex = inputCount;
+    }
+
+    public void Selection(string[] skills, string skin)
+    {
+        if (skills != null)
+        {
+            if (selectedSkills == null) selectedSkills = (string[])skills.Clone();
+            else
+            {
+                if (skills.Length != selectedSkills.Length) throw new InvalidOperationException("Loadout length changed");
+                for (int i = 0; i < skills.Length; i++)
+                    if (skills[i] != selectedSkills[i]) throw new InvalidOperationException("Seeded loadout differs between repeats");
+            }
+        }
+        if (skin != null)
+        {
+            if (selectedSkin == null) selectedSkin = skin;
+            else if (skin != selectedSkin) throw new InvalidOperationException("Seeded skin differs between repeats");
+        }
+    }
+
+    public void DrivingStarted()
+    {
+        // FishNet sets the host render cap when the transports start. Apply the
+        // capture-only request after scene/host initialization, before warmup.
+        QualitySettings.SetQualityLevel(2, true);
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 60;
+        Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
+        // Start independently and per race, before warmup. Constructor failures
+        // cannot leak a recorder or leave temporary settings behind.
+        StopRecorders();
+        gc = StartCounter(ProfilerCategory.Memory, "GC Allocated In Frame", out gcStartReason);
+        main = StartCounter(ProfilerCategory.Internal, "Main Thread", out mainStartReason);
+        gcCursor = mainCursor = 0;
+        drivingStart = Time.realtimeSinceStartupAsDouble;
+    }
+
+    // Called once on the normal Dynamic InputSystem update. Buffered until the window ends.
+    public void ObserveInput(int frame, uint tick, int steering)
+    {
+        if (drivingStart < 0 || complete) return;
+        if (inputCount == inputs.Length) throw new InvalidOperationException("Input buffer overflow");
+        inputs[inputCount++] = new Input { frame = frame, tick = tick, steering = steering };
+    }
+
+    // Invoke before the operator computes this frame's steering. LastValue belongs
+    // to frameCount-1; elapsed is the measured interval between identical Update points.
+    public bool DrivingTick()
+    {
+        if (drivingStart < 0) throw new InvalidOperationException("Driving start not observed");
+        if (SceneManager.GetActiveScene().name != "RaceMap" || Time.timeScale != 1f)
+            throw new InvalidOperationException("Measured driving context changed");
+        double now = Time.realtimeSinceStartupAsDouble;
+        long gcBytes = ReadFresh(gc, ref gcCursor, false);
+        long mainNs = ReadFresh(main, ref mainCursor, true);
+        if (windowStart < 0)
+        {
+            if (now - drivingStart < 30) return false;
+            RequireSettings();
+            // This counter is not supported in Unity 2022.3 Release Players.
+            // Fail before spending three windows on known-incomplete evidence.
+            if (!Debug.isDebugBuild || gcBytes < 0)
+                throw new InvalidOperationException(!Debug.isDebugBuild
+                    ? "GC Allocated In Frame requires a Development Player; Release capture cannot qualify"
+                    : "GC preflight failed after driving warmup: " + (gcStartReason ?? "no fresh completed-frame sample"));
+            windowSettings = Settings();
+            if (capture.actual == null) capture.actual = windowSettings;
+            windowStart = previousStamp = now; previousFrame = Time.frameCount - 1;
+            windowStartIndex = count;
+            return false;
+        }
+        RequireSettings(); // Value checks only; no per-frame Configuration allocation.
+        int frame = Time.frameCount - 1;
+        if (frame != previousFrame + 1 || count == frames.Length)
+            throw new InvalidOperationException("Frame buffer overflow or noncontiguous samples");
+        double dt = now - previousStamp;
+        if (dt <= 0) throw new InvalidOperationException("Nonpositive frame interval");
+        if (gcBytes >= 0) capture.gc_samples++; else capture.gc_missing_frames++;
+        if (mainNs >= 0) capture.main_samples++; else capture.main_missing_frames++;
+        frames[count++] = new Frame { repeat = repeat, frame = frame, elapsed = now-windowStart,
+            frameMs = dt*1000, gcBytes = gcBytes, mainNs = mainNs };
+        previousFrame = frame; previousStamp = now;
+        if (now-windowStart < 60) return false;
+        RequireSettings();
+        var window = new Window { repeat = repeat, seed = Seed, route_id = "RaceMap", scene = "RaceMap",
+            race_id = repeat, stage = "driving", actual = windowSettings, actual_end = Settings(), settings_change_count = 0, warmup_actual_seconds = windowStart-drivingStart,
+            start_seconds = windowStart, end_seconds = now, duration_seconds = now-windowStart,
+            driving_start_seconds = drivingStart, driving_end_seconds = now, frames = count-windowStartIndex,
+            dropped_frames=0,forced_gc_count=0,scene_change_count=0,ai_count=0,
+            input_sha256 = HashInputs(inputStartIndex, inputCount) };
+        capture.windows.Add(window);
+        StopRecorders();
+        drivingStart = -1;
+        return true;
+    }
+
+    public void Finish(bool succeeded, int errors, string reason)
+    {
+        complete = true;
+        capture.complete = succeeded && capture.windows.Count == 3 && errors == 0;
+        capture.error_count = errors; capture.reason = reason;
+        capture.loadout = selectedSkills; capture.skin_id = selectedSkin;
+        capture.post_cleanup_actual = Settings(); // Home state, never the measured configuration.
+        capture.gc_available = capture.gc_samples > 0;
+        capture.main_available = capture.main_samples > 0;
+        capture.gc_reason = CounterReason(capture.gc_samples, capture.gc_missing_frames, gcStartReason);
+        if (!Debug.isDebugBuild) capture.gc_reason = "GC Allocated In Frame unsupported in Release; use a separately labeled Development capture";
+        capture.main_reason = CounterReason(capture.main_samples, capture.main_missing_frames, mainStartReason);
+        StopRecorders();
+        // Unavailable samples stay blank; an unavailable counter never supplies a zero.
+        using (var writer = new StreamWriter(Path.Combine(output, "frames.csv"), false, new UTF8Encoding(false)))
+        {
+            writer.WriteLine("repeat,frame,elapsed_seconds,frame_ms,gc_allocated_bytes,main_thread_ns");
+            for (int i=0; i<count; i++)
+            {
+                var f=frames[i];
+                writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0},{1},{2:R},{3:R},{4},{5}",
+                    f.repeat,f.frame,f.elapsed,f.frameMs,
+                    f.gcBytes < 0 ? "" : f.gcBytes.ToString(CultureInfo.InvariantCulture),
+                    f.mainNs < 0 ? "" : f.mainNs.ToString(CultureInfo.InvariantCulture)));
+            }
+        }
+        File.WriteAllText(Path.Combine(output,"capture.json"), JsonUtility.ToJson(capture,true));
+    }
+
+    private static Configuration Settings() => new Configuration { width=Screen.width,height=Screen.height,
+        quality=QualitySettings.GetQualityLevel(),target_fps=Application.targetFrameRate,vsync=QualitySettings.vSyncCount };
+    private static void RequireSettings()
+    {
+        if (Screen.width!=1280 || Screen.height!=720 || QualitySettings.GetQualityLevel()!=2 ||
+            Application.targetFrameRate!=60 || QualitySettings.vSyncCount!=0)
+            throw new InvalidOperationException("Requested and actual benchmark settings differ");
+    }
+    private static ProfilerRecorder StartCounter(ProfilerCategory category, string name, out string reason)
+    {
+        reason = null;
+        try
+        {
+            var recorder = ProfilerRecorder.StartNew(category, name, Capacity, RecorderOptions);
+            if (!recorder.Valid) reason = "counter handle unavailable";
+            return recorder;
+        }
+        catch (Exception exception)
+        {
+            // No raw exception paths in portable metadata. The other counter still starts.
+            reason = "counter start failed: " + exception.GetType().Name;
+            return default;
+        }
+    }
+    private static long ReadFresh(ProfilerRecorder recorder, ref int cursor, bool positive)
+    {
+        if (!recorder.Valid || !recorder.IsRunning) return -1;
+        int next = recorder.Count;
+        bool fresh = next == cursor + 1 && !recorder.WrappedAround;
+        cursor = next;
+        if (!fresh) return -1;
+        long value = recorder.LastValue;
+        return value < 0 || (positive && value == 0) ? -1 : value;
+    }
+    private static string CounterReason(int samples, int missing, string startReason)
+    {
+        if (samples == 0) return startReason ?? "no fresh measured completed-frame samples";
+        return missing == 0 ? "available for every measured frame" : "partial: missing or stale completed-frame samples";
+    }
+    private void StopRecorders()
+    {
+        try { gc.Dispose(); }
+        finally { gc = default; try { main.Dispose(); } finally { main = default; } }
+    }
+    private string HashInputs(int first,int end)
+    {
+        using(var algorithm=SHA256.Create())
+        using(var buffer=new MemoryStream())
+        using(var writer=new BinaryWriter(buffer))
+        {
+            for(int i=first;i<end;i++) { writer.Write(inputs[i].frame);writer.Write(inputs[i].tick);writer.Write(inputs[i].steering); }
+            writer.Flush();
+            var bytes=algorithm.ComputeHash(buffer.ToArray());
+            return BitConverter.ToString(bytes).Replace("-","").ToLowerInvariant();
+        }
+    }
+    public void Dispose()
+    {
+        if(disposed) return; disposed=true;
+        try { StopRecorders(); }
+        finally
+        {
+            QualitySettings.SetQualityLevel(oldQuality,true); QualitySettings.vSyncCount=oldVsync;
+            Application.targetFrameRate=oldFps; Screen.SetResolution(oldWidth,oldHeight,oldFullscreen);
+            UnityEngine.Random.state=oldRandom;
+        }
+    }
+    private struct Frame { public int repeat,frame; public double elapsed,frameMs; public long gcBytes,mainNs; }
+    private struct Input { public int frame,steering; public uint tick; }
+    [Serializable] private sealed class Configuration { public int width,height,quality,target_fps,vsync; }
+    [Serializable] private sealed class Window
+    {
+        public int repeat,seed,race_id,frames,dropped_frames,forced_gc_count,scene_change_count,ai_count;
+        public string route_id,scene,stage,input_sha256;
+        public Configuration actual,actual_end;
+        public int settings_change_count;
+        public double warmup_actual_seconds,start_seconds,end_seconds,duration_seconds,driving_start_seconds,driving_end_seconds;
+    }
+    [Serializable] private sealed class Capture
+    {
+        public bool complete,gc_available,main_available;
+        public int error_count,ram_mb,gc_samples,gc_missing_frames,main_samples,main_missing_frames;
+        public string snapshot_policy,gc_method,gc_counter,gc_unit,sample_policy;
+        public string unity,version,build,backend,os,cpu,gpu,graphics_api,reason,gc_reason,main_reason,skin_id;
+        public string[] loadout;
+        public Configuration requested,actual,post_cleanup_actual;
+        public List<Window> windows=new List<Window>();
+    }
+}
+#endif

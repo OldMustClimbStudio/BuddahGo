@@ -1,0 +1,40 @@
+// Copy temporarily to Assets/Editor. Only the sole runtime coordinator builds.
+using System;
+using System.IO;
+using UnityEditor;
+using UnityEditor.Build.Reporting;
+using UnityEngine;
+
+public static class SoloBenchmarkBuild
+{
+    // -executeMethod SoloBenchmarkBuild.BuildDevelopment -soloBenchmarkBuildOutput <new directory>
+    // The normal Release build remains separate; no persistent project define changes.
+    public static void BuildDevelopment()
+    {
+        if (Application.isPlaying) throw new InvalidOperationException("Exit play mode before building");
+        var args = Environment.GetCommandLineArgs();
+        int index = Array.IndexOf(args, "-soloBenchmarkBuildOutput");
+        if (index < 0 || index + 1 >= args.Length || !Path.IsPathRooted(args[index + 1]))
+            throw new InvalidOperationException("Specify a new absolute -soloBenchmarkBuildOutput directory");
+        string output = Path.GetFullPath(args[index + 1]);
+        if (Directory.Exists(output) || File.Exists(output))
+            throw new InvalidOperationException("Refusing to overwrite an existing build destination");
+        Directory.CreateDirectory(output);
+        var options = new BuildPlayerOptions {
+            scenes = new[] { "Assets/Scenes/MainMenu.unity", "Assets/Scenes/PropertySelection.unity", "Assets/Scenes/RaceMap.unity" },
+            locationPathName = Path.Combine(output, "BuddahGoBenchmarkDevelopment.exe"),
+            target = BuildTarget.StandaloneWindows64,
+            // No ConnectWithProfiler, AllowDebugging or EnableDeepProfilingSupport.
+            options = BuildOptions.Development,
+            extraScriptingDefines = new[] { "BUDDAH_PRIVATE_SOLO_ACCEPTANCE" }
+        };
+        var report = BuildPipeline.BuildPlayer(options);
+        bool development = (report.summary.options & BuildOptions.Development) != 0;
+        File.WriteAllText(Path.Combine(output, "build-result.txt"),
+            $"Result={report.summary.result}\nErrors={report.summary.totalErrors}\nWarnings={report.summary.totalWarnings}\n" +
+            $"Development={development}\nOptions={report.summary.options}\n" +
+            "Instrumented=True; GC Allocated In Frame; Development evidence only\n");
+        if (report.summary.result != BuildResult.Succeeded || !development)
+            throw new InvalidOperationException("Development benchmark build failed; retain build report");
+    }
+}

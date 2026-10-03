@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using FishNet.Object;
 using FishNet.Connection;
 using FishNet.Object.Prediction;
@@ -36,6 +37,9 @@ namespace NewBuddah.PredictionV2.Core
         [SerializeField] private BuddahPredictedMotorConfig config;
         [SerializeField] private Rigidbody rb;
 
+        private MonoBehaviour[] _steeringProviders;
+        public BuddahPredictedMotorComputedStats CurrentComputedStats => _computedStats;
+
         private readonly BuddahPredictionOwnerInputBridge _ownerInputBridge = new();
         private readonly BuddahPredictionMovementGateBridge _movementGateBridge = new();
         private PredictionRigidbody _predictionRigidbody;
@@ -64,6 +68,8 @@ namespace NewBuddah.PredictionV2.Core
         private SplineProgressTracker _splineProgressTracker;
         private SkillExecutor _skillExecutor;
         private float _baseMass = 1f;
+        internal uint PresentationRevision { get; private set; }
+        private bool _presentationWasRooted;
 
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_PERF_PROBE
         // V13 perf probe — Stopwatch-backed per-frame accumulator consumed by
@@ -104,6 +110,8 @@ namespace NewBuddah.PredictionV2.Core
         private void Awake()
         {
             ResolveReferences();
+            // Cache only steering sources; the per-tick loop should not scan every component.
+            _steeringProviders = Array.FindAll(GetComponents<MonoBehaviour>(), provider => provider is ISteeringOverride);
             InitializePredictionRigidbody();
             enabled = false;
         }
@@ -292,6 +300,17 @@ namespace NewBuddah.PredictionV2.Core
             float steering = movementAllowed ? (_ownerInputBridge.ReadSteering() * config.TurnInputMultiplier) : 0f;
             float throttle = movementAllowed ? 1f : 0f;
             bool ownerInputLive = IsOwner && movementAllowed;
+            if (movementAllowed && RacerAuthority.HasLocalControl(NetworkObject))
+            {
+                foreach (MonoBehaviour provider in _steeringProviders)
+                {
+                    if (provider == null || !provider.isActiveAndEnabled || !(provider is ISteeringOverride source)) continue;
+                    if (!source.TryGetOverride(out int key, out bool drive)) continue;
+                    steering = Mathf.Clamp(key, -1, 1) * config.TurnInputMultiplier;
+                    throttle = drive ? 1f : 0f;
+                    break;
+                }
+            }
 
             if (bootstrap != null)
             {
@@ -367,12 +386,19 @@ namespace NewBuddah.PredictionV2.Core
             }
 #endif
             ConsumePendingTeleportEvent(currentTick);
+            uint handoffIdBeforeConsume = _lastConsumedLaunchHandoffEventId;
             ConsumePendingLaunchHandoffEvent(currentTick);
+            bool handoffConsumedThisTick = _lastConsumedLaunchHandoffEventId != handoffIdBeforeConsume;
             // Phase 4b V2b Step 1 / V4 — sole impulse drain path. NEW (CommandBus.ImpulseChannel
             // ConsumeReady) is rb-writing authority. OLD queue + LEG shadow compare retired in V4.
             ConsumePendingImpulseEvents_Authoritative(currentTick);
             RefreshLaunchState(currentTick);
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
+            if (_presentationWasRooted != _computedStats.IsRooted)
+            {
+                _presentationWasRooted = _computedStats.IsRooted;
+                PresentationRevision++;
+            }
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             // Phase 3c — snapshot _modifierState at the authoritative post-consume moment
             // (struct by value, independent of subsequent motor writes), then run the shadow
@@ -417,10 +443,13 @@ namespace NewBuddah.PredictionV2.Core
 
             LogPredictionIntroWriterState(currentTick, false, "prediction-active", introControlActive, externalControlActive, authoritativePending);
 
-            // data.MovementAllowed was evaluated before the handoff/modifier events above were consumed. The
-            // launch handoff opens a room bypass in the same tick it is consumed; honour it here, otherwise the
-            // first tick after GO zeroes the velocity the handoff just inherited and the body stalls for a tick.
-            if (!data.MovementAllowed && !_computedStats.IsRoomBypassActive)
+            // Solo retains its consumption-tick gate. Network play keeps PR60's
+            // live room bypass after modifier/handoff consumption.
+            bool movementAllowedAfterConsume = MatchRules.Current.IsSolo
+                ? BuddahPredictedLaunchHandoffResolver.IsMovementAllowedAfterConsume(
+                    data.MovementAllowed, handoffConsumedThisTick, _computedStats.IsRoomBypassActive)
+                : data.MovementAllowed || _computedStats.IsRoomBypassActive;
+            if (!movementAllowedAfterConsume)
             {
                 CompleteStoppedPredictionStep(data, state, "blocked");
                 return;

@@ -1,0 +1,94 @@
+{
+  "source": "C:\\Users\\dwh88\\Documents\\Codex\\2026-10-02\\task-4\\thrust4-a1\\plans.jsonl",
+  "sourceSha256": "12837f7795d9c3acb2ca7a78b3fda20e90cce3edeb538214c245f1b2e5426ce4",
+  "integrity": {
+    "rawLines": 9916,
+    "parsedRecords": 9916,
+    "exportedCsvRows": 9916,
+    "requiredFieldsMissing": [],
+    "endsWithNewline": true,
+    "tickGapCounts": {
+      "1": 9915
+    },
+    "nonpositiveClockIntervals": 0,
+    "firstClock": 41.53333333333333,
+    "lastClock": 206.78333333333333,
+    "endClock": 206.79999999999998,
+    "goClock": 40.96666666666667,
+    "unobservedBeforeFirstPlanSeconds": 0.5666666666666629
+  },
+  "durationMethod": "Forward-hold each recorded branch until the next PlanObservation clock; final interval ends at harness end. Only observed planner interval, not a raw sample-count fraction or claimed full official-lap coverage.",
+  "observedSeconds": 165.26666666666665,
+  "brakingSeconds": 118.91666666666669,
+  "brakingTimeFraction": 0.7195441710367085,
+  "brakingThetaHistogram": [
+    {
+      "thetaMagnitude": "120 to <125 deg",
+      "seconds": 53.13333333333332,
+      "fractionOfBraking": 0.4468114926419059
+    },
+    {
+      "thetaMagnitude": "125 to <130 deg",
+      "seconds": 3.8500000000000227,
+      "fractionOfBraking": 0.03237561317449213
+    },
+    {
+      "thetaMagnitude": "130 to <135 deg",
+      "seconds": 3.6666666666666003,
+      "fractionOfBraking": 0.03083391730903938
+    },
+    {
+      "thetaMagnitude": "135 to <140 deg",
+      "seconds": 3.5333333333333883,
+      "fractionOfBraking": 0.02971268395234804
+    },
+    {
+      "thetaMagnitude": "140 to <145 deg",
+      "seconds": 4.850000000000023,
+      "fractionOfBraking": 0.04078486334968484
+    },
+    {
+      "thetaMagnitude": "145 to <149.99 deg",
+      "seconds": 5.800000000000026,
+      "fractionOfBraking": 0.048773651016117935
+    },
+    {
+      "thetaMagnitude": "150 +/-0.01 deg (cap)",
+      "seconds": 44.0833333333333,
+      "fractionOfBraking": 0.37070777855641174
+    }
+  ],
+  "sideChangeCount": 68,
+  "sideChangeBranchCounts": {
+    "accelerating": 25,
+    "braking": 43
+  },
+  "sideChangeBranchTransitions": {
+    "accelerating -> accelerating": 23,
+    "braking -> braking": 43,
+    "braking -> accelerating": 2
+  },
+  "sideChangeAbsALat": {
+    "count": 68,
+    "minimum": 3.0099329948425293,
+    "median": 3.1856080293655396,
+    "p90": 3.64888858795166,
+    "maximum": 6.511002063751221
+  },
+  "sideChangeAbsALatByBranch": {
+    "braking": {
+      "count": 43,
+      "minimum": 3.0099329948425293,
+      "median": 3.2824361324310303,
+      "p90": 3.7222723960876465,
+      "maximum": 6.511002063751221
+    },
+    "accelerating": {
+      "count": 25,
+      "minimum": 3.020448684692383,
+      "median": 3.1652374267578125,
+      "p90": 3.3398499488830566,
+      "maximum": 5.587164878845215
+    }
+  }
+}

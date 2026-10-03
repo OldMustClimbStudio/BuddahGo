@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BuddahGo.Match;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -54,6 +55,7 @@ namespace SteamMultiplayer.UI
             Subscribe();
             RebuildCurrentStageIfNeeded();
 
+            RefreshSelectionVisibility();
             if (forceRefreshEveryFrame || _selectionManager != null)
                 RefreshUi();
         }
@@ -142,12 +144,23 @@ namespace SteamMultiplayer.UI
             _spawnedGroups.Add(group);
         }
 
+        private bool RefreshSelectionVisibility()
+        {
+            // This UI lives on the shared HUD. Its selection labels must not persist into racing/results.
+            RoomStateManager room = RoomStateManager.Instance;
+            bool showSelection = room == null || (!room.IsMatchPhaseActive && !room.IsResultPhaseActive);
+            SetSelectionSummaryVisible(showSelection);
+            return showSelection;
+        }
+
         private void RefreshUi()
         {
+            if (!RefreshSelectionVisibility()) return;
+
             if (sharedUiRoot != null)
                 sharedUiRoot.SetActive(true);
 
-            SetText(pageTitleText, "Properties Selector");
+            SetText(pageTitleText, MatchRules.Current.IsSolo ? "Practice" : "Properties Selector");
 
             if (readyButton != null)
                 readyButton.gameObject.SetActive(false);
@@ -171,6 +184,20 @@ namespace SteamMultiplayer.UI
             RefreshStatusTexts();
         }
 
+        private void SetSelectionSummaryVisible(bool visible)
+        {
+            if (pageTitleText != null) pageTitleText.gameObject.SetActive(visible);
+            if (stageTitleText != null) stageTitleText.gameObject.SetActive(visible);
+            // Practice already chose its map and has no peer readiness or selection timer.
+            // These legacy summaries sit over the 3D skill cards; keep the stage heading instead.
+            // Recompute on refresh so returning to online selection restores the original HUD.
+            bool showSessionSummary = visible && !MatchRules.Current.IsSolo;
+            if (statusText != null) statusText.gameObject.SetActive(showSessionSummary);
+            if (countdownText != null) countdownText.gameObject.SetActive(showSessionSummary);
+            if (playersSelectionText != null) playersSelectionText.gameObject.SetActive(showSessionSummary);
+            if (resolvedMapText != null) resolvedMapText.gameObject.SetActive(showSessionSummary);
+        }
+
         private void RefreshStatusTexts()
         {
             if (_selectionManager.IsTransitioningToMatch)
@@ -181,9 +208,14 @@ namespace SteamMultiplayer.UI
             }
             else if (_selectionManager.TryGetCurrentStageDefinition(out SelectablePropertyDefinition definition))
             {
-                SetText(stageTitleText, $"Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {definition.DisplayName}");
+                string stageLabel = MatchRules.Current.IsSolo
+                    && _selectionManager.CurrentStagePropertyKey == PropertiesSelectionManager.SkillLoadoutStageKey
+                    ? $"Choose {SkillLoadout.SlotCount} skills"
+                    : definition.DisplayName;
+                SetText(stageTitleText, $"Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel}");
                 SetText(statusText, BuildStageStatusText(definition));
-                SetText(countdownText, $"Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s");
+                SetText(countdownText, BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
+                    ? $"Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s" : string.Empty);
             }
             else if (_selectionManager.TotalStageCount <= 0)
             {
@@ -212,8 +244,10 @@ namespace SteamMultiplayer.UI
             {
                 PropertySelectionMode.Vote => "Everyone is voting on the current stage option.",
                 PropertySelectionMode.HostOnly => "Only the host can choose during this stage.",
-                PropertySelectionMode.Multi => "Choose all desired options before the timer ends.",
-                _ => "Each player chooses one option before the timer ends."
+                PropertySelectionMode.Multi => BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
+                    ? "Choose all desired options before the timer ends." : "Choose all desired options.",
+                _ => BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
+                    ? "Each player chooses one option before the timer ends." : "Each player chooses one option."
             };
         }
 

@@ -1,4 +1,5 @@
 using FishNet.Object;
+using BuddahGo.Match;
 using System.Collections;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
@@ -18,6 +19,10 @@ public class PlayerProgressReporter : NetworkBehaviour
     private BuddahRespawn _respawn;
     private PlayerFinishPresentationController _finishPresentationController;
     private bool _registeredWithLeaderboard;
+    public bool TryGetRacerId(out RacerId id) => RacerAuthority.TryGetId(this, out id);
+    public int RacerIdValue => TryGetRacerId(out var id) ? id.Value : -1;
+    public string RacerName => GetComponent<RacerIdentity>() is RacerIdentity identity && identity.IsAssigned
+        ? identity.DisplayName : PlayerIdentity.FallbackName(OwnerId);
     private void Awake()
     {
         ResolveProgressDependencies();
@@ -25,7 +30,7 @@ public class PlayerProgressReporter : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
@@ -44,12 +49,10 @@ public class PlayerProgressReporter : NetworkBehaviour
         _completionTracker.UpdateCompletionFromLapAndSpline(lap, _tracker.progress01, GetConfiguredLapsToFinish());
 
         DebugLog($"[Leaderboard] Reporting progress OwnerId={OwnerId} distance={_tracker.distanceOnTrack:0.00} lap={lap} dot={_tracker.forwardDot:0.00}");
-        ReportSplineProgressServerRpc(
-            _tracker.distanceOnTrack,
-            _tracker.forwardDot,
-            lap,
-            _tracker.progress01,
-            _tracker.PreviousProgress01);
+        if (RacerAuthority.IsServerAI(this))
+            ApplySplineProgressServer(_tracker.distanceOnTrack, _tracker.forwardDot, lap, _tracker.progress01, _tracker.PreviousProgress01);
+        else
+            ReportSplineProgressServerRpc(_tracker.distanceOnTrack, _tracker.forwardDot, lap, _tracker.progress01, _tracker.PreviousProgress01);
     }
 
     public override void OnStartServer()
@@ -65,7 +68,7 @@ public class PlayerProgressReporter : NetworkBehaviour
         base.OnStopServer();
         if (_registeredWithLeaderboard && LeaderboardManager.Instance != null)
         {
-            LeaderboardManager.Instance.UnregisterPlayer(OwnerId);
+            LeaderboardManager.Instance.UnregisterPlayer(RacerIdValue);
         }
 
         _registeredWithLeaderboard = false;
@@ -74,6 +77,12 @@ public class PlayerProgressReporter : NetworkBehaviour
     [ServerRpc]
     private void ReportSplineProgressServerRpc(float distanceOnTrack, float forwardDot, int lap, float progress01, float previousProgress01)
     {
+        ApplySplineProgressServer(distanceOnTrack, forwardDot, lap, progress01, previousProgress01);
+    }
+
+    private void ApplySplineProgressServer(float distanceOnTrack, float forwardDot, int lap, float progress01, float previousProgress01)
+    {
+        if (!IsServerInitialized || !TryGetRacerId(out var racerId)) return;
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
             return;
 
@@ -87,6 +96,14 @@ public class PlayerProgressReporter : NetworkBehaviour
         int lapsToFinish = GetConfiguredLapsToFinish();
         _completionTracker.UpdateCompletionFromLapAndSpline(lap, progress01, lapsToFinish, previousProgress01, forwardDot);
 
+        // Preserve accepted Solo crossing times before the periodic observation or finish can record now.
+        // No timestamp is received over RPC; LapProgress captured the authoritative local server clock.
+        if (RacerAuthority.IsProgressAuthority(this) && IsServerInitialized && MatchRules.Current.IsSolo)
+            _lapTracker?.ObserveAcceptedLapTimes(racerId, lapsToFinish);
+
+        if (MatchServices.Clock != null)
+            MatchServices.Timing?.ObserveCompletedLaps(racerId, Mathf.Clamp(lap - 1, 0, lapsToFinish), MatchServices.Clock.Now);
+
         RaceFinishManager finishManager = RaceFinishManager.Instance;
         if (finishManager != null && _completionTracker.ShouldMarkFinished(lapsToFinish))
         {
@@ -94,7 +111,7 @@ public class PlayerProgressReporter : NetworkBehaviour
         }
 
         LeaderboardManager.Instance.ReportSplineProgress(
-            OwnerId,
+            racerId.Value,
             distanceOnTrack,
             forwardDot,
             lap,
@@ -103,11 +120,12 @@ public class PlayerProgressReporter : NetworkBehaviour
             _completionTracker.IsFinished,
             _completionTracker.FinishOrder,
             _completionTracker.FinishServerTime);
+        finishManager?.EvaluateRaceEndServer();
     }
 
     public void ReportCheckpoint(int checkpointId)
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (_lapTracker == null)
@@ -190,12 +208,8 @@ public class PlayerProgressReporter : NetworkBehaviour
         {
             if (LeaderboardManager.Instance != null)
             {
-                string displayName = string.IsNullOrWhiteSpace(gameObject.name)
-                    ? PlayerIdentity.FallbackName(OwnerId)
-                    : $"{gameObject.name} #{OwnerId}";
-
-                LeaderboardManager.Instance.RegisterPlayer(OwnerId, displayName);
-                DebugLog($"[Leaderboard] Register player success OwnerId={OwnerId} displayName={displayName}");
+                if (!TryGetRacerId(out var racerId)) yield break;
+                LeaderboardManager.Instance.RegisterPlayer(racerId.Value, RacerName);
                 _registeredWithLeaderboard = true;
                 yield break;
             }

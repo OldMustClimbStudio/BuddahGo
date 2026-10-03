@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using System.Collections;
 using System.Collections.Generic;
 using FishNet.Object;
@@ -44,8 +45,9 @@ namespace SteamMultiplayer.Network.Results
         private bool _teleportTriggeredByTimeline;
         private bool _revealTriggeredByTimeline;
         private List<FinalMatchResultEntry> _pendingFinalResults;
-        private readonly HashSet<int> _presentationStartedClientIds = new HashSet<int>();
+        private readonly HashSet<int> _presentationStartedRacerIds = new HashSet<int>();
 
+        public IReadOnlyList<FinalMatchResultEntry> FinalResults => _pendingFinalResults;
         public MatchResultPresentationStage CurrentStage => _presentationStage.Value;
         public bool IsGlobalResultPresentationActive =>
             _presentationStage.Value == MatchResultPresentationStage.InTransition
@@ -85,7 +87,7 @@ namespace SteamMultiplayer.Network.Results
             _teleportTriggeredByTimeline = false;
             _revealTriggeredByTimeline = false;
             _pendingFinalResults = null;
-            _presentationStartedClientIds.Clear();
+            _presentationStartedRacerIds.Clear();
             _presentationStage.Value = MatchResultPresentationStage.Racing;
             if (Instance == this)
                 Instance = null;
@@ -116,7 +118,7 @@ namespace SteamMultiplayer.Network.Results
                 Debug.LogWarning($"[MatchResultPresentationCoordinator] Missing RaceResultAreaManager for finished player clientId={clientId} finishOrder={finishOrder}.");
 
             reporter.BeginPersonalFinishPresentationServer(personalFinishDissolveOutSeconds, finishOrder, false);
-            _presentationStartedClientIds.Add(clientId);
+            _presentationStartedRacerIds.Add(clientId);
             DebugLog($"NotifyPlayerFinishedServer clientId={clientId} finishOrder={finishOrder}");
         }
 
@@ -155,10 +157,10 @@ namespace SteamMultiplayer.Network.Results
                     if (entry == null)
                         continue;
 
-                    if (_presentationStartedClientIds.Contains(entry.ClientId))
+                    if (_presentationStartedRacerIds.Contains(entry.RacerId))
                         continue;
 
-                    if (!TryGetReporter(entry.ClientId, out PlayerProgressReporter reporter))
+                    if (!TryGetReporter(entry.RacerId, out PlayerProgressReporter reporter))
                         continue;
 
                     reporter.BeginPersonalFinishPresentationServer(forcedFinishDissolveOutSeconds, entry.FinishOrder, true);
@@ -186,18 +188,18 @@ namespace SteamMultiplayer.Network.Results
                     if (entry == null)
                         continue;
 
-                    if (!TryGetReporter(entry.ClientId, out PlayerProgressReporter reporter))
+                    if (!TryGetReporter(entry.RacerId, out PlayerProgressReporter reporter))
                         continue;
 
                     if (raceResultAreaManager != null
                         && raceResultAreaManager.TryGetPlacementTransform(entry.FinalRank - 1, out Vector3 worldPosition, out Quaternion worldRotation))
                     {
                         reporter.TeleportToHiddenResultAreaServer(worldPosition, worldRotation);
-                        raceResultAreaManager.NotifyPlacementApplied(entry.ClientId);
+                        raceResultAreaManager.NotifyPlacementApplied(entry.RacerId);
                     }
                     else
                     {
-                        Debug.LogWarning($"[MatchResultPresentationCoordinator] Missing result-area placement during black-screen teleport for clientId={entry.ClientId} finishOrder={entry.FinishOrder}.");
+                        Debug.LogWarning($"[MatchResultPresentationCoordinator] Missing result-area placement during black-screen teleport for clientId={entry.RacerId} finishOrder={entry.FinishOrder}.");
                     }
                 }
             }
@@ -228,7 +230,7 @@ namespace SteamMultiplayer.Network.Results
                     if (entry == null)
                         continue;
 
-                    if (TryGetReporter(entry.ClientId, out PlayerProgressReporter reporter))
+                    if (TryGetReporter(entry.RacerId, out PlayerProgressReporter reporter))
                         reporter.BeginResultAreaRevealServer(resultAreaDissolveInSeconds);
                 }
             }
@@ -251,7 +253,7 @@ namespace SteamMultiplayer.Network.Results
             for (int i = 0; i < reporters.Length; i++)
             {
                 PlayerProgressReporter candidate = reporters[i];
-                if (candidate == null || !candidate.IsSpawned || candidate.OwnerId != clientId)
+                if (candidate == null || !candidate.IsSpawned || !RacerAuthority.Matches(candidate, clientId))
                     continue;
 
                 reporter = candidate;
@@ -277,8 +279,11 @@ namespace SteamMultiplayer.Network.Results
                     if (entry == null)
                         continue;
 
-                    if (TryGetReporter(entry.ClientId, out PlayerProgressReporter reporter))
-                        reporter.EnterResultAreaInteractiveServer(allowMovementInResultArea, allowSkillsInResultArea);
+                    if (TryGetReporter(entry.RacerId, out PlayerProgressReporter reporter))
+                        {
+                        bool human = RacerId.IsHumanValue(entry.RacerId);
+                        reporter.EnterResultAreaInteractiveServer(allowMovementInResultArea && human, allowSkillsInResultArea && human);
+                    }
                 }
             }
 

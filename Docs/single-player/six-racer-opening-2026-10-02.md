@@ -1,5 +1,7 @@
 # Six-racer foundation and opening — 2026-10-02
 
+Later presentation update (2026-10-03): the translated placeholder paths described below have been replaced in RaceMap by the approved independent 6P paths, copied by slot to the smaller layouts. Solo idle variation and a local-player placeholder arrow (intro only, hidden at GO) are documented in [the current presentation handoff](intro-presentation-2026-10-03.md). The measurements below remain historical evidence for their original source.
+
 Scope: existing `feat/single-player-mode`, draft PR59, starting at `e9a8692`. Human is Slot1 (internal index0); five server-owned AI occupy stable remaining slots. This module ends at GO and real driving. Skills, racer progress/ranking migration, six-racer natural completion and result choreography remain a separate task.
 
 ## Implementation

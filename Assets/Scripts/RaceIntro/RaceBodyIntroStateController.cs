@@ -12,6 +12,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private const float SplineDiagnosticBackwardMeters = 0.01f;
     private const float SplineDiagnosticOvershootFactor = 1.75f;
     private const float SplineDiagnosticLargeSnapMeters = 0.35f;
+    private static readonly int IdleStateHash = Animator.StringToHash("Base Layer.Buddah_Idle");
+    private static readonly int IdleSpeedHash = Animator.StringToHash("IdlePlaybackSpeed");
 
     private enum IntroPhase
     {
@@ -268,6 +270,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _resolvedGoNetworkTime = goNetworkTime;
         _authoritativeScheduledGoNetworkTime = goNetworkTime;
         EnterIntroState();
+        ApplySoloIdleVariation();
         _visualStarted = true;
         double now = GetSmoothedNetworkTimeSeconds();
         _soloPhysicsClock = _visualBridge != null && _visualBridge.UsesSoloTimeline;
@@ -285,6 +288,40 @@ public class RaceBodyIntroStateController : MonoBehaviour
             ? IntroRuntimeState.WaitingForGo
             : IntroRuntimeState.VisualStarted;
         GameLog.Verbose($"[IntroVisual][Body:{name}] Visual start seq={sequenceId} now={now:0.000} seekTime={driveTime:0.000} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000}");
+    }
+
+    private void ApplySoloIdleVariation()
+    {
+        if (BuddahGo.Match.MatchRules.Current.ReturnTarget != BuddahGo.Match.MatchReturnTarget.MainMenuHome)
+            return;
+
+        Animator animator = GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null || !animator.HasState(0, IdleStateHash))
+            return;
+
+        // Optional for other character controllers. Only the idle state consumes this
+        // parameter; changing Animator.speed would also retime pushes and backlash.
+        bool hasIdleSpeed = false;
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.nameHash == IdleSpeedHash && parameter.type == AnimatorControllerParameterType.Float)
+            {
+                hasIdleSpeed = true;
+                break;
+            }
+        }
+
+        if (!hasIdleSpeed)
+            return;
+
+        // Stable per slot/sequence, without consuming gameplay randomness. Apply once
+        // at visual start (after the duplicate-start guard), never reset at GO.
+        int slot = Mathf.Max(0, _assignment.slotIndex);
+        int sequence = Mathf.Max(0, _activeSequenceId);
+        float phase = Mathf.Repeat(slot * 0.618034f + sequence * 0.173205f, 1f);
+        float speed = 0.94f + 0.02f * ((slot * 5 + sequence * 3) % 7);
+        animator.SetFloat(IdleSpeedHash, speed);
+        animator.Play(IdleStateHash, 0, phase);
     }
 
     public void ApplyAuthoritativeGo(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)

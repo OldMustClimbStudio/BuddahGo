@@ -1,3 +1,17 @@
+**2026-10-03 一致性清理（工作区，未提交，未运行新的比赛或联机测试）：**
+- `IMatchRules.IsSolo` 新增，15 处以 `ReturnTarget == MainMenuHome` / `is SoloMatchRules` 代判“是否 Solo”的写法改用它；`ResultDecisionManager` 保留其真正的 ReturnTarget 判断。
+- `RacerAuthority.HasLocalControl` / `IsServerAI(NetworkObject)` 成为“谁驾驶这辆车”的唯一判定；`BuddahMovement`、`BuddahPredictedMotor(.Events)`、`RaceBodyIntroStateController`、`BuddahPredictionVisualRootBridge` 不再把任意无 owner 的服务器对象当作 AI。
+- `RacerId.AIBase` / `MaxAI` 与 `IsHumanValue` / `IsAIValue` / `IsValidValue` 取代散落的 10000/10004 字面量。
+- `RaceFinishManager` 向 `IRaceEndPolicy.ShouldEnd` 传真实的“真人已完赛”标志（此前为“任何人已完赛”）；缺少 `MatchClockSync` / `RaceTimingSync` 时记录一次 error，不再静默永不结束。
+- `RaceBodyIntroStateController.GetNormalizedDistanceT` 的开场弧长修正（来自 `ec2bac2`）在所有模式生效：联机开场车身端点与时序不变，但改为等弧长速度移动，与 dev 的速度曲线不同；需按“联机开场不变”规则明确签字确认。
+- Unity batch mode EditMode 全套：342 项，282 通过，0 失败，60 跳过（[Explicit] 历史测试）。
+- `AIRacerDriver`：用 `Collision.GetContact` 取代每步分配 contacts；缺 profile 时记录 error 并使用 Normal 产品 profile，不再静默选择 beam 规划器。`PlanObservation` 与 `ISteeringPlanner` 移至 `Assets/Scripts/AI/PlanObservation.cs`。
+- `BuddahPredictedMotor.Events.cs` 恢复为 UTF-8（两处注释曾被存为 GBK）。
+- Editor 工具 `AIDifficultyAssetTool` / `TrackWallFixtureTool` / `ThrustVectorAcceptanceBuild` 不再依赖 `.worktree/single-player-mode` 路径或个人输出目录。
+- **未改的已知问题**（会改变已调校、已验收的 AI 行为，需试玩）：`AIRacerDriver` 的反应延迟会抽稀 `ThrustVectorPlanner` 调用，使其按调用计数的计时（`_collisionSeconds`、摆动计数、`ThrustReplanTicks`）在 Easy/Normal 上变慢；摆动写入 `_chosenTheta` 后可能随机游走；`ThrustVectorPlanner` 中硬编码的 79/78 m/s 与 4.82 rad/s² 假定 FinalMaxSpeed 为 80。
+- **仍需联机测试的联机路径行为变化**（超出 Solo 范围）：`SessionLauncher.RequestStopSession` 现自行加载 MainMenu（`SteamLobbyManager` 约 618 行的注释仍假定由 UI 处理）；联机开局 20 s / 30 s 超时会强制返回菜单；`LeaderboardTMPUI` 联机 HUD 不再显示状态块；`SplineProgressTracker.maxProjectionDistance` 默认值 40→30。
+- 文档：统一 AI 开工授权与里程碑的唯一全文在本文件，HANDOFF/phases 改为摘要加链接；阶段表、ADR 0003 修订注记、CONTEXT 难度/Fumble 词条、design.md 规划器注记及构建/证据路径已按代码与提交更正。
+
 **2026-10-03 开场表现更新：** 用户验收 6P 自由错位/热胎路线后，已同步 1P–5P，修复 3P 共用落点引用；新增单机 idle 错相及本机玩家头顶 3D 箭头占位（仅开场显示、GO 后立即隐藏）。共享 RaceMap 曲线会用于联机；idle 目前仅单机，箭头按本地拥有者实现但未做联机实测。联机适配事项、证据和门架遮挡限制见 [本次改动与联机交接](intro-presentation-2026-10-03.md)。最终单机实播 383 个采样无捕获错误，35 个 GO 后采样标识均隐藏；33 项开场相关测试通过。非 Development 构建完成状态因 MCP 断连未确认。本次未运行联机测试、未合并。
 
 **2026-10-03 AI 跑线算法里程碑：推力矢量控制器 + 墙走廊 + 三档难度（同 PR59，已提交 `559d57c`）。** V5 beam search 被 `ThrustVectorPlanner` 取代：闭式引导锚点 + 两段式闭环 rollout 选择 + 时间最优姿态层，pace 用摩擦圆；赛车线携带射线测得的左右墙距，rollout 把墙建模为无摩擦导轨（游戏不设刹车正是因为墙）。Hard 禁刹（夹角 ≤ 90°）同场三圈 81.5–83.8 s、Normal 92.8–94.4 s、Easy 114.7–118.9 s（历史 V5 单跑 118.1 s、A2 三圈 116.5 s、spin-fix 126.0 s）；无整圈旋转；五 AI 帧时中位 5.8–7.2 ms（beam 65 ms，Development 构建）。难度经 `MatchSpawnManager.SpawnSoloAI` → `AIDifficultyProfiles.Resolve` 接入产品路径，资产 `Assets/Resources/AI/{Easy,Normal,Hard}.asset` 由 `Tools/ai/difficulty-*.json` 生成；每车随机性（速度偏差、走线偏置、夹角摆动、次优失误、反应抖动）使同档 AI 不再同线。版本比较改用同场比赛（`AITuningHarness --ai-profiles`，`race-results.json`）。完整 EditMode 342 项 0 失败；正式构建 0 错误。**用户已验收。** 未做：车车碰撞建模、IL2CPP、技能与排名/结算（另有进行中改动）；beam 与 Legacy 等价测试保留为对照。规格见 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md)，全部真机与比赛数据见 [thrust-vector-controller-2026-10-02.md](thrust-vector-controller-2026-10-02.md)，原始分析见 [review-planning-cost-68e4d70.md](review-planning-cost-68e4d70.md)。
@@ -27,7 +41,7 @@
 
 S1 仍为 `doing`，普通 Windows x64 非 Development Practice 试玩包已交付，游戏源码为 `21cc3cfd9246856f071b32f5730e0586ff547ea6`，含权威过线计时修复；后续文档提交不改变该构建的游戏代码来源。相关 Unity 回归为 **151 passed / 0 failed / 0 skipped**，普通 Release 构建成功且无构建错误，实际启动到可见主菜单已核对；启动方式见 [快速试玩清单](practice-playtest.md)。用户已初步手动试玩，反馈看起来没大问题、技能都能用；不等于逐项普通/反噬、对手效果、完整生命周期或整体 S1 验收通过。新源码 V3 ±100ms 自然精度采样按用户要求中止，尚无完整圈/场结果；最终源码 strict14/程序化长测、Esc 专项及完整 benchmark/V12 均未完成验证。技能检查点 `9e428c1` 的本地行为和 14/14 回归继续按 [原范围](skill-acceptance.md) 保留；A1 已实现并有自然一圈证据，A2 已有三圈证据（见顶部）。
 
-**AI 开工授权（2026-10-01 23:51 UTC）**：用户明确说“ok 这样吧。你直接开始做这个吧 然后继续在pr59内实现即可。可以开始启动了你”。现已授权在现有 `feat/single-player-mode` / PR #59 从 A1 开始；A1 已由 `354f10a` 实现并取得自然一圈证据，当时下一步为 A2；本次三圈及调参结果见顶部；A2 当前结果见顶部，A3–A4 尚未完成，详见 [progress.md](progress.md) 的“A1 交付证据与 A2 交接”。此明确指令覆盖此前等待开始信号及仅做 AI 文档的暂停状态；Practice 初步试玩、151 项相关回归和可玩包交付不因此升级为全验收，±100ms、最终源码长测/完整 benchmark 等未验证项继续保留。A1 通过才实现 A2，随后 A3、A4；不新开 AI 分支或阶段 PR。
+**AI 开工授权（2026-10-01 23:51 UTC）**：用户明确说“ok 这样吧。你直接开始做这个吧 然后继续在pr59内实现即可。可以开始启动了你”。现已授权在现有 `feat/single-player-mode` / PR #59 从 A1 开始；A1 已由 `354f10a` 实现并取得自然一圈证据，当时下一步为 A2（无技能三圈与急弯调优）；本次三圈及调参结果见顶部；A2 当前结果见顶部，A3–A4 尚未完成，详见 [progress.md](progress.md) 的“A1 交付证据与 A2 交接”。此明确指令覆盖此前等待开始信号及仅做 AI 文档的暂停状态；Practice 初步试玩、151 项相关回归和可玩包交付不因此升级为全验收，±100ms、最终源码长测/完整 benchmark 等未验证项继续保留。A1 通过才实现 A2，随后 A3、A4；不新开 AI 分支或阶段 PR。
 
 用户最新确定的 AI 实施与测试顺序为：**A1 单个 AI 无技能完整一圈 → A2 单个 AI 无技能三圈比赛及平均圈速/圈间稳定性 → A3 五个独立 AI 带技能比赛，玩家入场后不操作 → A4 通知用户手动试玩完整流程**。前一步通过才推进；这同时约束实现和测试，覆盖旧方案中不同的推进顺序。技能可使用独立的简单概率决策，不要求复杂行为树；仍须遵守既有技能合法性与玩法。
 
@@ -95,26 +109,26 @@ Practice 的目标是让本地单机完整承接既有联机流程与表现，�
 | 阶段 | 目标 | 状态 | PR | 验证结果 | 备注 |
 |---|---|---|---|---|---|
 | S0 | 同步重构结果 | done | — | 文档事实已按合并后的 dev 复核 | 2026-09-30 合并 dev（含 #47–#58） |
-| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 游戏源码 21cc3cf 普通试玩包已交付，相关回归 151/151、构建及菜单启动已核对；旧 V3 失败保留，新源码 ±100ms、长测及完整 V12 未验证；V2 不适用 | 用户初步试玩反馈技能可用，逐项覆盖尚未全部确认；S1 不标 done；AI A1 已有自然一圈证据，A2 尚未完成 |
-| S1.5 | 规划器可行性验证 | doing | #59 | 354f10a 已实现 A1，run04 自然一圈及有界模型证据通过 | 下一步 A2 连续三圈与急弯调优；S1.5 整体及 A2 尚未通过 |
-| S2 | Racer 身份 | todo | | | 仅单机验收 |
-| S3a | AI 完整跑完一局 | todo | | | |
+| S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 游戏源码 21cc3cf 普通试玩包已交付，相关回归 151/151、构建及菜单启动已核对；旧 V3 失败保留，新源码 ±100ms、长测及完整 V12 未验证；V2 不适用 | 用户初步试玩反馈技能可用，逐项覆盖尚未全部确认；S1 不标 done；AI A1、A2 已完成（见 S1.5） |
+| S1.5 | 规划器可行性验证 | done-unverified | #59 | 354f10a A1 自然一圈；A2 同场自然三圈平均 116.533 s（V5 beam）；随后 `559d57c` 推力矢量控制器 Normal 同场三圈 92.8–94.4 s | A1/A2 完成；V11/V12 未针对本阶段执行；beam 已由 ThrustVectorPlanner 取代 |
+| S2 | Racer 身份 | doing（部分） | #59 | `ba30112`：RacerIdentity/RacerRegistry/IRacerDirectory、六个唯一 RacerId，89/89 针对性测试 | 排行榜/进度/完赛/结算改按 RacerId 仍为工作区未提交改动，未验收；仅单机验收 |
+| S3a | AI 完整跑完一局 | doing（部分） | #59 | `ba30112` 同轮生成五个无 owner AI、六出生点、4–6 人布局、权威 GO；`559d57c` 产品路径五 AI 六车同场三圈自然完赛（无技能） | 排名/结算区停放、Stuck Recovery、Rematch 及六人结算未验收 |
 | S3b | AI 施法入口与表现 | todo | | | |
-| S4 | AI 驾驶与调参场景 | todo | | | |
+| S4 | AI 驾驶与调参场景 | doing（部分） | #59 | `559d57c` 三档难度（`Assets/Resources/AI/*.asset`）经同场比赛实测，用户已验收；`AITuningHarness --ai-profiles` | 横向离散度阈值、被推/遮挡后回线、技能干扰及车车碰撞建模未做 |
 | S5 | AI 施法规则 | todo | | | |
 | S6 | 体验收尾（占位美术） | todo | | | |
 | S7 | 暂停（后续） | todo | | | |
 
-## AI 实施与测试里程碑（A1 已交付）
+## AI 实施与测试里程碑（A1、A2 已交付）
 
 | 步骤 | 完成内容 | 状态 | 推进条件 |
 |---|---|---|---|
 | A1 | 单个 AI 无技能完整自然跑一圈，记录圈速与轨迹 | done（仅一圈检查点） | 354f10a / run04：124.917 秒、1250 样本；急弯接触和调校缺口保留，不等于整场/全验收 |
-| A2 | 单个 AI 无技能三圈比赛，检查平均圈速与圈间稳定性 | todo（下一步） | A1 已交付；在 V1–V5 预算内急弯调优并验证连续自然三圈；当前不启动 A3，波动/成功率只作诊断 |
-| A3 | 五个独立 AI 带技能比赛，玩家入场后不操作；记录各自完赛率/时间/轨迹 | 未开始 | A2 通过；正常完成困难则调整复测，成功率与 DNF 原因用于诊断调优，不设机械通过百分比 |
+| A2 | 单个 AI 无技能三圈比赛，检查平均圈速与圈间稳定性 | done | 同一场自然三圈 116.650 / 115.667 / 117.283 秒，平均 116.533 秒（V5，预算用完），90 秒目标未达到；`559d57c` 推力矢量 Normal 同场三圈 92.8–94.4 s，见 [a2-results.md](a2-results.md) 与 [thrust-vector-controller-2026-10-02.md](thrust-vector-controller-2026-10-02.md) |
+| A3 | 五个独立 AI 带技能比赛，玩家入场后不操作；记录各自完赛率/时间/轨迹 | 未开始（五 AI 无技能同场比赛已有 `559d57c` 证据；AI 施法仅文档设计） | A2 通过；正常完成困难则调整复测，成功率与 DNF 原因用于诊断调优，不设机械通过百分比 |
 | A4 | 通知用户手动试玩完整流程并记录反馈 | 未开始 | A3 通过；不得把通知或自动化通过等同用户已试玩 |
 
-普通无障碍、无技能每圈约 **90–120 秒**是调校目标，不是每圈硬性通过区间，也不外推至 A3 技能混战。速度、跟随、反应等独立参数字段已在 A1 实现；快捷难度/精准度 UI 与 Easy/Hard 映射仍未实现或校准。测试盒子只临时 disable、记录并恢复，不删除。A2 起步和证据边界见 [HANDOFF](HANDOFF.md) 的“当前交接：A1 已实现，下一步 A2”。
+普通无障碍、无技能每圈约 **90–120 秒**是调校目标，不是每圈硬性通过区间，也不外推至 A3 技能混战。速度、跟随、反应等独立参数字段已在 A1 实现；快捷难度/精准度 UI 与 Easy/Hard 映射仍未实现或校准。测试盒子只临时 disable、记录并恢复，不删除。A2 起步和证据边界见 [HANDOFF](HANDOFF.md) 的“历史交接：A1 已实现，随后进入 A2”。
 
 ## A1 交付证据与 A2 交接（2026-10-02）
 
@@ -211,6 +225,6 @@ Practice 的目标是让本地单机完整承接既有联机流程与表现，�
 - At this saved checkpoint, S1 was **paused**, not done. Published implementation/review checkpoints are `73f29b3` and `88f763a`; the complete suite previously passed 152/152, including real Unity scene tests. The ordinary Windows x64 non-Development release succeeded with 0 errors and 18 warnings, whose existing-source provenance is recorded above.
 - Completed physical evidence: one visible-Editor three-lap Practice race, total 734.000 s, natural checkpoints/finish and immediate Practice result transition; three-phase Escape/confirm/Home cleanup; automatic failed-start setup restoration with original difficulty/error.
 - The independent instrumented Player strict14 sequence was stopped at the user's pause request during its first main race (lap 3, approximately 73.57% complete at normal closure). It had not completed a main sample, so neither strict14 nor the ten-match V11 gate passed. Partial live measurements showed one Buddah, one reporter, ten NetworkObjects and about 14 MB managed heap, with no captured game Error/Exception before stopping. These are partial observations, not a memory-stability conclusion.
-- Private helpers, source hashes, process manifest, logs, partial JSONL and normal/instrumented builds are saved locally. They are excluded from this PR. The temporary Unity helper sources were removed from Assets.
+- Private helpers, source hashes, process manifest, logs, partial JSONL and normal/instrumented builds are saved locally. They are excluded from this PR. The temporary Unity helper sources were removed from Assets at this checkpoint. Correction (2026-10-03): private helpers exist again as local, untracked files (`Assets/Scripts/Match/SoloContinuousAcceptanceRuntime.cs`, `SoloBenchmarkFrames.cs`, `SoloCrossingProbe.cs`, `SoloHandoffObservation.cs`, `PrivateRaceFlow.cs`, compiled only under `BUDDAH_PRIVATE_*` defines outside the Editor, plus Editor-only `Assets/Editor/Solo*.cs`, `PrivateRaceFlowBuild.cs`, `ThrustVectorPrivateBuild.cs`, `SinglePlayerLocalBootstrap.cs`); they are not part of the PR. The committed operator source is `Tools/SinglePlayerBenchmark/*.cs.txt`; `SoloContinuousAcceptanceRuntime.cs.txt` was synced on 2026-10-03 to include the `precision3` plan.
 - The saved strict14 evidence lacks all-frame performance percentiles, allocation/frame and allocation/second, a fixed-seed run protocol and captured quality/FPS configuration. It is functional/endurance evidence only. The independent benchmark session stopped cleanly at baseline `88f763a` without creating source, protocol, or a new commit. At that checkpoint, `Tools/SinglePlayerBenchmark/` and `benchmark.md` were **not implemented or executed**; do not borrow online Editor R8 numbers or repeat a long run solely to fill metadata.
 - Remaining acceptance order after resumption: read this checkpoint and implement the bounded independent benchmark package/protocol; confirm all local/remote checkpoints; reopen the feature project; finish actual results hold/Return/Rematch and required multi-match integrity; close the bounded S1 0-AI benchmark protocol/measurement; update applicable Solo gates. Do not begin S1.5 while S1's applicable Solo gates remain incomplete. The later user decision adds two further requirements: the user completes the skill playtest and explicitly signals AI implementation may begin; S1 completion alone is insufficient. No online tests or Steam coordination are part of this resume plan.

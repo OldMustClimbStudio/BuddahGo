@@ -621,5 +621,5 @@ v2 的 5 AI 中位 6.85 ms，用户观察"一点都不卡"；v3 只把第二段�
 
 - 完整 EditMode 测试集：342 项，282 通过，0 失败，60 跳过（Explicit 诊断/校准测试）。
 - 非 Development 正式构建（`THRUST_BUILD_RELEASE=1`，输出 `Documents/Codex/2026-10-02/claude-thrust/release-build`）：Succeeded，0 errors。产品路径（spawner 按难度取 profile）在没有 harness 的构建中编译通过。
-- 证据目录 `Tools/ai/thrust-vector/` 从 247 MB 修剪到 63 MB：作废迭代只保留 JSON 摘要与网格结果表，逐 tick CSV 删除（见 `rollout-2026-10-02/superseded-README.md`）。
-- 工作区仍未提交；排名/结算的进行中改动未触碰。
+- 证据目录 `Tools/ai/thrust-vector/` 从 247 MB 修剪到 63 MB（当时口径；现磁盘约 11 MB，2026-10-03 起 `Tools/ai/**/*.csv` 与 `*.jsonl` 均经 Git LFS 存储，见 `.gitattributes`）：作废迭代只保留 JSON 摘要与网格结果表，逐 tick CSV 删除（见 `rollout-2026-10-02/superseded-README.md`）。
+- 工作区仍未提交（其后已提交为 `559d57c`）；排名/结算的进行中改动未触碰。

@@ -66,7 +66,7 @@ _Avoid_: bot, NPC, CPU
 ### AI Behaviour
 
 **Difficulty**:
-The Easy, Normal or Hard setting of a Solo Match. It sets how precisely the AI Racers plan their steering and skill use; it is not a target lap time.
+The Easy, Normal or Hard setting of a Solo Match. Each tier is an AI profile that sets the AI Racers' target speed, whether they may brake (Hard never brakes), how much they avoid walls, their reaction delay and planning precision, their per-car randomness and their Fumble chance; together these give each tier its own race pace. Skill use per tier is designed but not yet implemented.
 _Avoid_: AI level, skill level
 
 **Steering Plan**:
@@ -86,5 +86,5 @@ The server returning an AI Racer to the track after its progress along the track
 _Avoid_: unstuck, AI respawn
 
 **Fumble**:
-An AI Racer's deliberate, occasional wrong key press, which keeps its driving comical. The Fumble rate is tuned separately from Difficulty.
+An AI Racer's deliberate, occasional suboptimal choice (taking its second-best thrust candidate for one selection, plus a slow wobble on its thrust angle), which keeps its driving imperfect and varied. The Fumble chance is part of each Difficulty tier, not a separate setting.
 _Avoid_: noise, error rate, mistake

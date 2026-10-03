@@ -1,21 +1,21 @@
-**2026-10-03 开场表现更新：** 用户验收 6P 自由错位/热胎路线后，已同步 1P–5P，修复 3P 共用落点引用；新增单机 idle 错相及本机玩家头顶 3D 箭头占位（仅开场显示、GO 后立即隐藏）。共享 RaceMap 曲线会用于联机；idle 目前仅单机，箭头按本地拥有者实现但未做联机实测。联机适配事项、证据和门架遮挡限制见 [本次改动与联机交接](intro-presentation-2026-10-03.md)。最终单机实播 383 个采样无捕获错误，35 个 GO 后采样标识均隐藏；33 项开场相关测试通过。非 Development 构建完成状态因 MCP 断连未确认。本次未运行联机测试、未合并。
+**2026-10-03 开场表现更新：** 6P 路线同步至 1P–5P，新增单机 idle 错相与仅开场显示的本机玩家箭头；未做联机实测。全文见 [progress.md](progress.md) 顶部，联机交接见 [intro-presentation-2026-10-03.md](intro-presentation-2026-10-03.md)。
 
-**2026-10-03 AI 跑线算法里程碑：推力矢量控制器 + 墙走廊 + 三档难度（同 PR59，已提交 `559d57c`）。** V5 beam search 被 `ThrustVectorPlanner` 取代：闭式引导锚点 + 两段式闭环 rollout 选择 + 时间最优姿态层，pace 用摩擦圆；赛车线携带射线测得的左右墙距，rollout 把墙建模为无摩擦导轨（游戏不设刹车正是因为墙）。Hard 禁刹（夹角 ≤ 90°）同场三圈 81.5–83.8 s、Normal 92.8–94.4 s、Easy 114.7–118.9 s（历史 V5 单跑 118.1 s、A2 三圈 116.5 s、spin-fix 126.0 s）；无整圈旋转；五 AI 帧时中位 5.8–7.2 ms（beam 65 ms，Development 构建）。难度经 `MatchSpawnManager.SpawnSoloAI` → `AIDifficultyProfiles.Resolve` 接入产品路径，资产 `Assets/Resources/AI/{Easy,Normal,Hard}.asset` 由 `Tools/ai/difficulty-*.json` 生成；每车随机性（速度偏差、走线偏置、夹角摆动、次优失误、反应抖动）使同档 AI 不再同线。版本比较改用同场比赛（`AITuningHarness --ai-profiles`，`race-results.json`）。完整 EditMode 342 项 0 失败；正式构建 0 错误。**用户已验收。** 未做：车车碰撞建模、IL2CPP、技能与排名/结算（另有进行中改动）；beam 与 Legacy 等价测试保留为对照。规格见 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md)，全部真机与比赛数据见 [thrust-vector-controller-2026-10-02.md](thrust-vector-controller-2026-10-02.md)，原始分析见 [review-planning-cost-68e4d70.md](review-planning-cost-68e4d70.md)。
+**2026-10-03 AI 跑线算法里程碑（已提交 `559d57c`，用户已验收）：** `ThrustVectorPlanner` + 墙走廊取代 V5 beam，三档难度接入产品路径；同场三圈 Hard 81.5–83.8 s、Normal 92.8–94.4 s、Easy 114.7–118.9 s。全文见 [progress.md](progress.md) 顶部，规格见 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md)。
 
-**2026-10-02 五 AI 性能成本优化（同 PR59，未合并）：** 逐 AI 计时定位规划为主要 CPU 成本；几何/模型常量缓存和重复工作去除保持控制参数，VJitter 改为显式默认关闭。最终 39/39 测试通过，同构建原版/首版优化中位帧时 147.88→97.52 ms；最终补测 93.18 ms、291 ticks/约9秒（原版180）。**仍有明显剩余卡顿，未宣称完整性能预算通过。** 原额外转圈约束/neutral fallback 和 tracker 修复保留；rank=-1、技能与终场留待后续短模块。详见 [性能归因、实测与边界](performance-costs-2026-10-02.md)。
+**2026-10-02 五 AI 性能成本优化：** beam 规划缓存与去重，同构建中位帧时 147.88→97.52 ms（补测 93.18 ms），当时仍有明显卡顿。全文见 [progress.md](progress.md) 顶部，详见 [performance-costs-2026-10-02.md](performance-costs-2026-10-02.md)。
 
-**2026-10-02 tracker 专项修复已实现并完成直接回归（同 PR59，未合并）：** 保存位置调用实际 tracker 确证 20 m 阈值造成目标区间后 23 点拒绝；赛道路面验证支持有限 30 m。修复选中分支距离校验、限幅后的距离/参数一致性和拒绝帧的 delta/wrap/方向状态。最终 tracker 14/14 通过，首轮其余 83 项相关回归通过；三圈回放 0 拒绝、最大投影偏差 3.269 m，独立非 Development 构建 0 错误/24 警告。**没有新的自然比赛、六人排名或结算通过证据**，旧 rank=-1 与五 AI 性能缺陷继续开放，下一模块做技能/排名/checkpoint 权限/结算消费者迁移。详见 [复现、修复和验收边界](tracker-fix-2026-10-02.md)。下列开场/dev 集成记录保留其当时源码和验证范围。
+**2026-10-02 tracker 专项修复：** 有限 30 m 投影走廊与拒绝帧状态修复，三圈回放 0 拒绝；无新的自然比赛、六人排名或结算证据。全文见 [progress.md](progress.md) 顶部，详见 [tracker-fix-2026-10-02.md](tracker-fix-2026-10-02.md)。
 
-**2026-10-02 六参赛者底座与开场模块已实现（PR59，未合并 dev）：** 玩家固定 Slot1/index0；五个服务器无 owner AI；唯一身份/注册表、六出生点、4–6 槽位占位路径、既有运镜及权威 GO 到驾驶已接入。89/89 针对性测试与两次加强后 4/4 场景测试通过，最终非 Development 私有构建 0 错误/6 警告。首次/实际 Rematch 共 4701 帧、0 捕获运行错误；六车同帧 GO，AI OwnerId=-1，真人连接始终1。**不是六人整场/排名/结算或性能验收：** 私有采样器下 GO 后中位帧耗时106–128ms，旧排行榜仍将 AI 合并到 -1；当时 tracker 停滞与历史 AI 速度/接触/模型问题未改（tracker 后续修复见顶部）。详见 [实现、证据与后续边界](six-racer-opening-2026-10-02.md)。下一短任务接 owner-keyed 消费方迁移、技能比赛与结算，tracker 专项已另行完成，性能仍需有限诊断；不再增加圈速调参版本。
+**2026-10-02 六参赛者底座与开场（`ba30112`）：** 玩家 Slot1 + 五个无 owner 服务器 AI、身份注册表、六出生点与 4–6 人布局、权威 GO 已接入；不是六人整场/排名/结算或性能验收。全文见 [progress.md](progress.md) 顶部，详见 [six-racer-opening-2026-10-02.md](six-racer-opening-2026-10-02.md)。
 
 # 交接：单机模式实现
 
-**2026-10-02 dev 集成复核（历史模块）：** 已普通合并 PR60 / `fc7ab594`，Solo 保留单一物理历史和即时 GO；新源码 79/79 针对性测试、独立非 Development 构建及首局/实际 Rematch 开场复核通过。仅受控结算用于重开，不代表合并后自然三圈、完整结算动画或 A3 已通过。进度 tracker 停滞会影响排名/checkpoint/逆行判断，仍未修复；后续六车模块必须保留这一限制。详见 [集成证据与下一模块](dev-integration-2026-10-02.md)。下文旧结果保留原始源码与范围。
+**2026-10-02 dev 集成复核（历史模块）：** 已普通合并 PR60 / `fc7ab594`，首局/实际 Rematch 开场复核通过。全文见 [progress.md](progress.md)，详见 [dev-integration-2026-10-02.md](dev-integration-2026-10-02.md)。
 
-**2026-10-02 入弯转圈修复：** 已验证三圈无额外朝向绕圈，但圈速 126.783 / 123.533 / 127.817 秒（平均 126.044）慢于 V5；行驶侧接触 66 次。此修复不代表提速或 A3，旧调参预算仍结束。详见 [转圈缺陷证据与限制](ai-spin-fix.md)。
+**2026-10-02 入弯转圈修复：** 三圈无额外朝向绕圈，平均 126.044 秒，慢于 V5。全文见 [progress.md](progress.md)，详见 [ai-spin-fix.md](ai-spin-fix.md)。
 
 
-**当前 A2 交付（2026-10-02）**：A2 已自然完成同一场三圈：116.650 / 115.667 / 117.283 秒，平均 116.533 秒；终场停驶、ResultInteractive 和五盒恢复已核对。V1–V5 调参预算已用完，固定 V5；90 秒目标与稳定干净圈仍未达到。A3/A4 未开始。 详见 [A2 实现与证据](a2-results.md)。以下 A1/Practice 检查点保留历史来源边界。
+**A2 交付（2026-10-02）**：同一场自然三圈平均 116.533 秒，V1–V5 预算用完、固定 V5。全文见 [progress.md](progress.md)，详见 [A2 实现与证据](a2-results.md)。以下 A1/Practice 检查点保留历史来源边界。
 
 **当前状态：S1 doing；用户已初步手动试玩，反馈看起来没大问题、技能都能用；不等于全部验收通过，A1 已有自然一圈证据，A2 已有三圈证据（见顶部）。** 最新有界 handoff 修复为 `cb4a9ad`，见 [Solo 呈现时间契约与实测](solo-presentation-timeline.md)。65 项 Unity 回归通过；正常首局/Rematch 共 5380 帧无停留或倒退，另有控制/传送回归。此前选择页和 Development 窗口证据见 [选择页与新采样复核](validation-2026-10-01.md)，整体验收边界见 [progress.md](progress.md)。
 
@@ -25,9 +25,9 @@
 - `aa7fb05` 已恢复原 VFX 导入，未替换原材质或新增包；首次导入失败的历史原因仍未知，见 [VFX 恢复记录](../vfx-asset-recovery.md)。`9e428c1` 进一步修复神足通原粒子调用、掌形发射根残留及 Animator 场景扫描警告；六技能本地触发/到期、正常掌形生命周期、神足通粒子/拖尾、所测 Rematch 与活跃特效退出清理通过，针对性回归 14/14，见 [技能验收范围](skill-acceptance.md)。
 - 对手命中/受控效果、反噬掌形与爆发完整画面尚未验证，用户手感已有初步反馈但未逐项确认；最终源码自然生命周期/strict14、V3、完整 V12 与预算未通过。三文件曾按授权恢复后又被 Unity 改写，保留证据，不循环 restore，clean-source 未闭合。用户初步技能反馈已收到，逐项覆盖未全部确认；23:51 UTC 已收到明确 AI 开始信号，A1 已在 `354f10a` 实现并完成自然一圈检查点，下一步 A2。
 
-**AI 开工授权（2026-10-01 23:51 UTC）**：用户明确说“ok 这样吧。你直接开始做这个吧 然后继续在pr59内实现即可。可以开始启动了你”。现已授权在现有 `feat/single-player-mode` / PR #59 从 A1 开始；A1 已由 `354f10a` 实现并取得自然一圈证据，当时下一步为 A2；本次三圈及调参结果见顶部；A2 当前结果见顶部，A3–A4 尚未完成，详见 [progress.md](progress.md) 的“A1 交付证据与 A2 交接”。此明确指令覆盖此前等待开始信号及仅做 AI 文档的暂停状态；Practice 初步试玩、151 项相关回归和可玩包交付不因此升级为全验收，±100ms、最终源码长测/完整 benchmark 等未验证项继续保留。A1 通过才实现 A2，随后 A3、A4；不新开 AI 分支或阶段 PR。
+**AI 开工授权（2026-10-01 23:51 UTC）**：用户明确授权在现有 `feat/single-player-mode` / PR #59 从 A1 开始，按 A1–A4 推进，不新开 AI 分支或阶段 PR；原话与验收边界见 [progress.md](progress.md) 的“当前状态与验收边界”和“最新授权原文”。
 
-用户最新确定的 AI 实施与测试顺序为：**A1 单个 AI 无技能完整一圈 → A2 单个 AI 无技能三圈比赛及平均圈速/圈间稳定性 → A3 五个独立 AI 带技能比赛，玩家入场后不操作 → A4 通知用户手动试玩完整流程**。前一步通过才推进；这同时约束实现和测试，覆盖旧方案中不同的推进顺序。技能可使用独立的简单概率决策，不要求复杂行为树；仍须遵守既有技能合法性与玩法。 细节及调校方案见 [ai-testing.md](ai-testing.md)。
+AI 实施与测试顺序：**A1 单 AI 无技能一圈 → A2 单 AI 无技能三圈 → A3 五个独立 AI 带技能比赛（玩家不操作）→ A4 用户手动试玩**，前一步通过才推进；用户决定全文见 [progress.md](progress.md) 的“当前状态与验收边界”，细节及调校方案见 [ai-testing.md](ai-testing.md)。
 
 **2026-10-01 23:05 UTC 设计更新，仅文档**：用户自述个人一圈约 1:30；普通难度 AI 的无障碍无技能圈速以约 1:30–2:00 为调校目标。成功率和圈速波动用于诊断调优，替代旧待定数字通过预算；快捷难度/精准度预设及速度、跟随/转向精度、反应独立参数均是待实测提案。未来 AI 测试临时 disable 中间测试盒子，不删除，现在不改场景。详见 [AI 调校与测试计划](ai-testing.md) 和 [设计 §5.3](design.md)；23:05 的设计讨论本身不是开始信号，随后 23:51 已明确授权从 A1 开始。
 
@@ -132,4 +132,4 @@ S1 开工条件已满足：重构（#47–#58）已经合入 `dev`，本分支�
 - **S1 计时已统一到 Match Clock**：GO、圈速和完赛使用服务器 tick 时钟；真人圈数仍经约 100 ms 进度上报观察，不能声称冲线精确到一个 tick。暂停与其余计时器迁移仍属 S7。
 - **现有 UI 里只有技能配装真正生效**：地图和皮肤都是占位。单机跳过地图阶段，皮肤阶段保留。
 - **美术用占位**：开场布局、AI 区分、头顶名字、小地图标记都用占位资源，放在 `Assets/Placeholder/`。美术问题不阻塞任何阶段。
-- **第三方插件改动**：FishyFacepunch 的 Steam 容错是本地修改（ADR 0004），升级插件时要保留。
+- **第三方插件改动**：FishyFacepunch 的 Steam 容错是本地修改（ADR 0004），升级插件时要保留。FishNet 的 `Assets/FishNet/Runtime/Utility/TransformTickSmoother.cs` 新增 `SetPresentationSuspended(bool)` / `_presentationSuspended`，只由 `BuddahPredictionVisualRootBridge` 用于 Solo 呈现时间线（见 [solo-presentation-timeline.md](solo-presentation-timeline.md)）；升级 FishNet 后必须重新应用。

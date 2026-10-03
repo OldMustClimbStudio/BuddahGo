@@ -180,7 +180,7 @@ deadband、T 的 clamp、side 死区、HOLD 阈值 18、恢复阈值 200° 不�
 
 成本：21 候选 × 120 tick ≈ 2,520 模型步 + 420 次 13 段投影，每 tick 一次。beam 每次 Plan 24,651 步 + 68,475 段，每 3 tick 一次。按步数折算约为 beam 的 30%/tick，10%/s 口径下仍是显著节省但不是数量级；若真机帧时不达标，先改 `EffectiveReplanTicks` 为 2–3，再 IL2CPP。
 
-真机验收：`AITuningHarness` 新增 `--ai-count N`（服务器 AI 共享加载的 profile）与 GO+2..11 s 帧时窗口（summary.json 的 perfMedianMs / perfP95Ms / perfTicks，perf.csv）。构建脚本 `Assets/Editor/ThrustVectorAcceptanceBuild.cs`（Development，输出在仓库外 `Documents/Codex/2026-10-02/claude-thrust/`）。真机结果见下一节（运行后补）。
+真机验收：`AITuningHarness` 新增 `--ai-count N`（服务器 AI 共享加载的 profile）与 GO+2..11 s 帧时窗口（summary.json 的 perfMedianMs / perfP95Ms / perfTicks，perf.csv）。构建脚本 `Assets/Editor/ThrustVectorAcceptanceBuild.cs`（Development；当时输出在仓库外 `Documents/Codex/2026-10-02/claude-thrust/`，2026-10-03 起默认输出到项目内被 git 忽略的 `Logs/thrust-vector-build/`，可用环境变量 `THRUST_BUILD_OUTPUT` 覆盖）。`Tools/ai/thrust-vector/scripts/lap.sh`、`race.sh` 会把每次运行的 summary/configuration/events/perf（race 另含 race-results）复制到 `Tools/ai/thrust-vector/rollout-2026-10-02/player/<name>/`，所以逐次副本会进入仓库（CSV/JSONL 经 Git LFS）。真机结果见下一节（运行后补）。
 
 ## 十一、墙走廊：墙是这辆车的刹车（2026-10-02）
 
@@ -250,5 +250,7 @@ deadband、T 的 clamp、side 死区、HOLD 阈值 18、恢复阈值 200° 不�
 | SpeedNoise / LateralOffsetNoise | ±8 / ±4 | ±4 / ±2.5 | ±2 / ±1.5 |
 | AngleNoiseDegrees σ | 12° | 5° | 2° |
 | MistakeProbability | 0.30 | 0.10 | 0.03 |
+
+Easy 列为首版；定稿（race6）为 TargetSpeed 67、撞墙权重 0.7、ReactionTicks 8（+0..5）、ThrustReplanTicks / RolloutSeconds 3 / 1.8、SpeedNoise / LateralOffsetNoise ±6 / ±3.5、σ 10°、MistakeProbability 0.25。产品数值以 `Tools/ai/difficulty-*.json` 为准。
 
 验证方式：每档一场六车赛，5 个该档服务器 AI（产品路径 `--ai-product-profiles --ai-difficulty <tier>`）加 harness 驾驭的玩家 Buddah（Normal profile），看排名是否随难度变化、谁胜。结果见 thrust-vector-controller-2026-10-02.md。

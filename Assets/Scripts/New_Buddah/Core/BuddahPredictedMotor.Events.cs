@@ -101,7 +101,7 @@ namespace NewBuddah.PredictionV2.Core
                 rebaseTrails);
 
             bool queuedOnServer = TryQueueTeleportEvent(eventData);
-            QueueTeleportEventTargetRpc(
+            if (Owner.IsValid) QueueTeleportEventTargetRpc(
                 Owner,
                 eventData.EventId,
                 eventData.EventTick,
@@ -583,8 +583,8 @@ namespace NewBuddah.PredictionV2.Core
         // RunInputs still owns input, modifiers, skills and subsequent motor ticks.
         internal bool ConsumeSoloLaunchBeforePhysics()
         {
-            if (!Time.inFixedTimeStep || !ShouldRunPrediction() || (!IsOwner && Owner.IsValid) || !IsServerInitialized
-                || BuddahGo.Match.MatchRules.Current.ReturnTarget != BuddahGo.Match.MatchReturnTarget.MainMenuHome
+            if (!Time.inFixedTimeStep || !ShouldRunPrediction() || !BuddahGo.Match.RacerAuthority.HasLocalControl(NetworkObject) || !IsServerInitialized
+                || !BuddahGo.Match.MatchRules.Current.IsSolo
                 || !_hasPendingLaunchHandoffEvent || TimeManager == null)
                 return false;
             uint tick = TimeManager.LocalTick;

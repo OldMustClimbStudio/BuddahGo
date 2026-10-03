@@ -13,6 +13,7 @@ namespace BuddahGo.Tests
         public void OnlineRetainsExistingRoomSelectionAndResultPolicies()
         {
             var rules = new OnlineMatchRules();
+            Assert.That(rules.IsSolo, Is.False);
             Assert.That(rules.AutoStartRoom, Is.False);
             Assert.That(rules.RequiresReady, Is.True);
             Assert.That(rules.SelectionTimeoutEnabled, Is.True);
@@ -31,6 +32,7 @@ namespace BuddahGo.Tests
         public void SoloRulesRemoveWaitsAndOnlyPracticeEndsOnHumanFinish(int aiCount, bool endOnHuman)
         {
             var rules = new SoloMatchRules(new SoloMatchSettings(aiCount, SoloDifficulty.Normal));
+            Assert.That(rules.IsSolo, Is.True);
             Assert.That(rules.AutoStartRoom, Is.True);
             Assert.That(rules.RequiresReady, Is.False);
             Assert.That(rules.SelectionTimeoutEnabled, Is.False);
@@ -53,6 +55,7 @@ namespace BuddahGo.Tests
             MatchRules.Reset();
             Assert.That(MatchRules.Current, Is.TypeOf<OnlineMatchRules>());
             Assert.That(MatchRules.Current.RequiresReady, Is.True);
+            Assert.That(MatchRules.Current.IsSolo, Is.False);
             Assert.That(MatchRules.Current.ReturnTarget, Is.EqualTo(MatchReturnTarget.Room));
         }
 

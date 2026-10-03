@@ -66,8 +66,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private bool _soloPhysicsClock;
     private double _soloGoFixedTime;
 
-    private bool HasMovementAuthority => networkObject != null && (networkObject.IsOwner
-        || (networkObject.IsServerInitialized && !networkObject.Owner.IsValid));
+    private bool HasMovementAuthority => BuddahGo.Match.RacerAuthority.HasLocalControl(networkObject);
     public int OwnerId => networkObject != null ? networkObject.OwnerId : -1;
     public NetworkObject NetworkObject => networkObject;
     public Rigidbody TargetRigidbody => targetRigidbody;
@@ -292,7 +291,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
     private void ApplySoloIdleVariation()
     {
-        if (BuddahGo.Match.MatchRules.Current.ReturnTarget != BuddahGo.Match.MatchReturnTarget.MainMenuHome)
+        if (!BuddahGo.Match.MatchRules.Current.IsSolo)
             return;
 
         Animator animator = GetComponentInChildren<Animator>(true);

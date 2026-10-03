@@ -78,7 +78,7 @@ public class IntroSequenceManager : NetworkBehaviour
     internal void TryIssueSoloGoBeforePhysics(int sequenceId, double stepStartNetworkTime)
     {
         if (!Time.inFixedTimeStep || !IsServerInitialized || sequenceId != _activeSequenceId
-            || BuddahGo.Match.MatchRules.Current.ReturnTarget != BuddahGo.Match.MatchReturnTarget.MainMenuHome
+            || !BuddahGo.Match.MatchRules.Current.IsSolo
             || stepStartNetworkTime < _serverAssignedGoNetworkTime)
             return;
         TriggerGoAndHandoff();
@@ -142,7 +142,7 @@ public class IntroSequenceManager : NetworkBehaviour
         }
 
         List<IntroSlot> candidateSlots = new List<IntroSlot>(layout.slots);
-        if (randomizeSlots && BuddahGo.Match.MatchRules.Current.ReturnTarget != BuddahGo.Match.MatchReturnTarget.MainMenuHome)
+        if (randomizeSlots && !BuddahGo.Match.MatchRules.Current.IsSolo)
             ShuffleSlots(candidateSlots, deterministicShuffleSeed);
 
         int count = Mathf.Min(bodies.Length, candidateSlots.Count);
@@ -213,7 +213,7 @@ public class IntroSequenceManager : NetworkBehaviour
         double goIssuedNow = IntroTimeUtility.GetNetworkTimeSeconds();
         roomStateManager?.MarkAuthoritativeGoIssuedServer();
         GameLog.Verbose($"[IntroGo][Server] Authoritative go issued seq={_activeSequenceId} goIssuedNow={goIssuedNow:0.000} scheduledGoTime={_serverAssignedGoNetworkTime:0.000}");
-        if (BuddahGo.Match.MatchRules.Current.ReturnTarget == BuddahGo.Match.MatchReturnTarget.MainMenuHome)
+        if (BuddahGo.Match.MatchRules.Current.IsSolo)
             ApplyGoLocally(_activeSequenceId, _serverAssignedGoNetworkTime, goIssuedNow);
         NotifyGoObserversRpc(_activeSequenceId, _serverAssignedGoNetworkTime, goIssuedNow);
         _authorityState = IntroAuthorityState.GoBroadcast;

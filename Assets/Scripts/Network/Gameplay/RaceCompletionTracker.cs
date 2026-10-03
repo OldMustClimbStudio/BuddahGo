@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using FishNet.Object;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
@@ -58,7 +59,7 @@ public class RaceCompletionTracker : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
@@ -245,7 +246,7 @@ public class RaceCompletionTracker : NetworkBehaviour
 
     private void TryApplyWrongWayCorrectionRespawn()
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (_buddahRespawn == null)

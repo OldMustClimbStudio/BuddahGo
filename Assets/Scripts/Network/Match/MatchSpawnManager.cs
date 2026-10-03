@@ -117,7 +117,7 @@ namespace SteamMultiplayer.Network.Match
             if (_spawnedPlayers.ContainsKey(conn.ClientId))
                 return;
 
-            int required = MatchRules.Current.ReturnTarget == MatchReturnTarget.MainMenuHome
+            int required = MatchRules.Current.IsSolo
                 ? 1 + (SessionControl.SoloSettings?.AICount ?? 0) : _spawnedPlayers.Count + 1;
             CacheSpawnPointsIfNeeded();
             if (_spawnPoints == null || _spawnPoints.Length < required)
@@ -131,7 +131,7 @@ namespace SteamMultiplayer.Network.Match
             var identity = playerInstance.GetComponent<RacerIdentity>();
             if (identity == null) throw new System.InvalidOperationException("Racer prefab requires RacerIdentity.");
             identity.AssignBeforeSpawn(RacerId.FromClient(conn.ClientId),
-                MatchRules.Current.ReturnTarget == MatchReturnTarget.MainMenuHome ? MatchRules.Current.DefaultPlayerName : "Player " + conn.ClientId);
+                MatchRules.Current.IsSolo ? MatchRules.Current.DefaultPlayerName : "Player " + conn.ClientId);
             InstanceFinder.ServerManager.Spawn(playerInstance, conn);
             ApplyResolvedSkillLoadout(playerInstance, conn.ClientId);
             _spawnedPlayers[conn.ClientId] = playerInstance;
@@ -143,7 +143,7 @@ namespace SteamMultiplayer.Network.Match
 
         private void SpawnSoloAI()
         {
-            if (MatchRules.Current.ReturnTarget != MatchReturnTarget.MainMenuHome) return;
+            if (!MatchRules.Current.IsSolo) return;
             var settings = SessionControl.SoloSettings;
             int count = settings?.AICount ?? 0;
             while (_spawnedAI.Count < count)

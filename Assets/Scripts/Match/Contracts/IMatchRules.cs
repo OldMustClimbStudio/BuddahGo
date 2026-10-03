@@ -4,6 +4,9 @@ namespace BuddahGo.Match
 
     public interface IMatchRules
     {
+        // Solo: one local host whose server also drives the AI racers. Gates Solo-only spawn,
+        // presentation-clock and intro paths; ReturnTarget only decides where a session returns.
+        bool IsSolo { get; }
         bool AutoStartRoom { get; }
         bool RequiresReady { get; }
         bool SelectionTimeoutEnabled { get; }

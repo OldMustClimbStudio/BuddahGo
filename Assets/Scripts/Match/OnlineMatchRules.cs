@@ -2,6 +2,7 @@ namespace BuddahGo.Match
 {
     public sealed class OnlineMatchRules : IMatchRules
     {
+        public bool IsSolo => false;
         public bool AutoStartRoom => false;
         public bool RequiresReady => true;
         public bool SelectionTimeoutEnabled => true;

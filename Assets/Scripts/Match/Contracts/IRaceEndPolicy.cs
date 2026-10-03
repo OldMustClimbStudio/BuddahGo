@@ -6,6 +6,8 @@ namespace BuddahGo.Match
             bool humanFinished, double now, double? firstFinishTime, double countdownSeconds);
     }
 
+    // Per-race services registered by RaceMap scene objects (MatchClockSync, RaceTimingSync,
+    // RacerRegistry). Cleared by SessionLauncher.ResetMatchGlobals.
     public static class MatchServices
     {
         public static IMatchClock Clock { get; set; }

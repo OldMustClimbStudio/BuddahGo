@@ -43,8 +43,8 @@ namespace NewBuddah.PredictionV2.Visual
         private uint _soloRevision;
         private bool _soloOwnsGraphical;
 
-        internal bool UsesSoloTimeline => _networkObject != null && (_networkObject.IsOwner || !_networkObject.Owner.IsValid)
-            && _networkObject.IsServerInitialized && MatchRules.Current.ReturnTarget == MatchReturnTarget.MainMenuHome
+        internal bool UsesSoloTimeline => RacerAuthority.HasLocalControl(_networkObject)
+            && _networkObject.IsServerInitialized && MatchRules.Current.IsSolo
             && bootstrap != null && bootstrap.IsPredictionModeActive();
 
         private void OnEnable() => StartCoroutine(CaptureSoloPhysics());

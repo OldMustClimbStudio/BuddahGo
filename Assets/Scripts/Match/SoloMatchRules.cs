@@ -10,6 +10,7 @@ namespace BuddahGo.Match
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             _aiCount = settings.AICount;
         }
+        public bool IsSolo => true;
         public bool AutoStartRoom => true;
         public bool RequiresReady => false;
         public bool SelectionTimeoutEnabled => false;

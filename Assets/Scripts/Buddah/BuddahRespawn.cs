@@ -1,3 +1,5 @@
+using BuddahGo.Match;
+using SteamMultiplayer.Network.Results;
 using System.Collections;
 using FishNet.Object;
 using NewBuddah.PredictionV2.Bootstrap;
@@ -129,7 +131,7 @@ public class BuddahRespawn : MonoBehaviour
 
     public bool RespawnToTrackProgress(float targetProgress01, bool resetSkillEffects = false, bool preserveObsession = true, string reason = "respawn")
     {
-        if (!IsLocalOwner()) return false;
+        if (!IsLocalOwner() || !ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject)) return false;
         ResolveReferences();
         float clamped = Mathf.Clamp01(targetProgress01);
         GameLog.Verbose($"[Respawn] reason={reason} progress01={clamped:0.000}");
@@ -227,7 +229,8 @@ public class BuddahRespawn : MonoBehaviour
     {
         if (_ownerNetworkObject == null)
             _ownerNetworkObject = GetComponent<NetworkObject>();
-        return _ownerNetworkObject == null || _ownerNetworkObject.IsOwner;
+        return _ownerNetworkObject == null || _ownerNetworkObject.IsOwner
+            || RacerAuthority.IsServerAI(GetComponent<RacerIdentity>());
     }
 
     private Vector3 ResolveSafeRespawnPosition(Vector3 basePosition)

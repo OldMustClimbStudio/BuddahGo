@@ -110,7 +110,8 @@ namespace NewBuddah.PredictionV2.Core
         private void Awake()
         {
             ResolveReferences();
-            _steeringProviders = GetComponents<MonoBehaviour>();
+            // Cache only steering sources; the per-tick loop should not scan every component.
+            _steeringProviders = Array.FindAll(GetComponents<MonoBehaviour>(), provider => provider is ISteeringOverride);
             InitializePredictionRigidbody();
             enabled = false;
         }
@@ -299,7 +300,7 @@ namespace NewBuddah.PredictionV2.Core
             float steering = movementAllowed ? (_ownerInputBridge.ReadSteering() * config.TurnInputMultiplier) : 0f;
             float throttle = movementAllowed ? 1f : 0f;
             bool ownerInputLive = IsOwner && movementAllowed;
-            if (movementAllowed && (IsOwner || (IsServerInitialized && !Owner.IsValid)))
+            if (movementAllowed && RacerAuthority.HasLocalControl(NetworkObject))
             {
                 foreach (MonoBehaviour provider in _steeringProviders)
                 {
@@ -444,7 +445,7 @@ namespace NewBuddah.PredictionV2.Core
 
             // Solo retains its consumption-tick gate. Network play keeps PR60's
             // live room bypass after modifier/handoff consumption.
-            bool movementAllowedAfterConsume = MatchRules.Current.ReturnTarget == MatchReturnTarget.MainMenuHome
+            bool movementAllowedAfterConsume = MatchRules.Current.IsSolo
                 ? BuddahPredictedLaunchHandoffResolver.IsMovementAllowedAfterConsume(
                     data.MovementAllowed, handoffConsumedThisTick, _computedStats.IsRoomBypassActive)
                 : data.MovementAllowed || _computedStats.IsRoomBypassActive;

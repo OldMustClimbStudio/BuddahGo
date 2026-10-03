@@ -68,8 +68,8 @@ public class LapProgress : NetworkBehaviour
         base.OnStopNetwork();
     }
 
-    private bool HasLocalTimingAuthority => IsOwner && IsServerInitialized
-        && MatchRules.Current.ReturnTarget == MatchReturnTarget.MainMenuHome;
+    private bool HasLocalTimingAuthority => RacerAuthority.IsProgressAuthority(this) && IsServerInitialized
+        && MatchRules.Current.IsSolo;
 
     internal void ObserveAcceptedLapTimes(RacerId racer, int lapsToFinish)
     {
@@ -79,7 +79,7 @@ public class LapProgress : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
@@ -96,7 +96,7 @@ public class LapProgress : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
@@ -144,7 +144,7 @@ public class LapProgress : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (!IsOwner)
+        if (!RacerAuthority.IsProgressAuthority(this))
             return;
 
         if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
@@ -321,7 +321,7 @@ public class LapProgress : NetworkBehaviour
 
     public bool TryAdvanceCheckpoint(int checkpointId)
     {
-        if (!IsOwner || !hasStartedLap || !useSequentialCheckpoints)
+        if (!RacerAuthority.IsProgressAuthority(this) || !hasStartedLap || !useSequentialCheckpoints)
             return false;
 
         int checkpointCount = GetRequiredCheckpointCount();

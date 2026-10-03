@@ -160,7 +160,7 @@ namespace SteamMultiplayer.UI
             if (sharedUiRoot != null)
                 sharedUiRoot.SetActive(true);
 
-            SetText(pageTitleText, MatchRules.Current is SoloMatchRules ? "Practice" : "Properties Selector");
+            SetText(pageTitleText, MatchRules.Current.IsSolo ? "Practice" : "Properties Selector");
 
             if (readyButton != null)
                 readyButton.gameObject.SetActive(false);
@@ -191,7 +191,7 @@ namespace SteamMultiplayer.UI
             // Practice already chose its map and has no peer readiness or selection timer.
             // These legacy summaries sit over the 3D skill cards; keep the stage heading instead.
             // Recompute on refresh so returning to online selection restores the original HUD.
-            bool showSessionSummary = visible && !(MatchRules.Current is SoloMatchRules);
+            bool showSessionSummary = visible && !MatchRules.Current.IsSolo;
             if (statusText != null) statusText.gameObject.SetActive(showSessionSummary);
             if (countdownText != null) countdownText.gameObject.SetActive(showSessionSummary);
             if (playersSelectionText != null) playersSelectionText.gameObject.SetActive(showSessionSummary);
@@ -208,7 +208,7 @@ namespace SteamMultiplayer.UI
             }
             else if (_selectionManager.TryGetCurrentStageDefinition(out SelectablePropertyDefinition definition))
             {
-                string stageLabel = MatchRules.Current is SoloMatchRules
+                string stageLabel = MatchRules.Current.IsSolo
                     && _selectionManager.CurrentStagePropertyKey == PropertiesSelectionManager.SkillLoadoutStageKey
                     ? $"Choose {SkillLoadout.SlotCount} skills"
                     : definition.DisplayName;

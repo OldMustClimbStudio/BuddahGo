@@ -1,3 +1,4 @@
+using SteamMultiplayer.Network.Results;
 using BuddahGo.Match;
 using NewBuddah.PredictionV2.Core;
 using NewBuddah.PredictionV2.Config;
@@ -21,7 +22,8 @@ namespace BuddahGo.AI
         private BuddahPredictedMotorConfig _config;
         private Rigidbody _body;
         private RaceCompletionTracker _completion;
-        private readonly ForwardSimPlanner _planner = new ForwardSimPlanner();
+        private ISteeringPlanner _planner;
+        private bool _usingThrustVector;
         private uint _lastPlanTick;
         private bool _hasPlan;
         private bool _ownsProfile;
@@ -31,6 +33,13 @@ namespace BuddahGo.AI
         private uint _applyTick;
         private float _groundDeceleration, _lastGroundContactTime = float.NegativeInfinity;
         private static readonly ProfilerMarker PlanMarker = new ProfilerMarker("AI.Plan");
+        private System.Random _jitter;
+        private int ReactionJitter()
+        {
+            if (Profile == null || Profile.ReactionJitterTicks <= 0) return 0;
+            _jitter ??= new System.Random(Profile.NoiseSeed != 0 ? Profile.NoiseSeed + 17 : GetInstanceID());
+            return _jitter.Next(0, Profile.ReactionJitterTicks + 1);
+        }
 
         private void Awake()
         {
@@ -53,7 +62,12 @@ namespace BuddahGo.AI
         {
             foreach (var contact in collision.contacts)
             {
-                if (Mathf.Abs(contact.normal.y) < 0.7f) { _forecastCollided = true; continue; }
+                if (Mathf.Abs(contact.normal.y) < 0.7f)
+                {
+                    _forecastCollided = true;
+                    if (_planner is ThrustVectorPlanner thrust) thrust.NotifyCollision();
+                    continue;
+                }
                 if (contact.normal.y < 0.99f) continue; // This planar model only treats flat supporting surfaces.
                 var own = contact.thisCollider.sharedMaterial; var ground = contact.otherCollider.sharedMaterial;
                 float a = own != null ? own.dynamicFriction : 0.6f;
@@ -68,19 +82,28 @@ namespace BuddahGo.AI
             }
         }
         private void OnDestroy() { if (_ownsProfile && Profile != null) Destroy(Profile); }
+        // Product path: the spawner hands each AI its own difficulty profile instance; the driver destroys it with the racer.
+        public void AdoptProfile(AIDifficultyProfile profile) { if (_ownsProfile && Profile != null && Profile != profile) Destroy(Profile); Profile = profile; _ownsProfile = true; }
 
         public bool TryGetOverride(out int steering, out bool drive)
         {
             steering = 0; drive = true;
             if (!isActiveAndEnabled || _motor == null || !_motor.IsServerInitialized
                 || !(_motor.IsOwner || !_motor.Owner.IsValid)) return false;
-            if (_completion != null && _completion.IsFinished) { Steering = 0; drive = false; return true; }
+            if ((_completion != null && _completion.IsFinished) || !ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
+            { Steering = 0; _pending = false; _hasPlan = false; drive = false; return true; }
             if (Profile == null) { Profile = ScriptableObject.CreateInstance<AIDifficultyProfile>(); _ownsProfile = true; }
             var track = TrackSplineRef.Instance;
             if (track == null || track.TrackLength <= 0f || _motor.TimeManager == null) return true;
             if (Line == null) Line = SplineRacingLine.Capture(track);
             // The ordinary launch writer retains exclusive control until the inherited launch completes.
             if (_motor.IsLaunchHandoffActive || _motor.IsAuthoritativeLaunchHandoffPending) return true;
+            if (_planner == null || _usingThrustVector != Profile.UseThrustVector)
+            {
+                _usingThrustVector = Profile.UseThrustVector;
+                _planner = _usingThrustVector ? (ISteeringPlanner)new ThrustVectorPlanner() : new ForwardSimPlanner();
+                _hasPlan = false; _pending = false;
+            }
             uint tick = _motor.TimeManager.LocalTick;
             if (_pending && unchecked((int)(tick - _applyTick)) >= 0) { Steering = _pendingSteering; _pending = false; }
             Parameters = new MotionParameters { Stats = _motor.CurrentComputedStats,
@@ -89,17 +112,17 @@ namespace BuddahGo.AI
                 TurnDecay = _config.TurnDecayPerSecond, TurnMultiplier = _config.TurnInputMultiplier,
                 PushExtraSpeed = _config.PushExtraMaxSpeed,
                 GroundDeceleration = Time.time - _lastGroundContactTime < 0.1f ? _groundDeceleration : 0f };
-            if (!_pending && (!_hasPlan || tick - _lastPlanTick >= Mathf.Max(1, Profile.ReplanTicks)))
+            if (!_pending && (!_hasPlan || tick - _lastPlanTick >= Profile.EffectiveReplanTicks))
             {
                 long started = System.Diagnostics.Stopwatch.GetTimestamp();
                 int key;
                 using (PlanMarker.Auto()) key = _planner.Plan(MotionState.Read(_body), Parameters, Line,
                     Profile, (float)_motor.TimeManager.TickDelta, Steering);
-                if (Profile.ReactionTicks == 0) Steering = key;
-                else { _pendingSteering = key; _pending = true; _applyTick = tick + (uint)Profile.ReactionTicks; }
+                if (Profile.ReactionTicks == 0 && Profile.ReactionJitterTicks == 0) Steering = key;
+                else { _pendingSteering = key; _pending = true; _applyTick = tick + (uint)Profile.ReactionTicks + (uint)ReactionJitter(); }
                 LastPlanMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000d / System.Diagnostics.Stopwatch.Frequency;
                 _lastPlanTick = tick; _hasPlan = true;
-                PlanObserved?.Invoke(tick, _planner.LastObservation);
+                PlanObserved?.Invoke(tick, _planner is ThrustVectorPlanner thrust ? thrust.LastObservation : ((ForwardSimPlanner)_planner).LastObservation);
             }
             // Optional evidence only; no allocations or prediction samples without an observer.
             if (ModelCompared != null)

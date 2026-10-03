@@ -1,0 +1,25 @@
+{
+    "source": "First-revision t=2s diagnostic, reproduced with frozen test-only planner and measured motion parameters",
+    "tick": 120,
+    "delta": 0.01666666753590107,
+    "speed": 76.56396484375,
+    "pace": 41.10936737060547,
+    "lateralAcceleration": 25.0,
+    "theta": 1.5707963705062867,
+    "cap": 80.0,
+    "margin": 2.0,
+    "position": {
+        "x": 437.2075500488281,
+        "y": 4.900000095367432,
+        "z": 101.23225402832031
+    },
+    "velocity": {
+        "x": 48.13391876220703,
+        "y": 0.0,
+        "z": -59.541297912597659
+    },
+    "yaw": 3.9752590656280519,
+    "yawRate": 0.31099581718444826,
+    "lateral": -18.399200439453126,
+    "braking": true
+}

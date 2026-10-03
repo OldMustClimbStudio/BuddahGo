@@ -1,0 +1,20 @@
+{
+    "source": "Second-revision first side change, exact model replay, t=361/60s",
+    "tick": 361,
+    "position": {
+        "x": 402.8363037109375,
+        "y": 4.900000095367432,
+        "z": -100.8221664428711
+    },
+    "velocity": {
+        "x": -33.684730529785159,
+        "y": 0.0,
+        "z": -70.31061553955078
+    },
+    "yaw": 2.4228925704956056,
+    "yawRate": -2.7791495323181154,
+    "carErrorDegrees": -62.96088790893555,
+    "targetErrorDegrees": 153.81588745117188,
+    "oldShortestPhiDegrees": -143.22315979003907,
+    "lateralAcceleration": 0.5893009901046753
+}

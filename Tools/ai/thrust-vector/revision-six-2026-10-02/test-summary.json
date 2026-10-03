@@ -1,0 +1,70 @@
+{
+  "test_run": {
+    "id": "2",
+    "testcasecount": "66",
+    "result": "Failed(Child)",
+    "total": "66",
+    "passed": "65",
+    "failed": "1",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-10-02 20:45:41Z",
+    "end-time": "2026-10-02 20:46:05Z",
+    "duration": "23.1266899"
+  },
+  "capture_run": {
+    "id": "2",
+    "testcasecount": "1",
+    "result": "Passed",
+    "total": "1",
+    "passed": "1",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-10-02 20:44:30Z",
+    "end-time": "2026-10-02 20:44:30Z",
+    "duration": "0.0676923"
+  },
+  "normal_tests": {
+    "total": 65,
+    "passed": 64,
+    "failed": 1
+  },
+  "failures": [
+    {
+      "name": "ThrustVectorPlannerTests.OfflineLapComparison",
+      "message": "  Expected: True\n  But was:  False\n"
+    }
+  ],
+  "seam_output": "Exact seam phi(deg)=1.33282471 -> 1.33282471; key=0->0; omega=0->0\n",
+  "formal_profile": {
+    "tau": 3,
+    "kp": 0.3,
+    "kd": 1,
+    "deadband": 3,
+    "pace_factor": 0.9,
+    "speed_margin": 2,
+    "hysteresis": 0.5,
+    "target_speed": 80
+  },
+  "diagnostic_profile": {
+    "tau": 3,
+    "kp": 0.3,
+    "kd": 0.5,
+    "deadband": 1,
+    "pace_factor": 0.9,
+    "speed_margin": 2,
+    "hysteresis": 0.5,
+    "target_speed": 80
+  },
+  "pace_braking_multiplier": 0.5,
+  "player_run": false,
+  "committed": false,
+  "pushed": false
+}

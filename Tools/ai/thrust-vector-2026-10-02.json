@@ -1,0 +1,12 @@
+{
+  "UseThrustVector": true,
+  "LookaheadSeconds": 3,
+  "LateralGain": 0.3,
+  "LateralDamping": 1,
+  "AttitudeDeadbandDegrees": 3,
+  "AttitudeHysteresisDegrees": 0.5,
+  "CorneringFactor": 0.4,
+  "SpeedMargin": 2,
+  "TargetSpeed": 80,
+  "ReplanTicks": 1
+}

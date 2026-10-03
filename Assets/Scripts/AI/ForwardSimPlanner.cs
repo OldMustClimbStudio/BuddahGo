@@ -11,7 +11,7 @@ namespace BuddahGo.AI
     // Bounded beam search over actual digital key holds. Each candidate uses the motor's force rules.
     public sealed class ForwardSimPlanner : ISteeringPlanner
     {
-        private struct Candidate { public MotionState State; public float Cost, Progress, HeadingError, TangentYaw; public int Segment; }
+        private struct Candidate { public MotionState State; public float Cost, Progress, HeadingError, TangentYaw, MaxHeadingError; public int Segment; }
         private Candidate[] _beam = new Candidate[64], _next = new Candidate[64];
         internal static float AdvanceHeadingError(float error, float yawChange, float oldTangentYaw, float newTangentYaw)
             => error + yawChange - Mathf.DeltaAngle(oldTangentYaw, newTangentYaw);
@@ -26,6 +26,23 @@ namespace BuddahGo.AI
             public Vector3 target, tangent;
             public int segment, selectedKey, rejectedWinding, viableFirstKeys;
             public float progress, lateral, pace;
+            public float desiredYaw, headingError; // Radians. observedYawRate is radians/second.
+            public Vector3 desiredAcceleration;
+            public bool brakingBranch, holdingBranch, recoveryBranch, recentCollision, backwardsRecovery;
+            public float headingCoordinateOffsetDegrees, velocityHeadingErrorDegrees, targetHeadingErrorDegrees;
+            public float boundedTargetHeadingDegrees, attitudeRemaining; // Remaining is radians; named headings are degrees.
+            public float thrustAngle, requestedLateralAcceleration, routeHeadingErrorDegrees;
+            public float velocityYaw, lateralVelocity, predictedLateral, predictionTime;
+            public float curvatureAcceleration, positionCorrection, velocityCorrection, accelerationCorrection;
+            public float lateralCorrection, rawLateralAcceleration, currentLateralAcceleration, provisionalTargetDegrees;
+            public int side, speedMode, previousSpeedMode;
+            public bool sideChanged, modeChanged, recoveryChanged, reanchored;
+            public float anchorThetaDegrees, chosenThetaDegrees, anchorRolloutCost, bestRolloutCost;
+            public int rolloutCandidates;
+            public float selectedMaxHeadingError, rejectedWindingBrakingFraction;
+            public int expandedCandidates, brakingCandidates, rejectedWindingBraking;
+            public float observedYaw, observedYawRate, turnMultiplier, inverseYawInertia, turnTorque, turnDecay, angularDrag, maxAngularVelocity;
+            public int previousKey;
             public float neutralCost, leftCost, rightCost, selectedYawChange, selectedYawRate;
         }
         public int Plan(MotionState state, MotionParameters parameters, IRacingLine line,
@@ -45,7 +62,11 @@ namespace BuddahGo.AI
             float bestCost = float.PositiveInfinity;
             int bestKey = 0;
             var observation = new PlanObservation { start = state, parameters = parameters, target = start.Point,
-                tangent = start.Tangent, segment = start.Segment, progress = start.Distance, lateral = start.Lateral, pace = start.Pace };
+                tangent = start.Tangent, segment = start.Segment, progress = start.Distance, lateral = start.Lateral, pace = start.Pace,
+                observedYaw = state.Yaw, observedYawRate = state.YawRate, previousKey = previousKey,
+                turnMultiplier = parameters.TurnMultiplier, inverseYawInertia = parameters.InverseYawInertia,
+                turnTorque = parameters.Stats.FinalTurnTorque, turnDecay = parameters.TurnDecay,
+                angularDrag = parameters.AngularDrag, maxAngularVelocity = parameters.MaxAngularVelocity };
             // Keep a separate beam for each first key: short-term cost must not prune away
             // every early turn/braking option before its later benefit enters the horizon.
             for (int first = 0; first < 3; first++)
@@ -54,6 +75,7 @@ namespace BuddahGo.AI
                 _beam[0] = new Candidate { State = state, Segment = start.Segment, Progress = start.Distance,
                     TangentYaw = Mathf.Atan2(start.Tangent.x, start.Tangent.z) * Mathf.Rad2Deg,
                     HeadingError = Mathf.DeltaAngle(Mathf.Atan2(start.Tangent.x, start.Tangent.z) * Mathf.Rad2Deg, state.Yaw * Mathf.Rad2Deg) };
+                _beam[0].MaxHeadingError = Mathf.Abs(_beam[0].HeadingError);
                 int count = 1;
                 for (int d = 0; d < depth; d++)
                 {
@@ -71,10 +93,14 @@ namespace BuddahGo.AI
                         candidate.HeadingError = AdvanceHeadingError(candidate.HeadingError,
                             (candidate.State.Yaw - previousYaw) * Mathf.Rad2Deg, candidate.TangentYaw, tangentYaw);
                         candidate.TangentYaw = tangentYaw;
+                        candidate.MaxHeadingError = Mathf.Max(candidate.MaxHeadingError, Mathf.Abs(candidate.HeadingError));
+                        observation.expandedCandidates++;
+                        bool braking = Vector3.Dot(candidate.State.Velocity, projected.Tangent) > projected.Pace;
+                        if (braking) observation.brakingCandidates++;
                         // A full winding can have the same endpoint yaw and cheap speed/lateral costs.
                         // Stay on the initial shortest heading branch as the route itself turns.
                         // This prunes plans only; the real motor still receives ordinary digital keys.
-                        if (Mathf.Abs(candidate.HeadingError) > 180f) { observation.rejectedWinding++; continue; }
+                        if (Mathf.Abs(candidate.HeadingError) > 180f) { observation.rejectedWinding++; if (braking) observation.rejectedWindingBraking++; continue; }
                         float advance = Mathf.Repeat(projected.Distance - candidate.Progress + line.Length * 0.5f, line.Length) - line.Length * 0.5f;
                         float crossSpeed = Vector3.Dot(candidate.State.Velocity, Vector3.Cross(Vector3.up, projected.Tangent));
                         float forwardSpeed = Vector3.Dot(candidate.State.Velocity, projected.Tangent);
@@ -122,8 +148,11 @@ namespace BuddahGo.AI
                     bestCost = _beam[0].Cost; bestKey = firstKey;
                     observation.selectedYawChange = (_beam[0].State.Yaw - state.Yaw) * Mathf.Rad2Deg;
                     observation.selectedYawRate = _beam[0].State.YawRate;
+                    observation.selectedMaxHeadingError = _beam[0].MaxHeadingError;
                 }
             }
+            observation.rejectedWindingBrakingFraction = observation.rejectedWinding > 0
+                ? (float)observation.rejectedWindingBraking / observation.rejectedWinding : 0f;
             observation.selectedKey = bestKey; LastObservation = observation;
             // If external rotation makes every branch infeasible, release steering so the
             // existing motor turn decay can settle it; never return a stale beam action.

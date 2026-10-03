@@ -155,6 +155,8 @@ namespace SteamMultiplayer.Network.Match
                 string name = index < settings.AINames.Count ? settings.AINames[index] : "AI " + (index + 1);
                 racer.GetComponent<RacerIdentity>().AssignBeforeSpawn(RacerId.ForAI(index), name);
                 racer.name = "AI Racer " + (index + 1);
+                var driver = racer.GetComponent<BuddahGo.AI.AIRacerDriver>();
+                if (driver != null) driver.AdoptProfile(BuddahGo.AI.AIDifficultyProfiles.Resolve(settings.Difficulty, index));
                 InstanceFinder.ServerManager.Spawn(racer); // Empty owner, never a synthetic client.
                 _spawnedAI.Add(racer);
             }

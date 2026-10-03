@@ -1,0 +1,30 @@
+{
+    "sourceTick": 854,
+    "exactState": {
+        "position": {
+            "x": 270.1639404296875,
+            "y": 4.900000095367432,
+            "z": -207.06973266601563
+        },
+        "velocity": {
+            "x": -26.137006759643556,
+            "y": 0.0,
+            "z": 40.15864562988281
+        },
+        "yaw": 3.8354313373565676,
+        "yawRate": -1.0675114393234254
+    },
+    "oldRaw": -27.75277328491211,
+    "oldLateral": 37.606021881103519,
+    "oldCurvature": 16.480182647705079,
+    "oldCrossSpeed": 32.951148986816409,
+    "curvature": 16.480182647705079,
+    "correction": -50.074462890625,
+    "rawLateral": -33.59428024291992,
+    "lateral": -25.0,
+    "predictedError": 58.61542510986328,
+    "T": 1.0,
+    "curvatureShare": 0.24761883914470673,
+    "unsaturated": false,
+    "curvatureDominates": false
+}

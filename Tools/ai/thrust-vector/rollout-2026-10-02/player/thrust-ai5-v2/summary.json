@@ -1,0 +1,22 @@
+{
+    "success": true,
+    "productMatchFinished": false,
+    "reason": "authoritative-natural-lap",
+    "plannedLaps": 1,
+    "completedLaps": 1,
+    "samples": 1121,
+    "collisions": 51,
+    "discontinuities": 0,
+    "runtimeErrors": 0,
+    "aiCount": 5,
+    "perfFrames": 1058,
+    "perfTicks": 540,
+    "lapSeconds": 111.96666666666667,
+    "totalSeconds": 111.96666666666667,
+    "averageLapSeconds": 111.96666666666667,
+    "perfMedianMs": 6.846099853515625,
+    "perfP95Ms": 14.59469985961914,
+    "laps": [
+        111.96666666666667
+    ]
+}

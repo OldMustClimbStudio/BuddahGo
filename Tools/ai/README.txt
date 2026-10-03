@@ -94,3 +94,13 @@ and steering remain in trajectory.jsonl, with separate visualYaw/cameraYaw.
 plot_spin.py aligns each real sample to the latest plan without synthesizing
 physics samples. It requires matplotlib and a root containing evidence/baseline
 and evidence/fixed. Example: python Tools/ai/plot_spin.py <task-18-root>.
+
+---- 2026-10-03 thrust-vector controller and difficulty tiers ----
+Profiles: difficulty-{easy,normal,hard}.json are the shipped tiers (generated into
+Assets/Resources/AI/*.asset by AIDifficultyAssetTool.Build). thrust-vector-*.json are the
+raced variants (design = line follower without walls; wall* = wall corridor; nobrake* = Hard
+lineage). normal.json remains the V5 beam baseline (UseThrustVector absent/false).
+Harness flags: --ai-count N (server AI), --ai-profiles "p0;p1;..;p5" (one profile per car,
+p0 = this racer), --ai-product-profiles (keep the spawner's difficulty profiles),
+--ai-difficulty easy|normal|hard, GO+2..11 s frame window in summary.json, race-results.json
+per racer. Scripts and evidence: thrust-vector/scripts/README.md, thrust-vector/rollout-2026-10-02/.

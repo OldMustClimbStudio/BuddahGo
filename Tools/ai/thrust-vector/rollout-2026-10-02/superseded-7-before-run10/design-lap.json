@@ -1,0 +1,23 @@
+{
+    "name": "design-lap",
+    "failure": "",
+    "lapSeconds": "119.233337",
+    "complete": true,
+    "k": 0.30000001192092898,
+    "tau": 1.0,
+    "margin": 2.0,
+    "paceFactor": 0.8999999761581421,
+    "brakePlan": 10.0,
+    "deadband": 1.5,
+    "seconds": 119.23333740234375,
+    "progress": 5736.73828125,
+    "rms": 34.341880798339847,
+    "maxError": 106.3327865600586,
+    "minHeading": -197.9955291748047,
+    "maxHeading": 167.57492065429688,
+    "terminalAdvance": 1.265625,
+    "ticks": 7154,
+    "sideChanges": 30,
+    "invariantViolations": 0,
+    "firstInvariant": ""
+}

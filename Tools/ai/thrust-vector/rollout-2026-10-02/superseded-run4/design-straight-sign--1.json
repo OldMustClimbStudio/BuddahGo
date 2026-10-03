@@ -1,0 +1,16 @@
+{
+    "steeringSign": -1.0,
+    "firstTheta": -6.892102241516113,
+    "finalError": 0.5320969820022583,
+    "minimumError": 0.049187611788511279,
+    "finalLateralSpeed": 0.47511208057403567,
+    "maximumIncrease": 0.00791853666305542,
+    "ticks": 480,
+    "increasingTicks": 100,
+    "firstKey": 1,
+    "invariantViolations": 0,
+    "firstTowardLine": true,
+    "monotonic": true,
+    "overshootWithinTwo": true,
+    "settled": true
+}

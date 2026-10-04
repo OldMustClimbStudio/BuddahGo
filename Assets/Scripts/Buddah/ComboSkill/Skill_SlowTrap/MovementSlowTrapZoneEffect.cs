@@ -96,6 +96,7 @@ public class MovementSlowTrapZoneEffect : MonoBehaviour
         float extraForwardForce = -Mathf.Abs(_slowForwardForce);
         float extraMaxSpeed = -Mathf.Abs(_slowMaxSpeed);
         target.ApplyAccelerationToOwner(extraForwardForce, extraMaxSpeed, _slowDurationSeconds);
+        BuddahGo.Match.SkillCombatEvents.Record("effect-request", "slowtrap", _caster.NetworkObject, target.NetworkObject, other.transform.position, true);
 
         _nextApplyAt[target] = now + _perTargetReapplyCooldown;
     }

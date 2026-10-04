@@ -18,6 +18,7 @@ namespace SteamMultiplayer.Network.Match
         private readonly Dictionary<int, NetworkObject> _spawnedPlayers = new Dictionary<int, NetworkObject>();
 
         private readonly List<NetworkObject> _spawnedAI = new List<NetworkObject>();
+        private BuddahGo.AI.AISkillWorld _skillWorld;
 
         private void Awake()
         {
@@ -146,18 +147,28 @@ namespace SteamMultiplayer.Network.Match
             if (!MatchRules.Current.IsSolo) return;
             var settings = SessionControl.SoloSettings;
             int count = settings?.AICount ?? 0;
+            if (count == 0) return;
+            var skills = BuddahGo.AI.AISkillCatalog.Current;
+            _skillWorld ??= new BuddahGo.AI.AISkillWorld(skills.Tuning);
             while (_spawnedAI.Count < count)
             {
                 int index = _spawnedAI.Count;
                 var point = GetSpawnPoint(index + 1);
                 var racer = Instantiate(_playerPrefab, point.position, point.rotation);
                 UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(racer.gameObject, gameObject.scene);
-                string name = index < settings.AINames.Count ? settings.AINames[index] : "AI " + (index + 1);
+                var personality = skills.Personalities[index];
+                string name = index < settings.AINames.Count ? settings.AINames[index] : personality.DisplayName;
                 racer.GetComponent<RacerIdentity>().AssignBeforeSpawn(RacerId.ForAI(index), name);
                 racer.name = "AI Racer " + (index + 1);
                 var driver = racer.GetComponent<BuddahGo.AI.AIRacerDriver>();
                 if (driver != null) driver.AdoptProfile(BuddahGo.AI.AIDifficultyProfiles.Resolve(settings.Difficulty, index));
                 InstanceFinder.ServerManager.Spawn(racer); // Empty owner, never a synthetic client.
+                var loadout = racer.GetComponent<SkillLoadout>();
+                var caster = racer.GetComponent<BuddahGo.AI.AISkillCaster>();
+                if (loadout == null || caster == null || driver == null)
+                    throw new System.InvalidOperationException("Racer prefab requires a loadout, driver and skill caster.");
+                loadout.SetSlotsServer(personality.Loadout);
+                caster.Configure(_skillWorld, personality, skills.ForDifficulty(settings.Difficulty), skills.Tuning, index, driver.Profile.NoiseSeed);
                 _spawnedAI.Add(racer);
             }
         }

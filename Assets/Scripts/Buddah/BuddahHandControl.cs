@@ -1,4 +1,5 @@
 using FishNet.Object;
+using BuddahGo.Match;
 using FishNet.Object.Synchronizing;
 using System.Collections;
 using SteamMultiplayer.Network;
@@ -92,6 +93,39 @@ public class BuddahHandControl : NetworkBehaviour
     private GameObject _projectileChargedVisualPrefabServer;
     private string _projectileChargedProgressPropertyServer = "Progress";
     private float _projectileChargedPushCooldownServer;
+    private float _projectileDelayedPushSecondsServer;
+    private uint _inputGeneration;
+
+    public float ServerHandYaw => _syncedYawOffsetDeg.Value;
+    public float HandRotationSpeed => rotationSpeedDegPerSec;
+    public float ServerPushCooldown => GetActivePushCooldownServer(IsProjectilePushModeActiveServer(), _projectileUseChargedRuntimeServer);
+    public float ProjectileBuffSecondsLeft => IsServerInitialized ? Mathf.Max(0f, _projectilePushModeUntilServer - Time.time) : 0f;
+    public event System.Action<bool, bool> ServerPushAccepted;
+    public event System.Action<bool, bool> ServerPushSpawned;
+
+    public bool CanPushServer(bool left) => IsServerInitialized && Time.time >= (left ? _nextPushServerTimeLeft : _nextPushServerTimeRight);
+
+    public void InjectServerRotation(int axis, float tickDelta)
+    {
+        if (!RacerAuthority.IsServerAI(this) || !ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject)) return;
+        HandRotationAxis = Mathf.Clamp(axis, -1, 1);
+        _syncedYawOffsetDeg.Value = Mathf.DeltaAngle(0f, _syncedYawOffsetDeg.Value + HandRotationAxis * rotationSpeedDegPerSec * tickDelta);
+    }
+
+    public bool InjectServerPush(bool left)
+    {
+        if (!RacerAuthority.IsServerAI(this)) return false;
+        return TryPushServer(left, ServerHandYaw, GetHandWorldPositionSnapshot(left), true);
+    }
+
+    public void ResetSkillInputAndEffects()
+    {
+        _inputGeneration++;
+        if (IsServerInitialized) ClearProjectilePushModeServer();
+        ClearProjectilePushModeLocal();
+        HandRotationAxis = 0f;
+    }
+    public void CancelPendingServerInput() { if (IsServerInitialized) _inputGeneration++; }
 
     private float _projectilePushModeUntilLocal;
     private bool _projectileUseChargedRuntimeLocal;
@@ -492,8 +526,13 @@ public class BuddahHandControl : NetworkBehaviour
     [ServerRpc]
     private void RequestPushServerRpc(bool isLeft, float yawSnapshotDeg, Vector3 handWorldPositionSnapshot)
     {
+        TryPushServer(isLeft, yawSnapshotDeg, handWorldPositionSnapshot, false);
+    }
+
+    private bool TryPushServer(bool isLeft, float yawSnapshotDeg, Vector3 handWorldPositionSnapshot, bool animateServerInput)
+    {
         if (!ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject))
-            return;
+            return false;
 
         bool useProjectileMode = IsProjectilePushModeActiveServer();
         bool useChargedProjectileRuntime = _projectileUseChargedRuntimeServer;
@@ -503,19 +542,19 @@ public class BuddahHandControl : NetworkBehaviour
         {
             float activeCooldown = GetActivePushCooldownServer(useProjectileMode, useChargedProjectileRuntime);
             if (Time.time < _nextPushServerTimeLeft)
-                return;
+                return false;
             _nextPushServerTimeLeft = Time.time + activeCooldown;
         }
         else
         {
             float activeCooldown = GetActivePushCooldownServer(useProjectileMode, useChargedProjectileRuntime);
             if (Time.time < _nextPushServerTimeRight)
-                return;
+                return false;
             _nextPushServerTimeRight = Time.time + activeCooldown;
         }
 
         if (!useProjectileMode && pushHitboxPrefab == null)
-            return;
+            return false;
 
         float projectileSpeed = _projectileSpeedServer;
         float projectileLifetime = _projectileLifetimeServer;
@@ -536,6 +575,17 @@ public class BuddahHandControl : NetworkBehaviour
             projectileImpulseStrength,
             projectileColliderSize,
             projectileIgnoreSolidWorld));
+        if (animateServerInput)
+            StartCoroutine(AnimateServerInput(isLeft, useProjectileMode ? _projectileDelayedPushSecondsServer : 0f, _inputGeneration));
+        ServerPushAccepted?.Invoke(isLeft, useProjectileMode);
+        return true;
+    }
+
+    private IEnumerator AnimateServerInput(bool left, float delay, uint generation)
+    {
+        if (delay > 0f) yield return new WaitForSeconds(delay);
+        if (generation != _inputGeneration) yield break;
+        if (left) PlayLeftHandObserversRpc(); else PlayRightHandObserversRpc();
     }
 
     private IEnumerator ServerSpawnPushAfterWindup(
@@ -551,8 +601,11 @@ public class BuddahHandControl : NetworkBehaviour
         Vector3 projectileColliderSize,
         bool projectileIgnoreSolidWorld)
     {
+        uint generation = _inputGeneration;
         if (pushWindupSeconds > 0f)
             yield return new WaitForSeconds(pushWindupSeconds);
+
+        if (generation != _inputGeneration) yield break;
 
         if (!useProjectileMode && pushHitboxPrefab == null)
             yield break;
@@ -570,6 +623,7 @@ public class BuddahHandControl : NetworkBehaviour
         Vector3 spawnPos = GetPushSpawnPosition(handWorldPositionSnapshot, isLeft, dir, scaleMultiplier, forwardOffset, heightOffset, useProjectileMode);
 
         Quaternion spawnRot = Quaternion.LookRotation(dir, Vector3.up);
+        ServerPushSpawned?.Invoke(isLeft, useProjectileMode);
 
         if (useProjectileMode)
         {
@@ -666,7 +720,8 @@ public class BuddahHandControl : NetworkBehaviour
         string chargedProgressProperty,
         float chargedPushCooldownSeconds,
         bool useChargedProjectileRuntime = false,
-        bool ignoreSolidWorld = false)
+        bool ignoreSolidWorld = false,
+        float delayedPushActionSeconds = 0f)
     {
         if (!IsServerInitialized)
             return;
@@ -684,6 +739,7 @@ public class BuddahHandControl : NetworkBehaviour
         _projectileChargedVisualPrefabServer = chargedVisualPrefab;
         _projectileChargedProgressPropertyServer = string.IsNullOrWhiteSpace(chargedProgressProperty) ? DefaultChargedProjectileProgressProperty : chargedProgressProperty;
         _projectileChargedPushCooldownServer = Mathf.Max(0f, chargedPushCooldownSeconds);
+        _projectileDelayedPushSecondsServer = Mathf.Max(0f, delayedPushActionSeconds);
     }
 
     public void ConfigureProjectilePushModeLocal(

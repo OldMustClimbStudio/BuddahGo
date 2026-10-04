@@ -1,4 +1,5 @@
 using FishNet.Object;
+using BuddahGo.Match;
 using FishNet.Connection;
 using FishNet.Object.Prediction;
 using FishNet.Transporting;
@@ -23,6 +24,21 @@ namespace NewBuddah.PredictionV2.Core
 {
     public partial class BuddahPredictedMotor
     {
+        public void ResetActiveSkillModifiers()
+        {
+            if ((!IsServerInitialized && !IsOwner) || TimeManager == null || config == null) return;
+            _modifierState.RootUntilTick = 0;
+            _modifierState.AccelUntilTick = 0;
+            _modifierState.AccelExtraForwardForce = _modifierState.AccelExtraMaxSpeed = 0f;
+            _modifierState.PostRootAccelUntilTick = 0;
+            _modifierState.PostRootAccelExtraForwardForce = _modifierState.PostRootAccelExtraMaxSpeed = 0f;
+            _modifierState.ScaleUntilTick = 0;
+            _modifierState.ScaleMultiplier = _modifierState.ScaleMassMultiplier = _modifierState.ScaleForwardForceMultiplier = 1f;
+            _modifierState.InvertTurnUntilTick = 0;
+            _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, TimeManager.LocalTick);
+            SyncModifierDebugState(TimeManager.LocalTick);
+        }
+
         public void SetPredictionIntroControlActive(bool active)
         {
             if (active && !_introControlActive) PresentationRevision++;
@@ -568,8 +584,8 @@ namespace NewBuddah.PredictionV2.Core
                     bootstrap.DebugState.progressSnappedByTeleport = true;
             }
 
-            if (_skillExecutor != null && IsOwner)
-                _skillExecutor.ResetActiveSkillEffectsForOwner();
+            if (_skillExecutor != null && (IsOwner || RacerAuthority.IsServerAI(this)))
+                _skillExecutor.ResetActiveSkillEffectsForOwner(eventData.ResetModifiers);
 
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
             SyncModifierDebugState(currentTick);

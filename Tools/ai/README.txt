@@ -24,8 +24,9 @@ There is no custom teleport/recovery or synthetic Finish. It stops observation
 after RaceTiming reports one real lap, then requests the usual session teardown.
 summary.success means the A1 lap milestone, not a product Match completion.
 
-Only these five objects are temporarily disabled; original activeSelf values
-are recorded and restored on completion/interruption:
+Only collision and renderer components on these five objects are temporarily
+disabled. Original component enabled states and active hierarchy are recorded;
+components are restored on completion/interruption. Network roots stay intact:
   RaceMap/DebugBox/DebugboxCanPush
   RaceMap/DebugBox/DebugboxCanPush (1)
   RaceMap/DebugBox/DebugboxCanPush (2)
@@ -104,3 +105,50 @@ Harness flags: --ai-count N (server AI), --ai-profiles "p0;p1;..;p5" (one profil
 p0 = this racer), --ai-product-profiles (keep the spawner's difficulty profiles),
 --ai-difficulty easy|normal|hard, GO+2..11 s frame window in summary.json, race-results.json
 per racer. Scripts and evidence: thrust-vector/scripts/README.md, thrust-vector/rollout-2026-10-02/.
+
+
+---- 2026-10-03 five skill personalities (A3) ----
+Product Solo is fixed to one human and all five configured personalities. Their
+stable ids, display names, fixed three slots, opportunity parameters and skill
+behaviour by difficulty live in Assets/Resources/AI/SkillPersonalities.json.
+Driving assets remain independent. Rematch keeps personality/name/loadout;
+new racers get fresh independent commitment and random state.
+
+A3 natural evidence uses a separate operator, without taking over the human:
+  BuddahGoSoloDev.exe --ai-skill-race-output C:/Temp/skill-race \
+    --ai-difficulty Hard --ai-skill-seed 243 -screen-fullscreen 0 \
+    -screen-width 1280 -screen-height 720 -logFile C:/Temp/skill-race-player.log
+Use a fresh, absolute output directory. Optional --ai-skill-window-seconds 95 stops after an explicitly labelled diagnostic
+window (not a natural finish). Performance records use 30s warmup and 60s capture,
+with raw skill-perf.csv and mean/median/p95/p99/max. --ai-skills-off supplies the
+same-match-load comparison without casting; --ai-skill-quiet disables per-decision
+and combat event observers. The diagnostic seed affects per-racer NoiseSeed;
+physics is not claimed to replay bit-for-bit. Each resulting driving profile
+and the full skill catalog are saved with the run.
+
+Outputs: trajectory.jsonl (10Hz, six racers, actual motor effect state),
+skills.jsonl (decision/candidate/key/request/accept/execute/cancel), combat.jsonl
+(projectile launch, detected/routed hits and trap requests), events.jsonl and
+summary.json. A DNF has null FinishSeconds, final lap/checkpoint/distance and a
+reason; it never receives the race cutoff time as a completion time. The human
+receives no injected steering/skills, remains a physical racer and can be hit.
+Keep the product's 15-second end rule. The operator returns Home after the actual
+result panel, never via synthetic Finish. AI.Skill timing is a per-frame sum;
+CaptureDetails and measured FPS/vSync are explicit in the summary.
+
+Editor controlled fixtures, starting from Play mode at idle MainMenu:
+  AISkillEffectHarness.Begin(absoluteDirectory, backlash: false/true)
+  AISkillLifecycleHarness.Begin(absoluteDirectory)
+These intentionally use runtime-only 0/100 backlash probability, authoritative
+fixture teleports/direct casts, or synthetic completion for boundary tests.
+Their output is explicitly labelled controlled and cannot qualify natural racing.
+The lifecycle fixture invokes the real Rematch and quit button callbacks.
+  python Tools/ai/analyze_skill_matrix.py C:/Temp/effects --output C:/Temp/effects/analysis.json
+
+A1/A2 --ai-profiles comparisons keep AI casting off by default; --ai-skills-on
+opts into the skill layer for diagnosis, but an A1/A2 human takeover is not A3.
+AISkillAcceptanceTools.RunTests(absoluteXmlPath) writes a persistent XML receipt
+through Test Runner domain reloads. The set contains Solo and affected shared
+logic only, not Steam/online runs. ThrustVectorAcceptanceBuild supports
+THRUST_BUILD_OUTPUT, THRUST_BUILD_NAME (an .exe filename) and THRUST_BUILD_RELEASE=1.
+Non-Development builds contain no CLI/effect/lifecycle harness.

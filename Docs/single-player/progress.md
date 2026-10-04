@@ -1,3 +1,5 @@
+**2026-10-03 AI 技能人格已实现，用户试玩待确认：** 用户已授权完整实现最新人格规格，覆盖旧“仅文档、等待开始”的限制；沿用 f0f123b 之后的实现分支 / PR #59。用户确认单机固定玩家 + 五种人格，固定三槽与 Rematch 配装。当前功能、建议默认值与真实验证边界见 [实施记录](ai-skill-implementation-2026-10-03.md)；规格见 [AI 技能](ai-skills.md)、[五人格](ai-personalities.md) 与 [设计复核](ai-skill-design-review-2026-10-03.md)。已验收驾驶不重新调参，历史测试不替代本次技能验收。
+
 **2026-10-03 一致性清理（工作区，未提交，未运行新的比赛或联机测试）：**
 - `IMatchRules.IsSolo` 新增，15 处以 `ReturnTarget == MainMenuHome` / `is SoloMatchRules` 代判“是否 Solo”的写法改用它；`ResultDecisionManager` 保留其真正的 ReturnTarget 判断。
 - `RacerAuthority.HasLocalControl` / `IsServerAI(NetworkObject)` 成为“谁驾驶这辆车”的唯一判定；`BuddahMovement`、`BuddahPredictedMotor(.Events)`、`RaceBodyIntroStateController`、`BuddahPredictionVisualRootBridge` 不再把任意无 owner 的服务器对象当作 AI。
@@ -111,11 +113,11 @@ Practice 的目标是让本地单机完整承接既有联机流程与表现，�
 | S0 | 同步重构结果 | done | — | 文档事实已按合并后的 dev 复核 | 2026-09-30 合并 dev（含 #47–#58） |
 | S1 | 离线单人 Practice 跑通 | doing | [#59 (draft)](https://github.com/OldMustClimbStudio/BuddahGo/pull/59) | 游戏源码 21cc3cf 普通试玩包已交付，相关回归 151/151、构建及菜单启动已核对；旧 V3 失败保留，新源码 ±100ms、长测及完整 V12 未验证；V2 不适用 | 用户初步试玩反馈技能可用，逐项覆盖尚未全部确认；S1 不标 done；AI A1、A2 已完成（见 S1.5） |
 | S1.5 | 规划器可行性验证 | done-unverified | #59 | 354f10a A1 自然一圈；A2 同场自然三圈平均 116.533 s（V5 beam）；随后 `559d57c` 推力矢量控制器 Normal 同场三圈 92.8–94.4 s | A1/A2 完成；V11/V12 未针对本阶段执行；beam 已由 ThrustVectorPlanner 取代 |
-| S2 | Racer 身份 | doing（部分） | #59 | `ba30112`：RacerIdentity/RacerRegistry/IRacerDirectory、六个唯一 RacerId，89/89 针对性测试 | 排行榜/进度/完赛/结算改按 RacerId 仍为工作区未提交改动，未验收；仅单机验收 |
-| S3a | AI 完整跑完一局 | doing（部分） | #59 | `ba30112` 同轮生成五个无 owner AI、六出生点、4–6 人布局、权威 GO；`559d57c` 产品路径五 AI 六车同场三圈自然完赛（无技能） | 排名/结算区停放、Stuck Recovery、Rematch 及六人结算未验收 |
-| S3b | AI 施法入口与表现 | todo | | | |
-| S4 | AI 驾驶与调参场景 | doing（部分） | #59 | `559d57c` 三档难度（`Assets/Resources/AI/*.asset`）经同场比赛实测，用户已验收；`AITuningHarness --ai-profiles` | 横向离散度阈值、被推/遮挡后回线、技能干扰及车车碰撞建模未做 |
-| S5 | AI 施法规则 | todo | | | |
+| S2 | Racer 身份 | doing（验收未全闭合） | #59 | `f9c56d8` 已提交身份迁移；本次技能自然赛按六个 RacerId 独立记录，身份/计时/结果回归通过 | 不再是未提交 WIP；完整 V11/V12 仍独立未验证 |
+| S3a | AI 完整跑完一局 | doing（部分） | #59 | `ba30112` 同轮生成五个无 owner AI、六出生点、4–6 人布局、权威 GO；`559d57c` 产品路径五 AI 六车同场三圈自然完赛（无技能） | 本次自然赛与实际 Rematch/活跃效果退出已覆盖局部生命周期；全配置长测、通用 Stuck Recovery 与完整 V11/V12 仍未闭合 |
+| S3b | AI 施法入口与表现 | done-unverified | #59 | 公共权威施法、真实逐键/推掌、无 owner 路径；普通/反噬 24/24 受控矩阵、29/29 生命周期检查 | 用户画面与手感未试玩，完整 V11/V12 未验证；见本次实施记录 |
+| S4 | AI 驾驶与调参场景 | doing（部分） | #59 | `559d57c` 三档难度（`Assets/Resources/AI/*.asset`）经同场比赛实测，用户已验收；`AITuningHarness --ai-profiles` | 技能干扰、黑幕感知受损及恢复已有本次证据；横向离散度阈值、车车碰撞建模和完整驾驶调校统计仍独立维护 |
+| S5 | AI 施法规则 | done-unverified | #59 | 五固定人格、延迟共享快照、机会/风险/节奏、独立承诺、掌形瞄准、反转适应、黑幕感知受损；普通/困难五 AI 自然比赛 | DNF 按原 15 秒规则记录；数值和人格辨识度仍需用户试玩；完整 V11/V12 未验证 |
 | S6 | 体验收尾（占位美术） | todo | | | |
 | S7 | 暂停（后续） | todo | | | |
 

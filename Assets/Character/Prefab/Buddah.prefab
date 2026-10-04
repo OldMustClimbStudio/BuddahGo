@@ -517,6 +517,8 @@ GameObject:
   - component: {fileID: 981470015000001}
   - component: {fileID: 7267044006599327590}
   - component: {fileID: 4889513177694151655}
+  - component: {fileID: 5393487742474791642}
+  - component: {fileID: 3212872375011852415}
   m_Layer: 6
   m_Name: Buddah
   m_TagString: Untagged
@@ -4391,3 +4393,28 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 9183447588538311417}
   m_PrefabAsset: {fileID: 0}
+
+--- !u!114 &5393487742474791642
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73e271603e1896046b730f48bf9e1a3d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+--- !u!114 &3212872375011852415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ea204c93fd956b4f9b730da53fcf78e, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:

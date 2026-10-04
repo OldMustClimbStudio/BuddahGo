@@ -39,6 +39,8 @@ namespace NewBuddah.PredictionV2.Core
 
         private MonoBehaviour[] _steeringProviders;
         public BuddahPredictedMotorComputedStats CurrentComputedStats => _computedStats;
+        // Observable effect durations, used by delayed AI perception; contains no cast draws or cooldowns.
+        internal BuddahPredictedModifierState CurrentSkillModifiers => _modifierState;
 
         private readonly BuddahPredictionOwnerInputBridge _ownerInputBridge = new();
         private readonly BuddahPredictionMovementGateBridge _movementGateBridge = new();

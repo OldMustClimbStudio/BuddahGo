@@ -34,6 +34,31 @@ namespace BuddahGo.AI
         private float _groundDeceleration, _lastGroundContactTime = float.NegativeInfinity;
         private static readonly ProfilerMarker PlanMarker = new ProfilerMarker("AI.Plan");
         private System.Random _jitter;
+        private AISkillDifficulty _skillDifficulty;
+        private SkillPerceptionState _perception;
+        private AIDifficultyProfile _impairedProfile;
+        private readonly AISteeringPerception _steeringPerception = new AISteeringPerception();
+        public float PerceivedSteeringSign => _steeringPerception.Sign;
+        public bool IsVisionImpaired => _perception != null && _motor != null && _motor.TimeManager != null
+            && _perception.VisionImpairedUntilTick > _motor.TimeManager.LocalTick;
+
+        public void ConfigureSkillPerception(AISkillDifficulty difficulty, SkillPerceptionState perception)
+        {
+            _skillDifficulty = difficulty; _perception = perception;
+            if (_impairedProfile != null) Destroy(_impairedProfile);
+            if (Profile == null) return;
+            _impairedProfile = Instantiate(Profile);
+            _impairedProfile.LookaheadSeconds *= difficulty.ImpairedLookaheadMultiplier;
+            _impairedProfile.RolloutSeconds *= difficulty.ImpairedLookaheadMultiplier;
+            _impairedProfile.HorizonSeconds *= difficulty.ImpairedLookaheadMultiplier;
+            _impairedProfile.MistakeProbability = Mathf.Clamp01(Profile.MistakeProbability + difficulty.ImpairedMistakeAddition);
+            _impairedProfile.ReactionTicks += difficulty.ImpairedReactionTicks;
+        }
+        public void ResetSkillPerception()
+        {
+            _steeringPerception.Reset();
+            _pending = false; _hasPlan = false;
+        }
         private int ReactionJitter()
         {
             if (Profile == null || Profile.ReactionJitterTicks <= 0) return 0;
@@ -83,7 +108,11 @@ namespace BuddahGo.AI
                 _lastGroundContactTime = Time.time;
             }
         }
-        private void OnDestroy() { if (_ownsProfile && Profile != null) Destroy(Profile); }
+        private void OnDestroy()
+        {
+            if (_ownsProfile && Profile != null) Destroy(Profile);
+            if (_impairedProfile != null) Destroy(_impairedProfile);
+        }
         // Product path: the spawner hands each AI its own difficulty profile instance; the driver destroys it with the racer.
         public void AdoptProfile(AIDifficultyProfile profile) { if (_ownsProfile && Profile != null && Profile != profile) Destroy(Profile); Profile = profile; _ownsProfile = true; }
 
@@ -120,14 +149,23 @@ namespace BuddahGo.AI
                 TurnDecay = _config.TurnDecayPerSecond, TurnMultiplier = _config.TurnInputMultiplier,
                 PushExtraSpeed = _config.PushExtraMaxSpeed,
                 GroundDeceleration = Time.time - _lastGroundContactTime < 0.1f ? _groundDeceleration : 0f };
+            var planningParameters = Parameters;
+            if (_skillDifficulty != null)
+            {
+                var observedStats = planningParameters.Stats;
+                observedStats.FinalSteeringSign = _steeringPerception.Observe(observedStats.FinalSteeringSign,
+                    tick, (float)_motor.TimeManager.TickDelta, _skillDifficulty.AdaptSeconds, _skillDifficulty.ReadaptSeconds);
+                planningParameters.Stats = observedStats;
+            }
+            var decisionProfile = IsVisionImpaired && _impairedProfile != null ? _impairedProfile : Profile;
             if (!_pending && (!_hasPlan || tick - _lastPlanTick >= Profile.EffectiveReplanTicks))
             {
                 long started = System.Diagnostics.Stopwatch.GetTimestamp();
                 int key;
-                using (PlanMarker.Auto()) key = _planner.Plan(MotionState.Read(_body), Parameters, Line,
-                    Profile, (float)_motor.TimeManager.TickDelta, Steering);
-                if (Profile.ReactionTicks == 0 && Profile.ReactionJitterTicks == 0) Steering = key;
-                else { _pendingSteering = key; _pending = true; _applyTick = tick + (uint)Profile.ReactionTicks + (uint)ReactionJitter(); }
+                using (PlanMarker.Auto()) key = _planner.Plan(MotionState.Read(_body), planningParameters, Line,
+                    decisionProfile, (float)_motor.TimeManager.TickDelta, Steering);
+                if (decisionProfile.ReactionTicks == 0 && decisionProfile.ReactionJitterTicks == 0) Steering = key;
+                else { _pendingSteering = key; _pending = true; _applyTick = tick + (uint)decisionProfile.ReactionTicks + (uint)ReactionJitter(); }
                 LastPlanMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000d / System.Diagnostics.Stopwatch.Frequency;
                 _lastPlanTick = tick; _hasPlan = true;
                 PlanObserved?.Invoke(tick, _planner.LastObservation);

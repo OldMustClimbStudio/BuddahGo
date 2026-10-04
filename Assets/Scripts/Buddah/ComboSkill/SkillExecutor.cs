@@ -1,4 +1,5 @@
 using FishNet.Connection;
+using BuddahGo.Match;
 using FishNet.Object;
 using NewBuddah.PredictionV2.Bootstrap;
 using NewBuddah.PredictionV2.Integration;
@@ -26,6 +27,26 @@ public class SkillExecutor : NetworkBehaviour
     }
 
     public event Action<LocalSkillUiEvent> LocalSkillUiTriggered;
+
+    public enum CastStage { Requested, Rejected, Accepted, Executed, Cancelled }
+    public readonly struct CastEvent
+    {
+        public readonly CastStage Stage;
+        public readonly int Slot;
+        public readonly string SkillId;
+        // Only populated after execution; decisions cannot inspect the pending backlash draw.
+        public readonly bool IsBacklash;
+        public CastEvent(CastStage stage, int slot, string skillId, bool backlash = false)
+        { Stage = stage; Slot = slot; SkillId = skillId; IsBacklash = backlash; }
+    }
+    public event Action<CastEvent> ServerCastChanged;
+    public event Action ActiveEffectsReset;
+    public bool HasPendingCast => _pendingCast != null;
+    public float ConfirmationSeconds => CastConfirmDelaySeconds;
+    private Coroutine _pendingCast;
+    private int _pendingSlot = -1;
+    private string _pendingSkillId;
+    private ISkillCastContinuation _castContinuation;
 
     private const float CastConfirmDelaySeconds = 1f;
     private const float AntiCastConfirmDelaySeconds = 1f;
@@ -59,6 +80,7 @@ public class SkillExecutor : NetworkBehaviour
 
     private void Awake()
     {
+        _castContinuation = GetComponent<ISkillCastContinuation>();
         _nextReadyTime = new float[SkillLoadout.SlotCount];
         ResolveObsessionFigure();
         ResolveFeelRouter();
@@ -72,6 +94,17 @@ public class SkillExecutor : NetworkBehaviour
     {
         base.OnStartServer();
         ResolveObsessionFigure();
+        if (comboInput == null) comboInput = GetComponent<ComboSkillInput>();
+        if (loadout == null) loadout = GetComponent<SkillLoadout>();
+        if (RacerAuthority.IsServerAI(this) && comboInput != null)
+            comboInput.OnSkillSlotTriggered += OnSlotTriggeredByCombo;
+    }
+
+    public override void OnStopServer()
+    {
+        if (comboInput != null) comboInput.OnSkillSlotTriggered -= OnSlotTriggeredByCombo;
+        CancelPendingCastServer();
+        base.OnStopServer();
     }
 
     public override void OnStartClient()
@@ -99,6 +132,7 @@ public class SkillExecutor : NetworkBehaviour
 
     private void OnSlotTriggeredByCombo(int slotIndex, string comboName)
     {
+        if (RacerAuthority.IsServerAI(this)) { CastSlotServer(slotIndex); return; }
         GameLog.Verbose($"[SkillExecutor][Owner] Combo '{comboName}' triggered slot {slotIndex}, requesting cast...");
         RequestCast(slotIndex);
     }
@@ -129,15 +163,21 @@ public class SkillExecutor : NetworkBehaviour
         if (!IsServerInitialized)
             return;
 
+        ResetActiveSkillEffectsForOwner();
         NetworkConnection conn = Owner;
-        if (conn == null)
-            return;
-
-        ResetActiveSkillEffectsTargetRpc(conn);
+        if (conn != null && conn.IsValid && !IsOwner) ResetActiveSkillEffectsTargetRpc(conn);
     }
 
-    public void ResetActiveSkillEffectsForOwner()
+    public void ResetActiveSkillEffectsForOwner(bool resetMovementModifiers = true)
     {
+        if (IsServerInitialized) CancelPendingCastServer();
+        comboInput?.ClearCombo();
+        GetComponent<BuddahHandControl>()?.ResetSkillInputAndEffects();
+        GetComponent<SkillPerceptionState>()?.Clear();
+        if (resetMovementModifiers) GetComponent<NewBuddah.PredictionV2.Core.BuddahPredictedMotor>()?.ResetActiveSkillModifiers();
+        var trap = GetComponent<MovementSlowTrapZoneEffect>();
+        if (trap != null) { trap.enabled = false; Destroy(trap); }
+        ActiveEffectsReset?.Invoke();
         ResolveCharacterAnimator();
         ResolveAccelerationTrailController();
         ResolvePlayerCamera();
@@ -176,10 +216,36 @@ public class SkillExecutor : NetworkBehaviour
     [ServerRpc(RequireOwnership = true)]
     private void CastSlotServerRpc(int slotIndex)
     {
+        CastSlotServer(slotIndex);
+    }
+
+    // The owner RPC retains RequireOwnership; server AI uses this identical authority pipeline.
+    public bool CastSlotServer(int slotIndex)
+    {
+        if (!IsServerInitialized) return false;
+        string requestedId = loadout != null ? loadout.GetSkillId(slotIndex) : string.Empty;
+        ServerCastChanged?.Invoke(new CastEvent(CastStage.Requested, slotIndex, requestedId));
         if (!TryResolveCast(slotIndex, out string skillId, out SkillAction skill, out float now))
-            return;
+        {
+            ServerCastChanged?.Invoke(new CastEvent(CastStage.Rejected, slotIndex, requestedId));
+            return false;
+        }
         ResolveCastVariant(skillId, skill, out bool isAnti, out SkillAction executedSkill, out string executedSkillId);
         QueueCast(slotIndex, skillId, skill, now, isAnti, executedSkill, executedSkillId);
+        return true;
+    }
+
+    public bool IsSlotReadyServer(int slotIndex) => IsServerInitialized
+        && slotIndex >= 0 && slotIndex < SkillLoadout.SlotCount && !HasPendingCast
+        && Time.time >= _castLockedUntil && Time.time >= _nextReadyTime[slotIndex];
+
+    public void CancelPendingCastServer()
+    {
+        if (_pendingCast == null) return;
+        StopCoroutine(_pendingCast);
+        _pendingCast = null;
+        ServerCastChanged?.Invoke(new CastEvent(CastStage.Cancelled, _pendingSlot, _pendingSkillId));
+        _pendingSlot = -1;
     }
 
     private bool TryResolveCast(int slotIndex, out string skillId, out SkillAction skill, out float now)
@@ -273,7 +339,10 @@ public class SkillExecutor : NetworkBehaviour
         float obsessionGain = database != null ? Mathf.Max(0f, database.GetObsessionGain(skillId, skill)) : Mathf.Max(0f, skill.ObsessionGain);
         GameLog.Verbose($"[SkillExecutor][Server] QUEUE '{executedSkillId}' (slot {slotIndex}) delay={castDelaySeconds:0.##}s cooldown={resolvedCooldownSeconds:0.##} lock={resolvedCastLockSeconds:0.##} anti={isAnti}");
         PlayQueuedCastFeedbackObserversRpc(executedSkillId, isAnti);
-        StartCoroutine(ExecuteQueuedCastAfterDelay(slotIndex, executedSkill, executedSkillId, obsessionGain, isAnti, castDelaySeconds));
+        _pendingSlot = slotIndex;
+        _pendingSkillId = skillId;
+        _pendingCast = StartCoroutine(ExecuteQueuedCastAfterDelay(slotIndex, executedSkill, executedSkillId, obsessionGain, isAnti, castDelaySeconds));
+        ServerCastChanged?.Invoke(new CastEvent(CastStage.Accepted, slotIndex, skillId));
     }
 
     [ServerRpc(RequireOwnership = true)]
@@ -286,6 +355,14 @@ public class SkillExecutor : NetworkBehaviour
     {
         yield return new WaitForSeconds(castDelaySeconds);
 
+        _pendingCast = null;
+        if (RacerAuthority.IsServerAI(this) && (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject)
+            || _castContinuation != null && !_castContinuation.CanContinueCast(slotIndex)))
+        {
+            ServerCastChanged?.Invoke(new CastEvent(CastStage.Cancelled, slotIndex, _pendingSkillId));
+            yield break;
+        }
+
         if (executedSkill == null)
         {
             Debug.LogWarning($"[SkillExecutor][Server] Delayed cast '{executedSkillId}' lost its SkillAction reference.");
@@ -297,6 +374,7 @@ public class SkillExecutor : NetworkBehaviour
         executedSkill.ExecuteServer(this, slotIndex);
         _obs?.AddServer(obsessionGain);
         CastObserversRpc(slotIndex, executedSkillId, isAnti);
+        ServerCastChanged?.Invoke(new CastEvent(CastStage.Executed, slotIndex, _pendingSkillId, isAnti));
     }
 
     [ObserversRpc]
@@ -354,7 +432,7 @@ public class SkillExecutor : NetworkBehaviour
         MovementEffects.ApplyAccelerationServer(extraForwardForce, extraMaxSpeed, durationSeconds);
 
         NetworkConnection conn = Owner;
-        if (conn == null) return;
+        if (conn == null || !conn.IsValid) return;
 
         ApplyAccelerationTargetRpc(conn, extraForwardForce, extraMaxSpeed, durationSeconds);
     }
@@ -372,7 +450,7 @@ public class SkillExecutor : NetworkBehaviour
         MovementEffects.ApplyRootThenAccelerationServer(rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds);
 
         NetworkConnection conn = Owner;
-        if (conn == null) return;
+        if (conn == null || !conn.IsValid) return;
 
         ApplyRootThenAccelerationTargetRpc(conn, rootDurationSeconds, extraForwardForce, extraMaxSpeed, accelDurationSeconds);
     }
@@ -390,7 +468,7 @@ public class SkillExecutor : NetworkBehaviour
         MovementEffects.ApplyInvertTurnInputServer(durationSeconds);
 
         NetworkConnection conn = Owner;
-        if (conn == null) return;
+        if (conn == null || !conn.IsValid) return;
 
         ApplyInvertTurnInputTargetRpc(conn, durationSeconds);
     }
@@ -408,7 +486,7 @@ public class SkillExecutor : NetworkBehaviour
         MovementEffects.ApplyScaleServer(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
 
         NetworkConnection conn = Owner;
-        if (conn == null) return;
+        if (conn == null || !conn.IsValid) return;
 
         ApplyScaleTargetRpc(conn, scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds, massMultiplier, forwardForceMultiplier);
     }

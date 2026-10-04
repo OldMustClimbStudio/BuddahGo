@@ -250,6 +250,7 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
     private void ArmProjectile()
     {
         _armed = true;
+        if (_applyHits) BuddahGo.Match.SkillCombatEvents.Record("launched", "charged-projectile", _attacker, null, transform.position);
         SetProgress(1f);
         FollowChargingTargetPosition();
         SpawnLaunchEffect();
@@ -372,7 +373,8 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         _hitVictims.Add(victimNO);
 
         // Phase 4b V3 — single dispatch entry (router internalizes V2 / PushTargetBox / Legacy fallback).
-        BuddahPredictionRouter.RouteImpulse(victimNO, _impulse, _hitTurnTorqueImpulse, BuddahPredictedImpulseSourceType.ChargedProjectile, _attacker);
+        bool routed = BuddahPredictionRouter.RouteImpulse(victimNO, _impulse, _hitTurnTorqueImpulse, BuddahPredictedImpulseSourceType.ChargedProjectile, _attacker);
+        BuddahGo.Match.SkillCombatEvents.Record("hit", "charged-projectile", _attacker, victimNO, transform.position, routed);
     }
 
     private bool TryStopAtSolidWorld(float moveDistance)

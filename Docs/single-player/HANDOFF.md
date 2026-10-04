@@ -1,3 +1,5 @@
+**2026-10-03 AI 技能人格已实现，用户试玩待确认：** 用户已授权完整实现最新人格规格，覆盖旧“仅文档、等待开始”的限制；沿用 f0f123b 之后的实现分支 / PR #59。用户确认单机固定玩家 + 五种人格，固定三槽与 Rematch 配装。当前功能、建议默认值与真实验证边界见 [实施记录](ai-skill-implementation-2026-10-03.md)；规格见 [AI 技能](ai-skills.md)、[五人格](ai-personalities.md) 与 [设计复核](ai-skill-design-review-2026-10-03.md)。已验收驾驶不重新调参，历史测试不替代本次技能验收。
+
 **2026-10-03 开场表现更新：** 6P 路线同步至 1P–5P，新增单机 idle 错相与仅开场显示的本机玩家箭头；未做联机实测。全文见 [progress.md](progress.md) 顶部，联机交接见 [intro-presentation-2026-10-03.md](intro-presentation-2026-10-03.md)。
 
 **2026-10-03 AI 跑线算法里程碑（已提交 `559d57c`，用户已验收）：** `ThrustVectorPlanner` + 墙走廊取代 V5 beam，三档难度接入产品路径；同场三圈 Hard 81.5–83.8 s、Normal 92.8–94.4 s、Easy 114.7–118.9 s。全文见 [progress.md](progress.md) 顶部，规格见 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md)。

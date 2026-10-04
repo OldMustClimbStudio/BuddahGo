@@ -15,6 +15,7 @@ namespace BuddahGo.AI
     // A1 observes one lap; A2 observes the unchanged three-lap Match through ResultInteractive.
     public sealed class AITuningHarness : MonoBehaviour
     {
+        public static bool EnableSkillCasting;
         public string OutputDirectory { get; private set; }
         public string Status { get; private set; } = "created";
         public AIDifficultyProfile Profile;
@@ -33,8 +34,7 @@ namespace BuddahGo.AI
         private Rigidbody _body;
         private LapProgress _lap;
         private SplineProgressTracker _progress;
-        private GameObject[] _boxes;
-        private bool[] _boxStates;
+        private AITestObstacleScope _obstacles;
         private ComboSkillInput _skills;
         private bool _skillWasEnabled, _started, _go, _stalled, _wrongWay;
         [SerializeField] private bool _finished, _restored;
@@ -61,6 +61,7 @@ namespace BuddahGo.AI
         private static void FromCommandLine()
         {
             string[] args = Environment.GetCommandLineArgs();
+            EnableSkillCasting = Array.IndexOf(args, "--ai-skills-on") >= 0;
             int a2 = Array.IndexOf(args, "--ai-a2-output");
             int flag = a2 >= 0 ? a2 : Array.IndexOf(args, "--ai-a1-output");
             int profile = Array.IndexOf(args, a2 >= 0 ? "--ai-a2-profile" : "--ai-a1-profile");
@@ -212,6 +213,8 @@ namespace BuddahGo.AI
             var racers = FindObjectsByType<BuddahPredictedMotor>(FindObjectsSortMode.None);
             _motor = racers.FirstOrDefault(item => item.IsOwner && item.IsServerInitialized);
             if (_motor == null || TrackSplineRef.Instance == null) return;
+            _obstacles ??= new AITestObstacleScope(Event);
+            if (!_obstacles.TryDisable()) return;
             if (_aiCount == 0 && racers.Length != 1) throw new InvalidOperationException("A1 requires exactly one racer.");
             _driver = _motor.GetComponent<AIRacerDriver>();
             if (_driver == null) throw new InvalidOperationException("Prefab has no AIRacerDriver.");
@@ -219,11 +222,6 @@ namespace BuddahGo.AI
             _progress = _motor.GetComponent<SplineProgressTracker>();
             _skills = _motor.GetComponent<ComboSkillInput>();
             if (_skills != null) { _skillWasEnabled = _skills.enabled; _skills.enabled = false; }
-            string[] names = { "DebugboxCanPush", "DebugboxCanPush (1)", "DebugboxCanPush (2)", "DebugboxCanPush (3)", "DebugboxTriggerPush" };
-            var all = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            _boxes = names.Select(name => all.Single(t => t.name == name && t.parent != null && t.parent.name == "DebugBox").gameObject).ToArray();
-            _boxStates = _boxes.Select(box => box.activeSelf).ToArray();
-            for (int i = 0; i < _boxes.Length; i++) { Event("test-box-disabled", "RaceMap/DebugBox/" + _boxes[i].name + "; original=" + _boxStates[i]); _boxes[i].SetActive(false); }
             _driver.Profile = Profile; _driver.enabled = true; _driver.Contact += Collision;
             _driver.ModelCompared += ModelCompared;
             _driver.PlanObserved += PlanObserved;
@@ -246,6 +244,8 @@ namespace BuddahGo.AI
             for (int i = 0; i < drivers.Length; i++)
             {
                 var driver = drivers[i];
+                var caster = driver.GetComponent<AISkillCaster>();
+                if (caster != null) caster.CastingEnabled = EnableSkillCasting;
                 AIDifficultyProfile target = Profile; string path = "(shared)";
                 if (ProductProfiles) { Track(driver, driver.Profile != null ? driver.Profile.name : "(product)"); continue; }
                 if (_racerProfilePaths != null && _racerProfilePaths.Length > 1)
@@ -253,7 +253,13 @@ namespace BuddahGo.AI
                     path = _racerProfilePaths[1 + i % (_racerProfilePaths.Length - 1)];
                     target = LoadProfile(path);
                 }
-                if (driver.Profile != target) { driver.Profile = target; Event("ai-profile-assigned", driver.name + " <- " + Path.GetFileName(path)); }
+                if (driver.Profile != target)
+                {
+                    driver.Profile = target;
+                    if (caster != null && caster.Difficulty != null)
+                        driver.ConfigureSkillPerception(caster.Difficulty, driver.GetComponent<SkillPerceptionState>());
+                    Event("ai-profile-assigned", driver.name + " <- " + Path.GetFileName(path));
+                }
                 Track(driver, path);
             }
             if (_driver != null) Track(_driver, _racerProfilePaths != null ? _racerProfilePaths[0] : "(harness)");
@@ -409,8 +415,7 @@ namespace BuddahGo.AI
             Application.logMessageReceived -= OnLog;
             if (_driver != null) { _driver.PlanObserved -= PlanObserved; _driver.Contact -= Collision; _driver.ModelCompared -= ModelCompared; _driver.enabled = false; }
             if (_skills != null) _skills.enabled = _skillWasEnabled;
-            if (_boxes != null) for (int i = 0; i < _boxes.Length; i++) if (_boxes[i] != null)
-            { _boxes[i].SetActive(_boxStates[i]); Event("test-box-restored", "RaceMap/DebugBox/" + _boxes[i].name + "; active=" + _boxes[i].activeSelf); }
+            _obstacles?.Dispose();
             Application.runInBackground = _oldBackground; Application.targetFrameRate = _oldTargetFps; QualitySettings.vSyncCount = _oldVsync;
             _plans?.Dispose(); _plans = null;
             _samples?.Dispose(); _samples = null; _events?.Dispose(); _events = null;

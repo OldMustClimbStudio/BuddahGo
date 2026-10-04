@@ -8,6 +8,10 @@ namespace BuddahGo.AI
     // AIDifficultyAssetTool editor command, so the raced profiles and the shipped ones are the same data.
     public static class AIDifficultyProfiles
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // Explicit acceptance-run seed; never consulted in the ordinary release product.
+        public static int? DiagnosticMatchSeed;
+#endif
         public const string ResourcePath = "AI/";
 
         public static AIDifficultyProfile Load(SoloDifficulty difficulty)
@@ -27,6 +31,9 @@ namespace BuddahGo.AI
             profile.name = source.name + " #" + racerIndex;
             // Per-racer personality: a seed that differs per match and racer, a speed bias and a line offset.
             int seed = unchecked(System.Environment.TickCount * 31 + racerIndex * 7919 + (int)difficulty * 104729);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (DiagnosticMatchSeed.HasValue) seed = unchecked(DiagnosticMatchSeed.Value * 31 + racerIndex * 7919 + (int)difficulty * 104729);
+#endif
             if (seed == 0) seed = 1;
             var random = new System.Random(seed);
             profile.NoiseSeed = seed;

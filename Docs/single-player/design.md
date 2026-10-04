@@ -154,7 +154,7 @@ AI 和 Solo 只依赖契约层与现有代码的公开入口，所以以后可�
 | `RacerRegistry` | 每一端都有 | 由场景中所有 `RacerIdentity` 建立 RacerId 索引，实现 `IRacerDirectory`；服务器负责分配 RacerId | 联机 AI 补位 |
 | `ServerProgressReporter` | 服务器侧 | 对没有 owner 的 Racer，把原本走 ServerRpc 的进度上报改成服务器上直接调用同一个登记入口 | 服务器权威计圈 |
 | `AIRacerDriver` | MonoBehaviour，在 prefab 上，默认禁用 | 实现 `ISteeringOverride`：每 tick 调用规划器得到 -1/0/+1；完赛后 `drive=false` | 自动驾驶测试、联机 AI 补位 |
-| `ISteeringPlanner` / `ForwardSimPlanner` | 纯逻辑 | 往前推演候选按键序列并评分（ADR 0003） | 以后可加经验公式实现；产品已改用 `ThrustVectorPlanner`，见 §4.2 注 |
+| `ISteeringPlanner` / `ForwardSimPlanner` | 纯逻辑 | 往前推演候选按键序列并评分（ADR 0003） | 已于 2026-10-04 删除（`20401e5`）；产品规划器为 `ThrustVectorPlanner`，见 §4.2 注 |
 | `BuddahMotionModel` | 纯逻辑 | 与 motor 一致的平面运动公式（§5.3），复用 `BuddahLocomotionStep.Compute` | 规划器、调参、测试 |
 | `IRacingLine` / `SplineRacingLine` | 纯逻辑包装 | 前方目标点、切线、偏离距离；带可配置的走线偏移 | 手绘赛车线 |
 | `AIDifficultyProfile` | ScriptableObject（设计提案） | 速度/节奏目标、跟随/转向精度、反应、Fumble、走线偏移、追赶与恢复参数；快捷预设及映射待实测 | 调参场景 |
@@ -209,7 +209,7 @@ AI 和 Solo 只依赖契约层与现有代码的公开入口，所以以后可�
 
 ### 4.2 比赛中，每个服务器 tick
 
-**2026-10-03 注：** 产品规划器是 `ThrustVectorPlanner`（`Assets/Scripts/AI/ThrustVectorPlanner.cs`，仍输出 -1/0/+1），见 [推力矢量规格](thrust-vector-controller-spec.md)。下图的 `ForwardSimPlanner.Plan`（beam search）已退役，只在 `UseThrustVector` 关闭的 profile（A1/A2 证据 harness）中使用。
+**2026-10-03 注：** 产品规划器是 `ThrustVectorPlanner`（`Assets/Scripts/AI/ThrustVectorPlanner.cs`，仍输出 -1/0/+1），见 [推力矢量规格](thrust-vector-controller-spec.md)。下图的 `ForwardSimPlanner.Plan`（beam search）已于 2026-10-04 随 beam 字段一起删除（`20401e5`），下图仅作历史设计参考。
 
 ```text
 AIRacerDriver.TryGetOverride → ForwardSimPlanner.Plan → 转向 (-1/0/+1)，drive=true

@@ -11,6 +11,8 @@
 | 单机模式设计与实现入口 | [single-player/HANDOFF.md](single-player/HANDOFF.md) |
 | AI 技能人格规格与本次实现 | [技能管线](single-player/ai-skills.md) · [五人格](single-player/ai-personalities.md) · [实施验证](single-player/ai-skill-implementation-2026-10-03.md) · [试玩清单](single-player/ai-skill-playtest.md) |
 | 1–6 人开场路径、idle、开场玩家标识与联机后续 | [single-player/intro-presentation-2026-10-03.md](single-player/intro-presentation-2026-10-03.md) |
+| PR #59 代码复核与四轮清理记录 | [single-player/pr59-code-review-2026-10-04.md](single-player/pr59-code-review-2026-10-04.md) |
+| 特效资源恢复与洋红/不可见特效修复 | [vfx-asset-recovery.md](vfx-asset-recovery.md) |
 | 术语表 / 架构决策 | [../CONTEXT.md](../CONTEXT.md) · [adr/](adr/) |
 | 开场交接切换的本地卡顿修复（执行入口） | [handoff-continuity/HANDOFF.md](handoff-continuity/HANDOFF.md) |
 

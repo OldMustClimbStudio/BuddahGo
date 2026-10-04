@@ -92,7 +92,7 @@ namespace SteamMultiplayer.UI
             foreach (var button in _onlineButtons)
                 if (button != null) button.interactable = available;
             string message = session == null ? "正在初始化…" :
-                available ? string.Empty : BuddahGo.Match.SessionLauncher.SteamUnavailableMessage;
+                available ? string.Empty : SessionLauncher.SteamUnavailableMessage;
             if (session != null && !string.IsNullOrEmpty(session.LastError)) message = session.LastError;
             if (_onlineStatus.text != message) _onlineStatus.text = message;
         }

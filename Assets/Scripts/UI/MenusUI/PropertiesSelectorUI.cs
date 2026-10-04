@@ -214,7 +214,7 @@ namespace SteamMultiplayer.UI
                     : definition.DisplayName;
                 SetText(stageTitleText, $"Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel}");
                 SetText(statusText, BuildStageStatusText(definition));
-                SetText(countdownText, BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
+                SetText(countdownText, MatchRules.Current.SelectionTimeoutEnabled
                     ? $"Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s" : string.Empty);
             }
             else if (_selectionManager.TotalStageCount <= 0)
@@ -244,9 +244,9 @@ namespace SteamMultiplayer.UI
             {
                 PropertySelectionMode.Vote => "Everyone is voting on the current stage option.",
                 PropertySelectionMode.HostOnly => "Only the host can choose during this stage.",
-                PropertySelectionMode.Multi => BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
+                PropertySelectionMode.Multi => MatchRules.Current.SelectionTimeoutEnabled
                     ? "Choose all desired options before the timer ends." : "Choose all desired options.",
-                _ => BuddahGo.Match.MatchRules.Current.SelectionTimeoutEnabled
+                _ => MatchRules.Current.SelectionTimeoutEnabled
                     ? "Each player chooses one option before the timer ends." : "Each player chooses one option."
             };
         }

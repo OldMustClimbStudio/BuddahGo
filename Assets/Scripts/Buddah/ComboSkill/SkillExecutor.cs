@@ -173,21 +173,23 @@ public class SkillExecutor : NetworkBehaviour
         ResetActiveSkillEffectsTargetRpc(conn);
     }
 
+    // AI-only server cleanup: pending input and cast, hands buff, perception, modifiers and the trap zone.
+    // A Human Player's respawn never enters here; its owner-side reset below is unchanged.
+    private void ResetServerAISkillState(bool resetMovementModifiers)
+    {
+        CancelPendingCastServer();
+        comboInput?.ClearCombo();
+        GetComponent<BuddahHandControl>()?.ResetSkillInputAndEffects();
+        GetComponent<SkillPerceptionState>()?.Clear();
+        if (resetMovementModifiers) GetComponent<NewBuddah.PredictionV2.Core.BuddahPredictedMotor>()?.ResetActiveSkillModifiers();
+        var trap = GetComponent<MovementSlowTrapZoneEffect>();
+        if (trap != null) { trap.enabled = false; Destroy(trap); }
+        ActiveEffectsReset?.Invoke();
+    }
+
     public void ResetActiveSkillEffectsForOwner(bool resetMovementModifiers = true)
     {
-        if (IsServerInitialized && RacerAuthority.IsServerAI(this))
-        {
-            // AI-only server cleanup: pending input and cast, hands buff, perception, modifiers and the trap zone.
-            // A Human Player's respawn keeps the pre-existing behaviour below.
-            CancelPendingCastServer();
-            comboInput?.ClearCombo();
-            GetComponent<BuddahHandControl>()?.ResetSkillInputAndEffects();
-            GetComponent<SkillPerceptionState>()?.Clear();
-            if (resetMovementModifiers) GetComponent<NewBuddah.PredictionV2.Core.BuddahPredictedMotor>()?.ResetActiveSkillModifiers();
-            var trap = GetComponent<MovementSlowTrapZoneEffect>();
-            if (trap != null) { trap.enabled = false; Destroy(trap); }
-            ActiveEffectsReset?.Invoke();
-        }
+        if (IsServerInitialized && RacerAuthority.IsServerAI(this)) ResetServerAISkillState(resetMovementModifiers);
         ResolveCharacterAnimator();
         ResolveAccelerationTrailController();
         ResolvePlayerCamera();

@@ -20,11 +20,11 @@ namespace BuddahGo.Match
         public SoloMatchSettings Settings { get; private set; }
         public bool IsStarting { get; private set; }
         public string LastError { get; private set; } = string.Empty;
+        // Transport slot 0 is Steam (FishyFacepunch), slot 1 is the local Yak loopback.
+        private const int SteamTransport = 0, LocalTransport = 1;
+        private Multipass MultipassTransport => _network != null ? _network.TransportManager?.Transport as Multipass : null;
         public bool IsOnlineAvailable => SteamClient.IsValid
-            && _network != null
-            && _network.TransportManager?.Transport is Multipass mp
-            && mp.GetTransport(0) is FishyFacepunch.FishyFacepunch steam
-            && steam.IsSteamAvailable;
+            && MultipassTransport?.GetTransport(SteamTransport) is FishyFacepunch.FishyFacepunch steam && steam.IsSteamAvailable;
 
         public const string SteamUnavailableMessage = "Steam 不可用，请启动 Steam 后重开游戏";
 
@@ -33,77 +33,80 @@ namespace BuddahGo.Match
         public bool StartSoloHost(SoloMatchSettings settings)
         {
             if (settings == null) return Fail("单机设置缺失。");
-            return StartHost(1, new SoloMatchRules(settings), settings);
+            return StartHost(LocalTransport, new SoloMatchRules(settings), settings);
         }
 
         public bool StartOnlineHost()
         {
             if (!IsOnlineAvailable) return Fail(SteamUnavailableMessage);
-            return StartHost(0, new OnlineMatchRules(), null);
-        }
-
-        private bool TryGetTransport(out Multipass transport)
-        {
-            transport = _network != null ? _network.TransportManager?.Transport as Multipass : null;
-            if (transport == null || transport.Transports.Count != 2 || !transport.GlobalServerActions)
-                return Fail("传输层配置无效：需要 FishyFacepunch + Yak Multipass。");
-            if (transport.GetTransport(0).GetType().Name != "FishyFacepunch"
-                || !(transport.GetTransport(1) is FishNet.Transporting.Yak.Yak))
-                return Fail("传输层顺序无效。");
-            if (IsStarting || _stopRequestedFrame >= 0 || _network.ServerManager.Started || _network.ClientManager.Started)
-                return Fail("会话仍在运行或关闭中，请稍后重试。");
-            return true;
-        }
-
-        private bool StartHost(int index, IMatchRules rules, SoloMatchSettings settings)
-        {
-            if (!TryGetTransport(out Multipass transport)) return false;
-            _failedSoloSettings = null;
-            LastError = string.Empty;
-            MatchRules.Current = rules;
-            Settings = settings;
-            SessionControl.SoloSettings = settings;
-            try
-            {
-                // ServerManager subscribes to transport state events. Never start every child transport.
-                if (!transport.StartConnection(true, index)) return Rollback("无法启动本地服务器。");
-                transport.SetClientTransport(index);
-                if (!_network.ClientManager.StartConnection()) return Rollback("无法连接本地服务器。");
-                IsStarting = true;
-                _startupDeadline = Time.realtimeSinceStartup + 20f;
-                return true;
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning("[SessionLauncher] Startup failed: " + exception.Message);
-                return Rollback("启动失败，请重试。" );
-            }
+            return StartHost(SteamTransport, new OnlineMatchRules(), null);
         }
 
         public bool StartOnlineClient(string hostSteamId)
         {
             if (!IsOnlineAvailable) return Fail(SteamUnavailableMessage);
             if (string.IsNullOrWhiteSpace(hostSteamId)) return Fail("主机地址为空。");
-            if (!TryGetTransport(out Multipass transport)) return false;
-            _failedSoloSettings = null;
-            LastError = string.Empty;
-            MatchRules.Reset();
-            Settings = null;
-            SessionControl.SoloSettings = null;
+            if (!TryGetIdleTransport(out Multipass transport)) return false;
+            BeginSession(new OnlineMatchRules(), null);
             try
             {
-                transport.SetClientTransport(0);
-                transport.SetClientAddress(hostSteamId, 0);
+                transport.SetClientTransport(SteamTransport);
+                transport.SetClientAddress(hostSteamId, SteamTransport);
                 if (!_network.ClientManager.StartConnection()) return Rollback("无法连接主机。");
-                IsStarting = true;
-                _startupDeadline = Time.realtimeSinceStartup + 30f;
-                return true;
+                return ArmStartupDeadline(30f);
             }
-            catch (Exception exception)
+            catch (Exception exception) { return RollbackAfterException(exception, "连接失败，请重试。"); }
+        }
+
+        private bool StartHost(int index, IMatchRules rules, SoloMatchSettings settings)
+        {
+            if (!TryGetIdleTransport(out Multipass transport)) return false;
+            BeginSession(rules, settings);
+            try
             {
-                Debug.LogWarning("[SessionLauncher] Startup failed: " + exception.Message);
-                return Rollback("连接失败，请重试。");
+                // ServerManager subscribes to transport state events. Never start every child transport.
+                if (!transport.StartConnection(true, index)) return Rollback("无法启动本地服务器。");
+                transport.SetClientTransport(index);
+                if (!_network.ClientManager.StartConnection()) return Rollback("无法连接本地服务器。");
+                return ArmStartupDeadline(20f);
             }
+            catch (Exception exception) { return RollbackAfterException(exception, "启动失败，请重试。"); }
+        }
+
+        private bool TryGetIdleTransport(out Multipass transport)
+        {
+            transport = MultipassTransport;
+            if (transport == null || transport.Transports.Count != 2 || !transport.GlobalServerActions)
+                return Fail("传输层配置无效：需要 FishyFacepunch + Yak Multipass。");
+            if (!(transport.GetTransport(SteamTransport) is FishyFacepunch.FishyFacepunch)
+                || !(transport.GetTransport(LocalTransport) is FishNet.Transporting.Yak.Yak))
+                return Fail("传输层顺序无效。");
+            if (IsStarting || _stopRequestedFrame >= 0 || _network.ServerManager.Started || _network.ClientManager.Started)
+                return Fail("会话仍在运行或关闭中，请稍后重试。");
+            return true;
+        }
+
+        private void BeginSession(IMatchRules rules, SoloMatchSettings settings)
+        {
+            _failedSoloSettings = null;
+            LastError = string.Empty;
+            MatchRules.Current = rules;
+            Settings = settings;
+            SessionControl.SoloSettings = settings;
+        }
+
+        private bool ArmStartupDeadline(float seconds)
+        {
+            IsStarting = true;
+            _startupDeadline = Time.realtimeSinceStartup + seconds;
+            return true;
+        }
+
+        // Keep Rollback(string) as the only overload: SoloSessionFlowTests injects failures through it by name.
+        private bool RollbackAfterException(Exception exception, string message)
+        {
+            Debug.LogWarning("[SessionLauncher] Startup failed: " + exception.Message);
+            return Rollback(message);
         }
 
         public void RequestStopSession()

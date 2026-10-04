@@ -76,21 +76,34 @@ namespace BuddahGo.AI
             ReplanTicks = 3; ReactionTicks = 0;
         }
 
+        // Every float must be finite and inside its range; ints have no NaN so only the range applies.
         public void ValidateConfiguration()
         {
-            float[] values = { TargetSpeed, SpeedWeight, ProgressWeight, HorizonSeconds,
-                ControlSeconds, LateralWeight, LateralVelocityWeight, LateralOffset, CorneringFactor,
-                LookaheadSeconds, SpeedMargin, LateralGain, LateralDamping, AttitudeDeadbandDegrees, AttitudeHysteresisDegrees, PredictionGain, ThrustPaceFactor, PlanningBrakeAcceleration };
-            foreach (float value in values)
-                if (float.IsNaN(value) || float.IsInfinity(value)) throw new System.ArgumentException("AI profile values must be finite.");
-            if (TargetSpeed < 1f || SpeedWeight < 0f || ProgressWeight < 0f || HorizonSeconds < .2f
-                || ControlSeconds < .02f || ControlSeconds > HorizonSeconds || BeamWidth < 1 || BeamWidth > 64
-                || LateralWeight < 0f || LateralVelocityWeight < 0f
-                || CorneringFactor < 0f || CorneringFactor > 1f || ReplanTicks < 1 || ReplanTicks > 30
-                || ReactionTicks < 0 || ReactionTicks > 30 || LookaheadSeconds < .05f
-                || SpeedMargin < 0f || LateralGain < 0f || LateralDamping < 0f || AttitudeDeadbandDegrees < 0f || AttitudeHysteresisDegrees < 0f || PredictionGain < 0f || ThrustPaceFactor < 0f || ThrustPaceFactor > 1f || PlanningBrakeAcceleration <= 0f
-                || RolloutSeconds < 0f || RolloutSampleTicks < 1 || SwitchPenaltyPerDegree < 0f || MaxThrustAngleDegrees < 90f || MaxThrustAngleDegrees > 178f
-                || RolloutHoldSeconds < 0f || SpeedNoise < 0f || LateralOffsetNoise < 0f || AngleNoiseDegrees < 0f || WobbleTicks < 1 || MistakeProbability < 0f || MistakeProbability > 1f || ReactionJitterTicks < 0 || WallMargin < 0f || RolloutWallWeight < 0f || RolloutCenterWeight < 0f || RolloutLateralWeight < 0f || RolloutLateralVelocityWeight < 0f || RolloutOverspeedWeight < 0f || RolloutUnderspeedWeight < 0f || RolloutProgressWeight < 0f || RolloutTerminalWeight < 1f)
+            Range(TargetSpeed, 1f); Range(SpeedWeight, 0f); Range(ProgressWeight, 0f); Range(HorizonSeconds, .2f);
+            Range(ControlSeconds, .02f, HorizonSeconds); Range(BeamWidth, 1, 64);
+            Range(LateralWeight, 0f); Range(LateralVelocityWeight, 0f); Range(LateralOffset); Range(CorneringFactor, 0f, 1f);
+            Range(ReplanTicks, 1, 30); Range(ReactionTicks, 0, 30); Range(ReactionJitterTicks, 0);
+            Range(LookaheadSeconds, .05f); Range(SpeedMargin, 0f); Range(LateralGain, 0f); Range(LateralDamping, 0f);
+            Range(AttitudeDeadbandDegrees, 0f); Range(AttitudeHysteresisDegrees, 0f); Range(PredictionGain, 0f);
+            Range(ThrustPaceFactor, 0f, 1f); Range(PlanningBrakeAcceleration, float.Epsilon);
+            Range(RolloutSeconds, 0f); Range(RolloutHoldSeconds, 0f); Range(RolloutSampleTicks, 1);
+            Range(SwitchPenaltyPerDegree, 0f); Range(MaxThrustAngleDegrees, 90f, 178f);
+            Range(SpeedNoise, 0f); Range(LateralOffsetNoise, 0f); Range(AngleNoiseDegrees, 0f); Range(WobbleTicks, 1);
+            Range(MistakeProbability, 0f, 1f); Range(WallMargin, 0f);
+            Range(RolloutWallWeight, 0f); Range(RolloutCenterWeight, 0f); Range(RolloutLateralWeight, 0f);
+            Range(RolloutLateralVelocityWeight, 0f); Range(RolloutOverspeedWeight, 0f); Range(RolloutUnderspeedWeight, 0f);
+            Range(RolloutProgressWeight, 0f); Range(RolloutTerminalWeight, 1f);
+        }
+
+        private static void Range(float value, float min = float.NegativeInfinity, float max = float.PositiveInfinity)
+        {
+            if (float.IsNaN(value) || float.IsInfinity(value) || value < min || value > max)
+                throw new System.ArgumentException("AI profile is outside the supported parameter ranges.");
+        }
+
+        private static void Range(int value, int min, int max = int.MaxValue)
+        {
+            if (value < min || value > max)
                 throw new System.ArgumentException("AI profile is outside the supported parameter ranges.");
         }
     }

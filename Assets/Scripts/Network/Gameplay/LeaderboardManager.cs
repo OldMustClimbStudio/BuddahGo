@@ -164,9 +164,8 @@ public class LeaderboardManager : NetworkBehaviour
             if (string.IsNullOrWhiteSpace(playerName))
                 playerName = entry.DisplayName;
 
-            bool hasTiming = MatchServices.Timing != null && MatchServices.Timing.TryGetResult(BuddahGo.Match.RacerId.FromValue(entry.RacerId), out _);
             RaceTimingResult timing = default;
-            if (hasTiming) MatchServices.Timing.TryGetResult(BuddahGo.Match.RacerId.FromValue(entry.RacerId), out timing);
+            bool hasTiming = MatchServices.Timing != null && MatchServices.Timing.TryGetResult(RacerId.FromValue(entry.RacerId), out timing);
             snapshot.Add(new FinalMatchResultEntry
             {
                 RacerId = entry.RacerId,

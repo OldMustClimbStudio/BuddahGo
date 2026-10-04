@@ -23,9 +23,9 @@ namespace BuddahGo.AI
         public int Cancelled { get; private set; }
         public int Keys { get; private set; }
         public int BuffShots { get; private set; }
-        public static readonly ProfilerMarker Marker = new ProfilerMarker("AI.Skill");
+        private static readonly ProfilerMarker Marker = new ProfilerMarker("AI.Skill");
         // Nested: key injection and server pushes (coroutines, hitbox/projectile spawns) as opposed to decisions.
-        public static readonly ProfilerMarker InputMarker = new ProfilerMarker("AI.Skill.Input");
+        private static readonly ProfilerMarker InputMarker = new ProfilerMarker("AI.Skill.Input");
         public static long WorkTicksThisFrame => _workFrame == Time.frameCount ? _workTicksThisFrame : 0;
         // Portion of WorkTicksThisFrame spent inside AI.Skill.Input (key injection, server pushes, spawns).
         public static long InputTicksThisFrame => _workFrame == Time.frameCount ? _inputTicksThisFrame : 0;
@@ -49,6 +49,7 @@ namespace BuddahGo.AI
         private ComboSkillInput _combo;
         private BuddahHandControl _hands;
         private BuddahPredictedMotor _motor;
+        private AIRacerDriver _driver;
         private RaceCompletionTracker _completion;
         private ObsessionFigure _obsession;
         private SkillPerceptionState _perception;
@@ -85,7 +86,8 @@ namespace BuddahGo.AI
             _keyRandom = new System.Random(unchecked(seed ^ 0x615F321));
             _reactionSeconds = SampleReaction();
             _time = _motor.TimeManager;
-            GetComponent<AIRacerDriver>().ConfigureSkillPerception(difficulty, _perception);
+            _driver = GetComponent<AIRacerDriver>();
+            _driver.ConfigureSkillPerception(difficulty, _perception);
             enabled = true;
             Subscribe();
         }
@@ -160,13 +162,7 @@ namespace BuddahGo.AI
                     Emit("key", key == ComboSkillInput.Token.W ? "W" : "Up", Commitment.Slot);
                     // Independent recognizer and hand listeners match the player's input semantics:
                     // a hand on cooldown does not suppress that key's combo token.
-                    long inputStart = System.Diagnostics.Stopwatch.GetTimestamp();
-                    using (InputMarker.Auto())
-                    {
-                        _hands.InjectServerPush(key == ComboSkillInput.Token.W);
-                        _combo.InjectServerKey(key, tick * (double)delta);
-                    }
-                    _inputTicksThisTick += System.Diagnostics.Stopwatch.GetTimestamp() - inputStart;
+                    InjectInput(key, tick, delta, keyRequiresPush: false);
                     if (Commitment.Waiting && !_executor.HasPendingCast) Cancel("combo-not-accepted");
                 }
                 else if (wasActive && !Commitment.Active) { Cancelled++; _combo.ClearCombo(); Emit("cancel", "retry-exhausted"); }
@@ -232,21 +228,29 @@ namespace BuddahGo.AI
             float error = Mathf.DeltaAngle(_hands.ServerHandYaw, yaw);
             _hands.InjectServerRotation(Mathf.Abs(error) <= Difficulty.AimToleranceDegrees ? 0 : error > 0f ? 1 : -1, delta);
             if (Mathf.Abs(error) > Difficulty.AimToleranceDegrees || tick < _nextShot || !_hands.CanPushServer(true)) return true;
-            bool pushed;
-            long inputStart = System.Diagnostics.Stopwatch.GetTimestamp();
-            using (InputMarker.Auto())
-            {
-                pushed = _hands.InjectServerPush(true);
-                if (pushed) _combo.InjectServerKey(ComboSkillInput.Token.W, tick * (double)delta);
-            }
-            _inputTicksThisTick += System.Diagnostics.Stopwatch.GetTimestamp() - inputStart;
-            if (pushed)
+            // A buff shot only counts as a combo key when the hand actually fired.
+            if (InjectInput(ComboSkillInput.Token.W, tick, delta, keyRequiresPush: true))
             {
                 _shotsThisBuff++; BuffShots++; Keys++;
                 _nextShot = tick + AISkillCommitment.SecondsToTicks(Mathf.Max(_combo.StepWindowSeconds + delta, _hands.ServerPushCooldown), delta);
                 Emit("aim-push", "accepted", -1, opportunity);
             }
             return true;
+        }
+
+        // W pushes the left hand, Up the right; the key then reaches the shared combo recognizer. The whole
+        // injection (coroutines, hitbox/projectile spawns) is attributed to AI.Skill.Input, not to decisions.
+        private bool InjectInput(ComboSkillInput.Token key, uint tick, float delta, bool keyRequiresPush)
+        {
+            long start = System.Diagnostics.Stopwatch.GetTimestamp();
+            bool pushed;
+            using (InputMarker.Auto())
+            {
+                pushed = _hands.InjectServerPush(key == ComboSkillInput.Token.W);
+                if (pushed || !keyRequiresPush) _combo.InjectServerKey(key, tick * (double)delta);
+            }
+            _inputTicksThisTick += System.Diagnostics.Stopwatch.GetTimestamp() - start;
+            return pushed;
         }
 
         private void OnCast(SkillExecutor.CastEvent cast)
@@ -266,7 +270,7 @@ namespace BuddahGo.AI
         private void OnEffectsReset()
         {
             Cancel("effects-reset"); _hadBuff = false; _shotsThisBuff = 0;
-            GetComponent<AIRacerDriver>()?.ResetSkillPerception();
+            _driver?.ResetSkillPerception();
         }
         private void Cancel(string reason)
         {

@@ -115,6 +115,9 @@ namespace BuddahGo.AI
             _paceAcceleration = acceleration; _paceTarget = target; _paceFactor = factor; _paceBrakeAcceleration = brakingAcceleration;
             _paceFrictionCircle = frictionCircle;
             _pace = new float[_geometry.Points.Length];
+            // Kept separate from PrepareCurvatures on purpose: AICostEquivalenceTests pin this pace bit for bit
+            // against the legacy line, and Mono evaluates this one-expression float chain at higher intermediate
+            // precision than a stored signed curvature would give (1 ulp differences break the equivalence).
             var curvatures = new float[_geometry.Points.Length];
             int span = Mathf.Clamp(Mathf.RoundToInt(12f / _step), 1, Mathf.Max(1, (_geometry.Points.Length - 1) / 2));
             for (int i = 0; i < _geometry.Points.Length; i++)
@@ -148,8 +151,7 @@ namespace BuddahGo.AI
                 _windowPace[i] = minimum;
             }
         }
-        public float WindowPace(int segment) => _windowPace != null
-            ? _windowPace[(segment % _windowPace.Length + _windowPace.Length) % _windowPace.Length] : float.PositiveInfinity;
+        public float WindowPace(int segment) => _windowPace != null ? _windowPace[Wrap(segment)] : float.PositiveInfinity;
         private void PrepareCurvatures()
         {
             if (_curvatures != null) return;
@@ -175,7 +177,7 @@ namespace BuddahGo.AI
             int i = Mathf.Min((int)index, _geometry.Points.Length - 1);
             return Mathf.Lerp(_curvatures[i], _curvatures[(i + 1) % _curvatures.Length], index - i);
         }
-        public float TangentYaw(int segment) => _geometry.TangentYaws[(segment % _geometry.Points.Length + _geometry.Points.Length) % _geometry.Points.Length];
+        public float TangentYaw(int segment) => _geometry.TangentYaws[Wrap(segment)];
         public LineProjection SampleDistance(float distance)
         {
             float wrapped = Mathf.Repeat(distance, Length), index = wrapped / _step;

@@ -100,8 +100,6 @@ public class BuddahHandControl : NetworkBehaviour
     public float HandRotationSpeed => rotationSpeedDegPerSec;
     public float ServerPushCooldown => GetActivePushCooldownServer(IsProjectilePushModeActiveServer(), _projectileUseChargedRuntimeServer);
     public float ProjectileBuffSecondsLeft => IsServerInitialized ? Mathf.Max(0f, _projectilePushModeUntilServer - Time.time) : 0f;
-    public event System.Action<bool, bool> ServerPushAccepted;
-    public event System.Action<bool, bool> ServerPushSpawned;
 
     public bool CanPushServer(bool left) => IsServerInitialized && Time.time >= (left ? _nextPushServerTimeLeft : _nextPushServerTimeRight);
 
@@ -577,7 +575,6 @@ public class BuddahHandControl : NetworkBehaviour
             projectileIgnoreSolidWorld));
         if (animateServerInput)
             StartCoroutine(AnimateServerInput(isLeft, useProjectileMode ? _projectileDelayedPushSecondsServer : 0f, _inputGeneration));
-        ServerPushAccepted?.Invoke(isLeft, useProjectileMode);
         return true;
     }
 
@@ -623,7 +620,6 @@ public class BuddahHandControl : NetworkBehaviour
         Vector3 spawnPos = GetPushSpawnPosition(handWorldPositionSnapshot, isLeft, dir, scaleMultiplier, forwardOffset, heightOffset, useProjectileMode);
 
         Quaternion spawnRot = Quaternion.LookRotation(dir, Vector3.up);
-        ServerPushSpawned?.Invoke(isLeft, useProjectileMode);
 
         if (useProjectileMode)
         {

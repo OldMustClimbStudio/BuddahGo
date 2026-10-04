@@ -156,17 +156,17 @@ namespace SteamMultiplayer.Network.Match
                 var point = GetSpawnPoint(index + 1);
                 var racer = Instantiate(_playerPrefab, point.position, point.rotation);
                 UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(racer.gameObject, gameObject.scene);
-                var personality = skills.Personalities[index];
-                string name = index < settings.AINames.Count ? settings.AINames[index] : personality.DisplayName;
-                racer.GetComponent<RacerIdentity>().AssignBeforeSpawn(RacerId.ForAI(index), name);
-                racer.name = "AI Racer " + (index + 1);
+                var identity = racer.GetComponent<RacerIdentity>();
                 var driver = racer.GetComponent<BuddahGo.AI.AIRacerDriver>();
-                if (driver != null) driver.AdoptProfile(BuddahGo.AI.AIDifficultyProfiles.Resolve(settings.Difficulty, index));
-                InstanceFinder.ServerManager.Spawn(racer); // Empty owner, never a synthetic client.
                 var loadout = racer.GetComponent<SkillLoadout>();
                 var caster = racer.GetComponent<BuddahGo.AI.AISkillCaster>();
-                if (loadout == null || caster == null || driver == null)
-                    throw new System.InvalidOperationException("Racer prefab requires a loadout, driver and skill caster.");
+                if (identity == null || driver == null || loadout == null || caster == null)
+                    throw new System.InvalidOperationException("Racer prefab requires RacerIdentity, a loadout, driver and skill caster.");
+                var personality = skills.Personalities[index];
+                identity.AssignBeforeSpawn(RacerId.ForAI(index), index < settings.AINames.Count ? settings.AINames[index] : personality.DisplayName);
+                racer.name = "AI Racer " + (index + 1);
+                driver.AdoptProfile(BuddahGo.AI.AIDifficultyProfiles.Resolve(settings.Difficulty, index));
+                InstanceFinder.ServerManager.Spawn(racer); // Empty owner, never a synthetic client.
                 loadout.SetSlotsServer(personality.Loadout);
                 caster.Configure(_skillWorld, personality, skills.ForDifficulty(settings.Difficulty), skills.Tuning, index, driver.Profile.NoiseSeed);
                 _spawnedAI.Add(racer);

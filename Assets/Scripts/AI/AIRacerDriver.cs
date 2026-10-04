@@ -120,7 +120,7 @@ namespace BuddahGo.AI
         {
             steering = 0; drive = true;
             if (!isActiveAndEnabled || _motor == null || !_motor.IsServerInitialized
-                || !(_motor.IsOwner || !_motor.Owner.IsValid)) return false;
+                || !RacerAuthority.HasLocalControl(_motor.NetworkObject)) return false;
             if ((_completion != null && _completion.IsFinished) || !ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
             { Steering = 0; _pending = false; _hasPlan = false; drive = false; return true; }
             if (Profile == null)

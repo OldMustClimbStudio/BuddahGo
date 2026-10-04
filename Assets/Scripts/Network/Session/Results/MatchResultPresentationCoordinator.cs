@@ -280,7 +280,7 @@ namespace SteamMultiplayer.Network.Results
                         continue;
 
                     if (TryGetReporter(entry.RacerId, out PlayerProgressReporter reporter))
-                        {
+                    {
                         bool human = RacerId.IsHumanValue(entry.RacerId);
                         reporter.EnterResultAreaInteractiveServer(allowMovementInResultArea && human, allowSkillsInResultArea && human);
                     }

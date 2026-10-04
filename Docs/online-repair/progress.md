@@ -3,6 +3,7 @@
 ## 当前状态与继续点（2026-10-01 暂停）
 
 - 分支 `fix/online-prediction-handoff`，worktree `.worktree/online-prediction-handoff`，HEAD 含 EXP-0 探针、§1 修复与文档提交（见下表）。
+- 2026-10-04：`dev` e11292e（PR #59 单机模式全部内容，含四轮清理）已合入本分支（8a52a62）。冲突两处：`RaceBodyIntroStateController.cs`（PR #59 的 Solo 物理时钟分支与本分支的 handoff 待消费 spline 驱动在同一函数）和 `Docs/README.md`（表格行，两边都保留）。解法：`TrySampleVisualPoseAtRenderTime` 先走 Solo 的 `_soloPhysicsClock` 早退，再走本分支的 `introDriving || IsSplineDrivingAfterGo()`；外推上限 `GetOvershootCapSeconds()` 保留，Solo 下仍为 0；`IsSplineDrivingAfterGo` 增加 `_soloPhysicsClock` 守卫并改用 PR #59 的 `HasMovementAuthority`（owner 或服务器 AI）。注意：Solo 的 `ConsumeSoloLaunchBeforePhysics` 也经 `ConsumePendingLaunchHandoffEvent`，所以消费时落地（R7.5）对单机同样生效。验证：batchmode EditMode（`-assemblyNames BuddahGo.Tests`）299/299 通过（排除两个会 EnterPlayMode 的类），这两个类单独跑 3/3 通过，合计 302/302；注意带 -nographics 时 EnterPlayMode 会让批处理编辑器直接退出且不写结果，需去掉 -nographics 单独跑。Unity MCP 服务本次未连上（ECONNREFUSED），用批处理模式代替。
 - 2026-10-02：`dev` fc7ab59（PR #60，`fix/launch-handoff-continuity`，本地交接卡顿修复）已合入本分支（bd05136，仅 `Docs/README.md` 表格行冲突，两行都保留）；根 checkout 已快进到 fc7ab59。合并后 Editor 编译无错误，EditMode 92/92 通过。
 - 合入 PR #60 对本分支实验的影响（EXP-2/3 开始前复核）：
   1. owner 的 handoff 请求现在在 GO 当刻按「当前时间」采样快照（含 GO 后沿末端切线外推），且 owner 身体在消费前持续外推，上限 `maxGoOvershootSeconds`=0.15 s。纯 client 的 GO→消费死区在 RTT ≤ 150 ms 时已被本地外推掩盖；RTT 更高时身体重新 park，R7.2 的停顿会回来。

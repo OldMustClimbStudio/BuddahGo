@@ -45,7 +45,7 @@ PR 总差异 609 个文件 / +97 512 行中，约 86k 行是 `Tools/ai/` 的 JSO
 | D2 | `LeaderboardManager.cs:364-366` | 同一 `TryGetResult` 调两次（先查有无再取值） | ✅ 合并为一次 |
 | D3 | `SessionLauncher.cs:23-27, 45-56, 58-65, 88-92` | `IsOnlineAvailable` 与 `TryGetTransport` 各自探测 Multipass；前者用 `is FishyFacepunch`，后者用 `GetType().Name == "FishyFacepunch"`；`StartHost` 与 `StartOnlineClient` 的会话前置五行重复 | ✅ 抽 `TryGetMultipass`/`BeginSession`，统一类型判断 |
 | D4 | `AISkillCaster.cs:163-170, 236-243` | 两段相同的 Stopwatch + `InputMarker` 计时包裹；`GetComponent<AIRacerDriver>()` 在 `Configure` 与 `OnEffectsReset` 各取一次 | ✅ 抽 `InjectInput`，缓存 `_driver` |
-| D5 | `SplineRacingLine.cs:118-127, 158-168` | `Build` 与 `PrepareCurvatures` 各算一遍弦角曲率（无符号/有符号）；`Wrap` 已存在但 `WindowPace`/`TangentYaw` 重写取模 | ✅ `Build` 复用 `PrepareCurvatures` 的 `Abs`（`Vector3.Angle == |SignedAngle|`，逐位相等）；统一用 `Wrap` |
+| D5 | `SplineRacingLine.cs:118-127, 158-168` | `Build` 与 `PrepareCurvatures` 各算一遍弦角曲率（无符号/有符号）；`Wrap` 已存在但 `WindowPace`/`TangentYaw` 重写取模 | ✅ `WindowPace`/`TangentYaw` 统一用 `Wrap`。⏭ 曲率合并已尝试并**回退**：数学上 `|SignedAngle| == Angle`，但 Mono 对单表达式 float 链使用更高中间精度，先存成有符号曲率再取绝对值会让 pace 差 1 ulp，`AICostEquivalenceTests` 三项逐位对比随即失败；已在代码注释中记录原因 |
 | D6 | `AISkillCaster.cs:26-28` | `Marker` / `InputMarker` 为 public static，仅类内使用 | ✅ 改 private |
 | D7 | `AITuningHarness.cs:405-410` 与 `AISkillRaceHarness.cs:260-261` | 两份 `Percentile`；两份命令行解析；两份 targetFrameRate/vSync 保存恢复 | ⏭ 诊断输出是证据格式，合并需同时验证 CSV/JSON 不变 |
 | D8 | `ThrustVectorPlanner.cs:35-36` | `LastWobbleDegrees` / `LastSelectionWasMistake` 无读者（含测试） | ⏭ 保留为 EditMode 诊断入口，成本两行 |
@@ -81,4 +81,18 @@ PR 总差异 609 个文件 / +97 512 行中，约 86k 行是 `Tools/ai/` 的 JSO
 
 ## 6. 验证
 
-（清理提交后填写：基线与清理后的测试通过/失败/跳过数，以及编译结果。）
+Unity 2022.3.55f1c1 批处理模式（`-batchmode -nographics -runTests -testPlatform EditMode -assemblyNames BuddahGo.Tests`，无编辑器实例，`.worktree/single-player-mode`）：
+
+| 树 | 用例 | 通过 | 失败 | 编译错误 |
+|---|---:|---:|---:|---:|
+| 基线 `3a3560c` | 374 | 369 | 5 | 0 |
+| 清理后 | 374 | 369 | 5 | 0 |
+
+- 失败集合完全相同：`ThrustVectorPlannerTests.OfflineLapComparison`、`StraightOffsetConvergesWithoutExcessOvershoot(±1)`、`ThrustVectorSpecTests.F06RepresentativeCornerDemandIsNotPDSaturated`、`Grid162Once`（后两项为 Explicit；`Grid162Once` 需要外部输出路径）。这些在基线即失败，与本次清理无关，按 PR 既有说明属离线对比/网格用例。
+- 中途一次尝试（D5 曲率合并）使 `AICostEquivalenceTests` 三项逐位对比失败（pace 相差 1 ulp），已回退并重跑，结果恢复到与基线逐项一致。
+- 文件移动后 Unity 首次导入会报 5 条 `CS2001`（旧路径缓存），刷新后消失；最终日志 0 条编译错误。生成的 `AI/Diagnostics.meta` 已随提交入库。
+- 未运行：非 Development 构建、自然赛与性能窗口。清理不涉及序列化字段、RPC、场景与 prefab，按 CONTRIBUTING 的"按改动验证"选择编译 + 全部 EditMode。
+
+## 7. 行数结果
+
+清理后的运行时 C# 为 +138 / −119（净 +19 行）：删掉的重复与死代码约 60 行，被 `ValidateConfiguration` 表驱动（+22）、新抽方法的签名和说明注释抵消。本 PR 真正的行数大户是 1 220 行诊断 harness 与 4 160 行测试（含三份 Legacy 冻结实现）；前者按仓库"诊断探针只门控不删除"的规则保留，后者是等价/回归契约。要继续压行数，下一步是 D7（harness 公共基类，需核对证据 CSV/JSON 不变）与 S4（`AISkillCaster` 拆分），都需要场景级测试护航，建议作为独立 PR。

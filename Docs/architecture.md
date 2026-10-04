@@ -9,6 +9,8 @@
 | 配置 | `Config/` | `ProjectConfigRuntime` 和 repositories |
 | 比赛与结算 | `RaceIntro/`、`Network/Gameplay/`、`Network/Session/Results/` | 入场、进度、终点和投票各自的 controller/manager |
 | 表现 | `UI/`、预测表现与相机 bridge | 读取游戏状态，更新 UI、VFX、相机 |
+| 会话与比赛契约 | `Match/`、`Match/Contracts/`、`Match/UI/` | `SessionLauncher` 启停会话；`MatchRules`、`MatchServices`、`RacerDirectory` 为每局静态入口，由 `SessionLauncher.ResetMatchGlobals` 统一清理 |
+| AI 对手 | `AI/`；诊断 harness 在 `AI/Diagnostics/`，仅 Editor/Development 编译 | `AIRacerDriver` 通过 `ISteeringOverride` 驾驭，`AISkillCaster` 通过共享 `SkillExecutor` 施法，`AISkillWorld` 提供每局共享快照 |
 
 ## 关键边界
 

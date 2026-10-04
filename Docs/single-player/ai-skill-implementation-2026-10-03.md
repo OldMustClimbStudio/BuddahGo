@@ -6,7 +6,7 @@
 
 - 2026-10-03 用户确认：一共五个人格，当前单机固定六人。因此玩家 + 五 AI 全部出场，按稳定 ID 使用固定三槽，Rematch 沿用。测试工具仍可使用较少参赛者。
 - 显示名暂用 P1 守位型、P2 追猎型、P3 车群型、P4 干扰型、P5 机会型，最终名字仍由用户决定。
-- 初始执念 1000、恢复系数及反转技能执念增益 0 保持共享现值。普通档风险权重 0.5 等仍为配置化建议默认值，不视为用户逐项确认。
+- 实现时初始执念 1000、恢复系数及反转技能执念增益 0 为共享现值；2026-10-04 用户要求将初始执念改为 0，反转增益已在复核后改为 200（见文末）。普通档风险权重 0.5 等仍为配置化建议默认值，不视为用户逐项确认。
 - 黑幕的 AI 感知受损与反转开始/结束的适应属于本次完整实现范围。三档已验收驾驶、共享物理、开场曲线与比赛结束规则不重新调参。
 
 ## 实现边界
@@ -68,3 +68,19 @@
 严格“每帧 ≤0.2 ms”目标尚未全满足，不能以均值或 p95 代替峰值通过。当前 marker 包含 AI tick 与公共按键派发，峰值成因尚未单独分解；这是 Development 的有界对照，不是发行版 CPU/GC 或完整 V12 合格证明。两个窗口都无运行错误，实际 frame median 约 16.667 ms；限帧下的 frame time 不能直接作为 CPU 节省量。
 
 最终相关回归 160/160；发行构建成功、辅助 harness 排除与启动检查已记录。试玩步骤见 [五人格试玩清单](ai-skill-playtest.md)。
+
+## 复核后修正（2026-10-03，未重新验证）
+
+按 [实现复核](ai-skill-implementation-review-2026-10-03.md) 做了以下修正；修正后**没有**重跑 EditMode、受控矩阵、自然赛或构建，上文所有数字仍对应修正前的 `5afe638`。
+
+- R1：撤回。用户在本轮已暂定固定六人，`SoloSetupPanel` 维持 `5afe638` 的固定玩家 + 五 AI；design §5.4 与 §5.8 按此表述。
+- R2：`SkillExecutor.ResetActiveSkillEffectsForOwner` 新增的服务器清理（取消待执行施法、清组合、重置手部与掌形 buff、清感知、重置修饰符、销毁缓流区）限定为服务器 AI；`ResetActiveSkillEffectsServer` 对真人恢复为原来的 owner TargetRpc 路径。真人复活规则回到 `f0f123b` 的行为。
+- R3：`reverseturn` 执念增益 0→200（`ProjectConfigDatabase_Main.asset` 与 `Skill_ReverseTurn.asset`），作为平衡实验保留。复核最初把干扰型的施法次数当成持续反转，这是误读：dev-03 普通场干扰型为 13 次黑幕 + 1 次反转，dev-02 困难场为 10 次黑幕 + 2 次反转。DNF 的候选成因是高频黑幕带来的全员感知受损（每次约 13 s）与反转适应叠加，需用同一 seed 重跑并分别关闭黑幕感知受损／反转来归因。
+- S1：定身不再取消 AI 的搓招或已接受的施法：`CanContinueCast` 去掉定身条件，`Tick` 的定身分支改为只阻止新决策（进行中的搓招与待确认施法照常完成，与玩家一致）。
+- S2：`SkillExecutor.CastSlotServer` 对 AI 在入口先做可见全局效果复核并直接拒绝（不扣冷却、不播前摇反馈）；确认时取消保留为兜底。
+- S3：`AISkillCaster.Aim` 只在瞄准进行中（仍有发射次数且有可达目标）阻塞决策。原先"末段 5 s 阻塞"与 10 s 施法锁叠加后整个 buff 期间都无法施法；现在施法锁结束后即可决策，buff 期间的搓招按键会像玩家一样发射蓄力掌。
+- S4：`Decide` 的时间预算加入按键失误率加权的重试开销。
+- S5：新增 `AI.Skill.Input` 嵌套剖析标记，`AISkillCaster.InputTicksThisFrame` 单独累计输入耗时；`AISkillRaceHarness` 的 `skill-perf.csv` 新增 `ai_skill_input_ms` 列，`summary.json` 新增 `SkillInputMeanMs`／`SkillInputMaxMs`／`SkillInputShareOfPeaks`（>0.2 ms 帧中输入占比）。`SkillExecutor` 的 Verbose 日志加 `NetDebug.EnableVerboseLog` 门控。性能窗口需重测。
+- S6／S7：design §5.4 恢复用户措辞；§5.8 以历史候选名保留旧名字表。
+- S8：丢弃工作区残留（两个 FishNet `.meta` 删除、`PackageManagerSettings.asset`、Substance `Temp.meta`）。
+- 2026-10-04 用户要求：`Buddah.prefab` 的 `ObsessionFigure.initialValue` 由 1000 改为 0（玩家与 AI 共享规则）。开局不再有高风险期；本记录中的三场自然赛与性能窗口都在旧值下进行，未重跑。

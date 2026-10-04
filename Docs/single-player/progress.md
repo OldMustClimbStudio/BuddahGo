@@ -1,4 +1,4 @@
-**2026-10-03 AI 技能人格已实现，用户试玩待确认：** 用户已授权完整实现最新人格规格，覆盖旧“仅文档、等待开始”的限制；沿用 f0f123b 之后的实现分支 / PR #59。用户确认单机固定玩家 + 五种人格，固定三槽与 Rematch 配装。当前功能、建议默认值与真实验证边界见 [实施记录](ai-skill-implementation-2026-10-03.md)；规格见 [AI 技能](ai-skills.md)、[五人格](ai-personalities.md) 与 [设计复核](ai-skill-design-review-2026-10-03.md)。已验收驾驶不重新调参，历史测试不替代本次技能验收。
+**2026-10-03 AI 技能人格已实现，用户试玩待确认：** 用户已授权完整实现最新人格规格，覆盖旧“仅文档、等待开始”的限制；沿用 f0f123b 之后的实现分支 / PR #59。用户确认单机固定玩家 + 五种人格，固定三槽与 Rematch 配装。 **复核后修正（同日）：** 固定六人维持用户暂定；复活清理限定到服务器 AI；反转执念增益 0→200 作为平衡实验（DNF 主因未定，干扰型的施法主要是黑幕）；AI 施法入口先拒绝可见全局重叠；定身只阻止新决策、不取消搓招或已接受施法；掌形仅瞄准进行中阻塞决策；harness 增加输入／决策耗时拆分；详见 [实现复核](ai-skill-implementation-review-2026-10-03.md)。修正后未重跑测试、自然赛或构建，等待用户测试。当前功能、建议默认值与真实验证边界见 [实施记录](ai-skill-implementation-2026-10-03.md)；规格见 [AI 技能](ai-skills.md)、[五人格](ai-personalities.md) 与 [设计复核](ai-skill-design-review-2026-10-03.md)。已验收驾驶不重新调参，历史测试不替代本次技能验收。
 
 **2026-10-03 一致性清理（工作区，未提交，未运行新的比赛或联机测试）：**
 - `IMatchRules.IsSolo` 新增，15 处以 `ReturnTarget == MainMenuHome` / `is SoloMatchRules` 代判“是否 Solo”的写法改用它；`ResultDecisionManager` 保留其真正的 ReturnTarget 判断。

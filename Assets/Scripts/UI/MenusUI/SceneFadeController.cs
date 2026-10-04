@@ -53,6 +53,21 @@ namespace SteamMultiplayer.UI
             controller.ReleaseHeldBlackScreenInternal();
         }
 
+        public static void ResetSessionTransition()
+        {
+            _playFadeOutOnNextSceneLoad = false;
+            _holdBlackUntilReleased = false;
+            if (_instance == null) return;
+            _instance.StopAllCoroutines();
+            if (_instance.crossFadeAnimator != null) _instance.crossFadeAnimator.enabled = false;
+            if (_instance.crossFadeCanvasGroup != null)
+            {
+                _instance.crossFadeCanvasGroup.alpha = 0f;
+                _instance.crossFadeCanvasGroup.blocksRaycasts = false;
+            }
+            if (_instance.crossFadeGraphic != null) _instance.crossFadeGraphic.gameObject.SetActive(false);
+        }
+
         public static void RegisterPersistentFadeCarrier(Animator animator, CanvasGroup canvasGroup = null)
         {
             if (animator == null && canvasGroup == null)
@@ -166,6 +181,7 @@ namespace SteamMultiplayer.UI
                 return;
             }
 
+            crossFadeAnimator.enabled = true;
             crossFadeAnimator.gameObject.SetActive(true);
             crossFadeAnimator.Rebind();
             crossFadeAnimator.Update(0f);
@@ -292,6 +308,10 @@ namespace SteamMultiplayer.UI
 
         private static int ScoreAnimator(Animator animator)
         {
+            // Scene scans include decorative and inactive Animators which cannot answer HasState.
+            if (!CanQueryStates(animator))
+                return 0;
+
             int score = 0;
             string objectName = animator.gameObject.name;
             string controllerName = animator.runtimeAnimatorController != null
@@ -326,13 +346,18 @@ namespace SteamMultiplayer.UI
 
         private static bool HasAnyFadeState(Animator animator)
         {
-            if (animator == null)
+            if (!CanQueryStates(animator))
                 return false;
 
             return animator.HasState(0, Animator.StringToHash(DefaultFadeInState))
                 || animator.HasState(0, Animator.StringToHash(AlternateFadeInState))
                 || animator.HasState(0, Animator.StringToHash(DefaultFadeOutState))
                 || animator.HasState(0, Animator.StringToHash(AlternateFadeOutState));
+        }
+
+        private static bool CanQueryStates(Animator animator)
+        {
+            return animator != null && animator.runtimeAnimatorController != null && animator.isInitialized;
         }
     }
 }

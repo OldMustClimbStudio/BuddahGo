@@ -1,0 +1,24 @@
+{
+    "success": true,
+    "productMatchFinished": true,
+    "reason": "authoritative-three-lap-results",
+    "plannedLaps": 3,
+    "completedLaps": 3,
+    "samples": 2775,
+    "collisions": 281,
+    "discontinuities": 0,
+    "runtimeErrors": 0,
+    "aiCount": 5,
+    "perfFrames": 1405,
+    "perfTicks": 540,
+    "lapSeconds": 91.35,
+    "totalSeconds": 277.3,
+    "averageLapSeconds": 92.43333333333334,
+    "perfMedianMs": 6.283100128173828,
+    "perfP95Ms": 7.9095001220703129,
+    "laps": [
+        91.35,
+        91.71666666666667,
+        94.23333333333335
+    ]
+}

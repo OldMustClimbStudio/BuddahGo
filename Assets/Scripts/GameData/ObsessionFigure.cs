@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using System;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
@@ -111,7 +112,7 @@ public class ObsessionFigure : NetworkBehaviour
         for (int i = 0; i < rankings.Count; i++)
         {
             RankEntry entry = rankings[i];
-            if (entry.ClientId == OwnerId)
+            if (RacerAuthority.Matches(this, entry.RacerId))
             {
                 selfPercent = entry.FinalCompletionPercent;
                 foundSelf = true;

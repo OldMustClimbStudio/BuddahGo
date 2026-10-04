@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30eb7c14997847be903c0c2453a13a24, type: 3}
+  m_Name: Normal
+  m_EditorClassIdentifier: 
+  LookaheadSeconds: 1
+  SpeedMargin: 2
+  LateralDamping: 0.986
+  AttitudeDeadbandDegrees: 1.5
+  AttitudeHysteresisDegrees: 0.5
+  PredictionGain: 0.3
+  ThrustPaceFactor: 0.9
+  PlanningBrakeAcceleration: 10
+  RolloutSeconds: 2
+  RolloutHoldSeconds: 0.6
+  ThrustReplanTicks: 2
+  RolloutSubsteps: 2
+  UseWallCorridor: 1
+  WallMargin: 1.5
+  RolloutWallWeight: 0.2
+  RolloutCenterWeight: 0.02
+  RolloutTail: 1
+  NoiseSeed: 0
+  SpeedNoise: 4
+  LateralOffsetNoise: 2.5
+  AngleNoiseDegrees: 5
+  WobbleTicks: 30
+  MistakeProbability: 0.1
+  ReactionJitterTicks: 3
+  RolloutSampleTicks: 6
+  RolloutLateralWeight: 1
+  RolloutLateralVelocityWeight: 0.7
+  RolloutOverspeedWeight: 0
+  RolloutUnderspeedWeight: 1
+  RolloutProgressWeight: 1
+  RolloutTerminalWeight: 1
+  SwitchPenaltyPerDegree: 0.3
+  MaxThrustAngleDegrees: 170
+  TargetSpeed: 74
+  LateralOffset: 0
+  ReactionTicks: 3

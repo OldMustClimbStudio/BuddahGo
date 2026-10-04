@@ -17,6 +17,7 @@ namespace FishyFacepunch
         #region Public.
         [System.NonSerialized]
         public ulong LocalUserSteamID;
+        public bool IsSteamAvailable => !_steamInitializationFailed && SteamClient.IsValid;
         #endregion
 
         #region Serialized.
@@ -67,6 +68,10 @@ namespace FishyFacepunch
         /// </summary>
         private int[] _mtus;
         /// <summary>
+        /// Startup failure is latched; online play requires restarting the game.
+        /// </summary>
+        private bool _steamInitializationFailed = false;
+        /// <summary>
         /// Client for the transport.
         /// </summary>
         private Client.ClientSocket _client = new Client.ClientSocket();
@@ -95,12 +100,28 @@ namespace FishyFacepunch
             CreateChannelData();
 
 #if !UNITY_SERVER
-            if (!SteamClient.IsValid) //Steam might have already been initialized by something else
+            if (!_steamInitializationFailed)
             {
-                SteamClient.Init(_steamAppID, true);
-            }
+                // Steam may already belong to another component. Only unwind our own attempt.
+                bool initializeSteam = !SteamClient.IsValid;
+                try
+                {
+                    if (initializeSteam)
+                        SteamClient.Init(_steamAppID, true);
 
-            SteamNetworking.AllowP2PPacketRelay(true);
+                    SteamNetworking.AllowP2PPacketRelay(true);
+                }
+                catch (Exception exception)
+                {
+                    // Facepunch reports SteamApi_Init failures (including NoSteamClient)
+                    // as System.Exception. Keep this boundary limited to Steam startup.
+                    _steamInitializationFailed = true;
+                    Debug.LogWarning($"FishyFacepunch Steam initialization failed. Online play is unavailable; " +
+                        $"start Steam and restart the game. Other transports remain available. ({exception.GetType().Name})");
+                    if (initializeSteam && SteamClient.IsValid)
+                        SteamClient.Shutdown();
+                }
+            }
 #endif
             _clientHost.Initialize(this);
             _client.Initialize(this);
@@ -395,9 +416,9 @@ namespace FishyFacepunch
         {
             bool clientRunning = false;
 #if !UNITY_SERVER
-            if (!SteamClient.IsValid)
+            if (_steamInitializationFailed || !SteamClient.IsValid)
             {
-                Debug.LogError("Steam Facepunch not initialized. Server could not be started.");
+                Debug.LogError("Steam Facepunch is unavailable. Server could not be started. Start Steam and restart the game.");
                 return false;
             }
             //if (_client.GetLocalConnectionState() != LocalConnectionState.Stopped)
@@ -445,9 +466,9 @@ namespace FishyFacepunch
         /// <returns>True if there were no blocks. A true response does not promise a socket will or has connected.</returns>
         private bool StartClient(string address)
         {
-            if (!SteamClient.IsValid)
+            if (_steamInitializationFailed || !SteamClient.IsValid)
             {
-                Debug.LogError("Steam Facepunch not initialized. Client could not be started.");
+                Debug.LogError("Steam Facepunch is unavailable. Client could not be started. Start Steam and restart the game.");
                 return false;
             }
 

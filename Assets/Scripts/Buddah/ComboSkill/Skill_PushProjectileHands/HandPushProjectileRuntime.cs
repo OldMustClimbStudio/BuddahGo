@@ -210,7 +210,8 @@ public class HandPushProjectileRuntime : MonoBehaviour
         _hitVictims.Add(victimNO);
 
         // Phase 4b V3 — single dispatch entry (router internalizes V2 / PushTargetBox / Legacy fallback).
-        BuddahPredictionRouter.RouteImpulse(victimNO, _impulse, _hitTurnTorqueImpulse, BuddahPredictedImpulseSourceType.Projectile, _attacker);
+        bool routed = BuddahPredictionRouter.RouteImpulse(victimNO, _impulse, _hitTurnTorqueImpulse, BuddahPredictedImpulseSourceType.Projectile, _attacker);
+        BuddahGo.Match.SkillCombatEvents.Record("hit", "projectile", _attacker, victimNO, transform.position, routed);
     }
 
     private bool TryStopAtSolidWorld(float moveDistance)

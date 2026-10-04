@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using System;
 using System.Collections.Generic;
 using FishNet.Transporting;
@@ -66,7 +67,7 @@ namespace SteamMultiplayer.Network
     ///   - Create / join / leave Steam lobbies
     ///   - Store lobby metadata (name, app version, host SteamId)
     ///   - Refresh public lobby list with version + slot filtering
-    ///   - Automatically trigger StartHost / StartClient on GameNetworkManager
+    ///   - Automatically start the online host / client through SessionControl
     ///   - Expose clean events for UI and higher-level systems
     ///
     /// Does NOT handle:
@@ -315,7 +316,7 @@ namespace SteamMultiplayer.Network
 
             // Stop networking
             if (GameNetworkManager.Instance != null)
-                GameNetworkManager.Instance.StopConnection();
+                SessionControl.Current?.RequestStopSession();
 
             OnLobbyLeft?.Invoke();
             SetFlowState(LobbyFlowState.Idle, "Left lobby.");
@@ -427,7 +428,7 @@ namespace SteamMultiplayer.Network
             if (GameNetworkManager.Instance != null)
             {
                 SetFlowState(LobbyFlowState.StartingHost, "Starting host...");
-                GameNetworkManager.Instance.StartHost();
+                SessionControl.Current?.StartOnlineHost();
             }
             else
             {
@@ -489,7 +490,7 @@ namespace SteamMultiplayer.Network
                 if (GameNetworkManager.Instance != null)
                 {
                     SetFlowState(LobbyFlowState.ConnectingToHost, $"Connecting to host {hostSteamId}...");
-                    GameNetworkManager.Instance.StartClient(hostSteamId);
+                    SessionControl.Current?.StartOnlineClient(hostSteamId);
                 }
                 else
                 {
@@ -596,7 +597,7 @@ namespace SteamMultiplayer.Network
         /// CURRENT LIMITATION: No host migration. All clients return to menu.
         /// TO UPGRADE: Assign a new owner with lobby.Owner = newOwner; and
         /// update the KEY_HOST_STEAM_ID metadata, then have the new host call
-        /// GameNetworkManager.Instance.StartHost().
+        /// SessionControl.Current.StartOnlineHost().
         /// </summary>
         private void HandlePotentialHostLeft(Lobby lobby, Friend friend)
         {
@@ -617,7 +618,7 @@ namespace SteamMultiplayer.Network
 
             // Stop networking — let UI / GameFlowManager handle scene transition
             if (GameNetworkManager.Instance != null)
-                GameNetworkManager.Instance.StopConnection();
+                SessionControl.Current?.RequestStopSession();
 
             OnHostLeft?.Invoke();   // UI should navigate back to main menu on this event
             OnLobbyLeft?.Invoke();

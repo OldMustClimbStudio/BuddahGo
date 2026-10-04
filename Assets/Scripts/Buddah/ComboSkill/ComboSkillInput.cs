@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BuddahGo.Match;
 using FishNet.Object;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
@@ -56,7 +57,7 @@ public class ComboSkillInput : NetworkBehaviour
     private InputAction _handPushAction;
 
     private readonly List<Token> _buffer = new();
-    private float _lastInputTime = -999f;
+    private double _lastInputTime = -999d;
 
     // Retained for serialized compatibility; gameplay HUD uses OnComboProgress.
     [SerializeField, HideInInspector] private bool debugHud;
@@ -127,7 +128,25 @@ public class ComboSkillInput : NetworkBehaviour
         if (token == null)
             return;
 
-        PushToken(token.Value);
+        PushToken(token.Value, Time.time);
+    }
+
+    // A server AI presses the same keys into the same recognizer. Its clock is the server tick.
+    // Hand pushes are injected alongside this call, just as the player's two input listeners run together.
+    public bool InjectServerKey(Token token, double tickTime)
+    {
+        if (!RacerAuthority.IsServerAI(this) || IsRaceGameplayBlocked()) return false;
+        PushToken(token, tickTime);
+        return true;
+    }
+
+    public float StepWindowSeconds => stepWindowSeconds;
+
+    public void ClearCombo()
+    {
+        _buffer.Clear();
+        _lastInputTime = -999d;
+        RaiseComboProgressEvents();
     }
 
     private bool IsRaceGameplayBlocked()
@@ -144,13 +163,11 @@ public class ComboSkillInput : NetworkBehaviour
             stepWindowSeconds = Mathf.Max(MinimumStepWindowSeconds, configuredStepWindow);
     }
 
-    private void PushToken(Token token)
+    private void PushToken(Token token, double now)
     {
-        float now = Time.time;
-
         if (now - _lastInputTime > stepWindowSeconds)
         {
-            GameLog.Verbose($"[Combo] window expired ({now - _lastInputTime:0.00}s), clearing buffer");
+            if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Combo] window expired ({now - _lastInputTime:0.00}s), clearing buffer");
             _buffer.Clear();
         }
 
@@ -161,7 +178,7 @@ public class ComboSkillInput : NetworkBehaviour
 
         RaiseComboProgressEvents();
 
-        GameLog.Verbose($"[Combo] +{token} | buffer = {string.Join(",", _buffer)}");
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Combo] +{token} | buffer = {string.Join(",", _buffer)}");
 
         ComboBinding matched = FindExactMatchOnSuffix(_buffer);
         if (matched != null)
@@ -174,7 +191,7 @@ public class ComboSkillInput : NetworkBehaviour
 
         if (!CouldBePrefixOfAnyCombo(_buffer))
         {
-            GameLog.Verbose($"[Combo] dead-end buffer, clearing: {string.Join(",", _buffer)}");
+            if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Combo] dead-end buffer, clearing: {string.Join(",", _buffer)}");
             _buffer.Clear();
             RaiseComboProgressEvents();
         }

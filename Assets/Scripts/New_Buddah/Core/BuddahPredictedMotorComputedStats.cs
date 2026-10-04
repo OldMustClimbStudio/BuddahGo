@@ -1,5 +1,6 @@
 namespace NewBuddah.PredictionV2.Core
 {
+    [System.Serializable]
     public struct BuddahPredictedMotorComputedStats
     {
         public float FinalForwardForce;

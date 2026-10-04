@@ -1,10 +1,11 @@
+using BuddahGo.Match;
 using FishNet.Connection;
 using Steamworks;
 using Steamworks.Data;
 
 public static class PlayerIdentity
 {
-    public static string FallbackName(int clientId) => $"Player {clientId}";
+    public static string FallbackName(int clientId) => MatchRules.Current.DefaultPlayerName ?? $"Player {clientId}";
 
     public static string GetSteamIdForConnection(FishNet.Transporting.Transport transport, NetworkConnection connection)
     {
@@ -32,6 +33,9 @@ public static class PlayerIdentity
         }
 
         if (SteamClient.IsValid && SteamClient.SteamId.Value.ToString() == steamId)
+            return SteamClient.Name;
+
+        if (MatchRules.Current.DefaultPlayerName != null && SteamClient.IsValid)
             return SteamClient.Name;
 
         return FallbackName(clientId);

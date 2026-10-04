@@ -1,4 +1,5 @@
 using FishNet.Object;
+using BuddahGo.Match;
 using FishNet.Connection;
 using FishNet.Object.Prediction;
 using FishNet.Transporting;
@@ -23,8 +24,24 @@ namespace NewBuddah.PredictionV2.Core
 {
     public partial class BuddahPredictedMotor
     {
+        public void ResetActiveSkillModifiers()
+        {
+            if ((!IsServerInitialized && !IsOwner) || TimeManager == null || config == null) return;
+            _modifierState.RootUntilTick = 0;
+            _modifierState.AccelUntilTick = 0;
+            _modifierState.AccelExtraForwardForce = _modifierState.AccelExtraMaxSpeed = 0f;
+            _modifierState.PostRootAccelUntilTick = 0;
+            _modifierState.PostRootAccelExtraForwardForce = _modifierState.PostRootAccelExtraMaxSpeed = 0f;
+            _modifierState.ScaleUntilTick = 0;
+            _modifierState.ScaleMultiplier = _modifierState.ScaleMassMultiplier = _modifierState.ScaleForwardForceMultiplier = 1f;
+            _modifierState.InvertTurnUntilTick = 0;
+            _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, TimeManager.LocalTick);
+            SyncModifierDebugState(TimeManager.LocalTick);
+        }
+
         public void SetPredictionIntroControlActive(bool active)
         {
+            if (active && !_introControlActive) PresentationRevision++;
             _introControlActive = active;
             if (!active)
                 RefreshLaunchState(TimeManager != null ? TimeManager.LocalTick : 0u);
@@ -38,6 +55,7 @@ namespace NewBuddah.PredictionV2.Core
 
         public void SetPredictionExternalKinematicControlActive(bool active)
         {
+            if (active != _externalKinematicControlActive) PresentationRevision++;
             _externalKinematicControlActive = active;
 
             if (active)
@@ -99,7 +117,7 @@ namespace NewBuddah.PredictionV2.Core
                 rebaseTrails);
 
             bool queuedOnServer = TryQueueTeleportEvent(eventData);
-            QueueTeleportEventTargetRpc(
+            if (Owner.IsValid) QueueTeleportEventTargetRpc(
                 Owner,
                 eventData.EventId,
                 eventData.EventTick,
@@ -213,7 +231,7 @@ namespace NewBuddah.PredictionV2.Core
                 enableDebugLogs);
 
             bool queuedOnServer = TryQueueLaunchHandoffEvent(eventData);
-            QueueLaunchHandoffTargetRpc(
+            if (Owner.IsValid) QueueLaunchHandoffTargetRpc(
                 Owner,
                 eventData.EventId,
                 clientStartTick,
@@ -488,6 +506,7 @@ namespace NewBuddah.PredictionV2.Core
             BuddahPredictedTeleportEventData eventData = _pendingTeleportEvent;
             _hasPendingTeleportEvent = false;
             _lastConsumedTeleportEventId = eventData.EventId;
+            PresentationRevision++;
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
             _realScratch.TeleportRan = true;
             _realScratch.ShadowLastConsumedTeleportId = eventData.EventId;
@@ -565,8 +584,8 @@ namespace NewBuddah.PredictionV2.Core
                     bootstrap.DebugState.progressSnappedByTeleport = true;
             }
 
-            if (_skillExecutor != null && IsOwner)
-                _skillExecutor.ResetActiveSkillEffectsForOwner();
+            if (_skillExecutor != null && (IsOwner || RacerAuthority.IsServerAI(this)))
+                _skillExecutor.ResetActiveSkillEffectsForOwner(eventData.ResetModifiers);
 
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
             SyncModifierDebugState(currentTick);
@@ -574,6 +593,33 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap?.LogVerbose(
                 $"teleport consumed id={eventData.EventId} source={eventData.SourceType} tick={currentTick} pos={rb.position} " +
                 $"yaw={rb.rotation.eulerAngles.y:0.0} progress={eventData.TargetProgress01:0.000}");
+        }
+
+        // Solo GO is queued and consumed before its first actual Unity physics step.
+        // RunInputs still owns input, modifiers, skills and subsequent motor ticks.
+        internal bool ConsumeSoloLaunchBeforePhysics()
+        {
+            if (!Time.inFixedTimeStep || !ShouldRunPrediction() || !BuddahGo.Match.RacerAuthority.HasLocalControl(NetworkObject) || !IsServerInitialized
+                || !BuddahGo.Match.MatchRules.Current.IsSolo
+                || !_hasPendingLaunchHandoffEvent || TimeManager == null)
+                return false;
+            uint tick = TimeManager.LocalTick;
+            uint before = _lastConsumedLaunchHandoffEventId;
+            ConsumePendingLaunchHandoffEvent(tick);
+            if (_lastConsumedLaunchHandoffEventId == before)
+                return false;
+            // Consume resets the body with Sleep/Wake. The normal motor tick restores
+            // inherited velocity later in RunInputs; this pre-physics path must restore
+            // that same consumed snapshot now, before the first Unity integration.
+            SetPredictionVelocitiesSafely(_handoffState.SnapshotVelocity, _handoffState.SnapshotAngularVelocity);
+            _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, tick);
+            // The handoff cannot bypass a live movement restriction before the next motor tick.
+            if (_computedStats.IsRooted || !(_movementGateBridge.IsMovementAllowed(gameObject)
+                || _computedStats.IsRoomBypassActive))
+            {
+                SetPredictionVelocitiesSafely(Vector3.zero, Vector3.zero);
+            }
+            return !_hasPendingLaunchHandoffEvent;
         }
 
         private void ConsumePendingLaunchHandoffEvent(uint currentTick)

@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using FishNet.Connection;
 using FishNet.Object;
 using NewBuddah.PredictionV2.Integration;
@@ -426,7 +427,7 @@ public class BuddahMovement : NetworkBehaviour
     {
         SyncPredictionHandoffStateFromBridge();
         bool shouldEnableOwnerInput = ShouldEnableOwnerInputNow(out string inputGateReason);
-        bool allowLocalControl = IsOwner;
+        bool allowLocalControl = RacerAuthority.HasLocalControl(NetworkObject);
         if (rb != null)
         {
             bool useKinematic = !allowLocalControl || _externalKinematicControlActive;

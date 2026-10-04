@@ -72,6 +72,18 @@ public class IntroSequenceManager : NetworkBehaviour
         ResetTimelineToIntroStart();
     }
 
+    // The Solo body calls at the beginning of a physics step using its fixed clock
+    // established at visual start. The normal server state and idempotent GO consumer
+    // remain the authority; this only avoids the loopback transport/frame delay.
+    internal void TryIssueSoloGoBeforePhysics(int sequenceId, double stepStartNetworkTime)
+    {
+        if (!Time.inFixedTimeStep || !IsServerInitialized || sequenceId != _activeSequenceId
+            || !BuddahGo.Match.MatchRules.Current.IsSolo
+            || stepStartNetworkTime < _serverAssignedGoNetworkTime)
+            return;
+        TriggerGoAndHandoff();
+    }
+
     private void Update()
     {
         TryResolveRoomStateManager();
@@ -130,7 +142,7 @@ public class IntroSequenceManager : NetworkBehaviour
         }
 
         List<IntroSlot> candidateSlots = new List<IntroSlot>(layout.slots);
-        if (randomizeSlots)
+        if (randomizeSlots && !BuddahGo.Match.MatchRules.Current.IsSolo)
             ShuffleSlots(candidateSlots, deterministicShuffleSeed);
 
         int count = Mathf.Min(bodies.Length, candidateSlots.Count);
@@ -201,6 +213,8 @@ public class IntroSequenceManager : NetworkBehaviour
         double goIssuedNow = IntroTimeUtility.GetNetworkTimeSeconds();
         roomStateManager?.MarkAuthoritativeGoIssuedServer();
         GameLog.Verbose($"[IntroGo][Server] Authoritative go issued seq={_activeSequenceId} goIssuedNow={goIssuedNow:0.000} scheduledGoTime={_serverAssignedGoNetworkTime:0.000}");
+        if (BuddahGo.Match.MatchRules.Current.IsSolo)
+            ApplyGoLocally(_activeSequenceId, _serverAssignedGoNetworkTime, goIssuedNow);
         NotifyGoObserversRpc(_activeSequenceId, _serverAssignedGoNetworkTime, goIssuedNow);
         _authorityState = IntroAuthorityState.GoBroadcast;
     }
@@ -394,6 +408,11 @@ public class IntroSequenceManager : NetworkBehaviour
     [ObserversRpc(BufferLast = true)]
     private void NotifyGoObserversRpc(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)
     {
+        ApplyGoLocally(sequenceId, scheduledGoNetworkTime, goIssuedNetworkTime);
+    }
+
+    private void ApplyGoLocally(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)
+    {
         if (sequenceId < _activeSequenceId)
         {
             GameLog.Verbose($"[SequenceGuard][Client] Ignored stale authoritative go seq={sequenceId} active={_activeSequenceId}");
@@ -491,8 +510,10 @@ public class IntroSequenceManager : NetworkBehaviour
 
     private static int CompareBodiesForDeterminism(RaceBodyIntroStateController a, RaceBodyIntroStateController b)
     {
-        int aOwner = a != null ? a.OwnerId : int.MaxValue;
-        int bOwner = b != null ? b.OwnerId : int.MaxValue;
+        var ai = a != null ? a.GetComponent<BuddahGo.Match.RacerIdentity>() : null;
+        var bi = b != null ? b.GetComponent<BuddahGo.Match.RacerIdentity>() : null;
+        int aOwner = ai != null && ai.IsAssigned ? ai.Id.Value : a != null ? a.OwnerId : int.MaxValue;
+        int bOwner = bi != null && bi.IsAssigned ? bi.Id.Value : b != null ? b.OwnerId : int.MaxValue;
         int compare = aOwner.CompareTo(bOwner);
         if (compare != 0)
             return compare;

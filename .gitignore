@@ -45,22 +45,9 @@ Assets/Plugins/Feel/NiceVibrations/Demo.meta
 Assets/Plugins/Feel/NiceVibrations/HapticSamples/
 Assets/Plugins/Feel/NiceVibrations/HapticSamples.meta
 
-# FishNet demos: keep only the audited subset used by this project.
-Assets/FishNet/Demos/*
-!Assets/FishNet/Demos/FishNet.Demos.asmdef
-!Assets/FishNet/Demos/FishNet.Demos.asmdef.meta
-!Assets/FishNet/Demos/Prefabs/
-!Assets/FishNet/Demos/Prefabs.meta
-!Assets/FishNet/Demos/Scripts/
-!Assets/FishNet/Demos/Scripts.meta
-Assets/FishNet/Demos/Prefabs/*
-!Assets/FishNet/Demos/Prefabs/NetworkManager.prefab
-!Assets/FishNet/Demos/Prefabs/NetworkManager.prefab.meta
-!Assets/FishNet/Demos/Prefabs/NetworkHudCanvas.prefab
-!Assets/FishNet/Demos/Prefabs/NetworkHudCanvas.prefab.meta
-Assets/FishNet/Demos/Scripts/*
-!Assets/FishNet/Demos/Scripts/NetworkHudCanvases.cs
-!Assets/FishNet/Demos/Scripts/NetworkHudCanvases.cs.meta
+# FishNet demos were removed in 71e63d5; ignore any local reimport.
+Assets/FishNet/Demos/
+Assets/FishNet/Demos.meta
 
 Assets/TutorialInfo/
 Assets/TutorialInfo.meta
@@ -85,3 +72,7 @@ agent-exchange/console/raw/_*.py
 # Local code-count reports and complete raw playtest captures.
 /.VSCodeCounter/
 /agent-exchange/console/raw/
+
+# Substance plugin scratch folder that Unity regenerates (and its meta)
+Assets/Adobe/Substance3DForUnity/Runtime/Plugins/Temp/
+Assets/Adobe/Substance3DForUnity/Runtime/Plugins/Temp.meta

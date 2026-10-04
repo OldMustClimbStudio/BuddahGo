@@ -1,0 +1,590 @@
+#if BUDDAH_PRIVATE_SOLO_ACCEPTANCE && !UNITY_EDITOR
+// Opt-in Solo validation operator. Instrumented Player only; never enable in a normal release.
+// Strict14: 10 main samples each use Rematch. Four additional full races return via results.
+// Draft10: after main 3/6/9 Rematch, exit SELECTION via Esc; main 10 returns via results.
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using BuddahGo.Match;
+using FishNet.Managing;
+using FishNet.Object;
+using SteamMultiplayer.Network;
+using SteamMultiplayer.Network.Results;
+using SteamMultiplayer.UI;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.Profiling;
+using UnityEngine.SceneManagement;
+using UnityEngine.Splines;
+using Unity.Mathematics;
+using UnityEngine.UI;
+using Object = UnityEngine.Object;
+
+internal sealed class SoloContinuousAcceptanceRuntime : MonoBehaviour
+{
+    private const int MainSampleTarget = 10;
+    private const double RaceTimeout = 1500, TotalTimeout = 25200; // 25 min per race; 7 h overall.
+    private static string plan, path, state, failure;
+    private static SoloBenchmarkFrames benchmark;
+    private static SoloCrossingProbe crossingProbe;
+    private static int benchmarkSteering;
+    private static EscapeReceipt escapeReceipt;
+    private static bool IsEscapeProbe => plan == "escapes3";
+    [Serializable] private sealed class EscapeReceipt
+    {
+        public string stage, confirm_button;
+        public double escape_pressed_seconds, dialog_seconds, confirm_seconds, home_seconds, reopened_seconds;
+        public bool input_blocked,dialog_visible,home_clean,client_started,server_started,clock_cleared,timing_cleared,reopened;
+        public int buddahs,reporters,error_count;
+    }
+    private static void OpenProbeEscape(string phase)
+    {
+        observingRace = false;
+        escapeReceipt = new EscapeReceipt {stage=phase,escape_pressed_seconds=Time.realtimeSinceStartupAsDouble};
+        keys = new KeyboardState(Key.Escape); Move("probe-quit",10);
+    }
+    private static bool active, inputChanged, isExtra, exitSelection, stopQueued, observingRace;
+    private static int mainIndex, raceSerial, completedMain, completedExtra, rematches, homes, errors, lastLap;
+    private static double totalDeadline, stageDeadline, raceDeadline, nextSample, nextHeartbeat;
+    private static double goObserved = double.NaN, goLower = double.NaN, previousClock = double.NaN;
+    private static double lastClock, maxClockObservationGap, finishObserved, finishServer, resultsReadyAt = -1;
+    private static double[] finishedLaps;
+    private static double finishedTotal;
+    private static string readyScreenshot, heldScreenshot;
+    private static int heldScreenshotFrame;
+    private static Keyboard keyboard;
+    private static KeyboardState keys;
+    private static InputSettings.BackgroundBehavior background;
+    private static readonly List<LapObservation> lapObservations = new List<LapObservation>();
+    private static readonly Queue<FailureLog> pendingLogs = new Queue<FailureLog>();
+    private static readonly object LogLock = new object();
+
+    private static bool previousRunInBackground;
+    private static bool requestedMainMenu;
+
+    // Define AND explicit command-line arguments are required. No effect in normal builds/editor.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void Bootstrap()
+    {
+        var args = Environment.GetCommandLineArgs();
+        int modeArg = Array.IndexOf(args, "--solo-acceptance");
+        if (modeArg < 0) return;
+        int outputArg = Array.IndexOf(args, "--solo-output");
+        if (modeArg+1 >= args.Length || outputArg < 0 || outputArg+1 >= args.Length || !Path.IsPathRooted(args[outputArg+1]))
+        {
+            Debug.LogError("Private solo acceptance requires --solo-acceptance <strict14|benchmark3|escapes3|draft10-selection-exit> --solo-output <absolute private directory>");
+            Application.Quit(2); return;
+        }
+        plan = args[modeArg+1];
+        if (plan != "precision3" && plan != "strict14" && plan != "draft10-selection-exit" && plan != "benchmark3" && plan != "escapes3")
+        {
+            Debug.LogError("Unknown private solo acceptance sequence"); Application.Quit(2); return;
+        }
+        try
+        {
+            var directory = Path.GetFullPath(args[outputArg+1]); Directory.CreateDirectory(directory);
+            path = Path.Combine(directory, "solo-player-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N").Substring(0,8) + ".jsonl");
+            File.WriteAllText(path, "");
+            if (plan == "benchmark3") benchmark = new SoloBenchmarkFrames(directory);
+            previousRunInBackground = Application.runInBackground;
+            Application.runInBackground = true;
+            Application.logMessageReceivedThreaded += Log;
+            var host = new GameObject("PrivateSoloAcceptanceOperator");
+            DontDestroyOnLoad(host);
+            host.AddComponent<SoloContinuousAcceptanceRuntime>(); // Ordinary MonoBehaviour only.
+            // First ordinary Update starts the flow, after the initial scene load has completed.
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError("Private acceptance bootstrap failed: " + exception);
+            Application.logMessageReceivedThreaded -= Log;
+            Application.runInBackground = previousRunInBackground; Application.Quit(2);
+        }
+    }
+
+    private void Update()
+    {
+        try
+        {
+            if (!active)
+            {
+                if (string.IsNullOrEmpty(plan)) return;
+                active = true; mainIndex = raceSerial = 1;
+                completedMain = completedExtra = rematches = homes = errors = 0;
+                isExtra = exitSelection = stopQueued = observingRace = false;
+                failure = null; totalDeadline = Time.realtimeSinceStartupAsDouble + TotalTimeout;
+                readyScreenshot = heldScreenshot = null; resultsReadyAt = -1;
+                background = InputSystem.settings.backgroundBehavior;
+                inputChanged = true;
+                InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+                keyboard = InputSystem.AddDevice<Keyboard>(); keyboard.MakeCurrent();
+                keys = new KeyboardState();
+                InputSystem.onBeforeUpdate += Input;
+                // Error capture was subscribed before the first scene loaded.
+                Move("initial-home", 120);
+                Event("plan", plan + "; instrumented real-input capture; extra races are never counted as main samples");
+            }
+            DrainLogs();
+            if (errors > 0 && failure == null) Fail("Error/Exception/Assert captured");
+            double now = Time.realtimeSinceStartupAsDouble;
+            if (state != "cleanup" && now >= totalDeadline) Fail("Overall 7-hour deadline exceeded");
+            if (state != "cleanup" && observingRace && now >= raceDeadline) Fail("Per-race 1500-second deadline exceeded");
+            if (now >= stageDeadline)
+            {
+                if (state == "cleanup") { Finish(false, "Cleanup timed out: " + failure); return; }
+                Fail("Stage timeout: " + state);
+            }
+            if (now >= nextHeartbeat)
+            {
+                nextHeartbeat = now + 30;
+                Event("heartbeat", "remainingStageSeconds=" + (stageDeadline-now).ToString("F1", CultureInfo.InvariantCulture));
+            }
+            ObserveGoAndLaps();
+            if((plan=="strict14" || plan=="precision3") && crossingProbe==null)
+            {
+                var racer=LocalPlayer();
+                if(racer!=null)
+                {
+                    crossingProbe=racer.gameObject.AddComponent<SoloCrossingProbe>();
+                    crossingProbe.Initialize(Path.Combine(Path.GetDirectoryName(path),"crossings.jsonl"),raceSerial,mainIndex,isExtra);
+                }
+            }
+            var selection = PropertiesSelectionManager.Instance;
+            switch (state)
+            {
+                case "initial-home":
+                    if (!requestedMainMenu)
+                    {
+                        requestedMainMenu = true;
+                        if (SceneManager.GetActiveScene().name != SceneNames.MainMenu) { SceneManager.LoadScene(SceneNames.MainMenu); return; }
+                    }
+                    if (!HomeClean()) return;
+                    Snapshot("home-initial", true); Move("start"); break;
+                case "start":
+                    var menu = Object.FindFirstObjectByType<MainMenuUI>();
+                    if (menu == null || SessionControl.Current == null) return;
+                    if (benchmark != null) benchmark.SeedSession(mainIndex);
+                    menu.ShowSoloSetup();
+                    if (!Click("StartPractice")) return;
+                    Move("selection", 120); break;
+                case "selection":
+                    if (!SelectionReady(selection)) return;
+                    if (IsEscapeProbe && escapeReceipt != null && escapeReceipt.home_clean)
+                    {
+                        escapeReceipt.reopened_seconds = now; escapeReceipt.reopened = true;
+                        escapeReceipt.error_count = errors;
+                        File.AppendAllText(Path.Combine(Path.GetDirectoryName(path),"escapes.jsonl"),JsonUtility.ToJson(escapeReceipt)+"\n");
+                        escapeReceipt = null; mainIndex++; raceSerial++;
+                        if (mainIndex > 3) { SessionControl.Current.RequestStopSession(); Move("probe-final-home",120); break; }
+                    }
+                    if (IsEscapeProbe && mainIndex == 1) { OpenProbeEscape("selection"); break; }
+                    if (exitSelection)
+                    {
+                        Snapshot("selection-after-boundary-rematch", true);
+                        keys = new KeyboardState(Key.Escape); Move("selection-quit", 10); break;
+                    }
+                    StartRaceObservations();
+                    Snapshot("selection-ready", true);
+                    var skills = selection.GetOptionsForProperty(PropertiesSelectionManager.SkillLoadoutStageKey);
+                    if (skills.Count < 3) throw new Exception("Fewer than three skill options");
+                    var skillIds = skills.Take(3).Select(x => x.OptionId).ToArray();
+                    if (benchmark != null) benchmark.Selection(skillIds, null);
+                    selection.SubmitSkillLoadoutSelection(skillIds);
+                    Move("skin", 90); break;
+                case "skin":
+                    if (selection == null || selection.CurrentStagePropertyKey != PropertiesSelectionManager.SkinStageKey) return;
+                    var skins = selection.GetOptionsForProperty(PropertiesSelectionManager.SkinStageKey);
+                    if (skins.Count == 0) throw new Exception("No skin option");
+                    if (benchmark != null) benchmark.Selection(null,skins[0].OptionId);
+                    selection.SubmitPlayerSelection(PropertiesSelectionManager.SkinStageKey, skins[0].OptionId);
+                    Move("intro", 150); break;
+                case "intro":
+                    var room = RoomStateManager.Instance;
+                    if (IsEscapeProbe && mainIndex == 2 && SceneManager.GetActiveScene().name == SceneNames.RaceMap &&
+                        Object.FindFirstObjectByType<QuitConfirmDialog>() != null && room != null && !room.IsAuthoritativeGoIssued)
+                    { OpenProbeEscape("intro"); break; }
+                    if (room == null || !room.IsGameplayMovementUnlocked || MatchServices.Clock == null) return;
+                    Snapshot("movement-unlocked", false);
+                    RequireSingleRacer(); if (benchmark != null) benchmark.DrivingStarted(); Move("driving", RaceTimeout); nextSample = 0; break;
+                case "driving":
+                    if (IsEscapeProbe && now > raceDeadline-RaceTimeout+5) { OpenProbeEscape("driving"); break; }
+                    if (benchmark != null && benchmark.DrivingTick())
+                    {
+                        observingRace=false; keys=new KeyboardState(Key.Escape); Move("benchmark-quit",10); break;
+                    }
+                    Drive(); break;
+                case "benchmark-quit":
+                    if (!LocalInputBlock.IsBlocked) return;
+                    keys=new KeyboardState();
+                    if (!Click("ConfirmQuit")) return;
+                    Move("benchmark-home",120); break;
+                case "benchmark-home":
+                    if (!HomeClean()) return;
+                    Snapshot("benchmark-home-clean",true);
+                    if (mainIndex == 3) { Finish(true,"Three measured windows and normal cleanup completed; budgets not evaluated"); return; }
+                    mainIndex++; raceSerial++; Move("start"); break;
+                case "probe-quit":
+                    if (!LocalInputBlock.IsBlocked || !ButtonReady("ConfirmQuit")) return;
+                    keys=new KeyboardState();
+                    if (escapeReceipt.dialog_seconds <= 0)
+                    {
+                        escapeReceipt.dialog_seconds=now; escapeReceipt.input_blocked=LocalInputBlock.IsBlocked;
+                        escapeReceipt.dialog_visible=ButtonReady("ConfirmQuit"); return;
+                    }
+                    if (!Click("ConfirmQuit")) return;
+                    escapeReceipt.confirm_seconds=now; escapeReceipt.confirm_button="ConfirmQuit";
+                    Move("probe-home",120); break;
+                case "probe-home":
+                    if (!HomeClean()) return;
+                    escapeReceipt.home_seconds=now; escapeReceipt.home_clean=HomeClean();
+                    var probeNetwork=Object.FindFirstObjectByType<NetworkManager>();
+                    escapeReceipt.client_started=probeNetwork.ClientManager.Started;
+                    escapeReceipt.server_started=probeNetwork.ServerManager.Started;
+                    escapeReceipt.buddahs=Count<BuddahMovement>(); escapeReceipt.reporters=Count<PlayerProgressReporter>();
+                    escapeReceipt.clock_cleared=MatchServices.Clock==null; escapeReceipt.timing_cleared=MatchServices.Timing==null;
+                    Snapshot("probe-home-clean",true); Move("start"); break;
+                case "probe-final-home":
+                    if (!HomeClean()) return;
+                    Snapshot("probe-final-home-clean",true); Finish(true,"Three real Esc stages with clean Home and reopen completed"); return;
+                case "results":
+                    bool resultReady = MatchResultPresentationCoordinator.Instance != null &&
+                        MatchResultPresentationCoordinator.Instance.CurrentStage == MatchResultPresentationStage.ResultInteractive &&
+                        ButtonReady(isExtra || (plan != "strict14" && mainIndex == MainSampleTarget) ? "ReturnHome" : "Rematch");
+                    if (!resultReady)
+                    {
+                        if (resultsReadyAt >= 0) throw new Exception("Results UI/decision became unavailable during the hold");
+                        return;
+                    }
+                    if (resultsReadyAt < 0)
+                    {
+                        resultsReadyAt = now; RequireSingleRacer(); Snapshot("results-interactive", true);
+                        Event("results-hold", raceSerial == 1 ? "35 seconds; require result UI and decision to remain available" : "2 seconds");
+                        if (raceSerial == 1) readyScreenshot = Screenshot("first-results-ready");
+                    }
+                    if (now-resultsReadyAt < (raceSerial == 1 ? 35 : 2)) return;
+                    if (raceSerial == 1)
+                    {
+                        if (!File.Exists(readyScreenshot)) return;
+                        if (heldScreenshot == null)
+                        {
+                            heldScreenshot = Screenshot("first-results-after-35s");
+                            heldScreenshotFrame = Time.frameCount;
+                            return; // CaptureScreenshot renders at end of frame; never click/transition in that frame.
+                        }
+                        if (Time.frameCount <= heldScreenshotFrame+1 || !File.Exists(heldScreenshot)) return;
+                    }
+                    RequireSingleRacer(); Snapshot("results-after-hold", true);
+                    Event("race-completed", isExtra ? "extra full race (not a main sample)" : "main sample");
+                    observingRace = false;
+                    if (isExtra)
+                    {
+                        completedExtra++; Click("ReturnHome"); Move("home", 120); break;
+                    }
+                    completedMain++;
+                    if (plan == "precision3")
+                    {
+                        if (mainIndex == 1)
+                        {
+                            if (!Click("Rematch")) throw new Exception("Precision Rematch unavailable");
+                            rematches++; mainIndex++; raceSerial++; Move("selection",120);
+                        }
+                        else
+                        {
+                            if (!Click("ReturnHome")) throw new Exception("Precision ReturnHome unavailable");
+                            Move("home",120);
+                        }
+                        break;
+                    }
+                    if (plan != "strict14" && mainIndex == MainSampleTarget)
+                    {
+                        Click("ReturnHome"); Move("home", 120); break;
+                    }
+                    Click("Rematch"); rematches++;
+                    bool boundary = mainIndex % 3 == 0 || mainIndex == MainSampleTarget;
+                    if (boundary && plan == "strict14") { isExtra = true; raceSerial++; }
+                    else if (boundary) exitSelection = true;
+                    else { mainIndex++; raceSerial++; }
+                    Move("selection", 120); break;
+                case "selection-quit":
+                    if (!LocalInputBlock.IsBlocked) return;
+                    keys = new KeyboardState();
+                    if (!Click("ConfirmQuit")) return;
+                    Event("return-route", "Rematch -> selection -> real Esc/ConfirmQuit, not results ReturnHome");
+                    Move("home", 120); break;
+                case "home":
+                    if (!HomeClean()) return;
+                    homes++; Snapshot("home-clean", true);
+                    if (plan == "precision3" && completedMain == 3)
+                    {
+                        Finish(rematches == 1 && homes == 2 && errors == 0,
+                            "Three natural races: initial, real Rematch, ReturnHome/re-entry; independently analyze precision");
+                        break;
+                    }
+                    if (completedMain == MainSampleTarget)
+                    {
+                        int expectedHomeReturns = (MainSampleTarget+2)/3;
+                        bool counts = completedExtra == (plan == "strict14" ? expectedHomeReturns : 0) &&
+                            rematches == (plan == "strict14" ? MainSampleTarget : MainSampleTarget-1) && homes == expectedHomeReturns;
+                        Finish(counts && errors == 0 && failure == null, counts ? "Selected sequence completed; inspect timing/memory evidence separately" : "Sequence counter mismatch");
+                        break;
+                    }
+                    isExtra = exitSelection = false; mainIndex++; raceSerial++;
+                    Move("start"); break;
+                case "cleanup":
+                    if (!stopQueued && SessionControl.Current != null) { SessionControl.Current.RequestStopSession(); stopQueued = true; }
+                    if (HomeClean()) { Snapshot("failure-home-clean", true); Finish(false, failure); }
+                    break;
+            }
+        }
+        catch (Exception exception)
+        {
+            if (state == "cleanup") Finish(false, "Cleanup exception: " + exception);
+            else Fail("Operator exception: " + exception);
+        }
+    }
+
+    private static void Input()
+    {
+        if (InputState.currentUpdateType == InputUpdateType.Dynamic && keyboard != null && keyboard.added)
+            {
+                if (benchmark != null) benchmark.ObserveInput(Time.frameCount,
+                    GameNetworkManager.Instance?.FishNetManager?.TimeManager?.Tick ?? 0u, benchmarkSteering);
+                InputSystem.QueueStateEvent(keyboard, keys);
+            }
+    }
+    private static bool ButtonReady(string name)
+    {
+        var go = GameObject.Find(name); var button = go != null ? go.GetComponent<Button>() : null;
+        return button != null && button.isActiveAndEnabled && button.interactable;
+    }
+    private static bool Click(string name)
+    {
+        if (!ButtonReady(name)) return false;
+        GameObject.Find(name).GetComponent<Button>().onClick.Invoke(); Event("button", name); return true;
+    }
+    private static bool SelectionReady(PropertiesSelectionManager selection) =>
+        SceneManager.GetActiveScene().name == SceneNames.PropertySelection && selection != null && selection.IsClientInitialized &&
+        selection.IsStageCountdownActive && selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkillLoadoutStageKey;
+    private static bool HomeClean()
+    {
+        var net = Object.FindFirstObjectByType<NetworkManager>(); var menu = Object.FindFirstObjectByType<MainMenuUI>();
+        return net != null && !net.ClientManager.Started && !net.ServerManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu &&
+            menu != null && menu.CurrentPanel == MainMenuUI.MenuPanel.Home && menu.HomePanel.activeInHierarchy &&
+            !LocalInputBlock.IsBlocked && MatchServices.Clock == null && MatchServices.Timing == null &&
+            Count<PlayerProgressReporter>() == 0 && Count<BuddahMovement>() == 0;
+    }
+    private static PlayerProgressReporter LocalPlayer() => Object.FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None).FirstOrDefault(x => x.IsOwner);
+    private static int Count<T>() where T : Object => Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
+    private static void RequireSingleRacer()
+    {
+        if (Count<PlayerProgressReporter>() != 1 || Count<BuddahMovement>() != 1 || LocalPlayer() == null)
+            throw new Exception("Expected exactly one real Buddah/PlayerProgressReporter and its local owner");
+    }
+    private static void StartRaceObservations()
+    {
+        observingRace = true; raceDeadline = Time.realtimeSinceStartupAsDouble + RaceTimeout;
+        goObserved = goLower = previousClock = double.NaN; maxClockObservationGap = 0; lastLap = -1;
+        finishedLaps = null; lapObservations.Clear(); keys = new KeyboardState();
+    }
+    private static void ObserveGoAndLaps()
+    {
+        if (!observingRace || MatchServices.Clock == null) return;
+        double now = MatchServices.Clock.Now;
+        if (!double.IsNaN(previousClock) && now >= previousClock) maxClockObservationGap = Math.Max(maxClockObservationGap, now-previousClock);
+        var room = RoomStateManager.Instance;
+        if (double.IsNaN(goObserved) && room != null && room.IsAuthoritativeGoIssued)
+        {
+            goLower = double.IsNaN(previousClock) ? -1 : previousClock; goObserved = now; Snapshot("GO-first-observed", false);
+        }
+        var player = LocalPlayer(); var lap = player != null ? player.GetComponent<LapProgress>() : null;
+        if (lap != null && lap.CurrentLap != lastLap)
+        {
+            var observation = new LapObservation { lap = lap.CurrentLap, lowerClock = double.IsNaN(previousClock) ? -1 : previousClock, upperClock = now };
+            lapObservations.Add(observation); lastLap = lap.CurrentLap;
+            Record(new Evidence { kind = "lap-first-observed", note = "Polling observation interval, not instrumented trigger timestamp", laps = new[] { observation } });
+        }
+        lastClock = previousClock = now;
+    }
+    private static void Drive()
+    {
+        var player = LocalPlayer(); if (player == null) return;
+        var body = player.GetComponent<Rigidbody>(); var lap = player.GetComponent<LapProgress>();
+        var progress = player.GetComponent<SplineProgressTracker>(); var completion = player.GetComponent<RaceCompletionTracker>();
+        var track = TrackSplineRef.Instance;
+        if (body == null || track == null || lap == null || progress == null || completion == null) throw new Exception("Missing driving observations");
+        // Read-only track/body observations. The ONLY control output is the normal A/D keyboard state.
+        SplineUtility.GetNearestPoint(track.container.Spline, (float3)track.container.transform.InverseTransformPoint(body.position), out _, out float t);
+        float distance = track.DistanceAtT(t);
+        Vector3 velocity = body.velocity; velocity.y = 0;
+        float speed = velocity.magnitude;
+        float ahead = Mathf.Repeat(distance + Mathf.Clamp(speed * 0.8f, 12f, 45f), track.TrackLength);
+        track.TryEvaluateWorldPoseAtProgress01(ahead / track.TrackLength, out Vector3 target, out Vector3 tangent);
+        Vector3 offset = target - body.position; offset.y = 0;
+        Vector3 desiredVelocity = offset.normalized * 32f;
+        Vector3 desiredForce = desiredVelocity - velocity;
+        if (desiredForce.sqrMagnitude < 1f) desiredForce = tangent;
+        float error = Vector3.SignedAngle(body.rotation * Vector3.forward, desiredForce, Vector3.up) * Mathf.Deg2Rad;
+        float desiredYaw = Mathf.Clamp(error * 3f, -2.4f, 2.4f);
+        float correction = desiredYaw - body.angularVelocity.y;
+        benchmarkSteering = correction > 0.2f ? 1 : correction < -0.2f ? -1 : 0;
+        keys = correction > 0.2f ? new KeyboardState(Key.D) : correction < -0.2f ? new KeyboardState(Key.A) : new KeyboardState();
+        if (Time.realtimeSinceStartupAsDouble >= nextSample)
+        {
+            nextSample = Time.realtimeSinceStartupAsDouble + 1;
+            Record(new Evidence { kind = "drive", position = body.position, velocity = velocity,
+                yaw = body.rotation.eulerAngles.y, omega = body.angularVelocity.y, steering = correction > .2f ? 1 : correction < -.2f ? -1 : 0,
+                lap = lap.CurrentLap, progress = progress.progress01, completion = completion.FinalCompletionPercent,
+                buddahs = Count<BuddahMovement>(), reporters = Count<PlayerProgressReporter>(), networkObjects = Count<NetworkObject>(),
+                managedBefore = GC.GetTotalMemory(false), profilerUsed = Profiler.GetTotalAllocatedMemoryLong() });
+        }
+        if (!completion.IsFinished) return;
+        if (benchmark != null) throw new Exception("Race ended inside a benchmark driving window");
+        keys = new KeyboardState();
+        if (MatchServices.Timing == null || !MatchServices.Timing.TryGetResult(RacerId.FromClient(player.OwnerId), out var result) || !result.Finished)
+            throw new Exception("Natural finish without a finished timing record");
+        if (double.IsNaN(goObserved)) throw new Exception("GO was not observed; timing evidence incomplete");
+        finishedTotal = result.TotalSeconds; finishedLaps = result.LapSeconds;
+        finishObserved = MatchServices.Clock.Now; finishServer = completion.FinishServerTime;
+        int expected = RaceFinishManager.Instance.LapsToFinish;
+        if (finishedLaps == null || finishedLaps.Length != expected || finishedLaps.Any(x => x < 0 || double.IsNaN(x) || double.IsInfinity(x)))
+            throw new Exception("Missing/invalid natural lap timing");
+        double sumResidual = finishedTotal - finishedLaps.Sum();
+        var network = Object.FindFirstObjectByType<NetworkManager>();
+        double tickSeconds = network != null ? network.TimeManager.TickDelta : 0;
+        var cadenceField = typeof(PlayerProgressReporter).GetField("reportIntervalSeconds", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        double reportCadence = cadenceField != null ? (float)cadenceField.GetValue(player) : 0.1;
+        var crossings = lapObservations.Where(x => x.lap >= 2).ToArray();
+        var residuals = new double[finishedLaps.Length];
+        if (crossings.Length != finishedLaps.Length) throw new Exception("Natural finish completed but lap observation sequence is incomplete");
+        double previousCrossing = goObserved;
+        for (int i = 0; i < residuals.Length; i++)
+        {
+            residuals[i] = finishedLaps[i] - (crossings[i].upperClock-previousCrossing);
+            previousCrossing = crossings[i].upperClock;
+        }
+        // Conservative explanatory envelope, NOT a substitute for the design's timing acceptance threshold.
+        // Reporting delay differences plus clock quantization and polling uncertainty at both endpoints.
+        double observationBudget = reportCadence + 2*tickSeconds + 2*maxClockObservationGap;
+        Record(new Evidence { kind = "natural-finish-timing", note = "Observed GO/lap intervals are independent polling estimates; not exact trigger or authentication timing",
+            total = finishedTotal, lapSeconds = finishedLaps, laps = lapObservations.ToArray(), goLower = goLower, goUpper = goObserved,
+            finishObserved = finishObserved, finishServer = finishServer, sumResidual = sumResidual,
+            totalMinusObservedDuration = finishedTotal-(finishObserved-goObserved),
+            totalMinusServerFinishFromObservedGo = finishedTotal-(finishServer-goObserved), maxObservationGap = maxClockObservationGap,
+            lapResiduals = residuals, reportCadence = reportCadence, tickSeconds = tickSeconds, explanatoryObservationBudget = observationBudget });
+        if (Math.Abs(sumResidual) > 0.000001) throw new Exception("Lap sum does not equal total");
+        observingRace = false; resultsReadyAt = -1; Move("results", 120);
+    }
+    private static void Snapshot(string label, bool collect)
+    {
+        // Only settled selection/results/Home checkpoints force collection, never the driving loop.
+        int buddahs = Count<BuddahMovement>(), reporters = Count<PlayerProgressReporter>(), objects = Count<NetworkObject>();
+        long before = GC.GetTotalMemory(false), used = Profiler.GetTotalAllocatedMemoryLong();
+        long monoUsed = Profiler.GetMonoUsedSizeLong(), monoHeap = Profiler.GetMonoHeapSizeLong();
+        long after = collect ? GC.GetTotalMemory(true) : -1;
+        Record(new Evidence { kind = "checkpoint", note = label, buddahs = buddahs, reporters = reporters, networkObjects = objects,
+            managedBefore = before, managedAfterFullGc = after, forcedGc = collect, profilerUsed = used,
+            profilerUsedAfterGc = collect ? Profiler.GetTotalAllocatedMemoryLong() : -1,
+            monoUsed = monoUsed, monoHeap = monoHeap,
+            monoUsedAfterGc = collect ? Profiler.GetMonoUsedSizeLong() : -1,
+            monoHeapAfterGc = collect ? Profiler.GetMonoHeapSizeLong() : -1 });
+    }
+    private static string Screenshot(string label)
+    {
+        // Called only while ResultInteractive and its actual decision button remain available.
+        string filename = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + "-" + label + ".png");
+        ScreenCapture.CaptureScreenshot(filename);
+        Event("screenshot-requested", filename);
+        return filename;
+    }
+    private static void Move(string next, double seconds = 60) { state = next; stageDeadline = Time.realtimeSinceStartupAsDouble + seconds; Event("stage", next); }
+    private static void Fail(string message)
+    {
+        if (failure != null) return;
+        failure = message; observingRace = false; keys = new KeyboardState(); stopQueued = false;
+        state = "cleanup"; stageDeadline = Time.realtimeSinceStartupAsDouble + 90;
+        Event("failure", message); // Pump RequestStop on ordinary updates, outside input/RPC callbacks.
+    }
+    private static void Finish(bool passed, string message)
+    {
+        try
+        {
+            DrainLogs();
+            if (benchmark != null) benchmark.Finish(passed,errors,message);
+            Record(new Evidence { kind = "summary", note = message, sequencePassed = passed && errors == 0,
+                mainCompleted = completedMain, extrasCompleted = completedExtra, rematchClicks = rematches, homeReturns = homes, errorCount = errors });
+        }
+        finally
+        {
+            try { CleanupInput(); }
+            finally { active = false; Application.runInBackground = previousRunInBackground; Application.Quit(passed && errors == 0 ? 0 : 1); }
+        }
+    }
+    private static void CleanupInput()
+    {
+        Application.logMessageReceivedThreaded -= Log; InputSystem.onBeforeUpdate -= Input;
+        if (benchmark != null) { benchmark.Dispose(); benchmark=null; }
+        keys = new KeyboardState();
+        try
+        {
+            if (inputChanged)
+            {
+                InputSystem.settings.backgroundBehavior = background;
+            }
+        }
+        finally
+        {
+            inputChanged = false;
+            if (keyboard != null && keyboard.added) InputSystem.RemoveDevice(keyboard);
+            keyboard = null;
+        }
+    }
+    private void OnApplicationQuit() => ExternalExit();
+    private void OnDestroy() => ExternalExit();
+    private static void ExternalExit()
+    {
+        if (!active) return;
+        try { DrainLogs(); if(benchmark != null) benchmark.Finish(false,errors,"External exit"); Event("incomplete", "Acceptance Player exited externally; no completed sequence claim"); }
+        finally { CleanupInput(); active = false; Application.runInBackground = previousRunInBackground; }
+    }
+    private static void Log(string message, string stack, LogType type)
+    {
+        if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert) return;
+        lock (LogLock) pendingLogs.Enqueue(new FailureLog { type = type.ToString(), message = message, stack = stack });
+    }
+    private static void DrainLogs()
+    {
+        lock (LogLock)
+            while (pendingLogs.Count > 0)
+            {
+                var item = pendingLogs.Dequeue(); errors++;
+                Record(new Evidence { kind = "unity-error", note = item.type + ": " + item.message, stack = item.stack });
+            }
+    }
+    private static void Event(string kind, string note) => Record(new Evidence { kind = kind, note = note });
+    private static void Record(Evidence record)
+    {
+        record.utc = DateTime.UtcNow.ToString("O"); record.realtime = Time.realtimeSinceStartupAsDouble;
+        record.operatorTime = Time.realtimeSinceStartupAsDouble; record.clock = MatchServices.Clock != null ? MatchServices.Clock.Now : -1;
+        record.plan = plan; record.stage = state; record.mainIndex = mainIndex; record.raceSerial = raceSerial; record.extra = isExtra;
+        record.scene = SceneManager.GetActiveScene().name;
+        File.AppendAllText(path, JsonUtility.ToJson(record) + "\n");
+    }
+    private sealed class FailureLog { public string type, message, stack; }
+    [Serializable] private sealed class LapObservation { public int lap; public double lowerClock, upperClock; }
+    [Serializable] private sealed class Evidence
+    {
+        public string kind, note, stack, utc, plan, stage, scene;
+        public int mainIndex, raceSerial, lap, steering, buddahs, reporters, networkObjects, mainCompleted, extrasCompleted, rematchClicks, homeReturns, errorCount;
+        public bool extra, sequencePassed, forcedGc;
+        public double realtime, operatorTime, clock, total, goLower, goUpper, finishObserved, finishServer, sumResidual, totalMinusObservedDuration, totalMinusServerFinishFromObservedGo, maxObservationGap, reportCadence, tickSeconds, explanatoryObservationBudget;
+        public long managedBefore, managedAfterFullGc, profilerUsed, profilerUsedAfterGc, monoUsed, monoHeap, monoUsedAfterGc, monoHeapAfterGc;
+        public Vector3 position, velocity;
+        public float yaw, omega, progress, completion;
+        public double[] lapSeconds, lapResiduals;
+        public LapObservation[] laps;
+    }
+}
+#endif

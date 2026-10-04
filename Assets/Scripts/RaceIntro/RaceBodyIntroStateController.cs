@@ -1,4 +1,7 @@
 using FishNet.Object;
+using NewBuddah.PredictionV2.Integration;
+using NewBuddah.PredictionV2.Visual;
+using NewBuddah.PredictionV2.Core;
 using SteamMultiplayer.Network;
 using UnityEngine;
 
@@ -9,6 +12,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private const float SplineDiagnosticBackwardMeters = 0.01f;
     private const float SplineDiagnosticOvershootFactor = 1.75f;
     private const float SplineDiagnosticLargeSnapMeters = 0.35f;
+    private static readonly int IdleStateHash = Animator.StringToHash("Base Layer.Buddah_Idle");
+    private static readonly int IdleSpeedHash = Animator.StringToHash("IdlePlaybackSpeed");
 
     private enum IntroPhase
     {
@@ -34,6 +39,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
     [SerializeField, Min(0)] private int introVisualLagTicks = 1;
     [SerializeField, Min(0.001f)] private float velocitySampleDeltaSeconds = 0.02f;
 
+    private BuddahPredictionHandoffBridge _predictionHandoffBridge;
     private IntroAssignmentData _assignment;
     private SplineIntroPath _assignedPath;
     private IntroPhase _phase = IntroPhase.None;
@@ -56,7 +62,13 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private bool _hasSplineDiagnosticSample;
     private float _lastSplineDiagnosticLogTime = float.NegativeInfinity;
     private IntroPhase _lastLoggedIntroPhase = IntroPhase.None;
+    private BuddahPredictionVisualRootBridge _visualBridge;
+    private BuddahPredictedMotor _soloMotor;
+    private IntroSequenceManager _sequenceManager;
+    private bool _soloPhysicsClock;
+    private double _soloGoFixedTime;
 
+    private bool HasMovementAuthority => BuddahGo.Match.RacerAuthority.HasLocalControl(networkObject);
     public int OwnerId => networkObject != null ? networkObject.OwnerId : -1;
     public NetworkObject NetworkObject => networkObject;
     public Rigidbody TargetRigidbody => targetRigidbody;
@@ -105,7 +117,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
     // the render-time visual sample along the spline end tangent; otherwise both stall for the round trip.
     private bool IsSplineDrivingAfterGo()
     {
-        if (!_goApplied || _assignedPath == null || movementController == null || networkObject == null || !networkObject.IsOwner)
+        if (_soloPhysicsClock || !_goApplied || _assignedPath == null || movementController == null || networkObject == null || !HasMovementAuthority)
             return false;
 
         return movementController.IsAuthoritativeLaunchHandoffPending && TryGetResolvedTiming(out _);
@@ -168,7 +180,15 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (!_hasAssignment || _assignedPath == null || targetRigidbody == null || _goApplied || !_visualStarted)
             return;
 
-        double now = GetSmoothedNetworkTimeSeconds();
+        double now = _soloPhysicsClock
+            ? _resolvedGoNetworkTime + Time.fixedTimeAsDouble - _soloGoFixedTime
+            : GetSmoothedNetworkTimeSeconds();
+        if (_soloPhysicsClock)
+        {
+            double stepStart = now - Time.fixedDeltaTime;
+            if (_sequenceManager == null) _sequenceManager = FindObjectOfType<IntroSequenceManager>();
+            _sequenceManager?.TryIssueSoloGoBeforePhysics(_activeSequenceId, stepStart + 0.000001d);
+        }
         TryCompleteAuthoritativeGoTransition(now);
         if (_goApplied)
             return;
@@ -176,7 +196,11 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (!TryGetResolvedTiming(out IntroSequenceTiming timing))
             return;
 
-        DriveSplinePose(IntroTimeUtility.GetDriveIntroNetworkTime(timing, now));
+        // Solo ends on the completed fixed-step endpoint; only the network path
+        // extrapolates while waiting for a delayed authoritative GO.
+        DriveSplinePose(_soloPhysicsClock
+            ? IntroTimeUtility.GetClampedIntroNetworkTime(timing, now)
+            : IntroTimeUtility.GetDriveIntroNetworkTime(timing, now));
     }
 
     // Samples the spline pose at the current render-time network tick (sub-tick precise).
@@ -186,6 +210,11 @@ public class RaceBodyIntroStateController : MonoBehaviour
     {
         position = default;
         rotation = Quaternion.identity;
+
+        // Solo's visual bridge samples its completed-physics history directly.
+        // Never apply the network render lag or a second spline pose on that path.
+        if (_soloPhysicsClock)
+            return false;
 
         bool introDriving = _hasAssignment && _assignedPath != null && !_goApplied && _visualStarted;
         if (!introDriving && !IsSplineDrivingAfterGo())
@@ -217,6 +246,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
             return;
 
         _assignment = assignment;
+        _soloPhysicsClock = false;
+        _visualBridge?.ResetSoloPresentationHistory();
         _assignedPath = splinePath;
         _activeSequenceId = assignment.sequenceId;
         _hasAssignment = true;
@@ -274,14 +305,58 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _resolvedGoNetworkTime = goNetworkTime;
         _authoritativeScheduledGoNetworkTime = goNetworkTime;
         EnterIntroState();
+        ApplySoloIdleVariation();
         _visualStarted = true;
         double now = GetSmoothedNetworkTimeSeconds();
+        _soloPhysicsClock = _visualBridge != null && _visualBridge.UsesSoloTimeline;
+        if (_soloPhysicsClock)
+        {
+            // Quantize the entire physical intro once, by less than one physics step.
+            // No time offset is introduced or changed at GO; schedule/UI are unchanged.
+            _soloGoFixedTime = SoloPresentationTimeline.AlignGoToPhysics(Time.timeAsDouble, now,
+                goNetworkTime, Time.fixedTimeAsDouble, Time.fixedDeltaTime);
+            _visualBridge.ResetSoloPresentationHistory();
+        }
         double driveTime = IntroTimeUtility.GetClampedIntroNetworkTime(timing, System.Math.Max(now, introStartNetworkTime));
         DriveSplinePose(driveTime);
         _runtimeState = IntroTimeUtility.HasReachedGo(timing, now)
             ? IntroRuntimeState.WaitingForGo
             : IntroRuntimeState.VisualStarted;
         GameLog.Verbose($"[IntroVisual][Body:{name}] Visual start seq={sequenceId} now={now:0.000} seekTime={driveTime:0.000} introStart={introStartNetworkTime:0.000} go={goNetworkTime:0.000}");
+    }
+
+    private void ApplySoloIdleVariation()
+    {
+        if (!BuddahGo.Match.MatchRules.Current.IsSolo)
+            return;
+
+        Animator animator = GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null || !animator.HasState(0, IdleStateHash))
+            return;
+
+        // Optional for other character controllers. Only the idle state consumes this
+        // parameter; changing Animator.speed would also retime pushes and backlash.
+        bool hasIdleSpeed = false;
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.nameHash == IdleSpeedHash && parameter.type == AnimatorControllerParameterType.Float)
+            {
+                hasIdleSpeed = true;
+                break;
+            }
+        }
+
+        if (!hasIdleSpeed)
+            return;
+
+        // Stable per slot/sequence, without consuming gameplay randomness. Apply once
+        // at visual start (after the duplicate-start guard), never reset at GO.
+        int slot = Mathf.Max(0, _assignment.slotIndex);
+        int sequence = Mathf.Max(0, _activeSequenceId);
+        float phase = Mathf.Repeat(slot * 0.618034f + sequence * 0.173205f, 1f);
+        float speed = 0.94f + 0.02f * ((slot * 5 + sequence * 3) % 7);
+        animator.SetFloat(IdleSpeedHash, speed);
+        animator.Play(IdleStateHash, 0, phase);
     }
 
     public void ApplyAuthoritativeGo(int sequenceId, double scheduledGoNetworkTime, double goIssuedNetworkTime)
@@ -344,6 +419,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
     public void ForceExitIntroState()
     {
+        _soloPhysicsClock = false;
+        _visualBridge?.ResetSoloPresentationHistory();
         _assignment = default;
         _assignedPath = null;
         _phase = IntroPhase.None;
@@ -362,7 +439,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _hasSplineDiagnosticSample = false;
         _lastSplineDiagnosticLogTime = float.NegativeInfinity;
         _lastLoggedIntroPhase = IntroPhase.None;
-        bool isLocalOwner = networkObject != null && networkObject.IsOwner;
+        bool isLocalOwner = HasMovementAuthority;
 
         if (movementController != null)
         {
@@ -385,13 +462,14 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _authoritativeGoPendingTransition = false;
         _phase = IntroPhase.RaceLive;
 
-        bool isLocalOwner = networkObject != null && networkObject.IsOwner;
+        bool isLocalOwner = HasMovementAuthority;
         double resolvedHandoffTime = _resolvedGoNetworkTime >= 0d
             ? System.Math.Max(_resolvedIntroStartNetworkTime, _resolvedGoNetworkTime)
             : GetSmoothedNetworkTimeSeconds();
         // The authoritative GO arrives a frame or two after the scheduled GO time; the body has kept moving past
         // the spline end meanwhile (SampleSnapshotAtTime overshoot), so hand off from where it actually is.
-        resolvedHandoffTime = System.Math.Max(resolvedHandoffTime, GetSmoothedNetworkTimeSeconds());
+        if (!_soloPhysicsClock)
+            resolvedHandoffTime = System.Math.Max(resolvedHandoffTime, GetSmoothedNetworkTimeSeconds());
         SampleSnapshotAtTime(resolvedHandoffTime, out LaunchHandoffSnapshot snapshot);
         _latestSplineSnapshot = snapshot;
         GameLog.Verbose(
@@ -403,7 +481,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (movementController != null && isLocalOwner)
         {
             _runtimeState = IntroRuntimeState.AuthoritativeHandoffPending;
-            RoomStateManager.Instance?.ReportLocalGameplayLive(_activeSequenceId);
+            if (networkObject.IsOwner)
+                RoomStateManager.Instance?.ReportLocalGameplayLive(_activeSequenceId);
             GameLog.Verbose($"[IntroHandoff][Body:{name}] Local owner launching handoff seq={_activeSequenceId}.");
             movementController.BeginLaunchHandoff(
                 snapshot,
@@ -412,6 +491,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
                 false,
                 _activeSequenceId,
                 false);
+            if (_soloPhysicsClock)
+                _soloMotor?.ConsumeSoloLaunchBeforePhysics();
         }
         else
         {
@@ -441,6 +522,16 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
         if (!_visualStarted)
             return;
+
+        if (_soloPhysicsClock)
+        {
+            // The endpoint is the previous completed fixed step. Consume once, before
+            // integrating the next step, instead of recording the endpoint twice.
+            if (!Time.inFixedTimeStep
+                || Time.fixedTimeAsDouble - Time.fixedDeltaTime + 0.000001d < _soloGoFixedTime)
+                return;
+            currentNetworkTime = _resolvedGoNetworkTime;
+        }
 
         double scheduledGoTime = _authoritativeScheduledGoNetworkTime >= 0d
             ? _authoritativeScheduledGoNetworkTime
@@ -495,8 +586,10 @@ public class RaceBodyIntroStateController : MonoBehaviour
         // allows duration < length / speed, the body would still be on the spline here and this term would
         // add a second velocity on top of the spline motion.
         // After the local GO the cap also covers the pending handoff round trip (see IsSplineDrivingAfterGo).
+        // Solo ends on the completed fixed-step endpoint and never extrapolates.
         float overshootCapSeconds = GetOvershootCapSeconds();
-        double overshootSeconds = IntroTimeUtility.GetGoOvershootSeconds(_resolvedGoNetworkTime, networkTime, overshootCapSeconds);
+        double overshootSeconds = _soloPhysicsClock ? 0d
+            : IntroTimeUtility.GetGoOvershootSeconds(_resolvedGoNetworkTime, networkTime, overshootCapSeconds);
         if (overshootSeconds > 0d)
         {
             position += velocity * (float)overshootSeconds;
@@ -531,7 +624,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
         float elapsedSeconds = Mathf.Max(0f, (float)(networkTime - _resolvedIntroStartNetworkTime));
         float distance = elapsedSeconds * GetIntroSpeedMetersPerSecond();
         float totalLength = Mathf.Max(0.0001f, _assignedPath.TotalLength);
-        return _assignedPath.TAtDistance(Mathf.Min(distance, totalLength));
+        // EvaluatePosition/EvaluateTangent accept normalized distance and perform
+        // their own arc-length lookup. Passing TAtDistance here converts twice.
+        return Mathf.Clamp01(distance / totalLength);
     }
 
     private float GetHandoffLeadTime()
@@ -654,6 +749,11 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
         if (movementController == null)
             movementController = GetComponent<BuddahMovement>();
+
+        if (_predictionHandoffBridge == null)
+            _predictionHandoffBridge = GetComponent<BuddahPredictionHandoffBridge>();
+        if (_visualBridge == null) _visualBridge = GetComponent<BuddahPredictionVisualRootBridge>();
+        if (_soloMotor == null) _soloMotor = GetComponent<BuddahPredictedMotor>();
     }
 
     private void SetCollisionsEnabled(bool enabled)

@@ -1,0 +1,15 @@
+{
+  "Personalities": [
+    {"Id":"keeper","DisplayName":"P1 守位型","Loadout":["slowtrap","acceleration","giant"],"Weights":[1,1.3,0.8,0,0,0],"SituationBias":[1.4,0.5,0.9,1,1],"Patience":0.25,"TempoSeconds":1.5,"Target":1,"ImpairedTargetMultiplier":1,"HandsShots":0},
+    {"Id":"hunter","DisplayName":"P2 追猎型","Loadout":["push_projectile_hands","acceleration","reverseturn"],"Weights":[1,0,0,1.3,0.9,0],"SituationBias":[0.8,0.6,1.4,1,1.1],"Patience":0.25,"TempoSeconds":1.2,"Target":0,"ImpairedTargetMultiplier":1,"HandsShots":4},
+    {"Id":"brawler","DisplayName":"P3 车群型","Loadout":["giant","push_projectile_hands","slowtrap"],"Weights":[0,1,1.3,0.9,0,0],"SituationBias":[1,0.4,0.9,1.5,0.4],"Patience":0.3,"TempoSeconds":1,"Target":2,"ImpairedTargetMultiplier":1,"HandsShots":3},
+    {"Id":"trickster","DisplayName":"P4 干扰型","Loadout":["reverseturn","blackcurtain","slowtrap"],"Weights":[0,0.8,0,0,1.2,1.2],"SituationBias":[1.1,0.7,1.2,1.2,1],"Patience":0.3,"TempoSeconds":2,"Target":3,"ImpairedTargetMultiplier":1,"HandsShots":0},
+    {"Id":"opportunist","DisplayName":"P5 机会型","Loadout":["acceleration","push_projectile_hands","blackcurtain"],"Weights":[1.2,0,0,1,0,0.8],"SituationBias":[1,0.8,1.2,1,1],"Patience":0.35,"TempoSeconds":1.5,"Target":4,"ImpairedTargetMultiplier":1.6,"HandsShots":2}
+  ],
+  "Difficulties": [
+    {"Difficulty":0,"RiskWeight":0,"SevereStopProbability":1.01,"MildStopProbability":1.01,"DecisionSeconds":0.3,"ReactionMinSeconds":0.6,"ReactionMaxSeconds":1,"KeyMistakeProbability":0.15,"AimToleranceDegrees":20,"AdaptSeconds":2,"ReadaptSeconds":1,"ImpairedLookaheadMultiplier":0.5,"ImpairedMistakeAddition":0.2,"ImpairedReactionTicks":10,"DecisionNoise":0.1},
+    {"Difficulty":1,"RiskWeight":0.5,"SevereStopProbability":0.7,"MildStopProbability":1.01,"DecisionSeconds":0.25,"ReactionMinSeconds":0.3,"ReactionMaxSeconds":0.5,"KeyMistakeProbability":0.06,"AimToleranceDegrees":12,"AdaptSeconds":1,"ReadaptSeconds":0.6,"ImpairedLookaheadMultiplier":0.6,"ImpairedMistakeAddition":0.1,"ImpairedReactionTicks":6,"DecisionNoise":0.05},
+    {"Difficulty":2,"RiskWeight":1,"SevereStopProbability":0.45,"MildStopProbability":0.65,"DecisionSeconds":0.2,"ReactionMinSeconds":0.1,"ReactionMaxSeconds":0.2,"KeyMistakeProbability":0.01,"AimToleranceDegrees":6,"AdaptSeconds":0.4,"ReadaptSeconds":0.3,"ImpairedLookaheadMultiplier":0.75,"ImpairedMistakeAddition":0.05,"ImpairedReactionTicks":3,"DecisionNoise":0.02}
+  ],
+  "Tuning": {"SnapshotSeconds":0.15,"SituationHysteresisSeconds":1.5,"NearDistance":60,"FarDistance":300,"TrapDistance":65,"ContactDistance":35,"HandsDistance":300,"LaneWidth":14,"StraightCurvature":0.0035,"CornerCurvature":0.006,"KeyMinSeconds":0.2,"KeyMaxSeconds":0.3,"AimHorizonSeconds":2,"SpeedDropFraction":0.2,"BacklashSeverity":[1,0.1,0.5,0.3,0.9,0.4]}
+}

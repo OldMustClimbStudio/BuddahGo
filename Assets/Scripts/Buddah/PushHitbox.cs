@@ -200,6 +200,7 @@ public class PushHitbox : MonoBehaviour
         // Phase 4b V3 — single dispatch entry. Router internally handles V2-prediction Buddah,
         // PushTargetBox debug, and Legacy Buddah BuddahMovement RPC fallback. Replaces the
         // pre-V3 two-tier dispatch (CombatRouting + per-callsite BuddahMovement.ApplyPushImpulseTargetRpc).
-        BuddahPredictionRouter.RouteImpulse(victimNO, _impulse, 0f, BuddahPredictedImpulseSourceType.MeleePush, _attacker);
+        bool routed = BuddahPredictionRouter.RouteImpulse(victimNO, _impulse, 0f, BuddahPredictedImpulseSourceType.MeleePush, _attacker);
+        BuddahGo.Match.SkillCombatEvents.Record("hit", "melee", _attacker, victimNO, transform.position, routed);
     }
 }

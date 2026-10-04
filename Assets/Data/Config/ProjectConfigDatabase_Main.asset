@@ -176,7 +176,7 @@ MonoBehaviour:
   - skillId: reverseturn
     cooldownSeconds: 12
     castLockSeconds: 10
-    obsessionGain: 0
+    obsessionGain: 200
     antiSkillId: reverseturn_anti
   - skillId: acceleration_anti
     cooldownSeconds: 8

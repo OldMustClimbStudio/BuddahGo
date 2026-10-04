@@ -125,3 +125,25 @@ Unity 2022.3.55f1c1 批处理模式（`-batchmode -nographics -runTests -testPla
 ## 7. 行数结果
 
 清理后的运行时 C# 为 +138 / −119（净 +19 行）：删掉的重复与死代码约 60 行，被 `ValidateConfiguration` 表驱动（+22）、新抽方法的签名和说明注释抵消。本 PR 真正的行数大户是 1 220 行诊断 harness 与 4 160 行测试（含三份 Legacy 冻结实现）；前者按仓库"诊断探针只门控不删除"的规则保留，后者是等价/回归契约。要继续压行数，下一步是 D7（harness 公共基类，需核对证据 CSV/JSON 不变）与 S4（`AISkillCaster` 拆分），都需要场景级测试护航，建议作为独立 PR。
+
+## 9. 第四轮：最终 legacy 清理（2026-10-04 夜）
+
+用户指令："最后一轮清理，重点看新增代码里可以清理的 legacy 内容，保持完整但干净"，并要求先确认技能（特别是特效）没有丢失 LFS 资源、功能无回归。三个提交：
+
+| 提交 | 内容 |
+|---|---|
+| `118ded0` | 死成员：`GameNetworkManager` 三个无调用者的转发方法、`IRacerDirectory.TryGetByObject`、`IRaceTiming.Reset`（及 `RaceTimingSync` 的显式实现）、`SplineRacingLine.ProjectSmall`、规划器只写不读的 `LastWobbleDegrees`/`LastSelectionWasMistake`（不改算术与随机数顺序）；`LeaderboardTMPUI` 状态遥测只在 verbose 时拼接；harness 去掉恒真的 `TryDisable` 分支与 `% 1` 条件；`A1DrivingTools` 只保留 harness 菜单（Build/RunChecks 与 `ThrustVectorAcceptanceBuild`/`AISkillAcceptanceTools` 重复）；验收过滤器去掉不存在的 `PushAttackTimingTests`。测试：退休 Explicit 的 F11–F13 扫参与 `Grid162Once`；三项错放用例归位到 `SplineRacingLineTests`/`AIDifficultyProfilesTests`；六人重复用例并入 `RacerIdTests`/`RaceEndPolicyTests` |
+| `a205d46` | `Tools/ai` 删除 227 个 beam 时代与被取代迭代的证据文件（V5 `normal.json`、A2/spin 结果与画图脚本、`performance/`、11 个变体 profile、18 次被取代试跑、`superseded-*`、`wall*` 扫参输出、revision-six/lateral/diagnostics/spec-fixtures 目录、两个无读者 fixture）。保留三档 `difficulty-*.json`、在用 fixture、`scripts/`、`race4`–`race6` 难度验收与技能分析脚本。文档全部保留：22 个指向已删文件的链接改为 `20401e5` 的 GitHub 永久链接，历史报告中的纯路径以 `20401e5` 为准 |
+| `fcb9d97` | RaceMap 中 Layout4P/5P/6P 三个实例逐 knot 的覆盖（约 2.4 万行）Apply 回 prefab，prefab 不再存过期路径。批处理导出整场景全部序列化属性（38 754 行，含 7 275 行 knot 字段），Apply 前后排除实例 ID 后逐行一致 |
+
+| 树 | 用例 | 通过 | 失败 | 编译错误 |
+|---|---:|---:|---:|---:|
+| 基线 `20401e5` | 297 | 296 | 1 | 0 |
+| `118ded0` | 293 | 293 | 0 | 0 |
+| `fcb9d97` | 293 | 293 | 0 | 0 |
+
+用例集合逐项对比：删除 4 项（F11–F13、`Grid162Once`），8 项因迁移/合并改名（`SoloWithOtherRacersWaitsForAllOrCountdown` 参数化为 3/5 个 AI，覆盖原六人用例），其余结果不变。PR 相对 `dev` 的新增行：本轮前 95 743，本轮后约 60 700。
+
+**技能与特效资源核查**（只读，`dev` 与本分支对照）：从三个场景、`DefaultPrefabObjects` 与全部 `Resources` 出发的 GUID 闭包共 450 个资产（技能/VFX 114 个），被追到的 LFS 文件全部是实际内容、0 个指针；PR 在 `Assets/` 下引入的唯一 LFS 文件 `Flare00.PNG` 本地为真实 PNG，远端对象齐全；PR 没有让任何资源掉出构建，反而补上了 dev 缺失的加速特效。逐项检查 `Buddah.prefab`、`如来神掌/` 全部 prefab、`沙砾.prefab` 与全部技能资产：LFS 指针 0。反复"丢失"的根因不是 LFS，而是 [VFX 恢复记录](../vfx-asset-recovery.md) 已定位的两点：材质 `b739a3f02ff77bf48b7636e64c3e3b4c` 从未入库（`沙砾.prefab`、`如来神掌.prefab`、`射击特效.prefab`、`slowtrap_vfxZone.prefab` 的粒子渲染器引用它），以及 ShaderGraph/VFX Graph 本地导入缓存失效（`Tools > BuddahGo > Repair Original VFX Imports` 修复）。这两项在 `dev` 上同样存在，本轮不改美术。
+
+**未做（需用户决定，不属于 legacy）**：`IMatchRules` 五个暂无读者的标志（design.md 列为合同）；`BuddahGoSoloCJK.asset` 8.66 MB 静态图集仅用 32%，可重烘焙；VFX 恢复拆为独立 PR；`Skill_ReverseTurn` 执念增益 200 仍是平衡实验值。

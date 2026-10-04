@@ -24,8 +24,12 @@ namespace BuddahGo.AI
         public int Keys { get; private set; }
         public int BuffShots { get; private set; }
         public static readonly ProfilerMarker Marker = new ProfilerMarker("AI.Skill");
+        // Nested: key injection and server pushes (coroutines, hitbox/projectile spawns) as opposed to decisions.
+        public static readonly ProfilerMarker InputMarker = new ProfilerMarker("AI.Skill.Input");
         public static long WorkTicksThisFrame => _workFrame == Time.frameCount ? _workTicksThisFrame : 0;
-        private static long _workTicksThisFrame;
+        // Portion of WorkTicksThisFrame spent inside AI.Skill.Input (key injection, server pushes, spawns).
+        public static long InputTicksThisFrame => _workFrame == Time.frameCount ? _inputTicksThisFrame : 0;
+        private static long _workTicksThisFrame, _inputTicksThisFrame;
         private static int _workFrame = -1;
 
         [Serializable]
@@ -59,6 +63,7 @@ namespace BuddahGo.AI
         private AISkillSituation _situation, _pendingSituation;
         private bool _subscribed, _hadBuff, _finishedCleaned, _hasSituation;
         private float _reactionSeconds;
+        private long _inputTicksThisTick;
 
         public void Configure(AISkillWorld world, AISkillPersonality personality, AISkillDifficulty difficulty,
             AISkillTuning tuning, int racerIndex, int seed)
@@ -88,7 +93,8 @@ namespace BuddahGo.AI
         public bool CanContinueCast(int slotIndex)
         {
             if (!isActiveAndEnabled || Personality == null) return true;
-            if (!CastingEnabled || _motor.CurrentComputedStats.IsRooted || _motor.IsLaunchHandoffActive
+            // Rooting does not cancel a Human Player's queued cast, so it does not cancel an AI's either (Q2).
+            if (!CastingEnabled || _motor.IsLaunchHandoffActive
                 || _motor.IsAuthoritativeLaunchHandoffPending || _completion != null && _completion.IsFinished) return false;
             if (slotIndex < 0 || slotIndex >= _kinds.Length) return false;
             // Two independent AIs can commit before either effect is visible. Recheck only public,
@@ -118,8 +124,9 @@ namespace BuddahGo.AI
         {
             long start = System.Diagnostics.Stopwatch.GetTimestamp();
             using (Marker.Auto()) Tick();
-            if (_workFrame != Time.frameCount) { _workFrame = Time.frameCount; _workTicksThisFrame = 0; }
+            if (_workFrame != Time.frameCount) { _workFrame = Time.frameCount; _workTicksThisFrame = 0; _inputTicksThisFrame = 0; }
             _workTicksThisFrame += System.Diagnostics.Stopwatch.GetTimestamp() - start;
+            _inputTicksThisFrame += _inputTicksThisTick; _inputTicksThisTick = 0;
         }
 
         private void Tick()
@@ -136,8 +143,11 @@ namespace BuddahGo.AI
                 { _finishedCleaned = true; _executor.ResetActiveSkillEffectsServer(); }
                 return;
             }
-            if (!CastingEnabled || _motor.IsLaunchHandoffActive || _motor.IsAuthoritativeLaunchHandoffPending || _motor.CurrentComputedStats.IsRooted)
+            if (!CastingEnabled || _motor.IsLaunchHandoffActive || _motor.IsAuthoritativeLaunchHandoffPending)
             { Cancel(!CastingEnabled ? "casting-disabled" : "input-blocked"); _hands.CancelPendingServerInput(); return; }
+            // Rooting does not stop a Human Player from finishing a combo or from having an accepted cast execute,
+            // so it neither cancels the commitment nor the pending cast here; it only blocks new decisions below.
+            bool rooted = _motor.CurrentComputedStats.IsRooted;
             Commitment.ReleaseResolved();
             if (Commitment.Active)
             {
@@ -150,8 +160,13 @@ namespace BuddahGo.AI
                     Emit("key", key == ComboSkillInput.Token.W ? "W" : "Up", Commitment.Slot);
                     // Independent recognizer and hand listeners match the player's input semantics:
                     // a hand on cooldown does not suppress that key's combo token.
-                    _hands.InjectServerPush(key == ComboSkillInput.Token.W);
-                    _combo.InjectServerKey(key, tick * (double)delta);
+                    long inputStart = System.Diagnostics.Stopwatch.GetTimestamp();
+                    using (InputMarker.Auto())
+                    {
+                        _hands.InjectServerPush(key == ComboSkillInput.Token.W);
+                        _combo.InjectServerKey(key, tick * (double)delta);
+                    }
+                    _inputTicksThisTick += System.Diagnostics.Stopwatch.GetTimestamp() - inputStart;
                     if (Commitment.Waiting && !_executor.HasPendingCast) Cancel("combo-not-accepted");
                 }
                 else if (wasActive && !Commitment.Active) { Cancelled++; _combo.ClearCombo(); Emit("cancel", "retry-exhausted"); }
@@ -162,7 +177,7 @@ namespace BuddahGo.AI
             int self = frame.IndexOf(_racerId);
             if (self < 0 || !frame.Racers[self].Available) return;
             if (Aim(frame, self, tick, delta)) return;
-            if (tick < _nextDecision || !_world.IsDecisionPhase(tick, _index)) return;
+            if (rooted || tick < _nextDecision || !_world.IsDecisionPhase(tick, _index)) return;
             Decide(frame, self, tick, delta);
         }
 
@@ -179,7 +194,10 @@ namespace BuddahGo.AI
             {
                 if (!_executor.IsSlotReadyServer(slot)) { Emit("candidate", "cooldown-or-lock", slot); continue; }
                 var candidate = AISkillDecision.Evaluate(_kinds[slot], frame, self, _tuning, Personality.Target, _hands.ServerHandYaw, _hands.HandRotationSpeed);
-                float required = (_sequences[slot].Length - 1) * _tuning.KeyMaxSeconds + _executor.ConfirmationSeconds + delta * 2f;
+                float comboSeconds = (_sequences[slot].Length - 1) * _tuning.KeyMaxSeconds;
+                // Expected retry cost: one expired input window plus a restarted combo, weighted by the per-key mistake rate.
+                float retrySeconds = Difficulty.KeyMistakeProbability * (_combo.StepWindowSeconds + delta + comboSeconds);
+                float required = comboSeconds + retrySeconds + _executor.ConfirmationSeconds + delta * 2f;
                 float noise = 1f + ((float)_decisionRandom.NextDouble() * 2f - 1f) * Difficulty.DecisionNoise;
                 float utility = AISkillDecision.Utility(_kinds[slot], candidate, _situation, Personality, Difficulty, _tuning, probability, required, age, noise);
                 Emit("candidate", candidate.Score <= 0f ? "no-opportunity" : candidate.ValidSeconds - age < required ? "validity" : float.IsNegativeInfinity(utility) ? "risk-stop" : "scored", slot, candidate, utility);
@@ -201,20 +219,29 @@ namespace BuddahGo.AI
             float remaining = _hands.ProjectileBuffSecondsLeft;
             if (remaining <= 0f) { _hadBuff = false; return false; }
             if (!_hadBuff) { _hadBuff = true; _shotsThisBuff = 0; _nextShot = tick; }
-            // Avoid accidental buff shots from the next combo during its final five seconds.
-            if (remaining <= 5f || _shotsThisBuff >= Personality.HandsShots) return true;
+            // Hold decisions only while actively aiming with shots left. Combo keys pressed during the buff fire
+            // buff shots exactly as a Human Player's would; the hands slot itself is on cooldown, so no double buff.
+            if (_shotsThisBuff >= Personality.HandsShots) return false;
             var opportunity = AISkillDecision.Evaluate(AISkillKind.Hands, frame, self, _tuning, Personality.Target, _hands.ServerHandYaw, _hands.HandRotationSpeed);
             int target = frame.IndexOf(opportunity.TargetId);
-            if (opportunity.Score <= 0f || target < 0) return true;
+            // No reachable target right now: stop turning and let ordinary decisions resume.
+            if (opportunity.Score <= 0f || target < 0) { _hands.InjectServerRotation(0, delta); return false; }
             _targetId = opportunity.TargetId;
             Vector3 direction = frame.Racers[target].Position - frame.Racers[self].Position; direction.y = 0f;
             float yaw = Vector3.SignedAngle(frame.Racers[self].Forward, direction, Vector3.up);
             float error = Mathf.DeltaAngle(_hands.ServerHandYaw, yaw);
             _hands.InjectServerRotation(Mathf.Abs(error) <= Difficulty.AimToleranceDegrees ? 0 : error > 0f ? 1 : -1, delta);
             if (Mathf.Abs(error) > Difficulty.AimToleranceDegrees || tick < _nextShot || !_hands.CanPushServer(true)) return true;
-            if (_hands.InjectServerPush(true))
+            bool pushed;
+            long inputStart = System.Diagnostics.Stopwatch.GetTimestamp();
+            using (InputMarker.Auto())
             {
-                _combo.InjectServerKey(ComboSkillInput.Token.W, tick * (double)delta);
+                pushed = _hands.InjectServerPush(true);
+                if (pushed) _combo.InjectServerKey(ComboSkillInput.Token.W, tick * (double)delta);
+            }
+            _inputTicksThisTick += System.Diagnostics.Stopwatch.GetTimestamp() - inputStart;
+            if (pushed)
+            {
                 _shotsThisBuff++; BuffShots++; Keys++;
                 _nextShot = tick + AISkillCommitment.SecondsToTicks(Mathf.Max(_combo.StepWindowSeconds + delta, _hands.ServerPushCooldown), delta);
                 Emit("aim-push", "accepted", -1, opportunity);

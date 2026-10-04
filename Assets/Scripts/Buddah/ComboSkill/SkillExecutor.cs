@@ -133,7 +133,7 @@ public class SkillExecutor : NetworkBehaviour
     private void OnSlotTriggeredByCombo(int slotIndex, string comboName)
     {
         if (RacerAuthority.IsServerAI(this)) { CastSlotServer(slotIndex); return; }
-        GameLog.Verbose($"[SkillExecutor][Owner] Combo '{comboName}' triggered slot {slotIndex}, requesting cast...");
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Owner] Combo '{comboName}' triggered slot {slotIndex}, requesting cast...");
         RequestCast(slotIndex);
     }
 
@@ -163,21 +163,31 @@ public class SkillExecutor : NetworkBehaviour
         if (!IsServerInitialized)
             return;
 
-        ResetActiveSkillEffectsForOwner();
+        // Server AI has no owner connection, so its server-side skill state is cleared here.
+        // Human Players keep the original owner-targeted reset; their skill rules are unchanged.
+        if (RacerAuthority.IsServerAI(this)) { ResetActiveSkillEffectsForOwner(); return; }
         NetworkConnection conn = Owner;
-        if (conn != null && conn.IsValid && !IsOwner) ResetActiveSkillEffectsTargetRpc(conn);
+        if (conn == null || !conn.IsValid)
+            return;
+
+        ResetActiveSkillEffectsTargetRpc(conn);
     }
 
     public void ResetActiveSkillEffectsForOwner(bool resetMovementModifiers = true)
     {
-        if (IsServerInitialized) CancelPendingCastServer();
-        comboInput?.ClearCombo();
-        GetComponent<BuddahHandControl>()?.ResetSkillInputAndEffects();
-        GetComponent<SkillPerceptionState>()?.Clear();
-        if (resetMovementModifiers) GetComponent<NewBuddah.PredictionV2.Core.BuddahPredictedMotor>()?.ResetActiveSkillModifiers();
-        var trap = GetComponent<MovementSlowTrapZoneEffect>();
-        if (trap != null) { trap.enabled = false; Destroy(trap); }
-        ActiveEffectsReset?.Invoke();
+        if (IsServerInitialized && RacerAuthority.IsServerAI(this))
+        {
+            // AI-only server cleanup: pending input and cast, hands buff, perception, modifiers and the trap zone.
+            // A Human Player's respawn keeps the pre-existing behaviour below.
+            CancelPendingCastServer();
+            comboInput?.ClearCombo();
+            GetComponent<BuddahHandControl>()?.ResetSkillInputAndEffects();
+            GetComponent<SkillPerceptionState>()?.Clear();
+            if (resetMovementModifiers) GetComponent<NewBuddah.PredictionV2.Core.BuddahPredictedMotor>()?.ResetActiveSkillModifiers();
+            var trap = GetComponent<MovementSlowTrapZoneEffect>();
+            if (trap != null) { trap.enabled = false; Destroy(trap); }
+            ActiveEffectsReset?.Invoke();
+        }
         ResolveCharacterAnimator();
         ResolveAccelerationTrailController();
         ResolvePlayerCamera();
@@ -230,6 +240,13 @@ public class SkillExecutor : NetworkBehaviour
             ServerCastChanged?.Invoke(new CastEvent(CastStage.Rejected, slotIndex, requestedId));
             return false;
         }
+        // Server AI: refuse at entry when a same-kind global effect is already visible, so no cooldown is
+        // spent and no pre-cast feedback plays. The confirmation-time recheck below remains as the fallback.
+        if (RacerAuthority.IsServerAI(this) && _castContinuation != null && !_castContinuation.CanContinueCast(slotIndex))
+        {
+            ServerCastChanged?.Invoke(new CastEvent(CastStage.Rejected, slotIndex, requestedId));
+            return false;
+        }
         ResolveCastVariant(skillId, skill, out bool isAnti, out SkillAction executedSkill, out string executedSkillId);
         QueueCast(slotIndex, skillId, skill, now, isAnti, executedSkill, executedSkillId);
         return true;
@@ -266,7 +283,7 @@ public class SkillExecutor : NetworkBehaviour
         skillId = loadout.GetSkillId(slotIndex);
         if (string.IsNullOrWhiteSpace(skillId))
         {
-            GameLog.Verbose($"[SkillExecutor][Server] Slot {slotIndex} is empty, cast ignored.");
+            if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Server] Slot {slotIndex} is empty, cast ignored.");
             return false;
         }
 
@@ -281,7 +298,7 @@ public class SkillExecutor : NetworkBehaviour
 
         if (now < _nextReadyTime[slotIndex])
         {
-            GameLog.Verbose($"[SkillExecutor][Server] Skill '{skillId}' on cooldown. Ready in {(_nextReadyTime[slotIndex] - now):0.00}s");
+            if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Server] Skill '{skillId}' on cooldown. Ready in {(_nextReadyTime[slotIndex] - now):0.00}s");
             return false;
         }
 
@@ -320,7 +337,7 @@ public class SkillExecutor : NetworkBehaviour
                 }
             }
 
-            GameLog.Verbose($"[SkillExecutor][Server] Backfire roll: skill='{skillId}', anti='{resolvedAntiSkillId}', obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
+            if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Server] Backfire roll: skill='{skillId}', anti='{resolvedAntiSkillId}', obsession={obsessionNow:0.###}, p={backfirePercent:0.###}%, roll={roll:0.###} -> anti={(isAnti ? "YES" : "NO")}");
         }
     }
 
@@ -337,7 +354,7 @@ public class SkillExecutor : NetworkBehaviour
         _nextReadyTime[slotIndex] = triggerAt + resolvedCooldownSeconds;
 
         float obsessionGain = database != null ? Mathf.Max(0f, database.GetObsessionGain(skillId, skill)) : Mathf.Max(0f, skill.ObsessionGain);
-        GameLog.Verbose($"[SkillExecutor][Server] QUEUE '{executedSkillId}' (slot {slotIndex}) delay={castDelaySeconds:0.##}s cooldown={resolvedCooldownSeconds:0.##} lock={resolvedCastLockSeconds:0.##} anti={isAnti}");
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Server] QUEUE '{executedSkillId}' (slot {slotIndex}) delay={castDelaySeconds:0.##}s cooldown={resolvedCooldownSeconds:0.##} lock={resolvedCastLockSeconds:0.##} anti={isAnti}");
         PlayQueuedCastFeedbackObserversRpc(executedSkillId, isAnti);
         _pendingSlot = slotIndex;
         _pendingSkillId = skillId;
@@ -369,7 +386,7 @@ public class SkillExecutor : NetworkBehaviour
             yield break;
         }
 
-        GameLog.Verbose($"[SkillExecutor][Server] CAST '{executedSkillId}' (slot {slotIndex}) after {castDelaySeconds:0.##}s delay.");
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Server] CAST '{executedSkillId}' (slot {slotIndex}) after {castDelaySeconds:0.##}s delay.");
 
         executedSkill.ExecuteServer(this, slotIndex);
         _obs?.AddServer(obsessionGain);
@@ -390,7 +407,7 @@ public class SkillExecutor : NetworkBehaviour
             PlayFeelLocal(SkillReflectionSharedFeelEventId);
         }
 
-        GameLog.Verbose($"[SkillExecutor][PreCastFeedback] '{executedSkillId}' anti={isAnti}, IsOwner={IsOwner}");
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][PreCastFeedback] '{executedSkillId}' anti={isAnti}, IsOwner={IsOwner}");
 
         if (!IsOwner)
             return;
@@ -406,11 +423,11 @@ public class SkillExecutor : NetworkBehaviour
         string ownerClientId = Owner != null ? Owner.ClientId.ToString() : "null";
         string localClientId = LocalConnection != null ? LocalConnection.ClientId.ToString() : "null";
         int objectId = NetworkObject != null ? NetworkObject.ObjectId : 0;
-        GameLog.Verbose($"[SkillExecutor][ObserversRpc] object='{name}', objectId={objectId}, slot={slotIndex}, skill='{executedSkillId}', anti={isAnti}, IsOwner={IsOwner}, IsClientInitialized={IsClientInitialized}, ownerClientId={ownerClientId}, localClientId={localClientId}");
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][ObserversRpc] object='{name}', objectId={objectId}, slot={slotIndex}, skill='{executedSkillId}', anti={isAnti}, IsOwner={IsOwner}, IsClientInitialized={IsClientInitialized}, ownerClientId={ownerClientId}, localClientId={localClientId}");
 
         if (database.TryGet(executedSkillId, out SkillAction skill) && skill != null)
         {
-            GameLog.Verbose($"[SkillExecutor][Observers] '{executedSkillId}' played (slot {slotIndex}) [anti={isAnti}]");
+            if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Observers] '{executedSkillId}' played (slot {slotIndex}) [anti={isAnti}]");
             skill.ExecuteObservers(this, slotIndex, isAnti, IsOwner);
 
             if (IsOwner)
@@ -419,7 +436,7 @@ public class SkillExecutor : NetworkBehaviour
                 float resolvedCastLockSeconds = database != null ? database.GetCastLockSeconds(executedSkillId, skill) : skill.castLockSeconds;
                 LocalSkillUiTriggered?.Invoke(new LocalSkillUiEvent(slotIndex, resolvedCooldownSeconds, resolvedCastLockSeconds));
 
-                GameLog.Verbose($"[SkillExecutor][Owner] ExecuteLocal '{executedSkillId}' (slot {slotIndex}) [anti={isAnti}]");
+                if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Owner] ExecuteLocal '{executedSkillId}' (slot {slotIndex}) [anti={isAnti}]");
                 skill.ExecuteLocal(this, slotIndex, isAnti);
             }
         }

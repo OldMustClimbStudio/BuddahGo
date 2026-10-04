@@ -27,6 +27,8 @@ namespace BuddahGo.AI
         private const double PerfWarmupSeconds = 30d, PerfWindowSeconds = 60d;
         private readonly List<RacerRecord> _racers = new List<RacerRecord>();
         private readonly List<double> _skillFrameMs = new List<double>();
+        // Portion of each frame's AI.Skill time spent in AI.Skill.Input (key injection, pushes, spawns).
+        private readonly List<double> _skillInputMs = new List<double>();
         private readonly List<double> _frameMs = new List<double>();
         private StreamWriter _trajectory, _skills, _events, _combat;
         private AITestObstacleScope _obstacles;
@@ -131,6 +133,7 @@ namespace BuddahGo.AI
             double elapsed = MatchServices.Clock.Now - _goAt;
             if (elapsed < PerfWarmupSeconds || elapsed >= PerfWarmupSeconds + PerfWindowSeconds) return;
             _skillFrameMs.Add(AISkillCaster.WorkTicksThisFrame * 1000d / System.Diagnostics.Stopwatch.Frequency);
+            _skillInputMs.Add(AISkillCaster.InputTicksThisFrame * 1000d / System.Diagnostics.Stopwatch.Frequency);
             _frameMs.Add(Time.unscaledDeltaTime * 1000d);
         }
 
@@ -217,6 +220,8 @@ namespace BuddahGo.AI
                 SkillFrameMedianMs = Percentile(_skillFrameMs, .5), SkillFrameP95Ms = Percentile(_skillFrameMs, .95),
                 SkillFrameP99Ms = Percentile(_skillFrameMs, .99), SkillFrameMaxMs = _skillFrameMs.Count > 0 ? _skillFrameMs.Max() : -1,
                 SkillFrameMeanMs = _skillFrameMs.Count > 0 ? _skillFrameMs.Average() : -1,
+                SkillInputMeanMs = _skillInputMs.Count > 0 ? _skillInputMs.Average() : -1, SkillInputMaxMs = _skillInputMs.Count > 0 ? _skillInputMs.Max() : -1,
+                SkillInputShareOfPeaks = InputShareOfFramesOver(.2),
                 PerfFrames = _skillFrameMs.Count, PerfWarmupSeconds = PerfWarmupSeconds, PerfWindowSeconds = PerfWindowSeconds,
                 FrameMedianMs = Percentile(_frameMs, .5), FrameP95Ms = Percentile(_frameMs, .95) };
             string json = JsonUtility.ToJson(result, true);
@@ -225,10 +230,12 @@ namespace BuddahGo.AI
             File.WriteAllText(Path.Combine(OutputDirectory, "summary.json"), json);
             using (var performance = new StreamWriter(Path.Combine(OutputDirectory, "skill-perf.csv")))
             {
-                performance.WriteLine("frame,ai_skill_ms,frame_ms");
+                // New column appended last so existing readers of the first three columns are unaffected.
+                performance.WriteLine("frame,ai_skill_ms,frame_ms,ai_skill_input_ms");
                 for (int i = 0; i < _skillFrameMs.Count; i++) performance.WriteLine(i + ","
                     + _skillFrameMs[i].ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ","
-                    + _frameMs[i].ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+                    + _frameMs[i].ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ","
+                    + _skillInputMs[i].ToString("R", System.Globalization.CultureInfo.InvariantCulture));
             }
             Restore();
             if (stopSession) SessionControl.Current?.RequestStopSession();
@@ -242,6 +249,14 @@ namespace BuddahGo.AI
             Backlashes = r.Caster != null ? r.Caster.Backlashes : 0, Cancelled = r.Caster != null ? r.Caster.Cancelled : 0,
             ComboFailures = r.Caster != null ? r.Caster.Commitment.FailedCombos : 0, Keys = r.Caster != null ? r.Caster.Keys : 0,
             BuffShots = r.Caster != null ? r.Caster.BuffShots : 0 };
+        private double InputShareOfFramesOver(double thresholdMs)
+        {
+            double total = 0d, input = 0d;
+            for (int i = 0; i < _skillFrameMs.Count && i < _skillInputMs.Count; i++)
+                if (_skillFrameMs[i] > thresholdMs) { total += _skillFrameMs[i]; input += _skillInputMs[i]; }
+            return total > 0d ? input / total : -1d;
+        }
+
         private static double Percentile(List<double> values, double fraction)
         { if (values.Count == 0) return -1; var sorted = values.OrderBy(v => v).ToArray(); return sorted[(int)Math.Round((sorted.Length - 1) * fraction)]; }
         private void Skill(AISkillCaster.Observation observation) => _skills?.WriteLine(JsonUtility.ToJson(observation));
@@ -292,6 +307,8 @@ namespace BuddahGo.AI
             public int RuntimeErrors, SamplesPerRacer, MeasuredTargetFps, MeasuredVsync;
             public RacerResult[] AI; public RacerResult Human; public double SkillFrameMedianMs, SkillFrameP95Ms, FrameMedianMs, FrameP95Ms;
             public double SkillFrameMeanMs, SkillFrameP99Ms, SkillFrameMaxMs, PerfWarmupSeconds, PerfWindowSeconds; public int PerfFrames;
+            // Input split: mean/max input ms per frame, and the input share of AI.Skill time in frames over 0.2 ms (-1 when none).
+            public double SkillInputMeanMs, SkillInputMaxMs, SkillInputShareOfPeaks;
         }
         [Serializable] private struct EventRow { public string Kind, Detail; public double Clock; }
         [Serializable] private struct SampleRow

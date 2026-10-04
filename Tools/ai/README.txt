@@ -120,7 +120,7 @@ A3 natural evidence uses a separate operator, without taking over the human:
     -screen-width 1280 -screen-height 720 -logFile C:/Temp/skill-race-player.log
 Use a fresh, absolute output directory. Optional --ai-skill-window-seconds 95 stops after an explicitly labelled diagnostic
 window (not a natural finish). Performance records use 30s warmup and 60s capture,
-with raw skill-perf.csv and mean/median/p95/p99/max. --ai-skills-off supplies the
+with raw skill-perf.csv and mean/median/p95/p99/max. skill-perf.csv also carries ai_skill_input_ms (the AI.Skill.Input share: key injection, pushes, spawns) and summary.json reports SkillInputMeanMs / SkillInputMaxMs / SkillInputShareOfPeaks (input share of AI.Skill time in frames over 0.2 ms). --ai-skills-off supplies the
 same-match-load comparison without casting; --ai-skill-quiet disables per-decision
 and combat event observers. The diagnostic seed affects per-racer NoiseSeed;
 physics is not claimed to replay bit-for-bit. Each resulting driving profile

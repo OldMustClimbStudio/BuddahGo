@@ -17,5 +17,6 @@ resolved relative to the script; those copies are committed, with CSV/JSONL stor
   `race-results.json` (laps completed, total, best, average, side contacts). The match ends by product
   rule when the first car finishes, so other cars only record completed laps.
 
-Profiles: `Tools/ai/normal.json` (V5 beam), `thrust-vector-design.json` (line follower, no walls),
-`thrust-vector-wall*.json` (wall corridor variants), `thrust-vector-nobrake*.json` (no braking, race1 winner and its race2 variants).
+Profiles: `Tools/ai/difficulty-{easy,normal,hard}.json` (the shipped tiers). The 2026-10-02 variant profiles
+(`normal.json` V5 beam, `thrust-vector-design/wall*/nobrake*.json`) and their runs were removed on 2026-10-04;
+read them at commit `20401e5`.

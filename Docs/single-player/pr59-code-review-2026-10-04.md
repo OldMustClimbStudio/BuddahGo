@@ -118,7 +118,7 @@ Unity 2022.3.55f1c1 批处理模式（`-batchmode -nographics -runTests -testPla
 
 唯一失败 `ThrustVectorSpecTests.Grid162Once` 为 Explicit 的 162 次参数网格，需要 `--thrust-offline-output`，在基线即如此；其余四项基线失败全部随 legacy 退休。减少的 81 项全部是对照/历史用例，新增 4 项通过。
 
-**保留且说明理由**：五个诊断 harness 仍是 A1–A4 验收的取证工具且受 `#if` 门控，按仓库"探针只门控不删除"的既有规则保留；`Tools/ai/` 下的证据数据与 `plot_spin.py` 只读历史轨迹，未动。若这两类也算"额外内容"，可再开一轮单独删除。
+**保留且说明理由**：五个诊断 harness 仍是 A1–A4 验收的取证工具且受 `#if` 门控，按仓库"探针只门控不删除"的既有规则保留；`Tools/ai/` 下的证据数据与 `plot_spin.py` 只读历史轨迹，本轮未动（第四轮已删除 legacy 部分，见 §9）。
 
 **未做**：五个静态服务定位器合并、`SoloUIBootstrap` 改序列化引用（需改场景）、推掌协程改 tick 队列（行为敏感）。
 

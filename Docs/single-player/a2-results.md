@@ -46,6 +46,6 @@ PR #60 已合入 dev 的 `fc7ab594` 尚未整合到此分支；其 motor/相机/
 
 ## 证据
 
-仓库摘要：[`a2-results.json`](../../Tools/ai/a2-results.json)，参数：[`normal.json`](../../Tools/ai/normal.json)，复跑与绘图：[`README.txt`](../../Tools/ai/README.txt)。
+仓库摘要：[`a2-results.json`](https://github.com/OldMustClimbStudio/BuddahGo/blob/20401e5/Tools/ai/a2-results.json)，参数：[`normal.json`](https://github.com/OldMustClimbStudio/BuddahGo/blob/20401e5/Tools/ai/normal.json)，复跑与绘图：[`README.txt`](../../Tools/ai/README.txt)。
 
 原始证据保留于本机 task-16：`evidence/V5-three-laps/` 下的 trajectory/events JSONL、configuration、racing-line、summary、diagnostics、trajectory.png/svg、driving-camera.png、complete-camera.png；`logs/V5-three-laps.log`、最终源码哈希及构建/测试收据同时保留。task-16 的 `A2_HANDOFF.txt` 给出绝对路径、提交与后续注意项。原始记录不提交进产品资产。

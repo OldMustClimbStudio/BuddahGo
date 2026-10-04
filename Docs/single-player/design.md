@@ -134,7 +134,7 @@ AI 和 Solo 只依赖契约层与现有代码的公开入口，所以以后可�
 |---|---|---|
 | `IMatchRules` / `MatchRules.Current` | 模式差异的唯一查询点 | `AutoStartRoom`、`RequiresReady`、`SelectionTimeoutEnabled`、`SkipMapVote`、`VoteOnResults`、`ResultDecisionTimeoutEnabled`、`ReturnTarget`（Room / MainMenuHome）、`EndWhenAllRacersFinished`、`EndOnHumanFinish`（Practice）、`AllowSkipSpectating`、`AllowQuitDialog`、`AllowPause`、`ShowRacerNameTags`、`ShowOpponentsOnMinimap`、`DefaultPlayerName` |
 | `RacerId` | 参赛者身份值（ADR 0002） | `IsAI`、`FromClient(id)`、`ForAI(index)` |
-| `IRacerDirectory` | 按 RacerId 查询 Racer | `TryGet(RacerId, out RacerInfo)`、`All`、`TryGetByObject(NetworkObject)`；`RacerInfo` = Buddah 对象、显示名、IsAI、连接（AI 没有连接） |
+| `IRacerDirectory` | 按 RacerId 查询 Racer | `TryGet(RacerId, out RacerInfo)`、`All`；`RacerInfo` = Buddah 对象、显示名、IsAI、连接（AI 没有连接） |
 | `ISteeringOverride` | 让 motor 从别处取得转向与"是否行驶" | `bool TryGetOverride(out int steering, out bool drive)` |
 | `IMatchClock` | 比赛时间的唯一来源 | `Now`（秒，基准为服务器 tick）、`IsPaused` |
 | `ILocalInputBlock` | 让本地玩家输入暂时失效，例如 Esc 对话框打开期间；由 owner 输入桥读取 | `IsBlocked` |

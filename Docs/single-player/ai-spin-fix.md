@@ -63,7 +63,7 @@ fixed 仍有一个计划的绝对 yaw 变化为 374.2°，但路线也在转、�
 
 私有完整证据根目录：`C:/Users/dwh88/Documents/Codex/2026-10-01/task-18`。
 关键文件：`evidence/spin-comparison.png`、`evidence/baseline-aligned.csv`、`evidence/fixed-aligned.csv`、两组原始 trajectory/plans/events/configuration/racing-line/summary、`evidence/tests-initial.xml`、`evidence/tests-ai-final.xml`、各构建 `receipt.json`。
-仓库内保存 [机器结果](../../Tools/ai/spin-results.json)、真实入弯 [回归 fixture](../../Tools/ai/fixtures/spin-entry.json) 和绘图脚本。
+仓库内保存 [机器结果](https://github.com/OldMustClimbStudio/BuddahGo/blob/20401e5/Tools/ai/spin-results.json)、真实入弯 [回归 fixture](../../Tools/ai/fixtures/spin-entry.json) 和绘图脚本。
 fixture 的点来自完整实际路线，长度由首个已记录投影恢复；回放使用 prefab 力/阻力配置与日志四舍五入的惯量，不是新的精确模型一致性验收。
 
 ## 保留边界

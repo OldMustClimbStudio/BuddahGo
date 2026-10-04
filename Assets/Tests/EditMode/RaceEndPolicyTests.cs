@@ -37,13 +37,16 @@ namespace BuddahGo.Tests
             Assert.That(_policy.ShouldEnd(rules, 1, 1, true, 100d, 100d, 15d), Is.True);
         }
 
-        [Test]
-        public void SoloWithOtherRacersWaitsForAllOrCountdown()
+        [TestCase(3), TestCase(5)]
+        public void SoloWithOtherRacersWaitsForAllOrCountdown(int aiCount)
         {
-            var rules = new SoloMatchRules(new SoloMatchSettings(3, SoloDifficulty.Normal));
-            Assert.That(_policy.ShouldEnd(rules, 4, 1, true, 100d, 100d, 15d), Is.False);
-            Assert.That(_policy.ShouldEnd(rules, 4, 4, true, 105d, 100d, 15d), Is.True);
-            Assert.That(_policy.ShouldEnd(rules, 4, 1, true, 115d, 100d, 15d), Is.True);
+            var rules = new SoloMatchRules(new SoloMatchSettings(aiCount, SoloDifficulty.Normal));
+            int racers = aiCount + 1;
+            Assert.That(_policy.ShouldEnd(rules, racers, 1, true, 100d, 100d, 15d), Is.False);
+            Assert.That(_policy.ShouldEnd(rules, racers, 1, false, 114.9d, 100d, 15d), Is.False);
+            Assert.That(_policy.ShouldEnd(rules, racers, racers, true, 101d, 100d, 15d), Is.True);
+            Assert.That(_policy.ShouldEnd(rules, racers, 1, true, 115d, 100d, 15d), Is.True);
+            Assert.That(_policy.ShouldEnd(rules, racers, 1, false, 115d, 100d, 15d), Is.True);
         }
 
         [TestCase(0, 0), TestCase(-1, 0), TestCase(1, -1), TestCase(1, 2)]

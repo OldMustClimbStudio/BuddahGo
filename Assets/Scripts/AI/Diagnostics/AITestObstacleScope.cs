@@ -26,15 +26,14 @@ namespace BuddahGo.AI
             _colliderEnabled = _colliders.Select(c => c.enabled).ToArray();
             _rendererEnabled = _renderers.Select(r => r.enabled).ToArray();
         }
-        public bool TryDisable()
+        public void Disable()
         {
-            if (_disabled) return true;
+            if (_disabled) return;
             foreach (var obstacle in _objects) _record?.Invoke("test-box-disabled", obstacle.name
                 + "; activeSelf=" + obstacle.activeSelf + "; activeInHierarchy=" + obstacle.activeInHierarchy + "; collision/visibility only");
             foreach (var collider in _colliders) collider.enabled = false;
             foreach (var renderer in _renderers) renderer.enabled = false;
             _disabled = true;
-            return true;
         }
         public void Dispose()
         {

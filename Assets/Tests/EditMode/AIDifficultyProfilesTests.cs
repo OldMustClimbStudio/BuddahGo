@@ -33,4 +33,19 @@ public class AIDifficultyProfilesTests
         }
         finally { Object.DestroyImmediate(a); Object.DestroyImmediate(b); }
     }
+
+    [Test]
+    public void ProfileRejectsNonFiniteAndOutOfRangeValues()
+    {
+        var profile = ScriptableObject.CreateInstance<AIDifficultyProfile>();
+        try
+        {
+            profile.ValidateConfiguration();
+            profile.TargetSpeed = float.NaN;
+            Assert.Throws<System.ArgumentException>(() => profile.ValidateConfiguration());
+            profile.TargetSpeed = 80f; profile.RolloutSampleTicks = 0;
+            Assert.Throws<System.ArgumentException>(() => profile.ValidateConfiguration());
+        }
+        finally { Object.DestroyImmediate(profile); }
+    }
 }

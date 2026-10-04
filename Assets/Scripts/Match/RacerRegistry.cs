@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using FishNet.Object;
 using UnityEngine;
 
 namespace BuddahGo.Match
@@ -17,11 +16,6 @@ namespace BuddahGo.Match
             if (ReferenceEquals(RacerDirectory.Current, this)) RacerDirectory.Current = null;
         }
         public bool TryGet(RacerId id, out RacerIdentity racer) => _racers.TryGetValue(id, out racer);
-        public bool TryGetByObject(NetworkObject body, out RacerIdentity racer)
-        {
-            racer = body != null ? body.GetComponent<RacerIdentity>() : null;
-            return racer != null && racer.IsAssigned && _racers.TryGetValue(racer.Id, out var registered) && registered == racer;
-        }
         public void Register(RacerIdentity racer)
         {
             if (racer == null || !racer.IsAssigned) throw new ArgumentException("Racer must have an identity.");

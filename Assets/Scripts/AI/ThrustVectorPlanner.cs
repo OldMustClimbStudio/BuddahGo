@@ -8,7 +8,7 @@ namespace BuddahGo.AI
     //   guidance  -> an analytic anchor thrust angle relative to the velocity direction
     //   rollouts  -> a small set of candidate thrust angles, each driven closed-loop by the
     //                attitude layer through the motion model for a short horizon and scored
-    //                with the V5 lateral/speed/progress weights; the sweep of the thrust vector
+    //                with the lateral/speed/progress weights; the sweep of the thrust vector
     //                while the heading turns is therefore paid for explicitly
     //   attitude  -> time-optimal switching curve on the continuous route-relative heading branch
     public sealed class ThrustVectorPlanner
@@ -43,8 +43,6 @@ namespace BuddahGo.AI
         private int _selectionPhase = -1, _planCounter, _wobbleCounter;
         private float _wobble, _secondTheta;
         private System.Random _random;
-        internal float LastWobbleDegrees => _wobble;
-        internal bool LastSelectionWasMistake { get; private set; }
         private System.Random Random(AIDifficultyProfile profile)
             => _random ??= new System.Random(profile.NoiseSeed != 0 ? profile.NoiseSeed : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this));
         private static float Gaussian(System.Random random)
@@ -269,7 +267,6 @@ namespace BuddahGo.AI
                 hysteresis = profile.AttitudeHysteresisDegrees * Mathf.Deg2Rad, maxAngle = profile.MaxThrustAngleDegrees;
             float chosenTheta = anchorTheta, bestCost = float.PositiveInfinity, anchorCost = float.PositiveInfinity, secondCost = float.PositiveInfinity;
             int candidateCount = 0;
-            LastSelectionWasMistake = false;
             // Rollout selection runs every ThrustReplanTicks (staggered across instances so five AI do not
             // select on the same tick); the attitude layer below still runs every tick on the retained angle.
             int period = Mathf.Max(1, profile.ThrustReplanTicks);
@@ -311,7 +308,7 @@ namespace BuddahGo.AI
                 // Difficulty randomness: an occasional second-best pick is a human-like misjudgement that
                 // lasts one selection period, never an unsafe or impossible command.
                 if (profile.MistakeProbability > 0f && !float.IsPositiveInfinity(secondCost) && Random(profile).NextDouble() < profile.MistakeProbability)
-                { chosenTheta = _secondTheta; LastSelectionWasMistake = true; }
+                    chosenTheta = _secondTheta;
             }
             // Slow Gaussian wobble on the thrust angle (resampled every WobbleTicks): line-holding gets
             // visibly less precise without per-tick jitter.

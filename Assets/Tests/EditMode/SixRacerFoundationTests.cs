@@ -14,16 +14,6 @@ namespace BuddahGo.Tests
     public class SixRacerFoundationTests
     {
         [Test]
-        public void AIIdsAreUniqueAndOutsideHumanNamespace()
-        {
-            var ids=Enumerable.Range(0,5).Select(RacerId.ForAI).ToArray();
-            Assert.That(ids.Distinct().Count(),Is.EqualTo(5));
-            Assert.That(ids.All(x=>x.IsAI && x.Value>=10000),Is.True);
-            Assert.That(RacerId.FromClient(0).IsAI,Is.False);
-            Assert.Throws<ArgumentOutOfRangeException>(()=>RacerId.ForAI(-1));
-            Assert.Throws<ArgumentOutOfRangeException>(()=>RacerId.ForAI(5));
-        }
-        [Test]
         public void RegistryRejectsDuplicatesAndUnregistersOnlyTheSameBody()
         {
             var root=new GameObject("registry");var a=new GameObject("a");var b=new GameObject("b");

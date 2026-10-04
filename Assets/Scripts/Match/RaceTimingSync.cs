@@ -55,13 +55,6 @@ namespace BuddahGo.Match
             _timing.Finish(racer, lapsToFinish, now);
             Publish(racer);
         }
-        // Keep FishNet's editor Reset callback intact; this resets only the timing contract.
-        void IRaceTiming.Reset()
-        {
-            if (!IsServerInitialized) return;
-            _timing.Reset();
-            Records.Clear();
-        }
         public bool TryGetResult(RacerId racer, out RaceTimingResult result)
         {
             if (IsServerInitialized) return _timing.TryGetResult(racer, out result);

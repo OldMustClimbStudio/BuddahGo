@@ -26,7 +26,6 @@ public class ThrustVectorSpecTests
         public int ticks,sideChanges,invariantViolations,wallContacts;
         public string firstInvariant;
     }
-    [Serializable] public class Runs { public Run[] runs; }
     [Serializable] public class StraightResult
     {
         public float steeringSign,firstTheta,finalError,minimumError,finalLateralSpeed,maximumIncrease;
@@ -245,8 +244,7 @@ public class ThrustVectorSpecTests
     [Test] public void F07OfflineLapMeetsAllLimits()
     {
         // Regression thresholds pinned to the 2026-10-02 run9 result (119.233 s, max|e| 106 m, 30 side changes,
-        // heading -198..168). The wall-less model is stricter than the game (the V5 beam DNFs here at 86.6 s with
-        // RMS 44.9 m); quality targets are the real-Player metrics in thrust-vector-controller-spec.md.
+        // heading -198..168). The wall-less model is stricter than the game; quality targets are the real-Player metrics in thrust-vector-controller-spec.md.
         var r=DesignLap();CollectionAssert.AreEqual(new[]{true,true,true,true},new[]{r.complete,r.maxError<=120,r.sideChanges<=36,r.minHeading>=-200&&r.maxHeading<=200},
             $"complete/maxe<=120/sides<=36/headingwithin200; {JsonUtility.ToJson(r)}");
     }
@@ -263,62 +261,8 @@ public class ThrustVectorSpecTests
         var r=WallLap();CollectionAssert.AreEqual(new[]{true,true,true},new[]{r.complete,r.invariantViolations==0,r.minHeading>=-200&&r.maxHeading<=200},
             $"complete/invariants/headingwithin200; {JsonUtility.ToJson(r)}");
     }
-    [Test,Explicit("Wall-corridor tail/weight variants: writes wall-variants.json, no gate")]
-    public void F11WallTailVariants()
-    {
-        var rows=new List<Run>();
-        foreach(int tail in new[]{0,1,2})foreach(float wall in new[]{.2f,.05f})
-        {
-            var p=Design();p.UseWallCorridor=true;p.RolloutOverspeedWeight=0f;p.RolloutTail=tail;p.RolloutWallWeight=wall;
-            try{var r=Lap(p,FormattableString.Invariant($"wall-tail{tail}-w{wall:F2}"));r.name=FormattableString.Invariant($"tail={tail} wall={wall:F2}");rows.Add(r);}finally{UnityEngine.Object.DestroyImmediate(p);}
-        }
-        Save("wall-variants.json",JsonUtility.ToJson(new Runs{runs=rows.ToArray()},true));
-        foreach(var r in rows)TestContext.WriteLine($"{r.name}: complete={r.complete} lap={r.lapSeconds} rms={r.rms:F1} maxE={r.maxError:F1} heading={r.minHeading:F0}..{r.maxHeading:F0} contacts={r.wallContacts} sides={r.sideChanges}");
-    }
-    [Test,Explicit("Wall-corridor second sweep around tail=1: writes wall-variants2.json, no gate")]
-    public void F12WallTailOneSweep()
-    {
-        var rows=new List<Run>();
-        foreach(float horizon in new[]{2f,2.6f})foreach(float wall in new[]{.05f,.02f,0f})
-        {
-            var p=Design();p.UseWallCorridor=true;p.RolloutOverspeedWeight=0f;p.RolloutTail=1;p.RolloutWallWeight=wall;p.RolloutSeconds=horizon;
-            try{var r=Lap(p,FormattableString.Invariant($"wall2-h{horizon:F1}-w{wall:F2}"));r.name=FormattableString.Invariant($"horizon={horizon:F1} wall={wall:F2}");rows.Add(r);}finally{UnityEngine.Object.DestroyImmediate(p);}
-        }
-        Save("wall-variants2.json",JsonUtility.ToJson(new Runs{runs=rows.ToArray()},true));
-        foreach(var r in rows)TestContext.WriteLine($"{r.name}: complete={r.complete} lap={r.lapSeconds} rms={r.rms:F1} maxE={r.maxError:F1} heading={r.minHeading:F0}..{r.maxHeading:F0} contacts={r.wallContacts} sides={r.sideChanges}");
-    }
-    [Test,Explicit("No-braking sweep: max thrust angle x underspeed weight, writes wall-variants3.json, no gate")]
-    public void F13WallNoBrakeSweep()
-    {
-        var rows=new List<Run>();
-        foreach(float maxAngle in new[]{170f,120f,90f})foreach(float under in new[]{1f,3f})
-        {
-            var p=Design();p.UseWallCorridor=true;p.RolloutOverspeedWeight=0f;p.RolloutTail=1;p.RolloutWallWeight=.05f;p.MaxThrustAngleDegrees=maxAngle;p.RolloutUnderspeedWeight=under;
-            try{var r=Lap(p,FormattableString.Invariant($"wall3-a{maxAngle:F0}-u{under:F0}"));r.name=FormattableString.Invariant($"maxAngle={maxAngle:F0} under={under:F0}");rows.Add(r);}finally{UnityEngine.Object.DestroyImmediate(p);}
-        }
-        Save("wall-variants3.json",JsonUtility.ToJson(new Runs{runs=rows.ToArray()},true));
-        foreach(var r in rows)TestContext.WriteLine($"{r.name}: complete={r.complete} lap={r.lapSeconds} rms={r.rms:F1} maxE={r.maxError:F1} heading={r.minHeading:F0}..{r.maxHeading:F0} contacts={r.wallContacts} sides={r.sideChanges} fail={r.failure}");
-    }
     [Test] public void F08InvariantsHoldForEntireCompletedLap()
     {
         var r=DesignLap();Assert.That(r.invariantViolations,Is.Zero,r.firstInvariant);Assert.That(r.complete,Is.True,"A partial DNF trace is not an entire completed lap");
-    }
-    [Test,Explicit("Run the specification grid exactly once, after all eight fixture categories pass")]
-    public void Grid162Once()
-    {
-        Assert.That(Output,Is.Not.Null,"A durable output path is required");Directory.CreateDirectory(Output);
-        string marker=Path.Combine(Output,"grid-started.txt");Assert.That(File.Exists(marker),Is.False,"Do not rerun an existing grid output");
-        File.WriteAllText(marker,"Exactly one specification grid started "+DateTime.UtcNow.ToString("O"));
-        var p=Design();var rows=new List<Run>();var table=new StringBuilder("index,k,tau,margin,f_pace,a_brake_plan,complete,duration_s,lap_s,side_changes,max_e,rms,min_heading,max_heading,invariant_violations,progress,failure\n");
-        try {
-            foreach(float k in new[]{.15f,.30f,.45f})foreach(float tau in new[]{.8f,1f,1.2f})
-            foreach(float margin in new[]{1.5f,2f,3f})foreach(float factor in new[]{.85f,.90f,.95f})foreach(float brake in new[]{10f,12.5f}) {
-                p.PredictionGain=k;p.LateralDamping=1.8f*Mathf.Sqrt(k);p.LookaheadSeconds=tau;p.SpeedMargin=margin;p.ThrustPaceFactor=factor;p.PlanningBrakeAcceleration=brake;
-                var r=Lap(p,"grid-"+rows.Count.ToString("D3"));int index=rows.Count;rows.Add(r);
-                table.AppendLine(FormattableString.Invariant($"{index},{k:R},{tau:R},{margin:R},{factor:R},{brake:R},{r.complete},{r.seconds:R},{r.lapSeconds},{r.sideChanges},{r.maxError:R},{r.rms:R},{r.minHeading:R},{r.maxHeading:R},{r.invariantViolations},{r.progress:R},{r.failure}"));
-                Save("grid-results.json",JsonUtility.ToJson(new Runs{runs=rows.ToArray()},true));Save("grid-results.csv",table.ToString());
-            }
-            Assert.That(rows.Count,Is.EqualTo(162));
-        }finally{UnityEngine.Object.DestroyImmediate(p);}
     }
 }

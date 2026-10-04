@@ -219,7 +219,6 @@ namespace BuddahGo.AI
             }
             return best;
         }
-        public LineProjection ProjectSmall(Vector3 position, int nearSegment) => Project(position, nearSegment, 3);
         public LineProjection Project(Vector3 position, int nearSegment, int searchSegments = 12)
         {
             float best = float.PositiveInfinity, distance = 0f, bestT = 0f;

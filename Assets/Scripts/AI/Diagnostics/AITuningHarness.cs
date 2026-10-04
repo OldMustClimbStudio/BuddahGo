@@ -41,7 +41,7 @@ namespace BuddahGo.AI
         private bool _skillWasEnabled, _go, _stalled, _wrongWay;
         [SerializeField] private bool _finished, _restored;
         private int _sampleId, _collisions, _teleports, _lastCheckpoint, _lastLap, _runtimeErrors, _aiCount;
-        // Frame-time window GO+2..11 s (the same window as Tools/ai/performance), written to perf.csv.
+        // Frame-time window GO+2..11 s (the 2026-10-02 performance comparison window), written to perf.csv.
         private readonly System.Collections.Generic.List<float> _perfFrameMs = new System.Collections.Generic.List<float>();
         private uint _perfFirstTick, _perfLastTick; private int _perfFrames;
         // Race mode: one profile per racer (index 0 = this harness racer, 1.. = server AI ordered by RacerId),
@@ -132,7 +132,7 @@ namespace BuddahGo.AI
                     _perfLastTick = _motor.TimeManager.LocalTick; _perfFrames++;
                     _perfFrameMs.Add(Time.unscaledDeltaTime * 1000f);
                 }
-                if (!_productFinished) { Sample(); if (_racerStats.Count > 0 && _sampleId % 1 == 0) SampleRacers(); }
+                if (!_productFinished) { Sample(); if (_racerStats.Count > 0) SampleRacers(); }
                 var presentation = MatchResultPresentationCoordinator.Instance;
                 string stage = presentation != null ? presentation.CurrentStage.ToString() : "missing";
                 if (stage != _lastResultStage) { _lastResultStage = stage; Event("result-stage", stage); }
@@ -195,7 +195,7 @@ namespace BuddahGo.AI
             _motor = racers.FirstOrDefault(item => item.IsOwner && item.IsServerInitialized);
             if (_motor == null || TrackSplineRef.Instance == null) return;
             _obstacles ??= new AITestObstacleScope(Event);
-            if (!_obstacles.TryDisable()) return;
+            _obstacles.Disable();
             if (_aiCount == 0 && racers.Length != 1) throw new InvalidOperationException("A1 requires exactly one racer.");
             _driver = _motor.GetComponent<AIRacerDriver>();
             if (_driver == null) throw new InvalidOperationException("Prefab has no AIRacerDriver.");

@@ -67,7 +67,7 @@ namespace SteamMultiplayer.Network
     ///   - Create / join / leave Steam lobbies
     ///   - Store lobby metadata (name, app version, host SteamId)
     ///   - Refresh public lobby list with version + slot filtering
-    ///   - Automatically trigger StartHost / StartClient on GameNetworkManager
+    ///   - Automatically start the online host / client through SessionControl
     ///   - Expose clean events for UI and higher-level systems
     ///
     /// Does NOT handle:
@@ -597,7 +597,7 @@ namespace SteamMultiplayer.Network
         /// CURRENT LIMITATION: No host migration. All clients return to menu.
         /// TO UPGRADE: Assign a new owner with lobby.Owner = newOwner; and
         /// update the KEY_HOST_STEAM_ID metadata, then have the new host call
-        /// GameNetworkManager.Instance.StartHost().
+        /// SessionControl.Current.StartOnlineHost().
         /// </summary>
         private void HandlePotentialHostLeft(Lobby lobby, Friend friend)
         {

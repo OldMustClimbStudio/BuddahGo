@@ -92,15 +92,6 @@ public class AIDrivingTests
     }
 
     [Test]
-    public void RacingLineProjectionWrapsAcrossLastSegment()
-    {
-        var line = new SplineRacingLine(new[] { Vector3.zero, Vector3.right * 10, new Vector3(10, 0, 10), Vector3.forward * 10 }, 40);
-        var projected = line.Project(new Vector3(-2, 0, 4), 0, 2);
-        Assert.That(projected.Segment, Is.EqualTo(3)); Assert.That(projected.Distance, Is.EqualTo(36).Within(0.001));
-        Assert.That(projected.Lateral, Is.EqualTo(2).Within(0.001));
-    }
-
-    [Test]
     public void DriverIsSerializedDisabledWithoutChangingMotorConfiguration()
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Character/Prefab/Buddah.prefab");
@@ -108,33 +99,5 @@ public class AIDrivingTests
         Assert.That(prefab.GetComponent<AIRacerDriver>().enabled, Is.False);
         Assert.That(prefab.GetComponent<Rigidbody>().mass, Is.EqualTo(2));
         Assert.That(prefab.GetComponent<Rigidbody>().drag, Is.Zero);
-    }
-    [Test]
-    public void CurvaturePaceUsesAvailableForceAndTighterCorners()
-    {
-        var points = new Vector3[120];
-        for (int i = 0; i < points.Length; i++)
-        { float angle = i * 2 * Mathf.PI / points.Length; points[i] = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * 40; }
-        var line = new SplineRacingLine(points, 80 * Mathf.PI);
-        line.PreparePace(25, 80, .8f, 10f);
-        float pace = line.Project(points[0], 0).Pace;
-        Assert.That(pace, Is.InRange(27f, 30f));
-        line.PreparePace(12.5f, 80, .8f, 10f);
-        Assert.That(line.Project(points[0], 0).Pace, Is.LessThan(pace));
-    }
-
-    [Test]
-    public void ProfileRejectsNonFiniteAndOutOfRangeValues()
-    {
-        var profile = ScriptableObject.CreateInstance<AIDifficultyProfile>();
-        try
-        {
-            profile.ValidateConfiguration();
-            profile.TargetSpeed = float.NaN;
-            Assert.Throws<System.ArgumentException>(() => profile.ValidateConfiguration());
-            profile.TargetSpeed = 80f; profile.RolloutSampleTicks = 0;
-            Assert.Throws<System.ArgumentException>(() => profile.ValidateConfiguration());
-        }
-        finally { Object.DestroyImmediate(profile); }
     }
 }

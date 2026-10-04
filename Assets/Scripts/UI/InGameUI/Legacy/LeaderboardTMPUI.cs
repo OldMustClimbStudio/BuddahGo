@@ -178,6 +178,16 @@ public class LeaderboardTMPUI : MonoBehaviour
         _lastTextInputs = inputs;
         _hasTextSnapshot = true;
         RememberRankingsText();
+        // Detailed telemetry stays in logs; Online still needs its normal standings.
+        if (NetDebug.EnableVerboseLog)
+            GameLog.Verbose("[RaceHUD] " + BuildStatusTelemetry(hasProgress, splineProgress01, finalCompletionPercent, dot));
+        var leaderboard = LeaderboardManager.Instance;
+        RenderRankings(leaderboard != null ? leaderboard.LeaderboardSnapshotText : null,
+            leaderboard != null ? leaderboard.Rankings : null);
+    }
+
+    private string BuildStatusTelemetry(bool hasProgress, float splineProgress01, float finalCompletionPercent, float dot)
+    {
         StringBuilder sb = new StringBuilder();
         if (RoomStateManager.Instance != null && RoomStateManager.Instance.IsRaceSceneLoadedLocally)
         {
@@ -212,12 +222,7 @@ public class LeaderboardTMPUI : MonoBehaviour
             sb.AppendLine("Backfire Chance: (local obsession not found)");
             sb.AppendLine("Gap To Leader: (local obsession not found)");
         }
-
-        // Detailed telemetry stays in logs; Online still needs its normal standings.
-        if (NetDebug.EnableVerboseLog) GameLog.Verbose("[RaceHUD] " + sb.ToString());
-        var leaderboard = LeaderboardManager.Instance;
-        RenderRankings(leaderboard != null ? leaderboard.LeaderboardSnapshotText : null,
-            leaderboard != null ? leaderboard.Rankings : null);
+        return sb.ToString();
     }
 
     private void RenderRankings(string snapshotText, IList<RankEntry> rankings)

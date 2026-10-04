@@ -17,7 +17,6 @@ namespace SteamMultiplayer.Network
     /// Lightweight wrapper around Fish-Networking's NetworkManager.
     /// Responsibilities:
     ///   - Singleton access
-    ///   - StartHost / StartClient / StopConnection convenience API
     ///   - Connection-state event forwarding with structured logging
     ///
     /// This script does NOT handle:
@@ -99,18 +98,6 @@ namespace SteamMultiplayer.Network
                 SessionLauncher.ResetMatchGlobals();
             }
         }
-
-        // ───────── Public API ─────────
-
-        /// <summary>
-        /// Start as Host (server + local client).
-        /// Call this after creating / configuring a Steam lobby.
-        /// </summary>
-        public void StartHost() => SessionControl.Current?.StartOnlineHost();
-
-        public void StartClient(string hostAddress) => SessionControl.Current?.StartOnlineClient(hostAddress);
-
-        public void StopConnection() => SessionControl.Current?.RequestStopSession();
 
         // ───────── Internal Helpers ─────────
 

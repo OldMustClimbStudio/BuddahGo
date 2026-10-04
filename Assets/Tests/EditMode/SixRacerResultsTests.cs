@@ -43,8 +43,6 @@ namespace BuddahGo.Tests
             }
             finally {UnityEngine.Object.DestroyImmediate(obj);}
         }
-        [TestCase(-1)] [TestCase(10005)]
-        public void WireIdentityRejectsInvalidValues(int id) => Assert.Throws<ArgumentOutOfRangeException>(()=>RacerId.FromValue(id));
         [Test]
         public void SixIndependentClocksAndDnfRowsPreserveActualCompletedLaps()
         {
@@ -67,14 +65,6 @@ namespace BuddahGo.Tests
             Assert.That(text,Does.Contain("01:35.000"));
             Assert.That(text,Does.Contain("04:54.000"));
             Assert.That(text,Does.Not.Contain("00:00.000"));
-        }
-        [Test]
-        public void AllFinishedUsesSixParticipantsAndKeepsFifteenSecondDeadline()
-        {
-            var policy=new RaceEndPolicy();var rules=new SoloMatchRules(new SoloMatchSettings(5,SoloDifficulty.Normal));
-            Assert.That(policy.ShouldEnd(rules,6,1,false,114.9,100,15),Is.False);
-            Assert.That(policy.ShouldEnd(rules,6,1,false,115,100,15),Is.True);
-            Assert.That(policy.ShouldEnd(rules,6,6,true,101,100,15),Is.True);
         }
     }
 }

@@ -126,7 +126,7 @@ namespace BuddahGo.AI
             if (TrackSplineRef.Instance == null || TrackSplineRef.Instance.TrackLength <= 0f)
                 throw new InvalidOperationException("RaceMap needs an active, initialized TrackSplineRef before observing AI.");
             _obstacles ??= new AITestObstacleScope(Event);
-            if (!_obstacles.TryDisable()) return;
+            _obstacles.Disable();
             // FishNet changes the cap on host startup; establish the declared measurement cap after that transition.
             Application.targetFrameRate = 60; QualitySettings.vSyncCount = 0;
             Event("measurement-settings", "targetFPS=60;vSync=0;resolution=" + Screen.width + "x" + Screen.height + ";decisionObserver=" + CaptureDetails);

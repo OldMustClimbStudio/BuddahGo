@@ -12,6 +12,7 @@ public static class AISkillAcceptanceTools
     private static readonly TestRunnerApi Runner;
     static AISkillAcceptanceTools()
     {
+        if (AssetDatabase.IsAssetImportWorkerProcess()) return;
         Runner = ScriptableObject.CreateInstance<TestRunnerApi>();
         Runner.RegisterCallbacks(new Receipt());
     }
@@ -23,9 +24,9 @@ public static class AISkillAcceptanceTools
         SessionState.SetString(OutputKey, outputPath);
         Runner.Execute(new ExecutionSettings(new Filter { testMode = TestMode.EditMode,
             groupNames = new[] { "AISkillSceneTests", "AISkillDecisionTests", "AISkillCommitmentTests", "AIDifficultyProfilesTests", "AIDrivingTests",
-                "ProjectileBurstPlannerTests", "PushAttackTimingTests", "RacerIdTests", "RaceTimingTests", "SixRacerFoundationTests", "SixRacerResultsTests",
+                "SplineRacingLineTests", "ProjectileBurstPlannerTests", "RacerIdTests", "RaceTimingTests", "SixRacerFoundationTests", "SixRacerResultsTests",
                 "SoloMatchSettingsTests", "SoloPresentationTimelineTests", "IntroHandoffContinuityTests", "IntroHandoffTimingTests", "PlayerCameraIntroExitTests",
-                "SoloSessionFlowTests", "SoloTransportTests" } }));
+                "SoloSessionFlowTests", "SoloTransportTests", "RaceEndPolicyTests" } }));
     }
     private sealed class Receipt : ICallbacks
     {

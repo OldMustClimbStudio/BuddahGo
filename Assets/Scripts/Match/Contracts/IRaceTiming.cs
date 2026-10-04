@@ -21,6 +21,5 @@ namespace BuddahGo.Match
         void ObserveCompletedLaps(RacerId racer, int completedLaps, double now);
         void Finish(RacerId racer, int lapsToFinish, double now);
         bool TryGetResult(RacerId racer, out RaceTimingResult result);
-        void Reset();
     }
 }

@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using FishNet.Object.Synchronizing;
 using SteamMultiplayer.Network.Results;
 using TMPro;
@@ -17,6 +18,11 @@ namespace SteamMultiplayer.UI
 
         private ResultDecisionManager _decisionManager;
         private bool _subscribed;
+        private CanvasGroup _modeGroup;
+        private bool _hiddenByRules;
+        private float _previousAlpha;
+        private bool _previousInteractable;
+        private bool _previousRaycasts;
 
         private void Awake()
         {
@@ -98,6 +104,7 @@ namespace SteamMultiplayer.UI
 
         private void RefreshView()
         {
+            if (!ApplyModeVisibility()) return;
             if (_decisionManager == null)
             {
                 SetText(countdownText, "Countdown: --");
@@ -119,6 +126,34 @@ namespace SteamMultiplayer.UI
 
             SetText(playerChoicesText, _decisionManager.BuildDecisionSummary());
             SetButtonsInteractable(_decisionManager.IsDecisionActive && _decisionManager.FinalDecision == ResultFinalDecision.None);
+        }
+
+        private bool ApplyModeVisibility()
+        {
+            if (!MatchRules.Current.VoteOnResults)
+            {
+                if (_modeGroup == null)
+                    _modeGroup = GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
+                if (!_hiddenByRules)
+                {
+                    _previousAlpha = _modeGroup.alpha;
+                    _previousInteractable = _modeGroup.interactable;
+                    _previousRaycasts = _modeGroup.blocksRaycasts;
+                    _hiddenByRules = true;
+                }
+                _modeGroup.alpha = 0f;
+                _modeGroup.interactable = false;
+                _modeGroup.blocksRaycasts = false;
+                return false;
+            }
+            if (_hiddenByRules && _modeGroup != null)
+            {
+                _modeGroup.alpha = _previousAlpha;
+                _modeGroup.interactable = _previousInteractable;
+                _modeGroup.blocksRaycasts = _previousRaycasts;
+                _hiddenByRules = false;
+            }
+            return true;
         }
 
         private string BuildPendingStatus()

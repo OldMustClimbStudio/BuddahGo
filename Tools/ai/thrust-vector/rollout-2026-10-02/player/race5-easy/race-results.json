@@ -1,0 +1,118 @@
+{
+    "racers": [
+        {
+            "racerId": 0,
+            "name": "玩家",
+            "profile": "difficulty-normal.json",
+            "collisions": 313,
+            "samples": 45621,
+            "speedSum": 2895355.67726326,
+            "maxSpeed": 81.09009552001953,
+            "finished": true,
+            "totalSeconds": 287.15,
+            "laps": [
+                96.56666666666666,
+                95.61666666666668,
+                94.96666666666667
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 10004,
+            "name": "AI 5",
+            "profile": "Easy #4",
+            "collisions": 360,
+            "samples": 45621,
+            "speedSum": 2869703.7448358538,
+            "maxSpeed": 82.3131332397461,
+            "finished": true,
+            "totalSeconds": 292.6166666666667,
+            "laps": [
+                95.38333333333333,
+                94.28333333333333,
+                102.94999999999999
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 10002,
+            "name": "AI 3",
+            "profile": "Easy #2",
+            "collisions": 401,
+            "samples": 45621,
+            "speedSum": 2854196.7163391115,
+            "maxSpeed": 82.0514144897461,
+            "finished": true,
+            "totalSeconds": 295.6,
+            "laps": [
+                100.26666666666665,
+                100.75,
+                94.58333333333334
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 10001,
+            "name": "AI 2",
+            "profile": "Easy #1",
+            "collisions": 361,
+            "samples": 45621,
+            "speedSum": 2817611.2902770044,
+            "maxSpeed": 82.85809326171875,
+            "finished": true,
+            "totalSeconds": 295.6333333333333,
+            "laps": [
+                93.85,
+                100.68333333333334,
+                101.10000000000002
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 10003,
+            "name": "AI 4",
+            "profile": "Easy #3",
+            "collisions": 326,
+            "samples": 45621,
+            "speedSum": 2784242.4922691436,
+            "maxSpeed": 80.38489532470703,
+            "finished": true,
+            "totalSeconds": 299.6333333333333,
+            "laps": [
+                100.44999999999999,
+                99.1,
+                100.08333333333337
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        },
+        {
+            "racerId": 10000,
+            "name": "AI 1",
+            "profile": "Easy #0",
+            "collisions": 340,
+            "samples": 45621,
+            "speedSum": 2765845.7954616548,
+            "maxSpeed": 80.38500213623047,
+            "finished": true,
+            "totalSeconds": 300.79999999999998,
+            "laps": [
+                101.78333333333333,
+                100.03333333333333,
+                98.98333333333332
+            ],
+            "body": {
+                "instanceID": 0
+            }
+        }
+    ]
+}

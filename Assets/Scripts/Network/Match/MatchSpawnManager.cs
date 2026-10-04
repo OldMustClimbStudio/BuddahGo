@@ -1,4 +1,5 @@
 using System.Collections;
+using BuddahGo.Match;
 using System.Collections.Generic;
 using FishNet;
 using FishNet.Connection;
@@ -15,6 +16,9 @@ namespace SteamMultiplayer.Network.Match
         [SerializeField] private MatchSpawnPoint[] _spawnPoints;
 
         private readonly Dictionary<int, NetworkObject> _spawnedPlayers = new Dictionary<int, NetworkObject>();
+
+        private readonly List<NetworkObject> _spawnedAI = new List<NetworkObject>();
+        private BuddahGo.AI.AISkillWorld _skillWorld;
 
         private void Awake()
         {
@@ -114,18 +118,59 @@ namespace SteamMultiplayer.Network.Match
             if (_spawnedPlayers.ContainsKey(conn.ClientId))
                 return;
 
+            int required = MatchRules.Current.IsSolo
+                ? 1 + (SessionControl.SoloSettings?.AICount ?? 0) : _spawnedPlayers.Count + 1;
+            CacheSpawnPointsIfNeeded();
+            if (_spawnPoints == null || _spawnPoints.Length < required)
+                throw new System.InvalidOperationException("Not enough unique racer spawn points.");
             Transform spawnPoint = GetSpawnPoint(_spawnedPlayers.Count);
             Vector3 spawnPosition = spawnPoint != null ? spawnPoint.position : transform.position;
             Quaternion spawnRotation = spawnPoint != null ? spawnPoint.rotation : transform.rotation;
 
             NetworkObject playerInstance = Instantiate(_playerPrefab, spawnPosition, spawnRotation);
             UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(playerInstance.gameObject, gameObject.scene);
+            var identity = playerInstance.GetComponent<RacerIdentity>();
+            if (identity == null) throw new System.InvalidOperationException("Racer prefab requires RacerIdentity.");
+            identity.AssignBeforeSpawn(RacerId.FromClient(conn.ClientId),
+                MatchRules.Current.IsSolo ? MatchRules.Current.DefaultPlayerName : "Player " + conn.ClientId);
             InstanceFinder.ServerManager.Spawn(playerInstance, conn);
             ApplyResolvedSkillLoadout(playerInstance, conn.ClientId);
             _spawnedPlayers[conn.ClientId] = playerInstance;
+            SpawnSoloAI();
 
             // Validation log for race-readiness pipeline (disabled by default).
             DebugLog($"[Spawn] Player ready for conn {conn.ClientId}");
+        }
+
+        private void SpawnSoloAI()
+        {
+            if (!MatchRules.Current.IsSolo) return;
+            var settings = SessionControl.SoloSettings;
+            int count = settings?.AICount ?? 0;
+            if (count == 0) return;
+            var skills = BuddahGo.AI.AISkillCatalog.Current;
+            _skillWorld ??= new BuddahGo.AI.AISkillWorld(skills.Tuning);
+            while (_spawnedAI.Count < count)
+            {
+                int index = _spawnedAI.Count;
+                var point = GetSpawnPoint(index + 1);
+                var racer = Instantiate(_playerPrefab, point.position, point.rotation);
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(racer.gameObject, gameObject.scene);
+                var identity = racer.GetComponent<RacerIdentity>();
+                var driver = racer.GetComponent<BuddahGo.AI.AIRacerDriver>();
+                var loadout = racer.GetComponent<SkillLoadout>();
+                var caster = racer.GetComponent<BuddahGo.AI.AISkillCaster>();
+                if (identity == null || driver == null || loadout == null || caster == null)
+                    throw new System.InvalidOperationException("Racer prefab requires RacerIdentity, a loadout, driver and skill caster.");
+                var personality = skills.Personalities[index];
+                identity.AssignBeforeSpawn(RacerId.ForAI(index), index < settings.AINames.Count ? settings.AINames[index] : personality.DisplayName);
+                racer.name = "AI Racer " + (index + 1);
+                driver.AdoptProfile(BuddahGo.AI.AIDifficultyProfiles.Resolve(settings.Difficulty, index));
+                InstanceFinder.ServerManager.Spawn(racer); // Empty owner, never a synthetic client.
+                loadout.SetSlotsServer(personality.Loadout);
+                caster.Configure(_skillWorld, personality, skills.ForDifficulty(settings.Difficulty), skills.Tuning, index, driver.Profile.NoiseSeed);
+                _spawnedAI.Add(racer);
+            }
         }
 
         private void DespawnPlayer(int clientId)
@@ -155,7 +200,9 @@ namespace SteamMultiplayer.Network.Match
             if (_spawnPoints == null || _spawnPoints.Length == 0)
                 return null;
 
-            MatchSpawnPoint spawnPoint = _spawnPoints[spawnIndex % _spawnPoints.Length];
+            if (spawnIndex < 0 || spawnIndex >= _spawnPoints.Length)
+                throw new System.ArgumentOutOfRangeException(nameof(spawnIndex));
+            MatchSpawnPoint spawnPoint = _spawnPoints[spawnIndex];
             return spawnPoint != null ? spawnPoint.transform : null;
         }
 

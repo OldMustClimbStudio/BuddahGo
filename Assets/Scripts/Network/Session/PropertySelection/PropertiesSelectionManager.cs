@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -562,7 +563,7 @@ namespace SteamMultiplayer.Network
         [Server]
         private void RegisterDefaultStageProperties()
         {
-            RegisterAvailableProperty(CreateDefaultMapProperty(), includeInStageOrder: true);
+            RegisterAvailableProperty(CreateDefaultMapProperty(), includeInStageOrder: !MatchRules.Current.SkipMapVote);
             RegisterAvailableProperty(CreateSkillLoadoutProperty(), includeInStageOrder: true);
             RegisterAvailableProperty(CreateDefaultSkinProperty(), includeInStageOrder: true);
         }
@@ -578,9 +579,10 @@ namespace SteamMultiplayer.Network
                 return;
             }
             StopAllCoroutines();
+            // This legacy flag also gates submissions and selection UI; keep the stage active without a timer.
             _stageCountdownActive.Value = true;
-            _stageCountdownSecondsRemaining.Value = Mathf.Max(1, _stageDurationSeconds);
-            StartCoroutine(StageCountdownCoroutine());
+            _stageCountdownSecondsRemaining.Value = MatchRules.Current.SelectionTimeoutEnabled ? Mathf.Max(1, _stageDurationSeconds) : 0;
+            if (MatchRules.Current.SelectionTimeoutEnabled) StartCoroutine(StageCountdownCoroutine());
             if (IsSkillLoadoutStage(stageKey))
                 GameLog.Verbose("[PropertySelection] Skill loadout selection stage started.");
             else

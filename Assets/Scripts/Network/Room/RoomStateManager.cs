@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -159,6 +160,8 @@ namespace SteamMultiplayer.Network
                 AddOrUpdatePlayer(ClientManager.Connection);
 
             SubmitLocalDisplayName();
+            if (IsServerInitialized && MatchRules.Current.AutoStartRoom)
+                StartCoroutine(StartSoloAfterInitialScenes());
 
             if (InstanceFinder.SceneManager != null)
                 InstanceFinder.SceneManager.OnLoadEnd += HandleClientSceneLoadEnd;
@@ -598,12 +601,37 @@ namespace SteamMultiplayer.Network
             return PlayerIdentity.ResolvePlayerName(steamId, clientId, lobby);
         }
 
+        private IEnumerator StartSoloAfterInitialScenes()
+        {
+            yield return null;
+            while (IsServerInitialized && IsClientInitialized && MatchRules.Current.AutoStartRoom)
+            {
+                NetworkConnection local = ClientManager.Connection;
+                if (local.IsValid && local.IsAuthenticated && local.LoadedStartScenes(true))
+                {
+                    TryStartSoloMatchServer();
+                    yield break;
+                }
+                yield return null;
+            }
+        }
+
+        [Server]
+        public void TryStartSoloMatchServer()
+        {
+            if (!MatchRules.Current.AutoStartRoom || _transitioningToPropertiesSelector.Value
+                || _matchSessionPhase.Value != MatchSessionPhase.InRoom) return;
+            NetworkConnection local = ClientManager.Connection;
+            if (!local.IsValid || !local.LoadedStartScenes(true)) return;
+            if (!TryGetPlayer(local.ClientId, out RoomPlayerState player) || !player.IsHost) return;
+            TransitionToPropertiesSelector();
+        }
+
         private void SubmitLocalDisplayName()
         {
-            if (!IsClientInitialized || !SteamClient.IsValid)
-                return;
-
-            string localName = SanitizePlayerName(SteamClient.Name);
+            if (!IsClientInitialized) return;
+            string localName = SanitizePlayerName(SteamClient.IsValid
+                ? SteamClient.Name : MatchRules.Current.DefaultPlayerName);
             if (string.IsNullOrWhiteSpace(localName))
                 return;
 
@@ -889,6 +917,7 @@ namespace SteamMultiplayer.Network
                 return;
 
             _authoritativeGoIssued.Value = true;
+            if (MatchServices.Clock != null) MatchServices.Timing?.Begin(MatchServices.Clock.Now);
             _pregameCountdownCompleted.Value = false;
             _gameplayMovementUnlocked.Value = false;
             GameLog.Verbose($"[IntroGo][Server] Authoritative go state set by intro sequence. details={BuildServerRaceReadinessSummary()}");

@@ -35,6 +35,8 @@ public class Skill_BlackCurtain : SkillAction
         if (caster == null)
             return;
 
+        BuddahGo.Match.SkillPerceptionState.ApplyCurtain(caster, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds, false);
+
         float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
         GameLog.Verbose($"[Skill_BlackCurtain][Server] Triggered by {caster.name}, totalDuration={actualDuration:0.00}s");
     }

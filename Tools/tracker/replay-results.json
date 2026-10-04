@@ -1,0 +1,103 @@
+{
+  "base_commit": "ba30112b36a404c3f5fa521ea67746efa3f7284a",
+  "method": "Actual tracker in current RaceMap; 3783 saved natural-run samples, linear pose/velocity interpolation near 60 Hz. Not original render frames or a fresh race. Editor-only branch probe removed from final source.",
+  "track_length_m": 5736.55029,
+  "source": {
+    "path": "task-18/evidence/fixed/trajectory.jsonl",
+    "sha256": "853704c42b351c75d34d62562201f560c00773f02485dbde2ce02b70f7c99a70"
+  },
+  "runs": {
+    "baseline-20": {
+      "rows": 3783,
+      "max_global_distance": 29.11184,
+      "rejections": 174,
+      "max_state_error": 126.0,
+      "max_lag": 119.43669800288708,
+      "stall_interval": {
+        "saved_points": 24,
+        "rejections": 23,
+        "progress_start": 0.7910364,
+        "progress_end": 0.7910364,
+        "max_lag_m": 119.43669800288708
+      }
+    },
+    "baseline-30": {
+      "rows": 3783,
+      "max_global_distance": 29.11184,
+      "rejections": 0,
+      "max_state_error": 17.5,
+      "max_lag": 3.592113060592382,
+      "stall_interval": {
+        "saved_points": 24,
+        "rejections": 0,
+        "progress_start": 0.7910364,
+        "progress_end": 0.8118115,
+        "max_lag_m": 2.8682751449996844
+      }
+    },
+    "baseline-40": {
+      "rows": 3783,
+      "max_global_distance": 29.11184,
+      "rejections": 0,
+      "max_state_error": 17.5,
+      "max_lag": 3.592113060592382,
+      "stall_interval": {
+        "saved_points": 24,
+        "rejections": 0,
+        "progress_start": 0.7910364,
+        "progress_end": 0.8118115,
+        "max_lag_m": 2.8682751449996844
+      }
+    },
+    "fixed-20": {
+      "rows": 3783,
+      "max_global_distance": 29.11184,
+      "rejections": 175,
+      "max_state_error": 0.01123047,
+      "max_lag": 119.43669800288708,
+      "stall_interval": {
+        "saved_points": 24,
+        "rejections": 23,
+        "progress_start": 0.7910364,
+        "progress_end": 0.7910364,
+        "max_lag_m": 119.43669800288708
+      }
+    },
+    "fixed-30": {
+      "rows": 3783,
+      "max_global_distance": 29.11184,
+      "rejections": 0,
+      "max_state_error": 0.009765625,
+      "max_lag": 3.2692600102710694,
+      "stall_interval": {
+        "saved_points": 24,
+        "rejections": 0,
+        "progress_start": 0.7910364,
+        "progress_end": 0.8118115,
+        "max_lag_m": 2.8682751449996844
+      }
+    },
+    "fixed-40": {
+      "rows": 3783,
+      "max_global_distance": 29.11184,
+      "rejections": 0,
+      "max_state_error": 0.009765625,
+      "max_lag": 3.2692600102710694,
+      "stall_interval": {
+        "saved_points": 24,
+        "rejections": 0,
+        "progress_start": 0.7910364,
+        "progress_end": 0.8118115,
+        "max_lag_m": 2.8682751449996844
+      }
+    }
+  },
+  "road_check": {
+    "over_20m_points": 174,
+    "road_collider_hits": 174,
+    "body_height_m": [
+      1.295878,
+      1.295969
+    ]
+  }
+}

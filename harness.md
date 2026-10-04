@@ -12,6 +12,8 @@ Unity 2022.3.55f1c1 · FishNet · FishyFacepunch · Steam.
 - Creating a worktree, branch, commit or PR: [CONTRIBUTING.md](CONTRIBUTING.md), including validation and asset rules.
 - Understanding a system or using Unity MCP: [Docs/README.md](Docs/README.md).
 - Executing the architecture optimization plan: [Docs/optimization/HANDOFF.md](Docs/optimization/HANDOFF.md).
+- Domain terms and decisions: [CONTEXT.md](CONTEXT.md), [Docs/adr/](Docs/adr/).
+- Implementing or validating Solo Match: [Docs/single-player/HANDOFF.md](Docs/single-player/HANDOFF.md). Solo tasks exclude online tests (including Steam two-client smoke and Solo/Online alternation); use the independent Solo benchmark requirements in [phases.md](Docs/single-player/phases.md) (the dedicated protocol and tools are integrated; runtime qualification remains open) and Solo evidence. Preserve existing online test assets for separately requested online work.
 
 This is the shared policy for `Agent.md`, `AGENTS.md` and `CLAUDE.md`.
 Historical reports in `agent-exchange/` are evidence, not current instructions or a task queue.

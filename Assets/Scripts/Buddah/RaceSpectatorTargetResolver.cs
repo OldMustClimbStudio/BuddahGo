@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using FishNet.Object;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
@@ -42,17 +43,17 @@ public class RaceSpectatorTargetResolver : MonoBehaviour
         for (int i = 0; i < LeaderboardManager.Instance.Rankings.Count; i++)
         {
             RankEntry entry = LeaderboardManager.Instance.Rankings[i];
-            if (entry.ClientId == localPlayer.OwnerId || entry.IsFinished)
+            if (RacerAuthority.Matches(localPlayer, entry.RacerId) || entry.IsFinished)
                 continue;
 
             for (int cameraIndex = 0; cameraIndex < allCameras.Length; cameraIndex++)
             {
                 PlayerCamera candidate = allCameras[cameraIndex];
-                if (candidate == null || !candidate.IsSpawned || candidate.OwnerId != entry.ClientId)
+                if (candidate == null || !candidate.IsSpawned || !RacerAuthority.Matches(candidate, entry.RacerId))
                     continue;
 
                 target = candidate;
-                DebugLog($"Resolved spectator target clientId={entry.ClientId} rankIndex={i}");
+                DebugLog($"Resolved spectator target clientId={entry.RacerId} rankIndex={i}");
                 return true;
             }
         }

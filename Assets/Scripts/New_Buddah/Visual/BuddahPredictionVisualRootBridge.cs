@@ -1,4 +1,6 @@
 using FishNet.Object;
+using BuddahGo.Match;
+using System.Collections;
 using NewBuddah.PredictionV2.Bootstrap;
 using NewBuddah.PredictionV2.Core;
 using NewBuddah.PredictionV2.Debugging;
@@ -8,6 +10,7 @@ using UnityEngine;
 namespace NewBuddah.PredictionV2.Visual
 {
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(-100)] // Finalize the shared actor/follow pose before Cinemachine LateUpdate.
     public class BuddahPredictionVisualRootBridge : MonoBehaviour
     {
         [SerializeField] private BuddahPredictionBootstrap bootstrap;
@@ -36,6 +39,64 @@ namespace NewBuddah.PredictionV2.Visual
         private string _lastStabilizationReason = "init";
         private bool _fishNetGraphicalSmoothingSuppressed;
         private RaceBodyIntroStateController _introStateController;
+        private SoloPresentationTimeline _soloTimeline;
+        private uint _soloRevision;
+        private bool _soloOwnsGraphical;
+
+        internal bool UsesSoloTimeline => RacerAuthority.HasLocalControl(_networkObject)
+            && _networkObject.IsServerInitialized && MatchRules.Current.IsSolo
+            && bootstrap != null && bootstrap.IsPredictionModeActive();
+
+        private void OnEnable() => StartCoroutine(CaptureSoloPhysics());
+
+        private IEnumerator CaptureSoloPhysics()
+        {
+            var afterPhysics = new WaitForFixedUpdate();
+            while (true)
+            {
+                yield return afterPhysics;
+                ResolveReferences();
+                if (!UsesSoloTimeline || movementRigidbody == null) continue;
+                EnsureSoloTimeline();
+                ResetSoloHistoryIfNeeded();
+                _soloTimeline.Record(Time.fixedTimeAsDouble, movementRigidbody.position, movementRigidbody.rotation);
+            }
+        }
+
+        private void EnsureSoloTimeline()
+        {
+            if (_soloTimeline == null)
+                _soloTimeline = new SoloPresentationTimeline(Time.fixedDeltaTime);
+            if (_networkObject.PredictionSmoother != null && !_soloOwnsGraphical)
+            {
+                _networkObject.PredictionSmoother.SetPresentationSuspended(true);
+                _soloOwnsGraphical = true;
+            }
+        }
+
+        private void ResetSoloHistoryIfNeeded()
+        {
+            uint revision = predictedMotor != null ? predictedMotor.PresentationRevision : 0u;
+            if (_soloRevision == revision) return;
+            _soloRevision = revision;
+            _soloTimeline.Clear();
+        }
+
+        public void ResetSoloPresentationHistory()
+        {
+            _soloTimeline?.Clear();
+        }
+
+        private void ApplySoloPresentation(Transform target)
+        {
+            EnsureSoloTimeline();
+            ResetSoloHistoryIfNeeded();
+            if (_soloTimeline.Count == 0 && movementRigidbody != null)
+                _soloTimeline.Record(Time.timeAsDouble, movementRigidbody.position, movementRigidbody.rotation);
+            if (_soloTimeline.TrySample(Time.timeAsDouble, out Vector3 position, out Quaternion rotation))
+                target.SetPositionAndRotation(position + rotation * _cachedVisualLocalPosition,
+                    rotation * _cachedVisualLocalRotation);
+        }
         private int _handoffProbeGoFrame = -1;
         private PlayerCamera _handoffProbeCamera;
 
@@ -55,8 +116,18 @@ namespace NewBuddah.PredictionV2.Visual
             BuddahPredictionDebugState debugState = bootstrap.DebugState;
             Transform resolvedMovementRoot = GetMovementRoot();
             Transform resolvedVisualRoot = GetVisualRoot();
-            UpdateFishNetGraphicalSmoothingState(resolvedMovementRoot, resolvedVisualRoot);
-            StabilizeOwnerVisualRootIfNeeded(resolvedMovementRoot, resolvedVisualRoot, debugState);
+            if (UsesSoloTimeline && resolvedMovementRoot != resolvedVisualRoot)
+            {
+                ApplySoloPresentation(resolvedVisualRoot);
+                debugState.ownerVisualRootStabilizationApplied = true;
+                debugState.ownerVisualRootStabilizationReason = "solo-physics-timeline";
+            }
+            else
+            {
+                ReleaseSoloPresentation();
+                UpdateFishNetGraphicalSmoothingState(resolvedMovementRoot, resolvedVisualRoot);
+                StabilizeOwnerVisualRootIfNeeded(resolvedMovementRoot, resolvedVisualRoot, debugState);
+            }
 
             debugState.movementRootName = resolvedMovementRoot != null ? resolvedMovementRoot.name : "null";
             debugState.visualRootName = resolvedVisualRoot != null ? resolvedVisualRoot.name : "null";
@@ -136,7 +207,17 @@ namespace NewBuddah.PredictionV2.Visual
 
         private void OnDisable()
         {
+            StopAllCoroutines();
+            ReleaseSoloPresentation();
             RestoreFishNetGraphicalSmoothingIfNeeded();
+        }
+
+        private void ReleaseSoloPresentation()
+        {
+            if (_soloOwnsGraphical)
+                _networkObject?.PredictionSmoother?.SetPresentationSuspended(false);
+            _soloOwnsGraphical = false;
+            _soloTimeline = null;
         }
 
         public void ResolveReferences()

@@ -1,3 +1,4 @@
+using BuddahGo.Match;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -41,7 +42,7 @@ namespace NewBuddah.PredictionV2.Integration
 
         public float ReadSteering()
         {
-            if (!_initialized || !_enabled || _legacyInputSource == null)
+            if (LocalInputBlock.IsBlocked || !_initialized || !_enabled || _legacyInputSource == null)
                 return 0f;
 
             return _legacyInputSource.GetSteering();

@@ -19,6 +19,14 @@ namespace NewBuddah.PredictionV2.Core
     // keeping this resolver pure.
     public static class BuddahPredictedLaunchHandoffResolver
     {
+        // A consumed GO may open its room bypass after this tick's input was built.
+        // Do not promote stale input gates on any other tick or without that bypass.
+        public static bool IsMovementAllowedAfterConsume(
+            bool inputMovementAllowed, bool handoffConsumedThisTick, bool roomBypassActive)
+        {
+            return inputMovementAllowed || (handoffConsumedThisTick && roomBypassActive);
+        }
+
         // Advances the handoff state machine for the current tick.
         // Mirrors the previous RefreshLaunchState body verbatim. Returns the
         // advanced state; caller is responsible for writing it back and

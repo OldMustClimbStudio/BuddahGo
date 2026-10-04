@@ -57,7 +57,8 @@ public class Skill_PushProjectileHands : SkillAction
             chargedProjectileProgressProperty,
             chargedPushCooldownSeconds,
             true,
-            ignoreSolidWorld);
+            ignoreSolidWorld,
+            delayedPushActionSeconds);
 
         GameLog.Verbose($"[Skill_PushProjectileHands][Server] Enabled charged projectile push buff for {buffDurationSeconds}s, buildup={buildUpSeconds}s, offset=({projectileForwardOffset},{projectileHeightOffset}), speed={projectileSpeed}, lifetime={projectileLifetimeSeconds}, impulse={projectileImpulseStrength}");
     }

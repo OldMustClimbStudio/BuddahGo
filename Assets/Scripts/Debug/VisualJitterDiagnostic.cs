@@ -14,6 +14,8 @@ namespace BuddahGo.Debugging
     // All logs tagged [VJitter] for grep.
     public class VisualJitterDiagnostic : MonoBehaviour
     {
+        [Tooltip("Enable temporary per-frame visual-jitter logging. Disabled for ordinary gameplay.")]
+        [SerializeField] private bool diagnosticsEnabled;
         [SerializeField] private Transform visualRoot;
         [SerializeField] private Transform fotou;
         [SerializeField] private Transform firstBone;
@@ -31,12 +33,14 @@ namespace BuddahGo.Debugging
 
         private void OnEnable()
         {
+            if (!diagnosticsEnabled) return;
             TryResolveRefs();
             Debug.Log($"[VJitter] enabled on '{name}' f={Time.frameCount} vr={(visualRoot!=null?visualRoot.name:"NULL")} fo={(fotou!=null?fotou.name:"NULL")} bn={(firstBone!=null?firstBone.name:"NULL")} active={gameObject.activeInHierarchy}");
         }
 
         private void OnDisable()
         {
+            if (!diagnosticsEnabled) return;
             Debug.Log($"[VJitter] disabled on '{name}' f={Time.frameCount}");
         }
 
@@ -65,6 +69,7 @@ namespace BuddahGo.Debugging
 
         private void LateUpdate()
         {
+            if (!diagnosticsEnabled) return;
             if (visualRoot == null || fotou == null || firstBone == null)
             {
                 TryResolveRefs();

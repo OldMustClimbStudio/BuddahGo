@@ -1,0 +1,59 @@
+{
+    "source": "Frozen revision-five pure-model replay, exact pre-step states at 435/60 and 436/60 seconds; diagnostic profile, not formal lap profile",
+    "tau": 3.0,
+    "kp": 0.30000001192092898,
+    "kd": 0.5,
+    "deadband": 1.0,
+    "factor": 0.8999999761581421,
+    "targetSpeed": 80.0,
+    "margin": 2.0,
+    "hysteresis": 0.5,
+    "frames": [
+        {
+            "tick": 435,
+            "previousKey": 0,
+            "oldKey": 0,
+            "position": {
+                "x": 377.108642578125,
+                "y": 4.900000095367432,
+                "z": -137.78598022460938
+            },
+            "velocity": {
+                "x": -11.757604598999024,
+                "y": 0.0,
+                "z": -36.748802185058597
+            },
+            "yaw": 0.4397422671318054,
+            "yawRate": 0.0,
+            "tangentYaw": -155.4717254638672,
+            "velocityError": -6.78643798828125,
+            "theta": -173.19924926757813,
+            "oldCarError": -179.33282470703126,
+            "oldTarget": -179.98570251464845,
+            "oldPhi": -0.6528778076171875
+        },
+        {
+            "tick": 436,
+            "previousKey": 0,
+            "oldKey": 1,
+            "position": {
+                "x": 376.9158020019531,
+                "y": 4.900000095367432,
+                "z": -138.39166259765626
+            },
+            "velocity": {
+                "x": -11.570306777954102,
+                "y": 0.0,
+                "z": -36.34061813354492
+            },
+            "yaw": 0.4397422671318054,
+            "yawRate": 0.0,
+            "tangentYaw": -155.4717254638672,
+            "velocityError": -6.867584228515625,
+            "theta": -173.22010803222657,
+            "oldCarError": -179.33282470703126,
+            "oldTarget": 179.9123077392578,
+            "oldPhi": 359.2451477050781
+        }
+    ]
+}

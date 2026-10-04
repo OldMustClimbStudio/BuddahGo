@@ -28,6 +28,14 @@ public class Skill_Acceleration : SkillAction
         caster.ApplyAccelerationToOwner(extraForwardForce, extraMaxSpeed, durationSeconds);
         float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, durationSeconds);
 
+        // Existing loadouts without a Feel binding still use the authored, timed VFX.
+        if (string.IsNullOrWhiteSpace(observersFeelEventId))
+        {
+            var vfx = caster.GetComponent<SkillVfxReplicator>();
+            if (vfx != null)
+                vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
+        }
+
         GameLog.Verbose($"[Skill_Acceleration][Server] Apply +{extraForwardForce} force, +{extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
     }
 
@@ -38,7 +46,7 @@ public class Skill_Acceleration : SkillAction
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, actualVfxDuration);
         caster.ShowAccelerationTrailLocal(durationSeconds);
 
-        // World-facing VFX now runs through Feel on each observer.
+        // Authored Feel bindings take precedence over the timed VFX fallback.
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)

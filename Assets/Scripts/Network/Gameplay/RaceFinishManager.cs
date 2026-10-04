@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BuddahGo.Match;
 using FishNet;
 using FishNet.Connection;
 using FishNet.Object;
@@ -24,7 +25,10 @@ public class RaceFinishManager : NetworkBehaviour
     [SerializeField] private float countdownRemaining;
     [SerializeField] private bool isRaceForceEnded;
 
-    private readonly HashSet<int> _finishedClientIds = new HashSet<int>();
+    // Keyed by RacerId.Value, so humans and server AI share one finish set.
+    private readonly HashSet<int> _finishedRacerIds = new HashSet<int>();
+    private bool _humanFinished;
+    private bool _missingServicesReported;
     private int _nextFinishOrder = 1;
     private double _countdownStartServerTime = -1d;
     private bool _matchEndTriggered;
@@ -72,22 +76,15 @@ public class RaceFinishManager : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsServerInitialized || !hasFirstFinisher || isRaceForceEnded)
-            return;
-
-        double elapsed = Time.unscaledTimeAsDouble - _countdownStartServerTime;
-        countdownRemaining = Mathf.Max(0f, PostFirstFinishCountdownSeconds - (float)elapsed);
-
-        if (countdownRemaining <= 0f)
-        {
-            ForceEndRaceServer();
-        }
+        EvaluateRaceEndServer();
     }
 
     public override void OnStopServer()
     {
         base.OnStopServer();
-        _finishedClientIds.Clear();
+        _finishedRacerIds.Clear();
+        _humanFinished = false;
+        _missingServicesReported = false;
         _nextFinishOrder = 1;
         hasFirstFinisher = false;
         firstFinisherClientId = -1;
@@ -117,26 +114,64 @@ public class RaceFinishManager : NetworkBehaviour
         if (!IsServerInitialized || completionTracker == null || isRaceForceEnded)
             return false;
 
-        int clientId = completionTracker.OwnerId;
-        if (_finishedClientIds.Contains(clientId))
+        if (!RacerAuthority.TryGetId(completionTracker, out var racerId)) return false;
+        int racerValue = racerId.Value;
+        if (_finishedRacerIds.Contains(racerValue))
             return false;
 
+        if (MatchServices.Clock == null)
+        {
+            ReportMissingMatchServices();
+            return false;
+        }
         int finishOrder = _nextFinishOrder++;
-        double finishTime = Time.unscaledTimeAsDouble;
+        double finishTime = MatchServices.Clock.Now;
+        MatchServices.Timing?.Finish(racerId, LapsToFinish, finishTime);
 
-        _finishedClientIds.Add(clientId);
+        _finishedRacerIds.Add(racerValue);
+        if (racerId.IsHuman) _humanFinished = true;
         completionTracker.MarkFinishedServer(finishOrder, finishTime);
-        MatchResultPresentationCoordinator.Instance?.NotifyPlayerFinishedServer(clientId, finishOrder);
+        MatchResultPresentationCoordinator.Instance?.NotifyPlayerFinishedServer(racerValue, finishOrder);
 
         if (!hasFirstFinisher)
         {
             hasFirstFinisher = true;
-            firstFinisherClientId = clientId;
+            firstFinisherClientId = racerValue;
             countdownRemaining = PostFirstFinishCountdownSeconds;
             _countdownStartServerTime = finishTime;
         }
 
         return true;
+    }
+
+    // Call only after the final leaderboard write so immediate Practice results include the finish.
+    public void EvaluateRaceEndServer()
+    {
+        if (!IsServerInitialized || isRaceForceEnded)
+            return;
+        if (MatchServices.Clock == null || MatchServices.EndPolicy == null)
+        {
+            if (hasFirstFinisher) ReportMissingMatchServices();
+            return;
+        }
+        double now = MatchServices.Clock.Now;
+        if (hasFirstFinisher)
+            countdownRemaining = Mathf.Max(0f, PostFirstFinishCountdownSeconds - (float)(now - _countdownStartServerTime));
+        int racers = LeaderboardManager.Instance != null ? LeaderboardManager.Instance.Rankings.Count : 0;
+        if (MatchServices.EndPolicy.ShouldEnd(MatchRules.Current, racers, _finishedRacerIds.Count,
+            _humanFinished, now, hasFirstFinisher ? (double?)_countdownStartServerTime : null,
+            PostFirstFinishCountdownSeconds))
+            ForceEndRaceServer();
+    }
+
+    // Finishing and race end depend on MatchClockSync and RaceTimingSync in the race scene.
+    // Without them nobody can finish and the race never ends, so say so once instead of soft-locking silently.
+    private void ReportMissingMatchServices()
+    {
+        if (_missingServicesReported) return;
+        _missingServicesReported = true;
+        Debug.LogError("[RaceFinishManager] Race scene is missing MatchClockSync or RaceTimingSync " +
+            $"(clock={(MatchServices.Clock != null)}, endPolicy={(MatchServices.EndPolicy != null)}); finishes cannot be registered.");
     }
 
     public void ForceEndRaceServer()
@@ -204,6 +239,7 @@ public class RaceFinishManager : NetworkBehaviour
                 finishOrder: completionTracker.FinishOrder,
                 finishServerTime: completionTracker.FinishServerTime);
         }
+        EvaluateRaceEndServer();
     }
 
     [Server]
@@ -259,6 +295,8 @@ public class RaceFinishManager : NetworkBehaviour
 
     private string ResolvePlayerNameForClient(int clientId)
     {
+        if (RacerDirectory.Current != null && RacerDirectory.Current.TryGet(RacerId.FromValue(clientId), out var racer))
+            return racer.DisplayName;
         if (RoomStateManager.Instance != null && RoomStateManager.Instance.TryGetPlayer(clientId, out RoomPlayerState playerState))
         {
             if (!string.IsNullOrWhiteSpace(playerState.PlayerName))

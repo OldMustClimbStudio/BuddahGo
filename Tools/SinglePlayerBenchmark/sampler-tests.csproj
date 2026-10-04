@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefineConstants>BUDDAH_PRIVATE_SOLO_ACCEPTANCE</DefineConstants>
+    <NoWarn>CS0649</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="SoloBenchmarkFrames.cs.txt" />
+    <Compile Include="sampler-tests.cs" />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,6 @@
 using System.Text;
+using System.Collections.Generic;
+using BuddahGo.Match;
 using FishNet.Object.Synchronizing;
 using SteamMultiplayer.Network;
 using TMPro;
@@ -17,7 +19,7 @@ public class LeaderboardTMPUI : MonoBehaviour
 
     private bool _hasTextSnapshot;
     private string _lastRenderedText;
-    private (int status, int countdown, bool progress, float spline, float completion, float dot,
+    private (bool hideRankings, int status, int countdown, bool progress, float spline, float completion, float dot,
         bool obsession, float current, float max, float backfire, float gap,
         LeaderboardManager leaderboard, string snapshot, int rows, System.Globalization.CultureInfo culture) _lastTextInputs;
     private readonly System.Collections.Generic.List<RankEntry> _displayedRankings = new System.Collections.Generic.List<RankEntry>();
@@ -161,7 +163,7 @@ public class LeaderboardTMPUI : MonoBehaviour
             : room.IsWaitingForRacePlayers ? 1 : room.IsRaceCountdownActive ? 2
             : room.IsResultPhaseActive ? 3 : room.IsRaceStarted ? 4 : 0;
         bool hasProgress = TryGetLocalProgress(out float splineProgress01, out float finalCompletionPercent, out float dot);
-        var inputs = (status, status == 2 ? room.RaceCountdownSecondsRemaining : 0,
+        var inputs = (MatchRules.Current.EndOnHumanFinish, status, status == 2 ? room.RaceCountdownSecondsRemaining : 0,
             hasProgress, splineProgress01, finalCompletionPercent, dot, _localObsession != null,
             _localObsession != null ? _localObsession.Current : 0f,
             _localObsession != null ? _localObsession.Max : 0f,
@@ -176,6 +178,16 @@ public class LeaderboardTMPUI : MonoBehaviour
         _lastTextInputs = inputs;
         _hasTextSnapshot = true;
         RememberRankingsText();
+        // Detailed telemetry stays in logs; Online still needs its normal standings.
+        if (NetDebug.EnableVerboseLog)
+            GameLog.Verbose("[RaceHUD] " + BuildStatusTelemetry(hasProgress, splineProgress01, finalCompletionPercent, dot));
+        var leaderboard = LeaderboardManager.Instance;
+        RenderRankings(leaderboard != null ? leaderboard.LeaderboardSnapshotText : null,
+            leaderboard != null ? leaderboard.Rankings : null);
+    }
+
+    private string BuildStatusTelemetry(bool hasProgress, float splineProgress01, float finalCompletionPercent, float dot)
+    {
         StringBuilder sb = new StringBuilder();
         if (RoomStateManager.Instance != null && RoomStateManager.Instance.IsRaceSceneLoadedLocally)
         {
@@ -210,17 +222,26 @@ public class LeaderboardTMPUI : MonoBehaviour
             sb.AppendLine("Backfire Chance: (local obsession not found)");
             sb.AppendLine("Gap To Leader: (local obsession not found)");
         }
+        return sb.ToString();
+    }
 
-        sb.AppendLine();
+    private void RenderRankings(string snapshotText, IList<RankEntry> rankings)
+    {
+        if (MatchRules.Current.EndOnHumanFinish)
+        {
+            outputText.text = _lastRenderedText = string.Empty;
+            return;
+        }
 
-        if (LeaderboardManager.Instance == null)
+        var sb = new StringBuilder();
+        sb.AppendLine("Leaderboard");
+        if (rankings == null && string.IsNullOrWhiteSpace(snapshotText))
         {
             sb.AppendLine("(no data)");
             outputText.text = _lastRenderedText = sb.ToString();
             return;
         }
 
-        string snapshotText = LeaderboardManager.Instance.LeaderboardSnapshotText;
         if (!string.IsNullOrWhiteSpace(snapshotText))
         {
             string[] lines = snapshotText.Split('\n');
@@ -230,10 +251,10 @@ public class LeaderboardTMPUI : MonoBehaviour
         }
         else
         {
-            int count = Mathf.Min(maxRows, LeaderboardManager.Instance.Rankings.Count);
+            int count = Mathf.Min(maxRows, rankings.Count);
             for (int i = 0; i < count; i++)
             {
-                RankEntry entry = LeaderboardManager.Instance.Rankings[i];
+                RankEntry entry = rankings[i];
                 string finishSuffix = entry.IsFinished ? $" - Finished #{entry.FinishOrder}" : string.Empty;
                 sb.AppendLine($"{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}");
             }

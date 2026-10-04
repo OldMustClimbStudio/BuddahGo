@@ -16,6 +16,8 @@ public class CinemachineLocalPlayerFollower : MonoBehaviour
         _virtualCamera = GetComponent<CinemachineVirtualCamera>();
         if (spectatorTargetResolver == null)
             spectatorTargetResolver = GetComponent<RaceSpectatorTargetResolver>();
+        if (spectatorTargetResolver == null)
+            spectatorTargetResolver = gameObject.AddComponent<RaceSpectatorTargetResolver>();
 
         if (_virtualCamera == null)
         {

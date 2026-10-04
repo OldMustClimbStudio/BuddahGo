@@ -14,7 +14,11 @@
     "name": "BuddahGo.Tests",
     "references": [
         "BuddahGo.Runtime",
-        "FishNet.Runtime"
+        "FishNet.Runtime",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "Unity.Splines",
+        "Unity.Mathematics"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"

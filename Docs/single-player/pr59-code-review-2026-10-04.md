@@ -27,7 +27,7 @@ PR 总差异 609 个文件 / +97 512 行中，约 86k 行是 `Tools/ai/` 的 JSO
 
 ## 3. 需要关注的风险（P1，未改动，供决策）
 
-1. **`GameLog.Verbose` 无开关**（`Assets/Scripts/Foundation/GameLog.cs:8`）：它直接 `Debug.Log`。本 PR 在 `SkillExecutor`、`ComboSkillInput`、`LeaderboardTMPUI` 等处逐条包了 `if (NetDebug.EnableVerboseLog)`，但仓库其余几十处 `GameLog.Verbose` 仍无条件输出（含 `Skill_*`、`RaceBodyIntroStateController` 每帧级日志）。建议后续把开关下沉到 `GameLog.Verbose` 内部并删掉散落的 if；这是跨模块行为变化，本次不做。
+1. **`GameLog.Verbose` 只有编译期开关**（`Assets/Scripts/Foundation/GameLog.cs:8`）：它带 `[Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD")]`，正式包里整段调用连参数求值一起被编译掉，但在编辑器与 Development 包里无条件输出。本 PR 在热路径上逐条包的 `if (NetDebug.EnableVerboseLog)` 是为了省掉字符串拼接，属有意为之；运行时总开关放进 `Verbose` 内部并不能省这部分开销，因此不建议改。（修正：首版报告误写为"无开关"。）
 2. **`AISkillWorld.RefreshRoster` 只按人数变化刷新**（`AISkillWorld.cs:141-154`）：同一局内若有车被替换而人数不变，缓存的组件引用会失效。Solo 固定六人且 Rematch 重建 `MatchSpawnManager`，当前不触发；联机复用前需改为按身份集合比较。
 3. **`AISkillCatalog.Load` 在 FishNet 生成回调里抛异常**（`AISkillCatalog.cs:79-90` ← `MatchSpawnManager.SpawnSoloAI`）：配置缺失时 Solo 开局会在 `ServerManager.Spawn` 调用栈中断。fail-fast 可接受，但建议在 `SessionLauncher.StartSoloHost` 前置校验，把错误交给设置面板显示。
 4. **`SoloUIBootstrap.BuildMenu` 用 UnityEvent 持久目标方法名识别联机按钮**（`SoloUIBootstrap.cs:48-63`）：按钮绑定改名即静默失效。占位 UI 可接受，正式 UI 应改为序列化引用。
@@ -92,6 +92,35 @@ Unity 2022.3.55f1c1 批处理模式（`-batchmode -nographics -runTests -testPla
 - 中途一次尝试（D5 曲率合并）使 `AICostEquivalenceTests` 三项逐位对比失败（pace 相差 1 ulp），已回退并重跑，结果恢复到与基线逐项一致。
 - 文件移动后 Unity 首次导入会报 5 条 `CS2001`（旧路径缓存），刷新后消失；最终日志 0 条编译错误。生成的 `AI/Diagnostics.meta` 已随提交入库。
 - 未运行：非 Development 构建、自然赛与性能窗口。清理不涉及序列化字段、RPC、场景与 prefab，按 CONTRIBUTING 的"按改动验证"选择编译 + 全部 EditMode。
+
+## 8. 第二、三轮：优化与退休（2026-10-04 晚）
+
+用户追加两条指令：先"在不影响任何功能的情况下全部优化"，随后"测试如果是 legacy 就直接退休，只保留最小可运行切片"。两轮分别成为独立提交，均以批处理 EditMode 对照基线验证。
+
+### 8.1 第二轮（行为不变）
+
+| 项 | 处理 |
+|---|---|
+| Solo 圈时暂存队列 | 删除 `AcceptedLapTiming`（59 行）及其 12 项测试；`LapProgress.RecordCompletedLap` 在过线被验证的同一时刻用权威时钟直接记录，`RaceTiming` 本就拒绝重复、倒退与跳圈，保留按 `RaceFinishManager.LapsToFinish` 的截断。周期上报路径不变，联机仍只走周期观察 |
+| `AISkillCaster` 拆分 | 计数器、`Observation`/`Emit` 与每帧耗时统计移入 `AISkillTelemetry`；caster 只剩调度、决策、瞄准与注入。harness 改读 `Caster.Telemetry` |
+| harness 公共底座 | `HarnessSupport`：命令行取值、测量帧率保存恢复、Solo 启动→配装→皮肤的 stage 机，两份重复各删约 40 行。`Percentile` 与事件名保持各自原样，证据格式不变 |
+| `ThrustVectorPlanner` | 20 个裸数字改为命名常量；`Rollout` 的 20 个参数改为 `RolloutContext`，每次选择只构造一次。无算术改动 |
+| 结果 | 362 项 / 357 通过 / 5 失败，失败集合与基线相同；减少的 12 项即被删队列的测试 |
+
+### 8.2 第三轮（legacy 退休，最小切片）
+
+删除：`ForwardSimPlanner`（beam 规划器）、三份 `Legacy*` 冻结参考、五份 `ThrustVectorRevision*Fixture`、整个 `ThrustVectorPlannerTests`（类级 `[Explicit]`，自述为 revision-six 历史实验）、`AICostEquivalenceTests` 中三项对照、`AIDrivingTests` 中四项 beam 用例、`ThrustVectorSpecTests.F06`（依赖 RevisionSix）。产品侧随之去掉 `ISteeringPlanner`、`PlanObservation` 的 12 个 beam 字段、`SplineRacingLine` 的三参 `PreparePace`，以及 `AIDifficultyProfile` 的 13 个 beam 专用成员；三份 `difficulty-*.json` 去掉对应键并用 `AIDifficultyAssetTool.Build` 重新生成资产（仅删字段，Easy/Normal/Hard 的 target 67/74/80、reaction 8/3/0、Hard maxAngle 90 不变）。保留并迁移：`SplineRacingLineTests`（几何快照、Capture 共享、pace 窗口三项）、`AIDrivingTests.ProfileRejectsNonFiniteAndOutOfRangeValues`。
+
+| 树 | 用例 | 通过 | 失败 | 编译错误 |
+|---|---:|---:|---:|---:|
+| 第二轮后 | 362 | 357 | 5 | 0 |
+| 第三轮后 | 297 | 296 | 1 | 0 |
+
+唯一失败 `ThrustVectorSpecTests.Grid162Once` 为 Explicit 的 162 次参数网格，需要 `--thrust-offline-output`，在基线即如此；其余四项基线失败全部随 legacy 退休。减少的 81 项全部是对照/历史用例，新增 4 项通过。
+
+**保留且说明理由**：五个诊断 harness 仍是 A1–A4 验收的取证工具且受 `#if` 门控，按仓库"探针只门控不删除"的既有规则保留；`Tools/ai/` 下的证据数据与 `plot_spin.py` 只读历史轨迹，未动。若这两类也算"额外内容"，可再开一轮单独删除。
+
+**未做**：五个静态服务定位器合并、`SoloUIBootstrap` 改序列化引用（需改场景）、推掌协程改 tick 队列（行为敏感）。
 
 ## 7. 行数结果
 

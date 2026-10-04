@@ -1,3 +1,5 @@
+> **2026-10-04:** the V5 beam planner (`ForwardSimPlanner`), the `Legacy*` reference copies, the `ThrustVectorRevision*Fixture` frozen revisions and the beam-only profile fields (`UseThrustVector`, `BeamWidth`, `HorizonSeconds`, `ControlSeconds`, `ReplanTicks`, `CorneringFactor`, `LateralGain`, `LateralWeight`, `LateralVelocityWeight`, `SpeedWeight`, `ProgressWeight`, `DiverseSearch`) were retired; `ThrustVectorPlanner` is the only controller and `ThrustVectorSpecTests` its acceptance. Their evidence stays under `Tools/ai/`. References to them below are historical.
+
 # ThrustVectorPlanner 最终规格（destination）
 
 2026-10-02；基于 `68e4d70`（`feat/single-player-mode` / PR #59）。

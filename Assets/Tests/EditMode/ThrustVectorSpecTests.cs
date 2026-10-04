@@ -33,14 +33,6 @@ public class ThrustVectorSpecTests
         public int ticks,increasingTicks,firstKey,invariantViolations;
         public bool firstTowardLine,monotonic,overshootWithinTwo,settled;
     }
-    [Serializable] public class CornerResult
-    {
-        public int sourceTick=854; public MotionRecord exactState;
-        public float oldRaw=-27.7527733f,oldLateral,oldCurvature,oldCrossSpeed;
-        public float curvature,correction,rawLateral,lateral,predictedError,T,curvatureShare;
-        public bool unsaturated,curvatureDominates;
-    }
-    [Serializable] public class MotionRecord { public Vector3 position,velocity; public float yaw,yawRate; }
     static Run _designRun;
     const float Dt=1f/60f;
     static string Output
@@ -65,9 +57,9 @@ public class ThrustVectorSpecTests
     }
     static AIDifficultyProfile Design()
     {
-        var p=ScriptableObject.CreateInstance<AIDifficultyProfile>();p.UseThrustVector=true;
+        var p=ScriptableObject.CreateInstance<AIDifficultyProfile>();
         p.PredictionGain=.3f;p.LateralDamping=.986f;p.LookaheadSeconds=1;p.SpeedMargin=2;p.ThrustPaceFactor=.90f;p.PlanningBrakeAcceleration=10;
-        p.AttitudeDeadbandDegrees=1.5f;p.AttitudeHysteresisDegrees=.5f;p.TargetSpeed=80;p.ReactionTicks=0;p.ReplanTicks=1;
+        p.AttitudeDeadbandDegrees=1.5f;p.AttitudeHysteresisDegrees=.5f;p.TargetSpeed=80;p.ReactionTicks=0;
         return p;
     }
     static string Invariants(PlanObservation o,PlanObservation previous,bool hasPrevious)
@@ -249,29 +241,6 @@ public class ThrustVectorSpecTests
             Assert.That(rightTurn ? firstTheta>0 : firstTheta<0,Is.True,"first thrust angle must point toward the centre; theta="+firstTheta);
             Assert.That(maxEarly,Is.LessThan(6f),"transient lateral error");Assert.That(maxLate,Is.LessThan(4f),"settled lateral error");
         }finally{UnityEngine.Object.DestroyImmediate(p);}
-    }
-    [Test,Explicit("Revision-six diagnostic: the recorded state is 37 m off the line, so the anchor PD saturates by design; the rollout selection, not the anchor, is the gate")]
-    public void F06RepresentativeCornerDemandIsNotPDSaturated()
-    {
-        // Temporal middle of the888 recorded revision-six formal120deg ticks: zero-based854.
-        var f=Read();var oldProfile=ScriptableObject.CreateInstance<AIDifficultyProfile>();var design=Design();
-        try {
-            oldProfile.LookaheadSeconds=3;oldProfile.LateralGain=.3f;oldProfile.LateralDamping=1;oldProfile.AttitudeDeadbandDegrees=3;oldProfile.CorneringFactor=.9f;
-            var oldLine=new SplineRacingLine(f.points,f.length);var start=oldLine.SampleDistance(0);var oldPlanner=new ThrustVectorRevisionSixFixture();
-            var state=new MotionState{Position=start.Point,Velocity=start.Tangent*60,Yaw=Mathf.Atan2(start.Tangent.x,start.Tangent.z)};int key=0;
-            for(int tick=0;tick<854;tick++){key=oldPlanner.Plan(state,Parameters(),oldLine,oldProfile,Dt,key);BuddahMotionModel.Step(ref state,Parameters(),key,Dt);}
-            oldPlanner.Plan(state,Parameters(),oldLine,oldProfile,Dt,key);var old=oldPlanner.LastObservation;
-            Assert.That(old.thrustAngle*Mathf.Rad2Deg,Is.EqualTo(-120).Within(.001f));Assert.That(old.lateral,Is.EqualTo(37.60602f).Within(.001f));
-            var planner=new ThrustVectorPlanner();planner.Plan(state,Parameters(),new SplineRacingLine(f.points,f.length),design,Dt,key);var o=planner.LastObservation;
-            float denominator=Mathf.Abs(o.curvatureAcceleration)+Mathf.Abs(o.lateralCorrection);
-            var result=new CornerResult{exactState=new MotionRecord{position=state.Position,velocity=state.Velocity,yaw=state.Yaw,yawRate=state.YawRate},
-                oldLateral=old.lateral,oldCurvature=state.Velocity.sqrMagnitude*oldLine.CurvatureAtDistance(old.progress),oldCrossSpeed=Vector3.Dot(state.Velocity,Vector3.Cross(Vector3.up,old.tangent)),
-                curvature=o.curvatureAcceleration,correction=o.lateralCorrection,rawLateral=o.rawLateralAcceleration,lateral=o.requestedLateralAcceleration,
-                predictedError=o.predictedLateral,T=o.predictionTime,curvatureShare=denominator>0?Mathf.Abs(o.curvatureAcceleration)/denominator:0,
-                unsaturated=Mathf.Abs(o.rawLateralAcceleration)<25};
-            result.curvatureDominates=result.curvatureShare>=.7f;Save("design-corner-entry.json",JsonUtility.ToJson(result,true));TestContext.WriteLine(JsonUtility.ToJson(result));
-            Assert.That(result.unsaturated||result.curvatureDominates,Is.True);
-        }finally{UnityEngine.Object.DestroyImmediate(oldProfile);UnityEngine.Object.DestroyImmediate(design);}
     }
     [Test] public void F07OfflineLapMeetsAllLimits()
     {

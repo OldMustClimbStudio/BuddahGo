@@ -22,8 +22,7 @@ namespace BuddahGo.AI
         private BuddahPredictedMotorConfig _config;
         private Rigidbody _body;
         private RaceCompletionTracker _completion;
-        private ISteeringPlanner _planner;
-        private bool _usingThrustVector;
+        private readonly ThrustVectorPlanner _planner = new ThrustVectorPlanner();
         private uint _lastPlanTick;
         private bool _hasPlan;
         private bool _ownsProfile;
@@ -50,7 +49,6 @@ namespace BuddahGo.AI
             _impairedProfile = Instantiate(Profile);
             _impairedProfile.LookaheadSeconds *= difficulty.ImpairedLookaheadMultiplier;
             _impairedProfile.RolloutSeconds *= difficulty.ImpairedLookaheadMultiplier;
-            _impairedProfile.HorizonSeconds *= difficulty.ImpairedLookaheadMultiplier;
             _impairedProfile.MistakeProbability = Mathf.Clamp01(Profile.MistakeProbability + difficulty.ImpairedMistakeAddition);
             _impairedProfile.ReactionTicks += difficulty.ImpairedReactionTicks;
         }
@@ -92,7 +90,7 @@ namespace BuddahGo.AI
                 if (Mathf.Abs(contact.normal.y) < 0.7f)
                 {
                     _forecastCollided = true;
-                    if (_planner is ThrustVectorPlanner thrust) thrust.NotifyCollision();
+                    _planner.NotifyCollision();
                     continue;
                 }
                 if (contact.normal.y < 0.99f) continue; // This planar model only treats flat supporting surfaces.
@@ -125,8 +123,7 @@ namespace BuddahGo.AI
             { Steering = 0; _pending = false; _hasPlan = false; drive = false; return true; }
             if (Profile == null)
             {
-                // Spawners always adopt a product profile; a missing one is a setup error, not a reason
-                // to fall back to the retired beam planner that a blank profile would select.
+                // Spawners always adopt a product profile; a missing one is a setup error.
                 Debug.LogError($"[AI] {name} has no difficulty profile; using the Normal product profile.", this);
                 Profile = AIDifficultyProfiles.Resolve(SoloDifficulty.Normal, 0); _ownsProfile = true;
             }
@@ -135,12 +132,6 @@ namespace BuddahGo.AI
             if (Line == null) Line = SplineRacingLine.Capture(track);
             // The ordinary launch writer retains exclusive control until the inherited launch completes.
             if (_motor.IsLaunchHandoffActive || _motor.IsAuthoritativeLaunchHandoffPending) return true;
-            if (_planner == null || _usingThrustVector != Profile.UseThrustVector)
-            {
-                _usingThrustVector = Profile.UseThrustVector;
-                _planner = _usingThrustVector ? (ISteeringPlanner)new ThrustVectorPlanner() : new ForwardSimPlanner();
-                _hasPlan = false; _pending = false;
-            }
             uint tick = _motor.TimeManager.LocalTick;
             if (_pending && unchecked((int)(tick - _applyTick)) >= 0) { Steering = _pendingSteering; _pending = false; }
             Parameters = new MotionParameters { Stats = _motor.CurrentComputedStats,
@@ -158,7 +149,8 @@ namespace BuddahGo.AI
                 planningParameters.Stats = observedStats;
             }
             var decisionProfile = IsVisionImpaired && _impairedProfile != null ? _impairedProfile : Profile;
-            if (!_pending && (!_hasPlan || tick - _lastPlanTick >= Profile.EffectiveReplanTicks))
+            // The planner runs every tick; its own ThrustReplanTicks staggers the rollout selection.
+            if (!_pending && (!_hasPlan || tick != _lastPlanTick))
             {
                 long started = System.Diagnostics.Stopwatch.GetTimestamp();
                 int key;

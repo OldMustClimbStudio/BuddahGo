@@ -11,7 +11,7 @@ namespace BuddahGo.AI
     //                with the V5 lateral/speed/progress weights; the sweep of the thrust vector
     //                while the heading turns is therefore paid for explicitly
     //   attitude  -> time-optimal switching curve on the continuous route-relative heading branch
-    public sealed class ThrustVectorPlanner : ISteeringPlanner
+    public sealed class ThrustVectorPlanner
     {
         internal enum SpeedMode { Accel, Hold, Brake }
         internal struct Guidance

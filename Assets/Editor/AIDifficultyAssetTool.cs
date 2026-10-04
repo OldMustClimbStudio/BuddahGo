@@ -21,7 +21,7 @@ public static class AIDifficultyAssetTool
             JsonUtility.FromJsonOverwrite(json, profile);
             profile.ValidateConfiguration();
             if (existing == null) AssetDatabase.CreateAsset(profile, assetPath); else EditorUtility.SetDirty(profile);
-            Debug.Log($"[AIDifficultyAssetTool] {assetPath} thrust={profile.UseThrustVector} walls={profile.UseWallCorridor} maxAngle={profile.MaxThrustAngleDegrees} target={profile.TargetSpeed} reaction={profile.ReactionTicks}");
+            Debug.Log($"[AIDifficultyAssetTool] {assetPath} walls={profile.UseWallCorridor} maxAngle={profile.MaxThrustAngleDegrees} target={profile.TargetSpeed} reaction={profile.ReactionTicks}");
         }
         AssetDatabase.SaveAssets();
         if (Application.isBatchMode) EditorApplication.Exit(0);

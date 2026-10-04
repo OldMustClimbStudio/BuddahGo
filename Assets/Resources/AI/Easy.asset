@@ -12,10 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30eb7c14997847be903c0c2453a13a24, type: 3}
   m_Name: Easy
   m_EditorClassIdentifier: 
-  UseThrustVector: 1
   LookaheadSeconds: 1
   SpeedMargin: 2
-  LateralGain: 0.1
   LateralDamping: 0.986
   AttitudeDeadbandDegrees: 1.5
   AttitudeHysteresisDegrees: 0.5
@@ -48,15 +46,5 @@ MonoBehaviour:
   SwitchPenaltyPerDegree: 0.3
   MaxThrustAngleDegrees: 170
   TargetSpeed: 67
-  SpeedWeight: 1
-  ProgressWeight: 5
-  HorizonSeconds: 3
-  ControlSeconds: 0.15
-  BeamWidth: 48
-  LateralWeight: 1
-  LateralVelocityWeight: 0.7
   LateralOffset: 0
-  CorneringFactor: 0.8
-  DiverseSearch: 1
-  ReplanTicks: 1
   ReactionTicks: 8

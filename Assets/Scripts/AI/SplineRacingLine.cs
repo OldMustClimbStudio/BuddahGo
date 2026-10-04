@@ -65,7 +65,6 @@ namespace BuddahGo.AI
         private float[] _pace, _windowPace;
         private float[] _curvatures;
         private float _paceAcceleration, _paceTarget, _paceFactor, _paceBrakeAcceleration;
-        private bool _paceFrictionCircle;
         public SplineRacingLine(Vector3[] points, float length)
         {
             if (points == null || points.Length < 3 || length <= 0f) throw new ArgumentException("A closed racing line needs at least three samples.");
@@ -92,32 +91,24 @@ namespace BuddahGo.AI
             }
             return new SplineRacingLine(cache.Geometry, track.TrackLength);
         }
-        // A planning preference derived from route curvature and current available force.
-        // Backward braking propagation anticipates tight bends without extending the search horizon.
-        // Three-argument overload retains the beam/reference braking envelope: constant half-acceleration
-        // braking regardless of the lateral demand at the braking point.
-        public void PreparePace(float acceleration, float target, float factor)
-            => Build(acceleration, target, factor, acceleration * .5f, false);
-        // Thrust-vector path. The vehicle has one fixed-magnitude thrust, so braking and cornering share a
-        // friction circle of radius acceleration*factor: the longitudinal deceleration available while the
-        // next sample needs lateral v^2*k is sqrt(circle^2 - lateral^2), capped by the planned braking
-        // deceleration (which leaves margin for the heading swing). Constant braking would promise
-        // deceleration inside bends that the thrust vector cannot deliver.
-        public void PreparePace(float acceleration, float target, float factor, float brakingAcceleration)
-            => Build(acceleration, target, factor, brakingAcceleration, true);
+        // A planning preference derived from route curvature and current available force, with backward
+        // braking propagation so tight bends are anticipated without extending the search horizon.
+        // The vehicle has one fixed-magnitude thrust, so braking and cornering share a friction circle of
+        // radius acceleration*factor: the longitudinal deceleration available while the next sample needs
+        // lateral v^2*k is sqrt(circle^2 - lateral^2), capped by the planned braking deceleration (which
+        // leaves margin for the heading swing). Constant braking would promise deceleration inside bends
+        // that the thrust vector cannot deliver.
         // Curvature: the angle between the two span-long chords equals the tangent rotation between their
         // midpoints, which are one span apart, so the angle is divided by the mean chord length. A circle
         // fixture (radius 150 m) reproduces 1/150 exactly; dividing by both chords would halve it.
-        private void Build(float acceleration, float target, float factor, float brakingAcceleration, bool frictionCircle)
+        public void PreparePace(float acceleration, float target, float factor, float brakingAcceleration)
         {
             if (_pace != null && _paceAcceleration == acceleration && _paceTarget == target && _paceFactor == factor
-                && _paceBrakeAcceleration == brakingAcceleration && _paceFrictionCircle == frictionCircle) return;
+                && _paceBrakeAcceleration == brakingAcceleration) return;
             _paceAcceleration = acceleration; _paceTarget = target; _paceFactor = factor; _paceBrakeAcceleration = brakingAcceleration;
-            _paceFrictionCircle = frictionCircle;
             _pace = new float[_geometry.Points.Length];
-            // Kept separate from PrepareCurvatures on purpose: AICostEquivalenceTests pin this pace bit for bit
-            // against the legacy line, and Mono evaluates this one-expression float chain at higher intermediate
-            // precision than a stored signed curvature would give (1 ulp differences break the equivalence).
+            // Unsigned curvature is recomputed here rather than taken from PrepareCurvatures: Mono evaluates this
+            // one-expression float chain at higher intermediate precision, and the pace tests pin these values.
             var curvatures = new float[_geometry.Points.Length];
             int span = Mathf.Clamp(Mathf.RoundToInt(12f / _step), 1, Mathf.Max(1, (_geometry.Points.Length - 1) / 2));
             for (int i = 0; i < _geometry.Points.Length; i++)
@@ -132,12 +123,8 @@ namespace BuddahGo.AI
             for (int k = _geometry.Points.Length * 2 - 1; k >= 0; k--)
             {
                 int i = k % _geometry.Points.Length, n = (i + 1) % _geometry.Points.Length; float next = _pace[n];
-                float longitudinal = brakingAcceleration;
-                if (frictionCircle)
-                {
-                    float lateral = next * next * curvatures[n];
-                    longitudinal = Mathf.Min(brakingAcceleration, Mathf.Sqrt(Mathf.Max(0f, circle * circle - lateral * lateral)));
-                }
+                float lateral = next * next * curvatures[n];
+                float longitudinal = Mathf.Min(brakingAcceleration, Mathf.Sqrt(Mathf.Max(0f, circle * circle - lateral * lateral)));
                 _pace[i] = Mathf.Min(_pace[i], Mathf.Sqrt(next * next + 2f * longitudinal * _step));
             }
             // Fixed 80 m look-ahead minimum (top speed x 1 s) for rollout sampling: one pass here replaces a

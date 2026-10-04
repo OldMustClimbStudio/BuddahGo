@@ -1,3 +1,5 @@
+> **2026-10-04 复核：** 两个悬空 GUID 不渲染。材质 `b739a3f…` 只在四个 prefab（`沙砾`、`如来神掌`、`射击特效`、`slowtrap_vfxZone`）的根 ParticleSystem 上，这些根发射器 Emission 关闭且无 burst；贴图 `1c0a28d7…` 只在 `UberFXSG` 没有的 `_diff` 属性里。全部分支、60 个 PR ref、本机磁盘与 Asset Store 缓存均无原件。可见的洋红/消失问题由导入缓存引起，用下文的修复菜单处理。
+
 # VFX asset recovery — 2026-10-01
 
 Original acceleration assets are restored. The Unity follow-up below repaired invalid local shader/VFX import artifacts and verified visible original effects. No replacement art or shader was assigned. Full six-skill acceptance remains open.

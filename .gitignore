@@ -85,3 +85,7 @@ agent-exchange/console/raw/_*.py
 # Local code-count reports and complete raw playtest captures.
 /.VSCodeCounter/
 /agent-exchange/console/raw/
+
+# Substance plugin scratch folder that Unity regenerates (and its meta)
+Assets/Adobe/Substance3DForUnity/Runtime/Plugins/Temp/
+Assets/Adobe/Substance3DForUnity/Runtime/Plugins/Temp.meta

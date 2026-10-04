@@ -22,6 +22,17 @@ namespace BuddahGo.AI
         }
         private static readonly float[] FixedCandidates = { 0f, 30f, -30f, 60f, -60f, 90f, -90f, 120f, -120f, 170f, -170f };
         private static readonly float[] AnchorOffsets = { 5f, -5f, 10f, -10f };
+        // Thresholds shared by Plan and the rollouts. Angles in degrees unless the name says otherwise.
+        private const float RecoverySpeed = 5f, RecoveryVelocityErrorDegrees = 90f;   // standstill or backwards: thrust along the route
+        private const float SideSwitchLateral = 3f, HoldLateral = 18f;                // lateral demand (m/s^2) that flips the side / holds speed
+        private const float TopSpeed = 79f, TopPace = 78f;                            // at the speed cap the anchor always accelerates
+        private const float MinBrakeAngleDegrees = 120f, MaxTargetDegrees = 178f;
+        private const float AttitudeAcceleration = 4.82f;                             // rad/s^2 assumed by the turn-time estimate
+        private const float MinPredictionSeconds = .3f, MaxPredictionSeconds = 1f;
+        private const float ReanchorDegrees = 200f, CollisionReanchorDegrees = 180f, FullTurnDegrees = 360f;
+        private const float ReprojectLateral = 15f, CollisionMemorySeconds = .5f, WobbleClampSigmas = 3f;
+        private const float VelocityHeadingMinSpeedSquared = 25f;                      // below 5 m/s the velocity heading is noise
+        private const int NearSearchSegments = 8, WideSearchSegments = 40, RolloutSearchSegments = 6;
         // Diagnostic only (EditMode traces): per-candidate thetas/costs are allocated when set.
         internal static bool CaptureCandidates;
         private int _nearSegment = -1, _side;
@@ -44,7 +55,7 @@ namespace BuddahGo.AI
         internal float[] LastCandidateThetas => _candidateThetas;
         internal float[] LastCandidateCosts => _candidateCosts;
         public PlanObservation LastObservation { get; private set; }
-        internal void NotifyCollision() => _collisionSeconds = .5f;
+        internal void NotifyCollision() => _collisionSeconds = CollisionMemorySeconds;
 
         internal static int AttitudeKey(float phi, float omega, float beta, float deadband,
             float hysteresis, int previousPhysicalKey)
@@ -60,33 +71,33 @@ namespace BuddahGo.AI
             float margin, float velocityErrorDegrees, SpeedMode previousMode, int previousSide, bool recovering)
         {
             int side = previousSide;
-            if (side == 0 || Mathf.Abs(lateral) >= 3f) side = lateral < 0f ? -1 : 1;
+            if (side == 0 || Mathf.Abs(lateral) >= SideSwitchLateral) side = lateral < 0f ? -1 : 1;
             SpeedMode mode = previousMode;
-            if (recovering || (speed >= 79f && pace >= 78f) || speed < pace - margin) mode = SpeedMode.Accel;
+            if (recovering || (speed >= TopSpeed && pace >= TopPace) || speed < pace - margin) mode = SpeedMode.Accel;
             else if (speed > pace + margin) mode = SpeedMode.Brake;
-            else if (Mathf.Abs(lateral) >= 18f) mode = SpeedMode.Hold;
+            else if (Mathf.Abs(lateral) >= HoldLateral) mode = SpeedMode.Hold;
             float theta = Mathf.Asin(Mathf.Clamp01(Mathf.Abs(lateral) / Mathf.Max(.001f, acceleration)));
             if (mode == SpeedMode.Hold) theta = Mathf.PI * .5f;
-            else if (mode == SpeedMode.Brake) theta = Mathf.Clamp(Mathf.PI - theta, 120f * Mathf.Deg2Rad, 178f * Mathf.Deg2Rad);
+            else if (mode == SpeedMode.Brake) theta = Mathf.Clamp(Mathf.PI - theta, MinBrakeAngleDegrees * Mathf.Deg2Rad, MaxTargetDegrees * Mathf.Deg2Rad);
             if (recovering) theta = 0f;
             return new Guidance { Mode = mode, Side = side, Theta = theta,
-                Target = recovering ? 0f : Mathf.Clamp(velocityErrorDegrees + side * theta * Mathf.Rad2Deg, -178f, 178f) };
+                Target = recovering ? 0f : Mathf.Clamp(velocityErrorDegrees + side * theta * Mathf.Rad2Deg, -MaxTargetDegrees, MaxTargetDegrees) };
         }
 
         internal static float PredictionTime(float provisionalTargetDegrees, float carDegrees, float omega)
-            => Mathf.Clamp(Mathf.Sqrt(2f * Mathf.Abs(provisionalTargetDegrees - carDegrees) * Mathf.Deg2Rad / 4.82f)
-                + Mathf.Abs(omega) / 4.82f, .3f, 1f);
+            => Mathf.Clamp(Mathf.Sqrt(2f * Mathf.Abs(provisionalTargetDegrees - carDegrees) * Mathf.Deg2Rad / AttitudeAcceleration)
+                + Mathf.Abs(omega) / AttitudeAcceleration, MinPredictionSeconds, MaxPredictionSeconds);
 
         internal static float HeadingError(ref float carDegrees, ref float offsetDegrees, float targetDegrees,
             bool recentCollision, out bool reanchored, out float targetCoordinate)
         {
             float logicalCar = carDegrees + offsetDegrees;
-            reanchored = Mathf.Abs(logicalCar) > 200f || (recentCollision && Mathf.Abs(logicalCar) > 180f);
+            reanchored = Mathf.Abs(logicalCar) > ReanchorDegrees || (recentCollision && Mathf.Abs(logicalCar) > CollisionReanchorDegrees);
             if (reanchored) { carDegrees = Mathf.DeltaAngle(0f, logicalCar); offsetDegrees = 0f; }
             targetCoordinate = targetDegrees - offsetDegrees;
-            if (Mathf.Abs(carDegrees) > 360f || Mathf.Abs(targetCoordinate) > 360f)
+            if (Mathf.Abs(carDegrees) > FullTurnDegrees || Mathf.Abs(targetCoordinate) > FullTurnDegrees)
             {
-                float shift = 360f * Mathf.Round(carDegrees / 360f);
+                float shift = FullTurnDegrees * Mathf.Round(carDegrees / FullTurnDegrees);
                 carDegrees -= shift; targetCoordinate -= shift; offsetDegrees += shift;
             }
             return (targetCoordinate - carDegrees) * Mathf.Deg2Rad;
@@ -98,31 +109,41 @@ namespace BuddahGo.AI
         // what holding it for the whole horizon would cost. The attitude layer drives the model exactly as
         // the real driver would; the route projection, the continuous route-relative heading and the cost
         // are sampled every sampleTicks.
-        internal static float Rollout(float thetaDegrees, MotionState state, in BuddahMotionModel.PreparedMotion prepared,
-            IRacingLine line, AIDifficultyProfile profile, float dt, int horizonTicks, int holdTicks, int sampleTicks, int segment,
-            float carDegrees, float tangentYawDegrees, float distance, int previousPhysicalKey, int steeringSign,
-            float beta, float deadband, float hysteresis, float maxAngle, float acceleration, SpeedMode mode, int side)
+        // Everything a candidate rollout shares with its siblings in one Plan call; built once per selection.
+        internal struct RolloutContext
         {
-            float cost = 0f, length = line.Length;
+            public IRacingLine Line; public AIDifficultyProfile Profile; public BuddahMotionModel.PreparedMotion Prepared;
+            public float Delta, Beta, Deadband, Hysteresis, MaxAngle, Acceleration, CarDegrees, TangentYawDegrees, Distance;
+            // HorizonTicks, HoldTicks and SampleTicks are rollout steps (coarse substeps), not motor ticks.
+            public int HorizonTicks, HoldTicks, SampleTicks, Segment, PreviousPhysicalKey, SteeringSign, Side;
+            public SpeedMode Mode;
+        }
+
+        internal static float Rollout(float thetaDegrees, MotionState state, in RolloutContext c)
+        {
+            IRacingLine line = c.Line; AIDifficultyProfile profile = c.Profile;
+            float cost = 0f, length = line.Length, dt = c.Delta, maxAngle = c.MaxAngle, acceleration = c.Acceleration;
+            float carDegrees = c.CarDegrees, tangentYawDegrees = c.TangentYawDegrees, distance = c.Distance;
+            int segment = c.Segment, horizonTicks = c.HorizonTicks, holdTicks = c.HoldTicks, sampleTicks = c.SampleTicks, side = c.Side;
+            SpeedMode mode = c.Mode;
             var spline = line as SplineRacingLine;
             float velocityYaw = Mathf.Atan2(state.Velocity.x, state.Velocity.z) * Mathf.Rad2Deg;
             float velocityError = Mathf.DeltaAngle(tangentYawDegrees, velocityYaw);
             float target = Mathf.Clamp(velocityError + thetaDegrees, -maxAngle, maxAngle);
-            int key = previousPhysicalKey;
-            // horizonTicks and sampleTicks are expressed in rollout steps by the caller (coarse substeps).
+            int key = c.PreviousPhysicalKey;
             for (int t = 0; t < horizonTicks; t++)
             {
-                key = AttitudeKey((target - carDegrees) * Mathf.Deg2Rad, state.YawRate, beta, deadband, hysteresis, key);
+                key = AttitudeKey((target - carDegrees) * Mathf.Deg2Rad, state.YawRate, c.Beta, c.Deadband, c.Hysteresis, key);
                 float yawBefore = state.Yaw;
-                BuddahMotionModel.Step(ref state, prepared, prepared.Control(key * steeringSign));
+                BuddahMotionModel.Step(ref state, c.Prepared, c.Prepared.Control(key * c.SteeringSign));
                 carDegrees += (state.Yaw - yawBefore) * Mathf.Rad2Deg; // model yaw is continuous
                 if ((t + 1) % sampleTicks != 0) continue;
-                var projection = line.Project(state.Position, segment, 6);
+                var projection = line.Project(state.Position, segment, RolloutSearchSegments);
                 segment = projection.Segment;
                 float tangentYaw = (spline != null ? spline.TangentYaw(segment) : Mathf.Atan2(projection.Tangent.x, projection.Tangent.z)) * Mathf.Rad2Deg;
                 carDegrees -= Mathf.DeltaAngle(tangentYawDegrees, tangentYaw); tangentYawDegrees = tangentYaw;
                 float speedSquared = state.Velocity.sqrMagnitude, speed = Mathf.Sqrt(speedSquared);
-                if (speedSquared > 25f)
+                if (speedSquared > VelocityHeadingMinSpeedSquared)
                 {
                     velocityYaw = Mathf.Atan2(state.Velocity.x, state.Velocity.z) * Mathf.Rad2Deg;
                     velocityError = Mathf.DeltaAngle(tangentYaw, velocityYaw);
@@ -173,7 +194,7 @@ namespace BuddahGo.AI
                 float windowPace = Mathf.Min(profile.TargetSpeed, spline != null ? spline.WindowPace(projection.Segment) : projection.Pace);
                 float demand = Mathf.Clamp(speed * speed * curvature - profile.PredictionGain * lateral
                     - profile.LateralDamping * crossSpeed, -acceleration, acceleration);
-                bool recovering = speed < 5f || Mathf.Abs(velocityError) > 90f;
+                bool recovering = speed < RecoverySpeed || Mathf.Abs(velocityError) > RecoveryVelocityErrorDegrees;
                 var guidance = Guide(demand, acceleration, speed, windowPace, profile.SpeedMargin, velocityError, mode, side, recovering);
                 mode = guidance.Mode; side = guidance.Side;
                 target = recovering ? 0f : Mathf.Clamp(velocityError + side * guidance.Theta * Mathf.Rad2Deg, -maxAngle, maxAngle);
@@ -187,10 +208,10 @@ namespace BuddahGo.AI
             float acceleration = Mathf.Max(0f, parameters.Stats.FinalForwardForce / Mathf.Max(.001f, parameters.Mass));
             var spline = line as SplineRacingLine;
             if (spline != null) spline.PreparePace(acceleration, profile.TargetSpeed, profile.ThrustPaceFactor, profile.PlanningBrakeAcceleration);
-            var projection = line.Project(state.Position, _nearSegment, 8);
-            if (Mathf.Abs(projection.Lateral) > 15f)
-                projection = spline != null ? spline.ProjectContinuous(state.Position, _nearSegment, 40)
-                    : line.Project(state.Position, _nearSegment, 40);
+            var projection = line.Project(state.Position, _nearSegment, NearSearchSegments);
+            if (Mathf.Abs(projection.Lateral) > ReprojectLateral)
+                projection = spline != null ? spline.ProjectContinuous(state.Position, _nearSegment, WideSearchSegments)
+                    : line.Project(state.Position, _nearSegment, WideSearchSegments);
             _nearSegment = projection.Segment;
             Vector3 tangent = projection.Tangent, routeNormal = Vector3.Cross(Vector3.up, tangent);
             float speed = state.Velocity.magnitude;
@@ -198,7 +219,7 @@ namespace BuddahGo.AI
             float yaw = state.Yaw * Mathf.Rad2Deg;
             float velocityYaw = speed > 0f ? Mathf.Atan2(state.Velocity.x, state.Velocity.z) * Mathf.Rad2Deg : tangentYaw;
             float velocityError = Mathf.DeltaAngle(tangentYaw, velocityYaw);
-            bool referenceRecovery = speed < 5f || Mathf.Abs(velocityError) > 90f;
+            bool referenceRecovery = speed < RecoverySpeed || Mathf.Abs(velocityError) > RecoveryVelocityErrorDegrees;
             if (!_headingInitialized)
             {
                 _headingInitialized = true;
@@ -269,15 +290,17 @@ namespace BuddahGo.AI
                 int memory = _hasChosen ? 2 : 1, extra = memory + AnchorOffsets.Length;
                 _candidateThetas = null; _candidateCosts = null;
                 float[] thetas = CaptureCandidates ? new float[FixedCandidates.Length + extra] : null, costs = thetas != null ? new float[thetas.Length] : null;
+                var context = new RolloutContext { Line = line, Profile = profile, Prepared = prepared, Delta = rolloutDelta,
+                    HorizonTicks = horizon, HoldTicks = hold, SampleTicks = sampleTicks, Segment = projection.Segment,
+                    CarDegrees = carLogical, TangentYawDegrees = tangentYaw, Distance = projection.Distance,
+                    PreviousPhysicalKey = previousKey * sign, SteeringSign = sign, Beta = beta, Deadband = deadband,
+                    Hysteresis = hysteresis, MaxAngle = maxAngle, Acceleration = acceleration, Mode = _mode, Side = _side };
                 for (int c = 0; c < FixedCandidates.Length + extra; c++)
                 {
                     float theta = c == 0 ? anchorTheta : c == 1 && _hasChosen ? _chosenTheta
                         : c < extra ? anchorTheta + AnchorOffsets[c - memory] : FixedCandidates[c - extra];
                     theta = Mathf.Clamp(theta, -maxAngle, maxAngle);
-                    float cost = Rollout(theta, state, prepared, line, profile, rolloutDelta, horizon, hold, sampleTicks,
-                        projection.Segment, carLogical, tangentYaw, projection.Distance, previousKey * sign, sign,
-                        beta, deadband, hysteresis, maxAngle, acceleration, _mode, _side)
-                        + profile.SwitchPenaltyPerDegree * Mathf.Abs(theta - reference);
+                    float cost = Rollout(theta, state, context) + profile.SwitchPenaltyPerDegree * Mathf.Abs(theta - reference);
                     if (thetas != null) { thetas[c] = theta; costs[c] = cost; }
                     candidateCount++;
                     if (c == 0) anchorCost = cost;
@@ -294,7 +317,8 @@ namespace BuddahGo.AI
             // visibly less precise without per-tick jitter.
             if (profile.AngleNoiseDegrees > 0f && !referenceRecovery)
             {
-                if (_wobbleCounter++ % Mathf.Max(1, profile.WobbleTicks) == 0) _wobble = Mathf.Clamp(Gaussian(Random(profile)) * profile.AngleNoiseDegrees, -3f * profile.AngleNoiseDegrees, 3f * profile.AngleNoiseDegrees);
+                if (_wobbleCounter++ % Mathf.Max(1, profile.WobbleTicks) == 0)
+                    _wobble = Mathf.Clamp(Gaussian(Random(profile)) * profile.AngleNoiseDegrees, -WobbleClampSigmas * profile.AngleNoiseDegrees, WobbleClampSigmas * profile.AngleNoiseDegrees);
                 chosenTheta = Mathf.Clamp(chosenTheta + _wobble, -maxAngle, maxAngle);
             }
             if (!referenceRecovery && !select) { chosenTheta = _chosenTheta; bestCost = float.NaN; anchorCost = float.NaN; }

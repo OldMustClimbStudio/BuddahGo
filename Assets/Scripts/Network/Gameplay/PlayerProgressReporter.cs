@@ -96,11 +96,8 @@ public class PlayerProgressReporter : NetworkBehaviour
         int lapsToFinish = GetConfiguredLapsToFinish();
         _completionTracker.UpdateCompletionFromLapAndSpline(lap, progress01, lapsToFinish, previousProgress01, forwardDot);
 
-        // Preserve accepted Solo crossing times before the periodic observation or finish can record now.
-        // No timestamp is received over RPC; LapProgress captured the authoritative local server clock.
-        if (RacerAuthority.IsProgressAuthority(this) && IsServerInitialized && MatchRules.Current.IsSolo)
-            _lapTracker?.ObserveAcceptedLapTimes(racerId, lapsToFinish);
-
+        // Solo crossings were already timed by LapProgress on the authoritative clock; this periodic
+        // observation only adds laps that never had a local crossing (online racers) and is idempotent.
         if (MatchServices.Clock != null)
             MatchServices.Timing?.ObserveCompletedLaps(racerId, Mathf.Clamp(lap - 1, 0, lapsToFinish), MatchServices.Clock.Now);
 

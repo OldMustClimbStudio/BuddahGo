@@ -79,18 +79,18 @@ namespace BuddahGo.AI
             yield return new WaitForSeconds(1f);
             Status = "root-cancels-combo";
             var keeper = Racer(10000); var caster = keeper.GetComponent<AISkillCaster>(); var executor = keeper.GetComponent<SkillExecutor>();
-            int before = caster.Executed, keys = caster.Keys;
+            int before = caster.Telemetry.Executed, keys = caster.Telemetry.Keys;
             BeginCombo(keeper, 0);
-            yield return WaitFor(() => caster.Keys > keys, 2f);
+            yield return WaitFor(() => caster.Telemetry.Keys > keys, 2f);
             executor.ApplyRootThenAccelerationToOwner(.6f, 0f, 0f, .01f);
             yield return new WaitForSeconds(.2f);
-            Check("root cancels partially entered combo", !caster.Commitment.Active && !executor.HasPendingCast && caster.Executed == before);
+            Check("root cancels partially entered combo", !caster.Commitment.Active && !executor.HasPendingCast && caster.Telemetry.Executed == before);
             caster.CastingEnabled = false;
             yield return new WaitForSeconds(.8f); executor.ResetActiveSkillEffectsServer();
 
             Status = "respawn-cancels-confirmation";
             var hunter = Racer(10001); caster = hunter.GetComponent<AISkillCaster>(); executor = hunter.GetComponent<SkillExecutor>();
-            before = caster.Executed; BeginCombo(hunter, 0);
+            before = caster.Telemetry.Executed; BeginCombo(hunter, 0);
             yield return WaitFor(() => executor.HasPendingCast, 4f);
             Check("combo reached real confirmation", executor.HasPendingCast);
             var motor = hunter.GetComponent<BuddahPredictedMotor>();
@@ -98,7 +98,7 @@ namespace BuddahGo.AI
                 hunter.GetComponent<SplineProgressTracker>().progress01, BuddahPredictedTeleportSourceType.Manual,
                 "controlled-lifecycle-reset", true, true, true, true, true, true, true);
             yield return new WaitForSeconds(1.5f);
-            Check("respawn cancels pending execution and buff", !executor.HasPendingCast && !caster.Commitment.Active && caster.Executed == before
+            Check("respawn cancels pending execution and buff", !executor.HasPendingCast && !caster.Commitment.Active && caster.Telemetry.Executed == before
                 && hunter.GetComponent<BuddahHandControl>().ProjectileBuffSecondsLeft == 0f);
             Check("cancel does not refund accepted cooldown", !executor.IsSlotReadyServer(0));
             caster.CastingEnabled = false;
@@ -108,13 +108,13 @@ namespace BuddahGo.AI
             var first = trickster.GetComponent<SkillExecutor>(); var second = opportunist.GetComponent<SkillExecutor>();
             var firstAI = trickster.GetComponent<AISkillCaster>(); var secondAI = opportunist.GetComponent<AISkillCaster>();
             firstAI.CastingEnabled = secondAI.CastingEnabled = true; Normal(first); Normal(second);
-            int firstCount = firstAI.Executed, secondCount = secondAI.Executed, cancellations = secondAI.Cancelled;
+            int firstCount = firstAI.Telemetry.Executed, secondCount = secondAI.Telemetry.Executed, cancellations = secondAI.Telemetry.Cancelled;
             Check("first global request accepted", first.CastSlotServer(1));
             yield return null;
             Check("second global request accepted before first is visible", second.CastSlotServer(2));
             yield return new WaitForSeconds(1.5f);
-            Check("visible global effect cancels second confirmation", firstAI.Executed == firstCount + 1
-                && secondAI.Executed == secondCount && secondAI.Cancelled == cancellations + 1 && !second.HasPendingCast);
+            Check("visible global effect cancels second confirmation", firstAI.Telemetry.Executed == firstCount + 1
+                && secondAI.Telemetry.Executed == secondCount && secondAI.Telemetry.Cancelled == cancellations + 1 && !second.HasPendingCast);
             firstAI.CastingEnabled = secondAI.CastingEnabled = false;
             foreach (var racer in RacerDirectory.Current.All) racer.GetComponent<SkillExecutor>().ResetActiveSkillEffectsServer();
 
@@ -175,7 +175,7 @@ namespace BuddahGo.AI
                 var loadout = racer.GetComponent<SkillLoadout>(); var ai = racer.GetComponent<AISkillCaster>();
                 Check("rematch fixed personality/loadout " + profile.Id, ai.Personality.Id == profile.Id
                     && Enumerable.Range(0, 3).All(slot => loadout.GetSkillId(slot) == profile.Loadout[slot])
-                    && ai.Executed == 0 && !ai.Commitment.Active && !racer.GetComponent<SkillExecutor>().HasPendingCast);
+                    && ai.Telemetry.Executed == 0 && !ai.Commitment.Active && !racer.GetComponent<SkillExecutor>().HasPendingCast);
                 ai.CastingEnabled = false;
             }
 

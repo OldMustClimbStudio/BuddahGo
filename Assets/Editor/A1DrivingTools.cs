@@ -27,7 +27,7 @@ public static class A1DrivingTools
         SessionState.SetString(RecordingKey, directory);
         Tests.Execute(new ExecutionSettings(new Filter { testMode = TestMode.EditMode,
             assemblyNames = new[] { "BuddahGo.Tests" },
-            groupNames = new[] { "^AIDrivingTests", "^BuddahGo.Tests.AcceptedLapTimingTests", "^BuddahGo.Tests.MatchClockTests", "^BuddahGo.Tests.SoloSessionFlowTests" } }));
+            groupNames = new[] { "^AIDrivingTests", "^BuddahGo.Tests.RaceTimingTests", "^BuddahGo.Tests.MatchClockTests", "^BuddahGo.Tests.SoloSessionFlowTests" } }));
     }
     private sealed class TestRecorder : ICallbacks
     {

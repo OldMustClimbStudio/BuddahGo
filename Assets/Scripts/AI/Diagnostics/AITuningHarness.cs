@@ -36,9 +36,11 @@ namespace BuddahGo.AI
         private SplineProgressTracker _progress;
         private AITestObstacleScope _obstacles;
         private ComboSkillInput _skills;
-        private bool _skillWasEnabled, _started, _go, _stalled, _wrongWay;
+        private readonly SoloHarnessFlow _flow = new SoloHarnessFlow();
+        private MeasurementSettings _measurement;
+        private bool _skillWasEnabled, _go, _stalled, _wrongWay;
         [SerializeField] private bool _finished, _restored;
-        private int _stage, _sampleId, _collisions, _teleports, _lastCheckpoint, _lastLap, _runtimeErrors, _aiCount;
+        private int _sampleId, _collisions, _teleports, _lastCheckpoint, _lastLap, _runtimeErrors, _aiCount;
         // Frame-time window GO+2..11 s (the same window as Tools/ai/performance), written to perf.csv.
         private readonly System.Collections.Generic.List<float> _perfFrameMs = new System.Collections.Generic.List<float>();
         private uint _perfFirstTick, _perfLastTick; private int _perfFrames;
@@ -54,25 +56,22 @@ namespace BuddahGo.AI
         private double _createdAt, _goObserved, _lastClock, _lastProgressTime, _nextHeartbeat;
         private float _bestDistance, _lastDistance, _unwrapped;
         private Vector3 _lastPosition;
-        private bool _oldBackground;
-        private int _oldTargetFps, _oldVsync;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void FromCommandLine()
         {
             string[] args = Environment.GetCommandLineArgs();
-            EnableSkillCasting = Array.IndexOf(args, "--ai-skills-on") >= 0;
-            int a2 = Array.IndexOf(args, "--ai-a2-output");
-            int flag = a2 >= 0 ? a2 : Array.IndexOf(args, "--ai-a1-output");
-            int profile = Array.IndexOf(args, a2 >= 0 ? "--ai-a2-profile" : "--ai-a1-profile");
-            int count = Array.IndexOf(args, "--ai-count"), list = Array.IndexOf(args, "--ai-profiles");
-            string[] profiles = list >= 0 && list + 1 < args.Length ? args[list + 1].Split(';') : null;
-            ProductProfiles = Array.IndexOf(args, "--ai-product-profiles") >= 0;
-            int difficulty = Array.IndexOf(args, "--ai-difficulty");
-            if (difficulty >= 0 && difficulty + 1 < args.Length && Enum.TryParse(args[difficulty + 1], true, out SoloDifficulty parsedDifficulty)) Difficulty = parsedDifficulty;
-            if (flag >= 0 && flag + 1 < args.Length)
-                Begin(args[flag + 1], profile >= 0 && profile + 1 < args.Length ? args[profile + 1] : profiles != null ? profiles[0] : null, a2 >= 0 ? 3 : 1,
-                    count >= 0 && count + 1 < args.Length && int.TryParse(args[count + 1], out int parsed) ? parsed : 0, profiles);
+            EnableSkillCasting = HarnessArgs.Has(args, "--ai-skills-on");
+            bool a2 = HarnessArgs.Has(args, "--ai-a2-output");
+            string output = HarnessArgs.Value(args, a2 ? "--ai-a2-output" : "--ai-a1-output");
+            string profile = HarnessArgs.Value(args, a2 ? "--ai-a2-profile" : "--ai-a1-profile");
+            string[] profiles = HarnessArgs.Value(args, "--ai-profiles")?.Split(';');
+            ProductProfiles = HarnessArgs.Has(args, "--ai-product-profiles");
+            string difficulty = HarnessArgs.Value(args, "--ai-difficulty");
+            if (difficulty != null && Enum.TryParse(difficulty, true, out SoloDifficulty parsedDifficulty)) Difficulty = parsedDifficulty;
+            if (output != null)
+                Begin(output, profile ?? profiles?[0], a2 ? 3 : 1,
+                    int.TryParse(HarnessArgs.Value(args, "--ai-count"), out int parsed) ? parsed : 0, profiles);
         }
 
         public static AITuningHarness Begin(string directory, string profileJsonPath = null, int plannedLaps = 1, int aiCount = 0, string[] racerProfilePaths = null)
@@ -94,9 +93,7 @@ namespace BuddahGo.AI
             harness._plans = new StreamWriter(Path.Combine(directory, "plans.jsonl"), false);
             harness._samples = new StreamWriter(Path.Combine(directory, "trajectory.jsonl"), false);
             harness._events = new StreamWriter(Path.Combine(directory, "events.jsonl"), false) { AutoFlush = true };
-            harness._oldBackground = Application.runInBackground; harness._oldTargetFps = Application.targetFrameRate;
-            harness._oldVsync = QualitySettings.vSyncCount;
-            Application.runInBackground = true; Application.targetFrameRate = 60; QualitySettings.vSyncCount = 0;
+            harness._measurement = MeasurementSettings.Apply();
             harness._createdAt = Time.realtimeSinceStartupAsDouble;
             harness.Profile = ScriptableObject.CreateInstance<AIDifficultyProfile>();
             if (profileJson != null) JsonUtility.FromJsonOverwrite(profileJson, harness.Profile);
@@ -113,27 +110,11 @@ namespace BuddahGo.AI
             try
             {
                 if (Time.realtimeSinceStartupAsDouble - _createdAt > (_plannedLaps == 3 ? 900 : 420)) { Complete(false, "run-timeout"); return; }
-                var selection = PropertiesSelectionManager.Instance;
-                if (!_started && SessionControl.Current != null)
-                {
-                    if (!SessionControl.Current.StartSoloHost(new SoloMatchSettings(_aiCount, Difficulty)))
-                        throw new InvalidOperationException(SessionControl.Current.LastError);
-                    _started = true; _stage = 1; Status = "selection";
-                }
-                if (_stage == 1 && selection != null && selection.IsClientInitialized && selection.IsStageCountdownActive
-                    && selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkillLoadoutStageKey)
-                {
-                    // The product requires a legal loadout; it is recorded, and skill input is disabled before GO.
-                    var options = selection.GetOptionsForProperty(PropertiesSelectionManager.SkillLoadoutStageKey);
-                    var ids = options.Take(3).Select(option => option.OptionId).ToArray();
-                    Event("loadout-not-cast", string.Join(",", ids)); selection.SubmitSkillLoadoutSelection(ids); _stage = 2;
-                }
-                if (_stage == 2 && selection != null && selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkinStageKey)
-                {
-                    var options = selection.GetOptionsForProperty(PropertiesSelectionManager.SkinStageKey);
-                    if (options.Count > 0) { selection.SubmitPlayerSelection(PropertiesSelectionManager.SkinStageKey, options[0].OptionId); _stage = 3; }
-                }
-                if (_stage >= 3 && _driver == null) Attach();
+                // The product requires a legal loadout; it is recorded, and skill input is disabled before GO.
+                bool idle = _flow.Stage == 0;
+                bool selected = _flow.Advance(_aiCount, Difficulty, ids => Event("loadout-not-cast", string.Join(",", ids)));
+                if (idle && _flow.Stage > 0) Status = "selection";
+                if (selected && _driver == null) Attach();
                 if (_driver == null) return;
                 var room = RoomStateManager.Instance;
                 if (!_go && room != null && room.IsAuthoritativeGoIssued && MatchServices.Clock != null)
@@ -416,7 +397,7 @@ namespace BuddahGo.AI
             if (_driver != null) { _driver.PlanObserved -= PlanObserved; _driver.Contact -= Collision; _driver.ModelCompared -= ModelCompared; _driver.enabled = false; }
             if (_skills != null) _skills.enabled = _skillWasEnabled;
             _obstacles?.Dispose();
-            Application.runInBackground = _oldBackground; Application.targetFrameRate = _oldTargetFps; QualitySettings.vSyncCount = _oldVsync;
+            _measurement.Restore();
             _plans?.Dispose(); _plans = null;
             _samples?.Dispose(); _samples = null; _events?.Dispose(); _events = null;
         }

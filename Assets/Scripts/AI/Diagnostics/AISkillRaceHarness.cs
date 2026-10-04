@@ -32,24 +32,25 @@ namespace BuddahGo.AI
         private readonly List<double> _frameMs = new List<double>();
         private StreamWriter _trajectory, _skills, _events, _combat;
         private AITestObstacleScope _obstacles;
-        private int _stage, _errors, _sample, _oldFps, _oldVsync;
-        private bool _done, _restored, _oldBackground, _go;
+        private readonly SoloHarnessFlow _flow = new SoloHarnessFlow();
+        private MeasurementSettings _measurement;
+        private int _errors, _sample;
+        private bool _attached, _done, _restored, _go;
         private double _began, _goAt, _sampleAt, _heartbeatAt;
         private uint _lastSampleTick;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void FromCommandLine()
         {
-            string[] args = Environment.GetCommandLineArgs(); int flag = Array.IndexOf(args, "--ai-skill-race-output");
-            if (flag < 0 || flag + 1 >= args.Length) return;
-            int difficulty = Array.IndexOf(args, "--ai-difficulty");
-            int seed = Array.IndexOf(args, "--ai-skill-seed");
-            if (seed >= 0 && seed + 1 < args.Length && int.TryParse(args[seed + 1], out int value)) AIDifficultyProfiles.DiagnosticMatchSeed = value;
+            string[] args = Environment.GetCommandLineArgs();
+            string output = HarnessArgs.Value(args, "--ai-skill-race-output");
+            if (output == null) return;
+            if (int.TryParse(HarnessArgs.Value(args, "--ai-skill-seed"), out int seed)) AIDifficultyProfiles.DiagnosticMatchSeed = seed;
             var tier = SoloDifficulty.Normal;
-            if (difficulty >= 0 && difficulty + 1 < args.Length) Enum.TryParse(args[difficulty + 1], true, out tier);
-            var harness = Begin(args[flag + 1], tier, Array.IndexOf(args, "--ai-skills-off") < 0, false, Array.IndexOf(args, "--ai-skill-quiet") < 0);
-            int stop = Array.IndexOf(args, "--ai-skill-window-seconds");
-            if (stop >= 0 && stop + 1 < args.Length && double.TryParse(args[stop + 1], System.Globalization.NumberStyles.Float,
+            string difficulty = HarnessArgs.Value(args, "--ai-difficulty");
+            if (difficulty != null) Enum.TryParse(difficulty, true, out tier);
+            var harness = Begin(output, tier, !HarnessArgs.Has(args, "--ai-skills-off"), false, !HarnessArgs.Has(args, "--ai-skill-quiet"));
+            if (double.TryParse(HarnessArgs.Value(args, "--ai-skill-window-seconds"), System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out double seconds)) harness.DiagnosticStopSeconds = Math.Max(91d, seconds);
         }
 
@@ -71,8 +72,7 @@ namespace BuddahGo.AI
             h._combat = new StreamWriter(Path.Combine(directory, "combat.jsonl"));
             h._events = new StreamWriter(Path.Combine(directory, "events.jsonl")) { AutoFlush = true };
             h._began = Time.realtimeSinceStartupAsDouble;
-            h._oldBackground = Application.runInBackground; h._oldFps = Application.targetFrameRate; h._oldVsync = QualitySettings.vSyncCount;
-            Application.runInBackground = true; Application.targetFrameRate = 60; QualitySettings.vSyncCount = 0;
+            h._measurement = MeasurementSettings.Apply();
             Application.logMessageReceived += h.Log;
             if (captureDetails) SkillCombatEvents.Observed += h.Combat;
             File.WriteAllText(Path.Combine(directory, "skill-config.json"), JsonUtility.ToJson(AISkillCatalog.Current, true));
@@ -87,25 +87,9 @@ namespace BuddahGo.AI
             try
             {
                 if (Time.realtimeSinceStartupAsDouble - _began > 900d) { Complete("timeout"); return; }
-                if (_stage == 0 && SessionControl.Current != null)
-                {
-                    if (!SessionControl.Current.StartSoloHost(new SoloMatchSettings(5, Difficulty))) throw new InvalidOperationException(SessionControl.Current.LastError);
-                    _stage = 1;
-                }
-                var selection = PropertiesSelectionManager.Instance;
-                if (_stage == 1 && selection != null && selection.IsClientInitialized && selection.IsStageCountdownActive
-                    && selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkillLoadoutStageKey)
-                {
-                    var ids = selection.GetOptionsForProperty(PropertiesSelectionManager.SkillLoadoutStageKey).Take(3).Select(o => o.OptionId).ToArray();
-                    selection.SubmitSkillLoadoutSelection(ids); _stage = 2; Event("human-loadout", string.Join(",", ids));
-                }
-                if (_stage == 2 && selection != null && selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkinStageKey)
-                {
-                    var options = selection.GetOptionsForProperty(PropertiesSelectionManager.SkinStageKey);
-                    if (options.Count > 0) { selection.SubmitPlayerSelection(PropertiesSelectionManager.SkinStageKey, options[0].OptionId); _stage = 3; }
-                }
-                if (_stage == 3 && RacerDirectory.Current != null && RacerDirectory.Current.All.Count == 6) Attach();
-                if (_stage < 4) return;
+                bool selected = _flow.Advance(5, Difficulty, ids => Event("human-loadout", string.Join(",", ids)));
+                if (!_attached && selected && RacerDirectory.Current != null && RacerDirectory.Current.All.Count == 6) Attach();
+                if (!_attached) return;
                 var room = RoomStateManager.Instance;
                 if (!_go && room != null && room.IsAuthoritativeGoIssued && MatchServices.Clock != null)
                 { _go = true; _goAt = MatchServices.Clock.Now; Status = "racing"; Event("go", "Authority clock; human input untouched/no injected actions."); }
@@ -120,7 +104,7 @@ namespace BuddahGo.AI
                 if (now > _heartbeatAt)
                 {
                     _heartbeatAt = now + 20;
-                    Event("heartbeat", string.Join(";", _racers.Select(r => r.Id + ":lap=" + r.Lap.CurrentLap + ":s=" + r.Progress.distanceOnTrack.ToString("F1") + ":casts=" + (r.Caster != null ? r.Caster.Executed : 0))));
+                    Event("heartbeat", string.Join(";", _racers.Select(r => r.Id + ":lap=" + r.Lap.CurrentLap + ":s=" + r.Progress.distanceOnTrack.ToString("F1") + ":casts=" + (r.Caster != null ? r.Caster.Telemetry.Executed : 0))));
                     Flush();
                 }
             }
@@ -132,8 +116,8 @@ namespace BuddahGo.AI
             if (_done || !_go || MatchServices.Clock == null) return;
             double elapsed = MatchServices.Clock.Now - _goAt;
             if (elapsed < PerfWarmupSeconds || elapsed >= PerfWarmupSeconds + PerfWindowSeconds) return;
-            _skillFrameMs.Add(AISkillCaster.WorkTicksThisFrame * 1000d / System.Diagnostics.Stopwatch.Frequency);
-            _skillInputMs.Add(AISkillCaster.InputTicksThisFrame * 1000d / System.Diagnostics.Stopwatch.Frequency);
+            _skillFrameMs.Add(AISkillTelemetry.WorkTicksThisFrame * 1000d / System.Diagnostics.Stopwatch.Frequency);
+            _skillInputMs.Add(AISkillTelemetry.InputTicksThisFrame * 1000d / System.Diagnostics.Stopwatch.Frequency);
             _frameMs.Add(Time.unscaledDeltaTime * 1000d);
         }
 
@@ -156,7 +140,7 @@ namespace BuddahGo.AI
                 if (identity.IsAI)
                 {
                     record.Caster.CastingEnabled = SkillsEnabled; record.Personality = record.Caster.Personality.Id;
-                    if (CaptureDetails) record.Caster.Observed += Skill;
+                    if (CaptureDetails) record.Caster.Telemetry.Observed += Skill;
                     File.WriteAllText(Path.Combine(OutputDirectory, "driving-" + record.Id + ".json"), JsonUtility.ToJson(record.Driver.Profile, true));
                 }
                 else
@@ -168,7 +152,7 @@ namespace BuddahGo.AI
                 }
                 _racers.Add(record);
             }
-            _stage = 4; Status = "intro";
+            _attached = true; Status = "intro";
         }
 
         private void Sample(double now)
@@ -244,11 +228,11 @@ namespace BuddahGo.AI
             NaturalFinish = r.NaturalFinish, FinishSeconds = r.NaturalFinish ? r.FinishSeconds : -1, Laps = r.Laps,
             DNFReason = r.NaturalFinish ? "" : Status != "natural-race-results" ? Status : r.Stalled ? "stalled-at-cutoff" : "race-countdown-cutoff",
             FinalLap = r.FinalLap, FinalCheckpoint = r.FinalCheckpoint, FinalDistance = r.FinalDistance,
-            Stalls = r.Stalls, Discontinuities = r.Discontinuities, Requests = r.Caster != null ? r.Caster.Requests : 0,
-            Accepted = r.Caster != null ? r.Caster.Accepted : 0, Executed = r.Caster != null ? r.Caster.Executed : 0,
-            Backlashes = r.Caster != null ? r.Caster.Backlashes : 0, Cancelled = r.Caster != null ? r.Caster.Cancelled : 0,
-            ComboFailures = r.Caster != null ? r.Caster.Commitment.FailedCombos : 0, Keys = r.Caster != null ? r.Caster.Keys : 0,
-            BuffShots = r.Caster != null ? r.Caster.BuffShots : 0 };
+            Stalls = r.Stalls, Discontinuities = r.Discontinuities, Requests = r.Caster != null ? r.Caster.Telemetry.Requests : 0,
+            Accepted = r.Caster != null ? r.Caster.Telemetry.Accepted : 0, Executed = r.Caster != null ? r.Caster.Telemetry.Executed : 0,
+            Backlashes = r.Caster != null ? r.Caster.Telemetry.Backlashes : 0, Cancelled = r.Caster != null ? r.Caster.Telemetry.Cancelled : 0,
+            ComboFailures = r.Caster != null ? r.Caster.Commitment.FailedCombos : 0, Keys = r.Caster != null ? r.Caster.Telemetry.Keys : 0,
+            BuffShots = r.Caster != null ? r.Caster.Telemetry.BuffShots : 0 };
         private double InputShareOfFramesOver(double thresholdMs)
         {
             double total = 0d, input = 0d;
@@ -259,7 +243,7 @@ namespace BuddahGo.AI
 
         private static double Percentile(List<double> values, double fraction)
         { if (values.Count == 0) return -1; var sorted = values.OrderBy(v => v).ToArray(); return sorted[(int)Math.Round((sorted.Length - 1) * fraction)]; }
-        private void Skill(AISkillCaster.Observation observation) => _skills?.WriteLine(JsonUtility.ToJson(observation));
+        private void Skill(AISkillTelemetry.Observation observation) => _skills?.WriteLine(JsonUtility.ToJson(observation));
         private void Combat(SkillCombatEvents.Entry entry) => _combat?.WriteLine(JsonUtility.ToJson(entry));
         private void Event(string kind, string detail) => _events?.WriteLine(JsonUtility.ToJson(new EventRow { Kind = kind, Detail = detail, Clock = MatchServices.Clock?.Now ?? -1d }));
         private void Log(string message, string stack, LogType type)
@@ -274,12 +258,12 @@ namespace BuddahGo.AI
             Application.logMessageReceived -= Log; SkillCombatEvents.Observed -= Combat;
             foreach (var r in _racers)
             {
-                if (r.Caster != null) r.Caster.Observed -= Skill;
+                if (r.Caster != null) r.Caster.Telemetry.Observed -= Skill;
                 if (r.Combo != null) r.Combo.enabled = r.ComboEnabled;
                 if (r.Hands != null) r.Hands.enabled = r.HandsEnabled;
             }
             _obstacles?.Dispose();
-            Application.runInBackground = _oldBackground; Application.targetFrameRate = _oldFps; QualitySettings.vSyncCount = _oldVsync;
+            _measurement.Restore();
             Flush(); _trajectory?.Dispose(); _skills?.Dispose(); _combat?.Dispose(); _events?.Dispose();
             _trajectory = _skills = _combat = _events = null;
         }

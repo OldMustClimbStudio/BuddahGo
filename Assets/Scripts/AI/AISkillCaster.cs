@@ -15,35 +15,12 @@ namespace BuddahGo.AI
         public AISkillPersonality Personality { get; private set; }
         public AISkillDifficulty Difficulty { get; private set; }
         public AISkillCommitment Commitment { get; } = new AISkillCommitment();
+        // Counters, observations and frame accounting live apart from the decisions that produce them.
+        public AISkillTelemetry Telemetry { get; } = new AISkillTelemetry();
         public bool CastingEnabled { get; set; } = true;
-        public int Requests { get; private set; }
-        public int Accepted { get; private set; }
-        public int Executed { get; private set; }
-        public int Backlashes { get; private set; }
-        public int Cancelled { get; private set; }
-        public int Keys { get; private set; }
-        public int BuffShots { get; private set; }
         private static readonly ProfilerMarker Marker = new ProfilerMarker("AI.Skill");
         // Nested: key injection and server pushes (coroutines, hitbox/projectile spawns) as opposed to decisions.
         private static readonly ProfilerMarker InputMarker = new ProfilerMarker("AI.Skill.Input");
-        public static long WorkTicksThisFrame => _workFrame == Time.frameCount ? _workTicksThisFrame : 0;
-        // Portion of WorkTicksThisFrame spent inside AI.Skill.Input (key injection, server pushes, spawns).
-        public static long InputTicksThisFrame => _workFrame == Time.frameCount ? _inputTicksThisFrame : 0;
-        private static long _workTicksThisFrame, _inputTicksThisFrame;
-        private static int _workFrame = -1;
-
-        [Serializable]
-        public struct Observation
-        {
-            public uint Tick;
-            public int RacerId, Slot, TargetId;
-            public string Personality, Event, Reason, Skill;
-            public SoloDifficulty Difficulty;
-            public AISkillSituation Situation;
-            public float Opportunity, ValidSeconds, Obsession, BacklashProbability, Utility;
-            public bool TargetImpaired, Backlash;
-        }
-        public event Action<Observation> Observed;
 
         private SkillExecutor _executor;
         private ComboSkillInput _combo;
@@ -86,6 +63,7 @@ namespace BuddahGo.AI
             _keyRandom = new System.Random(unchecked(seed ^ 0x615F321));
             _reactionSeconds = SampleReaction();
             _time = _motor.TimeManager;
+            Telemetry.Bind(_racerId, personality, difficulty, _obsession, _time);
             _driver = GetComponent<AIRacerDriver>();
             _driver.ConfigureSkillPerception(difficulty, _perception);
             enabled = true;
@@ -126,9 +104,8 @@ namespace BuddahGo.AI
         {
             long start = System.Diagnostics.Stopwatch.GetTimestamp();
             using (Marker.Auto()) Tick();
-            if (_workFrame != Time.frameCount) { _workFrame = Time.frameCount; _workTicksThisFrame = 0; _inputTicksThisFrame = 0; }
-            _workTicksThisFrame += System.Diagnostics.Stopwatch.GetTimestamp() - start;
-            _inputTicksThisFrame += _inputTicksThisTick; _inputTicksThisTick = 0;
+            AISkillTelemetry.AccumulateFrame(System.Diagnostics.Stopwatch.GetTimestamp() - start, _inputTicksThisTick);
+            _inputTicksThisTick = 0;
         }
 
         private void Tick()
@@ -158,14 +135,14 @@ namespace BuddahGo.AI
                 if (Commitment.NextKey(tick, delta, _tuning.KeyMinSeconds, _tuning.KeyMaxSeconds, _combo.StepWindowSeconds,
                     Difficulty.KeyMistakeProbability, _keyRandom, out var key))
                 {
-                    Keys++;
+                    Telemetry.Keys++;
                     Emit("key", key == ComboSkillInput.Token.W ? "W" : "Up", Commitment.Slot);
                     // Independent recognizer and hand listeners match the player's input semantics:
                     // a hand on cooldown does not suppress that key's combo token.
                     InjectInput(key, tick, delta, keyRequiresPush: false);
                     if (Commitment.Waiting && !_executor.HasPendingCast) Cancel("combo-not-accepted");
                 }
-                else if (wasActive && !Commitment.Active) { Cancelled++; _combo.ClearCombo(); Emit("cancel", "retry-exhausted"); }
+                else if (wasActive && !Commitment.Active) { Telemetry.Cancelled++; _combo.ClearCombo(); Emit("cancel", "retry-exhausted"); }
                 return;
             }
             float reaction = _reactionSeconds + (_perception.VisionImpairedUntilTick > tick ? Difficulty.ImpairedReactionTicks * delta : 0f);
@@ -231,7 +208,7 @@ namespace BuddahGo.AI
             // A buff shot only counts as a combo key when the hand actually fired.
             if (InjectInput(ComboSkillInput.Token.W, tick, delta, keyRequiresPush: true))
             {
-                _shotsThisBuff++; BuffShots++; Keys++;
+                _shotsThisBuff++; Telemetry.BuffShots++; Telemetry.Keys++;
                 _nextShot = tick + AISkillCommitment.SecondsToTicks(Mathf.Max(_combo.StepWindowSeconds + delta, _hands.ServerPushCooldown), delta);
                 Emit("aim-push", "accepted", -1, opportunity);
             }
@@ -257,12 +234,12 @@ namespace BuddahGo.AI
         {
             switch (cast.Stage)
             {
-                case SkillExecutor.CastStage.Requested: Requests++; break;
-                case SkillExecutor.CastStage.Accepted: Accepted++; Commitment.Accepted(); break;
+                case SkillExecutor.CastStage.Requested: Telemetry.Requests++; break;
+                case SkillExecutor.CastStage.Accepted: Telemetry.Accepted++; Commitment.Accepted(); break;
                 case SkillExecutor.CastStage.Executed:
-                    Executed++; if (cast.IsBacklash) Backlashes++;
+                    Telemetry.Executed++; if (cast.IsBacklash) Telemetry.Backlashes++;
                     Commitment.Resolve(); _world.RecordCast(_racerId, _time.LocalTick, (float)_time.TickDelta); break;
-                case SkillExecutor.CastStage.Cancelled: Cancelled++; Commitment.Cancel(); break;
+                case SkillExecutor.CastStage.Cancelled: Telemetry.Cancelled++; Commitment.Cancel(); break;
                 case SkillExecutor.CastStage.Rejected: Cancel("rejected"); break;
             }
             Emit("cast", cast.Stage.ToString(), cast.Slot, backlash: cast.IsBacklash);
@@ -276,7 +253,7 @@ namespace BuddahGo.AI
         {
             if (!Commitment.Active && !_executor.HasPendingCast) return;
             int slot = Commitment.Slot;
-            if (_executor.HasPendingCast) _executor.CancelPendingCastServer(); else Cancelled++;
+            if (_executor.HasPendingCast) _executor.CancelPendingCastServer(); else Telemetry.Cancelled++;
             Commitment.Cancel(); _combo.ClearCombo();
             Emit("cancel", reason, slot);
         }
@@ -288,16 +265,6 @@ namespace BuddahGo.AI
             if (tick - _situationSince >= AISkillCommitment.SecondsToTicks(_tuning.SituationHysteresisSeconds, delta)) _situation = candidate;
         }
         private void Emit(string kind, string reason, int slot = -1, AISkillOpportunity opportunity = default, float utility = 0f, bool backlash = false)
-        {
-            if (Observed == null && !NetDebug.EnableVerboseLog) return;
-            var observation = new Observation { Tick = _time.LocalTick, RacerId = _racerId, Personality = Personality.Id,
-                Difficulty = Difficulty.Difficulty, Event = kind, Reason = reason, Slot = slot, TargetId = opportunity.Score > 0f ? opportunity.TargetId : _targetId,
-                Skill = slot >= 0 ? Personality.Loadout[slot] : string.Empty, Situation = _situation,
-                Opportunity = opportunity.Score, ValidSeconds = opportunity.ValidSeconds, TargetImpaired = opportunity.ImpairedTarget,
-                Obsession = _obsession.Current, BacklashProbability = _obsession.CurrentBackfireProbabilityPercent * .01f,
-                Utility = float.IsNegativeInfinity(utility) ? -999f : utility, Backlash = backlash };
-            Observed?.Invoke(observation);
-            if (NetDebug.EnableVerboseLog) GameLog.Verbose("[AI.Skill] " + JsonUtility.ToJson(observation));
-        }
+            => Telemetry.Emit(kind, reason, slot, _situation, _targetId, opportunity, utility, backlash);
     }
 }

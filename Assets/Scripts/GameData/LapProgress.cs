@@ -42,7 +42,6 @@ public class LapProgress : NetworkBehaviour
     private float _nextAllowedCrossTime = 0f;
     private float _lastProgress01 = 0f;
     private bool _hasLastProgressSample = false;
-    private readonly AcceptedLapTiming _acceptedLapTiming = new AcceptedLapTiming();
 
     public int CurrentLap => currentLap;
     public int NextCheckpointIndex => nextCheckpointIndex;
@@ -56,25 +55,20 @@ public class LapProgress : NetworkBehaviour
         ResolveStartPointReference();
     }
 
-    public override void OnStartNetwork()
-    {
-        base.OnStartNetwork();
-        _acceptedLapTiming.Reset();
-    }
-
-    public override void OnStopNetwork()
-    {
-        _acceptedLapTiming.Reset();
-        base.OnStopNetwork();
-    }
-
     private bool HasLocalTimingAuthority => RacerAuthority.IsProgressAuthority(this) && IsServerInitialized
         && MatchRules.Current.IsSolo;
 
-    internal void ObserveAcceptedLapTimes(RacerId racer, int lapsToFinish)
+    // Solo runs the human and every AI on the host, so a validated crossing is recorded on the authoritative
+    // clock the moment it happens; no timestamp ever crosses an RPC. RaceTiming itself rejects duplicates,
+    // regressions and lap jumps, and the race-length clamp matches the periodic server report. Online racers
+    // keep that periodic observation only.
+    private void RecordCompletedLap(int completedLaps)
     {
-        if (HasLocalTimingAuthority)
-            _acceptedLapTiming.ObservePending(MatchServices.Clock, MatchServices.Timing, racer, lapsToFinish);
+        if (MatchServices.Clock == null || MatchServices.Timing == null || !RacerAuthority.TryGetId(this, out RacerId racer))
+            return;
+        int lapsToFinish = RaceFinishManager.Instance != null ? RaceFinishManager.Instance.LapsToFinish : RaceRules.DefaultLapsToFinish;
+        if (completedLaps <= lapsToFinish)
+            MatchServices.Timing.ObserveCompletedLaps(racer, completedLaps, MatchServices.Clock.Now);
     }
 
     private void Update()
@@ -120,8 +114,7 @@ public class LapProgress : NetworkBehaviour
         if (!hasStartedLap)
         {
             hasStartedLap = true;
-            currentLap = 1;
-            _acceptedLapTiming.Reset(); // Initial line entry starts lap 1; GO remains the timing origin.
+            currentLap = 1; // Initial line entry starts lap 1; GO remains the timing origin.
             ResetCrossState();
             SetLastProgressSample(currentProgress);
             _nextAllowedCrossTime = Time.time + minimumCrossingCooldownSeconds;
@@ -134,9 +127,9 @@ public class LapProgress : NetworkBehaviour
             return;
 
         currentLap += 1;
-        // Capture only validated local server crossings. Reporting/finishing stays outside the trigger.
+        // Only validated local server crossings are timed. Reporting/finishing stays outside the trigger.
         if (HasLocalTimingAuthority)
-            _acceptedLapTiming.Capture(currentLap - 1, MatchServices.Clock, MatchServices.Timing);
+            RecordCompletedLap(currentLap - 1);
         ResetCrossState();
         SetLastProgressSample(currentProgress);
         _nextAllowedCrossTime = Time.time + minimumCrossingCooldownSeconds;

@@ -777,7 +777,7 @@ MonoBehaviour:
   extraRecoveryPerSecond: 0
   drainPerSecond: 10
   catchupRecoveryA: 0.01
-  initialValue: 1000
+  initialValue: 0
   backfirePMaxPercent: 95
   backfireK: 0.008
   backfireMidpointX: 500

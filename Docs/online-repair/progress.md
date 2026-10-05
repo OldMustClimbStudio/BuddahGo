@@ -1,6 +1,22 @@
 # 进度：联机预测与开场交接修复
 
-## 当前状态与继续点（2026-10-01 暂停）
+## 收尾（2026-10-05）
+
+- **结论**：用户用 Development Build `4f3954b`（`.worktree/_builds/online-prediction-handoff-4f3954b-dev`，已含 PR #59 单机模式）做了双端联机实测，评价「联机修复的还不错，至少现在完全可玩」。本分支到此收尾，以 draft PR #61 交给用户。
+- **实际生效的修复**：
+  1. §1 Physics Mode → TimeManager（3a8b997、28414ce）：消除 reconcile 回跳，症状 A（速度相关重影）与 B 的「被拉回起点」都由它解决。
+  2. §H 残余（26742dd）：handoff 待消费期间 spline 继续驱动刚体与视觉，消费时落地到碰撞体静止高度（R7.5）。
+  3. 经 `dev` 合入的 PR #60（fc7ab59）：本地交接切换的相机速度源、GO 后外推、消费 tick 门控、删除 post-intro 视觉锁。
+- **未执行**：EXP-2 到 EXP-5（§2 到 §5）。原因：双端实测已完全可玩，不再需要为 R3–R6 与视觉参考系追加改动。D1–D4 因此无需决定。
+- **测试口径的限制**：这次双端实测是定性的。没有采集 `[ReconcileDelta]` 数值，0/100 ms 延迟矩阵也没有按 acceptance.md 逐项跑；没有记录实测时的延迟条件。acceptance.md 的数值阈值因此未验证。
+- **已知残余**（静态分析，未在双端实测中被用户指出）：
+  - R4：服务器消费 handoff 快照时不投影，owner 按延迟投影；消费后第一份权威快照与 owner 相差约 速度 × 单程延迟（100 ms、60 u/s 时约 3 u），表现为开场一次轻微校正。
+  - PR #60 的 GO 后外推与本分支的待消费外推合计上限 0.5 s；RTT 更高时开场会重新停住。
+  - 开场交接仍有用户已接受的「一点点停顿」。
+- **探针保留**：`[ReconcileDelta]`、`[SpectatorStep]`（`dumpReconcile` 门控）、`[HandoffFrame]`（`logHandoffFrames`，默认关）和两个汇总脚本都保留在代码里，开关默认关闭。
+- **如果问题复现**：从下方「历史继续点」接上，先用编辑器作为一端打开 `dumpReconcile` 采一局，再按 experiments.md 从 EXP-2 继续。
+
+## 历史继续点（2026-10-01 至 10-04，问题复现时从这里接上）
 
 - 分支 `fix/online-prediction-handoff`，worktree `.worktree/online-prediction-handoff`，HEAD 含 EXP-0 探针、§1 修复与文档提交（见下表）。
 - 2026-10-04：`dev` e11292e（PR #59 单机模式全部内容，含四轮清理）已合入本分支（8a52a62）。冲突两处：`RaceBodyIntroStateController.cs`（PR #59 的 Solo 物理时钟分支与本分支的 handoff 待消费 spline 驱动在同一函数）和 `Docs/README.md`（表格行，两边都保留）。解法：`TrySampleVisualPoseAtRenderTime` 先走 Solo 的 `_soloPhysicsClock` 早退，再走本分支的 `introDriving || IsSplineDrivingAfterGo()`；外推上限 `GetOvershootCapSeconds()` 保留，Solo 下仍为 0；`IsSplineDrivingAfterGo` 增加 `_soloPhysicsClock` 守卫并改用 PR #59 的 `HasMovementAuthority`（owner 或服务器 AI）。注意：Solo 的 `ConsumeSoloLaunchBeforePhysics` 也经 `ConsumePendingLaunchHandoffEvent`，所以消费时落地（R7.5）对单机同样生效。验证：batchmode EditMode（`-assemblyNames BuddahGo.Tests`）299/299 通过（排除两个会 EnterPlayMode 的类），这两个类单独跑 3/3 通过，合计 302/302；注意带 -nographics 时 EnterPlayMode 会让批处理编辑器直接退出且不写结果，需去掉 -nographics 单独跑。Unity MCP 服务本次未连上（ECONNREFUSED），用批处理模式代替。
@@ -34,11 +50,11 @@
 | 实验 | 针对 | 预检结果 | 状态 | 提交 | A 结果 | B 结果 | 决定 |
 |---|---|---|---|---|---|---|---|
 | EXP-0 基线（含 §0 探针） | A/B | `_physicsMode`=0 已确认；Editor 编译通过，EditMode 78/78 | done（无数值基线：用户在改动前只有目视记忆，两端都有 A/B） | 8046598 | 目视：改前有速度相关重影 | 目视：改前交接后被拉回起点重新加速 | 探针保留在 `dumpReconcile` 门控下；数值基线未采 |
-| EXP-1 Physics Mode | A | 前提满足：`_physicsMode`=0、Rigidbody 插值 None、fixedDeltaTime=1/60（MCP 实测） | done（单端目视达标；双端与延迟矩阵未测） | 3a8b997, 28414ce | 用户 2026-10-01 单端实测：重影消失 | 不再强行拉回起点；交接切换瞬间仍有一次小卡顿 | 保留；A 的双端复核并入 EXP-2 的测试；B 残余进入 EXP-2 |
-| EXP-2 消费后屏蔽窗口 | B | 待做：100 ms 下看 consume 后 1–3 tick 的 `[ReconcileDelta]` | todo（下一步） | | | | D1 倾向方案 A，待用户确认 |
-| EXP-3 投影与回放时钟 | B | | todo | | | | |
-| EXP-4 多写入者 | A/B | | todo | | | | |
-| EXP-5 视觉参考系 | A | | todo | | | | |
+| EXP-1 Physics Mode | A | 前提满足：`_physicsMode`=0、Rigidbody 插值 None、fixedDeltaTime=1/60（MCP 实测） | done（单端目视达标；双端与延迟矩阵未测） | 3a8b997, 28414ce | 用户 2026-10-01 单端实测：重影消失 | 不再强行拉回起点；交接切换瞬间仍有一次小卡顿 | 保留；A 的双端复核并入 EXP-2 的测试；B 残余进入 EXP-2；2026-10-05 用户双端实测完全可玩 |
+| EXP-2 消费后屏蔽窗口 | B | 未做预检 | 未执行（2026-10-05 收尾：用户双端实测完全可玩，不再需要） | | | 双端实测未见拉回起点 | 不做 |
+| EXP-3 投影与回放时钟 | B | | 未执行（2026-10-05 收尾：用户双端实测完全可玩，不再需要） | | | | 不做 |
+| EXP-4 多写入者 | A/B | | 未执行（2026-10-05 收尾：用户双端实测完全可玩，不再需要） | | | | 不做 |
+| EXP-5 视觉参考系 | A | | 未执行（2026-10-05 收尾：用户双端实测完全可玩，不再需要） | | | | 不做 |
 
 ## 正式修复表
 
@@ -46,12 +62,12 @@
 |---|---|---|---|---|---|
 | §H 残余 | handoff 待消费期间 spline 持续驱动（R7.2/R7.3 残余）+ 消费时落地（R7.5） | PR #60 合入后用户单端复现 | done（定性：仍有一点点停顿，用户接受） | 26742dd | 用户单端目视可接受；逐帧量化未做 |
 | §1 | Physics Mode → TimeManager + 不变量断言 | EXP-1 | done（验收矩阵未跑） | 3a8b997, 28414ce | 场景运行时 `PhysicsMode=TimeManager`、Buddah 刚体插值 None、graphical=VisualRoot（MCP execute_code 读取）；验收矩阵待跑 |
-| §2 | handoff / teleport 回放安全（D1 选 A 或 B） | EXP-2 | todo | | |
-| §3.1 | 投影锚点统一（D2） | EXP-3 | todo | | |
-| §3.2 | 服务器侧远端身体 kinematic | EXP-4.1 | todo | | |
-| §4 | 回放时钟 | EXP-3.2 | todo | | |
-| §5 | 视觉参考系（D3） | EXP-5 | todo | | |
-| 收尾 | 全矩阵回归、文档更新、探针移除 | 全部 | todo | | |
+| §2 | handoff / teleport 回放安全（D1 选 A 或 B） | EXP-2 | 未执行（2026-10-05 收尾：用户双端实测完全可玩，不再需要） | | |
+| §3.1 | 投影锚点统一（D2） | EXP-3 | 未执行（2026-10-05 收尾：用户双端实测完全可玩，不再需要） | | |
+| §3.2 | 服务器侧远端身体 kinematic | EXP-4.1 | 未执行（2026-10-05 收尾：用户双端实测完全可玩，不再需要） | | |
+| §4 | 回放时钟 | EXP-3.2 | 未执行（2026-10-05 收尾：用户双端实测完全可玩，不再需要） | | |
+| §5 | 视觉参考系（D3） | EXP-5 | 未执行（2026-10-05 收尾：用户双端实测完全可玩，不再需要） | | |
+| 收尾 | 全矩阵回归、文档更新、探针移除 | 全部 | done（部分）：文档已更新（networking.md、prediction-design.md、本文件）；探针按团队规则保留并默认关闭；全矩阵回归未跑，以用户双端定性实测代替 | 见 git log | 用户双端实测完全可玩 |
 
 ## 基线表（EXP-0 填写）
 
@@ -72,10 +88,10 @@
 
 | 编号 | 问题 | 决定 | 日期 |
 |---|---|---|---|
-| D1 | §2 采用确认门控（A）还是回放重放（B） | 实现者建议 A（改动小、对 RTT 不敏感），待用户确认 | 2026-10-01 待定 |
-| D2 | handoff 快照是否改为服务器直接采样（D2-b）或服务器同样投影（D2-a） | 实现者建议先 D2-a，有残余再 D2-b，待用户确认 | 2026-10-01 待定 |
-| D3 | spectator 插值策略与 teleport 阈值 | | |
-| D4 | acceptance.md 中标注"待定"的阈值 | | |
+| D1 | §2 采用确认门控（A）还是回放重放（B） | 不决定：对应修复未执行（收尾时不需要）。若问题复现再定；D1 建议 A、D2 建议先 D2-a 仍有效 | 2026-10-05 |
+| D2 | handoff 快照是否改为服务器直接采样（D2-b）或服务器同样投影（D2-a） | 不决定：对应修复未执行（收尾时不需要）。若问题复现再定；D1 建议 A、D2 建议先 D2-a 仍有效 | 2026-10-05 |
+| D3 | spectator 插值策略与 teleport 阈值 | 不决定：对应修复未执行（收尾时不需要）。若问题复现再定；D1 建议 A、D2 建议先 D2-a 仍有效 | 2026-10-05 |
+| D4 | acceptance.md 中标注"待定"的阈值 | 不决定：对应修复未执行（收尾时不需要）。若问题复现再定；D1 建议 A、D2 建议先 D2-a 仍有效 | 2026-10-05 |
 
 ## 新发现
 

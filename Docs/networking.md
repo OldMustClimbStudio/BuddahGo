@@ -28,6 +28,7 @@
 | 切场景后对象不可见 | 客户端场景登记、observer 与对象迁移 |
 | Host 正常、远端异常 | 序列化、客户端输入/回放、RPC 返回链路 |
 | 角色或相机抖动 | [预测设计](prediction-design.md)中的模拟状态与视觉平滑边界 |
+| 预测对象随速度回跳或重影，host 与 client 都有 | NetworkManager → TimeManager 的 Physics Mode 必须是 `TimeManager`；`Unity` 模式下 reconcile 回放不做物理积分，每次校正都是真实回跳（[联机修复 R1](online-repair/findings.md)）。Editor/Development 下 `BuddahPredictedMotor` 启动时会报 invariant 错误 |
 
 ## SceneCondition 与常驻对象
 

@@ -1,6 +1,7 @@
 using BuddahGo.Match;
 using FishNet.Object;
 using FishNet.Connection;
+using FishNet.Managing.Timing;
 using FishNet.Object.Prediction;
 using FishNet.Transporting;
 using FishNet.Utility.Template;
@@ -215,10 +216,38 @@ namespace NewBuddah.PredictionV2.Core
             _shadowScratch = default;
 #endif
 
+            LogSpectatorStepProbe();
+
             if (!IsServerInitialized)
                 return;
 
             CreateReconcile();
+        }
+
+        public override void OnStartNetwork()
+        {
+            base.OnStartNetwork();
+            ValidatePredictionInvariants();
+        }
+
+        // Prediction replay only integrates physics when FishNet owns the physics step. These are
+        // configuration invariants, not runtime state; a violation means reconcile replays are no-ops.
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private void ValidatePredictionInvariants()
+        {
+            if (TimeManager == null || rb == null || bootstrap == null || !bootstrap.IsPredictionModeActive())
+                return;
+
+            // Review fix: Solo deliberately runs Unity FixedUpdate physics (SessionLauncher.BeginSession); a host
+            // never replays its own bodies, so the TimeManager requirement applies to online sessions only.
+            if (!MatchRules.Current.IsSolo && TimeManager.PhysicsMode != PhysicsMode.TimeManager)
+                Debug.LogError($"[BuddahPredictionV2] invariant: TimeManager.PhysicsMode={TimeManager.PhysicsMode}; client-side prediction requires PhysicsMode.TimeManager (NetworkManager > TimeManager).", this);
+            if (rb.interpolation != RigidbodyInterpolation.None)
+                Debug.LogError($"[BuddahPredictionV2] invariant: Rigidbody.interpolation={rb.interpolation}; predicted rigidbody must use None.", this);
+            if (!Mathf.Approximately(Time.fixedDeltaTime, (float)TimeManager.TickDelta))
+                Debug.LogError($"[BuddahPredictionV2] invariant: Time.fixedDeltaTime={Time.fixedDeltaTime} != TickDelta={TimeManager.TickDelta}.", this);
+            if (NetworkObject != null && NetworkObject.GetGraphicalObject() == null)
+                Debug.LogError("[BuddahPredictionV2] invariant: NetworkObject has no graphical object; tick smoothing is not configured.", this);
         }
 
         public override void CreateReconcile()
@@ -590,6 +619,8 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.movementAllowed = data.MovementAllowed;
             bootstrap.DebugState.lastReconcilePositionDelta = Vector3.Distance(preReconcilePosition, postReconcilePosition);
             bootstrap.DebugState.lastReconcileVelocityDelta = Vector3.Distance(preReconcileVelocity, postReconcileVelocity);
+            LogReconcileDeltaProbe(data, skipOwnerIntroReconcile, reconcileReason,
+                bootstrap.DebugState.lastReconcilePositionDelta, bootstrap.DebugState.lastReconcileVelocityDelta);
             Vector3 prePlanarVelocity = preReconcileVelocity;
             prePlanarVelocity.y = 0f;
             Vector3 postPlanarVelocity = postReconcileVelocity;

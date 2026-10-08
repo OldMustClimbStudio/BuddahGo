@@ -54,5 +54,14 @@ namespace BuddahGo.Tests
         {
             Assert.That(RaceBodyIntroStateController.ResolveSplineOwnsBody(introActive, goApplied, handoffPendingConsume), Is.EqualTo(expected));
         }
+
+        [Test]
+        public void OvershootCapCoversThePendingRoundTripOnlyAfterLocalGo()
+        {
+            Assert.That(RaceBodyIntroStateController.ResolveOvershootCapSeconds(false, 0.15f, 0.35f), Is.EqualTo(0.15f).Within(1e-6f), "before GO only RPC latency");
+            Assert.That(RaceBodyIntroStateController.ResolveOvershootCapSeconds(true, 0.15f, 0.35f), Is.EqualTo(0.5f).Within(1e-6f), "after GO the handoff round trip too");
+            Assert.That(RaceBodyIntroStateController.ResolveOvershootCapSeconds(true, 0.15f, -1f), Is.EqualTo(0.15f).Within(1e-6f), "negative pending cap is ignored");
+            Assert.That(RaceBodyIntroStateController.ResolveOvershootCapSeconds(true, 0f, 0f), Is.EqualTo(0f), "zero caps disable extrapolation");
+        }
     }
 }

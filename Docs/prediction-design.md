@@ -16,6 +16,7 @@
 - 同一份输入、恢复状态和配置应产生一致结果。将一次性的技能/VFX 通知与可能重复执行的模拟分开，避免回放重复触发副作用。
 - 保留现有 tick/reconcile 生命周期。新增数据时确认实际序列化能往返；编译通过不等于远端收到字段。
 - 游戏运动由预测栈及 `PredictionRigidbody` 处理，视觉层不能用刚体修正来掩盖模拟分歧。
+- 回放必须真实步进物理：TimeManager 的 Physics Mode 固定为 `TimeManager`（项目物理模拟模式随之为 Script），刚体插值为 None，`Time.fixedDeltaTime` 等于 `TickDelta`。`BuddahPredictedMotor.ValidatePredictionInvariants` 在 Editor/Development 下检查这几项。代价：Editor 里直接 Play 一个没有 NetworkManager 的场景时刚体不会步进。
 
 ## 外部效果与控制权交接
 
@@ -24,6 +25,7 @@
 - 容量溢出、重复事件和过期事件需要明确处理，关键效果不能悄悄丢失。
 - 开场、复活和结算交接需要考虑 owner/server/旁观者。请求成功返回只代表当前步骤被接受，不能证明 RPC 返回链路已完成。
 - 模式切换清理旧输入、队列和控制标记，防止 Legacy 与预测运动同时驱动角色。
+- 开场交接：本地 GO 到 motor 消费权威 handoff 之间，`RaceBodyIntroStateController` 继续沿 spline 末端切线驱动 kinematic 刚体和渲染采样（上限 `maxGoOvershootSeconds + maxHandoffPendingOvershootSeconds`），motor 在此期间不写刚体；Solo 物理时钟路径不外推。消费时 `ConsumePendingLaunchHandoffEvent` 把根落到碰撞体静止高度（`BuddahHandoffGroundSnap`），owner 与 server 同一路径。来龙去脉见 [联机修复](online-repair/progress.md) 与 [交接连续性](handoff-continuity/findings.md)。
 
 ## 表现与生命周期
 

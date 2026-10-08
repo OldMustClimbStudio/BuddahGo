@@ -6411,7 +6411,7 @@ MonoBehaviour:
   _maximumFrameTicks: 3
   _tickRate: 60
   _pingInterval: 1
-  _physicsMode: 0
+  _physicsMode: 1
 --- !u!114 &1186892271
 MonoBehaviour:
   m_ObjectHideFlags: 0

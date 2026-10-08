@@ -1,5 +1,6 @@
 using System;
 using FishNet.Managing;
+using FishNet.Managing.Timing;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using SteamMultiplayer.Network;
@@ -14,6 +15,11 @@ namespace BuddahGo.Match
     public sealed class SessionLauncher : ISessionControl
     {
         private readonly NetworkManager _network;
+        // Online prediction needs the TimeManager to step physics so reconcile replays integrate (online-repair §1).
+        // Solo was built and qualified on Unity FixedUpdate physics: its GO consume and presentation timeline
+        // sample right after the FixedUpdate physics step. Each session picks its mode; the online one is the
+        // NetworkManager's configured value.
+        private readonly PhysicsMode _onlinePhysicsMode;
         private int _stopRequestedFrame = -1;
         private float _startupDeadline;
         private SoloMatchSettings _failedSoloSettings;
@@ -28,7 +34,11 @@ namespace BuddahGo.Match
 
         public const string SteamUnavailableMessage = "Steam 不可用，请启动 Steam 后重开游戏";
 
-        public SessionLauncher(NetworkManager network) { _network = network; }
+        public SessionLauncher(NetworkManager network)
+        {
+            _network = network;
+            _onlinePhysicsMode = network != null && network.TimeManager != null ? network.TimeManager.PhysicsMode : PhysicsMode.TimeManager;
+        }
 
         public bool StartSoloHost(SoloMatchSettings settings)
         {
@@ -91,6 +101,8 @@ namespace BuddahGo.Match
             _failedSoloSettings = null;
             LastError = string.Empty;
             MatchRules.Current = rules;
+            // Review fix: Solo keeps the Unity FixedUpdate physics step it was qualified on; online uses TimeManager.
+            _network?.TimeManager?.SetPhysicsMode(rules.IsSolo ? PhysicsMode.Unity : _onlinePhysicsMode);
             Settings = settings;
             SessionControl.SoloSettings = settings;
         }
@@ -168,6 +180,8 @@ namespace BuddahGo.Match
             _network?.ClientManager?.StopConnection();
             _network?.ServerManager?.StopConnection(true);
             Settings = null;
+            // Review fix: leave the shared TimeManager in the online mode after a Solo session.
+            _network?.TimeManager?.SetPhysicsMode(_onlinePhysicsMode);
             ResetMatchGlobals();
         }
 

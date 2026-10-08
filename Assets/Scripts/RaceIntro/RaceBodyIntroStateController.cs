@@ -33,6 +33,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
     [SerializeField, Min(0f)] private float defaultHandoffLeadTime = 0.5f;
     [Tooltip("After the scheduled GO time the body keeps moving along the spline end tangent at intro speed until the authoritative GO arrives, but never longer than this. Beyond it the body parks (kinematic, colliders off) and a warning is logged once per sequence.")]
     [SerializeField, Min(0f)] private float maxGoOvershootSeconds = 0.15f;
+    [Tooltip("Extra seconds beyond maxGoOvershootSeconds that the local owner keeps following the spline end tangent after its own GO while the authoritative handoff round trip (ServerRpc + TargetRpc) is still pending. One tick on a host, the RTT on a pure client. Beyond the sum the body parks.")]
+    [SerializeField, Min(0f)] private float maxHandoffPendingOvershootSeconds = 0.35f;
     [Tooltip("Ticks the intro render-time sample trails behind network time. Must match the owner graphical smoother lag: Buddah.prefab NetworkObject > Prediction > Owner Interpolation (1). If that value changes, change this too or the GO switch shows a step of the difference.")]
     [SerializeField, Min(0)] private int introVisualLagTicks = 1;
     [SerializeField, Min(0.001f)] private float velocitySampleDeltaSeconds = 0.02f;
@@ -47,6 +49,15 @@ public class RaceBodyIntroStateController : MonoBehaviour
     private LaunchHandoffSnapshot _latestSplineSnapshot;
     private IntroRuntimeState _runtimeState = IntroRuntimeState.Idle;
     private int _goOvershootCapLoggedSequenceId = -1;
+    // Review fix: the post-GO handoff cap logs on its own once-per-sequence id so a late-GO warning cannot hide it.
+    private int _handoffOvershootCapLoggedSequenceId = -1;
+    // Review fix: set once the pending-handoff drive reaches its cap; the controller then stops writing the body
+    // so a rejected or lost handoff cannot pin it (and overwrite later teleports) for the rest of the race.
+    private bool _pendingHandoffDriveParked;
+    private FishNet.Managing.Timing.TimeManager _pendingHandoffDriveTimeManager;
+    // Review fix: seconds the body sat parked at the GO cap before a late GO arrived. The post-GO drive samples
+    // this much earlier so it resumes from the GO snapshot (where the body is) instead of jumping ahead to it.
+    private double _pendingHandoffDriveDelaySeconds;
     private bool _visualStarted;
     private bool _authoritativeGoIssued;
     private bool _introShellEntered;
@@ -100,6 +111,79 @@ public class RaceBodyIntroStateController : MonoBehaviour
         return introActive || (goApplied && handoffPendingConsume);
     }
 
+    /// <summary>
+    /// Overshoot cap in seconds past the scheduled GO time. Before the local GO only the RPC latency is covered;
+    /// once the local owner has issued its handoff request the pending round trip is covered too. Pure; unit tested.
+    /// </summary>
+    public static float ResolveOvershootCapSeconds(bool goApplied, float goCapSeconds, float pendingCapSeconds)
+    {
+        float goCap = Mathf.Max(0f, goCapSeconds);
+        return goApplied ? goCap + Mathf.Max(0f, pendingCapSeconds) : goCap;
+    }
+
+    // Local owner between its own GO and the motor consuming the authoritative handoff. The motor relinquishes
+    // rigidbody writes while the handoff is pending, so the intro controller keeps driving the kinematic body and
+    // the render-time visual sample along the spline end tangent; otherwise both stall for the round trip.
+    // Review fix: returns the resolved timing so callers do not resolve it a second time.
+    private bool IsSplineDrivingAfterGo(out IntroSequenceTiming timing)
+    {
+        timing = default;
+        if (_soloPhysicsClock || !_goApplied || _pendingHandoffDriveParked || _assignedPath == null || movementController == null || networkObject == null || !HasMovementAuthority)
+            return false;
+
+        return movementController.IsAuthoritativeLaunchHandoffPending && TryGetResolvedTiming(out timing);
+    }
+
+    // Review fix: under PhysicsMode.TimeManager physics steps inside FishNet's tick, not after FixedUpdate, so the
+    // pending-handoff drive runs once per tick (after the motor's replicate, before Physics.Simulate) instead of in
+    // FixedUpdate, which gave 0 or 2 writes per tick.
+    private void SubscribePendingHandoffDrive()
+    {
+        if (_pendingHandoffDriveTimeManager != null || networkObject == null || networkObject.TimeManager == null)
+            return;
+
+        _pendingHandoffDriveTimeManager = networkObject.TimeManager;
+        _pendingHandoffDriveTimeManager.OnTick += DrivePendingHandoffOnTick;
+    }
+
+    private void UnsubscribePendingHandoffDrive()
+    {
+        if (_pendingHandoffDriveTimeManager == null)
+            return;
+
+        _pendingHandoffDriveTimeManager.OnTick -= DrivePendingHandoffOnTick;
+        _pendingHandoffDriveTimeManager = null;
+    }
+
+    private void DrivePendingHandoffOnTick()
+    {
+        if (targetRigidbody == null || _pendingHandoffDriveTimeManager == null || !IsSplineDrivingAfterGo(out IntroSequenceTiming timing))
+        {
+            UnsubscribePendingHandoffDrive();
+            return;
+        }
+
+        // End-of-tick time in the synchronized tick domain: one even step per tick, matching the tick-count
+        // projection the motor applies to the snapshot at consume.
+        double tickTime = _pendingHandoffDriveTimeManager.TicksToTime(_pendingHandoffDriveTimeManager.Tick + 1u)
+            - _pendingHandoffDriveDelaySeconds;
+        double overshoot = tickTime - _resolvedGoNetworkTime;
+        DriveSplinePose(IntroTimeUtility.GetDriveIntroNetworkTime(timing, tickTime));
+
+        // Review fix: past the combined cap the body has been written at the capped pose (and the warning logged);
+        // park and stop writing until the handoff arrives, if it ever does.
+        if (overshoot > ResolveOvershootCapSeconds(true, maxGoOvershootSeconds, maxHandoffPendingOvershootSeconds))
+        {
+            _pendingHandoffDriveParked = true;
+            UnsubscribePendingHandoffDrive();
+        }
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribePendingHandoffDrive();
+    }
+
     private void Awake()
     {
         ResolveReferences();
@@ -142,6 +226,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // Review fix: the post-GO pending-handoff drive moved to DrivePendingHandoffOnTick (tick-aligned).
         if (!_hasAssignment || _assignedPath == null || targetRigidbody == null || _goApplied || !_visualStarted)
             return;
 
@@ -181,11 +266,18 @@ public class RaceBodyIntroStateController : MonoBehaviour
         if (_soloPhysicsClock)
             return false;
 
-        if (!_hasAssignment || _assignedPath == null || _goApplied || !_visualStarted)
+        bool introDriving = _hasAssignment && _assignedPath != null && !_goApplied && _visualStarted;
+        // Review fix: reuse the timing IsSplineDrivingAfterGo already resolved; resolve here only for the intro case.
+        IntroSequenceTiming timing;
+        if (introDriving)
+        {
+            if (!TryGetResolvedTiming(out timing))
+                return false;
+        }
+        else if (!IsSplineDrivingAfterGo(out timing))
+        {
             return false;
-
-        if (!TryGetResolvedTiming(out IntroSequenceTiming timing))
-            return false;
+        }
 
         // Sample introVisualLagTicks behind render time: after the handoff the VisualRoot is driven by the
         // FishNet owner smoother, which trails the physics root by the NetworkObject's owner interpolation
@@ -193,6 +285,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
         // instead of a backward step. FishNet exposes no runtime getter for the owner interpolation, so the
         // value is mirrored in introVisualLagTicks.
         double renderTime = GetSmoothedNetworkTimeSeconds() - introVisualLagTicks * IntroTimeUtility.GetTickDeltaSeconds();
+        // Review fix: the post-GO visual follows the same parked-time shift as the body drive.
+        if (!introDriving)
+            renderTime -= _pendingHandoffDriveDelaySeconds;
         double driveTime = IntroTimeUtility.GetDriveIntroNetworkTime(timing, renderTime);
         SampleSnapshotAtTime(driveTime, out LaunchHandoffSnapshot snapshot);
         position = snapshot.Position;
@@ -216,6 +311,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _activeSequenceId = assignment.sequenceId;
         _hasAssignment = true;
         _goApplied = false;
+        // Review fix: a new sequence clears the parked pending-handoff drive.
+        _pendingHandoffDriveParked = false;
+        UnsubscribePendingHandoffDrive();
         _phase = IntroPhase.None;
         _runtimeState = IntroRuntimeState.AssignmentsReceived;
         _visualStarted = false;
@@ -390,6 +488,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
         _phase = IntroPhase.None;
         _hasAssignment = false;
         _goApplied = false;
+        // Review fix: a forced exit also stops and clears the pending-handoff drive.
+        _pendingHandoffDriveParked = false;
+        UnsubscribePendingHandoffDrive();
         _latestSplineSnapshot = default;
         _runtimeState = IntroRuntimeState.Cancelled;
         _visualStarted = false;
@@ -436,6 +537,11 @@ public class RaceBodyIntroStateController : MonoBehaviour
             resolvedHandoffTime = System.Math.Max(resolvedHandoffTime, GetSmoothedNetworkTimeSeconds());
         SampleSnapshotAtTime(resolvedHandoffTime, out LaunchHandoffSnapshot snapshot);
         _latestSplineSnapshot = snapshot;
+        // Review fix: the snapshot above uses the GO cap (the pending drive is not active yet), so a GO later than
+        // that cap hands off from the parked pose. Remember how long the body was parked so the post-GO drive
+        // continues from this snapshot rather than jumping ahead, and stays aligned with the motor's tick projection.
+        _pendingHandoffDriveDelaySeconds = _soloPhysicsClock || _resolvedGoNetworkTime < 0d ? 0d
+            : System.Math.Max(0d, resolvedHandoffTime - _resolvedGoNetworkTime - Mathf.Max(0f, maxGoOvershootSeconds));
         GameLog.Verbose(
             $"[IntroGo][Body:{name}] CompleteGoTransition seq={_activeSequenceId} ownerId={OwnerId} isLocalOwner={isLocalOwner} " +
             $"goIssuedNow={_authoritativeGoIssuedNetworkTime:0.000} scheduledGoTime={_resolvedGoNetworkTime:0.000} handoffSampleTime={resolvedHandoffTime:0.000} " +
@@ -457,6 +563,8 @@ public class RaceBodyIntroStateController : MonoBehaviour
                 false);
             if (_soloPhysicsClock)
                 _soloMotor?.ConsumeSoloLaunchBeforePhysics();
+            else
+                SubscribePendingHandoffDrive(); // Review fix: tick-aligned drive until the handoff is consumed.
         }
         else
         {
@@ -549,17 +657,26 @@ public class RaceBodyIntroStateController : MonoBehaviour
         // before the scheduled GO time and the extrapolation continues from its end. If that formula ever
         // allows duration < length / speed, the body would still be on the spline here and this term would
         // add a second velocity on top of the spline motion.
+        // After the local GO the cap also covers the pending handoff round trip (see IsSplineDrivingAfterGo).
+        // Solo ends on the completed fixed-step endpoint and never extrapolates.
+        // Review fix: the extended cap keys off the live pending drive, not _goApplied. CompleteGoTransition sets
+        // _goApplied before it samples the GO snapshot, so keying off _goApplied let that snapshot jump ahead of the
+        // body parked at the GO cap, and gave remote bodies the owner-only round-trip allowance.
+        bool pendingHandoffDrive = IsSplineDrivingAfterGo(out _);
+        float overshootCapSeconds = ResolveOvershootCapSeconds(pendingHandoffDrive, maxGoOvershootSeconds, maxHandoffPendingOvershootSeconds);
         double overshootSeconds = _soloPhysicsClock ? 0d
-            : IntroTimeUtility.GetGoOvershootSeconds(_resolvedGoNetworkTime, networkTime, maxGoOvershootSeconds);
+            : IntroTimeUtility.GetGoOvershootSeconds(_resolvedGoNetworkTime, networkTime, overshootCapSeconds);
         if (overshootSeconds > 0d)
         {
             position += velocity * (float)overshootSeconds;
-            if (networkTime - _resolvedGoNetworkTime > maxGoOvershootSeconds && _goOvershootCapLoggedSequenceId != _activeSequenceId)
+            // Review fix: separate once-per-sequence ids so a late-GO warning does not hide a late-handoff one.
+            ref int capLoggedSequenceId = ref pendingHandoffDrive ? ref _handoffOvershootCapLoggedSequenceId : ref _goOvershootCapLoggedSequenceId;
+            if (networkTime - _resolvedGoNetworkTime > overshootCapSeconds && capLoggedSequenceId != _activeSequenceId)
             {
-                _goOvershootCapLoggedSequenceId = _activeSequenceId;
+                capLoggedSequenceId = _activeSequenceId;
                 Debug.LogWarning(
-                    $"[IntroGo][Body:{name}] Authoritative go is {networkTime - _resolvedGoNetworkTime:0.000}s late; " +
-                    $"spline overshoot capped at {maxGoOvershootSeconds:0.000}s, body parked until go arrives. seq={_activeSequenceId}");
+                    $"[IntroGo][Body:{name}] {(pendingHandoffDrive ? "Authoritative handoff" : "Authoritative go")} is {networkTime - _resolvedGoNetworkTime:0.000}s late; " +
+                    $"spline overshoot capped at {overshootCapSeconds:0.000}s, body parked until it arrives. seq={_activeSequenceId}");
             }
         }
         Vector3 angularVelocity = EstimateAngularVelocity(networkTime, t, rotation);

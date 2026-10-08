@@ -8,6 +8,7 @@
 | 预测与回放的核心设计 | [prediction-design.md](prediction-design.md) |
 | Unity MCP 启动与连接 | [unity-mcp.md](unity-mcp.md) |
 | 代码评估与架构优化计划（执行入口） | [optimization/HANDOFF.md](optimization/HANDOFF.md) |
+| 联机预测撕裂与开场交接修复（执行入口） | [online-repair/HANDOFF.md](online-repair/HANDOFF.md) |
 | 单机模式设计与实现入口 | [single-player/HANDOFF.md](single-player/HANDOFF.md) |
 | AI 技能人格规格与本次实现 | [技能管线](single-player/ai-skills.md) · [五人格](single-player/ai-personalities.md) · [实施验证](single-player/ai-skill-implementation-2026-10-03.md) · [试玩清单](single-player/ai-skill-playtest.md) |
 | 1–6 人开场路径、idle、开场玩家标识与联机后续 | [single-player/intro-presentation-2026-10-03.md](single-player/intro-presentation-2026-10-03.md) |

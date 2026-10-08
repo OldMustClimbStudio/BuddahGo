@@ -17,7 +17,7 @@ namespace NewBuddah.PredictionV2.Config
         [Header("Launch Handoff")]
         [Tooltip("When the launch handoff is consumed the body is placed at the spline snapshot, which may sit below or above the track surface. Within this distance the body is moved vertically onto its collider rest height first, so PhysX depenetration does not eat the first ticks of forward motion. 0 disables.")]
         [SerializeField, Min(0f)] private float handoffGroundSnapMaxDistance = 1.5f;
-        [Tooltip("Height above the lowest collider point from which the ground probe ray is cast downward.")]
+        [Tooltip("Height above the lowest collider point from which the ground probe ray is cast downward. Clamped to the snap distance so out-of-range surfaces above the body cannot hide the ground.")]
         [SerializeField, Min(0.01f)] private float handoffGroundProbeHeight = 3f;
 
         public float ForwardForce => forwardForce;

@@ -635,6 +635,7 @@ namespace NewBuddah.PredictionV2.Core
             _awaitingAuthoritativeLaunchHandoff = false;
             _localPreHandoffBypassUntilTick = currentTick;
             uint preAdjustStartTick = eventData.StartTick;
+            Vector3 unprojectedSnapshotPosition = eventData.SnapshotPosition;
             float tickDeltaSeconds = TimeManager != null ? (float)TimeManager.TickDelta : 0f;
             eventData = BuddahPredictedLaunchHandoffResolver.ProjectForArrivalTick(eventData, currentTick, tickDeltaSeconds);
             if (bootstrap != null && eventData.StartTick != preAdjustStartTick)
@@ -666,11 +667,14 @@ namespace NewBuddah.PredictionV2.Core
             rb.isKinematic = false;
             _predictionRigidbody.ClearPendingForces();
             Vector3 landedPosition = eventData.SnapshotPosition;
-            if (TrySnapHandoffPositionToGround(eventData.SnapshotPosition, groundClearance, out Vector3 groundedPosition))
+            // Review fix: probe at the unprojected snapshot, which server and owner share (the server consumes with
+            // staleTicks=0, the owner projects by arrival ticks). Both ends then resolve the same rest height, and only
+            // the vertical correction is carried over to the projected position.
+            if (TrySnapHandoffPositionToGround(unprojectedSnapshotPosition, groundClearance, out Vector3 groundedPosition))
             {
-                landedPosition = groundedPosition;
+                landedPosition.y = groundedPosition.y + (eventData.SnapshotPosition.y - unprojectedSnapshotPosition.y);
                 bootstrap?.LogVerbose(
-                    $"[HandoffDebug] ground snap eventId={eventData.EventId} y={eventData.SnapshotPosition.y:0.000}->{groundedPosition.y:0.000} clearance={groundClearance:0.000}");
+                    $"[HandoffDebug] ground snap eventId={eventData.EventId} y={eventData.SnapshotPosition.y:0.000}->{landedPosition.y:0.000} clearance={groundClearance:0.000}");
             }
             rb.position = landedPosition;
             rb.rotation = eventData.SnapshotRotation;
@@ -699,8 +703,8 @@ namespace NewBuddah.PredictionV2.Core
         // Launch-handoff ground snap (R7.5). The intro spline places the body at an authored height; when the
         // handoff is consumed, colliders and gravity are live again and PhysX resolves any penetration over
         // several ticks with no forward motion on the first one. Resting the colliders on the probed ground in
-        // the consume tick removes that stall. Runs identically in the owner and server consume paths; only
-        // the vertical component moves. Reads the physics scene (static track) but writes nothing outside rb.
+        // the consume tick removes that stall. Runs in the owner and server consume paths at the shared
+        // unprojected snapshot position, so both resolve the same height; only the vertical component moves. Reads the physics scene (static track) but writes nothing outside rb.
         private static readonly RaycastHit[] s_handoffGroundHits = new RaycastHit[8];
         private Collider[] _handoffBodyColliders;
 
@@ -714,7 +718,9 @@ namespace NewBuddah.PredictionV2.Core
             for (int i = 0; i < _handoffBodyColliders.Length; i++)
             {
                 Collider bodyCollider = _handoffBodyColliders[i];
-                if (bodyCollider == null || !bodyCollider.enabled || bodyCollider.isTrigger)
+                // Review fix: skip colliders on inactive children. Collider.enabled stays true there but bounds are
+                // empty at the world origin, which would turn the clearance into the root height.
+                if (bodyCollider == null || !bodyCollider.enabled || !bodyCollider.gameObject.activeInHierarchy || bodyCollider.isTrigger)
                     continue;
                 lowestY = Mathf.Min(lowestY, bodyCollider.bounds.min.y);
             }
@@ -733,18 +739,24 @@ namespace NewBuddah.PredictionV2.Core
             if (maxSnap <= 0f)
                 return false;
 
+            // Review fix: start the probe no higher than maxSnap above the collider bottom. A surface above that is
+            // out of snap range anyway, and as the highest hit it would hide the real ground or reject the snap.
+            // TrackEdge (the RaceMap inner/outer edge walls) and RollbackBoundingBox are never ground; racers on the
+            // Buddah layer are excluded too.
             float bottomY = position.y - clearance;
-            Vector3 origin = new Vector3(position.x, bottomY + probeHeight, position.z);
-            int hitCount = Physics.RaycastNonAlloc(origin, Vector3.down, s_handoffGroundHits, probeHeight + maxSnap,
-                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            float probeAbove = Mathf.Min(probeHeight, maxSnap);
+            Vector3 origin = new Vector3(position.x, bottomY + probeAbove, position.z);
+            int groundMask = Physics.DefaultRaycastLayers & ~(1 << gameObject.layer)
+                & ~LayerMask.GetMask("TrackEdge", "RollbackBoundingBox");
+            int hitCount = Physics.RaycastNonAlloc(origin, Vector3.down, s_handoffGroundHits, probeAbove + maxSnap,
+                groundMask, QueryTriggerInteraction.Ignore);
 
             bool found = false;
             float groundY = float.NegativeInfinity;
-            int ownLayer = gameObject.layer;
             for (int i = 0; i < hitCount; i++)
             {
                 Collider hitCollider = s_handoffGroundHits[i].collider;
-                if (hitCollider == null || hitCollider.transform.IsChildOf(transform) || hitCollider.gameObject.layer == ownLayer)
+                if (hitCollider == null || hitCollider.transform.IsChildOf(transform))
                     continue;
                 float hitY = s_handoffGroundHits[i].point.y;
                 if (hitY > groundY)

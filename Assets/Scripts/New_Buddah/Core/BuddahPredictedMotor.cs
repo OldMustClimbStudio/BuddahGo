@@ -238,7 +238,9 @@ namespace NewBuddah.PredictionV2.Core
             if (TimeManager == null || rb == null || bootstrap == null || !bootstrap.IsPredictionModeActive())
                 return;
 
-            if (TimeManager.PhysicsMode != PhysicsMode.TimeManager)
+            // Review fix: Solo deliberately runs Unity FixedUpdate physics (SessionLauncher.BeginSession); a host
+            // never replays its own bodies, so the TimeManager requirement applies to online sessions only.
+            if (!MatchRules.Current.IsSolo && TimeManager.PhysicsMode != PhysicsMode.TimeManager)
                 Debug.LogError($"[BuddahPredictionV2] invariant: TimeManager.PhysicsMode={TimeManager.PhysicsMode}; client-side prediction requires PhysicsMode.TimeManager (NetworkManager > TimeManager).", this);
             if (rb.interpolation != RigidbodyInterpolation.None)
                 Debug.LogError($"[BuddahPredictionV2] invariant: Rigidbody.interpolation={rb.interpolation}; predicted rigidbody must use None.", this);

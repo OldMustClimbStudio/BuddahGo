@@ -90,6 +90,7 @@ Library/DesignTables/import-state.txt 每台机器的工作簿哈希（不提交
 |---|---|
 | [excel-spec.md](excel-spec.md) | 规范正文：表头约定、类型语法、命名与分层、工作簿与 sheet 目录、直通车管线与分层导入规则、校验等级、消费方接通表、未入表清单 |
 | [decisions.md](decisions.md) | 15 条已拍板决定（管线、位置、文案、校验、范围线、覆盖方式、分层导入） |
+| [structure-audit.md](structure-audit.md) | 表结构缺陷盘点与代码考古：同一概念被拆散的 25 处问题、每处的来源提交、建议的 v2 结构（待拍板） |
 | [inventory-skills.md](inventory-skills.md) | 筛查清单：技能、搓招、推手、执念、现有配置仓库逐字段状态 |
 | [inventory-movement.md](inventory-movement.md) | 筛查清单：预测马达、受击、状态效果、起跑、重生、圈数、输入、全局设置 |
 | [inventory-ai.md](inventory-ai.md) | 筛查清单：驾驶档位、技能难度、人格、谓词常量、名单 |

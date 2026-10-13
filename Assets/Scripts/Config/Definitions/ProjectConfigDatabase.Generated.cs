@@ -29,20 +29,18 @@ public partial class ProjectConfigDatabase
     public List<RespawnRecord> respawns = new List<RespawnRecord>();
     [Header("AI / DrivingTier")]
     public List<DrivingTierRecord> drivingTiers = new List<DrivingTierRecord>();
-    [Header("AI / DrivingGlobal")]
-    public List<DrivingGlobalRecord> drivingGlobals = new List<DrivingGlobalRecord>();
+    [Header("AI / DrivingTuning")]
+    public List<DrivingTuningRecord> drivingTunings = new List<DrivingTuningRecord>();
     [Header("AI / SkillDifficulty")]
     public List<SkillDifficultyRecord> skillDifficulties = new List<SkillDifficultyRecord>();
     [Header("AI / Personality")]
     public List<PersonalityRecord> personalities = new List<PersonalityRecord>();
-    [Header("AI / PersonalitySkillWeight")]
-    public List<PersonalitySkillWeightRecord> personalitySkillWeights = new List<PersonalitySkillWeightRecord>();
     [Header("AI / PersonalitySituationBias")]
     public List<PersonalitySituationBiasRecord> personalitySituationBiases = new List<PersonalitySituationBiasRecord>();
     [Header("AI / SkillOpportunity")]
     public List<SkillOpportunityRecord> skillOpportunities = new List<SkillOpportunityRecord>();
-    [Header("AI / SkillGlobal")]
-    public List<SkillGlobalRecord> skillGlobals = new List<SkillGlobalRecord>();
+    [Header("AI / SkillTuning")]
+    public List<SkillTuningRecord> skillTunings = new List<SkillTuningRecord>();
     [Header("AI / Roster")]
     public List<RosterRecord> rosters = new List<RosterRecord>();
     [Header("Match / ModeRule")]

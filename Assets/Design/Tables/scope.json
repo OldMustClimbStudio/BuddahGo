@@ -20,13 +20,12 @@
     ],
     "AI": [
       "DrivingTier",
-      "DrivingGlobal",
+      "DrivingTuning",
       "SkillDifficulty",
       "Personality",
-      "PersonalitySkillWeight",
       "PersonalitySituationBias",
       "SkillOpportunity",
-      "SkillGlobal",
+      "SkillTuning",
       "Roster"
     ],
     "Match": [
@@ -85,6 +84,9 @@
       "Scene",
       "InputBinding",
       "Timeline"
+    ],
+    "AI": [
+      "DrivingConstant"
     ]
   },
   "reserved": [
@@ -160,7 +162,7 @@
       "ai",
       "balance"
     ],
-    "AI/DrivingGlobal": [
+    "AI/DrivingTuning": [
       "ai",
       "balance"
     ],
@@ -172,10 +174,6 @@
       "ai",
       "balance"
     ],
-    "AI/PersonalitySkillWeight": [
-      "ai",
-      "balance"
-    ],
     "AI/PersonalitySituationBias": [
       "ai",
       "balance"
@@ -184,7 +182,7 @@
       "ai",
       "balance"
     ],
-    "AI/SkillGlobal": [
+    "AI/SkillTuning": [
       "ai",
       "balance"
     ],

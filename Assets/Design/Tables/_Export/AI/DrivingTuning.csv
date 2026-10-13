@@ -1,0 +1,5 @@
+##var,profileId,targetSpeedMin,targetSpeedMax,recoverySpeed,recoveryVelocityErrorDegrees
+##type,string#key,float,float,float,float
+##group,,,,,
+##comment,,每车 TargetSpeed clamp 下限,上限，与车辆 maxSpeed 80 耦合,低于此速度沿赛道全推,倒行判定
+,default,20,80,5,90

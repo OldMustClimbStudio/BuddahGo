@@ -41,7 +41,8 @@ namespace BuddahGo.AI
         public float ReadaptSeconds;
         public float ImpairedLookaheadMultiplier;
         public float ImpairedMistakeAddition;
-        public int ImpairedReactionTicks;
+        public int ImpairedReactionTicks;            // extra skill-cast reaction while vision is impaired (AISkillCaster)
+        public int ImpairedDrivingReactionTicks;     // extra driving reaction while vision is impaired (AIRacerDriver)
         public float DecisionNoise = .05f;
     }
 
@@ -105,8 +106,9 @@ namespace BuddahGo.AI
             return catalog;
         }
 
-        // AI/SkillDifficulty, AI/Personality (+SkillWeight, +SituationBias), AI/SkillGlobal and AI/SkillOpportunity
-        // overlay the JSON values; the JSON stays the fallback when a table has no rows.
+        // AI/SkillDifficulty, AI/Personality (+SituationBias), AI/SkillTuning and AI/SkillOpportunity overlay the JSON
+        // values; the JSON stays the fallback when a table has no rows. Sheet headers are camelCase and match the
+        // PascalCase fields case-insensitively (DesignTableOverlay.FindField).
         private void ApplyDesignTables()
         {
             ProjectConfigDatabase db = DesignTableOverlay.Db;
@@ -127,30 +129,23 @@ namespace BuddahGo.AI
                     p.Patience = row.patience; p.TempoSeconds = row.tempoSeconds; p.HandsShots = row.handsShots;
                     p.ImpairedTargetMultiplier = row.impairedTargetMultiplier;
                     if (Enum.TryParse(row.target, true, out AITargetPreference target)) p.Target = target;
-                    if (db.personalitySkillWeights != null)
-                        foreach (var w in db.personalitySkillWeights)
-                            if (w != null && w.personalityId == p.Id && Array.IndexOf(SkillIds, w.skillId) is int ki && ki >= 0 && p.Weights != null && ki < p.Weights.Length)
-                                p.Weights[ki] = w.weight;
+                    // Weights are indexed by AISkillKind; only loadout skills are ever cast, so the three slot weights fill the array.
+                    p.Weights = new float[SkillIds.Length];
+                    float[] slotWeights = { row.slot0Weight, row.slot1Weight, row.slot2Weight };
+                    for (int i = 0; i < p.Loadout.Length && i < slotWeights.Length; i++)
+                    {
+                        int ki = Array.IndexOf(SkillIds, p.Loadout[i]);
+                        if (ki >= 0) p.Weights[ki] = slotWeights[i];
+                    }
                     if (db.personalitySituationBiases != null)
                         foreach (var b in db.personalitySituationBiases)
                             if (b != null && b.personalityId == p.Id && Enum.TryParse(b.situation, true, out AISkillSituation si) && p.SituationBias != null && (int)si < p.SituationBias.Length)
                                 p.SituationBias[(int)si] = b.bias;
                 }
             Tuning ??= new AISkillTuning();
-            if (db.skillGlobals != null)
-            {
-                var fields = typeof(AISkillTuning).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                foreach (var row in db.skillGlobals)
-                {
-                    if (row == null || string.IsNullOrEmpty(row.key)) continue;
-                    foreach (var f in fields)
-                    {
-                        if (!string.Equals(f.Name, row.key, StringComparison.OrdinalIgnoreCase)) continue;
-                        if (f.FieldType == typeof(float)) f.SetValue(Tuning, row.value);
-                        else if (f.FieldType == typeof(int)) f.SetValue(Tuning, Mathf.RoundToInt(row.value));
-                    }
-                }
-            }
+            SkillTuningRecord tuning = DesignTableOverlay.Single(db.skillTunings, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.skillTunings, null);
+            if (tuning != null)
+                DesignTableOverlay.Apply(Tuning, tuning);
             if (db.skillOpportunities != null)
                 foreach (var o in db.skillOpportunities)
                 {
@@ -221,6 +216,7 @@ namespace BuddahGo.AI
                 Range(d.ImpairedLookaheadMultiplier, .1f, 1f); Range(d.ImpairedMistakeAddition, 0f, 1f);
                 Range(d.DecisionNoise, 0f, .5f);
                 if (d.ImpairedReactionTicks < 0 || d.ImpairedReactionTicks > 30) throw new ArgumentException("Invalid impairment delay.");
+                if (d.ImpairedDrivingReactionTicks < 0 || d.ImpairedDrivingReactionTicks > 30) throw new ArgumentException("Invalid driving impairment delay.");
             }
             Range(Tuning.SnapshotSeconds, .05f, .5f); Range(Tuning.KeyMinSeconds, .05f, .3f); Range(Tuning.KeyMaxSeconds, Tuning.KeyMinSeconds, .34f);
             Range(Tuning.SituationHysteresisSeconds, 0f, 5f); Range(Tuning.NearDistance, 1f, 500f); Range(Tuning.FarDistance, Tuning.NearDistance, 2000f);

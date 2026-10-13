@@ -455,235 +455,177 @@ MonoBehaviour:
     floorTag: RespawnFloor
   drivingTiers:
   - difficulty: Easy
-    LookaheadSeconds: 1
-    SpeedMargin: 2
-    LateralDamping: 0.986
-    AttitudeDeadbandDegrees: 1.5
-    AttitudeHysteresisDegrees: 0.5
-    PredictionGain: 0.3
-    ThrustPaceFactor: 0.9
-    PlanningBrakeAcceleration: 10
-    RolloutSeconds: 1.8
-    RolloutHoldSeconds: 0.6
-    ThrustReplanTicks: 3
-    RolloutSubsteps: 2
-    UseWallCorridor: 1
-    WallMargin: 1.5
-    RolloutWallWeight: 0.7
-    RolloutCenterWeight: 0.02
-    RolloutTail: KeepCandidate
-    SpeedNoise: 6
-    LateralOffsetNoise: 3.5
-    AngleNoiseDegrees: 10
-    WobbleTicks: 30
-    MistakeProbability: 0.25
-    ReactionJitterTicks: 5
-    RolloutSampleTicks: 6
-    RolloutLateralWeight: 1
-    RolloutLateralVelocityWeight: 0.7
-    RolloutOverspeedWeight: 0
-    RolloutUnderspeedWeight: 1
-    RolloutProgressWeight: 1
-    RolloutTerminalWeight: 1
-    SwitchPenaltyPerDegree: 0.3
-    MaxThrustAngleDegrees: 170
-    TargetSpeed: 67
-    LateralOffset: 0
-    ReactionTicks: 8
+    lookaheadSeconds: 1
+    speedMargin: 2
+    lateralDamping: 0.986
+    attitudeDeadbandDegrees: 1.5
+    attitudeHysteresisDegrees: 0.5
+    predictionGain: 0.3
+    thrustPaceFactor: 0.9
+    planningBrakeAcceleration: 10
+    rolloutSeconds: 1.8
+    rolloutHoldSeconds: 0.6
+    thrustReplanTicks: 3
+    rolloutSubsteps: 2
+    useWallCorridor: 1
+    wallMargin: 1.5
+    rolloutWallWeight: 0.7
+    rolloutCenterWeight: 0.02
+    rolloutTail: KeepCandidate
+    speedNoise: 6
+    lateralOffsetNoise: 3.5
+    angleNoiseDegrees: 10
+    wobbleTicks: 30
+    mistakeProbability: 0.25
+    reactionJitterTicks: 5
+    rolloutSampleTicks: 6
+    rolloutLateralWeight: 1
+    rolloutLateralVelocityWeight: 0.7
+    rolloutOverspeedWeight: 0
+    rolloutUnderspeedWeight: 1
+    rolloutProgressWeight: 1
+    rolloutTerminalWeight: 1
+    switchPenaltyPerDegree: 0.3
+    maxThrustAngleDegrees: 170
+    targetSpeed: 67
+    lateralOffset: 0
+    reactionTicks: 8
   - difficulty: Normal
-    LookaheadSeconds: 1
-    SpeedMargin: 2
-    LateralDamping: 0.986
-    AttitudeDeadbandDegrees: 1.5
-    AttitudeHysteresisDegrees: 0.5
-    PredictionGain: 0.3
-    ThrustPaceFactor: 0.9
-    PlanningBrakeAcceleration: 10
-    RolloutSeconds: 2
-    RolloutHoldSeconds: 0.6
-    ThrustReplanTicks: 2
-    RolloutSubsteps: 2
-    UseWallCorridor: 1
-    WallMargin: 1.5
-    RolloutWallWeight: 0.2
-    RolloutCenterWeight: 0.02
-    RolloutTail: KeepCandidate
-    SpeedNoise: 4
-    LateralOffsetNoise: 2.5
-    AngleNoiseDegrees: 5
-    WobbleTicks: 30
-    MistakeProbability: 0.1
-    ReactionJitterTicks: 3
-    RolloutSampleTicks: 6
-    RolloutLateralWeight: 1
-    RolloutLateralVelocityWeight: 0.7
-    RolloutOverspeedWeight: 0
-    RolloutUnderspeedWeight: 1
-    RolloutProgressWeight: 1
-    RolloutTerminalWeight: 1
-    SwitchPenaltyPerDegree: 0.3
-    MaxThrustAngleDegrees: 170
-    TargetSpeed: 74
-    LateralOffset: 0
-    ReactionTicks: 3
+    lookaheadSeconds: 1
+    speedMargin: 2
+    lateralDamping: 0.986
+    attitudeDeadbandDegrees: 1.5
+    attitudeHysteresisDegrees: 0.5
+    predictionGain: 0.3
+    thrustPaceFactor: 0.9
+    planningBrakeAcceleration: 10
+    rolloutSeconds: 2
+    rolloutHoldSeconds: 0.6
+    thrustReplanTicks: 2
+    rolloutSubsteps: 2
+    useWallCorridor: 1
+    wallMargin: 1.5
+    rolloutWallWeight: 0.2
+    rolloutCenterWeight: 0.02
+    rolloutTail: KeepCandidate
+    speedNoise: 4
+    lateralOffsetNoise: 2.5
+    angleNoiseDegrees: 5
+    wobbleTicks: 30
+    mistakeProbability: 0.1
+    reactionJitterTicks: 3
+    rolloutSampleTicks: 6
+    rolloutLateralWeight: 1
+    rolloutLateralVelocityWeight: 0.7
+    rolloutOverspeedWeight: 0
+    rolloutUnderspeedWeight: 1
+    rolloutProgressWeight: 1
+    rolloutTerminalWeight: 1
+    switchPenaltyPerDegree: 0.3
+    maxThrustAngleDegrees: 170
+    targetSpeed: 74
+    lateralOffset: 0
+    reactionTicks: 3
   - difficulty: Hard
-    LookaheadSeconds: 1
-    SpeedMargin: 2
-    LateralDamping: 0.986
-    AttitudeDeadbandDegrees: 1.5
-    AttitudeHysteresisDegrees: 0.5
-    PredictionGain: 0.3
-    ThrustPaceFactor: 0.9
-    PlanningBrakeAcceleration: 10
-    RolloutSeconds: 2
-    RolloutHoldSeconds: 0.6
-    ThrustReplanTicks: 2
-    RolloutSubsteps: 2
-    UseWallCorridor: 1
-    WallMargin: 1.5
-    RolloutWallWeight: 0
-    RolloutCenterWeight: 0.02
-    RolloutTail: KeepCandidate
-    SpeedNoise: 2
-    LateralOffsetNoise: 1.5
-    AngleNoiseDegrees: 2
-    WobbleTicks: 30
-    MistakeProbability: 0.03
-    ReactionJitterTicks: 0
-    RolloutSampleTicks: 6
-    RolloutLateralWeight: 1
-    RolloutLateralVelocityWeight: 0.7
-    RolloutOverspeedWeight: 0
-    RolloutUnderspeedWeight: 3
-    RolloutProgressWeight: 1
-    RolloutTerminalWeight: 1
-    SwitchPenaltyPerDegree: 0.3
-    MaxThrustAngleDegrees: 90
-    TargetSpeed: 80
-    LateralOffset: 0
-    ReactionTicks: 0
-  drivingGlobals:
-  - key: targetSpeedMin
-    value: 20
-  - key: targetSpeedMax
-    value: 80
-  - key: recoverySpeed
-    value: 5
-  - key: recoveryVelocityErrorDegrees
-    value: 90
-  - key: sideSwitchLateral
-    value: 3
-  - key: holdLateral
-    value: 18
-  - key: topSpeed
-    value: 79
-  - key: topPace
-    value: 78
-  - key: minBrakeAngleDegrees
-    value: 120
-  - key: maxTargetDegrees
-    value: 178
-  - key: attitudeAcceleration
-    value: 4.82
-  - key: minPredictionSeconds
-    value: 0.3
-  - key: maxPredictionSeconds
-    value: 1
-  - key: reanchorDegrees
-    value: 200
-  - key: collisionReanchorDegrees
-    value: 180
-  - key: fullTurnDegrees
-    value: 360
-  - key: reprojectLateral
-    value: 15
-  - key: collisionMemorySeconds
-    value: 0.5
-  - key: wobbleClampSigmas
-    value: 3
-  - key: velocityHeadingMinSpeedSquared
-    value: 25
-  - key: nearSearchSegments
-    value: 8
-  - key: wideSearchSegments
-    value: 40
-  - key: rolloutSearchSegments
-    value: 6
-  - key: racingLineSampleMeters
-    value: 2
-  - key: racingLineMinSamples
-    value: 16
-  - key: curvatureChordMeters
-    value: 12
-  - key: windowPaceMeters
-    value: 80
-  - key: wallProbeMaxDistance
-    value: 80
-  - key: wallProbeHeight
-    value: 1.5
-  - key: sideContactNormalY
-    value: 0.7
-  - key: groundNormalY
-    value: 0.99
-  - key: defaultFriction
-    value: 0.6
-  - key: groundContactValiditySeconds
-    value: 0.1
+    lookaheadSeconds: 1
+    speedMargin: 2
+    lateralDamping: 0.986
+    attitudeDeadbandDegrees: 1.5
+    attitudeHysteresisDegrees: 0.5
+    predictionGain: 0.3
+    thrustPaceFactor: 0.9
+    planningBrakeAcceleration: 10
+    rolloutSeconds: 2
+    rolloutHoldSeconds: 0.6
+    thrustReplanTicks: 2
+    rolloutSubsteps: 2
+    useWallCorridor: 1
+    wallMargin: 1.5
+    rolloutWallWeight: 0
+    rolloutCenterWeight: 0.02
+    rolloutTail: KeepCandidate
+    speedNoise: 2
+    lateralOffsetNoise: 1.5
+    angleNoiseDegrees: 2
+    wobbleTicks: 30
+    mistakeProbability: 0.03
+    reactionJitterTicks: 0
+    rolloutSampleTicks: 6
+    rolloutLateralWeight: 1
+    rolloutLateralVelocityWeight: 0.7
+    rolloutOverspeedWeight: 0
+    rolloutUnderspeedWeight: 3
+    rolloutProgressWeight: 1
+    rolloutTerminalWeight: 1
+    switchPenaltyPerDegree: 0.3
+    maxThrustAngleDegrees: 90
+    targetSpeed: 80
+    lateralOffset: 0
+    reactionTicks: 0
+  drivingTunings:
+  - profileId: default
+    targetSpeedMin: 20
+    targetSpeedMax: 80
+    recoverySpeed: 5
+    recoveryVelocityErrorDegrees: 90
   skillDifficulties:
   - difficulty: Easy
-    Difficulty: 0
-    RiskWeight: 0
-    SevereStopProbability: 1.01
-    MildStopProbability: 1.01
-    DecisionSeconds: 0.3
-    ReactionMinSeconds: 0.6
-    ReactionMaxSeconds: 1
-    KeyMistakeProbability: 0.15
-    AimToleranceDegrees: 20
-    AdaptSeconds: 2
-    ReadaptSeconds: 1
-    ImpairedLookaheadMultiplier: 0.5
-    ImpairedMistakeAddition: 0.2
-    ImpairedReactionTicks: 10
-    DecisionNoise: 0.1
+    riskWeight: 0
+    severeStopProbability: 1.01
+    mildStopProbability: 1.01
+    decisionSeconds: 0.3
+    reactionMinSeconds: 0.6
+    reactionMaxSeconds: 1
+    keyMistakeProbability: 0.15
+    aimToleranceDegrees: 20
+    adaptSeconds: 2
+    readaptSeconds: 1
+    impairedLookaheadMultiplier: 0.5
+    impairedMistakeAddition: 0.2
+    impairedReactionTicks: 10
+    impairedDrivingReactionTicks: 10
+    decisionNoise: 0.1
   - difficulty: Normal
-    Difficulty: 1
-    RiskWeight: 0.5
-    SevereStopProbability: 0.7
-    MildStopProbability: 1.01
-    DecisionSeconds: 0.25
-    ReactionMinSeconds: 0.3
-    ReactionMaxSeconds: 0.5
-    KeyMistakeProbability: 0.06
-    AimToleranceDegrees: 12
-    AdaptSeconds: 1
-    ReadaptSeconds: 0.6
-    ImpairedLookaheadMultiplier: 0.6
-    ImpairedMistakeAddition: 0.1
-    ImpairedReactionTicks: 6
-    DecisionNoise: 0.05
+    riskWeight: 0.5
+    severeStopProbability: 0.7
+    mildStopProbability: 1.01
+    decisionSeconds: 0.25
+    reactionMinSeconds: 0.3
+    reactionMaxSeconds: 0.5
+    keyMistakeProbability: 0.06
+    aimToleranceDegrees: 12
+    adaptSeconds: 1
+    readaptSeconds: 0.6
+    impairedLookaheadMultiplier: 0.6
+    impairedMistakeAddition: 0.1
+    impairedReactionTicks: 6
+    impairedDrivingReactionTicks: 6
+    decisionNoise: 0.05
   - difficulty: Hard
-    Difficulty: 2
-    RiskWeight: 1
-    SevereStopProbability: 0.45
-    MildStopProbability: 0.65
-    DecisionSeconds: 0.2
-    ReactionMinSeconds: 0.1
-    ReactionMaxSeconds: 0.2
-    KeyMistakeProbability: 0.01
-    AimToleranceDegrees: 6
-    AdaptSeconds: 0.4
-    ReadaptSeconds: 0.3
-    ImpairedLookaheadMultiplier: 0.75
-    ImpairedMistakeAddition: 0.05
-    ImpairedReactionTicks: 3
-    DecisionNoise: 0.02
+    riskWeight: 1
+    severeStopProbability: 0.45
+    mildStopProbability: 0.65
+    decisionSeconds: 0.2
+    reactionMinSeconds: 0.1
+    reactionMaxSeconds: 0.2
+    keyMistakeProbability: 0.01
+    aimToleranceDegrees: 6
+    adaptSeconds: 0.4
+    readaptSeconds: 0.3
+    impairedLookaheadMultiplier: 0.75
+    impairedMistakeAddition: 0.05
+    impairedReactionTicks: 3
+    impairedDrivingReactionTicks: 3
+    decisionNoise: 0.02
   personalities:
   - personalityId: keeper
     displayNameKey: ai.personality.keeper.name
     slot0SkillId: slowtrap
     slot1SkillId: acceleration
     slot2SkillId: giant
+    slot0Weight: 1.3
+    slot1Weight: 1
+    slot2Weight: 0.8
     patience: 0.25
     tempoSeconds: 1.5
     target: Behind
@@ -694,6 +636,9 @@ MonoBehaviour:
     slot0SkillId: push_projectile_hands
     slot1SkillId: acceleration
     slot2SkillId: reverseturn
+    slot0Weight: 1.3
+    slot1Weight: 1
+    slot2Weight: 0.9
     patience: 0.25
     tempoSeconds: 1.2
     target: Ahead
@@ -704,6 +649,9 @@ MonoBehaviour:
     slot0SkillId: giant
     slot1SkillId: push_projectile_hands
     slot2SkillId: slowtrap
+    slot0Weight: 1.3
+    slot1Weight: 0.9
+    slot2Weight: 1
     patience: 0.3
     tempoSeconds: 1
     target: PackCentre
@@ -714,6 +662,9 @@ MonoBehaviour:
     slot0SkillId: reverseturn
     slot1SkillId: blackcurtain
     slot2SkillId: slowtrap
+    slot0Weight: 1.2
+    slot1Weight: 1.2
+    slot2Weight: 0.8
     patience: 0.3
     tempoSeconds: 2
     target: EnteringCorner
@@ -724,102 +675,14 @@ MonoBehaviour:
     slot0SkillId: acceleration
     slot1SkillId: push_projectile_hands
     slot2SkillId: blackcurtain
+    slot0Weight: 1.2
+    slot1Weight: 1
+    slot2Weight: 0.8
     patience: 0.35
     tempoSeconds: 1.5
     target: Impaired
     impairedTargetMultiplier: 1.6
     handsShots: 2
-  personalitySkillWeights:
-  - personalityId: keeper
-    skillId: acceleration
-    weight: 1
-  - personalityId: keeper
-    skillId: slowtrap
-    weight: 1.3
-  - personalityId: keeper
-    skillId: giant
-    weight: 0.8
-  - personalityId: keeper
-    skillId: push_projectile_hands
-    weight: 0
-  - personalityId: keeper
-    skillId: reverseturn
-    weight: 0
-  - personalityId: keeper
-    skillId: blackcurtain
-    weight: 0
-  - personalityId: hunter
-    skillId: acceleration
-    weight: 1
-  - personalityId: hunter
-    skillId: slowtrap
-    weight: 0
-  - personalityId: hunter
-    skillId: giant
-    weight: 0
-  - personalityId: hunter
-    skillId: push_projectile_hands
-    weight: 1.3
-  - personalityId: hunter
-    skillId: reverseturn
-    weight: 0.9
-  - personalityId: hunter
-    skillId: blackcurtain
-    weight: 0
-  - personalityId: brawler
-    skillId: acceleration
-    weight: 0
-  - personalityId: brawler
-    skillId: slowtrap
-    weight: 1
-  - personalityId: brawler
-    skillId: giant
-    weight: 1.3
-  - personalityId: brawler
-    skillId: push_projectile_hands
-    weight: 0.9
-  - personalityId: brawler
-    skillId: reverseturn
-    weight: 0
-  - personalityId: brawler
-    skillId: blackcurtain
-    weight: 0
-  - personalityId: trickster
-    skillId: acceleration
-    weight: 0
-  - personalityId: trickster
-    skillId: slowtrap
-    weight: 0.8
-  - personalityId: trickster
-    skillId: giant
-    weight: 0
-  - personalityId: trickster
-    skillId: push_projectile_hands
-    weight: 0
-  - personalityId: trickster
-    skillId: reverseturn
-    weight: 1.2
-  - personalityId: trickster
-    skillId: blackcurtain
-    weight: 1.2
-  - personalityId: opportunist
-    skillId: acceleration
-    weight: 1.2
-  - personalityId: opportunist
-    skillId: slowtrap
-    weight: 0
-  - personalityId: opportunist
-    skillId: giant
-    weight: 0
-  - personalityId: opportunist
-    skillId: push_projectile_hands
-    weight: 1
-  - personalityId: opportunist
-    skillId: reverseturn
-    weight: 0
-  - personalityId: opportunist
-    skillId: blackcurtain
-    weight: 0.8
   personalitySituationBiases:
   - personalityId: keeper
     situation: Pursued
@@ -975,71 +838,38 @@ MonoBehaviour:
     yawPenalty: 0
     scorePerContact: 0
     packBonus: 0.25
-  skillGlobals:
-  - key: SnapshotSeconds
-    value: 0.15
-  - key: SituationHysteresisSeconds
-    value: 1.5
-  - key: NearDistance
-    value: 60
-  - key: FarDistance
-    value: 300
-  - key: TrapDistance
-    value: 65
-  - key: ContactDistance
-    value: 35
-  - key: HandsDistance
-    value: 300
-  - key: LaneWidth
-    value: 14
-  - key: StraightCurvature
-    value: 0.0035
-  - key: CornerCurvature
-    value: 0.006
-  - key: KeyMinSeconds
-    value: 0.2
-  - key: KeyMaxSeconds
-    value: 0.3
-  - key: AimHorizonSeconds
-    value: 2
-  - key: SpeedDropFraction
-    value: 0.2
-  - key: speedDropImpairSeconds
-    value: 0.5
-  - key: speedDropMinSpeed
-    value: 5
-  - key: straightLookaheadSeconds
-    value: 10
-  - key: cornerLookaheadSeconds
-    value: 2
-  - key: cornerValidityBase
-    value: 2
-  - key: cornerValidityScale
-    value: 2
-  - key: targetBonusImpaired
-    value: 2
-  - key: targetBonusAhead
-    value: 1
-  - key: targetBonusBehind
-    value: 1
-  - key: targetBonusPackCentrePerNeighbour
-    value: 0.25
-  - key: packMinNeighbours
-    value: 2
-  - key: severeSeverityThreshold
-    value: 0.5
-  - key: maxWindowSeconds
-    value: 6
-  - key: minRelativeSpeed
-    value: 0.1
-  - key: maxElapsedSeconds
-    value: 1
-  - key: maxComboRetries
-    value: 1
-  - key: scaleShrunkThreshold
-    value: 0.99
-  - key: trackTableCellMeters
-    value: 4
+  skillTunings:
+  - profileId: default
+    snapshotSeconds: 0.15
+    situationHysteresisSeconds: 1.5
+    nearDistance: 60
+    farDistance: 300
+    trapDistance: 65
+    contactDistance: 35
+    handsDistance: 300
+    laneWidth: 14
+    straightCurvature: 0.0035
+    cornerCurvature: 0.006
+    keyMinSeconds: 0.2
+    keyMaxSeconds: 0.3
+    aimHorizonSeconds: 2
+    speedDropFraction: 0.2
+    speedDropImpairSeconds: 0.5
+    speedDropMinSpeed: 5
+    straightLookaheadSeconds: 10
+    cornerLookaheadSeconds: 2
+    cornerValidityBase: 2
+    cornerValidityScale: 2
+    targetBonusImpaired: 2
+    targetBonusAhead: 1
+    targetBonusBehind: 1
+    targetBonusPackCentrePerNeighbour: 0.25
+    packMinNeighbours: 2
+    severeSeverityThreshold: 0.5
+    maxWindowSeconds: 6
+    minRelativeSpeed: 0.1
+    maxElapsedSeconds: 1
+    maxComboRetries: 1
   rosters:
   - slotIndex: 0
     personalityId: keeper

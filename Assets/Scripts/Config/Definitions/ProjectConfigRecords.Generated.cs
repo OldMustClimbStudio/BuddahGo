@@ -275,85 +275,91 @@ public class DrivingTierRecord
     /// <summary>enum:SoloDifficulty#key (key)</summary>
     [Tooltip("Easy / Normal / Hard")] public string difficulty = string.Empty;
     /// <summary>float</summary>
-    public float LookaheadSeconds = 0f;
+    public float lookaheadSeconds = 0f;
     /// <summary>float</summary>
-    public float SpeedMargin = 0f;
+    public float speedMargin = 0f;
     /// <summary>float</summary>
-    public float LateralDamping = 0f;
+    public float lateralDamping = 0f;
     /// <summary>float</summary>
-    public float AttitudeDeadbandDegrees = 0f;
+    public float attitudeDeadbandDegrees = 0f;
     /// <summary>float</summary>
-    public float AttitudeHysteresisDegrees = 0f;
+    public float attitudeHysteresisDegrees = 0f;
     /// <summary>float</summary>
-    public float PredictionGain = 0f;
+    public float predictionGain = 0f;
     /// <summary>float</summary>
-    public float ThrustPaceFactor = 0f;
+    public float thrustPaceFactor = 0f;
     /// <summary>float</summary>
-    public float PlanningBrakeAcceleration = 0f;
+    public float planningBrakeAcceleration = 0f;
     /// <summary>float</summary>
-    public float RolloutSeconds = 0f;
+    public float rolloutSeconds = 0f;
     /// <summary>float</summary>
-    public float RolloutHoldSeconds = 0f;
+    public float rolloutHoldSeconds = 0f;
     /// <summary>int</summary>
-    public int ThrustReplanTicks = 0;
+    public int thrustReplanTicks = 0;
     /// <summary>int</summary>
-    public int RolloutSubsteps = 0;
+    public int rolloutSubsteps = 0;
     /// <summary>bool</summary>
-    public bool UseWallCorridor = false;
+    public bool useWallCorridor = false;
     /// <summary>float</summary>
-    public float WallMargin = 0f;
+    public float wallMargin = 0f;
     /// <summary>float</summary>
-    public float RolloutWallWeight = 0f;
+    public float rolloutWallWeight = 0f;
     /// <summary>float</summary>
-    public float RolloutCenterWeight = 0f;
+    public float rolloutCenterWeight = 0f;
     /// <summary>enum:RolloutTailMode</summary>
-    public string RolloutTail = string.Empty;
+    public string rolloutTail = string.Empty;
     /// <summary>float</summary>
-    public float SpeedNoise = 0f;
+    public float speedNoise = 0f;
     /// <summary>float</summary>
-    public float LateralOffsetNoise = 0f;
+    public float lateralOffsetNoise = 0f;
     /// <summary>float</summary>
-    public float AngleNoiseDegrees = 0f;
+    public float angleNoiseDegrees = 0f;
     /// <summary>int</summary>
-    public int WobbleTicks = 0;
+    public int wobbleTicks = 0;
     /// <summary>float</summary>
-    public float MistakeProbability = 0f;
+    public float mistakeProbability = 0f;
     /// <summary>int</summary>
-    public int ReactionJitterTicks = 0;
+    public int reactionJitterTicks = 0;
     /// <summary>int</summary>
-    public int RolloutSampleTicks = 0;
+    public int rolloutSampleTicks = 0;
     /// <summary>float</summary>
-    public float RolloutLateralWeight = 0f;
+    public float rolloutLateralWeight = 0f;
     /// <summary>float</summary>
-    public float RolloutLateralVelocityWeight = 0f;
+    public float rolloutLateralVelocityWeight = 0f;
     /// <summary>float</summary>
-    public float RolloutOverspeedWeight = 0f;
+    public float rolloutOverspeedWeight = 0f;
     /// <summary>float</summary>
-    public float RolloutUnderspeedWeight = 0f;
+    public float rolloutUnderspeedWeight = 0f;
     /// <summary>float</summary>
-    public float RolloutProgressWeight = 0f;
+    public float rolloutProgressWeight = 0f;
     /// <summary>float</summary>
-    public float RolloutTerminalWeight = 0f;
+    public float rolloutTerminalWeight = 0f;
     /// <summary>float</summary>
-    public float SwitchPenaltyPerDegree = 0f;
+    public float switchPenaltyPerDegree = 0f;
     /// <summary>float</summary>
-    public float MaxThrustAngleDegrees = 0f;
+    public float maxThrustAngleDegrees = 0f;
     /// <summary>float</summary>
-    public float TargetSpeed = 0f;
+    public float targetSpeed = 0f;
     /// <summary>float</summary>
-    public float LateralOffset = 0f;
+    public float lateralOffset = 0f;
     /// <summary>int</summary>
-    public int ReactionTicks = 0;
+    public int reactionTicks = 0;
 }
 
-/// <summary>AI.xlsx / DrivingGlobal</summary>
+/// <summary>AI.xlsx / DrivingTuning</summary>
 [Serializable]
-public class DrivingGlobalRecord
+public class DrivingTuningRecord
 {
     /// <summary>string#key (key)</summary>
-    public string key = string.Empty;
+    public string profileId = string.Empty;
     /// <summary>float</summary>
-    public float value = 0f;
+    [Tooltip("每车 TargetSpeed clamp 下限")] public float targetSpeedMin = 0f;
+    /// <summary>float</summary>
+    [Tooltip("上限，与车辆 maxSpeed 80 耦合")] public float targetSpeedMax = 0f;
+    /// <summary>float</summary>
+    [Tooltip("低于此速度沿赛道全推")] public float recoverySpeed = 0f;
+    /// <summary>float</summary>
+    [Tooltip("倒行判定")] public float recoveryVelocityErrorDegrees = 0f;
 }
 
 /// <summary>AI.xlsx / SkillDifficulty</summary>
@@ -363,35 +369,35 @@ public class SkillDifficultyRecord
     /// <summary>enum:SoloDifficulty#key (key)</summary>
     public string difficulty = string.Empty;
     /// <summary>float</summary>
-    public float Difficulty = 0f;
+    public float riskWeight = 0f;
     /// <summary>float</summary>
-    public float RiskWeight = 0f;
+    public float severeStopProbability = 0f;
     /// <summary>float</summary>
-    public float SevereStopProbability = 0f;
+    public float mildStopProbability = 0f;
     /// <summary>float</summary>
-    public float MildStopProbability = 0f;
+    public float decisionSeconds = 0f;
     /// <summary>float</summary>
-    public float DecisionSeconds = 0f;
+    public float reactionMinSeconds = 0f;
     /// <summary>float</summary>
-    public float ReactionMinSeconds = 0f;
+    public float reactionMaxSeconds = 0f;
     /// <summary>float</summary>
-    public float ReactionMaxSeconds = 0f;
+    public float keyMistakeProbability = 0f;
     /// <summary>float</summary>
-    public float KeyMistakeProbability = 0f;
+    public float aimToleranceDegrees = 0f;
     /// <summary>float</summary>
-    public float AimToleranceDegrees = 0f;
+    public float adaptSeconds = 0f;
     /// <summary>float</summary>
-    public float AdaptSeconds = 0f;
+    public float readaptSeconds = 0f;
     /// <summary>float</summary>
-    public float ReadaptSeconds = 0f;
+    public float impairedLookaheadMultiplier = 0f;
     /// <summary>float</summary>
-    public float ImpairedLookaheadMultiplier = 0f;
-    /// <summary>float</summary>
-    public float ImpairedMistakeAddition = 0f;
+    public float impairedMistakeAddition = 0f;
     /// <summary>int</summary>
-    public int ImpairedReactionTicks = 0;
+    [Tooltip("视野受损时技能施放反应额外 tick（AISkillCaster）")] public int impairedReactionTicks = 0;
+    /// <summary>int</summary>
+    [Tooltip("视野受损时驾驶反应额外 tick（AIRacerDriver）")] public int impairedDrivingReactionTicks = 0;
     /// <summary>float</summary>
-    public float DecisionNoise = 0f;
+    public float decisionNoise = 0f;
 }
 
 /// <summary>AI.xlsx / Personality</summary>
@@ -408,6 +414,12 @@ public class PersonalityRecord
     public string slot1SkillId = string.Empty;
     /// <summary>string#ref=Skill/Skill.skillId</summary>
     [Tooltip("四键招")] public string slot2SkillId = string.Empty;
+    /// <summary>float#range=0,1.5</summary>
+    [Tooltip("第 1 槽技能的选择权重")] public float slot0Weight = 0f;
+    /// <summary>float#range=0,1.5</summary>
+    [Tooltip("第 2 槽技能的选择权重")] public float slot1Weight = 0f;
+    /// <summary>float#range=0,1.5</summary>
+    [Tooltip("第 3 槽技能的选择权重")] public float slot2Weight = 0f;
     /// <summary>float#range=0,0.6</summary>
     [Tooltip("θ")] public float patience = 0f;
     /// <summary>float#range=0.5,4</summary>
@@ -418,18 +430,6 @@ public class PersonalityRecord
     public float impairedTargetMultiplier = 0f;
     /// <summary>int#range=0,6</summary>
     public int handsShots = 0;
-}
-
-/// <summary>AI.xlsx / PersonalitySkillWeight</summary>
-[Serializable]
-public class PersonalitySkillWeightRecord
-{
-    /// <summary>string#key#ref=Personality.personalityId (key)</summary>
-    public string personalityId = string.Empty;
-    /// <summary>string#key#ref=Skill/Skill.skillId (key)</summary>
-    public string skillId = string.Empty;
-    /// <summary>float#range=0,1.5</summary>
-    [Tooltip("不在配装内的技能权重无效")] public float weight = 0f;
 }
 
 /// <summary>AI.xlsx / PersonalitySituationBias</summary>
@@ -476,14 +476,72 @@ public class SkillOpportunityRecord
     public float packBonus = 0f;
 }
 
-/// <summary>AI.xlsx / SkillGlobal</summary>
+/// <summary>AI.xlsx / SkillTuning</summary>
 [Serializable]
-public class SkillGlobalRecord
+public class SkillTuningRecord
 {
     /// <summary>string#key (key)</summary>
-    public string key = string.Empty;
+    public string profileId = string.Empty;
+    /// <summary>float#range=0.05,0.5</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float snapshotSeconds = 0f;
+    /// <summary>float#range=0,5</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float situationHysteresisSeconds = 0f;
+    /// <summary>float#range=1,500</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float nearDistance = 0f;
     /// <summary>float</summary>
-    public float value = 0f;
+    [Tooltip("校验范围 Near-2000；SkillPersonalities.json Tuning")] public float farDistance = 0f;
+    /// <summary>float#range=1,500</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float trapDistance = 0f;
+    /// <summary>float#range=1,100</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float contactDistance = 0f;
+    /// <summary>float#range=1,1800</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float handsDistance = 0f;
+    /// <summary>float#range=1,100</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float laneWidth = 0f;
+    /// <summary>float#range=0.00001,0.1</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float straightCurvature = 0f;
+    /// <summary>float</summary>
+    [Tooltip("校验范围 Straight-1；SkillPersonalities.json Tuning")] public float cornerCurvature = 0f;
+    /// <summary>float#range=0.05,0.3</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float keyMinSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("校验范围 Min-0.34 (< combo_input_window)；SkillPersonalities.json Tuning")] public float keyMaxSeconds = 0f;
+    /// <summary>float#range=0.1,5</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float aimHorizonSeconds = 0f;
+    /// <summary>float#range=0.01,1</summary>
+    [Tooltip("SkillPersonalities.json Tuning")] public float speedDropFraction = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillWorld.cs:78")] public float speedDropImpairSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillWorld.cs:78; AISkillDecision.cs:16")] public float speedDropMinSpeed = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillWorld.cs:93")] public float straightLookaheadSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillWorld.cs:95")] public float cornerLookaheadSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillWorld.cs:96")] public float cornerValidityBase = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillWorld.cs:96")] public float cornerValidityScale = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillDecision.TargetScore")] public float targetBonusImpaired = 0f;
+    /// <summary>float</summary>
+    public float targetBonusAhead = 0f;
+    /// <summary>float</summary>
+    public float targetBonusBehind = 0f;
+    /// <summary>float</summary>
+    public float targetBonusPackCentrePerNeighbour = 0f;
+    /// <summary>int</summary>
+    [Tooltip("AISkillDecision.cs:59")] public int packMinNeighbours = 0;
+    /// <summary>float</summary>
+    [Tooltip("AISkillDecision.cs:146")] public float severeSeverityThreshold = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillDecision.cs:158")] public float maxWindowSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillDecision.cs:158")] public float minRelativeSpeed = 0f;
+    /// <summary>float</summary>
+    [Tooltip("AISkillCaster.cs:159")] public float maxElapsedSeconds = 0f;
+    /// <summary>int</summary>
+    [Tooltip("AISkillCommitment.cs:38")] public int maxComboRetries = 0;
 }
 
 /// <summary>AI.xlsx / Roster</summary>

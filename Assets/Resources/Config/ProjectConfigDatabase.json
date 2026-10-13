@@ -570,307 +570,182 @@
     "drivingTiers": [
         {
             "difficulty": "Easy",
-            "LookaheadSeconds": 1.0,
-            "SpeedMargin": 2.0,
-            "LateralDamping": 0.9860000014305115,
-            "AttitudeDeadbandDegrees": 1.5,
-            "AttitudeHysteresisDegrees": 0.5,
-            "PredictionGain": 0.30000001192092898,
-            "ThrustPaceFactor": 0.8999999761581421,
-            "PlanningBrakeAcceleration": 10.0,
-            "RolloutSeconds": 1.7999999523162842,
-            "RolloutHoldSeconds": 0.6000000238418579,
-            "ThrustReplanTicks": 3,
-            "RolloutSubsteps": 2,
-            "UseWallCorridor": true,
-            "WallMargin": 1.5,
-            "RolloutWallWeight": 0.699999988079071,
-            "RolloutCenterWeight": 0.019999999552965165,
-            "RolloutTail": "KeepCandidate",
-            "SpeedNoise": 6.0,
-            "LateralOffsetNoise": 3.5,
-            "AngleNoiseDegrees": 10.0,
-            "WobbleTicks": 30,
-            "MistakeProbability": 0.25,
-            "ReactionJitterTicks": 5,
-            "RolloutSampleTicks": 6,
-            "RolloutLateralWeight": 1.0,
-            "RolloutLateralVelocityWeight": 0.699999988079071,
-            "RolloutOverspeedWeight": 0.0,
-            "RolloutUnderspeedWeight": 1.0,
-            "RolloutProgressWeight": 1.0,
-            "RolloutTerminalWeight": 1.0,
-            "SwitchPenaltyPerDegree": 0.30000001192092898,
-            "MaxThrustAngleDegrees": 170.0,
-            "TargetSpeed": 67.0,
-            "LateralOffset": 0.0,
-            "ReactionTicks": 8
+            "lookaheadSeconds": 1.0,
+            "speedMargin": 2.0,
+            "lateralDamping": 0.9860000014305115,
+            "attitudeDeadbandDegrees": 1.5,
+            "attitudeHysteresisDegrees": 0.5,
+            "predictionGain": 0.30000001192092898,
+            "thrustPaceFactor": 0.8999999761581421,
+            "planningBrakeAcceleration": 10.0,
+            "rolloutSeconds": 1.7999999523162842,
+            "rolloutHoldSeconds": 0.6000000238418579,
+            "thrustReplanTicks": 3,
+            "rolloutSubsteps": 2,
+            "useWallCorridor": true,
+            "wallMargin": 1.5,
+            "rolloutWallWeight": 0.699999988079071,
+            "rolloutCenterWeight": 0.019999999552965165,
+            "rolloutTail": "KeepCandidate",
+            "speedNoise": 6.0,
+            "lateralOffsetNoise": 3.5,
+            "angleNoiseDegrees": 10.0,
+            "wobbleTicks": 30,
+            "mistakeProbability": 0.25,
+            "reactionJitterTicks": 5,
+            "rolloutSampleTicks": 6,
+            "rolloutLateralWeight": 1.0,
+            "rolloutLateralVelocityWeight": 0.699999988079071,
+            "rolloutOverspeedWeight": 0.0,
+            "rolloutUnderspeedWeight": 1.0,
+            "rolloutProgressWeight": 1.0,
+            "rolloutTerminalWeight": 1.0,
+            "switchPenaltyPerDegree": 0.30000001192092898,
+            "maxThrustAngleDegrees": 170.0,
+            "targetSpeed": 67.0,
+            "lateralOffset": 0.0,
+            "reactionTicks": 8
         },
         {
             "difficulty": "Normal",
-            "LookaheadSeconds": 1.0,
-            "SpeedMargin": 2.0,
-            "LateralDamping": 0.9860000014305115,
-            "AttitudeDeadbandDegrees": 1.5,
-            "AttitudeHysteresisDegrees": 0.5,
-            "PredictionGain": 0.30000001192092898,
-            "ThrustPaceFactor": 0.8999999761581421,
-            "PlanningBrakeAcceleration": 10.0,
-            "RolloutSeconds": 2.0,
-            "RolloutHoldSeconds": 0.6000000238418579,
-            "ThrustReplanTicks": 2,
-            "RolloutSubsteps": 2,
-            "UseWallCorridor": true,
-            "WallMargin": 1.5,
-            "RolloutWallWeight": 0.20000000298023225,
-            "RolloutCenterWeight": 0.019999999552965165,
-            "RolloutTail": "KeepCandidate",
-            "SpeedNoise": 4.0,
-            "LateralOffsetNoise": 2.5,
-            "AngleNoiseDegrees": 5.0,
-            "WobbleTicks": 30,
-            "MistakeProbability": 0.10000000149011612,
-            "ReactionJitterTicks": 3,
-            "RolloutSampleTicks": 6,
-            "RolloutLateralWeight": 1.0,
-            "RolloutLateralVelocityWeight": 0.699999988079071,
-            "RolloutOverspeedWeight": 0.0,
-            "RolloutUnderspeedWeight": 1.0,
-            "RolloutProgressWeight": 1.0,
-            "RolloutTerminalWeight": 1.0,
-            "SwitchPenaltyPerDegree": 0.30000001192092898,
-            "MaxThrustAngleDegrees": 170.0,
-            "TargetSpeed": 74.0,
-            "LateralOffset": 0.0,
-            "ReactionTicks": 3
+            "lookaheadSeconds": 1.0,
+            "speedMargin": 2.0,
+            "lateralDamping": 0.9860000014305115,
+            "attitudeDeadbandDegrees": 1.5,
+            "attitudeHysteresisDegrees": 0.5,
+            "predictionGain": 0.30000001192092898,
+            "thrustPaceFactor": 0.8999999761581421,
+            "planningBrakeAcceleration": 10.0,
+            "rolloutSeconds": 2.0,
+            "rolloutHoldSeconds": 0.6000000238418579,
+            "thrustReplanTicks": 2,
+            "rolloutSubsteps": 2,
+            "useWallCorridor": true,
+            "wallMargin": 1.5,
+            "rolloutWallWeight": 0.20000000298023225,
+            "rolloutCenterWeight": 0.019999999552965165,
+            "rolloutTail": "KeepCandidate",
+            "speedNoise": 4.0,
+            "lateralOffsetNoise": 2.5,
+            "angleNoiseDegrees": 5.0,
+            "wobbleTicks": 30,
+            "mistakeProbability": 0.10000000149011612,
+            "reactionJitterTicks": 3,
+            "rolloutSampleTicks": 6,
+            "rolloutLateralWeight": 1.0,
+            "rolloutLateralVelocityWeight": 0.699999988079071,
+            "rolloutOverspeedWeight": 0.0,
+            "rolloutUnderspeedWeight": 1.0,
+            "rolloutProgressWeight": 1.0,
+            "rolloutTerminalWeight": 1.0,
+            "switchPenaltyPerDegree": 0.30000001192092898,
+            "maxThrustAngleDegrees": 170.0,
+            "targetSpeed": 74.0,
+            "lateralOffset": 0.0,
+            "reactionTicks": 3
         },
         {
             "difficulty": "Hard",
-            "LookaheadSeconds": 1.0,
-            "SpeedMargin": 2.0,
-            "LateralDamping": 0.9860000014305115,
-            "AttitudeDeadbandDegrees": 1.5,
-            "AttitudeHysteresisDegrees": 0.5,
-            "PredictionGain": 0.30000001192092898,
-            "ThrustPaceFactor": 0.8999999761581421,
-            "PlanningBrakeAcceleration": 10.0,
-            "RolloutSeconds": 2.0,
-            "RolloutHoldSeconds": 0.6000000238418579,
-            "ThrustReplanTicks": 2,
-            "RolloutSubsteps": 2,
-            "UseWallCorridor": true,
-            "WallMargin": 1.5,
-            "RolloutWallWeight": 0.0,
-            "RolloutCenterWeight": 0.019999999552965165,
-            "RolloutTail": "KeepCandidate",
-            "SpeedNoise": 2.0,
-            "LateralOffsetNoise": 1.5,
-            "AngleNoiseDegrees": 2.0,
-            "WobbleTicks": 30,
-            "MistakeProbability": 0.029999999329447748,
-            "ReactionJitterTicks": 0,
-            "RolloutSampleTicks": 6,
-            "RolloutLateralWeight": 1.0,
-            "RolloutLateralVelocityWeight": 0.699999988079071,
-            "RolloutOverspeedWeight": 0.0,
-            "RolloutUnderspeedWeight": 3.0,
-            "RolloutProgressWeight": 1.0,
-            "RolloutTerminalWeight": 1.0,
-            "SwitchPenaltyPerDegree": 0.30000001192092898,
-            "MaxThrustAngleDegrees": 90.0,
-            "TargetSpeed": 80.0,
-            "LateralOffset": 0.0,
-            "ReactionTicks": 0
+            "lookaheadSeconds": 1.0,
+            "speedMargin": 2.0,
+            "lateralDamping": 0.9860000014305115,
+            "attitudeDeadbandDegrees": 1.5,
+            "attitudeHysteresisDegrees": 0.5,
+            "predictionGain": 0.30000001192092898,
+            "thrustPaceFactor": 0.8999999761581421,
+            "planningBrakeAcceleration": 10.0,
+            "rolloutSeconds": 2.0,
+            "rolloutHoldSeconds": 0.6000000238418579,
+            "thrustReplanTicks": 2,
+            "rolloutSubsteps": 2,
+            "useWallCorridor": true,
+            "wallMargin": 1.5,
+            "rolloutWallWeight": 0.0,
+            "rolloutCenterWeight": 0.019999999552965165,
+            "rolloutTail": "KeepCandidate",
+            "speedNoise": 2.0,
+            "lateralOffsetNoise": 1.5,
+            "angleNoiseDegrees": 2.0,
+            "wobbleTicks": 30,
+            "mistakeProbability": 0.029999999329447748,
+            "reactionJitterTicks": 0,
+            "rolloutSampleTicks": 6,
+            "rolloutLateralWeight": 1.0,
+            "rolloutLateralVelocityWeight": 0.699999988079071,
+            "rolloutOverspeedWeight": 0.0,
+            "rolloutUnderspeedWeight": 3.0,
+            "rolloutProgressWeight": 1.0,
+            "rolloutTerminalWeight": 1.0,
+            "switchPenaltyPerDegree": 0.30000001192092898,
+            "maxThrustAngleDegrees": 90.0,
+            "targetSpeed": 80.0,
+            "lateralOffset": 0.0,
+            "reactionTicks": 0
         }
     ],
-    "drivingGlobals": [
+    "drivingTunings": [
         {
-            "key": "targetSpeedMin",
-            "value": 20.0
-        },
-        {
-            "key": "targetSpeedMax",
-            "value": 80.0
-        },
-        {
-            "key": "recoverySpeed",
-            "value": 5.0
-        },
-        {
-            "key": "recoveryVelocityErrorDegrees",
-            "value": 90.0
-        },
-        {
-            "key": "sideSwitchLateral",
-            "value": 3.0
-        },
-        {
-            "key": "holdLateral",
-            "value": 18.0
-        },
-        {
-            "key": "topSpeed",
-            "value": 79.0
-        },
-        {
-            "key": "topPace",
-            "value": 78.0
-        },
-        {
-            "key": "minBrakeAngleDegrees",
-            "value": 120.0
-        },
-        {
-            "key": "maxTargetDegrees",
-            "value": 178.0
-        },
-        {
-            "key": "attitudeAcceleration",
-            "value": 4.820000171661377
-        },
-        {
-            "key": "minPredictionSeconds",
-            "value": 0.30000001192092898
-        },
-        {
-            "key": "maxPredictionSeconds",
-            "value": 1.0
-        },
-        {
-            "key": "reanchorDegrees",
-            "value": 200.0
-        },
-        {
-            "key": "collisionReanchorDegrees",
-            "value": 180.0
-        },
-        {
-            "key": "fullTurnDegrees",
-            "value": 360.0
-        },
-        {
-            "key": "reprojectLateral",
-            "value": 15.0
-        },
-        {
-            "key": "collisionMemorySeconds",
-            "value": 0.5
-        },
-        {
-            "key": "wobbleClampSigmas",
-            "value": 3.0
-        },
-        {
-            "key": "velocityHeadingMinSpeedSquared",
-            "value": 25.0
-        },
-        {
-            "key": "nearSearchSegments",
-            "value": 8.0
-        },
-        {
-            "key": "wideSearchSegments",
-            "value": 40.0
-        },
-        {
-            "key": "rolloutSearchSegments",
-            "value": 6.0
-        },
-        {
-            "key": "racingLineSampleMeters",
-            "value": 2.0
-        },
-        {
-            "key": "racingLineMinSamples",
-            "value": 16.0
-        },
-        {
-            "key": "curvatureChordMeters",
-            "value": 12.0
-        },
-        {
-            "key": "windowPaceMeters",
-            "value": 80.0
-        },
-        {
-            "key": "wallProbeMaxDistance",
-            "value": 80.0
-        },
-        {
-            "key": "wallProbeHeight",
-            "value": 1.5
-        },
-        {
-            "key": "sideContactNormalY",
-            "value": 0.699999988079071
-        },
-        {
-            "key": "groundNormalY",
-            "value": 0.9900000095367432
-        },
-        {
-            "key": "defaultFriction",
-            "value": 0.6000000238418579
-        },
-        {
-            "key": "groundContactValiditySeconds",
-            "value": 0.10000000149011612
+            "profileId": "default",
+            "targetSpeedMin": 20.0,
+            "targetSpeedMax": 80.0,
+            "recoverySpeed": 5.0,
+            "recoveryVelocityErrorDegrees": 90.0
         }
     ],
     "skillDifficulties": [
         {
             "difficulty": "Easy",
-            "Difficulty": 0.0,
-            "RiskWeight": 0.0,
-            "SevereStopProbability": 1.0099999904632569,
-            "MildStopProbability": 1.0099999904632569,
-            "DecisionSeconds": 0.30000001192092898,
-            "ReactionMinSeconds": 0.6000000238418579,
-            "ReactionMaxSeconds": 1.0,
-            "KeyMistakeProbability": 0.15000000596046449,
-            "AimToleranceDegrees": 20.0,
-            "AdaptSeconds": 2.0,
-            "ReadaptSeconds": 1.0,
-            "ImpairedLookaheadMultiplier": 0.5,
-            "ImpairedMistakeAddition": 0.20000000298023225,
-            "ImpairedReactionTicks": 10,
-            "DecisionNoise": 0.10000000149011612
+            "riskWeight": 0.0,
+            "severeStopProbability": 1.0099999904632569,
+            "mildStopProbability": 1.0099999904632569,
+            "decisionSeconds": 0.30000001192092898,
+            "reactionMinSeconds": 0.6000000238418579,
+            "reactionMaxSeconds": 1.0,
+            "keyMistakeProbability": 0.15000000596046449,
+            "aimToleranceDegrees": 20.0,
+            "adaptSeconds": 2.0,
+            "readaptSeconds": 1.0,
+            "impairedLookaheadMultiplier": 0.5,
+            "impairedMistakeAddition": 0.20000000298023225,
+            "impairedReactionTicks": 10,
+            "impairedDrivingReactionTicks": 10,
+            "decisionNoise": 0.10000000149011612
         },
         {
             "difficulty": "Normal",
-            "Difficulty": 1.0,
-            "RiskWeight": 0.5,
-            "SevereStopProbability": 0.699999988079071,
-            "MildStopProbability": 1.0099999904632569,
-            "DecisionSeconds": 0.25,
-            "ReactionMinSeconds": 0.30000001192092898,
-            "ReactionMaxSeconds": 0.5,
-            "KeyMistakeProbability": 0.05999999865889549,
-            "AimToleranceDegrees": 12.0,
-            "AdaptSeconds": 1.0,
-            "ReadaptSeconds": 0.6000000238418579,
-            "ImpairedLookaheadMultiplier": 0.6000000238418579,
-            "ImpairedMistakeAddition": 0.10000000149011612,
-            "ImpairedReactionTicks": 6,
-            "DecisionNoise": 0.05000000074505806
+            "riskWeight": 0.5,
+            "severeStopProbability": 0.699999988079071,
+            "mildStopProbability": 1.0099999904632569,
+            "decisionSeconds": 0.25,
+            "reactionMinSeconds": 0.30000001192092898,
+            "reactionMaxSeconds": 0.5,
+            "keyMistakeProbability": 0.05999999865889549,
+            "aimToleranceDegrees": 12.0,
+            "adaptSeconds": 1.0,
+            "readaptSeconds": 0.6000000238418579,
+            "impairedLookaheadMultiplier": 0.6000000238418579,
+            "impairedMistakeAddition": 0.10000000149011612,
+            "impairedReactionTicks": 6,
+            "impairedDrivingReactionTicks": 6,
+            "decisionNoise": 0.05000000074505806
         },
         {
             "difficulty": "Hard",
-            "Difficulty": 2.0,
-            "RiskWeight": 1.0,
-            "SevereStopProbability": 0.44999998807907107,
-            "MildStopProbability": 0.6499999761581421,
-            "DecisionSeconds": 0.20000000298023225,
-            "ReactionMinSeconds": 0.10000000149011612,
-            "ReactionMaxSeconds": 0.20000000298023225,
-            "KeyMistakeProbability": 0.009999999776482582,
-            "AimToleranceDegrees": 6.0,
-            "AdaptSeconds": 0.4000000059604645,
-            "ReadaptSeconds": 0.30000001192092898,
-            "ImpairedLookaheadMultiplier": 0.75,
-            "ImpairedMistakeAddition": 0.05000000074505806,
-            "ImpairedReactionTicks": 3,
-            "DecisionNoise": 0.019999999552965165
+            "riskWeight": 1.0,
+            "severeStopProbability": 0.44999998807907107,
+            "mildStopProbability": 0.6499999761581421,
+            "decisionSeconds": 0.20000000298023225,
+            "reactionMinSeconds": 0.10000000149011612,
+            "reactionMaxSeconds": 0.20000000298023225,
+            "keyMistakeProbability": 0.009999999776482582,
+            "aimToleranceDegrees": 6.0,
+            "adaptSeconds": 0.4000000059604645,
+            "readaptSeconds": 0.30000001192092898,
+            "impairedLookaheadMultiplier": 0.75,
+            "impairedMistakeAddition": 0.05000000074505806,
+            "impairedReactionTicks": 3,
+            "impairedDrivingReactionTicks": 3,
+            "decisionNoise": 0.019999999552965165
         }
     ],
     "personalities": [
@@ -880,6 +755,9 @@
             "slot0SkillId": "slowtrap",
             "slot1SkillId": "acceleration",
             "slot2SkillId": "giant",
+            "slot0Weight": 1.2999999523162842,
+            "slot1Weight": 1.0,
+            "slot2Weight": 0.800000011920929,
             "patience": 0.25,
             "tempoSeconds": 1.5,
             "target": "Behind",
@@ -892,6 +770,9 @@
             "slot0SkillId": "push_projectile_hands",
             "slot1SkillId": "acceleration",
             "slot2SkillId": "reverseturn",
+            "slot0Weight": 1.2999999523162842,
+            "slot1Weight": 1.0,
+            "slot2Weight": 0.8999999761581421,
             "patience": 0.25,
             "tempoSeconds": 1.2000000476837159,
             "target": "Ahead",
@@ -904,6 +785,9 @@
             "slot0SkillId": "giant",
             "slot1SkillId": "push_projectile_hands",
             "slot2SkillId": "slowtrap",
+            "slot0Weight": 1.2999999523162842,
+            "slot1Weight": 0.8999999761581421,
+            "slot2Weight": 1.0,
             "patience": 0.30000001192092898,
             "tempoSeconds": 1.0,
             "target": "PackCentre",
@@ -916,6 +800,9 @@
             "slot0SkillId": "reverseturn",
             "slot1SkillId": "blackcurtain",
             "slot2SkillId": "slowtrap",
+            "slot0Weight": 1.2000000476837159,
+            "slot1Weight": 1.2000000476837159,
+            "slot2Weight": 0.800000011920929,
             "patience": 0.30000001192092898,
             "tempoSeconds": 2.0,
             "target": "EnteringCorner",
@@ -928,163 +815,14 @@
             "slot0SkillId": "acceleration",
             "slot1SkillId": "push_projectile_hands",
             "slot2SkillId": "blackcurtain",
+            "slot0Weight": 1.2000000476837159,
+            "slot1Weight": 1.0,
+            "slot2Weight": 0.800000011920929,
             "patience": 0.3499999940395355,
             "tempoSeconds": 1.5,
             "target": "Impaired",
             "impairedTargetMultiplier": 1.600000023841858,
             "handsShots": 2
-        }
-    ],
-    "personalitySkillWeights": [
-        {
-            "personalityId": "keeper",
-            "skillId": "acceleration",
-            "weight": 1.0
-        },
-        {
-            "personalityId": "keeper",
-            "skillId": "slowtrap",
-            "weight": 1.2999999523162842
-        },
-        {
-            "personalityId": "keeper",
-            "skillId": "giant",
-            "weight": 0.800000011920929
-        },
-        {
-            "personalityId": "keeper",
-            "skillId": "push_projectile_hands",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "keeper",
-            "skillId": "reverseturn",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "keeper",
-            "skillId": "blackcurtain",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "hunter",
-            "skillId": "acceleration",
-            "weight": 1.0
-        },
-        {
-            "personalityId": "hunter",
-            "skillId": "slowtrap",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "hunter",
-            "skillId": "giant",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "hunter",
-            "skillId": "push_projectile_hands",
-            "weight": 1.2999999523162842
-        },
-        {
-            "personalityId": "hunter",
-            "skillId": "reverseturn",
-            "weight": 0.8999999761581421
-        },
-        {
-            "personalityId": "hunter",
-            "skillId": "blackcurtain",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "brawler",
-            "skillId": "acceleration",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "brawler",
-            "skillId": "slowtrap",
-            "weight": 1.0
-        },
-        {
-            "personalityId": "brawler",
-            "skillId": "giant",
-            "weight": 1.2999999523162842
-        },
-        {
-            "personalityId": "brawler",
-            "skillId": "push_projectile_hands",
-            "weight": 0.8999999761581421
-        },
-        {
-            "personalityId": "brawler",
-            "skillId": "reverseturn",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "brawler",
-            "skillId": "blackcurtain",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "trickster",
-            "skillId": "acceleration",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "trickster",
-            "skillId": "slowtrap",
-            "weight": 0.800000011920929
-        },
-        {
-            "personalityId": "trickster",
-            "skillId": "giant",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "trickster",
-            "skillId": "push_projectile_hands",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "trickster",
-            "skillId": "reverseturn",
-            "weight": 1.2000000476837159
-        },
-        {
-            "personalityId": "trickster",
-            "skillId": "blackcurtain",
-            "weight": 1.2000000476837159
-        },
-        {
-            "personalityId": "opportunist",
-            "skillId": "acceleration",
-            "weight": 1.2000000476837159
-        },
-        {
-            "personalityId": "opportunist",
-            "skillId": "slowtrap",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "opportunist",
-            "skillId": "giant",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "opportunist",
-            "skillId": "push_projectile_hands",
-            "weight": 1.0
-        },
-        {
-            "personalityId": "opportunist",
-            "skillId": "reverseturn",
-            "weight": 0.0
-        },
-        {
-            "personalityId": "opportunist",
-            "skillId": "blackcurtain",
-            "weight": 0.800000011920929
         }
     ],
     "personalitySituationBiases": [
@@ -1306,134 +1044,39 @@
             "packBonus": 0.25
         }
     ],
-    "skillGlobals": [
+    "skillTunings": [
         {
-            "key": "SnapshotSeconds",
-            "value": 0.15000000596046449
-        },
-        {
-            "key": "SituationHysteresisSeconds",
-            "value": 1.5
-        },
-        {
-            "key": "NearDistance",
-            "value": 60.0
-        },
-        {
-            "key": "FarDistance",
-            "value": 300.0
-        },
-        {
-            "key": "TrapDistance",
-            "value": 65.0
-        },
-        {
-            "key": "ContactDistance",
-            "value": 35.0
-        },
-        {
-            "key": "HandsDistance",
-            "value": 300.0
-        },
-        {
-            "key": "LaneWidth",
-            "value": 14.0
-        },
-        {
-            "key": "StraightCurvature",
-            "value": 0.0035000001080334188
-        },
-        {
-            "key": "CornerCurvature",
-            "value": 0.006000000052154064
-        },
-        {
-            "key": "KeyMinSeconds",
-            "value": 0.20000000298023225
-        },
-        {
-            "key": "KeyMaxSeconds",
-            "value": 0.30000001192092898
-        },
-        {
-            "key": "AimHorizonSeconds",
-            "value": 2.0
-        },
-        {
-            "key": "SpeedDropFraction",
-            "value": 0.20000000298023225
-        },
-        {
-            "key": "speedDropImpairSeconds",
-            "value": 0.5
-        },
-        {
-            "key": "speedDropMinSpeed",
-            "value": 5.0
-        },
-        {
-            "key": "straightLookaheadSeconds",
-            "value": 10.0
-        },
-        {
-            "key": "cornerLookaheadSeconds",
-            "value": 2.0
-        },
-        {
-            "key": "cornerValidityBase",
-            "value": 2.0
-        },
-        {
-            "key": "cornerValidityScale",
-            "value": 2.0
-        },
-        {
-            "key": "targetBonusImpaired",
-            "value": 2.0
-        },
-        {
-            "key": "targetBonusAhead",
-            "value": 1.0
-        },
-        {
-            "key": "targetBonusBehind",
-            "value": 1.0
-        },
-        {
-            "key": "targetBonusPackCentrePerNeighbour",
-            "value": 0.25
-        },
-        {
-            "key": "packMinNeighbours",
-            "value": 2.0
-        },
-        {
-            "key": "severeSeverityThreshold",
-            "value": 0.5
-        },
-        {
-            "key": "maxWindowSeconds",
-            "value": 6.0
-        },
-        {
-            "key": "minRelativeSpeed",
-            "value": 0.10000000149011612
-        },
-        {
-            "key": "maxElapsedSeconds",
-            "value": 1.0
-        },
-        {
-            "key": "maxComboRetries",
-            "value": 1.0
-        },
-        {
-            "key": "scaleShrunkThreshold",
-            "value": 0.9900000095367432
-        },
-        {
-            "key": "trackTableCellMeters",
-            "value": 4.0
+            "profileId": "default",
+            "snapshotSeconds": 0.15000000596046449,
+            "situationHysteresisSeconds": 1.5,
+            "nearDistance": 60.0,
+            "farDistance": 300.0,
+            "trapDistance": 65.0,
+            "contactDistance": 35.0,
+            "handsDistance": 300.0,
+            "laneWidth": 14.0,
+            "straightCurvature": 0.0035000001080334188,
+            "cornerCurvature": 0.006000000052154064,
+            "keyMinSeconds": 0.20000000298023225,
+            "keyMaxSeconds": 0.30000001192092898,
+            "aimHorizonSeconds": 2.0,
+            "speedDropFraction": 0.20000000298023225,
+            "speedDropImpairSeconds": 0.5,
+            "speedDropMinSpeed": 5.0,
+            "straightLookaheadSeconds": 10.0,
+            "cornerLookaheadSeconds": 2.0,
+            "cornerValidityBase": 2.0,
+            "cornerValidityScale": 2.0,
+            "targetBonusImpaired": 2.0,
+            "targetBonusAhead": 1.0,
+            "targetBonusBehind": 1.0,
+            "targetBonusPackCentrePerNeighbour": 0.25,
+            "packMinNeighbours": 2,
+            "severeSeverityThreshold": 0.5,
+            "maxWindowSeconds": 6.0,
+            "minRelativeSpeed": 0.10000000149011612,
+            "maxElapsedSeconds": 1.0,
+            "maxComboRetries": 1
         }
     ],
     "rosters": [

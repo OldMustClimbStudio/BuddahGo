@@ -137,8 +137,12 @@ namespace BuddahGo.Tests
                 Assert.AreEqual(600f, db.pushes.Find(r => r.pushId == "charged").speed);
                 Assert.AreEqual(6, db.comboInputs[0].maxBuffer);
                 Assert.AreEqual(3, db.drivingTiers.Count);
-                Assert.AreEqual(90f, db.drivingTiers.Find(r => r.difficulty == "Hard").MaxThrustAngleDegrees);
+                Assert.AreEqual(90f, db.drivingTiers.Find(r => r.difficulty == "Hard").maxThrustAngleDegrees, "camelCase headers");
+                Assert.AreEqual(80f, db.drivingTunings[0].targetSpeedMax, "DrivingGlobal read keys became DrivingTuning");
                 Assert.AreEqual(5, db.personalities.Count);
+                Assert.AreEqual(1.3f, db.personalities.Find(p => p.personalityId == "keeper").slot0Weight, "weights live on the loadout slots");
+                Assert.AreEqual(0.3f, db.skillTunings[0].keyMaxSeconds, "SkillGlobal became a one-row SkillTuning");
+                Assert.AreEqual(6, db.skillDifficulties.Find(d => d.difficulty == "Normal").impairedDrivingReactionTicks, "driving impairment split from skill impairment");
                 Assert.AreEqual(3, db.comboBindings.Count);
                 Assert.AreEqual(4, db.comboBindings[2].sequence.Count);
                 Assert.AreEqual(1000f, db.obsessions[0].maxValue);

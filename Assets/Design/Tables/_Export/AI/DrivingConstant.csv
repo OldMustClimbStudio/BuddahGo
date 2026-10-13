@@ -2,10 +2,6 @@
 ##type,string#key,float,string,string
 ##group,,,doc,doc
 ##comment,,,,
-,targetSpeedMin,20,AIDifficultyProfiles.Resolve:40,每车 TargetSpeed clamp 下限
-,targetSpeedMax,80,AIDifficultyProfiles.Resolve:40,上限，与车辆 maxSpeed 80 耦合
-,recoverySpeed,5,ThrustVectorPlanner.cs:26,低于此速度沿赛道全推
-,recoveryVelocityErrorDegrees,90,ThrustVectorPlanner.cs:26,倒行判定
 ,sideSwitchLateral,3,TVP:27,[Eng]
 ,holdLateral,18,TVP:27,[Eng]
 ,topSpeed,79,TVP:28,[Eng] 与 maxSpeed 耦合

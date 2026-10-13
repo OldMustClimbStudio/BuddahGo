@@ -1,7 +1,7 @@
-##var,difficulty,Difficulty,RiskWeight,SevereStopProbability,MildStopProbability,DecisionSeconds,ReactionMinSeconds,ReactionMaxSeconds,KeyMistakeProbability,AimToleranceDegrees,AdaptSeconds,ReadaptSeconds,ImpairedLookaheadMultiplier,ImpairedMistakeAddition,ImpairedReactionTicks,DecisionNoise
-##type,enum:SoloDifficulty#key,float,float,float,float,float,float,float,float,float,float,float,float,float,int,float
+##var,difficulty,riskWeight,severeStopProbability,mildStopProbability,decisionSeconds,reactionMinSeconds,reactionMaxSeconds,keyMistakeProbability,aimToleranceDegrees,adaptSeconds,readaptSeconds,impairedLookaheadMultiplier,impairedMistakeAddition,impairedReactionTicks,impairedDrivingReactionTicks,decisionNoise
+##type,enum:SoloDifficulty#key,float,float,float,float,float,float,float,float,float,float,float,float,int,int,float
 ##group,,,,,,,,,,,,,,,,
-##comment,,,,,,,,,,,,,,,,
-,Easy,0,0,1.01,1.01,0.3,0.6,1,0.15,20,2,1,0.5,0.2,10,0.1
-,Normal,1,0.5,0.7,1.01,0.25,0.3,0.5,0.06,12,1,0.6,0.6,0.1,6,0.05
-,Hard,2,1,0.45,0.65,0.2,0.1,0.2,0.01,6,0.4,0.3,0.75,0.05,3,0.02
+##comment,,,,,,,,,,,,,,视野受损时技能施放反应额外 tick（AISkillCaster）,视野受损时驾驶反应额外 tick（AIRacerDriver）,
+,Easy,0,1.01,1.01,0.3,0.6,1,0.15,20,2,1,0.5,0.2,10,10,0.1
+,Normal,0.5,0.7,1.01,0.25,0.3,0.5,0.06,12,1,0.6,0.6,0.1,6,6,0.05
+,Hard,1,0.45,0.65,0.2,0.1,0.2,0.01,6,0.4,0.3,0.75,0.05,3,3,0.02

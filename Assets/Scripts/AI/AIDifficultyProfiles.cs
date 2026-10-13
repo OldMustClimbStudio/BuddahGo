@@ -43,8 +43,9 @@ namespace BuddahGo.AI
             return profile;
         }
 
-        // AI/DrivingTier overlays the asset values (same field names); AI/DrivingGlobal feeds the speed clamp and the
-        // planner recovery thresholds. Without table rows the asset and the literals below stay in effect.
+        // AI/DrivingTier overlays the asset values (camelCase headers match the PascalCase fields case-insensitively);
+        // AI/DrivingTuning feeds the speed clamp and the planner recovery thresholds. Without table rows the asset
+        // and the literals below stay in effect.
         private static void ApplyDesignTables(AIDifficultyProfile profile, SoloDifficulty difficulty, out float speedMin, out float speedMax)
         {
             speedMin = 20f; speedMax = 80f;
@@ -55,18 +56,14 @@ namespace BuddahGo.AI
             if (row != null)
             {
                 DesignTableOverlay.Apply(profile, row);
-                switch (row.RolloutTail) { case "Anchor": profile.RolloutTail = 0; break; case "KeepCandidate": profile.RolloutTail = 1; break; case "FullThrust": profile.RolloutTail = 2; break; }
+                switch (row.rolloutTail) { case "Anchor": profile.RolloutTail = 0; break; case "KeepCandidate": profile.RolloutTail = 1; break; case "FullThrust": profile.RolloutTail = 2; break; }
             }
-            speedMin = Global(db, "targetSpeedMin", speedMin);
-            speedMax = Global(db, "targetSpeedMax", speedMax);
-            ThrustVectorPlanner.RecoverySpeed = Global(db, "recoverySpeed", ThrustVectorPlanner.RecoverySpeed);
-            ThrustVectorPlanner.RecoveryVelocityErrorDegrees = Global(db, "recoveryVelocityErrorDegrees", ThrustVectorPlanner.RecoveryVelocityErrorDegrees);
-        }
-
-        private static float Global(ProjectConfigDatabase db, string key, float fallback)
-        {
-            DrivingGlobalRecord row = DesignTableOverlay.Single(db.drivingGlobals, r => r.key == key);
-            return row != null ? row.value : fallback;
+            DrivingTuningRecord tuning = DesignTableOverlay.Single(db.drivingTunings, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.drivingTunings, null);
+            if (tuning == null) return;
+            speedMin = tuning.targetSpeedMin;
+            speedMax = tuning.targetSpeedMax;
+            ThrustVectorPlanner.RecoverySpeed = tuning.recoverySpeed;
+            ThrustVectorPlanner.RecoveryVelocityErrorDegrees = tuning.recoveryVelocityErrorDegrees;
         }
     }
 }

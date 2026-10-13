@@ -69,9 +69,9 @@
   "list": "drivingTiers",
   "tags": "ai,balance"
  },
- "AI/DrivingGlobal": {
-  "record": "DrivingGlobalRecord",
-  "list": "drivingGlobals",
+ "AI/DrivingTuning": {
+  "record": "DrivingTuningRecord",
+  "list": "drivingTunings",
   "tags": "ai,balance"
  },
  "AI/SkillDifficulty": {
@@ -84,11 +84,6 @@
   "list": "personalities",
   "tags": "ai,balance"
  },
- "AI/PersonalitySkillWeight": {
-  "record": "PersonalitySkillWeightRecord",
-  "list": "personalitySkillWeights",
-  "tags": "ai,balance"
- },
  "AI/PersonalitySituationBias": {
   "record": "PersonalitySituationBiasRecord",
   "list": "personalitySituationBiases",
@@ -99,9 +94,9 @@
   "list": "skillOpportunities",
   "tags": "ai,balance"
  },
- "AI/SkillGlobal": {
-  "record": "SkillGlobalRecord",
-  "list": "skillGlobals",
+ "AI/SkillTuning": {
+  "record": "SkillTuningRecord",
+  "list": "skillTunings",
   "tags": "ai,balance"
  },
  "AI/Roster": {

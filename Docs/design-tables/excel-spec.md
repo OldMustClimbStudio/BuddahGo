@@ -1,4 +1,4 @@
-# BuddahGo 策划配表 Excel 结构规范（v0.5，消费方已接通，分层导入）
+# BuddahGo 策划配表 Excel 结构规范（v0.6，v2 结构：一概念一表）
 
 日期 2026-10-12。依据 [decisions.md](decisions.md)：沿用 `ProjectConfigDatabase`，源表放仓库内，先定结构。本稿是结构定稿前的草案，带「待同步」标记的条目未经用户确认不进入实现。
 
@@ -68,7 +68,9 @@ Tools/design-tables/                                  基线生成脚本（从�
 | 单行全局表 | 主键列固定为 `profileId`，值 `default` | `Obsession.profileId` |
 | 列顺序 | 主键列最左，其后身份列、数值列组，`doc` 列最右 | — |
 
-AI 驾驶档位（`AI/DrivingTier`）沿用 `AIDifficultyProfile` 的 PascalCase 字段名，是唯一例外，迁表时与代码一起改名。
+AI 表（`DrivingTier`、`SkillDifficulty`、`SkillTuning`）的表头也是 camelCase；运行时覆盖按名忽略大小写匹配 `AIDifficultyProfile` / `AISkillDifficulty` / `AISkillTuning` 的 PascalCase 字段，代码不改名。
+
+结构原则（2026-10-13 v2，见 [structure-audit.md](structure-audit.md)）：同一概念一张表，不按代码里的组件 / SO / JSON 宿主拆分；每张 sheet 一个记录类；键值桶（`key / value`）只允许用于真正无类型的全局开关；没有读取方的列标 `doc` 或进 presentationOnly 表，不让策划误以为可调。
 
 ## 4. Sheet 通用规范
 
@@ -110,7 +112,7 @@ AI 驾驶档位（`AI/DrivingTier`）沿用 `AIDifficultyProfile` 的 PascalCase
 文案字段在数据表里只放 key（`string#ref=UIText/Text.key`），文本本体在 `UIText.xlsx/Text`（key、zh、en、comment）。现有 `SkillDefinitionRecord.displayName/description` 直接存中文，迁移时改为 key 还是保留中文列见待同步。
 
 ### 4.5 全局标量
-继续用 `GlobalRule(ruleKey, ruleValue, ruleSetId, description)`。Excel 侧在 `Global.xlsx/GlobalRule` 增加一列 `valueType`（`##group=doc`，不导出）供校验器按类型检查 `ruleValue`，并增加 `consumer`（doc）列记录读取方，杜绝再出现「定义了无人读」的键。
+继续用 `GlobalRule(ruleKey, ruleValue, ruleSetId, description)`，但只放真正跨域的开关（目前 `target_frame_rate`）；搓招窗口与缓冲在 `Skill/ComboInput`，施法前摇逐技能在 `Skill.castConfirmDelaySeconds`（含反噬行）。Excel 侧在 `Global.xlsx/GlobalRule` 增加一列 `valueType`（`##group=doc`，不导出）供校验器按类型检查 `ruleValue`，并增加 `consumer`（doc）列记录读取方，杜绝再出现「定义了无人读」的键。
 
 ### 4.6 上下文列
 `ruleSetId / modeTag / mapTag` 是现有仓库的查询维度。目前只用 `default`。保留列但允许留空（空=default），避免策划每行都填。
@@ -119,16 +121,16 @@ AI 驾驶档位（`AI/DrivingTier`）沿用 `AIDifficultyProfile` 的 PascalCase
 
 v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 列出全部 62 张 sheet 的记录类、实际值来源与备注；每张 sheet 的 `##comment` 行写明字段含义与来源行号。各域 sheet 清单：
 
-| 工作簿 | Sheet |
-|---|---|
-| Skill | SkillDefinition、SkillBalance、SkillEffectParam、SkillPresentation、VfxRegistry、FeelEvent、SkillSelectionRule、DefaultLoadout、ComboBinding、HandPush、Obsession、BlackCurtainPresentation |
-| Movement | MovementBase、PushReaction、ModifierRule、LaunchHandoff、RespawnRule、LapRule、WrongWayRule、Camera、RacerVisual、SplineTracking |
-| AI | DrivingTier、DrivingGlobal、SkillDifficulty、Personality、PersonalitySkillWeight、PersonalitySituationBias、SkillOpportunity、SkillGlobal、Roster |
-| Match | ModeRule、Track、TrackSpawn、TrackCheckpoint、TrackResultAnchor、Lobby、ResultVoteRule、ResultPresentation、SelectionStage、SelectionOption、Intro、IntroLayout、IntroSlotStyle、RacerNaming |
-| UI | SkillIcon、MenuOption、HudObsession、UiTiming、MiniMap、Text |
-| Global | GlobalRule、StructuralConstant、GlobalPhysics、PhysicsMaterial、Tag、Layer、Scene、InputBinding、Timeline、__enums__、__meta__ |
+| 工作簿 | 导出 sheet | 只校验（presentationOnly） |
+|---|---|---|
+| Skill | Skill（身份 + 冷却/锁定/前摇 + 执念 + 主效果时长）、SkillEffectAcceleration、SkillEffectSlowTrap、SkillEffectBlackCurtain、SkillEffectGiant、Push（basic / charged / charged_anti）、SkillSelectionRule、DefaultLoadout、ComboInput、ComboBinding、Obsession | SkillPresentation、VfxRegistry、FeelEvent、BlackCurtainPresentation、SkillConstant（代码 / prefab 常量） |
+| Movement | Movement（运动 + 受击宽限 + 起跑交接）、Respawn | ModifierRule、Camera、RacerVisual、SplineTracking |
+| AI | DrivingTier、DrivingTuning、SkillDifficulty、Personality（含三槽权重）、PersonalitySituationBias、SkillOpportunity、SkillTuning、Roster | DrivingConstant |
+| Match | ModeRule、Track（含圈数与圈规则）、TrackWrongWay、TrackSpawn、TrackCheckpoint、TrackResultAnchor、Lobby、ResultVoteRule、SelectionStage、SelectionOption、Intro（唯一的 handoffLeadSeconds）、IntroLayout | ResultPresentation、IntroSlotStyle |
+| UI | Text、MenuOption、SkillIcon | HudObsession、UiTiming、MiniMap |
+| Global | GlobalRule | StructuralConstant、GlobalPhysics、PhysicsMaterial、Tag、Layer、Scene、InputBinding、Timeline、`__enums__`、`__meta__` |
 
-已有记录类直接对应的 sheet：SkillDefinition（displayName/description 改为 key）、SkillBalance（加 castConfirmDelaySeconds）、SkillEffectParam（接通运行时）、SkillSelectionRule、DefaultLoadout、GlobalRule。其余为新增记录类，按 `__meta__` 的 recordClass 列实现。
+手写记录类只剩 SkillSelectionRuleRecord、DefaultLoadoutRecord、GlobalRuleRecord；其余（含 SkillRecord）由 `gen_records.py` 从表头生成，`__meta__` 的 recordClass 列记录来源。技能家族表的普通与反噬各一行，空格表示该行的技能类没有这个字段；ReverseTurn 与 ProjectileHands 没有家族表（主时长在 Skill，弹道参数在 Push，其余是代码常量，见 SkillConstant）。
 
 ## 6. 直通车管线（已实现，`Assets/Scripts/Editor/DesignTables/`）
 
@@ -170,24 +172,27 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 
 | 表 | 消费方 |
 |---|---|
-| SkillDefinition / SkillBalance / SkillSelectionRule / DefaultLoadout / GlobalRule | 原有仓库；SkillBalance.castConfirmDelaySeconds 与 GlobalRule cast_confirm_delay_seconds / anti_cast_confirm_delay_seconds 由 SkillExecutor 读取；combo_max_buffer 由 ComboSkillInput 读取；target_frame_rate 由 FrameRateLock 读取 |
-| SkillEffectParam | SkillDatabase 在运行时按 paramKey 反射写入各技能 SO（仅 Play 模式） |
-| ComboBinding / HandPush / Obsession | ComboSkillInput / BuddahHandControl / ObsessionFigure |
-| MovementBase / PushReaction / LaunchHandoff | BuddahPredictedMotorConfig（含 Rigidbody 质量阻尼）、BuddahMovement 起跑时序、RaceBodyIntroStateController |
-| RespawnRule / LapRule / WrongWayRule | BuddahRespawn、LapProgress、RaceCompletionTracker、RaceFinishManager（圈数） |
-| DrivingTier / DrivingGlobal | AIDifficultyProfiles.Resolve（档位覆盖、速度 clamp、ThrustVectorPlanner 恢复阈值） |
-| SkillDifficulty / Personality / PersonalitySkillWeight / PersonalitySituationBias / SkillOpportunity / SkillGlobal | AISkillCatalog.ApplyDesignTables；谓词常量进入 AISkillTuning 字段并替换了 AISkillDecision / AISkillWorld / AISkillCaster / AISkillCommitment 的字面量 |
+| Skill | SkillConfigRepository（冷却 / 锁定 / 执念 / 反噬 id / 显示名与描述经 UI/Text）；SkillExecutor 按实际执行行读 castConfirmDelaySeconds（含反噬行）；SkillDatabase 在 Play 模式把 effectDurationSeconds 写入各技能 SO 的主时长字段（`SkillDatabase.EffectDurationField`） |
+| SkillEffectAcceleration / SlowTrap / BlackCurtain / Giant | SkillDatabase 在 Play 模式按同名字段覆盖普通 / 反噬技能 SO |
+| Push | basic 行 → BuddahHandControl（`PushBasicMap` 显式映射）；charged / charged_anti 行 → Skill_PushProjectileHands(_Anti)（`SkillDatabase.PushChargedMap / PushChargedAntiMap`） |
+| ComboInput / ComboBinding / Obsession | ComboSkillInput（窗口与缓冲 + 绑定）/ ObsessionFigure |
+| SkillSelectionRule / DefaultLoadout / GlobalRule | 原有仓库；target_frame_rate 由 FrameRateLock 读取 |
+| Movement | BuddahPredictedMotorConfig（同名覆盖，含 Rigidbody 质量阻尼、受击宽限、交接地面探测）；BuddahMovement 起跑时序与 RaceBodyIntroStateController 速度采样间隔用显式映射 |
+| Respawn | BuddahRespawn |
+| DrivingTier / DrivingTuning | AIDifficultyProfiles.Resolve（档位覆盖按名忽略大小写、速度 clamp、ThrustVectorPlanner 恢复阈值） |
+| SkillDifficulty / Personality / PersonalitySituationBias / SkillOpportunity / SkillTuning | AISkillCatalog.ApplyDesignTables（三槽权重填入 Weights[AISkillKind]；SkillTuning 单行按名覆盖 AISkillTuning；impairedDrivingReactionTicks 由 AIRacerDriver 读取） |
 | Roster | MatchSpawnManager 按槽位取人格与名字 |
-| ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、PropertiesSelectionManager、ResultDecisionManager、RaceFinishManager；aiCount 由 SoloSetupPanel 读取 |
-| Track / TrackSpawn / TrackCheckpoint / TrackResultAnchor | MiniMapController 边界、RaceResultAreaManager 偏移；MatchSpawnManager、Checkpoint、EndFieldSpawnPoint 在 Awake 把场景物体移到表中世界坐标 |
+| ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、PropertiesSelectionManager、ResultDecisionManager、RaceFinishManager；aiCount 与 defaultDifficulty 由 SoloSetupPanel 读取 |
+| Track / TrackWrongWay / TrackSpawn / TrackCheckpoint / TrackResultAnchor | Track：RaceFinishManager 圈数、LapProgress 圈规则（显式映射）、MiniMapController 边界、RaceResultAreaManager 偏移；TrackWrongWay：RaceCompletionTracker；MatchSpawnManager、Checkpoint、EndFieldSpawnPoint 在 Awake 把场景物体移到表中世界坐标 |
 | Lobby | SteamLobbyManager 默认值、SessionLauncher 超时 |
-| SelectionStage / SelectionOption | PropertiesSelectionManager 构建地图/皮肤阶段 |
-| Intro | IntroSequenceManager |
-| RacerNaming / Text / MenuOption | RacerIdentity、MatchSpawnManager、CreateRoomUI 下拉框；文案经 `ProjectConfigRuntime.Texts` |
+| SelectionStage / SelectionOption | PropertiesSelectionManager（map / skin 占位行已屏蔽，代码兜底） |
+| Intro | IntroSequenceManager；RaceBodyIntroStateController 读 handoffLeadSeconds |
+| Text / MenuOption | RacerIdentity、MatchSpawnManager、CreateRoomUI 下拉框；文案经 `ProjectConfigRuntime.Texts` |
 
-未接通（结构性，表中为说明）：ModifierRule 的叠加策略与下限、ResultVoteRule 的法定规则、RespawnRule 的 teleport 标志、IntroLayout、SkillIcon（资源引用留在 prefab）、`ui.<class>.<slug>` 自动 key 的 UI 字面量（待策划定稿 key 后再替换）。
+只记录、不接运行时（presentationOnly 或 doc 列）：SkillConstant、DrivingConstant、ModifierRule、Respawn 的 teleport 标志列、Movement 的三个起跑常量列、ResultVoteRule 的法定规则、IntroLayout、SkillIcon（资源引用留在 prefab）、`ui.<class>.<slug>` 自动 key 的 UI 字面量（待策划定稿 key 后再替换）。
 
-- 文案桥接：列名以 `Key` 结尾且引用 `UI/Text` 时，若记录类只有去掉 `Key` 的字段（如 `SkillDefinitionRecord.displayName`），导出器把 key 解析成 zh 文本写入，运行时读法不变；生成的记录类保留 `*Key` 字段，消费方通过 `ProjectConfigRuntime.Texts.Get(key)` 取文本。
+- 文案桥接：列名以 `Key` 结尾且引用 `UI/Text` 时，若记录类只有去掉 `Key` 的字段，导出器把 key 解析成 zh 文本写入；生成的记录类保留 `*Key` 字段，消费方通过 `DesignTableOverlay.Text(key, 兜底)` 取文本（SkillRecord 走这条路）。
+- 跨对象覆盖：一行要写到不同对象时用 `DesignTableOverlay.ApplyMapped(target, record, "记录列=目标字段", …)`，只写列出的字段，防止同名字段误覆盖（Push 行对技能 SO 的 cooldownSeconds 就是这种风险）。
 - 枚举列在记录类里是 `string`，由 `__enums__` 校验，避免为每个表新增 C# 枚举；需要强类型时在消费方解析。
 - 作用域：`Assets/Design/Tables/scope.json` 的 `export` 决定哪些 sheet 进数据库；`presentationOnly` 的 sheet 只校验不导出。
 - 运行时不读 Excel；全部代码在 `BuddahGo.Editor` 程序集且以 `#if UNITY_EDITOR` 包裹。
@@ -202,6 +207,8 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 | Info | 被忽略的 sheet 与列清单 |
 
 ## 8. 已同步的决定
+
+2026-10-13 v2：按 structure-audit 第三节重组（decisions 16–21）。重组脚本 `Tools/design-tables/migrate_v2.py` 按域就地改写工作簿；`build_tables.py` 先生成 v1 模型再套同一套 `v2_layout.py` 变换，重建的基线与提交的工作簿结构一致。
 
 2026-10-13 用户决定：表值以 Unity 内实际生效值为基线；能入表的都入表；曲线入表。原第 8 节 21 项全部按此关闭：结构类 3、5、7 按本稿执行（曲线为关键帧列表；上下文三列保留允许留空；校验报告提交）；入表类 8–19 全部入表，其中工程向列标 `adv`、结构常量标 `doc`、timeline 只读；唯一真相 20=slowtrap、21=12/10。字体子集重烘纳入导出器范围，待实现。
 

@@ -9,7 +9,10 @@ python Tools/design-tables/build_tables.py <仓库根> <输出目录>
 
 - `unity_yaml.py`：Unity YAML 多文档读取，脚本 GUID 解析为类名。
 - `extract.py`：组件字段、世界变换、曲线、枚举数组、timeline 时长、文案提取等辅助函数。
-- `build_tables.py`：各 sheet 的列定义与取值来源；命名规则见 `Docs/design-tables/excel-spec.md`。
+- `build_tables.py`：各 sheet 的列定义与取值来源（v1 按组件的形状）；写出前经 `v2_layout.migrate_all` 变成提交的 v2 结构。命名规则见 `Docs/design-tables/excel-spec.md`。
+- `tablemodel.py`：工作簿内存模型、xlsx 读取（openpyxl）与 xlsx / CSV 写出；CSV 与 Unity 导出器的镜像逐字节一致。
+- `v2_layout.py`：v2 结构变换（`migrate_skill / movement / ai / match`），只搬值不改值。
+- `migrate_v2.py <仓库根> --phase skill|movement|ai|match [--out <目录>]`：对提交的工作簿就地应用一个阶段（xlsx、CSV 镜像、scope.json），未触碰的工作簿保持字节不变；Excel 锁住的工作簿写成 `<名>.xlsx.pending`。
 
 ## 其他脚本
 

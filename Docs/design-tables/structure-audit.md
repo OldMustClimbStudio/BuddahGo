@@ -1,6 +1,6 @@
 # 配表结构缺陷盘点与代码考古
 
-日期 2026-10-13。起因：`acceleration` 的持续时间在 `Skill/SkillEffectParam`，冷却与锁定在 `Skill/SkillBalance`，同一个技能的时间参数分在两张表。本文盘点工作簿里所有"同一概念被拆散、或不该在一起的放在一起"的问题，追溯每一处在代码史里的来源，并给出重组建议。基线工作簿是按"实际生效值 + 现有代码结构"生成的，所以代码里的历史分层原样进了表；本文只盘点，重组待拍板。
+日期 2026-10-13。起因：`acceleration` 的持续时间在 `Skill/SkillEffectParam`，冷却与锁定在 `Skill/SkillBalance`，同一个技能的时间参数分在两张表。本文盘点工作簿里所有"同一概念被拆散、或不该在一起的放在一起"的问题，追溯每一处在代码史里的来源，并给出重组建议。基线工作簿是按"实际生效值 + 现有代码结构"生成的，所以代码里的历史分层原样进了表；本文盘点；2026-10-13 拍板后按第三节实施，处理结果见第五节。
 
 ## 一、数据分层的形成史（git 考古）
 
@@ -104,4 +104,34 @@ Global.xlsx  GlobalRule 只留 target_frame_rate 等真正全局项
 4. **清理阶段选择了"校验漂移"**：09-30 的 P3-4 用工具报告不一致，没有消灭不一致。
 5. **没有 id 注册表**：技能 id、文案 key、tag 名都是提交时现起的名，所以 `anti_blackcurtain`、`slow_trap`、`逆姻缘` 这类不一致一直留到现在。
 
-建议把第三节的 v2 结构作为下一轮改表的输入；拍板后我按 A→B→D→C 的顺序重组，每一域一次提交，测试全量回归。
+## 五、处理结果（2026-10-13）
+
+拍板：按 v2 全部重组；A6 保持现行语义、反噬行清空；A5 改名并加 `SkillId` 枚举；逆转技能中文定为「逆姻缘」（decisions 16–21）。提交：技能 7ae8ea1、运动 67ffe66、AI c51d32f、比赛 4830192；每次提交都经过无头 `DesignTableTests` 与 `ImportAndValidate -designForce`。
+
+| # | 处理 | 说明 |
+|---|---|---|
+| A1 | 已做 | `Skill` 一张表：身份 + 冷却/锁定/前摇 + 执念 + `effectDurationSeconds`（按技能类写入 SO 主时长字段） |
+| A2 | 已做 | `SkillEffectAcceleration / SlowTrap / BlackCurtain / Giant` 强类型表，普通与反噬各一行；ReverseTurn 与 ProjectileHands 无家族表（只剩主时长与弹道，分别在 Skill 与 Push） |
+| A3 | 已做 | `Push`：basic / charged / charged_anti 共享列集；basic 行显式映射到 BuddahHandControl，另两行显式映射到两个神掌 SO；hitbox 尺寸进 SkillConstant |
+| A4 | 已做 | behaviorType / iconKey / isSelectable / tags 删除；图标仍按 skillId 走 SkillUiSpriteLibrary / UI/SkillIcon |
+| A5 | 已做 | `anti_blackcurtain` → `blackcurtain_anti`（表、文案 key、SO 资产）；`__enums__` 增加 `SkillId`，`Skill.skillId` 类型 `enum:SkillId` |
+| A6 | 已做 | 反噬行 obsessionGain 留空，非 0 报 Warning；执行器语义不变 |
+| A7 / A8 | 未动 | 代码待办（HUD token 生成、ObsessionFigure 全局化），表不变 |
+| A9 | 未动 | SkillPresentation 是 presentationOnly，只改了 comment 说明 0 = 跟随 Skill.effectDurationSeconds |
+| B1 | 已做 | `Movement` 一张表；impulseMultiplier 删除；三个无读取方的起跑常量转 doc 列 |
+| B2 | 已做 | LapRule 并入 `Match/Track`（圈数唯一来源），WrongWayRule → `Match/TrackWrongWay`；LapProgress 改为显式映射，顺带接通 v1 从未匹配到字段的 maxProgressJumpWithoutCheckpoint01 |
+| B3 | 已做 | handoffLeadSeconds 只在 `Match/Intro`，RaceBodyIntroStateController 改读 Intro |
+| B4 | 已做 | `Respawn` 单行，flags 转 doc |
+| B5 | 已做 | ModifierRule 转 presentationOnly |
+| C1 | 未动 | 表结构正确；四个 manager 删除自身序列化字段是代码待办 |
+| C2 | 已做 | SelectionStage / SelectionOption 的 map / skin 行以 `##` 屏蔽，代码兜底 |
+| C3 | 未动 | 可接受 |
+| C4 | 已做 | RacerNaming 删除；defaultDifficulty 进 ModeRule 并由 SoloSetupPanel 读取；命名前缀 key 本就在 UI/Text |
+| D1 | 已做 | SkillDifficulty 拆出 impairedDrivingReactionTicks（AIRacerDriver），impairedReactionTicks 只供 AISkillCaster；JSON 兜底同步加字段 |
+| D2 | 已做 | DrivingTier / SkillDifficulty 表头 camelCase；覆盖按名忽略大小写，代码字段不改名；SkillDifficulty 的重复 Difficulty 列删除 |
+| D3 | 已做 | `SkillTuning` 单行宽表（两个未接键转 doc 列）；`DrivingTuning` 单行（4 个有读取方的键），其余 [Eng] 项进 presentationOnly 的 `DrivingConstant` |
+| D4 | 已做 | 权重进 Personality 的 slot0Weight..slot2Weight，PersonalitySkillWeight 删除 |
+| D5 | 不变 | 已显式化 |
+| E1 | 已做 | 搓招两键 → `Skill/ComboInput`；前摇逐技能在 Skill（含反噬行）；GlobalRule 只留 target_frame_rate |
+| E2 | 未动 | 待策划定稿 key |
+| E3 | 未动 | 枚举列仍以字符串存储，由 `__enums__` 校验 |

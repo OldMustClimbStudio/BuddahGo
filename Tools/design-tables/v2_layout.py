@@ -314,9 +314,13 @@ def migrate_ai(m):
     for v in list(sd.vars):
         if v != 'difficulty':
             sd.rename_col(v, camel(v))
-    sd.insert_col('impairedReactionTicks', 'impairedDrivingReactionTicks', 'int', '视野受损时驾驶反应额外 tick（AIRacerDriver）')
-    for r in sd.rows:
-        r['impairedDrivingReactionTicks'] = r['impairedReactionTicks']
+    if sd.has('impairedDrivingReactionTicks'):
+        # a rebuilt baseline already reads the split field from SkillPersonalities.json
+        sd.set_col('impairedDrivingReactionTicks', com='视野受损时驾驶反应额外 tick（AIRacerDriver）')
+    else:
+        sd.insert_col('impairedReactionTicks', 'impairedDrivingReactionTicks', 'int', '视野受损时驾驶反应额外 tick（AIRacerDriver）')
+        for r in sd.rows:
+            r['impairedDrivingReactionTicks'] = r['impairedReactionTicks']
     sd.set_col('impairedReactionTicks', com='视野受损时技能施放反应额外 tick（AISkillCaster）')
     sd.record = 'AISkillDifficulty（表头 camelCase，覆盖时按名忽略大小写）'
     sd.notes = 'v2：ImpairedReactionTicks 一列两用拆为技能 / 驾驶两列'

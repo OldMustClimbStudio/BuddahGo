@@ -2,7 +2,7 @@
 
 BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：策划在 `Assets/Design/Tables/` 下的工作簿里改数，保存后 Unity 自动校验并写入 `ProjectConfigDatabase`，运行时各组件从数据库取值。范围线是"游戏内平衡与信息"；精确的特效与表现细节仍由美术在 prefab / timeline 里调，表里只做登记。
 
-状态（2026-10-13）：筛查、规范、基线工作簿、导入器、消费方接通、分层导入与 tag 过滤全部完成；PR [OldMustClimbStudio/BuddahGo#62](https://github.com/OldMustClimbStudio/BuddahGo/pull/62)。
+状态（2026-10-13）：筛查、规范、基线工作簿、导入器、消费方接通、分层导入与 tag 过滤全部完成，并已按 [structure-audit.md](structure-audit.md) 的 v2 结构重组（一概念一表：Skill 宽表 + 强类型家族表 + Push、Movement / Respawn 合一、圈规则并入 Track、AI 单行调参表、权重进三槽）；PR [OldMustClimbStudio/BuddahGo#62](https://github.com/OldMustClimbStudio/BuddahGo/pull/62)。
 
 ## 快速上手
 
@@ -23,7 +23,8 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 | 新增 sheet | 在 `Assets/Design/Tables/scope.json` 的 `export`（导出）或 `presentationOnly`（只校验）登记，补 `tags`，再按上一行走 |
 | 让组件读新表 | 在组件 Awake/OnEnable 调 `DesignTableOverlay.Apply(this, 记录)`（同名字段自动覆盖，列名不同用 `"记录字段=目标字段"` 映射）；文案用 `DesignTableOverlay.Text(key, 兜底)`；全局标量用 `DesignTableOverlay.GlobalFloat(ruleKey, 兜底)` |
 | CI / pre-commit | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit [-designForce] [-designTags skill,ai]`，退出码非 0 即失败 |
-| 重建基线工作簿 | `python Tools/design-tables/build_tables.py . <输出目录>`：从工程实际值反向生成，只在重做基线时用 |
+| 重建基线工作簿 | `python Tools/design-tables/build_tables.py . <输出目录>`：从工程实际值反向生成（先 v1 模型再套 `v2_layout.py`），只在重做基线时用 |
+| 改表结构 | 在 `Tools/design-tables/v2_layout.py` 写变换函数，`python Tools/design-tables/migrate_v2.py . --phase <域>` 就地改写 xlsx + CSV 镜像 + scope.json，再 `gen_records.py`；值只搬不改，review 看 CSV diff |
 | 回归测试 | EditMode `BuddahGo.Tests.DesignTableTests`（读表、语法、校验、干跑导出、增量判定） |
 
 ## 修改手册
@@ -49,6 +50,7 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 - 单行全局表（`profileId` = `default`）只改值不加行；按行的表（技能、人格、出生点）加行即新增记录，主键必须唯一。
 - 临时屏蔽一行：在 A 列写 `##`。删除一行即删除记录。
 - 文案：数据表只放 key（如 `skill.giant.name`），文本在 `UI.xlsx/Text` 的 `zh` 列改；新增文案先在 Text 加 key，再在数据表引用，否则报"text key not found"。
+- 技能：身份、冷却/锁定/前摇、执念、主效果时长都在 `Skill` 一张表（反噬行的 `obsessionGain` 留空，反噬按原技能加执念）；家族专有参数在 `SkillEffect<家族>`，普通与反噬各一行，空格表示该行没有这个字段；推掌与神掌弹道在 `Push`（basic / charged / charged_anti）；新技能先在 `Global/__enums__` 的 `SkillId` 登记。
 - `##group` 为 `doc` 的列只是说明，改了不会进游戏；`adv` 是高级/工程参数，改之前确认影响。
 - 想改一个表里没有的参数：先按"程序：常用操作"加列并生成记录类，再让对应组件读取；没有读取方的列不会生效。
 
@@ -80,7 +82,7 @@ Assets/Design/Tables/
   export-map.json               sheet → 记录类 → 数据库列表（gen_records.py 生成）
 Assets/Scripts/Editor/DesignTables/   XlsxReader、Schema、Validator、DomainRules、RecordMapper、Exporter、ImportState、Menu、Postprocessor、Cli
 Assets/Scripts/Config/                ProjectConfigDatabase（+ Generated 记录类与列表）、Repositories、DesignTableOverlay（运行时覆盖助手）
-Tools/design-tables/                  build_tables.py、gen_records.py、add_metas.py、unity_yaml.py、extract.py
+Tools/design-tables/                  build_tables.py、v2_layout.py、migrate_v2.py、tablemodel.py、gen_records.py、add_metas.py、unity_yaml.py、extract.py
 Library/DesignTables/import-state.txt 每台机器的工作簿哈希（不提交）
 ```
 
@@ -90,7 +92,7 @@ Library/DesignTables/import-state.txt 每台机器的工作簿哈希（不提交
 |---|---|
 | [excel-spec.md](excel-spec.md) | 规范正文：表头约定、类型语法、命名与分层、工作簿与 sheet 目录、直通车管线与分层导入规则、校验等级、消费方接通表、未入表清单 |
 | [decisions.md](decisions.md) | 15 条已拍板决定（管线、位置、文案、校验、范围线、覆盖方式、分层导入） |
-| [structure-audit.md](structure-audit.md) | 表结构缺陷盘点与代码考古：同一概念被拆散的 25 处问题、每处的来源提交、建议的 v2 结构（待拍板） |
+| [structure-audit.md](structure-audit.md) | 表结构缺陷盘点与代码考古：同一概念被拆散的 25 处问题、每处的来源提交、v2 结构与第五节的处理结果（2026-10-13 已实施） |
 | [inventory-skills.md](inventory-skills.md) | 筛查清单：技能、搓招、推手、执念、现有配置仓库逐字段状态 |
 | [inventory-movement.md](inventory-movement.md) | 筛查清单：预测马达、受击、状态效果、起跑、重生、圈数、输入、全局设置 |
 | [inventory-ai.md](inventory-ai.md) | 筛查清单：驾驶档位、技能难度、人格、谓词常量、名单 |
@@ -110,7 +112,9 @@ Library/DesignTables/import-state.txt 每台机器的工作簿哈希（不提交
 
 ## 未完成与注意事项
 
-- 表中仅作说明、未接运行时的结构性内容：ModifierRule 叠加策略与下限、ResultVoteRule 法定规则、RespawnRule 的 teleport 标志、IntroLayout、SkillIcon 的资源引用。
+- 只记录、不接运行时：SkillConstant / DrivingConstant（代码与 prefab 常量）、ModifierRule 叠加策略、Respawn 的 teleport 标志列、Movement 的三个起跑常量列、ResultVoteRule 法定规则、IntroLayout、SkillIcon 的资源引用。
+- 代码待办（结构审计 A7 / A8 / C1）：HUD 搓招 token 由 ComboBinding 生成；ObsessionFigure 改为读全局单例而非每角色一份；四个 manager 的时长字段只读 ModeRule 后删除自己的序列化字段。
+- 逆转技能 HUD 贴图文件名 `逆姻缘.png` 与中文一致（2026-10-13 定为「逆姻缘」）；`giant_anti` 显示名多出的空格已去掉。
 - `UI/Text` 里 `ui.<class>.<slug>` 形式的自动 key 需要策划定稿命名后，再替换代码里的 UI 字面量。
 - 技能 SO、Buddah.prefab 与 `Tools/ai/difficulty-*.json` 上已被表接管的重复字段尚未删除；`AIDifficultyAssetTool` 待退役。
 - 中文文案进表后若新增字符，`Assets/Fonts/SoloCJK` 的静态字体子集需要重烘。

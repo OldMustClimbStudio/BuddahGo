@@ -86,13 +86,16 @@ def build_skill():
             C('descriptionKey', 'string#ref=UI/Text.key', '描述文案 key'), C('behaviorType', 'enum:SkillBehaviorType', '行为类型（目前无运行时读取，由 SO 子类决定）'),
             C('iconKey', 'string', '图标 key（目前 UI 未解析，见 UI/SkillIcon）'), C('isSelectable', 'bool', '是否可选（无读取方，选池看 SkillSelectionRule.poolType）'),
             C('sortOrder', 'int', '选择界面排序'), C('tags', 'list,string#sep=|', '标签（无读取方）'), C('unlockState', 'enum:SkillUnlockState', 'unlocked / locked / hidden')]
+    # MAIN is an exporter product in the v2 shape (skills + localizedTexts); rebuild the v1 rows from it so the
+    # v2 layout pass below merges them back the same way the committed workbooks were produced.
+    texts = {t['key']: t.get('zh', '') for t in main.get('localizedTexts', [])}
     rows = []
-    for rec in main['skillDefinitions']:
+    for rec in main['skills']:
         sid = rec['skillId']
-        nk = T(f'skill.{sid}.name', rec['displayName'], '', '技能显示名', 'SkillDefinition.displayName')
-        dk = T(f'skill.{sid}.desc', rec['description'], '', '技能描述', 'SkillDefinition.description')
-        rows.append({'skillId': sid, 'displayNameKey': nk, 'descriptionKey': dk, 'behaviorType': rec['behaviorType'], 'iconKey': rec['iconKey'],
-                     'isSelectable': boolv(rec['isSelectable']), 'sortOrder': rec['sortOrder'], 'tags': '|'.join(rec.get('tags') or []), 'unlockState': rec['unlockState']})
+        nk = T(f'skill.{sid}.name', texts.get(rec['displayNameKey'], ''), '', '技能显示名', 'SkillDefinition.displayName')
+        dk = T(f'skill.{sid}.desc', texts.get(rec['descriptionKey'], ''), '', '技能描述', 'SkillDefinition.description')
+        rows.append({'skillId': sid, 'displayNameKey': nk, 'descriptionKey': dk, 'behaviorType': '', 'iconKey': '',
+                     'isSelectable': not sid.endswith('_anti'), 'sortOrder': rec['sortOrder'], 'tags': '', 'unlockState': rec['unlockState']})
     sheet(WB, 'SkillDefinition', cols, rows, 'SkillDefinitionRecord（displayName/description 改为 key）', MAIN)
 
     # --- SkillBalance (MAIN + code constants) ---
@@ -100,9 +103,9 @@ def build_skill():
             C('castLockSeconds', 'float#range=0,120', '施法锁定'), C('obsessionGain', 'float#range=0,1000', '施法增加的执念（反噬行无效：按请求技能取值）'),
             C('antiSkillId', 'string#ref=SkillDefinition.skillId', '反噬变体 id，普通技能必填'), C('castConfirmDelaySeconds', 'float#range=0,5', '施法前摇（原 SkillExecutor 常量，普通 1 / 反噬 1）')]
     rows = []
-    for rec in main['skillBalances']:
+    for rec in main['skills']:
         rows.append({'skillId': rec['skillId'], 'cooldownSeconds': rec['cooldownSeconds'], 'castLockSeconds': rec['castLockSeconds'],
-                     'obsessionGain': rec['obsessionGain'], 'antiSkillId': rec.get('antiSkillId') or '', 'castConfirmDelaySeconds': 1})
+                     'obsessionGain': rec['obsessionGain'], 'antiSkillId': rec.get('antiSkillId') or '', 'castConfirmDelaySeconds': rec.get('castConfirmDelaySeconds', 1)})
     sheet(WB, 'SkillBalance', cols, rows, 'SkillBalanceRecord + castConfirmDelaySeconds', f'{MAIN}; SkillExecutor.cs:51-52',
           '如来神掌 SO 为 18/15，运行时生效的是配置 12/10')
 
@@ -730,11 +733,18 @@ def build_ui():
 def build_global():
     WB = 'Global'
     cols = [C('ruleKey', 'string#key', 'snake_case'), C('ruleSetId', 'string#key', '空=default'), C('ruleValue', 'string', ''), C('description', 'string', ''), C('valueType', 'string', '校验用', 'doc'), C('consumer', 'string', '读取方', 'doc')]
-    rows = [{'ruleKey': r['ruleKey'], 'ruleSetId': r['ruleSetId'], 'ruleValue': fmt(r['ruleValue']), 'description': r['description'], 'valueType': 'float', 'consumer': 'ComboSkillInput.ApplyConfiguredGlobalRules'} for r in main['globalRules']]
-    rows += [{'ruleKey': 'combo_max_buffer', 'ruleSetId': 'default', 'ruleValue': fmt(X.one(BP, 'ComboSkillInput')['maxBuffer']), 'description': '搓招输入缓冲长度', 'valueType': 'int', 'consumer': 'ComboSkillInput.maxBuffer（prefab）'},
-             {'ruleKey': 'anti_cast_confirm_delay_seconds', 'ruleSetId': 'default', 'ruleValue': '1', 'description': '反噬施法前摇', 'valueType': 'float', 'consumer': 'SkillExecutor.cs:52'},
-             {'ruleKey': 'cast_confirm_delay_seconds', 'ruleSetId': 'default', 'ruleValue': '1', 'description': '普通技能施法前摇默认值；SkillBalance.castConfirmDelaySeconds 逐技能覆盖', 'valueType': 'float', 'consumer': 'SkillExecutor.ResolveCastConfirmDelay / ConfirmationSeconds'},
-             {'ruleKey': 'target_frame_rate', 'ruleSetId': 'default', 'ruleValue': '120', 'description': '须为 tick_rate 整数倍', 'valueType': 'int', 'consumer': 'FrameRateLock.cs:9'}]
+    # v1 keys: the combo pair and the cast-confirm pair are rebuilt here and moved by the v2 layout pass (ComboInput / Skill).
+    combo = X.one(BP, 'ComboSkillInput')
+    known = {'combo_input_window_seconds': ('float', '搓招输入间隔窗口', 'ComboSkillInput.stepWindowSeconds'), 'combo_max_buffer': ('int', '搓招输入缓冲长度', 'ComboSkillInput.maxBuffer（prefab）'),
+             'anti_cast_confirm_delay_seconds': ('float', '反噬施法前摇', 'SkillExecutor.cs:52'),
+             'cast_confirm_delay_seconds': ('float', '普通技能施法前摇默认值；SkillBalance.castConfirmDelaySeconds 逐技能覆盖', 'SkillExecutor.ResolveCastConfirmDelay / ConfirmationSeconds'),
+             'target_frame_rate': ('int', '须为 tick_rate 整数倍', 'FrameRateLock.cs:9')}
+    values = {'combo_input_window_seconds': fmt(combo['stepWindowSeconds']), 'combo_max_buffer': fmt(combo['maxBuffer']), 'anti_cast_confirm_delay_seconds': '1', 'cast_confirm_delay_seconds': '1', 'target_frame_rate': '120'}
+    for r in main['globalRules']:
+        values[r['ruleKey']] = fmt(r['ruleValue'])
+        if r['ruleKey'] not in known:
+            known[r['ruleKey']] = ('float', r.get('description', ''), '')
+    rows = [{'ruleKey': k, 'ruleSetId': 'default', 'ruleValue': values[k], 'description': known[k][1], 'valueType': known[k][0], 'consumer': known[k][2]} for k in known]
     sheet(WB, 'GlobalRule', cols, rows, 'GlobalRuleRecord', MAIN, '6 个未读取键已退役：圈数→Movement/LapRule，倒计时→Match/ModeRule，执念→Skill/Obsession')
 
     cols = [C('key', 'string#key', ''), C('value', 'string', ''), C('source', 'string', '', 'doc'), C('comment', 'string', '改动需同步代码，不由导出器写入', 'doc')]

@@ -26,3 +26,13 @@
 14. **消费方切换方式：覆盖而非重构。** 各组件在 Awake/OnEnable 用 `DesignTableOverlay.Apply` 把记录字段按名（或显式映射）写到自己的序列化字段，prefab/场景/SO/JSON 的值只作为无表行时的兜底；规则类（OnlineMatchRules/SoloMatchRules）按行读表。不新增组件，不改 RPC 与预测逻辑。
 15. **分层导入与 tag 分类。** 导入先按工作簿文件哈希（`Library/DesignTables/import-state.txt`）判断是否变化，只重映射变化工作簿及通过 `#ref` 依赖它的 sheet，其余列表沿用当前资产；`scope.json` 的 `tags` 给每张 sheet 打标签（balance / info / text / track + 域名），菜单 `Import Tag/…` 与 CLI `-designTags` 只推送某一层。
 
+
+## 2026-10-13（v2 重组）
+
+16. **按 [structure-audit.md](structure-audit.md) 第三节的 v2 结构重组工作簿。** 技能→运动→AI→比赛每域一次提交（7ae8ea1、67ffe66、c51d32f、4830192），不碰 RPC 与预测；每处问题的处理见 structure-audit 第五节。
+    影响：`Skill` = SkillDefinition + SkillBalance + 主效果时长；`SkillEffect<Family>` 强类型表；`Push` 三行；`Movement` / `Respawn` 各一行；LapRule 并入 `Match/Track`、WrongWayRule → `Match/TrackWrongWay`；AI 表 camelCase、单行 `DrivingTuning` / `SkillTuning`、权重进 Personality 三槽；RacerNaming 删除、占位阶段行屏蔽；`GlobalRule` 只留 `target_frame_rate`。
+17. **反噬行的 obsessionGain 保持现行语义。** 反噬仍按原技能加执念；anti 行该列留空，非 0 报 Warning（表级 `DesignTableDomainRules.SkillRowsAreConsistent`，资产级 `ProjectConfigValidator`）。
+18. **技能 id 改名 `anti_blackcurtain` → `blackcurtain_anti`**，`Global/__enums__` 增加 `SkillId` 作为唯一名单（`Skill.skillId` 类型 `enum:SkillId`）；SO 资产的 skillId / antiSkillId 同步改，文案 key 随之改为 `skill.blackcurtain_anti.*`。
+19. **逆转技能中文定为「逆姻缘」**（与 HUD 贴图文件一致），文案 key 不变。
+20. **主效果时长进 `Skill.effectDurationSeconds`**，按技能类写入 SO 的主时长字段（`SkillDatabase.EffectDurationField`）；家族表只放其余参数；代码 / prefab 里的效果常量进 presentationOnly 的 `SkillConstant`。
+21. **跨对象覆盖只用显式映射**（`DesignTableOverlay.ApplyMapped`）：Push 行 → BuddahHandControl / 两个神掌 SO，Movement 行 → BuddahMovement / RaceBodyIntroStateController，Track 行 → LapProgress。同名自动覆盖（`Apply`）只用于记录与组件一一对应的情况；AI 表的 camelCase 表头按名忽略大小写匹配 PascalCase 字段。

@@ -1,0 +1,5 @@
+##var,profileId,maxPlayers,minPlayers,defaultLobbyNameKey,defaultVisibility,maxSearchResults,clientConnectTimeoutSeconds,hostStartTimeoutSeconds,maxPlayerNameLength,fishnetMaximumClients
+##type,string#key,int,int,string#ref=UI/Text.key,enum:LobbyVisibility,int,float,float,int,int
+##group,,,,,,,,,,adv
+##comment,,,,,,,SessionLauncher.cs:66,SessionLauncher.cs:81,RoomStateManager.cs:22,ServerManager
+,default,6,2,lobby.default_room_name,Public,20,30,20,32,6

@@ -1,0 +1,7 @@
+##var,slotIndex,name,sequence
+##type,int#key,string,"list,enum:ComboToken#sep=,"
+##group,,,
+##comment,技能槽 0-2,,按键序列 W / Up
+,0,Skill_1,"W,Up,W"
+,1,Skill_2,"Up,W,Up"
+,2,Skill_3,"W,W,Up,Up"

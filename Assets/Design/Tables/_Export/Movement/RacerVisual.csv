@@ -1,0 +1,5 @@
+##var,profileId,speedFxPlayThreshold,speedFxStopThreshold,speedFxUsePlanarSpeed,accelTrailColor,accelTrailWidth,accelTrailTime,accelTrailFadeOutMultiplier,curtainTrailColor,curtainTrailWidth,curtainTrailTime,curtainTrailFadeOutMultiplier,overheadMarkerHeight,overheadMarkerPixelHeight,overheadMarkerMinScale,overheadMarkerMaxScale,localMarkerColor,localMarkerOutlineColor
+##type,string#key,float,float,bool,color,float,float,float,color,float,float,float,float,float,float,float,color,color
+##group,,,,,,,,,,,,,,,,,,
+##comment,,,,,fallback,,,,fallback（实际 TrailRenderer 为橙色）,,,,,,,,LocalPlayerMarker_Cyan.mat,
+,default,30,28,true,"1,0.7,0,1",1,0.6,1,"0,1,1,1",0.5,0.6,1,8.5,32,1.25,8,"0.05,0.9,0.95,1","0.025,0.1,0.13,1"

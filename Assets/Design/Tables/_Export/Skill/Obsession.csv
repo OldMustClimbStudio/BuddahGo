@@ -1,0 +1,5 @@
+##var,profileId,maxValue,minValue,initialValue,drainPerSecond,catchupRecoveryA,backfirePMaxPercent,backfireK,backfireMidpointX,backfireKeepPMaxAtOrAboveX
+##type,string#key,float,float,float,float,float,float,float,float,float
+##group,,,,,,,,,,
+##comment,,上限,,出生初值,每秒自然下降,追赶加速衰减系数 R=a·gap²,反噬概率上限 %,sigmoid 陡度,sigmoid 中点,达到即取上限
+,default,1000,0,0,10,0.01,95,0.008,500,1000

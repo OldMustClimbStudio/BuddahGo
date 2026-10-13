@@ -1,0 +1,10 @@
+##var,playerCount,layoutName,slots,isPlaceholder
+##type,int#key,string,"list,string#sep=|",bool
+##group,,,,doc
+##comment,,,槽位物体（场景或 Placeholder prefab）,
+,1,Layout_1P,Slot_0,false
+,2,Layout_2P,Slot_0|Slot_1,false
+,3,Layout_3P,Slot_0|Slot_1|Slot_2,false
+,4,Layout_4P (Placeholder),Layout4P.prefab:Slot_0|Layout4P.prefab:Slot_1|Layout4P.prefab:Slot_2|Layout4P.prefab:Slot_3,true
+,5,Layout_5P (Placeholder),Layout5P.prefab:Slot_0|Layout5P.prefab:Slot_1|Layout5P.prefab:Slot_2|Layout5P.prefab:Slot_3|Layout5P.prefab:Slot_4,true
+,6,Layout_6P (Placeholder),Layout6P.prefab:Slot_0|Layout6P.prefab:Slot_1|Layout6P.prefab:Slot_2|Layout6P.prefab:Slot_3|Layout6P.prefab:Slot_4|Layout6P.prefab:Slot_5,true

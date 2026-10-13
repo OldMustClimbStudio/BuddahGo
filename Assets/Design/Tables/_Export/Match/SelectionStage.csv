@@ -1,0 +1,7 @@
+##var,stageKey,order,displayNameKey,selectionMode,enabledOnline,enabledSolo,layoutMode,autoFillOnTimeout
+##type,string#key,int,string#ref=UI/Text.key,enum:PropertySelectionMode,bool,bool,enum:SelectionLayout,bool
+##group,,,,,,,,
+##comment,map / skill_loadout / skin,,,Vote / HostOnly / Single / Multi,,,Carousel / SkillWall,
+,map,0,selection.stage.map,Vote,true,false,Carousel,false
+,skill_loadout,1,selection.stage.skill_loadout,Multi,true,true,SkillWall,true
+,skin,2,selection.stage.skin,Single,true,true,Carousel,false

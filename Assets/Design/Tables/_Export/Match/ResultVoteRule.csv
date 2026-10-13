@@ -1,0 +1,5 @@
+##var,modeId,vetoChoice,unanimousChoice,timeoutChoice,disconnectChoice
+##type,enum:MatchMode#key,enum:ResultPlayerChoice,enum:ResultPlayerChoice,enum:ResultPlayerChoice,enum:ResultPlayerChoice
+##group,,,,,
+##comment,,任一玩家选它立即生效,全员一致才生效,,
+,Online,ReturnToRoom,StartNewGame,ReturnToRoom,ReturnToRoom

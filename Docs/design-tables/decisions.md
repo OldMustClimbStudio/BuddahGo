@@ -16,3 +16,9 @@
    影响：`SkillDefinitionRecord.displayName/description` 迁移为 key；需要新增 LocalizedTextRecord 与查询仓库。
 8. **校验失败只出报告，不回写源 xlsx**：Unity Console 可点击定位 + `_reports/validation.md`。
 
+## 2026-10-13
+
+9. **表值基线 = Unity 内实际生效的序列化值。** 以 prefab / 场景 / asset / JSON 中的字段值为准，代码默认值一律忽略；唯一真相按运行时实际读取顺序定：默认配装第 3 槽 slowtrap（MAIN 优先于 prefab），如来神掌冷却/锁定 12/10（配置优先于 SO）。
+10. **能入表的都入表。** 筛查清单中标记"偏工程"的内容也入表，用 `##group=adv` 标为高级列；结构性常量入 `Global/StructuralConstant` 但全列 `doc`（只记录不导出）。曲线字段入表，用关键帧列表 `time,value,inSlope,outSlope|…` 表示。过分复杂的内容不入表，见 excel-spec 第 9 节。
+11. **命名与文件夹分层规范**：目录 `Assets/Design/Tables/<Domain>/<Domain>.xlsx`，镜像 `_Export/<Domain>/<Sheet>.csv`；工作簿与 sheet 用 PascalCase 单数且与记录类同名（去掉 Record 后缀），子表以父表名为前缀；字段 camelCase 与 C# 一致（`*Seconds`、`*Degrees`、`*01`）；id 全小写 snake_case；文案 key 为 `domain.entity.field` 点分小写；主键列最左、`doc` 列最右。
+

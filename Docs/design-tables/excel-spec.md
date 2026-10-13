@@ -1,4 +1,4 @@
-# BuddahGo 策划配表 Excel 结构规范（草案 v0.2）
+# BuddahGo 策划配表 Excel 结构规范（v0.3，基线工作簿已生成）
 
 日期 2026-10-12。依据 [decisions.md](decisions.md)：沿用 `ProjectConfigDatabase`，源表放仓库内，先定结构。本稿是结构定稿前的草案，带「待同步」标记的条目未经用户确认不进入实现。
 
@@ -33,27 +33,41 @@ xlsx 是 zip，git 无法 diff；行业做法是 xlsx 作为编辑源提交，�
 ### 2.5 校验结果回写
 用 openpyxl 等工具往策划的 xlsx 回写批注或标红有损坏文件、丢失数据验证规则与合并单元格的记录（[openpyxl 批注导致文件不可读](https://foss.heptapod.net/openpyxl/openpyxl/-/work_items/554)、[数据验证扩展被丢弃](https://developer.aliyun.com/article/833655)）。本规范默认不回写源表：校验结果输出到 Unity Console（可点击）与 `_reports/validation.md`。是否另做回写标红见待同步项。
 
-## 3. 目录与文件布局
+## 3. 目录、文件与命名规范
 
 ```text
-Assets/Design/Tables/                      源表（提交，二进制走 LFS）
-  SkillConfig.xlsx                         技能域：定义、数值、效果参数、表现、选池、配装、搓招
-  Match.xlsx                               比赛域：模式规则、赛道、大厅、流程时长、选择阶段、开场
-  Movement.xlsx                            角色域：运动、受击、状态效果、起跑、重生、圈数、执念、推手、相机
-  AI.xlsx                                  AI 域：驾驶档位、技能难度、人格、机会参数、名单
-  UIText.xlsx                              文案域：本地化文本、图标映射、菜单选项、HUD 参数
-  Global.xlsx                              全局规则 GlobalRule、枚举定义 __enums__、元信息 __meta__
-  _export/                                 文本镜像（提交，供 diff/review；由导出器生成，禁止手改）
-    SkillConfig.SkillDefinition.csv
-    ...
-  _reports/validation.md                   最近一次校验报告（提交或忽略，待同步）
+Assets/Design/Tables/                      源表与镜像（提交；xlsx 走 LFS，csv 为文本）
+  Skill/Skill.xlsx                         技能域（责任人：技能策划）
+  Movement/Movement.xlsx                   角色与运动域（手感/物理）
+  AI/AI.xlsx                               AI 域（AI 策划）
+  Match/Match.xlsx                         比赛与流程域（系统策划）
+  UI/UI.xlsx                               文案、图标、HUD、菜单（UI/文案）
+  Global/Global.xlsx                       全局规则、结构常量、物理、标签层、场景、输入、timeline、__enums__、__meta__（主程/主策）
+  _Export/<Domain>/<Sheet>.csv             文本镜像，供 diff 与 review；由工具生成，禁止手改
+  _Reports/validation.md                   最近一次校验报告（导出器实现后生成）
 Assets/Data/Config/ProjectConfigDatabase_Main.asset   导出产物（提交）
 Assets/Resources/Config/ProjectConfigDatabase.json    导出产物（提交，修复现有损坏）
-Assets/Scripts/Editor/DesignTables/                   导入器、校验器、CLI 入口（BuddahGo.Editor 程序集）
-Assets/Plugins/ExcelDataReader/                       ExcelDataReader + ExcelDataReader.DataSet DLL（Editor only）
+Assets/Scripts/Editor/DesignTables/                   导入器、校验器、CLI 入口（待实现，BuddahGo.Editor 程序集）
+Assets/Plugins/ExcelDataReader/                       ExcelDataReader + .DataSet DLL（Editor only，待加入）
+Tools/design-tables/                                  基线生成脚本（从工程实际值反向生成工作簿，仅建基线时用）
 ```
 
-`.gitattributes` 追加 `*.xlsx filter=lfs diff=lfs merge=lfs -text`；`.gitignore` 追加 `~$*.xlsx` 与 `*.xlsx#`。
+`.gitattributes` 已追加 `*.xlsx filter=lfs diff=lfs merge=lfs -text`；`.gitignore` 已追加 `~$*.xlsx` 与 `*.xlsx#`。
+
+### 3.1 命名规范
+| 对象 | 规则 | 示例 |
+|---|---|---|
+| 目录 / 工作簿 | 域名 PascalCase，一词；目录与工作簿同名 | `Match/Match.xlsx` |
+| Sheet | PascalCase 单数，与记录类同名去掉 `Record` 后缀；子表以父表名作前缀；保留名 `__enums__`、`__meta__` | `SkillBalance`、`TrackCheckpoint`、`PersonalitySkillWeight` |
+| 字段 | camelCase，与 C# 字段名完全一致；时长 `*Seconds`、角度 `*Degrees`、归一化 `*01`、布尔 `is/allow/use/enable*`、引用 `*Key` / `*Id` / `*Path` | `cooldownSeconds`、`maxYawDegrees`、`displayNameKey` |
+| 记录 id | 全小写 snake_case，稳定不改 | `push_projectile_hands`、`race_default`、`racemap` |
+| 枚举值 | PascalCase，与 C# 枚举名一致 | `PackCentre`、`ReturnToRoom` |
+| 文案 key | `domain.entity.field` 点分小写，自动提取的 `ui.<class>.<slug>` 需人工定稿 | `skill.giant.name`、`match.default_player_name` |
+| 全局规则键 | snake_case | `combo_input_window_seconds` |
+| 单行全局表 | 主键列固定为 `profileId`，值 `default` | `Obsession.profileId` |
+| 列顺序 | 主键列最左，其后身份列、数值列组，`doc` 列最右 | — |
+
+AI 驾驶档位（`AI/DrivingTier`）沿用 `AIDifficultyProfile` 的 PascalCase 字段名，是唯一例外，迁表时与代码一起改名。
 
 ## 4. Sheet 通用规范
 
@@ -62,7 +76,7 @@ Assets/Plugins/ExcelDataReader/                       ExcelDataReader + ExcelDat
 |---|---|---|---|
 | 1 | `##var` | 字段名，必须与记录类的 C# 字段名完全一致（区分大小写） | 是 |
 | 2 | `##type` | 类型表达式，见 4.3 | 是 |
-| 3 | `##group` | 导出分组：空=导出；`doc`=仅文档列，不导出 | 否 |
+| 3 | `##group` | 导出分组：空=导出；`adv`=导出但为高级/工程参数，默认折叠；`doc`=仅文档列，不导出 | 否 |
 | 4 | `##comment` | 中文说明，导出到记录类的 Tooltip/文档 | 是 |
 | 5 起 | 空 | 数据行；A 列以 `##` 开头的行整行忽略 | — |
 
@@ -87,7 +101,7 @@ Assets/Plugins/ExcelDataReader/                       ExcelDataReader + ExcelDat
 | `list,string#sep=\|` | `List<string>` / `string[]` | `a\|b\|c`，空单元格=空列表 |
 | `vector3` | `Vector3` | `x,y,z` |
 | `text` | string | 允许换行，`\n` 转义 |
-| `curve` | 预设曲线 id（string） | 见待同步：AnimationCurve 的表示 |
+| `curve` | `AnimationCurve` | 关键帧列表 `time,value,inSlope,outSlope\|…`，与 Unity 序列化一一对应（不含加权切线） |
 
 类型行只做校验与转换，不生成代码；记录类由程序维护（沿用决定 1）。
 
@@ -102,79 +116,18 @@ Assets/Plugins/ExcelDataReader/                       ExcelDataReader + ExcelDat
 
 ## 5. 工作簿与 Sheet 明细
 
-「状态」：已有 = 现有记录类，字段不变；扩展 = 现有记录类加列；新增 = 新记录类（待同步确认后再建）。
+v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 列出全部 62 张 sheet 的记录类、实际值来源与备注；每张 sheet 的 `##comment` 行写明字段含义与来源行号。各域 sheet 清单：
 
-### 5.1 SkillConfig.xlsx（责任人：技能策划）
-| Sheet | 记录类 | 状态 | 主键 | 列 |
-|---|---|---|---|---|
-| SkillDefinition | SkillDefinitionRecord | 已有 | skillId | skillId、displayName、description、behaviorType(enum)、iconKey、isSelectable、sortOrder、tags(list)、unlockState(enum) |
-| SkillBalance | SkillBalanceRecord | 扩展 | skillId | cooldownSeconds、castLockSeconds、obsessionGain、antiSkillId(ref) + 新列 castConfirmDelaySeconds（当前代码写死 1）|
-| SkillEffectParam | SkillEffectParamRecord | 已有（接通运行时） | skillId+effectType+paramKey | skillId(ref)、effectType、paramKey、paramValue + doc 列 valueType、unit。承载 12 个技能 SO 的全部效果数值（筛查清单 skills 第 4 节）|
-| SkillPresentation | 新增 | skillId | vfxId(ref)、vfxLocalOffset(vector3)、vfxLocalEuler、vfxDurationSeconds、vfxStopBeforeEndSeconds、observersFeelEventId(ref)、fovBoost、fovRampIn、fovSettle、fovRampInCurve(curve)、fovSettleCurve(curve) |
-| VfxRegistry | 新增 | vfxId | vfxId、prefabPath、followPos、inheritRot、inheritScale、warmup |
-| FeelEvent | 新增 | eventId | eventId、playerPath、comment |
-| SkillSelectionRule | SkillSelectionRuleRecord | 已有 | ruleSetId+skillId+modeTag+mapTag | 现有 8 列；weight 列标 doc 直到有读取方 |
-| DefaultLoadout | DefaultLoadoutRecord | 已有 | loadoutId | 现有 6 列 |
-| ComboBinding | 新增 | slotIndex | name、slotIndex、sequence(list,enum:ComboToken#sep=,) |
-| HandPush | 新增 | 全局单行 | BuddahHandControl 的 11 个字段 + hitboxSize(vector3) |
-| Obsession | 新增 | 全局单行 | ObsessionFigure 的 9 个字段 |
+| 工作簿 | Sheet |
+|---|---|
+| Skill | SkillDefinition、SkillBalance、SkillEffectParam、SkillPresentation、VfxRegistry、FeelEvent、SkillSelectionRule、DefaultLoadout、ComboBinding、HandPush、Obsession、BlackCurtainPresentation |
+| Movement | MovementBase、PushReaction、ModifierRule、LaunchHandoff、RespawnRule、LapRule、WrongWayRule、Camera、RacerVisual、SplineTracking |
+| AI | DrivingTier、DrivingGlobal、SkillDifficulty、Personality、PersonalitySkillWeight、PersonalitySituationBias、SkillOpportunity、SkillGlobal、Roster |
+| Match | ModeRule、Track、TrackSpawn、TrackCheckpoint、TrackResultAnchor、Lobby、ResultVoteRule、ResultPresentation、SelectionStage、SelectionOption、Intro、IntroLayout、IntroSlotStyle、RacerNaming |
+| UI | SkillIcon、MenuOption、HudObsession、UiTiming、MiniMap、Text |
+| Global | GlobalRule、StructuralConstant、GlobalPhysics、PhysicsMaterial、Tag、Layer、Scene、InputBinding、Timeline、__enums__、__meta__ |
 
-### 5.2 Movement.xlsx（责任人：手感/物理）
-| Sheet | 记录类 | 状态 | 主键 | 列 |
-|---|---|---|---|---|
-| MovementBase | 新增 | profileId（先只有 default） | forwardForce、maxSpeed、turnTorque、turnDecayPerSecond、turnInputMultiplier、autoThrottle、mass、linearDrag、angularDrag、maxAngularVelocity |
-| PushReaction | 新增 | impulseSource(enum) | graceSeconds、extraMaxSpeed、impulseMultiplier |
-| ModifierRule | 新增 | modifierType(enum) | stackPolicy(enum)、minScaleMultiplier、scalesMaxSpeed(bool)、comment |
-| LaunchHandoff | 新增 | 全局单行 | inheritSeconds、blendSeconds、suppressTurnSeconds、roomBypassSeconds、minPreHandoffBypassSeconds、clearAngularVelocity、groundSnapMaxDistance、groundProbeHeight |
-| RespawnRule | 新增 | teleportSource(enum) | contactSeconds、cooldownSeconds、heightOffset、clearanceRadius、liftStep、maxLift、snapProgress、zeroVelocity、resetModifiers、resetImpulseQueue、resetPushGrace、rebaseTrails |
-| LapRule | 新增 | 全局单行（或 trackId） | lapsToFinish、crossCooldownSec、maxProgressJump01、minForwardDot、armDistance、useSequentialCheckpoints、autoAdvanceSplineCheckpoints、requiredCheckpointCount、fallbackCheckpointProgresses(list,float) |
-| WrongWayRule | 新增 | 全局单行 | RaceCompletionTracker 8 个阈值 |
-| Camera | 新增 | 全局单行 | PlayerCamera 13 个字段 |
-
-### 5.3 AI.xlsx（责任人：AI 策划）
-| Sheet | 记录类 | 状态 | 主键 | 列 |
-|---|---|---|---|---|
-| DrivingTier | 新增（替代 Tools/ai/*.json → Resources/AI/*.asset） | difficulty(enum) | AIDifficultyProfile 的 35 个字段（不含 NoiseSeed） |
-| DrivingGlobal | 新增 | 全局单行 | targetSpeedMin、targetSpeedMax、recoverySpeed、recoveryVelErrDeg |
-| SkillDifficulty | 新增（替代 SkillPersonalities.json Difficulties） | difficulty(enum) | 13 个字段 |
-| Personality | 新增 | personalityId | displayName(key)、slot0/1/2(ref SkillDefinition)、patience、tempoSeconds、target(enum)、impairedTargetMultiplier、handsShots |
-| PersonalitySkillWeight | 新增 | personalityId+skillId | weight |
-| PersonalitySituationBias | 新增 | personalityId+situation(enum) | bias |
-| SkillOpportunity | 新增 | skillId | backlashSeverity、blockWhenGlobalVisible + 各谓词常量列（minStraightSec、scoreBase、scoreSlope、maxValiditySec、euclidMul、maxYawDeg、yawPenalty、scorePerContact、minValiditySec、packBonus；不适用留空） |
-| SkillGlobal | 新增 | 全局单行 | Tuning 14 项 + 快照派生 6 项 + 目标评分 5 项 + packMinNeighbours、maxComboRetries、severeSeverityThreshold、maxWindowSec、minRelSpeed、maxElapsedSec |
-| Roster | 新增 | slotIndex | personalityId(ref)、displayNameOverride(key) |
-
-### 5.4 Match.xlsx（责任人：系统策划）
-| Sheet | 记录类 | 状态 | 主键 | 列 |
-|---|---|---|---|---|
-| ModeRule | 新增 | modeId(enum: Online/Solo/Practice) | IMatchRules 的 16 个开关 + pregameCountdownSec、selectionStageSec、postFirstFinishCountdownSec、resultDecisionSec、minPlayersToStart、hostAutoReady、aiCount、defaultPlayerName(key) |
-| Track | 新增 | trackId | sceneName、laps、resultOverflowOffset(vector3)、missingPlayerOffset、minimapSprite、minimapWorldMinX/MaxX/MinZ/MaxZ、minimapImageWidth |
-| TrackSpawn | 新增 | trackId+order | pos(vector3)、rotY |
-| TrackCheckpoint | 新增 | trackId+checkpointId | pos、rotY、size |
-| TrackResultAnchor | 新增 | trackId+rank | pos、rotY |
-| Lobby | 新增 | 全局单行 | maxPlayers、minPlayers、defaultName(key)、defaultVisibility(enum)、maxSearchResults、clientConnectTimeoutSec、hostStartTimeoutSec |
-| ResultVoteRule | 新增 | modeId | vetoChoice、unanimousChoice、timeoutChoice、disconnectChoice(enum) |
-| ResultPresentation | 新增 | 全局单行 | personalFinishDissolveOutSec、forcedFinishDissolveOutSec、resultAreaDissolveInSec、allowMovementInResultArea、allowSkillsInResultArea |
-| SelectionStage | 新增 | stageKey | displayName(key)、mode(enum)、order、enabledOnline、enabledSolo、layoutMode |
-| SelectionOption | 新增 | stageKey+optionId | displayName(key)、description(key)、iconKey、unlocked |
-| Intro | 新增 | 全局单行 | fallbackIntroDuration、introSpeedMetersPerSecond、handoffLeadSeconds、introLeadInSeconds、randomizeSlots、shuffleSeedMode(enum) |
-| IntroLayout | 新增 | playerCount | slotIds(list,string) |
-
-### 5.5 UIText.xlsx（责任人：UI/文案）
-| Sheet | 记录类 | 状态 | 主键 | 列 |
-|---|---|---|---|---|
-| Text | 新增 LocalizedTextRecord | key | zh、en、comment、context(doc) |
-| SkillIcon | 新增 | skillId | hudIdleSprite、hudActiveSprite、previewSprite |
-| MenuOption | 新增 | optionGroup+index | value、labelKey(ref Text)、isDefault |
-| HudObsession | 新增 | 全局单行 | smoothSpeed、colorSmoothSpeed、fadeSpeed、maxShakeStrength、shakeSpeed、flashColor、normalColor、lowThresholdRatio、highThresholdRatio、tierSprite0/1/2 |
-| UiTiming | 新增 | componentKey+field | value（键值式，承载 SelectionPresentation、SkillSlot、Carousel 等零散时长） |
-
-### 5.6 Global.xlsx（责任人：主程 / 主策）
-| Sheet | 记录类 | 状态 | 主键 | 列 |
-|---|---|---|---|---|
-| GlobalRule | GlobalRuleRecord | 已有 | ruleKey+ruleSetId | ruleKey、ruleValue、ruleSetId、description + doc 列 valueType、consumer |
-| __enums__ | 不导出 | enumName+name | enumName、name、value、alias、comment。校验器据此检查所有 enum 列 |
-| __meta__ | 不导出 | workbook | schemaVersion、owner、lastReviewed、notes |
+已有记录类直接对应的 sheet：SkillDefinition（displayName/description 改为 key）、SkillBalance（加 castConfirmDelaySeconds）、SkillEffectParam（接通运行时）、SkillSelectionRule、DefaultLoadout、GlobalRule。其余为新增记录类，按 `__meta__` 的 recordClass 列实现。
 
 ## 6. 直通车管线
 
@@ -203,31 +156,17 @@ Assets/Plugins/ExcelDataReader/                       ExcelDataReader + ExcelDat
 | Warning | 列在记录类中存在但 Excel 缺失（使用默认值）；`doc` 列被运行时读取；GlobalRule 键无 consumer；SO 与表漂移（过渡期） |
 | Info | 被忽略的 sheet 与列清单 |
 
-## 8. 待与用户同步（未定是否入表 / 结构待拍板）
+## 8. 已同步的决定
 
-按决定 4，以下内容未经确认不实现。
+2026-10-13 用户决定：表值以 Unity 内实际生效值为基线；能入表的都入表；曲线入表。原第 8 节 21 项全部按此关闭：结构类 3、5、7 按本稿执行（曲线为关键帧列表；上下文三列保留允许留空；校验报告提交）；入表类 8–19 全部入表，其中工程向列标 `adv`、结构常量标 `doc`、timeline 只读；唯一真相 20=slowtrap、21=12/10。字体子集重烘纳入导出器范围，待实现。
 
-**结构类**
-1. ~~工作簿划分~~ 已定：按域拆 6 本（decisions 5）。
-2. ~~源表位置~~ 已定：`Assets/Design/Tables/`（decisions 6）。
-3. AnimationCurve（FOV、fade、move 曲线）：预设曲线 id 表（`curve`）还是留在 prefab 不入表？
-4. ~~文案方案~~ 已定：key 引用 + UIText zh/en（decisions 7）。待定子项：字体子集重烘是否纳入导表流程。
-5. `ruleSetId / modeTag / mapTag` 三列在 Excel 中保留（允许留空）还是隐藏？
-6. ~~校验回写~~ 已定：只出报告（decisions 8）。
-7. `_reports/validation.md` 是否提交到仓库？
+## 9. 过分复杂、本次未入表的内容（需另行决定）
 
-**是否入表类**（筛查清单中标记为"偏工程"或"规则"的内容）
-8. 结构性常量：SlotCount=3、MaxAI=5、RacerId.AIBase=10000、tickRate 60、FrameRateLock 120。本稿不入表，只在 `__meta__` 记录；是否同意？
-9. 代码规则升级为枚举列：黑幕可见规则、逆因缘作用范围、神掌反噬的反向/自伤/穿墙、加速叠加规则、Giant 是否缩放 maxSpeed、反噬 obsessionGain 取值、投票法定规则、排名平局顺序。本稿把其中 ModifierRule.stackPolicy、ResultVoteRule、SkillOpportunity.blockWhenGlobalVisible 入表，其余不入；是否同意？
-10. Track 系列（出生点、检查点、结果区锚点、小地图边界）入表还是留在场景、只导出校验？入表意味着场景物体由表驱动生成或校验一致。
-11. AI 驾驶档位里偏工程的列（LateralDamping、PredictionGain、Attitude*、Rollout* 权重、RolloutTail、SwitchPenalty）是否全部暴露给策划？本稿全部入表但分「高级」列组。
-12. AI_DrivingGlobal 的规划器常量（TVP 的 [Eng] 项）不入表；是否同意？
-13. 输入绑定（InputBindings）入表需先去掉三处硬编码 KeyCode；本次是否纳入？
-14. 物理材质与全局物理（重力、BounceThreshold、MaxAngularSpeed）是否入表？
-15. 网络/预测参数（NetworkObject 插值、tick 相关）不入表；是否同意？
-16. 音频、皮肤、per-racer 外观：本次是否预留空表？
-17. 死数据处理：ReverseTurn/AccelerationAnti 的 vfx 字段、LapProgress forwardWrap 三字段、MiniMap 废弃字段、SkillDefinition 的 tags/isSelectable/behaviorType：入表还是随迁移删除？
-18. timeline 时长（TransitionToRaceMap 18 s、PropertySelectionEnd 2 s、EndResultSwitch 信号）：表只读显示、表覆盖、还是不入表？
-19. Practice 模式与 Solo AI 数量可配：ModeRule 是否按 Practice 独立一行并开放 aiCount？
-20. 默认配装唯一真相：MAIN 的 slowtrap 还是 prefab/场景的 blackcurtain？
-21. 如来神掌 cooldown/lock：12/10（配置）还是 18/15（SO）？
+1. **Feel 反馈的嵌套 prefab 覆盖参数**（Bloom、WhiteBalance、CinemachineImpulse 的强度/时长，被 Buddah.prefab 的嵌套覆盖改写）。表里只登记 eventId → 播放器；参数本身是嵌套 prefab 的 m_Modifications，扁平化需要重做 FeelPrefab 结构。
+2. **VFX prefab 内部粒子参数**（ParticleSystem duration、lifetime、burst；VFX Graph 属性）。属于美术资产，表里只登记 prefab 路径与挂接方式。
+3. **开场样条与 Cinemachine 镜头**（SplineContainer 的控制点、timeline 轨道内容）。表里只登记 timeline 时长与信号（只读）和槽位引用。
+4. **Match/UI 的运行时布局常量**（SoloUIFactory 的坐标、尺寸、字号、颜色、Canvas 排序）。属于 UI 布局而非策划数据。
+5. **小地图 UV 映射规则**（u↔Z、v↔X 反向写死）与 HUD 槽位号从节点名解析的约定。
+6. **代码里的流程规则**：排名平局顺序、ready 门槛逻辑、黑幕隐藏其他玩家的恢复时点、承诺取消原因列表。表里只有 ModeRule / ResultVoteRule 等可枚举的部分。
+7. **Legacy 组件副本**（BuddahMovement 的运动字段、4 个 legacy 效果组件）：不入表，迁移时删除。
+8. **死字段**：LapProgress 的 forwardWrap 三字段、MiniMap 8 个废弃字段、SkillUiSpriteLibrary 的 *SpriteName：不入表，迁移时删除。

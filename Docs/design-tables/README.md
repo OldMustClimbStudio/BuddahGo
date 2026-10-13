@@ -122,7 +122,7 @@ Tags_Layers、Scene_Flow、Input_Bindings、Prefab_Registry、Audio（预留，�
 
 ## 下一步
 
-2026-10-12 用户已拍板：沿用 ProjectConfigDatabase、源表放仓库内、先定 Excel 结构（见 [decisions.md](decisions.md)）。结构草案在 [excel-spec.md](excel-spec.md)，其末尾的待同步清单答完后进入导出器实现。原计划步骤保留如下。
+2026-10-12 用户已拍板：沿用 ProjectConfigDatabase、源表放仓库内、先定 Excel 结构；2026-10-13 决定表值以实际生效值为基线、能入表的都入表（见 [decisions.md](decisions.md)）。规范在 [excel-spec.md](excel-spec.md)。基线工作簿已生成在 `Assets/Design/Tables/`（6 本、62 张 sheet，含 CSV 镜像），生成脚本在 `Tools/design-tables/`。下一步是导出器（Excel → ProjectConfigDatabase）与逐域迁移。
 
 ### 原计划步骤
 

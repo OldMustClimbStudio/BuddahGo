@@ -1,0 +1,5 @@
+##var,trackId,lapsToFinish,crossCooldownSeconds,maxProgressJumpWithoutCheckpoint01,minForwardDot,armDistanceMeters,useSequentialCheckpoints,autoAdvanceSplineCheckpoints,requiredCheckpointCount,fallbackCheckpointProgresses01,startPointTag
+##type,string#key#ref=Match/Track.trackId,int,float,float,float,float,bool,bool,int,"list,float#sep=|",string#ref=Global/Tag.name
+##group,,,,,,,,,,,
+##comment,,RaceFinishManager 场景值,minimumCrossingCooldownSeconds,,,minimumWorldDistanceFromStartToArmLap,,,须等于 TrackCheckpoint 行数,,
+,racemap,3,0.5,0.5,0,25,true,false,3,0.25|0.5|0.75,StartingPoint

@@ -1,0 +1,10 @@
+##var,name,usedBy
+##type,string#key,string
+##group,,doc
+##comment,,
+,StartingPoint,LapProgress.startPointTag
+,TrackEdge,BlackCurtainViewController.trackEdgeTag
+,MainLight,
+,ScreenCamera,SharedAssets
+,CinemachineTarget,
+,RespawnFloor,BuddahRespawn.respawnFloorTag

@@ -1,0 +1,5 @@
+##var,profileId,personalFinishDissolveOutSeconds,forcedFinishDissolveOutSeconds,resultAreaDissolveInSeconds,allowMovementInResultArea,allowSkillsInResultArea,useFallbackTimelineDelays,blackScreenStartDelaySeconds,blackScreenFullyCoveredDelaySeconds,blackScreenEndDelaySeconds,timelineFinishedDelaySeconds,keepSharedCameraDuringResultArea,localFinishRewindBeforePlay,localFinishStopOnResultAreaInteractive,localFinishStopOnRaceReset
+##type,string#key,float,float,float,bool,bool,bool,float,float,float,float,bool,bool,bool,bool
+##group,,,,,,,,,,,,,,,
+##comment,,,,,,,为 false 时下列 4 项不生效,,,,,,,,
+,default,0.75,0.6,0.75,true,true,false,0.4,1.2,2.1,2.8,true,true,false,true

@@ -1,0 +1,65 @@
+##var,workbook,sheet,recordClass,source,notes
+##type,string#key,string#key,string,string,string
+##group,,,,,
+##comment,,,,实际值来源,
+,Skill,SkillDefinition,SkillDefinitionRecord（displayName/description 改为 key）,Assets/Data/Config/ProjectConfigDatabase_Main.asset,
+,Skill,SkillBalance,SkillBalanceRecord + castConfirmDelaySeconds,Assets/Data/Config/ProjectConfigDatabase_Main.asset; SkillExecutor.cs:51-52,如来神掌 SO 为 18/15，运行时生效的是配置 12/10
+,Skill,SkillEffectParam,SkillEffectParamRecord（接通运行时读取）,Assets/Skills_Assets/Skills/*.asset + 代码常量,paramValue 以 SO 实际值为准，代码默认值已忽略
+,Skill,SkillPresentation,(新增) SkillPresentationRecord,Assets/Skills_Assets/Skills/*.asset,ReverseTurn/AccelerationAnti 的 vfx 字段代码从不播放
+,Skill,VfxRegistry,(新增) VfxRegistryRecord ← SkillVfxDatabase,Assets/Skills_Assets/SkillVfxDatabase.asset; RaceMap VfxStartupWarmup,
+,Skill,FeelEvent,(新增) FeelEventRecord ← SkillFeelRouter.entries,Assets/Character/Prefab/Buddah.prefab,
+,Skill,SkillSelectionRule,SkillSelectionRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,
+,Skill,DefaultLoadout,DefaultLoadoutRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,运行时优先取此表（SkillLoadout.cs:90-101）；prefab 的 _defaultSkillIds 第 3 槽 blackcurtain 只是兜底
+,Skill,ComboBinding,(新增) ComboBindingRecord ← ComboSkillInput.bindings,Assets/Character/Prefab/Buddah.prefab,HUD SkillSlot prefab 的 tokens 由此表生成
+,Skill,HandPush,(新增) HandPushRecord ← BuddahHandControl,Assets/Character/Prefab/Buddah.prefab; Assets/Character/Prefab/Cube.prefab,
+,Skill,Obsession,(新增) ObsessionRecord ← ObsessionFigure,Assets/Character/Prefab/Buddah.prefab,替代未读取的 GlobalRule 键 catchup_recovery_a / obsession_recovery_baseline
+,Skill,BlackCurtainPresentation,(新增) BlackCurtainPresentationRecord,Assets/Scenes/RaceMap.unity BlackCurtainViewController; BlackCurtainScreenEffect.cs,
+,Movement,MovementBase,(新增) MovementBaseRecord ← BuddahPredictedMotorConfig + Rigidbody,Assets/Character/Prefab/Buddah.prefab,legacy BuddahMovement 的副本不再使用
+,Movement,PushReaction,(新增) PushReactionRecord,Assets/Character/Prefab/Buddah.prefab BuddahPredictedMotorConfig; BuddahPredictedImpulseSourceType.cs,
+,Movement,ModifierRule,(新增) ModifierRuleRecord,New_Buddah BuddahPredictedMotor.Events.cs:365-402; Resolver.cs,
+,Movement,LaunchHandoff,(新增) LaunchHandoffRecord,Assets/Character/Prefab/Buddah.prefab BuddahMovement/RaceBodyIntroStateController; Events.cs,
+,Movement,RespawnRule,(新增) RespawnRuleRecord ← BuddahRespawn + RespawnBridge 标志,Assets/Character/Prefab/Buddah.prefab; BuddahPredictionRespawnBridge.cs:295-301,
+,Movement,LapRule,(新增) LapRuleRecord ← LapProgress + RaceFinishManager,Assets/Character/Prefab/Buddah.prefab; Assets/Scenes/RaceMap.unity,nearEnd/nearStart/minimumForwardWrapDelta 为死字段，未入表
+,Movement,WrongWayRule,(新增) WrongWayRuleRecord ← RaceCompletionTracker,Assets/Character/Prefab/Buddah.prefab,
+,Movement,Camera,(新增) CameraRecord ← PlayerCamera,Assets/Character/Prefab/Buddah.prefab,
+,Movement,RacerVisual,(新增) RacerVisualRecord,Assets/Character/Prefab/Buddah.prefab; Assets/Placeholder/UI/*.mat,
+,Movement,SplineTracking,"(新增, 工程向) SplineTrackingRecord",Assets/Character/Prefab/Buddah.prefab; Assets/Scenes/RaceMap.unity,
+,AI,DrivingTier,AIDifficultyProfile（字段名沿用 PascalCase）,"Assets/Resources/AI/{Easy,Normal,Hard}.asset",adv 列为规划器高级参数；替代 Tools/ai/difficulty-*.json 生成链
+,AI,DrivingGlobal,"(新增, 键值) DrivingGlobal → GlobalRule 或独立记录",ThrustVectorPlanner.cs 等代码常量,[Eng] 项为规划器内部常量，按用户要求一并入表
+,AI,SkillDifficulty,AISkillDifficulty,Assets/Resources/AI/SkillPersonalities.json,
+,AI,Personality,AISkillPersonality,SkillPersonalities.json,人格数必须等于 Roster 行数（当前 5）
+,AI,PersonalitySkillWeight,AISkillPersonality.Weights[6]（按 skillId 展开）,SkillPersonalities.json,
+,AI,PersonalitySituationBias,AISkillPersonality.SituationBias[5],SkillPersonalities.json,
+,AI,SkillOpportunity,(新增) AISkillOpportunityRecord,SkillPersonalities.json Tuning.BacklashSeverity + AISkillDecision.cs 常量,
+,AI,SkillGlobal,"(新增, 键值) AISkillTuning + 代码常量",SkillPersonalities.json; AISkillWorld/Decision/Caster/Commitment.cs,
+,AI,Roster,(新增) AIRosterRecord,MatchSpawnManager.SpawnSoloAI:165,
+,Match,ModeRule,(新增) MatchModeRuleRecord ← IMatchRules 实现 + 各 manager 时长,OnlineMatchRules.cs; SoloMatchRules.cs; RoomStateManager.prefab; PropertySelection.unity; RaceMap.unity,Practice 行 = Solo 且 aiCount=0，目前 UI 无入口
+,Match,Track,(新增) TrackRecord,Assets/Scenes/RaceMap.unity; Assets/UI/UIprefap.prefab MiniMapController,
+,Match,TrackSpawn,(新增) TrackSpawnRecord ← MatchSpawnManager._spawnPoints,Assets/Scenes/RaceMap.unity,
+,Match,TrackCheckpoint,(新增) TrackCheckpointRecord ← Checkpoint,Assets/Scenes/RaceMap.unity,
+,Match,TrackResultAnchor,(新增) TrackResultAnchorRecord ← EndFieldSpawnPoint,Assets/Scenes/RaceMap.unity,
+,Match,Lobby,(新增) LobbyRecord,Assets/Scenes/MainMenu.unity SteamLobbyManager; SessionLauncher.cs,
+,Match,ResultVoteRule,(新增) ResultVoteRuleRecord,ResultDecisionManager.EvaluateDecisionServer:252-275,
+,Match,ResultPresentation,(新增) ResultPresentationRecord,Assets/Scenes/RaceMap.unity,
+,Match,SelectionStage,(新增) SelectionStageRecord,PropertiesSelectionManager.RegisterDefaultStageProperties:566-568,地图/皮肤结果目前无人读取
+,Match,SelectionOption,(新增) SelectionOptionRecord,PropertiesSelectionManager:1126-1136（占位数据）,
+,Match,Intro,(新增) IntroRecord ← IntroSequenceManager,Assets/Scenes/RaceMap.unity,
+,Match,IntroLayout,(新增) IntroLayoutRecord ← IntroSequenceManager.layouts,Assets/Scenes/RaceMap.unity,4P/5P/6P 为占位 prefab；Solo 永远用 6P
+,Match,IntroSlotStyle,(新增) IntroSlotStyleRecord（范围内未找到消费方）,Assets/Placeholder/Intro/Layout4P.prefab,
+,Match,RacerNaming,"(新增, 键值) RacerNaming",RacerIdentity.cs; MatchSpawnManager.cs; SoloSetupPanel.cs,
+,UI,SkillIcon,(新增) SkillIconRecord ← SkillUiSpriteLibrary,Assets/UI/UIprefap.prefab,*_anti 无图标；配置 iconKey 列未使用
+,UI,MenuOption,(新增) MenuOptionRecord,Assets/Scenes/MainMenu.unity TMP_Dropdown m_Options,代码兜底 CreateRoomUI.cs:131-167
+,UI,HudObsession,(新增) HudObsessionRecord ← ObsessionUI,Assets/UI/UIprefap.prefab,
+,UI,UiTiming,"(新增, 键值) UiTimingRecord",各 UI 组件 SerializeField 实际值,
+,UI,MiniMap,(新增) MiniMapRecord（边界在 Match/Track）,Assets/UI/UIprefap.prefab,
+,UI,Text,(新增) LocalizedTextRecord,MAIN 技能文案 + C# 硬编码文案（自动提取）+ 场景静态文本,自动提取的 key 需人工定稿；英文列为空表示待翻译
+,Global,GlobalRule,GlobalRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,6 个未读取键已退役：圈数→Movement/LapRule，倒计时→Match/ModeRule，执念→Skill/Obsession
+,Global,StructuralConstant,(只读) 结构性常量,代码常量,全列 doc：仅记录，不导出
+,Global,GlobalPhysics,"(新增, 只读候选) GlobalPhysicsRecord",ProjectSettings/DynamicsManager.asset,
+,Global,PhysicsMaterial,(新增) PhysicsMaterialRecord,Assets/Material/*.physicMaterial,
+,Global,Tag,(只读) Tag,ProjectSettings/TagManager.asset,
+,Global,Layer,(只读) Layer,ProjectSettings/TagManager.asset,
+,Global,Scene,(只读) Scene,ProjectSettings/EditorBuildSettings.asset,RaceMapEndField 不存在但两处仍引用
+,Global,InputBinding,(新增) InputBindingRecord,Assets/Scripts/InputSystem/InputSystem_Actions.inputactions,改键需先去掉硬编码 KeyCode
+,Global,Timeline,(只读) 由 timeline 资产导出,Assets/Animation/CG/*.playable,只读显示；改时长请改 timeline
+,Global,__enums__,枚举定义（不导出，校验用）,代码枚举 + 本规范新增枚举,

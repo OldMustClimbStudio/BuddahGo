@@ -1,0 +1,5 @@
+##var,profileId,jumpMetersThreshold,windowRadiusT,windowSteps,maxProjectionDistance,maxStepFactor,trackSplineSamples,progressReportIntervalSeconds
+##type,string#key,float,float,int,float,float,int,float
+##group,,adv,adv,adv,adv,adv,adv,adv
+##comment,,,,,,,TrackSplineRef.samples（场景）,网络上报间隔
+,default,8,0.2,40,30,1.5,200,0.2

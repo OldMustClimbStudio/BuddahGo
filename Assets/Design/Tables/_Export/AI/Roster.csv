@@ -1,0 +1,9 @@
+##var,slotIndex,personalityId,displayNameOverrideKey
+##type,int#key,string#ref=Personality.personalityId,string#ref=UI/Text.key
+##group,,,
+##comment,AI 槽位 0-4,按 JSON 顺序隐式分配,空=用人格名
+,0,keeper,
+,1,hunter,
+,2,brawler,
+,3,trickster,
+,4,opportunist,

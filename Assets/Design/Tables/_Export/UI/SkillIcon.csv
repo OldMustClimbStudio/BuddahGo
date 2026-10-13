@@ -1,0 +1,10 @@
+##var,skillId,hudIdleSpritePath,hudActiveSpritePath,previewSpritePath
+##type,string#key#ref=Skill/SkillDefinition.skillId,string#path,string#path,string#path
+##group,,,,
+##comment,,black,white,选择界面（未实现）
+,acceleration,Assets/UI/UI资源/文字PNG/New/神足通.png,Assets/UI/UI资源/文字PNG/New/神足通-白.png,
+,blackcurtain,Assets/UI/UI资源/文字PNG/New/一念光明.png,Assets/UI/UI资源/文字PNG/New/一念光明-白.png,
+,giant,Assets/UI/UI资源/文字PNG/New/法像金身.png,Assets/UI/UI资源/文字PNG/New/法像金身-白.png,
+,push_projectile_hands,Assets/UI/UI资源/文字PNG/New/如来神掌.png,Assets/UI/UI资源/文字PNG/New/如来神掌-白.png,
+,reverseturn,Assets/UI/UI资源/文字PNG/New/逆姻缘.png,Assets/UI/UI资源/文字PNG/New/逆姻缘-白.png,
+,slowtrap,Assets/UI/UI资源/文字PNG/New/禅定缓流.png,Assets/UI/UI资源/文字PNG/New/禅定缓流-白.png,

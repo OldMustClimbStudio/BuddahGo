@@ -1,0 +1,5 @@
+##var,profileId,inheritSeconds,blendSeconds,suppressTurnSeconds,handoffLeadSeconds,minPreHandoffBypassSeconds,clearAngularVelocity,groundSnapMaxDistance,groundProbeHeight,velocitySampleDeltaSeconds
+##type,string#key,float,float,float,float,float,bool,float,float,float
+##group,,,,,,,,,,adv
+##comment,,launchInheritTime,launchBlendTime，线性混合,RaceBodyIntroStateController.cs:560,defaultHandoffLeadTime,Events.cs:173 下限,,Config 默认（prefab 未序列化）,,
+,default,0.2,0.32,0.15,0.5,0.5,false,1.5,3,0.02

@@ -1,0 +1,5 @@
+##var,profileId,smoothSpeed,colorSmoothSpeed,fadeSpeed,maxShakeStrength,shakeSpeed,flashColor,normalColor,targetIconColor,lowThresholdRatio,highThresholdRatio,flashFrequencyMin,flashFrequencyMax,tierSprite0Path,tierSprite1Path,tierSprite2Path
+##type,string#key,float,float,float,float,float,color,color,color,float,float,float,float,string#path,string#path,string#path
+##group,,,,,,,,,,,,,,,,
+##comment,,,,,,,,,,代码 Max/3,代码 2·Max/3,ObsessionUI.cs:160,,,,
+,default,8,5,3,5,15,"0.839623,0.81982,0.81982,1","1,1,1,1","0,0,0,1",0.333333,0.666667,2,12,(scene object),(scene object),(scene object)

@@ -1,0 +1,7 @@
+##var,impulseSource,graceSeconds,extraMaxSpeed,impulseMultiplier
+##type,enum:ImpulseSourceType#key,float,float,float
+##group,,,,
+##comment,MeleePush / Projectile / ChargedProjectile,受击宽限,宽限期临时限速增量,按来源倍率（当前代码无区分=1）
+,MeleePush,0.25,6,1
+,Projectile,0.25,6,1
+,ChargedProjectile,0.25,6,1

@@ -1,0 +1,7 @@
+##var,materialId,dynamicFriction,staticFriction,bounciness,frictionCombine,bounceCombine,assetPath
+##type,string#key,float,float,float,enum:PhysicMaterialCombine,enum:PhysicMaterialCombine,string#path
+##group,,,,,,,doc
+##comment,,,,,,,
+,AirWall,0,0,0,Average,Average,Assets/Material/AirWall.physicMaterial
+,Character,0,0,0,Average,Average,Assets/Material/Character.physicMaterial
+,Floor,0.4,0.3,0,Average,Average,Assets/Material/Floor.physicMaterial

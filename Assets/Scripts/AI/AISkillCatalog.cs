@@ -63,6 +63,21 @@ namespace BuddahGo.AI
         public float AimHorizonSeconds = 2f;
         public float SpeedDropFraction = .2f;
         public float[] BacklashSeverity = { 1f, .1f, .5f, .3f, .9f, .4f };
+        // Indexed by AISkillKind: do not stack while the same global effect is visible (Reverse, Curtain).
+        public bool[] BlockWhenGlobalVisible = { false, false, false, false, true, true };
+        // Opportunity predicate constants (AI/SkillOpportunity); defaults equal the former literals.
+        public float AccelerationMinStraightSeconds = 3f;
+        public float TrapScoreBase = .3f, TrapScoreSlope = .7f, TrapMaxValiditySeconds = 6f;
+        public float GiantEuclidMultiplier = 1.5f, GiantMinValiditySeconds = 2f, GiantScorePerContact = .5f;
+        public float HandsEuclidMultiplier = 1.5f, HandsMaxYawDegrees = 110f, HandsScoreBase = .35f, HandsScoreSlope = .65f, HandsYawPenalty = .5f;
+        public float ReverseMinValiditySeconds = 2f, CurtainPackBonus = .25f;
+        // Snapshot / scoring constants (AI/SkillGlobal); defaults equal the former literals.
+        public float SpeedDropImpairSeconds = .5f, SpeedDropMinSpeed = 5f;
+        public float StraightLookaheadSeconds = 10f, CornerLookaheadSeconds = 2f, CornerValidityBase = 2f, CornerValidityScale = 2f;
+        public float TargetBonusImpaired = 2f, TargetBonusAhead = 1f, TargetBonusBehind = 1f, TargetBonusPackCentrePerNeighbour = .25f;
+        public int PackMinNeighbours = 2;
+        public float SevereSeverityThreshold = .5f, MaxWindowSeconds = 6f, MinRelativeSpeed = .1f, MaxElapsedSeconds = 1f;
+        public int MaxComboRetries = 1;
     }
 
     [Serializable]
@@ -81,6 +96,7 @@ namespace BuddahGo.AI
             var asset = Resources.Load<TextAsset>("AI/SkillPersonalities");
             if (asset == null) throw new InvalidOperationException("Missing AI/SkillPersonalities configuration.");
             var catalog = JsonUtility.FromJson<AISkillCatalog>(asset.text);
+            catalog.ApplyDesignTables();
             if (!ProjectConfigRuntime.TryGetSelectionRuleRepository(out var rules))
                 throw new InvalidOperationException("AI skill selection rules are unavailable.");
             var pool = rules.GetSkillIdsForPool(ProjectConfigConstants.DefaultRuleSetId,
@@ -88,6 +104,75 @@ namespace BuddahGo.AI
             catalog.Validate(pool.Contains);
             return catalog;
         }
+
+        // AI/SkillDifficulty, AI/Personality (+SkillWeight, +SituationBias), AI/SkillGlobal and AI/SkillOpportunity
+        // overlay the JSON values; the JSON stays the fallback when a table has no rows.
+        private void ApplyDesignTables()
+        {
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null) return;
+            if (Difficulties != null && db.skillDifficulties != null)
+                foreach (var d in Difficulties)
+                {
+                    string tier = d.Difficulty.ToString();
+                    DesignTableOverlay.Apply(d, DesignTableOverlay.Single(db.skillDifficulties, r => r.difficulty == tier));
+                }
+            if (Personalities != null && db.personalities != null)
+                foreach (var p in Personalities)
+                {
+                    PersonalityRecord row = DesignTableOverlay.Single(db.personalities, r => r.personalityId == p.Id);
+                    if (row == null) continue;
+                    p.DisplayName = DesignTableOverlay.Text(row.displayNameKey, p.DisplayName);
+                    p.Loadout = new[] { row.slot0SkillId, row.slot1SkillId, row.slot2SkillId };
+                    p.Patience = row.patience; p.TempoSeconds = row.tempoSeconds; p.HandsShots = row.handsShots;
+                    p.ImpairedTargetMultiplier = row.impairedTargetMultiplier;
+                    if (Enum.TryParse(row.target, true, out AITargetPreference target)) p.Target = target;
+                    if (db.personalitySkillWeights != null)
+                        foreach (var w in db.personalitySkillWeights)
+                            if (w != null && w.personalityId == p.Id && Array.IndexOf(SkillIds, w.skillId) is int ki && ki >= 0 && p.Weights != null && ki < p.Weights.Length)
+                                p.Weights[ki] = w.weight;
+                    if (db.personalitySituationBiases != null)
+                        foreach (var b in db.personalitySituationBiases)
+                            if (b != null && b.personalityId == p.Id && Enum.TryParse(b.situation, true, out AISkillSituation si) && p.SituationBias != null && (int)si < p.SituationBias.Length)
+                                p.SituationBias[(int)si] = b.bias;
+                }
+            Tuning ??= new AISkillTuning();
+            if (db.skillGlobals != null)
+            {
+                var fields = typeof(AISkillTuning).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                foreach (var row in db.skillGlobals)
+                {
+                    if (row == null || string.IsNullOrEmpty(row.key)) continue;
+                    foreach (var f in fields)
+                    {
+                        if (!string.Equals(f.Name, row.key, StringComparison.OrdinalIgnoreCase)) continue;
+                        if (f.FieldType == typeof(float)) f.SetValue(Tuning, row.value);
+                        else if (f.FieldType == typeof(int)) f.SetValue(Tuning, Mathf.RoundToInt(row.value));
+                    }
+                }
+            }
+            if (db.skillOpportunities != null)
+                foreach (var o in db.skillOpportunities)
+                {
+                    if (o == null) continue;
+                    int k = Array.IndexOf(SkillIds, o.skillId);
+                    if (k < 0) continue;
+                    if (Tuning.BacklashSeverity != null && k < Tuning.BacklashSeverity.Length) Tuning.BacklashSeverity[k] = o.backlashSeverity;
+                    if (Tuning.BlockWhenGlobalVisible != null && k < Tuning.BlockWhenGlobalVisible.Length) Tuning.BlockWhenGlobalVisible[k] = o.blockWhenGlobalVisible;
+                    switch ((AISkillKind)k)
+                    {
+                        case AISkillKind.Acceleration: Set(ref Tuning.AccelerationMinStraightSeconds, o.minStraightSeconds); break;
+                        case AISkillKind.SlowTrap: Set(ref Tuning.TrapScoreBase, o.scoreBase); Set(ref Tuning.TrapScoreSlope, o.scoreSlope); Set(ref Tuning.TrapMaxValiditySeconds, o.maxValiditySeconds); break;
+                        case AISkillKind.Giant: Set(ref Tuning.GiantEuclidMultiplier, o.euclidMultiplier); Set(ref Tuning.GiantMinValiditySeconds, o.minValiditySeconds); Set(ref Tuning.GiantScorePerContact, o.scorePerContact); break;
+                        case AISkillKind.Hands: Set(ref Tuning.HandsEuclidMultiplier, o.euclidMultiplier); Set(ref Tuning.HandsMaxYawDegrees, o.maxYawDegrees); Set(ref Tuning.HandsScoreBase, o.scoreBase); Set(ref Tuning.HandsScoreSlope, o.scoreSlope); Set(ref Tuning.HandsYawPenalty, o.yawPenalty); break;
+                        case AISkillKind.Reverse: Set(ref Tuning.ReverseMinValiditySeconds, o.minValiditySeconds); break;
+                        case AISkillKind.Curtain: Set(ref Tuning.CurtainPackBonus, o.packBonus); break;
+                    }
+                }
+        }
+
+        // Empty sheet cells arrive as 0; keep the literal default in that case.
+        private static void Set(ref float field, float value) { if (value != 0f) field = value; }
 
         public AISkillDifficulty ForDifficulty(SoloDifficulty difficulty)
         {

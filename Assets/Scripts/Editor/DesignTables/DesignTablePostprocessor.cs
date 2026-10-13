@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,6 +16,7 @@ namespace BuddahGo.DesignTables
         private const string AutoImportPref = "BuddahGo.DesignTables.AutoImport";
         private const double DebounceSeconds = 0.5;
         private static double _requestedAt = -1;
+        private static readonly HashSet<string> _pendingWorkbooks = new HashSet<string>(StringComparer.Ordinal);
 
         public static bool AutoImport
         {
@@ -34,6 +36,7 @@ namespace BuddahGo.DesignTables
                 string name = System.IO.Path.GetFileName(path);
                 if (name.StartsWith("~$", StringComparison.Ordinal))
                     continue;
+                _pendingWorkbooks.Add(System.IO.Path.GetFileNameWithoutExtension(path));
                 hit = true;
             }
             if (!hit)
@@ -59,7 +62,10 @@ namespace BuddahGo.DesignTables
             }
             try
             {
-                DesignTableExporter.Run(dryRun: false);
+                // Only the saved workbooks (and sheets referencing them) are re-mapped; hashes catch edits Unity missed.
+                HashSet<string> changed = new HashSet<string>(_pendingWorkbooks, StringComparer.Ordinal);
+                _pendingWorkbooks.Clear();
+                DesignTableExporter.Run(new DesignTableExporter.Options { ChangedWorkbooks = changed });
             }
             catch (Exception e)
             {

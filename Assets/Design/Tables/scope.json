@@ -1,22 +1,272 @@
 {
   "_comment": "Scope line decided 2026-10-13: export only gameplay balance and information sheets. Presentation sheets stay in the workbooks for reference and are validated but never exported.",
   "export": {
-    "Skill": ["SkillDefinition", "SkillBalance", "SkillEffectParam", "SkillSelectionRule", "DefaultLoadout", "ComboBinding", "HandPush", "Obsession"],
-    "Movement": ["MovementBase", "PushReaction", "ModifierRule", "LaunchHandoff", "RespawnRule", "LapRule", "WrongWayRule"],
-    "AI": ["DrivingTier", "DrivingGlobal", "SkillDifficulty", "Personality", "PersonalitySkillWeight", "PersonalitySituationBias", "SkillOpportunity", "SkillGlobal", "Roster"],
-    "Match": ["ModeRule", "Track", "TrackSpawn", "TrackCheckpoint", "TrackResultAnchor", "Lobby", "ResultVoteRule", "SelectionStage", "SelectionOption", "Intro", "IntroLayout", "RacerNaming"],
-    "UI": ["Text", "MenuOption", "SkillIcon"],
-    "Global": ["GlobalRule"]
+    "Skill": [
+      "SkillDefinition",
+      "SkillBalance",
+      "SkillEffectParam",
+      "SkillSelectionRule",
+      "DefaultLoadout",
+      "ComboBinding",
+      "HandPush",
+      "Obsession"
+    ],
+    "Movement": [
+      "MovementBase",
+      "PushReaction",
+      "ModifierRule",
+      "LaunchHandoff",
+      "RespawnRule",
+      "LapRule",
+      "WrongWayRule"
+    ],
+    "AI": [
+      "DrivingTier",
+      "DrivingGlobal",
+      "SkillDifficulty",
+      "Personality",
+      "PersonalitySkillWeight",
+      "PersonalitySituationBias",
+      "SkillOpportunity",
+      "SkillGlobal",
+      "Roster"
+    ],
+    "Match": [
+      "ModeRule",
+      "Track",
+      "TrackSpawn",
+      "TrackCheckpoint",
+      "TrackResultAnchor",
+      "Lobby",
+      "ResultVoteRule",
+      "SelectionStage",
+      "SelectionOption",
+      "Intro",
+      "IntroLayout",
+      "RacerNaming"
+    ],
+    "UI": [
+      "Text",
+      "MenuOption",
+      "SkillIcon"
+    ],
+    "Global": [
+      "GlobalRule"
+    ]
   },
   "presentationOnly": {
-    "Skill": ["SkillPresentation", "VfxRegistry", "FeelEvent", "BlackCurtainPresentation"],
-    "Movement": ["Camera", "RacerVisual", "SplineTracking"],
-    "Match": ["ResultPresentation", "IntroSlotStyle"],
-    "UI": ["HudObsession", "UiTiming", "MiniMap"],
-    "Global": ["StructuralConstant", "GlobalPhysics", "PhysicsMaterial", "Tag", "Layer", "Scene", "InputBinding", "Timeline"]
+    "Skill": [
+      "SkillPresentation",
+      "VfxRegistry",
+      "FeelEvent",
+      "BlackCurtainPresentation"
+    ],
+    "Movement": [
+      "Camera",
+      "RacerVisual",
+      "SplineTracking"
+    ],
+    "Match": [
+      "ResultPresentation",
+      "IntroSlotStyle"
+    ],
+    "UI": [
+      "HudObsession",
+      "UiTiming",
+      "MiniMap"
+    ],
+    "Global": [
+      "StructuralConstant",
+      "GlobalPhysics",
+      "PhysicsMaterial",
+      "Tag",
+      "Layer",
+      "Scene",
+      "InputBinding",
+      "Timeline"
+    ]
   },
-  "reserved": ["__enums__", "__meta__"],
-  "handWrittenRecords": ["SkillDefinitionRecord", "SkillBalanceRecord", "SkillEffectParamRecord", "SkillSelectionRuleRecord", "DefaultLoadoutRecord", "GlobalRuleRecord"],
-  "recordNameOverride": {"Text": "LocalizedTextRecord"},
-  "listNameOverride": {"Text": "localizedTexts"}
+  "reserved": [
+    "__enums__",
+    "__meta__"
+  ],
+  "handWrittenRecords": [
+    "SkillDefinitionRecord",
+    "SkillBalanceRecord",
+    "SkillEffectParamRecord",
+    "SkillSelectionRuleRecord",
+    "DefaultLoadoutRecord",
+    "GlobalRuleRecord"
+  ],
+  "recordNameOverride": {
+    "Text": "LocalizedTextRecord"
+  },
+  "listNameOverride": {
+    "Text": "localizedTexts"
+  },
+  "tags": {
+    "Skill/SkillDefinition": [
+      "skill",
+      "info"
+    ],
+    "Skill/SkillBalance": [
+      "skill",
+      "balance"
+    ],
+    "Skill/SkillEffectParam": [
+      "skill",
+      "balance"
+    ],
+    "Skill/SkillSelectionRule": [
+      "skill",
+      "info"
+    ],
+    "Skill/DefaultLoadout": [
+      "skill",
+      "info"
+    ],
+    "Skill/ComboBinding": [
+      "skill",
+      "info"
+    ],
+    "Skill/HandPush": [
+      "skill",
+      "balance"
+    ],
+    "Skill/Obsession": [
+      "skill",
+      "balance"
+    ],
+    "Movement/MovementBase": [
+      "movement",
+      "balance"
+    ],
+    "Movement/PushReaction": [
+      "movement",
+      "balance"
+    ],
+    "Movement/ModifierRule": [
+      "movement",
+      "info"
+    ],
+    "Movement/LaunchHandoff": [
+      "movement",
+      "balance"
+    ],
+    "Movement/RespawnRule": [
+      "movement",
+      "balance"
+    ],
+    "Movement/LapRule": [
+      "movement",
+      "track",
+      "balance"
+    ],
+    "Movement/WrongWayRule": [
+      "movement",
+      "track",
+      "balance"
+    ],
+    "AI/DrivingTier": [
+      "ai",
+      "balance"
+    ],
+    "AI/DrivingGlobal": [
+      "ai",
+      "balance"
+    ],
+    "AI/SkillDifficulty": [
+      "ai",
+      "balance"
+    ],
+    "AI/Personality": [
+      "ai",
+      "balance"
+    ],
+    "AI/PersonalitySkillWeight": [
+      "ai",
+      "balance"
+    ],
+    "AI/PersonalitySituationBias": [
+      "ai",
+      "balance"
+    ],
+    "AI/SkillOpportunity": [
+      "ai",
+      "balance"
+    ],
+    "AI/SkillGlobal": [
+      "ai",
+      "balance"
+    ],
+    "AI/Roster": [
+      "ai",
+      "info"
+    ],
+    "Match/ModeRule": [
+      "match",
+      "info"
+    ],
+    "Match/Track": [
+      "match",
+      "track"
+    ],
+    "Match/TrackSpawn": [
+      "match",
+      "track"
+    ],
+    "Match/TrackCheckpoint": [
+      "match",
+      "track"
+    ],
+    "Match/TrackResultAnchor": [
+      "match",
+      "track"
+    ],
+    "Match/Lobby": [
+      "match",
+      "info"
+    ],
+    "Match/ResultVoteRule": [
+      "match",
+      "info"
+    ],
+    "Match/SelectionStage": [
+      "match",
+      "info"
+    ],
+    "Match/SelectionOption": [
+      "match",
+      "info"
+    ],
+    "Match/Intro": [
+      "match",
+      "balance"
+    ],
+    "Match/IntroLayout": [
+      "match",
+      "info"
+    ],
+    "Match/RacerNaming": [
+      "match",
+      "text"
+    ],
+    "UI/Text": [
+      "ui",
+      "text"
+    ],
+    "UI/MenuOption": [
+      "ui",
+      "text"
+    ],
+    "UI/SkillIcon": [
+      "ui",
+      "info"
+    ],
+    "Global/GlobalRule": [
+      "global",
+      "balance"
+    ]
+  },
+  "_tags_comment": "Import filters: tag names are free-form; a sheet is re-mapped when any of its tags matches the filter. Conventional tags: balance / info / text / track plus the domain name."
 }

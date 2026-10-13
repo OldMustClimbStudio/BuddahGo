@@ -55,6 +55,16 @@ public class RaceFinishManager : NetworkBehaviour
 
     private void Awake()
     {
+        // Movement/LapRule owns the lap count, Match/ModeRule the post-finish countdown.
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+        {
+            string trackId = DesignTableOverlay.CurrentTrackId();
+            LapRuleRecord lap = DesignTableOverlay.Single(db.lapRules, r => r.trackId == trackId) ?? DesignTableOverlay.Single(db.lapRules, null);
+            if (lap != null && lap.lapsToFinish > 0) lapsToFinish = lap.lapsToFinish;
+            ModeRuleRecord mode = DesignTableOverlay.CurrentModeRule();
+            if (mode != null) postFirstFinishCountdownSeconds = mode.postFirstFinishCountdownSeconds;
+        }
         if (Instance != null && Instance != this)
         {
             Debug.LogWarning("[RaceFinishManager] Duplicate instance detected during Awake. Keeping scene NetworkObject alive and allowing network lifecycle to resolve the active instance.");

@@ -23,4 +23,6 @@
 11. **命名与文件夹分层规范**：目录 `Assets/Design/Tables/<Domain>/<Domain>.xlsx`，镜像 `_Export/<Domain>/<Sheet>.csv`；工作簿与 sheet 用 PascalCase 单数且与记录类同名（去掉 Record 后缀），子表以父表名为前缀；字段 camelCase 与 C# 一致（`*Seconds`、`*Degrees`、`*01`）；id 全小写 snake_case；文案 key 为 `domain.entity.field` 点分小写；主键列最左、`doc` 列最右。
 12. **范围线：只接管游戏内平衡与各类信息，不接管精确的特效/表现细节。** 导出器只把 `Assets/Design/Tables/scope.json` 的 `export` 列表（40 张 sheet）写入 ProjectConfigDatabase；`presentationOnly` 的 20 张 sheet 保留在工作簿里供查阅并参与校验，但不导出、不接消费方。
 13. **导出器实现方式**：不引入第三方 DLL，用 .NET 的 ZipArchive + XmlReader 直接读 xlsx；记录类由 `Tools/design-tables/gen_records.py` 从表头生成；触发方式为 AssetPostprocessor（可在菜单关闭）+ 菜单 + batchmode CLI。
+14. **消费方切换方式：覆盖而非重构。** 各组件在 Awake/OnEnable 用 `DesignTableOverlay.Apply` 把记录字段按名（或显式映射）写到自己的序列化字段，prefab/场景/SO/JSON 的值只作为无表行时的兜底；规则类（OnlineMatchRules/SoloMatchRules）按行读表。不新增组件，不改 RPC 与预测逻辑。
+15. **分层导入与 tag 分类。** 导入先按工作簿文件哈希（`Library/DesignTables/import-state.txt`）判断是否变化，只重映射变化工作簿及通过 `#ref` 依赖它的 sheet，其余列表沿用当前资产；`scope.json` 的 `tags` 给每张 sheet 打标签（balance / info / text / track + 域名），菜单 `Import Tag/…` 与 CLI `-designTags` 只推送某一层。
 

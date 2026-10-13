@@ -63,7 +63,7 @@ namespace BuddahGo.Match
                 transport.SetClientTransport(SteamTransport);
                 transport.SetClientAddress(hostSteamId, SteamTransport);
                 if (!_network.ClientManager.StartConnection()) return Rollback("无法连接主机。");
-                return ArmStartupDeadline(30f);
+                return ArmStartupDeadline(LobbyTimeout(30f, lobby => lobby.clientConnectTimeoutSeconds));
             }
             catch (Exception exception) { return RollbackAfterException(exception, "连接失败，请重试。"); }
         }
@@ -78,9 +78,18 @@ namespace BuddahGo.Match
                 if (!transport.StartConnection(true, index)) return Rollback("无法启动本地服务器。");
                 transport.SetClientTransport(index);
                 if (!_network.ClientManager.StartConnection()) return Rollback("无法连接本地服务器。");
-                return ArmStartupDeadline(20f);
+                return ArmStartupDeadline(LobbyTimeout(20f, lobby => lobby.hostStartTimeoutSeconds));
             }
             catch (Exception exception) { return RollbackAfterException(exception, "启动失败，请重试。"); }
+        }
+
+        // Match/Lobby owns the startup timeouts; the literal is the fallback.
+        private static float LobbyTimeout(float fallback, Func<LobbyRecord, float> pick)
+        {
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            LobbyRecord lobby = db != null ? DesignTableOverlay.Single(db.lobbies, null) : null;
+            float value = lobby != null ? pick(lobby) : 0f;
+            return value > 0f ? value : fallback;
         }
 
         private bool TryGetIdleTransport(out Multipass transport)

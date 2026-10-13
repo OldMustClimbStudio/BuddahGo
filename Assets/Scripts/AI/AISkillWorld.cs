@@ -75,7 +75,7 @@ namespace BuddahGo.AI
                 if (slowed) impaired = Mathf.Max(impaired, Remaining(modifiers.AccelUntilTick, tick, delta));
                 if (stats.ScaleMultiplier < .99f) impaired = Mathf.Max(impaired, Remaining(modifiers.ScaleUntilTick, tick, delta));
                 // A speed drop is only a short observed window; never infer another racer's intent.
-                if (e.PreviousSpeed > 5f && speed < e.PreviousSpeed * (1f - _tuning.SpeedDropFraction)) impaired = Mathf.Max(impaired, .5f);
+                if (e.PreviousSpeed > _tuning.SpeedDropMinSpeed && speed < e.PreviousSpeed * (1f - _tuning.SpeedDropFraction)) impaired = Mathf.Max(impaired, _tuning.SpeedDropImpairSeconds);
                 var racer = new AISkillRacerSnapshot
                 {
                     RacerId = e.Identity.Id.Value, Position = e.Body.position, Forward = e.Body.rotation * Vector3.forward,
@@ -90,10 +90,10 @@ namespace BuddahGo.AI
                     PreviousSpeed = e.PreviousSpeed, ImpairedSecondsLeft = impaired,
                     InvertSecondsLeft = Remaining(modifiers.InvertTurnUntilTick, tick, delta),
                     VisionImpaired = e.Perception != null && e.Perception.VisionImpairedUntilTick > tick,
-                    StraightFraction = _track.Fraction(e.Progress.distanceOnTrack, Mathf.Max(1f, speed * 10f), false),
+                    StraightFraction = _track.Fraction(e.Progress.distanceOnTrack, Mathf.Max(1f, speed * _tuning.StraightLookaheadSeconds), false),
                     StraightSeconds = _track.StraightDistance(e.Progress.distanceOnTrack) / Mathf.Max(5f, speed),
-                    CornerFraction = _track.Fraction(e.Progress.distanceOnTrack, Mathf.Max(1f, speed * 2f), true),
-                    CornerSeconds = 2f + 2f * _track.Fraction(e.Progress.distanceOnTrack + speed * 2f, Mathf.Max(1f, speed * 2f), true),
+                    CornerFraction = _track.Fraction(e.Progress.distanceOnTrack, Mathf.Max(1f, speed * _tuning.CornerLookaheadSeconds), true),
+                    CornerSeconds = _tuning.CornerValidityBase + _tuning.CornerValidityScale * _track.Fraction(e.Progress.distanceOnTrack + speed * _tuning.CornerLookaheadSeconds, Mathf.Max(1f, speed * _tuning.CornerLookaheadSeconds), true),
                     LastCastSeconds = _lastCasts[i]
                 };
                 e.PreviousSpeed = speed;

@@ -163,6 +163,10 @@ public class BuddahHandControl : NetworkBehaviour
     private void Awake()
     {
         animator = GetComponentInChildren<Animator>(true);
+        // Skill/HandPush owns the push numbers; prefab values stay as fallback.
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.handPushes, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.handPushes, null));
 
         if (useGeneratedInputActions)
         {

@@ -200,6 +200,10 @@ namespace SteamMultiplayer.Network
         {
             base.OnStartServer();
             Instance = this;
+            // Match/ModeRule owns the pregame countdown.
+            ModeRuleRecord mode = DesignTableOverlay.CurrentModeRule();
+            if (mode != null && mode.pregameCountdownSeconds > 0)
+                _pregameCountdownSeconds = mode.pregameCountdownSeconds;
 
             if (InstanceFinder.ServerManager != null)
             {

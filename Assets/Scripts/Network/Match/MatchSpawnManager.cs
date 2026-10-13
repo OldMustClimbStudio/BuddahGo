@@ -23,6 +23,23 @@ namespace SteamMultiplayer.Network.Match
         private void Awake()
         {
             CacheSpawnPointsIfNeeded();
+            ApplyTrackSpawnTable();
+        }
+
+        // Match/TrackSpawn owns the spawn transforms (world position, Y rotation) for the current track.
+        private void ApplyTrackSpawnTable()
+        {
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null || db.trackSpawns == null || _spawnPoints == null)
+                return;
+            string trackId = DesignTableOverlay.CurrentTrackId();
+            for (int i = 0; i < db.trackSpawns.Count; i++)
+            {
+                TrackSpawnRecord row = db.trackSpawns[i];
+                if (row == null || row.trackId != trackId || row.order < 0 || row.order >= _spawnPoints.Length || _spawnPoints[row.order] == null)
+                    continue;
+                _spawnPoints[row.order].transform.SetPositionAndRotation(row.position, Quaternion.Euler(0f, row.rotationY, 0f));
+            }
         }
 
         private void OnEnable()
@@ -132,7 +149,7 @@ namespace SteamMultiplayer.Network.Match
             var identity = playerInstance.GetComponent<RacerIdentity>();
             if (identity == null) throw new System.InvalidOperationException("Racer prefab requires RacerIdentity.");
             identity.AssignBeforeSpawn(RacerId.FromClient(conn.ClientId),
-                MatchRules.Current.IsSolo ? MatchRules.Current.DefaultPlayerName : "Player " + conn.ClientId);
+                MatchRules.Current.IsSolo ? MatchRules.Current.DefaultPlayerName : DesignTableOverlay.Text("racer.online_human_prefix", "Player ") + conn.ClientId);
             InstanceFinder.ServerManager.Spawn(playerInstance, conn);
             ApplyResolvedSkillLoadout(playerInstance, conn.ClientId);
             _spawnedPlayers[conn.ClientId] = playerInstance;
@@ -162,8 +179,8 @@ namespace SteamMultiplayer.Network.Match
                 var caster = racer.GetComponent<BuddahGo.AI.AISkillCaster>();
                 if (identity == null || driver == null || loadout == null || caster == null)
                     throw new System.InvalidOperationException("Racer prefab requires RacerIdentity, a loadout, driver and skill caster.");
-                var personality = skills.Personalities[index];
-                identity.AssignBeforeSpawn(RacerId.ForAI(index), index < settings.AINames.Count ? settings.AINames[index] : personality.DisplayName);
+                var personality = ResolveRosterPersonality(skills, index);
+                identity.AssignBeforeSpawn(RacerId.ForAI(index), index < settings.AINames.Count ? settings.AINames[index] : ResolveRosterName(index, personality.DisplayName));
                 racer.name = "AI Racer " + (index + 1);
                 driver.AdoptProfile(BuddahGo.AI.AIDifficultyProfiles.Resolve(settings.Difficulty, index));
                 InstanceFinder.ServerManager.Spawn(racer); // Empty owner, never a synthetic client.
@@ -191,6 +208,26 @@ namespace SteamMultiplayer.Network.Match
             }
 
             _spawnedPlayers.Remove(clientId);
+        }
+
+        // AI/Roster maps AI slot → personality (and an optional display-name override); JSON order is the fallback.
+        private static BuddahGo.AI.AISkillPersonality ResolveRosterPersonality(BuddahGo.AI.AISkillCatalog skills, int index)
+        {
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            RosterRecord slot = db != null ? DesignTableOverlay.Single(db.rosters, r => r.slotIndex == index) : null;
+            if (slot != null && !string.IsNullOrEmpty(slot.personalityId))
+            {
+                foreach (var personality in skills.Personalities)
+                    if (personality.Id == slot.personalityId) return personality;
+            }
+            return skills.Personalities[index];
+        }
+
+        private static string ResolveRosterName(int index, string fallback)
+        {
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            RosterRecord slot = db != null ? DesignTableOverlay.Single(db.rosters, r => r.slotIndex == index) : null;
+            return slot != null && !string.IsNullOrEmpty(slot.displayNameOverrideKey) ? DesignTableOverlay.Text(slot.displayNameOverrideKey, fallback) : fallback;
         }
 
         private Transform GetSpawnPoint(int spawnIndex)

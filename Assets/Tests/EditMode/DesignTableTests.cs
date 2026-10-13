@@ -144,6 +144,72 @@ namespace BuddahGo.Tests
         }
 
         [Test]
+        public void RemapSet_FollowsChangedWorkbooksAndReferences()
+        {
+            DesignTableSet set = DesignTableSet.Load();
+            HashSet<string> all = DesignTableExporter.ComputeRemapSet(set, null, null);
+            Assert.AreEqual(set.ExportTargets.Count, all.Count, "null = every exported sheet");
+
+            HashSet<string> uiOnly = DesignTableExporter.ComputeRemapSet(set, new HashSet<string> { "UI" }, null);
+            Assert.IsTrue(uiOnly.Contains("UI/Text"));
+            Assert.IsTrue(uiOnly.Contains("Skill/SkillDefinition"), "SkillDefinition references UI/Text, so a UI change re-maps it");
+            Assert.IsTrue(uiOnly.Contains("Match/ModeRule"), "ModeRule references UI/Text");
+            Assert.IsFalse(uiOnly.Contains("Movement/MovementBase"), "MovementBase does not depend on UI");
+            Assert.IsFalse(uiOnly.Contains("AI/DrivingTier"));
+
+            HashSet<string> aiBalance = DesignTableExporter.ComputeRemapSet(set, null, new HashSet<string> { "ai" });
+            Assert.IsTrue(aiBalance.Contains("AI/DrivingTier"));
+            Assert.IsFalse(aiBalance.Contains("Skill/SkillBalance"));
+
+            HashSet<string> trackChanged = DesignTableExporter.ComputeRemapSet(set, new HashSet<string> { "Match" }, new HashSet<string> { "track" });
+            Assert.IsTrue(trackChanged.Contains("Match/TrackSpawn"));
+            Assert.IsTrue(trackChanged.Contains("Movement/LapRule"), "LapRule references Match/Track and carries the track tag");
+            Assert.IsFalse(trackChanged.Contains("Match/Lobby"), "Lobby lacks the track tag");
+        }
+
+        [Test]
+        public void ImportState_DetectsUnchangedAndChangedWorkbooks()
+        {
+            DesignTableSet set = DesignTableSet.Load();
+            DesignTableImportState state = new DesignTableImportState();
+            HashSet<string> first = state.ChangedWorkbooks(set, out Dictionary<string, string> hashes);
+            Assert.AreEqual(set.WorkbookPaths.Count, first.Count, "nothing recorded yet → everything changed");
+            foreach (KeyValuePair<string, string> kv in hashes)
+                state.Hashes[kv.Key] = kv.Value;
+            HashSet<string> second = state.ChangedWorkbooks(set, out _);
+            Assert.AreEqual(0, second.Count, "same bytes → no change");
+            state.Hashes["Skill"] = "stale";
+            HashSet<string> third = state.ChangedWorkbooks(set, out _);
+            Assert.AreEqual(1, third.Count);
+            Assert.IsTrue(third.Contains("Skill"));
+        }
+
+        [Test]
+        public void Exporter_NothingChangedSkipsWhenHashesMatch()
+        {
+            // Dry run with Force so the result carries a database; then verify the no-change path reports NothingChanged.
+            DesignTableSet set = DesignTableSet.Load();
+            DesignTableImportState state = DesignTableImportState.Load();
+            Dictionary<string, string> saved = new Dictionary<string, string>(state.Hashes);
+            try
+            {
+                state.ChangedWorkbooks(set, out Dictionary<string, string> hashes);
+                state.Hashes.Clear();
+                foreach (KeyValuePair<string, string> kv in hashes) state.Hashes[kv.Key] = kv.Value;
+                state.Save();
+                DesignTableExporter.Result result = DesignTableExporter.Run(new DesignTableExporter.Options { DryRun = true, Log = false });
+                Assert.IsTrue(result.NothingChanged || !File.Exists(DesignTableExporter.JsonPath), "all hashes recorded → nothing to re-map");
+                if (result.Database != null) Object.DestroyImmediate(result.Database);
+            }
+            finally
+            {
+                state.Hashes.Clear();
+                foreach (KeyValuePair<string, string> kv in saved) state.Hashes[kv.Key] = kv.Value;
+                state.Save();
+            }
+        }
+
+        [Test]
         public void LocalizedTextRepository_FallsBackToKey()
         {
             ProjectConfigDatabase db = ScriptableObject.CreateInstance<ProjectConfigDatabase>();

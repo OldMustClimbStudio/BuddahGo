@@ -42,7 +42,7 @@ public class SkillExecutor : NetworkBehaviour
     public event Action<CastEvent> ServerCastChanged;
     public event Action ActiveEffectsReset;
     public bool HasPendingCast => _pendingCast != null;
-    public float ConfirmationSeconds => CastConfirmDelaySeconds;
+    public float ConfirmationSeconds => DesignTableOverlay.GlobalFloat("cast_confirm_delay_seconds", CastConfirmDelaySeconds);
     private Coroutine _pendingCast;
     private int _pendingSlot = -1;
     private string _pendingSkillId;
@@ -343,10 +343,21 @@ public class SkillExecutor : NetworkBehaviour
         }
     }
 
+    // Skill/SkillBalance.castConfirmDelaySeconds per executed skill; anti casts fall back to the global rule.
+    private static float ResolveCastConfirmDelay(string executedSkillId, bool isAnti)
+    {
+        if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository skills)
+            && skills.TryGetBalance(executedSkillId, out SkillBalanceRecord balance) && balance.castConfirmDelaySeconds > 0f)
+            return balance.castConfirmDelaySeconds;
+        return isAnti
+            ? DesignTableOverlay.GlobalFloat("anti_cast_confirm_delay_seconds", AntiCastConfirmDelaySeconds)
+            : DesignTableOverlay.GlobalFloat("cast_confirm_delay_seconds", CastConfirmDelaySeconds);
+    }
+
     private void QueueCast(int slotIndex, string skillId, SkillAction skill, float now,
         bool isAnti, SkillAction executedSkill, string executedSkillId)
     {
-        float castDelaySeconds = isAnti ? AntiCastConfirmDelaySeconds : CastConfirmDelaySeconds;
+        float castDelaySeconds = ResolveCastConfirmDelay(executedSkillId, isAnti);
         float triggerAt = now + castDelaySeconds;
 
         float resolvedCastLockSeconds = database != null ? database.GetCastLockSeconds(executedSkillId, executedSkill) : executedSkill.castLockSeconds;

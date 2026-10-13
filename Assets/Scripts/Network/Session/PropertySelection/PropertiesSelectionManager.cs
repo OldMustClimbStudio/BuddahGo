@@ -99,6 +99,10 @@ namespace SteamMultiplayer.Network
 
         private void Awake()
         {
+            // Match/ModeRule owns the selection stage duration.
+            ModeRuleRecord mode = DesignTableOverlay.CurrentModeRule();
+            if (mode != null && mode.selectionStageSeconds > 0)
+                _stageDurationSeconds = mode.selectionStageSeconds;
             if (Instance != null && Instance != this)
             {
                 LogDebug("Duplicate PropertiesSelectionManager detected; destroying duplicate instance.");
@@ -1122,6 +1126,8 @@ namespace SteamMultiplayer.Network
 
         private static SelectablePropertyDefinition CreateDefaultMapProperty()
         {
+            if (TryCreateStageFromTables(MapStageKey, "Map Selection", PropertySelectionMode.Vote, out SelectablePropertyDefinition configured))
+                return configured;
             return SelectablePropertyDefinition.Create(MapStageKey, "Map Selection", PropertySelectionMode.Vote,
                 SelectablePropertyOption.Create(MapStageKey, "Map_A", "Map A", "Default placeholder map A."),
                 SelectablePropertyOption.Create(MapStageKey, "Map_B", "Map B", "Default placeholder map B."),
@@ -1130,10 +1136,41 @@ namespace SteamMultiplayer.Network
 
         private static SelectablePropertyDefinition CreateDefaultSkinProperty()
         {
+            if (TryCreateStageFromTables(SkinStageKey, "Skin Selection", PropertySelectionMode.Single, out SelectablePropertyDefinition configured))
+                return configured;
             return SelectablePropertyDefinition.Create(SkinStageKey, "Skin Selection", PropertySelectionMode.Single,
                 SelectablePropertyOption.Create(SkinStageKey, "Skin_A", "Skin A", "Default placeholder skin A."),
                 SelectablePropertyOption.Create(SkinStageKey, "Skin_B", "Skin B", "Default placeholder skin B."),
                 SelectablePropertyOption.Create(SkinStageKey, "Skin_C", "Skin C", "Default placeholder skin C."));
+        }
+
+        // Match/SelectionStage + Match/SelectionOption own stage names and option lists; false when the tables have no rows.
+        private static bool TryCreateStageFromTables(string stageKey, string fallbackName, PropertySelectionMode fallbackMode, out SelectablePropertyDefinition definition)
+        {
+            definition = default;
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null)
+                return false;
+            SelectionStageRecord stage = DesignTableOverlay.Single(db.selectionStages, s => s.stageKey == stageKey);
+            if (stage == null)
+                return false;
+            List<SelectablePropertyOption> options = new List<SelectablePropertyOption>();
+            if (db.selectionOptions != null)
+            {
+                for (int i = 0; i < db.selectionOptions.Count; i++)
+                {
+                    SelectionOptionRecord option = db.selectionOptions[i];
+                    if (option == null || option.stageKey != stageKey)
+                        continue;
+                    options.Add(SelectablePropertyOption.Create(stageKey, option.optionId,
+                        DesignTableOverlay.Text(option.displayNameKey, option.optionId), DesignTableOverlay.Text(option.descriptionKey, string.Empty)));
+                }
+            }
+            if (options.Count == 0)
+                return false;
+            PropertySelectionMode mode = System.Enum.TryParse(stage.selectionMode, true, out PropertySelectionMode parsed) ? parsed : fallbackMode;
+            definition = SelectablePropertyDefinition.Create(stageKey, DesignTableOverlay.Text(stage.displayNameKey, fallbackName), mode, options.ToArray());
+            return true;
         }
 
         private void LogDebug(string message)

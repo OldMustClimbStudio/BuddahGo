@@ -180,6 +180,15 @@ namespace SteamMultiplayer.Network
         // ── Unity Lifecycle ────────────────────────────────────────────────────
         private void Awake()
         {
+            // Match/Lobby owns the lobby defaults.
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            LobbyRecord lobby = db != null ? DesignTableOverlay.Single(db.lobbies, null) : null;
+            if (lobby != null)
+            {
+                _defaultMaxPlayers = Mathf.Clamp(lobby.maxPlayers, 2, 6);
+                _defaultLobbyName = DesignTableOverlay.Text(lobby.defaultLobbyNameKey, _defaultLobbyName);
+                _maxSearchResults = Mathf.Clamp(lobby.maxSearchResults, 1, 50);
+            }
             if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);

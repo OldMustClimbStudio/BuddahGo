@@ -27,7 +27,13 @@ namespace BuddahGo.DesignTables
             public string Sheet;
             public string RecordType;
             public string ListField;
+            /// <summary>Free-form tags from scope.json (e.g. skill, balance, text) used by the import tag filter.</summary>
+            public HashSet<string> Tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            public string Key => Workbook + "/" + Sheet;
         }
+
+        /// <summary>Workbook name → relative source path, for change detection.</summary>
+        public readonly Dictionary<string, string> WorkbookPaths = new Dictionary<string, string>(StringComparer.Ordinal);
 
         public static DesignTableSet Load(string projectRoot = null)
         {
@@ -47,6 +53,7 @@ namespace BuddahGo.DesignTables
                     continue;
                 string workbook = Path.GetFileNameWithoutExtension(workbookPath);
                 string relative = workbookPath.Substring(root.Length).TrimStart('\\', '/').Replace('\\', '/');
+                set.WorkbookPaths[workbook] = relative;
                 try
                 {
                     foreach (XlsxReader.Sheet raw in XlsxReader.Read(workbookPath))
@@ -118,8 +125,13 @@ namespace BuddahGo.DesignTables
                 string obj = json.Substring(pos, objEnd - pos);
                 string record = Extract(obj, "record");
                 string list = Extract(obj, "list");
+                string tags = Extract(obj, "tags") ?? string.Empty;
                 string[] parts = key.Split('/');
-                ExportTargets[key] = new ExportTarget { Workbook = parts[0], Sheet = parts[1], RecordType = record, ListField = list };
+                ExportTarget target = new ExportTarget { Workbook = parts[0], Sheet = parts[1], RecordType = record, ListField = list };
+                foreach (string tag in tags.Split(','))
+                    if (!string.IsNullOrWhiteSpace(tag)) target.Tags.Add(tag.Trim());
+                target.Tags.Add(parts[0]);
+                ExportTargets[key] = target;
                 pos = objEnd + 1;
             }
         }
@@ -152,6 +164,23 @@ namespace BuddahGo.DesignTables
         public bool IsExported(DesignSheet sheet)
         {
             return ExportTargets.ContainsKey(sheet.Workbook + "/" + sheet.Name);
+        }
+
+        /// <summary>Workbooks a sheet depends on through #ref columns (the sheet's own workbook included).</summary>
+        public HashSet<string> DependencyWorkbooks(DesignSheet sheet)
+        {
+            HashSet<string> result = new HashSet<string>(StringComparer.Ordinal) { sheet.Workbook };
+            foreach (ColumnSpec column in sheet.Columns)
+            {
+                TypeSpec type = column.Type;
+                while (type != null)
+                {
+                    if (!string.IsNullOrEmpty(type.RefSheet))
+                        result.Add(string.IsNullOrEmpty(type.RefWorkbook) ? sheet.Workbook : type.RefWorkbook);
+                    type = type.Element;
+                }
+            }
+            return result;
         }
 
         public HashSet<string> KeyValues(DesignSheet sheet, string field)

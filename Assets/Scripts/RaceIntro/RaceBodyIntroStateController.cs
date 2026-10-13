@@ -188,6 +188,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
     {
         ResolveReferences();
         AutoAssignMissingReferences();
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.launchHandoffs, null), "handoffLeadSeconds=defaultHandoffLeadTime");
     }
 
     private void OnValidate()

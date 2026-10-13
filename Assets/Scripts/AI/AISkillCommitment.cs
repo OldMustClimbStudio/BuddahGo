@@ -27,7 +27,7 @@ namespace BuddahGo.AI
         }
 
         public bool NextKey(uint tick, float delta, float minInterval, float maxInterval, float inputWindow,
-            float mistakeProbability, Random random, out ComboSkillInput.Token token)
+            float mistakeProbability, Random random, out ComboSkillInput.Token token, int maxRetries = 1)
         {
             token = default;
             if (!Active || Waiting || tick < _nextKey || tick >= Deadline) return false;
@@ -35,7 +35,7 @@ namespace BuddahGo.AI
             if (!_delayed && KeyIndex > 0 && random.NextDouble() < mistakeProbability)
             {
                 FailedCombos++;
-                if (Retries >= 1) { Cancel(); return false; }
+                if (Retries >= maxRetries) { Cancel(); return false; }
                 Retries++; KeyIndex = 0; _delayed = true;
                 _nextKey = tick + SecondsToTicks(inputWindow + delta, delta);
                 return false;

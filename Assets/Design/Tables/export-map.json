@@ -1,162 +1,202 @@
 {
  "Skill/SkillDefinition": {
   "record": "SkillDefinitionRecord",
-  "list": "skillDefinitions"
+  "list": "skillDefinitions",
+  "tags": "skill,info"
  },
  "Skill/SkillBalance": {
   "record": "SkillBalanceRecord",
-  "list": "skillBalances"
+  "list": "skillBalances",
+  "tags": "skill,balance"
  },
  "Skill/SkillEffectParam": {
   "record": "SkillEffectParamRecord",
-  "list": "skillEffectParams"
+  "list": "skillEffectParams",
+  "tags": "skill,balance"
  },
  "Skill/SkillSelectionRule": {
   "record": "SkillSelectionRuleRecord",
-  "list": "skillSelectionRules"
+  "list": "skillSelectionRules",
+  "tags": "skill,info"
  },
  "Skill/DefaultLoadout": {
   "record": "DefaultLoadoutRecord",
-  "list": "defaultLoadouts"
+  "list": "defaultLoadouts",
+  "tags": "skill,info"
  },
  "Skill/ComboBinding": {
   "record": "ComboBindingRecord",
-  "list": "comboBindings"
+  "list": "comboBindings",
+  "tags": "skill,info"
  },
  "Skill/HandPush": {
   "record": "HandPushRecord",
-  "list": "handPushes"
+  "list": "handPushes",
+  "tags": "skill,balance"
  },
  "Skill/Obsession": {
   "record": "ObsessionRecord",
-  "list": "obsessions"
+  "list": "obsessions",
+  "tags": "skill,balance"
  },
  "Movement/MovementBase": {
   "record": "MovementBaseRecord",
-  "list": "movementBases"
+  "list": "movementBases",
+  "tags": "movement,balance"
  },
  "Movement/PushReaction": {
   "record": "PushReactionRecord",
-  "list": "pushReactions"
+  "list": "pushReactions",
+  "tags": "movement,balance"
  },
  "Movement/ModifierRule": {
   "record": "ModifierRuleRecord",
-  "list": "modifierRules"
+  "list": "modifierRules",
+  "tags": "movement,info"
  },
  "Movement/LaunchHandoff": {
   "record": "LaunchHandoffRecord",
-  "list": "launchHandoffs"
+  "list": "launchHandoffs",
+  "tags": "movement,balance"
  },
  "Movement/RespawnRule": {
   "record": "RespawnRuleRecord",
-  "list": "respawnRules"
+  "list": "respawnRules",
+  "tags": "movement,balance"
  },
  "Movement/LapRule": {
   "record": "LapRuleRecord",
-  "list": "lapRules"
+  "list": "lapRules",
+  "tags": "movement,track,balance"
  },
  "Movement/WrongWayRule": {
   "record": "WrongWayRuleRecord",
-  "list": "wrongWayRules"
+  "list": "wrongWayRules",
+  "tags": "movement,track,balance"
  },
  "AI/DrivingTier": {
   "record": "DrivingTierRecord",
-  "list": "drivingTiers"
+  "list": "drivingTiers",
+  "tags": "ai,balance"
  },
  "AI/DrivingGlobal": {
   "record": "DrivingGlobalRecord",
-  "list": "drivingGlobals"
+  "list": "drivingGlobals",
+  "tags": "ai,balance"
  },
  "AI/SkillDifficulty": {
   "record": "SkillDifficultyRecord",
-  "list": "skillDifficulties"
+  "list": "skillDifficulties",
+  "tags": "ai,balance"
  },
  "AI/Personality": {
   "record": "PersonalityRecord",
-  "list": "personalities"
+  "list": "personalities",
+  "tags": "ai,balance"
  },
  "AI/PersonalitySkillWeight": {
   "record": "PersonalitySkillWeightRecord",
-  "list": "personalitySkillWeights"
+  "list": "personalitySkillWeights",
+  "tags": "ai,balance"
  },
  "AI/PersonalitySituationBias": {
   "record": "PersonalitySituationBiasRecord",
-  "list": "personalitySituationBiases"
+  "list": "personalitySituationBiases",
+  "tags": "ai,balance"
  },
  "AI/SkillOpportunity": {
   "record": "SkillOpportunityRecord",
-  "list": "skillOpportunities"
+  "list": "skillOpportunities",
+  "tags": "ai,balance"
  },
  "AI/SkillGlobal": {
   "record": "SkillGlobalRecord",
-  "list": "skillGlobals"
+  "list": "skillGlobals",
+  "tags": "ai,balance"
  },
  "AI/Roster": {
   "record": "RosterRecord",
-  "list": "rosters"
+  "list": "rosters",
+  "tags": "ai,info"
  },
  "Match/ModeRule": {
   "record": "ModeRuleRecord",
-  "list": "modeRules"
+  "list": "modeRules",
+  "tags": "match,info"
  },
  "Match/Track": {
   "record": "TrackRecord",
-  "list": "tracks"
+  "list": "tracks",
+  "tags": "match,track"
  },
  "Match/TrackSpawn": {
   "record": "TrackSpawnRecord",
-  "list": "trackSpawns"
+  "list": "trackSpawns",
+  "tags": "match,track"
  },
  "Match/TrackCheckpoint": {
   "record": "TrackCheckpointRecord",
-  "list": "trackCheckpoints"
+  "list": "trackCheckpoints",
+  "tags": "match,track"
  },
  "Match/TrackResultAnchor": {
   "record": "TrackResultAnchorRecord",
-  "list": "trackResultAnchors"
+  "list": "trackResultAnchors",
+  "tags": "match,track"
  },
  "Match/Lobby": {
   "record": "LobbyRecord",
-  "list": "lobbies"
+  "list": "lobbies",
+  "tags": "match,info"
  },
  "Match/ResultVoteRule": {
   "record": "ResultVoteRuleRecord",
-  "list": "resultVoteRules"
+  "list": "resultVoteRules",
+  "tags": "match,info"
  },
  "Match/SelectionStage": {
   "record": "SelectionStageRecord",
-  "list": "selectionStages"
+  "list": "selectionStages",
+  "tags": "match,info"
  },
  "Match/SelectionOption": {
   "record": "SelectionOptionRecord",
-  "list": "selectionOptions"
+  "list": "selectionOptions",
+  "tags": "match,info"
  },
  "Match/Intro": {
   "record": "IntroRecord",
-  "list": "intros"
+  "list": "intros",
+  "tags": "match,balance"
  },
  "Match/IntroLayout": {
   "record": "IntroLayoutRecord",
-  "list": "introLayouts"
+  "list": "introLayouts",
+  "tags": "match,info"
  },
  "Match/RacerNaming": {
   "record": "RacerNamingRecord",
-  "list": "racerNamings"
+  "list": "racerNamings",
+  "tags": "match,text"
  },
  "UI/Text": {
   "record": "LocalizedTextRecord",
-  "list": "localizedTexts"
+  "list": "localizedTexts",
+  "tags": "ui,text"
  },
  "UI/MenuOption": {
   "record": "MenuOptionRecord",
-  "list": "menuOptions"
+  "list": "menuOptions",
+  "tags": "ui,text"
  },
  "UI/SkillIcon": {
   "record": "SkillIconRecord",
-  "list": "skillIcons"
+  "list": "skillIcons",
+  "tags": "ui,info"
  },
  "Global/GlobalRule": {
   "record": "GlobalRuleRecord",
-  "list": "globalRules"
+  "list": "globalRules",
+  "tags": "global,balance"
  }
 }

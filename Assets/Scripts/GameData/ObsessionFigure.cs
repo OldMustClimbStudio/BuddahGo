@@ -52,6 +52,14 @@ public class ObsessionFigure : NetworkBehaviour
     public float CompletionGapToLeaderPercent => completionGapToLeaderPercent;
     public float ExtraRecoveryPerSecond => extraRecoveryPerSecond;
 
+    private void Awake()
+    {
+        // Skill/Obsession owns the obsession curve; prefab values stay as fallback.
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.obsessions, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.obsessions, null));
+    }
+
     public override void OnStartNetwork()
     {
         base.OnStartNetwork();

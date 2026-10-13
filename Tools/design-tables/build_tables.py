@@ -772,6 +772,7 @@ def build_global():
     rows = [{'ruleKey': r['ruleKey'], 'ruleSetId': r['ruleSetId'], 'ruleValue': fmt(r['ruleValue']), 'description': r['description'], 'valueType': 'float', 'consumer': 'ComboSkillInput.ApplyConfiguredGlobalRules'} for r in main['globalRules']]
     rows += [{'ruleKey': 'combo_max_buffer', 'ruleSetId': 'default', 'ruleValue': fmt(X.one(BP, 'ComboSkillInput')['maxBuffer']), 'description': '搓招输入缓冲长度', 'valueType': 'int', 'consumer': 'ComboSkillInput.maxBuffer（prefab）'},
              {'ruleKey': 'anti_cast_confirm_delay_seconds', 'ruleSetId': 'default', 'ruleValue': '1', 'description': '反噬施法前摇', 'valueType': 'float', 'consumer': 'SkillExecutor.cs:52'},
+             {'ruleKey': 'cast_confirm_delay_seconds', 'ruleSetId': 'default', 'ruleValue': '1', 'description': '普通技能施法前摇默认值；SkillBalance.castConfirmDelaySeconds 逐技能覆盖', 'valueType': 'float', 'consumer': 'SkillExecutor.ResolveCastConfirmDelay / ConfirmationSeconds'},
              {'ruleKey': 'target_frame_rate', 'ruleSetId': 'default', 'ruleValue': '120', 'description': '须为 tick_rate 整数倍', 'valueType': 'int', 'consumer': 'FrameRateLock.cs:9'}]
     sheet(WB, 'GlobalRule', cols, rows, 'GlobalRuleRecord', MAIN, '6 个未读取键已退役：圈数→Movement/LapRule，倒计时→Match/ModeRule，执念→Skill/Obsession')
 

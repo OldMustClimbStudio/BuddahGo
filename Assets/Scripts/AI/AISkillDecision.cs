@@ -56,7 +56,7 @@ namespace BuddahGo.AI
                 if (gap > 0f) { ahead = Mathf.Min(ahead, gap); anyoneAhead = true; }
                 else if (-gap < behind) { behind = -gap; pursued = other.AlongSpeed > self.AlongSpeed; }
             }
-            if (nearby >= 2) return AISkillSituation.Pack;
+            if (nearby >= tuning.PackMinNeighbours) return AISkillSituation.Pack;
             if (behind <= tuning.NearDistance && pursued && ahead > tuning.FarDistance) return AISkillSituation.Pursued;
             if (ahead <= tuning.FarDistance) return AISkillSituation.Chasing;
             return anyoneAhead ? AISkillSituation.TrailingAlone : AISkillSituation.LeadingAlone;
@@ -67,11 +67,11 @@ namespace BuddahGo.AI
         {
             ref var self = ref frame.Racers[selfIndex];
             if (!self.Available || self.Rooted) return default;
-            if (kind == AISkillKind.Reverse && frame.ReverseSeconds > 0f) return default;
-            if (kind == AISkillKind.Curtain && frame.CurtainSeconds > 0f) return default;
+            if (kind == AISkillKind.Reverse && frame.ReverseSeconds > 0f && tuning.BlockWhenGlobalVisible[(int)kind]) return default;
+            if (kind == AISkillKind.Curtain && frame.CurtainSeconds > 0f && tuning.BlockWhenGlobalVisible[(int)kind]) return default;
             if (kind == AISkillKind.Acceleration)
             {
-                if (self.Accelerating || self.StraightSeconds < 3f) return default;
+                if (self.Accelerating || self.StraightSeconds < tuning.AccelerationMinStraightSeconds) return default;
                 int target = SelectStateWindow(frame, selfIndex, tuning, preference, out float stateSeconds);
                 float validity = self.StraightSeconds;
                 return new AISkillOpportunity(self.StraightFraction, validity, target, stateSeconds > 0f, stateSeconds);
@@ -91,33 +91,34 @@ namespace BuddahGo.AI
                 switch (kind)
                 {
                     case AISkillKind.SlowTrap:
-                        if (gap >= 0f || -gap > tuning.TrapDistance || relative <= .1f || Mathf.Abs(self.Lateral - other.Lateral) > tuning.LaneWidth) continue;
-                        score = .3f + .7f * (1f + gap / tuning.TrapDistance);
-                        validity = Mathf.Min(6f, -gap / relative);
+                        if (gap >= 0f || -gap > tuning.TrapDistance || relative <= tuning.MinRelativeSpeed || Mathf.Abs(self.Lateral - other.Lateral) > tuning.LaneWidth) continue;
+                        score = tuning.TrapScoreBase + tuning.TrapScoreSlope * (1f + gap / tuning.TrapDistance);
+                        validity = Mathf.Min(tuning.TrapMaxValiditySeconds, -gap / relative);
                         break;
                     case AISkillKind.Giant:
-                        if (Mathf.Abs(gap) > tuning.ContactDistance || Vector3.Distance(self.Position, other.Position) > tuning.ContactDistance * 1.5f) continue;
-                        validity = WindowSeconds(gap, relative, -tuning.ContactDistance, tuning.ContactDistance);
-                        if (validity < 2f) continue;
+                        if (Mathf.Abs(gap) > tuning.ContactDistance || Vector3.Distance(self.Position, other.Position) > tuning.ContactDistance * tuning.GiantEuclidMultiplier) continue;
+                        validity = WindowSeconds(gap, relative, -tuning.ContactDistance, tuning.ContactDistance, tuning);
+                        if (validity < tuning.GiantMinValiditySeconds) continue;
                         contacts++;
                         contactValidity = Mathf.Max(contactValidity, validity);
-                        score = .5f;
+                        score = tuning.GiantScorePerContact;
                         break;
                     case AISkillKind.Hands:
                         if (gap <= 0f || gap > tuning.HandsDistance || other.PushProtected) continue;
                         Vector3 direction = other.Position - self.Position; direction.y = 0f;
-                        if (direction.sqrMagnitude > tuning.HandsDistance * tuning.HandsDistance * 2.25f) continue;
+                        float handsReach = tuning.HandsDistance * tuning.HandsEuclidMultiplier;
+                        if (direction.sqrMagnitude > handsReach * handsReach) continue;
                         float yaw = Vector3.SignedAngle(self.Forward, direction, Vector3.up);
-                        if (Mathf.Abs(yaw) > 110f || Mathf.Abs(Mathf.DeltaAngle(handYaw, yaw)) / Mathf.Max(1f, rotationSpeed) > tuning.AimHorizonSeconds) continue;
-                        score = (.35f + .65f * (1f - gap / tuning.HandsDistance)) * (1f - .5f * Mathf.Abs(yaw) / 180f);
-                        validity = WindowSeconds(gap, relative, 0f, tuning.HandsDistance);
+                        if (Mathf.Abs(yaw) > tuning.HandsMaxYawDegrees || Mathf.Abs(Mathf.DeltaAngle(handYaw, yaw)) / Mathf.Max(1f, rotationSpeed) > tuning.AimHorizonSeconds) continue;
+                        score = (tuning.HandsScoreBase + tuning.HandsScoreSlope * (1f - gap / tuning.HandsDistance)) * (1f - tuning.HandsYawPenalty * Mathf.Abs(yaw) / 180f);
+                        validity = WindowSeconds(gap, relative, 0f, tuning.HandsDistance, tuning);
                         break;
                     case AISkillKind.Reverse:
                     case AISkillKind.Curtain:
                         float distanceWeight = 1f / (1f + Mathf.Abs(gap) / tuning.FarDistance);
                         score = other.CornerFraction * distanceWeight;
-                        if (kind == AISkillKind.Curtain && Mathf.Abs(gap) < tuning.NearDistance) score += .25f;
-                        validity = Mathf.Max(2f, other.CornerSeconds);
+                        if (kind == AISkillKind.Curtain && Mathf.Abs(gap) < tuning.NearDistance) score += tuning.CurtainPackBonus;
+                        validity = Mathf.Max(tuning.ReverseMinValiditySeconds, other.CornerSeconds);
                         globalScore += score;
                         break;
                 }
@@ -129,7 +130,7 @@ namespace BuddahGo.AI
                 best = new AISkillOpportunity(score, validity, other.RacerId, impaired, other.ImpairedSecondsLeft);
             }
             if (kind == AISkillKind.Giant && contacts > 0)
-                return new AISkillOpportunity(Mathf.Min(1f, contacts * .5f), contactValidity, best.TargetId, best.ImpairedTarget);
+                return new AISkillOpportunity(Mathf.Min(1f, contacts * tuning.GiantScorePerContact), contactValidity, best.TargetId, best.ImpairedTarget);
             if (kind == AISkillKind.Reverse)
                 return new AISkillOpportunity(globalScore * self.StraightFraction, best.ValidSeconds, best.TargetId, best.ImpairedTarget);
             if (kind == AISkillKind.Curtain)
@@ -143,7 +144,7 @@ namespace BuddahGo.AI
         {
             if (opportunity.Score <= 0f || opportunity.ValidSeconds - opportunityAge < requiredSeconds) return float.NegativeInfinity;
             float severity = tuning.BacklashSeverity[(int)kind];
-            if (backlashProbability >= (severity >= .5f ? difficulty.SevereStopProbability : difficulty.MildStopProbability))
+            if (backlashProbability >= (severity >= tuning.SevereSeverityThreshold ? difficulty.SevereStopProbability : difficulty.MildStopProbability))
                 return float.NegativeInfinity;
             float value = personality.Weights[(int)kind] * opportunity.Score * personality.SituationBias[(int)situation] * noise;
             if ((kind == AISkillKind.Acceleration || kind == AISkillKind.Hands) && opportunity.ImpairedTarget
@@ -155,8 +156,8 @@ namespace BuddahGo.AI
         public static float CastProbability(float utility, float patience, float elapsed, float tempo)
             => 1f - Mathf.Exp(-Mathf.Max(0f, utility - patience) * Mathf.Max(0f, elapsed) / Mathf.Max(.01f, tempo));
 
-        private static float WindowSeconds(float gap, float relative, float min, float max)
-            => Mathf.Clamp(Mathf.Abs(relative) < .1f ? 6f : (relative > 0 ? max - gap : gap - min) / Mathf.Abs(relative), 0f, 6f);
+        private static float WindowSeconds(float gap, float relative, float min, float max, AISkillTuning tuning)
+            => Mathf.Clamp(Mathf.Abs(relative) < tuning.MinRelativeSpeed ? tuning.MaxWindowSeconds : (relative > 0 ? max - gap : gap - min) / Mathf.Abs(relative), 0f, tuning.MaxWindowSeconds);
 
         private static int SelectStateWindow(AISkillSnapshot frame, int selfIndex, AISkillTuning tuning,
             AITargetPreference preference, out float seconds)
@@ -181,13 +182,13 @@ namespace BuddahGo.AI
             ref var target = ref frame.Racers[index];
             float gap = target.Progress - frame.Racers[selfIndex].Progress;
             float score = 1f / (1f + Mathf.Abs(gap));
-            if (preference == AITargetPreference.Impaired && target.IsImpaired(tuning.SpeedDropFraction)) score += 2f;
-            if (preference == AITargetPreference.Ahead && gap > 0) score += 1f;
-            if (preference == AITargetPreference.Behind && gap < 0) score += 1f;
+            if (preference == AITargetPreference.Impaired && target.IsImpaired(tuning.SpeedDropFraction)) score += tuning.TargetBonusImpaired;
+            if (preference == AITargetPreference.Ahead && gap > 0) score += tuning.TargetBonusAhead;
+            if (preference == AITargetPreference.Behind && gap < 0) score += tuning.TargetBonusBehind;
             if (preference == AITargetPreference.EnteringCorner) score += target.CornerFraction;
             if (preference == AITargetPreference.PackCentre)
                 for (int i = 0; i < frame.Count; i++)
-                    if (i != index && frame.Racers[i].Available && Mathf.Abs(frame.Racers[i].Progress - target.Progress) < tuning.NearDistance) score += .25f;
+                    if (i != index && frame.Racers[i].Available && Mathf.Abs(frame.Racers[i].Progress - target.Progress) < tuning.NearDistance) score += tuning.TargetBonusPackCentrePerNeighbour;
             return score;
         }
     }

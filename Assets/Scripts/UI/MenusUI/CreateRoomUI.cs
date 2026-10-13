@@ -154,17 +154,47 @@ namespace SteamMultiplayer.UI
         {
             if (maxPlayersDropdown != null && maxPlayersDropdown.options.Count == 0)
             {
-                maxPlayersDropdown.AddOptions(new System.Collections.Generic.List<string> { "4", "5", "6" });
-                maxPlayersDropdown.value = 2;
+                if (!FillFromMenuOptionTable(maxPlayersDropdown, "max_players"))
+                {
+                    maxPlayersDropdown.AddOptions(new System.Collections.Generic.List<string> { "4", "5", "6" });
+                    maxPlayersDropdown.value = 2;
+                }
                 maxPlayersDropdown.RefreshShownValue();
             }
 
             if (visibilityDropdown != null && visibilityDropdown.options.Count == 0)
             {
-                visibilityDropdown.AddOptions(new System.Collections.Generic.List<string> { "Public", "Friends Only", "Private" });
-                visibilityDropdown.value = 0;
+                if (!FillFromMenuOptionTable(visibilityDropdown, "visibility"))
+                {
+                    visibilityDropdown.AddOptions(new System.Collections.Generic.List<string> { "Public", "Friends Only", "Private" });
+                    visibilityDropdown.value = 0;
+                }
                 visibilityDropdown.RefreshShownValue();
             }
+        }
+
+        // UI/MenuOption owns the dropdown option lists and defaults; returns false when the table has no rows for the group.
+        private static bool FillFromMenuOptionTable(TMP_Dropdown dropdown, string optionGroup)
+        {
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null || db.menuOptions == null)
+                return false;
+            System.Collections.Generic.List<string> labels = new System.Collections.Generic.List<string>();
+            int defaultIndex = 0;
+            for (int i = 0; i < db.menuOptions.Count; i++)
+            {
+                MenuOptionRecord option = db.menuOptions[i];
+                if (option == null || option.optionGroup != optionGroup)
+                    continue;
+                if (option.isDefault)
+                    defaultIndex = labels.Count;
+                labels.Add(DesignTableOverlay.Text(option.labelKey, option.value));
+            }
+            if (labels.Count == 0)
+                return false;
+            dropdown.AddOptions(labels);
+            dropdown.value = defaultIndex;
+            return true;
         }
 
         private void HandleBack()

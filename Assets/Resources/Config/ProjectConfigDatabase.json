@@ -883,6 +883,12 @@
             "ruleValue": "120",
             "ruleSetId": "default",
             "description": "须为 tick_rate 整数倍"
+        },
+        {
+            "ruleKey": "cast_confirm_delay_seconds",
+            "ruleValue": "1",
+            "ruleSetId": "default",
+            "description": "普通技能施法前摇默认值；SkillBalance.castConfirmDelaySeconds 逐技能覆盖"
         }
     ],
     "comboBindings": [

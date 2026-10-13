@@ -51,6 +51,14 @@ public class LapProgress : NetworkBehaviour
 
     private void Awake()
     {
+        // Movement/LapRule for the current track owns the lap/checkpoint rules.
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+        {
+            string trackId = DesignTableOverlay.CurrentTrackId();
+            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.lapRules, r => r.trackId == trackId) ?? DesignTableOverlay.Single(db.lapRules, null),
+                "crossCooldownSeconds=minimumCrossingCooldownSeconds", "armDistanceMeters=minimumWorldDistanceFromStartToArmLap");
+        }
         _tracker = GetComponent<SplineProgressTracker>();
         ResolveStartPointReference();
     }

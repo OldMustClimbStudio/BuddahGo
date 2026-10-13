@@ -65,6 +65,14 @@ public class IntroSequenceManager : NetworkBehaviour
     private IntroRuntimeState _clientRuntimeState = IntroRuntimeState.Idle;
     private IntroRuntimeState _serverRuntimeState = IntroRuntimeState.Idle;
 
+    private void Awake()
+    {
+        // Match/Intro owns the intro timings.
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.intros, null), "fallbackIntroDurationSeconds=fallbackIntroDuration");
+    }
+
     private void Start()
     {
         TryResolveRoomStateManager();

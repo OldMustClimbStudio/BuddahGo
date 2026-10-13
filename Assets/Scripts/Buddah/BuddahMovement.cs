@@ -72,6 +72,10 @@ public class BuddahMovement : NetworkBehaviour
     private void Awake()
     {
         PlayerRegistry.Register(this);
+        // Movement/LaunchHandoff owns the launch timings that the prediction handoff still reads from here.
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.launchHandoffs, null), "inheritSeconds=launchInheritTime", "blendSeconds=launchBlendTime");
         inputActions = new InputSystem_Actions();
         movementAction = inputActions.Player.Movement;
         _playerInputSource = new PlayerBuddahInputSource(movementAction);

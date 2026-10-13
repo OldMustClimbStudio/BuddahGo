@@ -10,6 +10,18 @@ namespace SteamMultiplayer.Network.Results
         public int SpawnOrderIndex => spawnOrderIndex;
         public string DebugLabel => debugLabel;
 
+        private void Awake()
+        {
+            // Match/TrackResultAnchor owns the anchor transforms (rank = spawnOrderIndex + 1); scene placement is the fallback.
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null)
+                return;
+            string trackId = DesignTableOverlay.CurrentTrackId();
+            TrackResultAnchorRecord row = DesignTableOverlay.Single(db.trackResultAnchors, r => r.trackId == trackId && r.rank == spawnOrderIndex + 1);
+            if (row != null)
+                transform.SetPositionAndRotation(row.position, Quaternion.Euler(0f, row.rotationY, 0f));
+        }
+
         private void OnDrawGizmos()
         {
             Gizmos.color = Color.yellow;

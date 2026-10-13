@@ -94,6 +94,7 @@ out.append('')
 open(os.path.join(ROOT, 'Assets', 'Scripts', 'Config', 'Definitions', 'ProjectConfigDatabase.Generated.cs'), 'w', encoding='utf-8', newline='\n').write('\n'.join(out))
 
 # sheet -> (record, list) map consumed by the exporter
-mp = {f'{wb}/{sheet}': {'record': rec, 'list': ln} for wb, sheet, rec, ln in lists}
+TAGS = scope.get('tags', {})
+mp = {f'{wb}/{sheet}': {'record': rec, 'list': ln, 'tags': ','.join(TAGS.get(f'{wb}/{sheet}', [wb.lower()]))} for wb, sheet, rec, ln in lists}
 json.dump(mp, open(os.path.join(TABLES, 'export-map.json'), 'w', encoding='utf-8'), indent=1, ensure_ascii=False)
 print('records', len(records), 'lists', len(lists))

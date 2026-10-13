@@ -54,6 +54,13 @@ public class RaceCompletionTracker : NetworkBehaviour
 
     private void Awake()
     {
+        // Movement/WrongWayRule for the current track owns the wrong-way thresholds.
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+        {
+            string trackId = DesignTableOverlay.CurrentTrackId();
+            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.wrongWayRules, r => r.trackId == trackId) ?? DesignTableOverlay.Single(db.wrongWayRules, null));
+        }
         ResolveDependencies();
     }
 

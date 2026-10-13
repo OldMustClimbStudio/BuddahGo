@@ -1,4 +1,4 @@
-# BuddahGo 策划配表 Excel 结构规范（v0.4，导出器已实现）
+# BuddahGo 策划配表 Excel 结构规范（v0.5，消费方已接通，分层导入）
 
 日期 2026-10-12。依据 [decisions.md](decisions.md)：沿用 `ProjectConfigDatabase`，源表放仓库内，先定结构。本稿是结构定稿前的草案，带「待同步」标记的条目未经用户确认不进入实现。
 
@@ -146,11 +146,46 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 
 | 入口 | 位置 | 说明 |
 |---|---|---|
-| 自动 | `DesignTablePostprocessor` | 默认开启；菜单 `Tools/Design Tables/Auto Import On Save` 可关 |
-| 菜单 | `Tools/Design Tables/Import All` / `Validate Only` / `Open Report` / `Open Tables Folder` | 手动导入与校验 |
-| CLI | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit` | 退出码 0/1，供 pre-commit 与 CI；`ValidateOnly` 只校验 |
-| 记录类生成 | `python Tools/design-tables/gen_records.py .` | 表头改动（加列/改类型）后运行，再让 Unity 重新编译 |
+| 自动 | `DesignTablePostprocessor` | 保存工作簿后 0.5 s 内触发，只重映射保存的工作簿及其依赖方；菜单 `Tools/Design Tables/Auto Import On Save` 可关 |
+| 菜单 | `Tools/Design Tables/Import Changed` | 按文件哈希只导入变化的工作簿（日常用） |
+| 菜单 | `Import All (Force)` / `Validate Only` / `Open Report` / `Open Tables Folder` | 全量导入、只校验、打开报告与目录 |
+| 菜单 | `Import Tag/balance|info|text|track|skill|movement|ai|match|ui|global` | 只推送带该 tag 的 sheet（忽略哈希） |
+| CLI | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit [-designForce] [-designTags skill,ai]` | 退出码 0/1；不带参数时按哈希增量导入；`ValidateOnly` 只校验 |
+| 记录类生成 | `python Tools/design-tables/gen_records.py .` | 表头或 `scope.json`（范围、tags）改动后运行，再让 Unity 重新编译 |
 | 基线重建 | `python Tools/design-tables/build_tables.py . <out>` | 从工程实际值反向生成工作簿，仅建基线用 |
+
+### 6.1 分层导入规则
+1. 校验总是覆盖全部 sheet（跨表外键需要完整数据），开销很小。
+2. 变化判定：每本工作簿的 SHA1 与 `Library/DesignTables/import-state.txt` 比较（每台机器各自记录，不提交）；AssetPostprocessor 另外把本次保存的工作簿名直接传入。
+3. 重映射集合 = 变化工作簿内的导出 sheet ∪ 通过 `#ref` 引用了变化工作簿的 sheet（例如改了 `UI/Text`，`Skill/SkillDefinition` 与 `Match/ModeRule` 会跟着重映射）∩ tag 过滤。其余列表从当前 `ProjectConfigDatabase_Main.asset` 原样复制。
+4. 没有任何变化时直接返回"nothing changed"，不写任何产物。
+5. 产物写入成功后才更新哈希；带 tag 的局部导入只对"该工作簿全部导出 sheet 都已重映射"的工作簿更新哈希，避免遗漏其它层。
+6. CSV 镜像只重写被重映射 sheet 所在工作簿的文件。
+
+### 6.2 tag 约定（`scope.json` → `export-map.json`）
+每张导出 sheet 自动带所属域名（skill / movement / ai / match / ui / global），再加一个性质标签：`balance`（数值平衡）、`info`（规则与映射信息）、`text`（文案）、`track`（随赛道）。匹配任一 tag 即入选。新增 sheet 时在 `scope.json` 的 `tags` 里登记，否则只带域名。
+
+### 6.3 消费方接通（2026-10-13）
+运行时通过 `DesignTableOverlay`（`Assets/Scripts/Config/Runtime/`）把记录覆盖到现有组件字段，prefab/SO/JSON 值仅在表无行时生效：
+
+| 表 | 消费方 |
+|---|---|
+| SkillDefinition / SkillBalance / SkillSelectionRule / DefaultLoadout / GlobalRule | 原有仓库；SkillBalance.castConfirmDelaySeconds 与 GlobalRule cast_confirm_delay_seconds / anti_cast_confirm_delay_seconds 由 SkillExecutor 读取；combo_max_buffer 由 ComboSkillInput 读取；target_frame_rate 由 FrameRateLock 读取 |
+| SkillEffectParam | SkillDatabase 在运行时按 paramKey 反射写入各技能 SO（仅 Play 模式） |
+| ComboBinding / HandPush / Obsession | ComboSkillInput / BuddahHandControl / ObsessionFigure |
+| MovementBase / PushReaction / LaunchHandoff | BuddahPredictedMotorConfig（含 Rigidbody 质量阻尼）、BuddahMovement 起跑时序、RaceBodyIntroStateController |
+| RespawnRule / LapRule / WrongWayRule | BuddahRespawn、LapProgress、RaceCompletionTracker、RaceFinishManager（圈数） |
+| DrivingTier / DrivingGlobal | AIDifficultyProfiles.Resolve（档位覆盖、速度 clamp、ThrustVectorPlanner 恢复阈值） |
+| SkillDifficulty / Personality / PersonalitySkillWeight / PersonalitySituationBias / SkillOpportunity / SkillGlobal | AISkillCatalog.ApplyDesignTables；谓词常量进入 AISkillTuning 字段并替换了 AISkillDecision / AISkillWorld / AISkillCaster / AISkillCommitment 的字面量 |
+| Roster | MatchSpawnManager 按槽位取人格与名字 |
+| ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、PropertiesSelectionManager、ResultDecisionManager、RaceFinishManager；aiCount 由 SoloSetupPanel 读取 |
+| Track / TrackSpawn / TrackCheckpoint / TrackResultAnchor | MiniMapController 边界、RaceResultAreaManager 偏移；MatchSpawnManager、Checkpoint、EndFieldSpawnPoint 在 Awake 把场景物体移到表中世界坐标 |
+| Lobby | SteamLobbyManager 默认值、SessionLauncher 超时 |
+| SelectionStage / SelectionOption | PropertiesSelectionManager 构建地图/皮肤阶段 |
+| Intro | IntroSequenceManager |
+| RacerNaming / Text / MenuOption | RacerIdentity、MatchSpawnManager、CreateRoomUI 下拉框；文案经 `ProjectConfigRuntime.Texts` |
+
+未接通（结构性，表中为说明）：ModifierRule 的叠加策略与下限、ResultVoteRule 的法定规则、RespawnRule 的 teleport 标志、IntroLayout、SkillIcon（资源引用留在 prefab）、`ui.<class>.<slug>` 自动 key 的 UI 字面量（待策划定稿 key 后再替换）。
 
 - 文案桥接：列名以 `Key` 结尾且引用 `UI/Text` 时，若记录类只有去掉 `Key` 的字段（如 `SkillDefinitionRecord.displayName`），导出器把 key 解析成 zh 文本写入，运行时读法不变；生成的记录类保留 `*Key` 字段，消费方通过 `ProjectConfigRuntime.Texts.Get(key)` 取文本。
 - 枚举列在记录类里是 `string`，由 `__enums__` 校验，避免为每个表新增 C# 枚举；需要强类型时在消费方解析。

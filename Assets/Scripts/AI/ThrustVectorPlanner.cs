@@ -23,7 +23,8 @@ namespace BuddahGo.AI
         private static readonly float[] FixedCandidates = { 0f, 30f, -30f, 60f, -60f, 90f, -90f, 120f, -120f, 170f, -170f };
         private static readonly float[] AnchorOffsets = { 5f, -5f, 10f, -10f };
         // Thresholds shared by Plan and the rollouts. Angles in degrees unless the name says otherwise.
-        private const float RecoverySpeed = 5f, RecoveryVelocityErrorDegrees = 90f;   // standstill or backwards: thrust along the route
+        // standstill or backwards: thrust along the route. AI/DrivingGlobal overrides these when rows exist (AIDifficultyProfiles).
+        internal static float RecoverySpeed = 5f, RecoveryVelocityErrorDegrees = 90f;
         private const float SideSwitchLateral = 3f, HoldLateral = 18f;                // lateral demand (m/s^2) that flips the side / holds speed
         private const float TopSpeed = 79f, TopPace = 78f;                            // at the speed cap the anchor always accelerates
         private const float MinBrakeAngleDegrees = 120f, MaxTargetDegrees = 178f;

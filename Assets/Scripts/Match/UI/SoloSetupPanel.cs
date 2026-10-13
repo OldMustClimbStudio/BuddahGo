@@ -84,7 +84,10 @@ namespace SteamMultiplayer.UI
             if (session == null) { _status.text = "初始化尚未完成，请稍后重试。"; return; }
             PlayerPrefs.SetInt(DifficultyKey, (int)_difficulty);
             PlayerPrefs.Save();
-            if (!session.StartSoloHost(new SoloMatchSettings(RacerId.MaxAI, _difficulty)))
+            // Match/ModeRule (Solo) owns the AI count; RacerId.MaxAI is the fallback and the upper bound.
+            ModeRuleRecord solo = DesignTableOverlay.ModeRule("Solo");
+            int aiCount = solo != null ? Mathf.Clamp(solo.aiCount, 0, RacerId.MaxAI) : RacerId.MaxAI;
+            if (!session.StartSoloHost(new SoloMatchSettings(aiCount, _difficulty)))
             {
                 _status.text = string.IsNullOrEmpty(session.LastError) ? "启动失败，请重试。" : session.LastError;
                 return;

@@ -239,6 +239,25 @@ public class SkillDatabase : ScriptableObject
         AddListToLookup(normalSkills, "normalSkills");
         AddListToLookup(antiSkills, "antiSkills");
         AddListToLookup(skills, "skills");
+        if (Application.isPlaying)
+            ApplyEffectParamsFromConfig();
+    }
+
+    // Design tables (Skill/SkillEffectParam) own the effect numbers; the SO fields are only the editor-time fallback.
+    // Applied in play mode only so edit-mode validation can still compare SO values against the tables.
+    private void ApplyEffectParamsFromConfig()
+    {
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db == null || db.skillEffectParams == null)
+            return;
+
+        for (int i = 0; i < db.skillEffectParams.Count; i++)
+        {
+            SkillEffectParamRecord record = db.skillEffectParams[i];
+            if (record == null || string.IsNullOrEmpty(record.skillId) || !_byId.TryGetValue(record.skillId, out SkillAction skill) || skill == null)
+                continue;
+            DesignTableOverlay.TrySetField(skill, record.paramKey, record.paramValue);
+        }
     }
 
     private void AddListToLookup(List<SkillAction> list, string listName)

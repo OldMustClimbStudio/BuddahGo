@@ -3,8 +3,32 @@ using UnityEngine;
 namespace NewBuddah.PredictionV2.Config
 {
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(-50)] // Apply table values before the motor caches base mass / reads the config.
     public class BuddahPredictedMotorConfig : MonoBehaviour
     {
+        private void Awake()
+        {
+            // Movement/MovementBase, Movement/PushReaction (MeleePush row) and Movement/LaunchHandoff own these numbers.
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null)
+                return;
+            MovementBaseRecord movement = DesignTableOverlay.Single(db.movementBases, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.movementBases, null);
+            if (movement != null)
+            {
+                DesignTableOverlay.Apply(this, movement);
+                Rigidbody body = GetComponent<Rigidbody>();
+                if (body != null)
+                {
+                    body.mass = movement.mass;
+                    body.drag = movement.linearDrag;
+                    body.angularDrag = movement.angularDrag;
+                    body.maxAngularVelocity = movement.maxAngularVelocity;
+                }
+            }
+            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.pushReactions, r => r.impulseSource == "MeleePush"), "graceSeconds=pushGraceSeconds", "extraMaxSpeed=pushExtraMaxSpeed");
+            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.launchHandoffs, null), "groundSnapMaxDistance=handoffGroundSnapMaxDistance", "groundProbeHeight=handoffGroundProbeHeight");
+        }
+
         [Header("Stage 1 Locomotion")]
         [SerializeField] private float forwardForce = 50f;
         [SerializeField] private float turnTorque = 30f;

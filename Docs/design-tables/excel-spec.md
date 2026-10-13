@@ -1,4 +1,4 @@
-# BuddahGo 策划配表 Excel 结构规范（草案 v0.1）
+# BuddahGo 策划配表 Excel 结构规范（草案 v0.2）
 
 日期 2026-10-12。依据 [decisions.md](decisions.md)：沿用 `ProjectConfigDatabase`，源表放仓库内，先定结构。本稿是结构定稿前的草案，带「待同步」标记的条目未经用户确认不进入实现。
 
@@ -208,12 +208,12 @@ Assets/Plugins/ExcelDataReader/                       ExcelDataReader + ExcelDat
 按决定 4，以下内容未经确认不实现。
 
 **结构类**
-1. 工作簿按域拆 6 本（本稿）还是单本多 sheet？拆分影响责任人与合并冲突。
-2. xlsx 放 `Assets/Design/Tables/`（Unity 自动触发导入，推荐）还是仓库根 `Design/Tables/`（需自建文件监视）？
+1. ~~工作簿划分~~ 已定：按域拆 6 本（decisions 5）。
+2. ~~源表位置~~ 已定：`Assets/Design/Tables/`（decisions 6）。
 3. AnimationCurve（FOV、fade、move 曲线）：预设曲线 id 表（`curve`）还是留在 prefab 不入表？
-4. 文案：`SkillDefinition.displayName/description` 改为 key 引用 `UIText/Text`，还是保留中文列？本地化是否只做 zh/en 两列？
+4. ~~文案方案~~ 已定：key 引用 + UIText zh/en（decisions 7）。待定子项：字体子集重烘是否纳入导表流程。
 5. `ruleSetId / modeTag / mapTag` 三列在 Excel 中保留（允许留空）还是隐藏？
-6. 校验失败是否要回写标红到源 xlsx（需额外 Python openpyxl 工具，有损坏风险）？本稿默认只出报告。
+6. ~~校验回写~~ 已定：只出报告（decisions 8）。
 7. `_reports/validation.md` 是否提交到仓库？
 
 **是否入表类**（筛查清单中标记为"偏工程"或"规则"的内容）

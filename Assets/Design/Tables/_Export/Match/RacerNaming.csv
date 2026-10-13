@@ -1,9 +1,0 @@
-##var,key,value,source
-##type,string#key,string,string
-##group,,,doc
-##comment,,,
-,aiFallbackNamePrefixKey,racer.ai_fallback_prefix,RacerIdentity.cs:23
-,humanFallbackNameKey,racer.human_fallback,RacerIdentity.cs:23
-,onlineHumanNamePrefixKey,racer.online_human_prefix,MatchSpawnManager.cs:135
-,aiGameObjectNamePrefix,AI Racer ,MatchSpawnManager.cs:167（非显示）
-,defaultDifficulty,Normal,SoloSetupPanel.cs:23

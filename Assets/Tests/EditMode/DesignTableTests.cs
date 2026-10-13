@@ -147,6 +147,9 @@ namespace BuddahGo.Tests
                 Assert.AreEqual(4, db.comboBindings[2].sequence.Count);
                 Assert.AreEqual(1000f, db.obsessions[0].maxValue);
                 Assert.AreEqual(3, db.modeRules.Count);
+                Assert.AreEqual("Normal", db.modeRules.Find(m => m.modeId == "Solo").defaultDifficulty, "RacerNaming.defaultDifficulty moved onto ModeRule");
+                Assert.AreEqual(1, db.selectionStages.Count, "map / skin placeholder stages are commented out with ##");
+                Assert.AreEqual(0, db.selectionOptions.Count, "placeholder options are commented out with ##");
                 Assert.AreEqual(6, db.trackSpawns.Count);
                 Assert.AreEqual(1, db.movements.Count);
                 Assert.AreEqual(0.25f, db.movements[0].pushGraceSeconds, "PushReaction merged into Movement");

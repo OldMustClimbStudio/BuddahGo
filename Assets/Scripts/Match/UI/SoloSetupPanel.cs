@@ -20,7 +20,10 @@ namespace SteamMultiplayer.UI
         public void Initialize(MainMenuUI menu, TMP_FontAsset font)
         {
             _menu = menu;
-            _difficulty = (SoloDifficulty)Mathf.Clamp(PlayerPrefs.GetInt(DifficultyKey, 1), 0, 2);
+            // Match/ModeRule (Solo).defaultDifficulty is the first-run default; the player's last choice wins afterwards.
+            ModeRuleRecord soloRule = DesignTableOverlay.ModeRule("Solo");
+            int defaultDifficulty = soloRule != null && System.Enum.TryParse(soloRule.defaultDifficulty, true, out SoloDifficulty configured) ? (int)configured : 1;
+            _difficulty = (SoloDifficulty)Mathf.Clamp(PlayerPrefs.GetInt(DifficultyKey, defaultDifficulty), 0, 2);
             var card = SoloUIFactory.Card(transform, "SoloSetup", 520f);
             SoloUIFactory.Label(card, "Title", "单人游戏", new Vector2(0f, 205f), new Vector2(600f, 50f), font, 34f);
             SoloUIFactory.Label(card, "RacerCount", "六人单人赛 · 玩家 + 5 AI",

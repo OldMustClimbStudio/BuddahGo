@@ -1,7 +1,7 @@
-##var,modeId,autoStartRoom,requiresReady,selectionTimeoutEnabled,skipMapVote,voteOnResults,resultDecisionTimeoutEnabled,returnTarget,endWhenAllRacersFinished,endOnHumanFinish,allowSkipSpectating,allowQuitDialog,allowPause,showRacerNameTags,showOpponentsOnMinimap,defaultPlayerNameKey,pregameCountdownSeconds,selectionStageSeconds,postFirstFinishCountdownSeconds,resultDecisionSeconds,minPlayersToStart,hostAutoReady,aiCount
-##type,enum:MatchMode#key,bool,bool,bool,bool,bool,bool,enum:ReturnTarget,bool,bool,bool,bool,bool,bool,bool,string#ref=UI/Text.key,int,int,float,int,int,bool,"int#range=0,5"
-##group,,,,,,,,,,,,,,,,,,,,,,,
-##comment,Online / Solo / Practice,,实际由 RoomStateManager._requireAllClientsReady 决定,,,,,,,,占位,,占位,占位,占位,,RoomStateManager prefab,PropertiesSelectionManager 场景,RaceFinishManager 场景,ResultDecisionManager 场景,CanHostStartGame,,Solo 固定 5
-,Online,false,true,true,false,true,true,Room,false,false,false,false,false,false,false,,18,60,15,60,1,true,0
-,Solo,true,false,false,true,false,false,MainMenuHome,true,false,false,true,false,false,false,match.default_player_name,18,60,15,60,1,true,5
-,Practice,true,false,false,true,false,false,MainMenuHome,true,true,false,true,false,false,false,match.default_player_name,18,60,15,60,1,true,0
+##var,modeId,autoStartRoom,requiresReady,selectionTimeoutEnabled,skipMapVote,voteOnResults,resultDecisionTimeoutEnabled,returnTarget,endWhenAllRacersFinished,endOnHumanFinish,allowSkipSpectating,allowQuitDialog,allowPause,showRacerNameTags,showOpponentsOnMinimap,defaultPlayerNameKey,pregameCountdownSeconds,selectionStageSeconds,postFirstFinishCountdownSeconds,resultDecisionSeconds,minPlayersToStart,hostAutoReady,aiCount,defaultDifficulty
+##type,enum:MatchMode#key,bool,bool,bool,bool,bool,bool,enum:ReturnTarget,bool,bool,bool,bool,bool,bool,bool,string#ref=UI/Text.key,int,int,float,int,int,bool,"int#range=0,5",enum:SoloDifficulty
+##group,,,,,,,,,,,,,,,,,,,,,,,,
+##comment,Online / Solo / Practice,,实际由 RoomStateManager._requireAllClientsReady 决定,,,,,,,,占位,,占位,占位,占位,,RoomStateManager prefab,PropertiesSelectionManager 场景,RaceFinishManager 场景,ResultDecisionManager 场景,CanHostStartGame,,Solo 固定 5,单人设置面板的默认难度（SoloSetupPanel；原 RacerNaming.defaultDifficulty）
+,Online,false,true,true,false,true,true,Room,false,false,false,false,false,false,false,,18,60,15,60,1,true,0,
+,Solo,true,false,false,true,false,false,MainMenuHome,true,false,false,true,false,false,false,match.default_player_name,18,60,15,60,1,true,5,Normal
+,Practice,true,false,false,true,false,false,MainMenuHome,true,true,false,true,false,false,false,match.default_player_name,18,60,15,60,1,true,0,Normal

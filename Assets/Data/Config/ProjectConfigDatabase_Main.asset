@@ -910,6 +910,7 @@ MonoBehaviour:
     minPlayersToStart: 1
     hostAutoReady: 1
     aiCount: 0
+    defaultDifficulty: 
   - modeId: Solo
     autoStartRoom: 1
     requiresReady: 0
@@ -933,6 +934,7 @@ MonoBehaviour:
     minPlayersToStart: 1
     hostAutoReady: 1
     aiCount: 5
+    defaultDifficulty: Normal
   - modeId: Practice
     autoStartRoom: 1
     requiresReady: 0
@@ -956,6 +958,7 @@ MonoBehaviour:
     minPlayersToStart: 1
     hostAutoReady: 1
     aiCount: 0
+    defaultDifficulty: Normal
   tracks:
   - trackId: racemap
     sceneName: RaceMap
@@ -1076,14 +1079,6 @@ MonoBehaviour:
     timeoutChoice: ReturnToRoom
     disconnectChoice: ReturnToRoom
   selectionStages:
-  - stageKey: map
-    order: 0
-    displayNameKey: selection.stage.map
-    selectionMode: Vote
-    enabledOnline: 1
-    enabledSolo: 0
-    layoutMode: Carousel
-    autoFillOnTimeout: 0
   - stageKey: skill_loadout
     order: 1
     displayNameKey: selection.stage.skill_loadout
@@ -1092,51 +1087,7 @@ MonoBehaviour:
     enabledSolo: 1
     layoutMode: SkillWall
     autoFillOnTimeout: 1
-  - stageKey: skin
-    order: 2
-    displayNameKey: selection.stage.skin
-    selectionMode: Single
-    enabledOnline: 1
-    enabledSolo: 1
-    layoutMode: Carousel
-    autoFillOnTimeout: 0
-  selectionOptions:
-  - stageKey: map
-    optionId: Map_A
-    displayNameKey: selection.option.map_a.name
-    descriptionKey: selection.option.map_a.desc
-    iconKey: 
-    unlocked: 1
-  - stageKey: map
-    optionId: Map_B
-    displayNameKey: selection.option.map_b.name
-    descriptionKey: selection.option.map_b.desc
-    iconKey: 
-    unlocked: 1
-  - stageKey: map
-    optionId: Map_C
-    displayNameKey: selection.option.map_c.name
-    descriptionKey: selection.option.map_c.desc
-    iconKey: 
-    unlocked: 1
-  - stageKey: skin
-    optionId: Skin_A
-    displayNameKey: selection.option.skin_a.name
-    descriptionKey: selection.option.skin_a.desc
-    iconKey: 
-    unlocked: 1
-  - stageKey: skin
-    optionId: Skin_B
-    displayNameKey: selection.option.skin_b.name
-    descriptionKey: selection.option.skin_b.desc
-    iconKey: 
-    unlocked: 1
-  - stageKey: skin
-    optionId: Skin_C
-    displayNameKey: selection.option.skin_c.name
-    descriptionKey: selection.option.skin_c.desc
-    iconKey: 
-    unlocked: 1
+  selectionOptions: []
   intros:
   - profileId: default
     fallbackIntroDurationSeconds: 3
@@ -1185,17 +1136,6 @@ MonoBehaviour:
     - Layout6P.prefab:Slot_3
     - Layout6P.prefab:Slot_4
     - Layout6P.prefab:Slot_5
-  racerNamings:
-  - key: aiFallbackNamePrefixKey
-    value: racer.ai_fallback_prefix
-  - key: humanFallbackNameKey
-    value: racer.human_fallback
-  - key: onlineHumanNamePrefixKey
-    value: racer.online_human_prefix
-  - key: aiGameObjectNamePrefix
-    value: AI Racer
-  - key: defaultDifficulty
-    value: Normal
   localizedTexts:
   - key: skill.acceleration.name
     zh: "\u795E\u8DB3\u901A"

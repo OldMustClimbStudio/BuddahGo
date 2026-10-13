@@ -606,6 +606,8 @@ public class ModeRuleRecord
     public bool hostAutoReady = false;
     /// <summary>int#range=0,5</summary>
     [Tooltip("Solo 固定 5")] public int aiCount = 0;
+    /// <summary>enum:SoloDifficulty</summary>
+    [Tooltip("单人设置面板的默认难度（SoloSetupPanel；原 RacerNaming.defaultDifficulty）")] public string defaultDifficulty = string.Empty;
 }
 
 /// <summary>Match.xlsx / Track</summary>
@@ -771,7 +773,7 @@ public class ResultVoteRuleRecord
 public class SelectionStageRecord
 {
     /// <summary>string#key (key)</summary>
-    [Tooltip("map / skill_loadout / skin")] public string stageKey = string.Empty;
+    [Tooltip("map / skill_loadout / skin；map 与 skin 行以 ## 屏蔽：占位阶段，代码兜底，有真实地图/皮肤后取消屏蔽")] public string stageKey = string.Empty;
     /// <summary>int</summary>
     public int order = 0;
     /// <summary>string#ref=UI/Text.key</summary>
@@ -836,16 +838,6 @@ public class IntroLayoutRecord
     public string layoutName = string.Empty;
     /// <summary>list,string#sep=|</summary>
     [Tooltip("槽位物体（场景或 Placeholder prefab）")] public List<string> slots = new List<string>();
-}
-
-/// <summary>Match.xlsx / RacerNaming</summary>
-[Serializable]
-public class RacerNamingRecord
-{
-    /// <summary>string#key (key)</summary>
-    public string key = string.Empty;
-    /// <summary>string</summary>
-    public string value = string.Empty;
 }
 
 /// <summary>UI.xlsx / Text</summary>

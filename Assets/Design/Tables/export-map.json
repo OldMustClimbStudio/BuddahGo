@@ -164,11 +164,6 @@
   "list": "introLayouts",
   "tags": "match,info"
  },
- "Match/RacerNaming": {
-  "record": "RacerNamingRecord",
-  "list": "racerNamings",
-  "tags": "match,text"
- },
  "UI/Text": {
   "record": "LocalizedTextRecord",
   "list": "localizedTexts",

@@ -40,8 +40,7 @@
       "SelectionStage",
       "SelectionOption",
       "Intro",
-      "IntroLayout",
-      "RacerNaming"
+      "IntroLayout"
     ],
     "UI": [
       "Text",
@@ -239,10 +238,6 @@
     "Match/IntroLayout": [
       "match",
       "info"
-    ],
-    "Match/RacerNaming": [
-      "match",
-      "text"
     ],
     "UI/Text": [
       "ui",

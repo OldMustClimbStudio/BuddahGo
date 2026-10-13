@@ -67,8 +67,6 @@ public partial class ProjectConfigDatabase
     public List<IntroRecord> intros = new List<IntroRecord>();
     [Header("Match / IntroLayout")]
     public List<IntroLayoutRecord> introLayouts = new List<IntroLayoutRecord>();
-    [Header("Match / RacerNaming")]
-    public List<RacerNamingRecord> racerNamings = new List<RacerNamingRecord>();
     [Header("UI / Text")]
     public List<LocalizedTextRecord> localizedTexts = new List<LocalizedTextRecord>();
     [Header("UI / MenuOption")]

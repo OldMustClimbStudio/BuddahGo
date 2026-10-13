@@ -33,7 +33,7 @@
 ,AI,SkillTuning,(生成) SkillTuningRecord → AISkillTuning（按名忽略大小写）,SkillPersonalities.json Tuning; AISkillWorld/Decision/Caster/Commitment.cs,v2：原 SkillGlobal 键值桶改为单行宽表
 ,AI,Roster,(新增) AIRosterRecord,MatchSpawnManager.SpawnSoloAI:165,
 ,AI,DrivingConstant,(只读) 规划器内部常量,ThrustVectorPlanner.cs 等,presentationOnly：[Eng] 项为代码常量，改动需同步代码
-,Match,ModeRule,(新增) MatchModeRuleRecord ← IMatchRules 实现 + 各 manager 时长,OnlineMatchRules.cs; SoloMatchRules.cs; RoomStateManager.prefab; PropertySelection.unity; RaceMap.unity,Practice 行 = Solo 且 aiCount=0，目前 UI 无入口
+,Match,ModeRule,(新增) MatchModeRuleRecord ← IMatchRules 实现 + 各 manager 时长,OnlineMatchRules.cs; SoloMatchRules.cs; RoomStateManager.prefab; PropertySelection.unity; RaceMap.unity,Practice 行 = Solo 且 aiCount=0，目前 UI 无入口；v2 并入 RacerNaming.defaultDifficulty，命名前缀 key 直接在 UI/Text
 ,Match,Track,(新增) TrackRecord,Assets/Scenes/RaceMap.unity; Assets/UI/UIprefap.prefab MiniMapController,v2：并入原 Movement/LapRule；圈数只留此处
 ,Match,TrackWrongWay,(生成) TrackWrongWayRecord ← RaceCompletionTracker,Assets/Character/Prefab/Buddah.prefab,v2：原 Movement/WrongWayRule
 ,Match,TrackSpawn,(新增) TrackSpawnRecord ← MatchSpawnManager._spawnPoints,Assets/Scenes/RaceMap.unity,
@@ -42,12 +42,11 @@
 ,Match,Lobby,(新增) LobbyRecord,Assets/Scenes/MainMenu.unity SteamLobbyManager; SessionLauncher.cs,
 ,Match,ResultVoteRule,(新增) ResultVoteRuleRecord,ResultDecisionManager.EvaluateDecisionServer:252-275,
 ,Match,ResultPresentation,(新增) ResultPresentationRecord,Assets/Scenes/RaceMap.unity,
-,Match,SelectionStage,(新增) SelectionStageRecord,PropertiesSelectionManager.RegisterDefaultStageProperties:566-568,地图/皮肤结果目前无人读取
-,Match,SelectionOption,(新增) SelectionOptionRecord,PropertiesSelectionManager:1126-1136（占位数据）,
+,Match,SelectionStage,(新增) SelectionStageRecord,PropertiesSelectionManager.RegisterDefaultStageProperties:566-568,v2：地图/皮肤占位行屏蔽（结果无人读取）
+,Match,SelectionOption,(新增) SelectionOptionRecord,PropertiesSelectionManager:1126-1136（占位数据）,v2：占位选项全部屏蔽，PropertiesSelectionManager 回退到代码占位
 ,Match,Intro,(新增) IntroRecord ← IntroSequenceManager,Assets/Scenes/RaceMap.unity,
 ,Match,IntroLayout,(新增) IntroLayoutRecord ← IntroSequenceManager.layouts,Assets/Scenes/RaceMap.unity,4P/5P/6P 为占位 prefab；Solo 永远用 6P
 ,Match,IntroSlotStyle,(新增) IntroSlotStyleRecord（范围内未找到消费方）,Assets/Placeholder/Intro/Layout4P.prefab,
-,Match,RacerNaming,"(新增, 键值) RacerNaming",RacerIdentity.cs; MatchSpawnManager.cs; SoloSetupPanel.cs,
 ,UI,SkillIcon,(新增) SkillIconRecord ← SkillUiSpriteLibrary,Assets/UI/UIprefap.prefab,*_anti 无图标；配置 iconKey 列未使用
 ,UI,MenuOption,(新增) MenuOptionRecord,Assets/Scenes/MainMenu.unity TMP_Dropdown m_Options,代码兜底 CreateRoomUI.cs:131-167
 ,UI,HudObsession,(新增) HudObsessionRecord ← ObsessionUI,Assets/UI/UIprefap.prefab,

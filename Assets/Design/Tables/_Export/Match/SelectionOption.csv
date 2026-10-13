@@ -2,9 +2,3 @@
 ##type,string#key#ref=SelectionStage.stageKey,string#key,string#ref=UI/Text.key,string#ref=UI/Text.key,string,bool
 ##group,,,,,,
 ##comment,,,,,,
-,map,Map_A,selection.option.map_a.name,selection.option.map_a.desc,,true
-,map,Map_B,selection.option.map_b.name,selection.option.map_b.desc,,true
-,map,Map_C,selection.option.map_c.name,selection.option.map_c.desc,,true
-,skin,Skin_A,selection.option.skin_a.name,selection.option.skin_a.desc,,true
-,skin,Skin_B,selection.option.skin_b.name,selection.option.skin_b.desc,,true
-,skin,Skin_C,selection.option.skin_c.name,selection.option.skin_c.desc,,true

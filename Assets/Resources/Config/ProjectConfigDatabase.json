@@ -1130,7 +1130,8 @@
             "resultDecisionSeconds": 60,
             "minPlayersToStart": 1,
             "hostAutoReady": true,
-            "aiCount": 0
+            "aiCount": 0,
+            "defaultDifficulty": ""
         },
         {
             "modeId": "Solo",
@@ -1155,7 +1156,8 @@
             "resultDecisionSeconds": 60,
             "minPlayersToStart": 1,
             "hostAutoReady": true,
-            "aiCount": 5
+            "aiCount": 5,
+            "defaultDifficulty": "Normal"
         },
         {
             "modeId": "Practice",
@@ -1180,7 +1182,8 @@
             "resultDecisionSeconds": 60,
             "minPlayersToStart": 1,
             "hostAutoReady": true,
-            "aiCount": 0
+            "aiCount": 0,
+            "defaultDifficulty": "Normal"
         }
     ],
     "tracks": [
@@ -1429,16 +1432,6 @@
     ],
     "selectionStages": [
         {
-            "stageKey": "map",
-            "order": 0,
-            "displayNameKey": "selection.stage.map",
-            "selectionMode": "Vote",
-            "enabledOnline": true,
-            "enabledSolo": false,
-            "layoutMode": "Carousel",
-            "autoFillOnTimeout": false
-        },
-        {
             "stageKey": "skill_loadout",
             "order": 1,
             "displayNameKey": "selection.stage.skill_loadout",
@@ -1447,68 +1440,9 @@
             "enabledSolo": true,
             "layoutMode": "SkillWall",
             "autoFillOnTimeout": true
-        },
-        {
-            "stageKey": "skin",
-            "order": 2,
-            "displayNameKey": "selection.stage.skin",
-            "selectionMode": "Single",
-            "enabledOnline": true,
-            "enabledSolo": true,
-            "layoutMode": "Carousel",
-            "autoFillOnTimeout": false
         }
     ],
-    "selectionOptions": [
-        {
-            "stageKey": "map",
-            "optionId": "Map_A",
-            "displayNameKey": "selection.option.map_a.name",
-            "descriptionKey": "selection.option.map_a.desc",
-            "iconKey": "",
-            "unlocked": true
-        },
-        {
-            "stageKey": "map",
-            "optionId": "Map_B",
-            "displayNameKey": "selection.option.map_b.name",
-            "descriptionKey": "selection.option.map_b.desc",
-            "iconKey": "",
-            "unlocked": true
-        },
-        {
-            "stageKey": "map",
-            "optionId": "Map_C",
-            "displayNameKey": "selection.option.map_c.name",
-            "descriptionKey": "selection.option.map_c.desc",
-            "iconKey": "",
-            "unlocked": true
-        },
-        {
-            "stageKey": "skin",
-            "optionId": "Skin_A",
-            "displayNameKey": "selection.option.skin_a.name",
-            "descriptionKey": "selection.option.skin_a.desc",
-            "iconKey": "",
-            "unlocked": true
-        },
-        {
-            "stageKey": "skin",
-            "optionId": "Skin_B",
-            "displayNameKey": "selection.option.skin_b.name",
-            "descriptionKey": "selection.option.skin_b.desc",
-            "iconKey": "",
-            "unlocked": true
-        },
-        {
-            "stageKey": "skin",
-            "optionId": "Skin_C",
-            "displayNameKey": "selection.option.skin_c.name",
-            "descriptionKey": "selection.option.skin_c.desc",
-            "iconKey": "",
-            "unlocked": true
-        }
-    ],
+    "selectionOptions": [],
     "intros": [
         {
             "profileId": "default",
@@ -1577,28 +1511,6 @@
                 "Layout6P.prefab:Slot_4",
                 "Layout6P.prefab:Slot_5"
             ]
-        }
-    ],
-    "racerNamings": [
-        {
-            "key": "aiFallbackNamePrefixKey",
-            "value": "racer.ai_fallback_prefix"
-        },
-        {
-            "key": "humanFallbackNameKey",
-            "value": "racer.human_fallback"
-        },
-        {
-            "key": "onlineHumanNamePrefixKey",
-            "value": "racer.online_human_prefix"
-        },
-        {
-            "key": "aiGameObjectNamePrefix",
-            "value": "AI Racer"
-        },
-        {
-            "key": "defaultDifficulty",
-            "value": "Normal"
         }
     ],
     "localizedTexts": [

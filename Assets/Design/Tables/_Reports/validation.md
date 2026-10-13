@@ -1,13 +1,13 @@
 # Design tables validation
 
-- time: 2026-10-13 14:05:09
+- time: 2026-10-13 14:08:37
 - mode: import (force)
-- changed workbooks: AI, Global, Skill, UI
-- sheets re-mapped: 43, kept: 0, records: 541
+- changed workbooks: Global, Match, Movement
+- sheets re-mapped: 39, kept: 0, records: 527
 - errors: 0, warnings: 3
 - outputs written: yes
 
-Re-mapped: Skill/Skill, Skill/SkillEffectAcceleration, Skill/SkillEffectSlowTrap, Skill/SkillEffectBlackCurtain, Skill/SkillEffectGiant, Skill/Push, Skill/SkillSelectionRule, Skill/DefaultLoadout, Skill/ComboInput, Skill/ComboBinding, Skill/Obsession, Movement/MovementBase, Movement/PushReaction, Movement/ModifierRule, Movement/LaunchHandoff, Movement/RespawnRule, Movement/LapRule, Movement/WrongWayRule, AI/DrivingTier, AI/DrivingGlobal, AI/SkillDifficulty, AI/Personality, AI/PersonalitySkillWeight, AI/PersonalitySituationBias, AI/SkillOpportunity, AI/SkillGlobal, AI/Roster, Match/ModeRule, Match/Track, Match/TrackSpawn, Match/TrackCheckpoint, Match/TrackResultAnchor, Match/Lobby, Match/ResultVoteRule, Match/SelectionStage, Match/SelectionOption, Match/Intro, Match/IntroLayout, Match/RacerNaming, UI/Text, UI/MenuOption, UI/SkillIcon, Global/GlobalRule
+Re-mapped: Skill/Skill, Skill/SkillEffectAcceleration, Skill/SkillEffectSlowTrap, Skill/SkillEffectBlackCurtain, Skill/SkillEffectGiant, Skill/Push, Skill/SkillSelectionRule, Skill/DefaultLoadout, Skill/ComboInput, Skill/ComboBinding, Skill/Obsession, Movement/Movement, Movement/Respawn, AI/DrivingTier, AI/DrivingGlobal, AI/SkillDifficulty, AI/Personality, AI/PersonalitySkillWeight, AI/PersonalitySituationBias, AI/SkillOpportunity, AI/SkillGlobal, AI/Roster, Match/ModeRule, Match/Track, Match/TrackWrongWay, Match/TrackSpawn, Match/TrackCheckpoint, Match/TrackResultAnchor, Match/Lobby, Match/ResultVoteRule, Match/SelectionStage, Match/SelectionOption, Match/Intro, Match/IntroLayout, Match/RacerNaming, UI/Text, UI/MenuOption, UI/SkillIcon, Global/GlobalRule
 
 | severity | location | message |
 |---|---|---|

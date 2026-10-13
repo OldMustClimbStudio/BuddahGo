@@ -144,6 +144,12 @@ namespace BuddahGo.Tests
                 Assert.AreEqual(1000f, db.obsessions[0].maxValue);
                 Assert.AreEqual(3, db.modeRules.Count);
                 Assert.AreEqual(6, db.trackSpawns.Count);
+                Assert.AreEqual(1, db.movements.Count);
+                Assert.AreEqual(0.25f, db.movements[0].pushGraceSeconds, "PushReaction merged into Movement");
+                Assert.AreEqual(0.2f, db.movements[0].launchInheritSeconds, "LaunchHandoff merged into Movement");
+                Assert.AreEqual(1, db.respawns.Count);
+                Assert.AreEqual(3, db.tracks[0].requiredCheckpointCount, "LapRule merged into Track");
+                Assert.AreEqual(1, db.trackWrongWays.Count);
                 Assert.Greater(db.localizedTexts.Count, 200);
                 Assert.IsTrue(db.globalRules.Exists(r => r.ruleKey == "target_frame_rate"));
                 Assert.IsFalse(db.globalRules.Exists(r => r.ruleKey == "combo_input_window_seconds"), "combo keys moved to Skill/ComboInput");
@@ -166,7 +172,7 @@ namespace BuddahGo.Tests
             Assert.IsTrue(uiOnly.Contains("UI/Text"));
             Assert.IsTrue(uiOnly.Contains("Skill/Skill"), "Skill references UI/Text, so a UI change re-maps it");
             Assert.IsTrue(uiOnly.Contains("Match/ModeRule"), "ModeRule references UI/Text");
-            Assert.IsFalse(uiOnly.Contains("Movement/MovementBase"), "MovementBase does not depend on UI");
+            Assert.IsFalse(uiOnly.Contains("Movement/Movement"), "Movement does not depend on UI");
             Assert.IsFalse(uiOnly.Contains("AI/DrivingTier"));
 
             HashSet<string> aiBalance = DesignTableExporter.ComputeRemapSet(set, null, new HashSet<string> { "ai" });
@@ -175,7 +181,8 @@ namespace BuddahGo.Tests
 
             HashSet<string> trackChanged = DesignTableExporter.ComputeRemapSet(set, new HashSet<string> { "Match" }, new HashSet<string> { "track" });
             Assert.IsTrue(trackChanged.Contains("Match/TrackSpawn"));
-            Assert.IsTrue(trackChanged.Contains("Movement/LapRule"), "LapRule references Match/Track and carries the track tag");
+            Assert.IsTrue(trackChanged.Contains("Match/TrackWrongWay"), "TrackWrongWay carries the track tag");
+            Assert.IsTrue(trackChanged.Contains("Match/Track"), "Track carries the lap rules and the track tag");
             Assert.IsFalse(trackChanged.Contains("Match/Lobby"), "Lobby lacks the track tag");
         }
 

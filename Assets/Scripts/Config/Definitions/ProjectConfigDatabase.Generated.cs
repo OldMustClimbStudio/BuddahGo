@@ -23,20 +23,10 @@ public partial class ProjectConfigDatabase
     public List<ComboBindingRecord> comboBindings = new List<ComboBindingRecord>();
     [Header("Skill / Obsession")]
     public List<ObsessionRecord> obsessions = new List<ObsessionRecord>();
-    [Header("Movement / MovementBase")]
-    public List<MovementBaseRecord> movementBases = new List<MovementBaseRecord>();
-    [Header("Movement / PushReaction")]
-    public List<PushReactionRecord> pushReactions = new List<PushReactionRecord>();
-    [Header("Movement / ModifierRule")]
-    public List<ModifierRuleRecord> modifierRules = new List<ModifierRuleRecord>();
-    [Header("Movement / LaunchHandoff")]
-    public List<LaunchHandoffRecord> launchHandoffs = new List<LaunchHandoffRecord>();
-    [Header("Movement / RespawnRule")]
-    public List<RespawnRuleRecord> respawnRules = new List<RespawnRuleRecord>();
-    [Header("Movement / LapRule")]
-    public List<LapRuleRecord> lapRules = new List<LapRuleRecord>();
-    [Header("Movement / WrongWayRule")]
-    public List<WrongWayRuleRecord> wrongWayRules = new List<WrongWayRuleRecord>();
+    [Header("Movement / Movement")]
+    public List<MovementRecord> movements = new List<MovementRecord>();
+    [Header("Movement / Respawn")]
+    public List<RespawnRecord> respawns = new List<RespawnRecord>();
     [Header("AI / DrivingTier")]
     public List<DrivingTierRecord> drivingTiers = new List<DrivingTierRecord>();
     [Header("AI / DrivingGlobal")]
@@ -59,6 +49,8 @@ public partial class ProjectConfigDatabase
     public List<ModeRuleRecord> modeRules = new List<ModeRuleRecord>();
     [Header("Match / Track")]
     public List<TrackRecord> tracks = new List<TrackRecord>();
+    [Header("Match / TrackWrongWay")]
+    public List<TrackWrongWayRecord> trackWrongWays = new List<TrackWrongWayRecord>();
     [Header("Match / TrackSpawn")]
     public List<TrackSpawnRecord> trackSpawns = new List<TrackSpawnRecord>();
     [Header("Match / TrackCheckpoint")]

@@ -54,40 +54,15 @@
   "list": "obsessions",
   "tags": "skill,balance"
  },
- "Movement/MovementBase": {
-  "record": "MovementBaseRecord",
-  "list": "movementBases",
+ "Movement/Movement": {
+  "record": "MovementRecord",
+  "list": "movements",
   "tags": "movement,balance"
  },
- "Movement/PushReaction": {
-  "record": "PushReactionRecord",
-  "list": "pushReactions",
+ "Movement/Respawn": {
+  "record": "RespawnRecord",
+  "list": "respawns",
   "tags": "movement,balance"
- },
- "Movement/ModifierRule": {
-  "record": "ModifierRuleRecord",
-  "list": "modifierRules",
-  "tags": "movement,info"
- },
- "Movement/LaunchHandoff": {
-  "record": "LaunchHandoffRecord",
-  "list": "launchHandoffs",
-  "tags": "movement,balance"
- },
- "Movement/RespawnRule": {
-  "record": "RespawnRuleRecord",
-  "list": "respawnRules",
-  "tags": "movement,balance"
- },
- "Movement/LapRule": {
-  "record": "LapRuleRecord",
-  "list": "lapRules",
-  "tags": "movement,track,balance"
- },
- "Movement/WrongWayRule": {
-  "record": "WrongWayRuleRecord",
-  "list": "wrongWayRules",
-  "tags": "movement,track,balance"
  },
  "AI/DrivingTier": {
   "record": "DrivingTierRecord",
@@ -142,7 +117,12 @@
  "Match/Track": {
   "record": "TrackRecord",
   "list": "tracks",
-  "tags": "match,track"
+  "tags": "match,track,balance"
+ },
+ "Match/TrackWrongWay": {
+  "record": "TrackWrongWayRecord",
+  "list": "trackWrongWays",
+  "tags": "match,track,balance"
  },
  "Match/TrackSpawn": {
   "record": "TrackSpawnRecord",

@@ -1,5 +1,5 @@
-##var,trackId,sceneName,lapsToFinish,resultOverflowOffset,missingPlayerOffset,minimapSpritePath,minimapWorldMinX,minimapWorldMaxX,minimapWorldMinZ,minimapWorldMaxZ,minimapImageWidth,trackSplineSamples
-##type,string#key,string#ref=Global/Scene.sceneName,int,vector3,vector3,string#path,float,float,float,float,float,int
-##group,,,,,,,,,,,,adv
-##comment,,,同 Movement/LapRule,,,,,,,,RaceMap 覆盖值,
-,racemap,RaceMap,3,"2.5,0,0","0,0,-3",Assets/UI/UI资源/地图UI-PNG/地图 1.png,-653,469,-1038,247,1120,200
+##var,trackId,sceneName,lapsToFinish,crossCooldownSeconds,maxProgressJumpWithoutCheckpoint01,minForwardDot,armDistanceMeters,useSequentialCheckpoints,autoAdvanceSplineCheckpoints,requiredCheckpointCount,fallbackCheckpointProgresses01,startPointTag,resultOverflowOffset,missingPlayerOffset,minimapSpritePath,minimapWorldMinX,minimapWorldMaxX,minimapWorldMinZ,minimapWorldMaxZ,minimapImageWidth,trackSplineSamples
+##type,string#key,string#ref=Global/Scene.sceneName,int,float,float,float,float,bool,bool,int,"list,float#sep=|",string#ref=Global/Tag.name,vector3,vector3,string#path,float,float,float,float,float,int
+##group,,,,,,,,,,,,,,,,,,,,,adv
+##comment,,,完赛圈数（RaceFinishManager 与 LapProgress 共用，唯一来源）,minimumCrossingCooldownSeconds,,,minimumWorldDistanceFromStartToArmLap,,,须等于 TrackCheckpoint 行数,,,,,,,,,,RaceMap 覆盖值,
+,racemap,RaceMap,3,0.5,0.5,0,25,true,false,3,0.25|0.5|0.75,StartingPoint,"2.5,0,0","0,0,-3",Assets/UI/UI资源/地图UI-PNG/地图 1.png,-653,469,-1038,247,1120,200

@@ -421,7 +421,7 @@ MonoBehaviour:
     backfireK: 0.008
     backfireMidpointX: 500
     backfireKeepPMaxAtOrAboveX: 1000
-  movementBases:
+  movements:
   - profileId: default
     forwardForce: 50
     maxSpeed: 80
@@ -437,68 +437,15 @@ MonoBehaviour:
     colliderHeight: 8.493212
     colliderCenter: {x: -0.051696, y: 2.950664, z: -0.150903}
     physicMaterial: Character
-  pushReactions:
-  - impulseSource: MeleePush
-    graceSeconds: 0.25
-    extraMaxSpeed: 6
-    impulseMultiplier: 1
-  - impulseSource: Projectile
-    graceSeconds: 0.25
-    extraMaxSpeed: 6
-    impulseMultiplier: 1
-  - impulseSource: ChargedProjectile
-    graceSeconds: 0.25
-    extraMaxSpeed: 6
-    impulseMultiplier: 1
-  modifierRules:
-  - modifierType: Acceleration
-    stackPolicy: RefreshMaxDurationOverwriteMagnitude
-    minScaleMultiplier: 0
-    scalesMaxSpeed: 0
-    resetOnSkillReset: 1
-  - modifierType: RootThenAcceleration
-    stackPolicy: RefreshMaxDurationOverwriteMagnitude
-    minScaleMultiplier: 0
-    scalesMaxSpeed: 0
-    resetOnSkillReset: 1
-  - modifierType: InvertTurn
-    stackPolicy: RefreshMaxDurationOverwriteMagnitude
-    minScaleMultiplier: 0
-    scalesMaxSpeed: 0
-    resetOnSkillReset: 1
-  - modifierType: Scale
-    stackPolicy: RefreshMaxDurationOverwriteMagnitude
-    minScaleMultiplier: 0.1
-    scalesMaxSpeed: 0
-    resetOnSkillReset: 1
-  - modifierType: PushGrace
-    stackPolicy: RefreshMaxDuration
-    minScaleMultiplier: 0
-    scalesMaxSpeed: 0
-    resetOnSkillReset: 0
-  - modifierType: SteeringSuppression
-    stackPolicy: RefreshMaxDuration
-    minScaleMultiplier: 0
-    scalesMaxSpeed: 0
-    resetOnSkillReset: 0
-  - modifierType: RoomBypass
-    stackPolicy: RefreshMaxDuration
-    minScaleMultiplier: 0
-    scalesMaxSpeed: 0
-    resetOnSkillReset: 0
-  launchHandoffs:
-  - profileId: default
-    inheritSeconds: 0.2
-    blendSeconds: 0.32
-    suppressTurnSeconds: 0.15
-    handoffLeadSeconds: 0.5
-    minPreHandoffBypassSeconds: 0.5
-    clearAngularVelocity: 0
-    groundSnapMaxDistance: 1.5
-    groundProbeHeight: 3
+    pushGraceSeconds: 0.25
+    pushExtraMaxSpeed: 6
+    launchInheritSeconds: 0.2
+    launchBlendSeconds: 0.32
+    handoffGroundSnapMaxDistance: 1.5
+    handoffGroundProbeHeight: 3
     velocitySampleDeltaSeconds: 0.02
-  respawnRules:
-  - teleportSource: DropRespawn
+  respawns:
+  - profileId: default
     contactSeconds: 2
     cooldownSeconds: 1.5
     heightOffset: 3
@@ -506,65 +453,6 @@ MonoBehaviour:
     liftStep: 1.5
     maxLift: 6
     floorTag: RespawnFloor
-    snapProgress: 1
-    zeroVelocity: 1
-    resetModifiers: 1
-    resetImpulseQueue: 1
-    resetPushGrace: 1
-    rebaseTrails: 1
-  - teleportSource: WrongWayCorrection
-    contactSeconds: 2
-    cooldownSeconds: 1.5
-    heightOffset: 3
-    clearanceRadius: 0.75
-    liftStep: 1.5
-    maxLift: 6
-    floorTag: RespawnFloor
-    snapProgress: 1
-    zeroVelocity: 1
-    resetModifiers: 1
-    resetImpulseQueue: 1
-    resetPushGrace: 1
-    rebaseTrails: 1
-  - teleportSource: Manual
-    contactSeconds: 2
-    cooldownSeconds: 1.5
-    heightOffset: 3
-    clearanceRadius: 0.75
-    liftStep: 1.5
-    maxLift: 6
-    floorTag: RespawnFloor
-    snapProgress: 1
-    zeroVelocity: 1
-    resetModifiers: 1
-    resetImpulseQueue: 1
-    resetPushGrace: 1
-    rebaseTrails: 1
-  lapRules:
-  - trackId: racemap
-    lapsToFinish: 3
-    crossCooldownSeconds: 0.5
-    maxProgressJumpWithoutCheckpoint01: 0.5
-    minForwardDot: 0
-    armDistanceMeters: 25
-    useSequentialCheckpoints: 1
-    autoAdvanceSplineCheckpoints: 0
-    requiredCheckpointCount: 3
-    fallbackCheckpointProgresses01:
-    - 0.25
-    - 0.5
-    - 0.75
-    startPointTag: StartingPoint
-  wrongWayRules:
-  - trackId: racemap
-    wrongWayWrapStartThreshold: 0.2
-    wrongWayWrapEndThreshold: 0.8
-    wrongWayForwardDotThreshold: 0
-    wrongWayRecoveryLapProgressThreshold: 0.05
-    wrongWayForceRespawnLapProgressThreshold: 0.85
-    wrongWayRespawnLapProgress: 0.01
-    wrongWayLap0RespawnLapProgress: 0.99
-    startGraceSeconds: 0.35
   drivingTiers:
   - difficulty: Easy
     LookaheadSeconds: 1
@@ -1242,6 +1130,18 @@ MonoBehaviour:
   - trackId: racemap
     sceneName: RaceMap
     lapsToFinish: 3
+    crossCooldownSeconds: 0.5
+    maxProgressJumpWithoutCheckpoint01: 0.5
+    minForwardDot: 0
+    armDistanceMeters: 25
+    useSequentialCheckpoints: 1
+    autoAdvanceSplineCheckpoints: 0
+    requiredCheckpointCount: 3
+    fallbackCheckpointProgresses01:
+    - 0.25
+    - 0.5
+    - 0.75
+    startPointTag: StartingPoint
     resultOverflowOffset: {x: 2.5, y: 0, z: 0}
     missingPlayerOffset: {x: 0, y: 0, z: -3}
     minimapSpritePath: "Assets/UI/UI\u8D44\u6E90/\u5730\u56FEUI-PNG/\u5730\u56FE
@@ -1252,6 +1152,16 @@ MonoBehaviour:
     minimapWorldMaxZ: 247
     minimapImageWidth: 1120
     trackSplineSamples: 200
+  trackWrongWays:
+  - trackId: racemap
+    wrongWayWrapStartThreshold: 0.2
+    wrongWayWrapEndThreshold: 0.8
+    wrongWayForwardDotThreshold: 0
+    wrongWayRecoveryLapProgressThreshold: 0.05
+    wrongWayForceRespawnLapProgressThreshold: 0.85
+    wrongWayRespawnLapProgress: 0.01
+    wrongWayLap0RespawnLapProgress: 0.99
+    startGraceSeconds: 0.35
   trackSpawns:
   - trackId: racemap
     order: 0

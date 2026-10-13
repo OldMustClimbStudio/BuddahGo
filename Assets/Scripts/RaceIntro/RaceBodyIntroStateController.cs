@@ -188,9 +188,13 @@ public class RaceBodyIntroStateController : MonoBehaviour
     {
         ResolveReferences();
         AutoAssignMissingReferences();
+        // Match/Intro is the single source of the handoff lead; Movement/Movement carries the velocity sample interval.
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
-            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.launchHandoffs, null), "handoffLeadSeconds=defaultHandoffLeadTime");
+        {
+            DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.Single(db.intros, null), "handoffLeadSeconds=defaultHandoffLeadTime");
+            DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.Single(db.movements, null), "velocitySampleDeltaSeconds");
+        }
     }
 
     private void OnValidate()

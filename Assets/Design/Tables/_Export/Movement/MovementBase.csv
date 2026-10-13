@@ -1,5 +1,0 @@
-##var,profileId,forwardForce,maxSpeed,turnTorque,turnDecayPerSecond,turnInputMultiplier,autoThrottle,mass,linearDrag,angularDrag,maxAngularVelocity,colliderRadius,colliderHeight,colliderCenter,physicMaterial,visualRootScale
-##type,string#key,float,float,float,float,float,float,float,float,float,float,float,float,vector3,string#ref=Global/PhysicsMaterial.materialId,float
-##group,,,,,,,,,,,,,,,,doc
-##comment,目前只有 default（玩家与 AI 共用）,ForceMode.Force,水平限速 m/s,,无输入时角速度回正 rad/s²,V2 预测马达值（legacy 为 1）,油门恒 1,Rigidbody,,,项目默认 DynamicsManager,,,,,VisualRoot localScale
-,default,50,80,30,3,2,1,2,0,0.05,50,3.886929,8.493212,"-0.051696,2.950664,-0.150903",Character,4

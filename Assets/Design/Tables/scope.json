@@ -15,13 +15,8 @@
       "Obsession"
     ],
     "Movement": [
-      "MovementBase",
-      "PushReaction",
-      "ModifierRule",
-      "LaunchHandoff",
-      "RespawnRule",
-      "LapRule",
-      "WrongWayRule"
+      "Movement",
+      "Respawn"
     ],
     "AI": [
       "DrivingTier",
@@ -37,6 +32,7 @@
     "Match": [
       "ModeRule",
       "Track",
+      "TrackWrongWay",
       "TrackSpawn",
       "TrackCheckpoint",
       "TrackResultAnchor",
@@ -66,6 +62,7 @@
       "SkillConstant"
     ],
     "Movement": [
+      "ModifierRule",
       "Camera",
       "RacerVisual",
       "SplineTracking"
@@ -151,34 +148,12 @@
       "skill",
       "balance"
     ],
-    "Movement/MovementBase": [
+    "Movement/Movement": [
       "movement",
       "balance"
     ],
-    "Movement/PushReaction": [
+    "Movement/Respawn": [
       "movement",
-      "balance"
-    ],
-    "Movement/ModifierRule": [
-      "movement",
-      "info"
-    ],
-    "Movement/LaunchHandoff": [
-      "movement",
-      "balance"
-    ],
-    "Movement/RespawnRule": [
-      "movement",
-      "balance"
-    ],
-    "Movement/LapRule": [
-      "movement",
-      "track",
-      "balance"
-    ],
-    "Movement/WrongWayRule": [
-      "movement",
-      "track",
       "balance"
     ],
     "AI/DrivingTier": [
@@ -223,7 +198,13 @@
     ],
     "Match/Track": [
       "match",
-      "track"
+      "track",
+      "balance"
+    ],
+    "Match/TrackWrongWay": [
+      "match",
+      "track",
+      "balance"
     ],
     "Match/TrackSpawn": [
       "match",

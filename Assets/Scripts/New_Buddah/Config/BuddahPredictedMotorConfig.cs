@@ -8,25 +8,22 @@ namespace NewBuddah.PredictionV2.Config
     {
         private void Awake()
         {
-            // Movement/MovementBase, Movement/PushReaction (MeleePush row) and Movement/LaunchHandoff own these numbers.
+            // Movement/Movement (default row) owns locomotion, rigidbody, push-grace and handoff ground-probe numbers (same field names).
             ProjectConfigDatabase db = DesignTableOverlay.Db;
             if (db == null)
                 return;
-            MovementBaseRecord movement = DesignTableOverlay.Single(db.movementBases, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.movementBases, null);
-            if (movement != null)
+            MovementRecord movement = DesignTableOverlay.Single(db.movements, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.movements, null);
+            if (movement == null)
+                return;
+            DesignTableOverlay.Apply(this, movement);
+            Rigidbody body = GetComponent<Rigidbody>();
+            if (body != null)
             {
-                DesignTableOverlay.Apply(this, movement);
-                Rigidbody body = GetComponent<Rigidbody>();
-                if (body != null)
-                {
-                    body.mass = movement.mass;
-                    body.drag = movement.linearDrag;
-                    body.angularDrag = movement.angularDrag;
-                    body.maxAngularVelocity = movement.maxAngularVelocity;
-                }
+                body.mass = movement.mass;
+                body.drag = movement.linearDrag;
+                body.angularDrag = movement.angularDrag;
+                body.maxAngularVelocity = movement.maxAngularVelocity;
             }
-            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.pushReactions, r => r.impulseSource == "MeleePush"), "graceSeconds=pushGraceSeconds", "extraMaxSpeed=pushExtraMaxSpeed");
-            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.launchHandoffs, null), "groundSnapMaxDistance=handoffGroundSnapMaxDistance", "groundProbeHeight=handoffGroundProbeHeight");
         }
 
         [Header("Stage 1 Locomotion")]

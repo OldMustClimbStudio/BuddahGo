@@ -525,7 +525,7 @@
             "backfireKeepPMaxAtOrAboveX": 1000.0
         }
     ],
-    "movementBases": [
+    "movements": [
         {
             "profileId": "default",
             "forwardForce": 50.0,
@@ -545,174 +545,26 @@
                 "y": 2.9506640434265138,
                 "z": -0.15090300142765046
             },
-            "physicMaterial": "Character"
-        }
-    ],
-    "pushReactions": [
-        {
-            "impulseSource": "MeleePush",
-            "graceSeconds": 0.25,
-            "extraMaxSpeed": 6.0,
-            "impulseMultiplier": 1.0
-        },
-        {
-            "impulseSource": "Projectile",
-            "graceSeconds": 0.25,
-            "extraMaxSpeed": 6.0,
-            "impulseMultiplier": 1.0
-        },
-        {
-            "impulseSource": "ChargedProjectile",
-            "graceSeconds": 0.25,
-            "extraMaxSpeed": 6.0,
-            "impulseMultiplier": 1.0
-        }
-    ],
-    "modifierRules": [
-        {
-            "modifierType": "Acceleration",
-            "stackPolicy": "RefreshMaxDurationOverwriteMagnitude",
-            "minScaleMultiplier": 0.0,
-            "scalesMaxSpeed": false,
-            "resetOnSkillReset": true
-        },
-        {
-            "modifierType": "RootThenAcceleration",
-            "stackPolicy": "RefreshMaxDurationOverwriteMagnitude",
-            "minScaleMultiplier": 0.0,
-            "scalesMaxSpeed": false,
-            "resetOnSkillReset": true
-        },
-        {
-            "modifierType": "InvertTurn",
-            "stackPolicy": "RefreshMaxDurationOverwriteMagnitude",
-            "minScaleMultiplier": 0.0,
-            "scalesMaxSpeed": false,
-            "resetOnSkillReset": true
-        },
-        {
-            "modifierType": "Scale",
-            "stackPolicy": "RefreshMaxDurationOverwriteMagnitude",
-            "minScaleMultiplier": 0.10000000149011612,
-            "scalesMaxSpeed": false,
-            "resetOnSkillReset": true
-        },
-        {
-            "modifierType": "PushGrace",
-            "stackPolicy": "RefreshMaxDuration",
-            "minScaleMultiplier": 0.0,
-            "scalesMaxSpeed": false,
-            "resetOnSkillReset": false
-        },
-        {
-            "modifierType": "SteeringSuppression",
-            "stackPolicy": "RefreshMaxDuration",
-            "minScaleMultiplier": 0.0,
-            "scalesMaxSpeed": false,
-            "resetOnSkillReset": false
-        },
-        {
-            "modifierType": "RoomBypass",
-            "stackPolicy": "RefreshMaxDuration",
-            "minScaleMultiplier": 0.0,
-            "scalesMaxSpeed": false,
-            "resetOnSkillReset": false
-        }
-    ],
-    "launchHandoffs": [
-        {
-            "profileId": "default",
-            "inheritSeconds": 0.20000000298023225,
-            "blendSeconds": 0.3199999928474426,
-            "suppressTurnSeconds": 0.15000000596046449,
-            "handoffLeadSeconds": 0.5,
-            "minPreHandoffBypassSeconds": 0.5,
-            "clearAngularVelocity": false,
-            "groundSnapMaxDistance": 1.5,
-            "groundProbeHeight": 3.0,
+            "physicMaterial": "Character",
+            "pushGraceSeconds": 0.25,
+            "pushExtraMaxSpeed": 6.0,
+            "launchInheritSeconds": 0.20000000298023225,
+            "launchBlendSeconds": 0.3199999928474426,
+            "handoffGroundSnapMaxDistance": 1.5,
+            "handoffGroundProbeHeight": 3.0,
             "velocitySampleDeltaSeconds": 0.019999999552965165
         }
     ],
-    "respawnRules": [
+    "respawns": [
         {
-            "teleportSource": "DropRespawn",
+            "profileId": "default",
             "contactSeconds": 2.0,
             "cooldownSeconds": 1.5,
             "heightOffset": 3.0,
             "clearanceRadius": 0.75,
             "liftStep": 1.5,
             "maxLift": 6.0,
-            "floorTag": "RespawnFloor",
-            "snapProgress": true,
-            "zeroVelocity": true,
-            "resetModifiers": true,
-            "resetImpulseQueue": true,
-            "resetPushGrace": true,
-            "rebaseTrails": true
-        },
-        {
-            "teleportSource": "WrongWayCorrection",
-            "contactSeconds": 2.0,
-            "cooldownSeconds": 1.5,
-            "heightOffset": 3.0,
-            "clearanceRadius": 0.75,
-            "liftStep": 1.5,
-            "maxLift": 6.0,
-            "floorTag": "RespawnFloor",
-            "snapProgress": true,
-            "zeroVelocity": true,
-            "resetModifiers": true,
-            "resetImpulseQueue": true,
-            "resetPushGrace": true,
-            "rebaseTrails": true
-        },
-        {
-            "teleportSource": "Manual",
-            "contactSeconds": 2.0,
-            "cooldownSeconds": 1.5,
-            "heightOffset": 3.0,
-            "clearanceRadius": 0.75,
-            "liftStep": 1.5,
-            "maxLift": 6.0,
-            "floorTag": "RespawnFloor",
-            "snapProgress": true,
-            "zeroVelocity": true,
-            "resetModifiers": true,
-            "resetImpulseQueue": true,
-            "resetPushGrace": true,
-            "rebaseTrails": true
-        }
-    ],
-    "lapRules": [
-        {
-            "trackId": "racemap",
-            "lapsToFinish": 3,
-            "crossCooldownSeconds": 0.5,
-            "maxProgressJumpWithoutCheckpoint01": 0.5,
-            "minForwardDot": 0.0,
-            "armDistanceMeters": 25.0,
-            "useSequentialCheckpoints": true,
-            "autoAdvanceSplineCheckpoints": false,
-            "requiredCheckpointCount": 3,
-            "fallbackCheckpointProgresses01": [
-                0.25,
-                0.5,
-                0.75
-            ],
-            "startPointTag": "StartingPoint"
-        }
-    ],
-    "wrongWayRules": [
-        {
-            "trackId": "racemap",
-            "wrongWayWrapStartThreshold": 0.20000000298023225,
-            "wrongWayWrapEndThreshold": 0.800000011920929,
-            "wrongWayForwardDotThreshold": 0.0,
-            "wrongWayRecoveryLapProgressThreshold": 0.05000000074505806,
-            "wrongWayForceRespawnLapProgressThreshold": 0.8500000238418579,
-            "wrongWayRespawnLapProgress": 0.009999999776482582,
-            "wrongWayLap0RespawnLapProgress": 0.9900000095367432,
-            "startGraceSeconds": 0.3499999940395355
+            "floorTag": "RespawnFloor"
         }
     ],
     "drivingTiers": [
@@ -1693,6 +1545,19 @@
             "trackId": "racemap",
             "sceneName": "RaceMap",
             "lapsToFinish": 3,
+            "crossCooldownSeconds": 0.5,
+            "maxProgressJumpWithoutCheckpoint01": 0.5,
+            "minForwardDot": 0.0,
+            "armDistanceMeters": 25.0,
+            "useSequentialCheckpoints": true,
+            "autoAdvanceSplineCheckpoints": false,
+            "requiredCheckpointCount": 3,
+            "fallbackCheckpointProgresses01": [
+                0.25,
+                0.5,
+                0.75
+            ],
+            "startPointTag": "StartingPoint",
             "resultOverflowOffset": {
                 "x": 2.5,
                 "y": 0.0,
@@ -1710,6 +1575,19 @@
             "minimapWorldMaxZ": 247.0,
             "minimapImageWidth": 1120.0,
             "trackSplineSamples": 200
+        }
+    ],
+    "trackWrongWays": [
+        {
+            "trackId": "racemap",
+            "wrongWayWrapStartThreshold": 0.20000000298023225,
+            "wrongWayWrapEndThreshold": 0.800000011920929,
+            "wrongWayForwardDotThreshold": 0.0,
+            "wrongWayRecoveryLapProgressThreshold": 0.05000000074505806,
+            "wrongWayForceRespawnLapProgressThreshold": 0.8500000238418579,
+            "wrongWayRespawnLapProgress": 0.009999999776482582,
+            "wrongWayLap0RespawnLapProgress": 0.9900000095367432,
+            "startGraceSeconds": 0.3499999940395355
         }
     ],
     "trackSpawns": [

@@ -196,9 +196,9 @@ public class ObsessionRecord
     [Tooltip("达到即取上限")] public float backfireKeepPMaxAtOrAboveX = 0f;
 }
 
-/// <summary>Movement.xlsx / MovementBase</summary>
+/// <summary>Movement.xlsx / Movement</summary>
 [Serializable]
-public class MovementBaseRecord
+public class MovementRecord
 {
     /// <summary>string#key (key)</summary>
     [Tooltip("目前只有 default（玩家与 AI 共用）")] public string profileId = string.Empty;
@@ -230,70 +230,28 @@ public class MovementBaseRecord
     public Vector3 colliderCenter = Vector3.zero;
     /// <summary>string#ref=Global/PhysicsMaterial.materialId</summary>
     public string physicMaterial = string.Empty;
+    /// <summary>float</summary>
+    [Tooltip("受击宽限 s（原 PushReaction.graceSeconds，三种来源数值相同）")] public float pushGraceSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("受击宽限期临时限速增量（原 PushReaction.extraMaxSpeed）")] public float pushExtraMaxSpeed = 0f;
+    /// <summary>float</summary>
+    [Tooltip("起跑交接：继承开场速度的时长（BuddahMovement.launchInheritTime）")] public float launchInheritSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("起跑交接：线性混合时长（BuddahMovement.launchBlendTime）")] public float launchBlendSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("交接时地面吸附最大距离")] public float handoffGroundSnapMaxDistance = 0f;
+    /// <summary>float</summary>
+    [Tooltip("交接时地面探测高度")] public float handoffGroundProbeHeight = 0f;
+    /// <summary>float</summary>
+    [Tooltip("RaceBodyIntroStateController 速度采样间隔")] public float velocitySampleDeltaSeconds = 0f;
 }
 
-/// <summary>Movement.xlsx / PushReaction</summary>
+/// <summary>Movement.xlsx / Respawn</summary>
 [Serializable]
-public class PushReactionRecord
-{
-    /// <summary>enum:ImpulseSourceType#key (key)</summary>
-    [Tooltip("MeleePush / Projectile / ChargedProjectile")] public string impulseSource = string.Empty;
-    /// <summary>float</summary>
-    [Tooltip("受击宽限")] public float graceSeconds = 0f;
-    /// <summary>float</summary>
-    [Tooltip("宽限期临时限速增量")] public float extraMaxSpeed = 0f;
-    /// <summary>float</summary>
-    [Tooltip("按来源倍率（当前代码无区分=1）")] public float impulseMultiplier = 0f;
-}
-
-/// <summary>Movement.xlsx / ModifierRule</summary>
-[Serializable]
-public class ModifierRuleRecord
-{
-    /// <summary>enum:ModifierCommandType#key (key)</summary>
-    public string modifierType = string.Empty;
-    /// <summary>enum:StackPolicy</summary>
-    [Tooltip("当前代码：持续取较大值，幅度后写覆盖")] public string stackPolicy = string.Empty;
-    /// <summary>float</summary>
-    [Tooltip("倍率下限（代码 4 处重复 0.1）")] public float minScaleMultiplier = 0f;
-    /// <summary>bool</summary>
-    [Tooltip("Giant 是否缩放限速")] public bool scalesMaxSpeed = false;
-    /// <summary>bool</summary>
-    [Tooltip("ResetActiveSkillModifiers 是否重置")] public bool resetOnSkillReset = false;
-}
-
-/// <summary>Movement.xlsx / LaunchHandoff</summary>
-[Serializable]
-public class LaunchHandoffRecord
+public class RespawnRecord
 {
     /// <summary>string#key (key)</summary>
-    public string profileId = string.Empty;
-    /// <summary>float</summary>
-    [Tooltip("launchInheritTime")] public float inheritSeconds = 0f;
-    /// <summary>float</summary>
-    [Tooltip("launchBlendTime，线性混合")] public float blendSeconds = 0f;
-    /// <summary>float</summary>
-    [Tooltip("RaceBodyIntroStateController.cs:560")] public float suppressTurnSeconds = 0f;
-    /// <summary>float</summary>
-    [Tooltip("defaultHandoffLeadTime")] public float handoffLeadSeconds = 0f;
-    /// <summary>float</summary>
-    [Tooltip("Events.cs:173 下限")] public float minPreHandoffBypassSeconds = 0f;
-    /// <summary>bool</summary>
-    public bool clearAngularVelocity = false;
-    /// <summary>float</summary>
-    [Tooltip("Config 默认（prefab 未序列化）")] public float groundSnapMaxDistance = 0f;
-    /// <summary>float</summary>
-    public float groundProbeHeight = 0f;
-    /// <summary>float</summary>
-    public float velocitySampleDeltaSeconds = 0f;
-}
-
-/// <summary>Movement.xlsx / RespawnRule</summary>
-[Serializable]
-public class RespawnRuleRecord
-{
-    /// <summary>enum:TeleportSourceType#key (key)</summary>
-    [Tooltip("DropRespawn / WrongWayCorrection / Manual")] public string teleportSource = string.Empty;
+    [Tooltip("三种传送来源（DropRespawn / WrongWayCorrection / Manual）共用一套数值")] public string profileId = string.Empty;
     /// <summary>float</summary>
     [Tooltip("持续接触多久触发")] public float contactSeconds = 0f;
     /// <summary>float</summary>
@@ -308,70 +266,6 @@ public class RespawnRuleRecord
     public float maxLift = 0f;
     /// <summary>string#ref=Global/Tag.name</summary>
     public string floorTag = string.Empty;
-    /// <summary>bool</summary>
-    public bool snapProgress = false;
-    /// <summary>bool</summary>
-    public bool zeroVelocity = false;
-    /// <summary>bool</summary>
-    public bool resetModifiers = false;
-    /// <summary>bool</summary>
-    public bool resetImpulseQueue = false;
-    /// <summary>bool</summary>
-    public bool resetPushGrace = false;
-    /// <summary>bool</summary>
-    public bool rebaseTrails = false;
-}
-
-/// <summary>Movement.xlsx / LapRule</summary>
-[Serializable]
-public class LapRuleRecord
-{
-    /// <summary>string#key#ref=Match/Track.trackId (key)</summary>
-    public string trackId = string.Empty;
-    /// <summary>int</summary>
-    [Tooltip("RaceFinishManager 场景值")] public int lapsToFinish = 0;
-    /// <summary>float</summary>
-    [Tooltip("minimumCrossingCooldownSeconds")] public float crossCooldownSeconds = 0f;
-    /// <summary>float</summary>
-    public float maxProgressJumpWithoutCheckpoint01 = 0f;
-    /// <summary>float</summary>
-    public float minForwardDot = 0f;
-    /// <summary>float</summary>
-    [Tooltip("minimumWorldDistanceFromStartToArmLap")] public float armDistanceMeters = 0f;
-    /// <summary>bool</summary>
-    public bool useSequentialCheckpoints = false;
-    /// <summary>bool</summary>
-    public bool autoAdvanceSplineCheckpoints = false;
-    /// <summary>int</summary>
-    [Tooltip("须等于 TrackCheckpoint 行数")] public int requiredCheckpointCount = 0;
-    /// <summary>list,float#sep=|</summary>
-    public List<float> fallbackCheckpointProgresses01 = new List<float>();
-    /// <summary>string#ref=Global/Tag.name</summary>
-    public string startPointTag = string.Empty;
-}
-
-/// <summary>Movement.xlsx / WrongWayRule</summary>
-[Serializable]
-public class WrongWayRuleRecord
-{
-    /// <summary>string#key#ref=Match/Track.trackId (key)</summary>
-    public string trackId = string.Empty;
-    /// <summary>float</summary>
-    public float wrongWayWrapStartThreshold = 0f;
-    /// <summary>float</summary>
-    public float wrongWayWrapEndThreshold = 0f;
-    /// <summary>float</summary>
-    public float wrongWayForwardDotThreshold = 0f;
-    /// <summary>float</summary>
-    public float wrongWayRecoveryLapProgressThreshold = 0f;
-    /// <summary>float</summary>
-    public float wrongWayForceRespawnLapProgressThreshold = 0f;
-    /// <summary>float</summary>
-    public float wrongWayRespawnLapProgress = 0f;
-    /// <summary>float</summary>
-    public float wrongWayLap0RespawnLapProgress = 0f;
-    /// <summary>float</summary>
-    public float startGraceSeconds = 0f;
 }
 
 /// <summary>AI.xlsx / DrivingTier</summary>
@@ -665,7 +559,25 @@ public class TrackRecord
     /// <summary>string#ref=Global/Scene.sceneName</summary>
     public string sceneName = string.Empty;
     /// <summary>int</summary>
-    [Tooltip("同 Movement/LapRule")] public int lapsToFinish = 0;
+    [Tooltip("完赛圈数（RaceFinishManager 与 LapProgress 共用，唯一来源）")] public int lapsToFinish = 0;
+    /// <summary>float</summary>
+    [Tooltip("minimumCrossingCooldownSeconds")] public float crossCooldownSeconds = 0f;
+    /// <summary>float</summary>
+    public float maxProgressJumpWithoutCheckpoint01 = 0f;
+    /// <summary>float</summary>
+    public float minForwardDot = 0f;
+    /// <summary>float</summary>
+    [Tooltip("minimumWorldDistanceFromStartToArmLap")] public float armDistanceMeters = 0f;
+    /// <summary>bool</summary>
+    public bool useSequentialCheckpoints = false;
+    /// <summary>bool</summary>
+    public bool autoAdvanceSplineCheckpoints = false;
+    /// <summary>int</summary>
+    [Tooltip("须等于 TrackCheckpoint 行数")] public int requiredCheckpointCount = 0;
+    /// <summary>list,float#sep=|</summary>
+    public List<float> fallbackCheckpointProgresses01 = new List<float>();
+    /// <summary>string#ref=Global/Tag.name</summary>
+    public string startPointTag = string.Empty;
     /// <summary>vector3</summary>
     public Vector3 resultOverflowOffset = Vector3.zero;
     /// <summary>vector3</summary>
@@ -684,6 +596,30 @@ public class TrackRecord
     [Tooltip("RaceMap 覆盖值")] public float minimapImageWidth = 0f;
     /// <summary>int</summary>
     public int trackSplineSamples = 0;
+}
+
+/// <summary>Match.xlsx / TrackWrongWay</summary>
+[Serializable]
+public class TrackWrongWayRecord
+{
+    /// <summary>string#key#ref=Track.trackId (key)</summary>
+    public string trackId = string.Empty;
+    /// <summary>float</summary>
+    [Tooltip("wrongWayWrapStartThreshold")] public float wrongWayWrapStartThreshold = 0f;
+    /// <summary>float</summary>
+    [Tooltip("wrongWayWrapEndThreshold")] public float wrongWayWrapEndThreshold = 0f;
+    /// <summary>float</summary>
+    [Tooltip("wrongWayForwardDotThreshold")] public float wrongWayForwardDotThreshold = 0f;
+    /// <summary>float</summary>
+    [Tooltip("wrongWayRecoveryLapProgressThreshold")] public float wrongWayRecoveryLapProgressThreshold = 0f;
+    /// <summary>float</summary>
+    [Tooltip("wrongWayForceRespawnLapProgressThreshold")] public float wrongWayForceRespawnLapProgressThreshold = 0f;
+    /// <summary>float</summary>
+    [Tooltip("wrongWayRespawnLapProgress")] public float wrongWayRespawnLapProgress = 0f;
+    /// <summary>float</summary>
+    [Tooltip("wrongWayLap0RespawnLapProgress")] public float wrongWayLap0RespawnLapProgress = 0f;
+    /// <summary>float</summary>
+    [Tooltip("startGraceSeconds")] public float startGraceSeconds = 0f;
 }
 
 /// <summary>Match.xlsx / TrackSpawn</summary>
@@ -823,7 +759,7 @@ public class IntroRecord
     /// <summary>float</summary>
     public float introSpeedMetersPerSecond = 0f;
     /// <summary>float</summary>
-    [Tooltip("与 Movement/LaunchHandoff 同义")] public float handoffLeadSeconds = 0f;
+    [Tooltip("起跑交接提前量（唯一来源；IntroSequenceManager 与 RaceBodyIntroStateController.defaultHandoffLeadTime 共用）")] public float handoffLeadSeconds = 0f;
     /// <summary>float</summary>
     public float introLeadInSeconds = 0f;
     /// <summary>bool</summary>

@@ -55,13 +55,13 @@ public class RaceFinishManager : NetworkBehaviour
 
     private void Awake()
     {
-        // Movement/LapRule owns the lap count, Match/ModeRule the post-finish countdown.
+        // Match/Track owns the lap count, Match/ModeRule the post-finish countdown.
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
         {
             string trackId = DesignTableOverlay.CurrentTrackId();
-            LapRuleRecord lap = DesignTableOverlay.Single(db.lapRules, r => r.trackId == trackId) ?? DesignTableOverlay.Single(db.lapRules, null);
-            if (lap != null && lap.lapsToFinish > 0) lapsToFinish = lap.lapsToFinish;
+            TrackRecord track = DesignTableOverlay.Single(db.tracks, r => r.trackId == trackId) ?? DesignTableOverlay.Single(db.tracks, null);
+            if (track != null && track.lapsToFinish > 0) lapsToFinish = track.lapsToFinish;
             ModeRuleRecord mode = DesignTableOverlay.CurrentModeRule();
             if (mode != null) postFirstFinishCountdownSeconds = mode.postFirstFinishCountdownSeconds;
         }

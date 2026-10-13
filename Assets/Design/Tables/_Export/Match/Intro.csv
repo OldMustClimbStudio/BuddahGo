@@ -1,5 +1,5 @@
 ##var,profileId,fallbackIntroDurationSeconds,introSpeedMetersPerSecond,handoffLeadSeconds,introLeadInSeconds,randomizeSlots,deterministicShuffleSeed,timelinePath,timelineDurationSeconds
 ##type,string#key,float,float,float,float,bool,int,string#path,float
 ##group,,,,,,,,doc,doc
-##comment,,,,与 Movement/LaunchHandoff 同义,,Solo 强制 false,固定种子=每局相同,"Max(timeline, 样条÷速度)",由 timeline 资产导出，只读
+##comment,,,,起跑交接提前量（唯一来源；IntroSequenceManager 与 RaceBodyIntroStateController.defaultHandoffLeadTime 共用）,,Solo 强制 false,固定种子=每局相同,"Max(timeline, 样条÷速度)",由 timeline 资产导出，只读
 ,default,3,60,0.5,1,true,20260405,Assets/Animation/CG/TransitionToRaceMap.playable,18

@@ -12,6 +12,8 @@
 | [inventory-match-flow.md](inventory-match-flow.md) | 比赛模式规则、赛道（起跑点、检查点、结果区、逆行）、大厅房间、结算流程、属性选择、开场演出、身份命名、Match/UI 文案 |
 | [inventory-ui.md](inventory-ui.md) | UI 文案、HUD 与菜单参数、图标映射、小地图、过场 timeline、字体、编辑器工具、钉死数值的测试 |
 | [inventory-assets.md](inventory-assets.md) | prefab 注册、角色外观、VFX/Feel 资产、音频（无）、场景列表、标签层、物理与输入资产、未引用资产 |
+| [decisions.md](decisions.md) | 用户已拍板的决定（按日期追加） |
+| [excel-spec.md](excel-spec.md) | Excel 结构规范草案：表头约定、类型语法、工作簿与 sheet 明细、直通车管线、校验规则、待同步清单 |
 
 每份清单的格式：字段 — 位置 — 当前值（代码默认 / asset 或 prefab 实际值）— 消费方 — 建议表与列 — 备注。末尾各有「重复与遗留来源」「排除项」「待确认问题」。
 
@@ -118,7 +120,11 @@ Tags_Layers、Scene_Flow、Input_Bindings、Prefab_Registry、Audio（预留，�
 11. 断链与死数据的处理：补资源还是清字段；RaceMapEndField、legacy 组件、未引用资产何时删。
 12. 音频、皮肤、per-racer 外观是否在本次预留表结构。
 
-## 下一步（本分支后续工作，尚未开始）
+## 下一步
+
+2026-10-12 用户已拍板：沿用 ProjectConfigDatabase、源表放仓库内、先定 Excel 结构（见 [decisions.md](decisions.md)）。结构草案在 [excel-spec.md](excel-spec.md)，其末尾的待同步清单答完后进入导出器实现。原计划步骤保留如下。
+
+### 原计划步骤
 
 1. 用户对上面 12 项拍板，结论记入本目录（建议 `decisions.md`）。
 2. 据此定稿 Excel 工作簿结构：sheet 清单、表头三行（字段名 / 类型 / 注释）、外键关系、校验规则。

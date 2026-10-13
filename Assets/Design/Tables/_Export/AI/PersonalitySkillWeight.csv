@@ -1,5 +1,5 @@
 ##var,personalityId,skillId,weight
-##type,string#key#ref=Personality.personalityId,string#key#ref=Skill/SkillDefinition.skillId,"float#range=0,1.5"
+##type,string#key#ref=Personality.personalityId,string#key#ref=Skill/Skill.skillId,"float#range=0,1.5"
 ##group,,,
 ##comment,,,不在配装内的技能权重无效
 ,keeper,acceleration,1

@@ -4,6 +4,160 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>Skill.xlsx / Skill</summary>
+[Serializable]
+public class SkillRecord
+{
+    /// <summary>enum:SkillId#key (key)</summary>
+    [Tooltip("技能唯一 id，snake_case；名单在 Global/__enums__ 的 SkillId")] public string skillId = string.Empty;
+    /// <summary>string#ref=UI/Text.key</summary>
+    [Tooltip("显示名文案 key")] public string displayNameKey = string.Empty;
+    /// <summary>string#ref=UI/Text.key</summary>
+    [Tooltip("描述文案 key")] public string descriptionKey = string.Empty;
+    /// <summary>int</summary>
+    [Tooltip("选择界面排序")] public int sortOrder = 0;
+    /// <summary>enum:SkillUnlockState</summary>
+    [Tooltip("unlocked / locked / hidden")] public string unlockState = string.Empty;
+    /// <summary>string#ref=Skill.skillId</summary>
+    [Tooltip("反噬变体 id；普通技能必填，反噬行留空")] public string antiSkillId = string.Empty;
+    /// <summary>float#range=0,120</summary>
+    [Tooltip("冷却，从请求时刻+前摇起算")] public float cooldownSeconds = 0f;
+    /// <summary>float#range=0,120</summary>
+    [Tooltip("施法锁定")] public float castLockSeconds = 0f;
+    /// <summary>float#range=0,5</summary>
+    [Tooltip("施法前摇；反噬行按本行生效（原 GlobalRule anti_cast_confirm_delay_seconds）")] public float castConfirmDelaySeconds = 0f;
+    /// <summary>float#range=0,1000</summary>
+    [Tooltip("施法增加的执念；反噬按原技能取值，反噬行必须留空")] public float obsessionGain = 0f;
+    /// <summary>float#range=0,120</summary>
+    [Tooltip("主效果持续时间，写入技能 SO 的主时长字段：acceleration/giant→durationSeconds，slowtrap→zoneDurationSeconds，slowtrap_anti→rootDurationSeconds，blackcurtain→holdDurationSeconds，push_projectile_hands→buffDurationSeconds，reverseturn→invertDurationSeconds；push_projectile_hands_anti 瞬发无时长")] public float effectDurationSeconds = 0f;
+}
+
+/// <summary>Skill.xlsx / SkillEffectAcceleration</summary>
+[Serializable]
+public class SkillEffectAccelerationRecord
+{
+    /// <summary>enum:SkillId#key#ref=Skill.skillId (key)</summary>
+    [Tooltip("普通与反噬各一行；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
+    /// <summary>float</summary>
+    [Tooltip("普通：额外前推力 N")] public float extraForwardForce = 0f;
+    /// <summary>float</summary>
+    [Tooltip("普通：额外限速 m/s")] public float extraMaxSpeed = 0f;
+    /// <summary>float</summary>
+    [Tooltip("反噬：减速力 N")] public float slowForwardForce = 0f;
+    /// <summary>float</summary>
+    [Tooltip("反噬：限速削减 m/s")] public float slowMaxSpeed = 0f;
+}
+
+/// <summary>Skill.xlsx / SkillEffectSlowTrap</summary>
+[Serializable]
+public class SkillEffectSlowTrapRecord
+{
+    /// <summary>enum:SkillId#key#ref=Skill.skillId (key)</summary>
+    [Tooltip("普通与反噬各一行；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
+    /// <summary>float</summary>
+    [Tooltip("普通：同一目标重复施加间隔 s")] public float perTargetReapplyCooldown = 0f;
+    /// <summary>bool</summary>
+    [Tooltip("普通：是否影响施法者")] public bool affectCaster = false;
+    /// <summary>float</summary>
+    [Tooltip("普通：减速力 N")] public float slowForwardForce = 0f;
+    /// <summary>float</summary>
+    [Tooltip("普通：限速削减 m/s")] public float slowMaxSpeed = 0f;
+    /// <summary>float</summary>
+    [Tooltip("普通：每次减速持续 s")] public float slowDurationSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("反噬：定身后加速力 N")] public float extraForwardForce = 0f;
+    /// <summary>float</summary>
+    [Tooltip("反噬：定身后额外限速 m/s")] public float extraMaxSpeed = 0f;
+    /// <summary>float</summary>
+    [Tooltip("反噬：定身后加速持续 s")] public float accelerationDurationSeconds = 0f;
+}
+
+/// <summary>Skill.xlsx / SkillEffectBlackCurtain</summary>
+[Serializable]
+public class SkillEffectBlackCurtainRecord
+{
+    /// <summary>enum:SkillId#key#ref=Skill.skillId (key)</summary>
+    [Tooltip("普通与反噬各一行；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
+    /// <summary>float</summary>
+    [Tooltip("展开 s")] public float expandDurationSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("淡出 s")] public float fadeOutDurationSeconds = 0f;
+    /// <summary>float#range=0,1</summary>
+    [Tooltip("最大不透明度")] public float maxOpacity = 0f;
+}
+
+/// <summary>Skill.xlsx / SkillEffectGiant</summary>
+[Serializable]
+public class SkillEffectGiantRecord
+{
+    /// <summary>enum:SkillId#key#ref=Skill.skillId (key)</summary>
+    [Tooltip("普通与反噬各一行；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
+    /// <summary>float</summary>
+    [Tooltip("体型倍率（反噬 <1）")] public float scaleMultiplier = 0f;
+    /// <summary>float</summary>
+    [Tooltip("缩回 / 缩小过渡 s")] public float shrinkDurationSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("普通：变大过渡 s")] public float growDurationSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("普通：质量倍率（反噬代码固定 1）")] public float massMultiplier = 0f;
+    /// <summary>float</summary>
+    [Tooltip("普通：推力倍率（反噬代码固定 1）")] public float forwardForceMultiplier = 0f;
+    /// <summary>float</summary>
+    [Tooltip("反噬：恢复过渡 s")] public float restoreDurationSeconds = 0f;
+}
+
+/// <summary>Skill.xlsx / Push</summary>
+[Serializable]
+public class PushRecord
+{
+    /// <summary>string#key (key)</summary>
+    [Tooltip("basic=普通推掌（BuddahHandControl），charged=如来神掌蓄力弹（Skill_PushProjectileHands），charged_anti=反噬弹幕（Skill_PushProjectileHands_Anti）")] public string pushId = string.Empty;
+    /// <summary>float</summary>
+    [Tooltip("basic：手部旋转速度（AI 也读）")] public float rotationSpeedDegPerSec = 0f;
+    /// <summary>float</summary>
+    [Tooltip("basic=pushWindupSeconds 前摇；charged / charged_anti=buildUpSeconds 蓄力")] public float windupSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("basic=pushCooldownSeconds；charged=chargedPushCooldownSeconds")] public float pushCooldownSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("charged：蓄力后延迟推掌动作 s")] public float delayedPushActionSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("basic=hitbox 存活 pushLifetimeSeconds；charged=projectileLifetimeSeconds")] public float lifetimeSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("basic=pushImpulseStrength；charged=projectileImpulseStrength")] public float impulseStrength = 0f;
+    /// <summary>float</summary>
+    [Tooltip("charged：projectileSpeed m/s")] public float speed = 0f;
+    /// <summary>float</summary>
+    [Tooltip("basic=pushForwardOffset；charged=projectileForwardOffset；charged_anti=additionalForwardSpawnOffset")] public float forwardOffset = 0f;
+    /// <summary>float</summary>
+    [Tooltip("basic=pushHeightOffset；charged=projectileHeightOffset；charged_anti=additionalHeightSpawnOffset")] public float heightOffset = 0f;
+    /// <summary>float</summary>
+    [Tooltip("basic=pushSideOffset")] public float sideOffset = 0f;
+    /// <summary>float</summary>
+    [Tooltip("basic=pushLeftSideBias")] public float leftSideBias = 0f;
+    /// <summary>float</summary>
+    [Tooltip("basic=pushRightSideBias")] public float rightSideBias = 0f;
+    /// <summary>int</summary>
+    [Tooltip("charged_anti：弹幕数量")] public int projectileCount = 0;
+    /// <summary>float</summary>
+    [Tooltip("charged_anti：弹幕间距 m")] public float projectileSpacing = 0f;
+    /// <summary>vector3</summary>
+    [Tooltip("charged：projectileColliderSize；basic 的 hitbox 尺寸见 SkillConstant")] public Vector3 colliderSize = Vector3.zero;
+    /// <summary>float</summary>
+    [Tooltip("charged_anti：命中时的转向冲量")] public float hitTurnTorqueImpulse = 0f;
+}
+
+/// <summary>Skill.xlsx / ComboInput</summary>
+[Serializable]
+public class ComboInputRecord
+{
+    /// <summary>string#key (key)</summary>
+    public string profileId = string.Empty;
+    /// <summary>float#range=0.05,2</summary>
+    [Tooltip("连续按键最大间隔，超时清空缓冲（ComboSkillInput.stepWindowSeconds）")] public float inputWindowSeconds = 0f;
+    /// <summary>int#range=1,16</summary>
+    [Tooltip("搓招输入缓冲长度（ComboSkillInput.maxBuffer）")] public int maxBuffer = 0;
+}
+
 /// <summary>Skill.xlsx / ComboBinding</summary>
 [Serializable]
 public class ComboBindingRecord
@@ -14,38 +168,6 @@ public class ComboBindingRecord
     public string name = string.Empty;
     /// <summary>list,enum:ComboToken#sep=,</summary>
     [Tooltip("按键序列 W / Up")] public List<string> sequence = new List<string>();
-}
-
-/// <summary>Skill.xlsx / HandPush</summary>
-[Serializable]
-public class HandPushRecord
-{
-    /// <summary>string#key (key)</summary>
-    public string profileId = string.Empty;
-    /// <summary>float</summary>
-    [Tooltip("手部旋转速度（AI 也读）")] public float rotationSpeedDegPerSec = 0f;
-    /// <summary>float</summary>
-    [Tooltip("前摇")] public float pushWindupSeconds = 0f;
-    /// <summary>float</summary>
-    [Tooltip("hitbox 存活")] public float pushLifetimeSeconds = 0f;
-    /// <summary>float</summary>
-    public float pushForwardOffset = 0f;
-    /// <summary>float</summary>
-    public float pushSideOffset = 0f;
-    /// <summary>float</summary>
-    public float pushLeftSideBias = 0f;
-    /// <summary>float</summary>
-    public float pushRightSideBias = 0f;
-    /// <summary>float</summary>
-    public float pushHeightOffset = 0f;
-    /// <summary>float</summary>
-    [Tooltip("冲量")] public float pushImpulseStrength = 0f;
-    /// <summary>float</summary>
-    [Tooltip("普通推掌冷却")] public float pushCooldownSeconds = 0f;
-    /// <summary>vector3</summary>
-    [Tooltip("Cube.prefab BoxCollider size × scale")] public Vector3 hitboxSize = Vector3.zero;
-    /// <summary>vector3</summary>
-    public Vector3 hitboxCenter = Vector3.zero;
 }
 
 /// <summary>Skill.xlsx / Obsession</summary>
@@ -386,11 +508,11 @@ public class PersonalityRecord
     public string personalityId = string.Empty;
     /// <summary>string#ref=UI/Text.key</summary>
     [Tooltip("产品中的 AI 显示名")] public string displayNameKey = string.Empty;
-    /// <summary>string#ref=Skill/SkillDefinition.skillId</summary>
+    /// <summary>string#ref=Skill/Skill.skillId</summary>
     public string slot0SkillId = string.Empty;
-    /// <summary>string#ref=Skill/SkillDefinition.skillId</summary>
+    /// <summary>string#ref=Skill/Skill.skillId</summary>
     public string slot1SkillId = string.Empty;
-    /// <summary>string#ref=Skill/SkillDefinition.skillId</summary>
+    /// <summary>string#ref=Skill/Skill.skillId</summary>
     [Tooltip("四键招")] public string slot2SkillId = string.Empty;
     /// <summary>float#range=0,0.6</summary>
     [Tooltip("θ")] public float patience = 0f;
@@ -410,7 +532,7 @@ public class PersonalitySkillWeightRecord
 {
     /// <summary>string#key#ref=Personality.personalityId (key)</summary>
     public string personalityId = string.Empty;
-    /// <summary>string#key#ref=Skill/SkillDefinition.skillId (key)</summary>
+    /// <summary>string#key#ref=Skill/Skill.skillId (key)</summary>
     public string skillId = string.Empty;
     /// <summary>float#range=0,1.5</summary>
     [Tooltip("不在配装内的技能权重无效")] public float weight = 0f;
@@ -432,7 +554,7 @@ public class PersonalitySituationBiasRecord
 [Serializable]
 public class SkillOpportunityRecord
 {
-    /// <summary>string#key#ref=Skill/SkillDefinition.skillId (key)</summary>
+    /// <summary>string#key#ref=Skill/Skill.skillId (key)</summary>
     public string skillId = string.Empty;
     /// <summary>float#range=0,1</summary>
     public float backlashSeverity = 0f;
@@ -764,7 +886,7 @@ public class MenuOptionRecord
 [Serializable]
 public class SkillIconRecord
 {
-    /// <summary>string#key#ref=Skill/SkillDefinition.skillId (key)</summary>
+    /// <summary>string#key#ref=Skill/Skill.skillId (key)</summary>
     public string skillId = string.Empty;
     /// <summary>string#path</summary>
     [Tooltip("black")] public string hudIdleSpritePath = string.Empty;

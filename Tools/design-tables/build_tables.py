@@ -1,14 +1,15 @@
 """Generate the BuddahGo design-table workbooks from the effective (serialized) values in the project.
 
 Usage: python build_tables.py <repo_root> <out_dir>
+The build_* functions describe the v1 (per-component) layout; v2_layout.migrate_all reshapes the result into the
+committed v2 layout before writing, so a rebuilt baseline matches Assets/Design/Tables sheet for sheet.
 Naming rules (see Docs/design-tables/excel-spec.md):
   workbook = <Domain>.xlsx in Tables/<Domain>/ ; sheet = PascalCase record name ; field = camelCase (C# field) ;
   ids = snake_case ; text keys = domain.entity.field ; key columns first, doc columns last.
 """
 import os, sys, re, csv, json
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
-from openpyxl.utils import get_column_letter
+import tablemodel as TM
+import v2_layout as V2
 import extract as X
 from extract import vec, color, curve, fmt, boolv, enum_array_hex, guid_path
 
@@ -24,12 +25,7 @@ RSM = 'Assets/UIMenus/Lobby/RoomStateManager.prefab'
 MAIN = 'Assets/Data/Config/ProjectConfigDatabase_Main.asset'
 SKILLS = 'Assets/Skills_Assets/Skills/'
 
-HEAD_FILL = PatternFill('solid', fgColor='DDEBF7')
-DOC_FILL = PatternFill('solid', fgColor='F2F2F2')
-KEY_FONT = Font(bold=True)
-
-workbooks = {}
-meta_rows = []   # (workbook, sheet, record class, source, notes)
+MODEL = TM.Model()
 text_rows = {}   # key -> (zh, en, comment, context)
 
 def T(key, zh, en='', comment='', context=''):
@@ -40,43 +36,8 @@ def T(key, zh, en='', comment='', context=''):
     return key
 
 def sheet(wb_name, name, cols, rows, record='(新增)', source='', notes=''):
-    """cols: list of (var, type, group, comment). rows: list of dicts keyed by var."""
-    wb = workbooks.setdefault(wb_name, Workbook())
-    if wb.active and wb.active.title == 'Sheet':
-        ws = wb.active; ws.title = name
-    else:
-        ws = wb.create_sheet(name)
-    ws['A1'] = '##var'; ws['A2'] = '##type'; ws['A3'] = '##group'; ws['A4'] = '##comment'
-    for j, (var, typ, grp, com) in enumerate(cols, start=2):
-        ws.cell(1, j, var).font = KEY_FONT if '#key' in typ else Font()
-        ws.cell(2, j, typ); ws.cell(3, j, grp); ws.cell(4, j, com)
-        fill = DOC_FILL if grp == 'doc' else HEAD_FILL
-        for r in range(1, 5):
-            ws.cell(r, j).fill = fill
-        ws.cell(4, j).alignment = Alignment(wrap_text=True, vertical='top')
-        ws.column_dimensions[get_column_letter(j)].width = max(12, min(48, len(var) + 4))
-    ws.column_dimensions['A'].width = 11
-    for i, row in enumerate(rows, start=5):
-        for j, (var, typ, grp, com) in enumerate(cols, start=2):
-            v = row.get(var, '')
-            if v is None:
-                v = ''
-            if isinstance(v, bool):
-                v = 'true' if v else 'false'
-            elif isinstance(v, float):
-                v = float(fmt(v)) if fmt(v).replace('-', '').replace('.', '').isdigit() else v
-            ws.cell(i, j, v)
-    ws.freeze_panes = 'C5'
-    meta_rows.append((wb_name, name, record, source, notes))
-    # csv mirror
-    d = os.path.join(OUT, '_Export', wb_name); os.makedirs(d, exist_ok=True)
-    with open(os.path.join(d, f'{name}.csv'), 'w', encoding='utf-8', newline='') as f:
-        w = csv.writer(f)
-        w.writerow(['##var'] + [c[0] for c in cols]); w.writerow(['##type'] + [c[1] for c in cols])
-        w.writerow(['##group'] + [c[2] for c in cols]); w.writerow(['##comment'] + [c[3] for c in cols])
-        for row in rows:
-            w.writerow([''] + ['' if row.get(c[0]) is None else (fmt(row.get(c[0], '')) if not isinstance(row.get(c[0], ''), str) else row.get(c[0], '')) for c in cols])
-    return ws
+    """cols: list of (var, type, group, comment). rows: list of dicts keyed by var. Collected into MODEL; written at the end."""
+    return MODEL.add(TM.Sheet(wb_name, name, cols, rows, record, source, notes))
 
 def rowsof(fields, cols, extra=None):
     """Build one row dict from a serialized-field dict, converting by declared type."""
@@ -841,14 +802,9 @@ def build_global():
     rows = [{'enumName': e, 'name': n, 'value': v, 'alias': '', 'comment': ''} for e, items in enums.items() for n, v in items]
     sheet(WB, '__enums__', [C('enumName', 'string#key', ''), C('name', 'string#key', ''), C('value', 'int', ''), C('alias', 'string', ''), C('comment', 'string', '', 'doc')], rows, '枚举定义（不导出，校验用）', '代码枚举 + 本规范新增枚举')
 
-def build_meta():
-    rows = [{'workbook': w, 'sheet': s, 'recordClass': r, 'source': src, 'notes': n} for w, s, r, src, n in meta_rows]
-    sheet('Global', '__meta__', [C('workbook', 'string#key', ''), C('sheet', 'string#key', ''), C('recordClass', 'string', ''), C('source', 'string', '实际值来源'), C('notes', 'string', '')], rows, '元信息（不导出）', '')
-
 if __name__ == '__main__':
-    build_skill(); build_movement(); build_ai(); build_match(); build_ui(); build_global(); build_meta()
-    for name, wb in workbooks.items():
-        d = os.path.join(OUT, name); os.makedirs(d, exist_ok=True)
-        wb.save(os.path.join(d, f'{name}.xlsx'))
-        print('wrote', name, [ws.title for ws in wb.worksheets])
+    build_skill(); build_movement(); build_ai(); build_match(); build_ui(); build_global()
+    V2.migrate_all(MODEL)   # v1 builders above describe the project; the v2 layout is the committed shape
+    for name, sheets in TM.write_model(MODEL, OUT):
+        print('wrote', name, sheets)
     print('texts', len(text_rows))

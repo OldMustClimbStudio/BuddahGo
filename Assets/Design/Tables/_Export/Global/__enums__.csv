@@ -10,18 +10,6 @@
 ,SkillUnlockState,unlocked,0,,
 ,SkillUnlockState,locked,1,,
 ,SkillUnlockState,hidden,2,,
-,SkillBehaviorType,Acceleration,0,,
-,SkillBehaviorType,SlowTrap,1,,
-,SkillBehaviorType,BlackCurtain,2,,
-,SkillBehaviorType,Giant,3,,
-,SkillBehaviorType,PushProjectileHands,4,,
-,SkillBehaviorType,ReverseTurn,5,,
-,SkillBehaviorType,AccelerationAnti,6,,
-,SkillBehaviorType,SlowTrapAnti,7,,
-,SkillBehaviorType,BlackCurtainAnti,8,,
-,SkillBehaviorType,GiantAnti,9,,
-,SkillBehaviorType,PushProjectileHandsAnti,10,,
-,SkillBehaviorType,ReverseTurnAnti,11,,
 ,ComboToken,W,0,,
 ,ComboToken,Up,1,,
 ,SkillTargetScope,Self,0,,
@@ -79,3 +67,15 @@
 ,PhysicMaterialCombine,Multiply,1,,
 ,PhysicMaterialCombine,Minimum,2,,
 ,PhysicMaterialCombine,Maximum,3,,
+,SkillId,acceleration,0,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,slowtrap,1,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,blackcurtain,2,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,giant,3,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,push_projectile_hands,4,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,reverseturn,5,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,acceleration_anti,6,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,slowtrap_anti,7,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,blackcurtain_anti,8,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,giant_anti,9,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,push_projectile_hands_anti,10,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,SkillId,reverseturn_anti,11,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准

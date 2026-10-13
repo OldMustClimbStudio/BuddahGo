@@ -1,13 +1,13 @@
 # Design tables validation
 
-- time: 2026-10-13 13:04:33
+- time: 2026-10-13 14:05:09
 - mode: import (force)
-- changed workbooks: (none)
-- sheets re-mapped: 40, kept: 0, records: 617
+- changed workbooks: AI, Global, Skill, UI
+- sheets re-mapped: 43, kept: 0, records: 541
 - errors: 0, warnings: 3
 - outputs written: yes
 
-Re-mapped: Skill/SkillDefinition, Skill/SkillBalance, Skill/SkillEffectParam, Skill/SkillSelectionRule, Skill/DefaultLoadout, Skill/ComboBinding, Skill/HandPush, Skill/Obsession, Movement/MovementBase, Movement/PushReaction, Movement/ModifierRule, Movement/LaunchHandoff, Movement/RespawnRule, Movement/LapRule, Movement/WrongWayRule, AI/DrivingTier, AI/DrivingGlobal, AI/SkillDifficulty, AI/Personality, AI/PersonalitySkillWeight, AI/PersonalitySituationBias, AI/SkillOpportunity, AI/SkillGlobal, AI/Roster, Match/ModeRule, Match/Track, Match/TrackSpawn, Match/TrackCheckpoint, Match/TrackResultAnchor, Match/Lobby, Match/ResultVoteRule, Match/SelectionStage, Match/SelectionOption, Match/Intro, Match/IntroLayout, Match/RacerNaming, UI/Text, UI/MenuOption, UI/SkillIcon, Global/GlobalRule
+Re-mapped: Skill/Skill, Skill/SkillEffectAcceleration, Skill/SkillEffectSlowTrap, Skill/SkillEffectBlackCurtain, Skill/SkillEffectGiant, Skill/Push, Skill/SkillSelectionRule, Skill/DefaultLoadout, Skill/ComboInput, Skill/ComboBinding, Skill/Obsession, Movement/MovementBase, Movement/PushReaction, Movement/ModifierRule, Movement/LaunchHandoff, Movement/RespawnRule, Movement/LapRule, Movement/WrongWayRule, AI/DrivingTier, AI/DrivingGlobal, AI/SkillDifficulty, AI/Personality, AI/PersonalitySkillWeight, AI/PersonalitySituationBias, AI/SkillOpportunity, AI/SkillGlobal, AI/Roster, Match/ModeRule, Match/Track, Match/TrackSpawn, Match/TrackCheckpoint, Match/TrackResultAnchor, Match/Lobby, Match/ResultVoteRule, Match/SelectionStage, Match/SelectionOption, Match/Intro, Match/IntroLayout, Match/RacerNaming, UI/Text, UI/MenuOption, UI/SkillIcon, Global/GlobalRule
 
 | severity | location | message |
 |---|---|---|

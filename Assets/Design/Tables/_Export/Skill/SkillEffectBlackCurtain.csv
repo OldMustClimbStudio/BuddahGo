@@ -1,0 +1,6 @@
+##var,skillId,expandDurationSeconds,fadeOutDurationSeconds,maxOpacity
+##type,enum:SkillId#key#ref=Skill.skillId,float,float,"float#range=0,1"
+##group,,,,
+##comment,普通与反噬各一行；空格 = 该行的技能类没有这个字段,展开 s,淡出 s,最大不透明度
+,blackcurtain,1,2,1
+,blackcurtain_anti,1,2,1

@@ -10,7 +10,7 @@ namespace BuddahGo.DesignTables
     /// <summary>
     /// Fills record instances from sheet rows by matching ##var names to public fields (reflection).
     /// Text keys: a column "xxxKey" referencing UI/Text fills field "xxxKey" when it exists, otherwise
-    /// the resolved zh text into field "xxx" (keeps the hand-written SkillDefinitionRecord unchanged).
+    /// the resolved zh text into field "xxx" (for hand-written records that store the text itself).
     /// </summary>
     public static class DesignTableRecordMapper
     {

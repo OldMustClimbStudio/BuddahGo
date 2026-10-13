@@ -1,5 +1,5 @@
 ##var,personalityId,displayNameKey,slot0SkillId,slot1SkillId,slot2SkillId,patience,tempoSeconds,target,impairedTargetMultiplier,handsShots
-##type,string#key,string#ref=UI/Text.key,string#ref=Skill/SkillDefinition.skillId,string#ref=Skill/SkillDefinition.skillId,string#ref=Skill/SkillDefinition.skillId,"float#range=0,0.6","float#range=0.5,4",enum:AISkillTargetPreference,"float#range=1,2","int#range=0,6"
+##type,string#key,string#ref=UI/Text.key,string#ref=Skill/Skill.skillId,string#ref=Skill/Skill.skillId,string#ref=Skill/Skill.skillId,"float#range=0,0.6","float#range=0.5,4",enum:AISkillTargetPreference,"float#range=1,2","int#range=0,6"
 ##group,,,,,,,,,,
 ##comment,,产品中的 AI 显示名,,,四键招,θ,τ,,,
 ,keeper,ai.personality.keeper.name,slowtrap,acceleration,giant,0.25,1.5,Behind,1,0

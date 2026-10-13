@@ -1,5 +1,5 @@
 ##var,skillId,hudIdleSpritePath,hudActiveSpritePath,previewSpritePath
-##type,string#key#ref=Skill/SkillDefinition.skillId,string#path,string#path,string#path
+##type,string#key#ref=Skill/Skill.skillId,string#path,string#path,string#path
 ##group,,,,
 ##comment,,black,white,选择界面（未实现）
 ,acceleration,Assets/UI/UI资源/文字PNG/New/神足通.png,Assets/UI/UI资源/文字PNG/New/神足通-白.png,

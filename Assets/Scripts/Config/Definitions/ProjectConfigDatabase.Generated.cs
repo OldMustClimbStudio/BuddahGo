@@ -5,10 +5,22 @@ using UnityEngine;
 
 public partial class ProjectConfigDatabase
 {
+    [Header("Skill / Skill")]
+    public List<SkillRecord> skills = new List<SkillRecord>();
+    [Header("Skill / SkillEffectAcceleration")]
+    public List<SkillEffectAccelerationRecord> skillEffectAccelerations = new List<SkillEffectAccelerationRecord>();
+    [Header("Skill / SkillEffectSlowTrap")]
+    public List<SkillEffectSlowTrapRecord> skillEffectSlowTraps = new List<SkillEffectSlowTrapRecord>();
+    [Header("Skill / SkillEffectBlackCurtain")]
+    public List<SkillEffectBlackCurtainRecord> skillEffectBlackCurtains = new List<SkillEffectBlackCurtainRecord>();
+    [Header("Skill / SkillEffectGiant")]
+    public List<SkillEffectGiantRecord> skillEffectGiants = new List<SkillEffectGiantRecord>();
+    [Header("Skill / Push")]
+    public List<PushRecord> pushes = new List<PushRecord>();
+    [Header("Skill / ComboInput")]
+    public List<ComboInputRecord> comboInputs = new List<ComboInputRecord>();
     [Header("Skill / ComboBinding")]
     public List<ComboBindingRecord> comboBindings = new List<ComboBindingRecord>();
-    [Header("Skill / HandPush")]
-    public List<HandPushRecord> handPushes = new List<HandPushRecord>();
     [Header("Skill / Obsession")]
     public List<ObsessionRecord> obsessions = new List<ObsessionRecord>();
     [Header("Movement / MovementBase")]

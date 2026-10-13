@@ -95,11 +95,11 @@ public class SkillDatabase : ScriptableObject
         return (_activeMapTag ?? string.Empty).Trim();
     }
 
-    public bool TryGetDefinition(string skillId, out SkillDefinitionRecord record)
+    public bool TryGetSkillRecord(string skillId, out SkillRecord record)
     {
         record = null;
         return ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository)
-            && repository.TryGetDefinition(skillId, out record);
+            && repository.TryGet(skillId, out record);
     }
 
     public string GetResolvedDisplayName(string skillId, SkillAction fallbackSkill = null)
@@ -183,12 +183,11 @@ public class SkillDatabase : ScriptableObject
 
             bool isUnlocked = true;
             string description = string.Empty;
-            string iconKey = string.Empty;
-            if (TryGetDefinition(skillId, out SkillDefinitionRecord definition))
+            string iconKey = string.Empty; // icons are resolved by skillId (SkillUiSpriteLibrary / UI.SkillIcon); the table has no icon key column
+            if (TryGetSkillRecord(skillId, out SkillRecord record))
             {
-                description = definition.description ?? string.Empty;
-                iconKey = definition.iconKey ?? string.Empty;
-                isUnlocked = !string.Equals((definition.unlockState ?? string.Empty).Trim(), "locked", System.StringComparison.OrdinalIgnoreCase);
+                description = DesignTableOverlay.Text(record.descriptionKey, string.Empty);
+                isUnlocked = !string.Equals((record.unlockState ?? string.Empty).Trim(), "locked", System.StringComparison.OrdinalIgnoreCase);
             }
 
             results.Add(SelectablePropertyOption.Create(
@@ -240,24 +239,87 @@ public class SkillDatabase : ScriptableObject
         AddListToLookup(antiSkills, "antiSkills");
         AddListToLookup(skills, "skills");
         if (Application.isPlaying)
-            ApplyEffectParamsFromConfig();
+            ApplyDesignTablesToSkills();
     }
 
-    // Design tables (Skill/SkillEffectParam) own the effect numbers; the SO fields are only the editor-time fallback.
+    /// <summary>SO field that receives Skill.effectDurationSeconds for a skill class (null = the skill has no primary duration).</summary>
+    public static string EffectDurationField(SkillAction skill)
+    {
+        switch (skill)
+        {
+            case Skill_Acceleration _: case Skill_Acceleration_Anti _: case Skill_Giant _: case Skill_Giant_Anti _: return "durationSeconds";
+            case Skill_SlowTrap _: return "zoneDurationSeconds";
+            case Skill_SlowTrap_Anti _: return "rootDurationSeconds";
+            case Skill_BlackCurtain _: case Skill_BlackCurtain_Anti _: return "holdDurationSeconds";
+            case Skill_PushProjectileHands _: return "buffDurationSeconds";
+            case Skill_ReverseTurn _: case Skill_ReverseTurn_Anti _: return "invertDurationSeconds";
+            default: return null;
+        }
+    }
+
+    /// <summary>Skill/Push "charged" row → Skill_PushProjectileHands fields ("recordField=soField").</summary>
+    public static readonly string[] PushChargedMap =
+    {
+        "windupSeconds=buildUpSeconds", "pushCooldownSeconds=chargedPushCooldownSeconds", "delayedPushActionSeconds", "lifetimeSeconds=projectileLifetimeSeconds",
+        "impulseStrength=projectileImpulseStrength", "speed=projectileSpeed", "forwardOffset=projectileForwardOffset", "heightOffset=projectileHeightOffset", "colliderSize=projectileColliderSize"
+    };
+
+    /// <summary>Skill/Push "charged_anti" row → Skill_PushProjectileHands_Anti fields.</summary>
+    public static readonly string[] PushChargedAntiMap =
+    {
+        "windupSeconds=buildUpSeconds", "lifetimeSeconds=projectileLifetimeSeconds", "impulseStrength=projectileImpulseStrength", "speed=projectileSpeed",
+        "forwardOffset=additionalForwardSpawnOffset", "heightOffset=additionalHeightSpawnOffset", "projectileCount", "projectileSpacing", "colliderSize=projectileColliderSize", "hitTurnTorqueImpulse"
+    };
+
+    // Design tables own the effect numbers; the SO fields are only the editor-time fallback.
     // Applied in play mode only so edit-mode validation can still compare SO values against the tables.
-    private void ApplyEffectParamsFromConfig()
+    //   Skill.effectDurationSeconds      → the primary duration field of each skill class (EffectDurationField)
+    //   SkillEffect<Family> rows         → same-name fields of the normal / anti class (blank cells have no field on that class)
+    //   Push charged / charged_anti rows → explicit mapping onto the two projectile skills (basic row belongs to BuddahHandControl)
+    private void ApplyDesignTablesToSkills()
     {
         ProjectConfigDatabase db = DesignTableOverlay.Db;
-        if (db == null || db.skillEffectParams == null)
+        if (db == null)
             return;
 
-        for (int i = 0; i < db.skillEffectParams.Count; i++)
+        if (db.skills != null)
         {
-            SkillEffectParamRecord record = db.skillEffectParams[i];
-            if (record == null || string.IsNullOrEmpty(record.skillId) || !_byId.TryGetValue(record.skillId, out SkillAction skill) || skill == null)
-                continue;
-            DesignTableOverlay.TrySetField(skill, record.paramKey, record.paramValue);
+            foreach (SkillRecord row in db.skills)
+            {
+                if (row == null || row.effectDurationSeconds <= 0f || !TryGetAction(row.skillId, out SkillAction skill))
+                    continue;
+                string field = EffectDurationField(skill);
+                if (field != null)
+                    DesignTableOverlay.ApplyMapped(skill, row, "effectDurationSeconds=" + field);
+            }
         }
+
+        ApplyFamily(db.skillEffectAccelerations, r => r.skillId);
+        ApplyFamily(db.skillEffectSlowTraps, r => r.skillId);
+        ApplyFamily(db.skillEffectBlackCurtains, r => r.skillId);
+        ApplyFamily(db.skillEffectGiants, r => r.skillId);
+
+        if (TryGetAction("push_projectile_hands", out SkillAction charged))
+            DesignTableOverlay.ApplyMapped(charged, DesignTableOverlay.Single(db.pushes, r => r.pushId == "charged"), PushChargedMap);
+        if (TryGetAction("push_projectile_hands_anti", out SkillAction chargedAnti))
+            DesignTableOverlay.ApplyMapped(chargedAnti, DesignTableOverlay.Single(db.pushes, r => r.pushId == "charged_anti"), PushChargedAntiMap);
+    }
+
+    private void ApplyFamily<T>(List<T> rows, System.Func<T, string> skillIdOf) where T : class
+    {
+        if (rows == null)
+            return;
+        foreach (T row in rows)
+        {
+            if (row != null && TryGetAction(skillIdOf(row), out SkillAction skill))
+                DesignTableOverlay.Apply(skill, row);
+        }
+    }
+
+    private bool TryGetAction(string skillId, out SkillAction skill)
+    {
+        skill = null;
+        return !string.IsNullOrEmpty(skillId) && _byId != null && _byId.TryGetValue(skillId, out skill) && skill != null;
     }
 
     private void AddListToLookup(List<SkillAction> list, string listName)

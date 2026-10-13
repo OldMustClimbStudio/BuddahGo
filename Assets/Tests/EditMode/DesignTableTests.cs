@@ -16,8 +16,8 @@ namespace BuddahGo.Tests
         {
             Assert.IsTrue(File.Exists(SkillWorkbook), SkillWorkbook + " missing");
             List<XlsxReader.Sheet> sheets = XlsxReader.Read(SkillWorkbook);
-            XlsxReader.Sheet balance = sheets.Find(s => s.Name == "SkillBalance");
-            Assert.IsNotNull(balance, "SkillBalance sheet");
+            XlsxReader.Sheet balance = sheets.Find(s => s.Name == "Skill");
+            Assert.IsNotNull(balance, "Skill sheet");
             Assert.AreEqual("##var", balance.Rows[0][0]);
             Assert.AreEqual("##type", balance.Rows[1][0]);
             Assert.AreEqual("skillId", balance.Rows[0][1]);
@@ -29,10 +29,10 @@ namespace BuddahGo.Tests
         [Test]
         public void TypeSpec_ParsesTagsAndLists()
         {
-            TypeSpec key = TypeSpec.Parse("string#key#ref=SkillDefinition.skillId");
+            TypeSpec key = TypeSpec.Parse("string#key#ref=Skill.skillId");
             Assert.AreEqual(ColumnBaseType.String, key.BaseType);
             Assert.IsTrue(key.IsKey);
-            Assert.AreEqual("SkillDefinition", key.RefSheet);
+            Assert.AreEqual("Skill", key.RefSheet);
             Assert.AreEqual("skillId", key.RefField);
 
             TypeSpec cross = TypeSpec.Parse("string#ref=UI/Text.key");
@@ -67,10 +67,12 @@ namespace BuddahGo.Tests
         {
             DesignTableSet set = DesignTableSet.Load();
             Assert.AreEqual(0, set.LoadErrors.Count, string.Join("\n", set.LoadErrors));
-            Assert.IsNotNull(set.Find("Skill", "SkillBalance"));
-            Assert.AreEqual(12, set.Find("Skill", "SkillBalance").Rows.Count);
+            Assert.IsNotNull(set.Find("Skill", "Skill"));
+            Assert.AreEqual(12, set.Find("Skill", "Skill").Rows.Count);
             Assert.IsTrue(set.Enums.ContainsKey("SoloDifficulty"));
-            Assert.IsTrue(set.ExportTargets.ContainsKey("Skill/SkillDefinition"));
+            Assert.IsTrue(set.Enums.ContainsKey("SkillId"), "SkillId registry");
+            Assert.IsTrue(set.ExportTargets.ContainsKey("Skill/Skill"));
+            Assert.IsFalse(set.ExportTargets.ContainsKey("Skill/SkillConstant"), "code constants are not exported");
             Assert.IsTrue(set.ExportTargets.ContainsKey("UI/Text"));
             Assert.IsFalse(set.ExportTargets.ContainsKey("Skill/SkillPresentation"), "presentation sheets are not exported");
         }
@@ -120,11 +122,20 @@ namespace BuddahGo.Tests
                 Assert.AreEqual(0, errors.Count, string.Join("\n", errors));
                 Assert.IsFalse(result.OutputsWritten);
                 ProjectConfigDatabase db = result.Database;
-                Assert.AreEqual(12, db.skillDefinitions.Count);
-                Assert.AreEqual("神足通", db.skillDefinitions.Find(r => r.skillId == "acceleration").displayName, "text key resolved into displayName");
-                Assert.AreEqual(12f, db.skillBalances.Find(r => r.skillId == "push_projectile_hands").cooldownSeconds, "effective config value, not the SO value");
-                Assert.AreEqual(1f, db.skillBalances[0].castConfirmDelaySeconds);
-                Assert.Greater(db.skillEffectParams.Count, 40);
+                Assert.AreEqual(12, db.skills.Count);
+                SkillRecord acceleration = db.skills.Find(r => r.skillId == "acceleration");
+                Assert.AreEqual("skill.acceleration.name", acceleration.displayNameKey);
+                Assert.AreEqual("神足通", db.localizedTexts.Find(t => t.key == acceleration.displayNameKey).zh, "display text lives in UI/Text");
+                Assert.AreEqual(12f, db.skills.Find(r => r.skillId == "push_projectile_hands").cooldownSeconds, "effective config value, not the SO value");
+                Assert.AreEqual(1f, acceleration.castConfirmDelaySeconds);
+                Assert.AreEqual(10f, acceleration.effectDurationSeconds, "primary duration moved into Skill");
+                Assert.AreEqual(0f, db.skills.Find(r => r.skillId == "blackcurtain_anti").obsessionGain, "anti rows carry no obsession gain (A6)");
+                Assert.AreEqual("blackcurtain_anti", db.skills.Find(r => r.skillId == "blackcurtain").antiSkillId, "renamed anti id (A5)");
+                Assert.AreEqual(2, db.skillEffectGiants.Count);
+                Assert.AreEqual(4f, db.skillEffectGiants.Find(r => r.skillId == "giant").scaleMultiplier);
+                Assert.AreEqual(3, db.pushes.Count);
+                Assert.AreEqual(600f, db.pushes.Find(r => r.pushId == "charged").speed);
+                Assert.AreEqual(6, db.comboInputs[0].maxBuffer);
                 Assert.AreEqual(3, db.drivingTiers.Count);
                 Assert.AreEqual(90f, db.drivingTiers.Find(r => r.difficulty == "Hard").MaxThrustAngleDegrees);
                 Assert.AreEqual(5, db.personalities.Count);
@@ -134,7 +145,8 @@ namespace BuddahGo.Tests
                 Assert.AreEqual(3, db.modeRules.Count);
                 Assert.AreEqual(6, db.trackSpawns.Count);
                 Assert.Greater(db.localizedTexts.Count, 200);
-                Assert.IsTrue(db.globalRules.Exists(r => r.ruleKey == "combo_input_window_seconds"));
+                Assert.IsTrue(db.globalRules.Exists(r => r.ruleKey == "target_frame_rate"));
+                Assert.IsFalse(db.globalRules.Exists(r => r.ruleKey == "combo_input_window_seconds"), "combo keys moved to Skill/ComboInput");
             }
             finally
             {
@@ -152,14 +164,14 @@ namespace BuddahGo.Tests
 
             HashSet<string> uiOnly = DesignTableExporter.ComputeRemapSet(set, new HashSet<string> { "UI" }, null);
             Assert.IsTrue(uiOnly.Contains("UI/Text"));
-            Assert.IsTrue(uiOnly.Contains("Skill/SkillDefinition"), "SkillDefinition references UI/Text, so a UI change re-maps it");
+            Assert.IsTrue(uiOnly.Contains("Skill/Skill"), "Skill references UI/Text, so a UI change re-maps it");
             Assert.IsTrue(uiOnly.Contains("Match/ModeRule"), "ModeRule references UI/Text");
             Assert.IsFalse(uiOnly.Contains("Movement/MovementBase"), "MovementBase does not depend on UI");
             Assert.IsFalse(uiOnly.Contains("AI/DrivingTier"));
 
             HashSet<string> aiBalance = DesignTableExporter.ComputeRemapSet(set, null, new HashSet<string> { "ai" });
             Assert.IsTrue(aiBalance.Contains("AI/DrivingTier"));
-            Assert.IsFalse(aiBalance.Contains("Skill/SkillBalance"));
+            Assert.IsFalse(aiBalance.Contains("Skill/Skill"));
 
             HashSet<string> trackChanged = DesignTableExporter.ComputeRemapSet(set, new HashSet<string> { "Match" }, new HashSet<string> { "track" });
             Assert.IsTrue(trackChanged.Contains("Match/TrackSpawn"));

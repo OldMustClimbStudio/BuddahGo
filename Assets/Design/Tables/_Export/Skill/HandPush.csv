@@ -1,5 +1,0 @@
-##var,profileId,rotationSpeedDegPerSec,pushWindupSeconds,pushLifetimeSeconds,pushForwardOffset,pushSideOffset,pushLeftSideBias,pushRightSideBias,pushHeightOffset,pushImpulseStrength,pushCooldownSeconds,hitboxSize,hitboxCenter,leftHandTriggerName,rightHandTriggerName
-##type,string#key,float,float,float,float,float,float,float,float,float,float,vector3,vector3,string,string
-##group,,,,,,,,,,,,,,doc,doc
-##comment,,手部旋转速度（AI 也读）,前摇,hitbox 存活,,,,,,冲量,普通推掌冷却,Cube.prefab BoxCollider size × scale,,Animator trigger,
-,default,180,0.1,0.3,7,4,-0.1,0.1,1,100,0.4,"5.805029,3.65,14.823451","-0.319919,0,0.207897",LeftW,RightUp

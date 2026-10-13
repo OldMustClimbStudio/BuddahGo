@@ -14,497 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _defaultRuleSetId: default
   _defaultModeTag: default
-  skillDefinitions:
-  - skillId: acceleration
-    displayName: "\u795E\u8DB3\u901A"
-    description: "\u52A0\u901F\u81EA\u8EAB\u4E00\u6BB5\u65F6\u95F4"
-    behaviorType: Acceleration
-    iconKey: icon_acceleration
-    isSelectable: 1
-    sortOrder: 10
-    tags:
-    - movement
-    - buff
-    unlockState: unlocked
-  - skillId: slowtrap
-    displayName: "\u7985\u5B9A\u7F13\u6D41"
-    description: "\u51CF\u901F\u533A\u57DF"
-    behaviorType: SlowTrap
-    iconKey: icon_slow_trap
-    isSelectable: 1
-    sortOrder: 20
-    tags:
-    - trap
-    - debuff
-    unlockState: unlocked
-  - skillId: blackcurtain
-    displayName: "\u4E00\u5FF5\u5149\u660E"
-    description: "\u89E6\u53D1\u9ED1\u5E55\u6548\u679C"
-    behaviorType: BlackCurtain
-    iconKey: icon_blackcurtain
-    isSelectable: 1
-    sortOrder: 30
-    tags:
-    - special
-    - vision
-    unlockState: unlocked
-  - skillId: giant
-    displayName: "\u6CD5\u76F8\u91D1\u8EAB"
-    description: "\u653E\u5927\u81EA\u8EAB\u5F62\u6001"
-    behaviorType: Giant
-    iconKey: icon_giant
-    isSelectable: 1
-    sortOrder: 40
-    tags:
-    - body
-    - buff
-    unlockState: unlocked
-  - skillId: push_projectile_hands
-    displayName: "\u5982\u6765\u795E\u638C"
-    description: "\u53D1\u5C04\u5982\u6765\u795E\u638C"
-    behaviorType: PushProjectileHands
-    iconKey: icon_push_projectile_hands
-    isSelectable: 1
-    sortOrder: 50
-    tags:
-    - projectile
-    - attack
-    unlockState: unlocked
-  - skillId: reverseturn
-    displayName: "\u9006\u56E0\u7F18"
-    description: "\u5E72\u6270\u8F6C\u5411\u8F93\u5165"
-    behaviorType: ReverseTurn
-    iconKey: icon_reverseturn
-    isSelectable: 1
-    sortOrder: 60
-    tags:
-    - control
-    - debuff
-    unlockState: unlocked
-  - skillId: acceleration_anti
-    displayName: "\u795E\u8DB3\u901A\uFF08\u566C\uFF09"
-    description: "\u795E\u8DB3\u901A\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: AccelerationAnti
-    iconKey: icon_acceleration_anti
-    isSelectable: 0
-    sortOrder: 110
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: slowtrap_anti
-    displayName: "\u7985\u5B9A\u7F13\u6D41\uFF08\u566C\uFF09"
-    description: "\u7985\u5B9A\u7F13\u6D41\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: SlowTrapAnti
-    iconKey: icon_slowtrap_anti
-    isSelectable: 0
-    sortOrder: 120
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: anti_blackcurtain
-    displayName: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
-    description: "\u4E00\u5FF5\u5149\u660E\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: BlackCurtainAnti
-    iconKey: icon_blackcurtain_anti
-    isSelectable: 0
-    sortOrder: 130
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: giant_anti
-    displayName: "\u6CD5\u76F8\u91D1\u8EAB \uFF08\u566C\uFF09"
-    description: "\u6CD5\u76F8\u91D1\u8EAB\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: GiantAnti
-    iconKey: icon_giant_anti
-    isSelectable: 0
-    sortOrder: 140
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: push_projectile_hands_anti
-    displayName: "\u5982\u6765\u795E\u638C\uFF08\u566C\uFF09"
-    description: "\u5982\u6765\u795E\u638C\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: PushProjectileHandsAnti
-    iconKey: icon_push_projectile_hands_anti
-    isSelectable: 0
-    sortOrder: 150
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: reverseturn_anti
-    displayName: "\u9006\u56E0\u7F18\uFF08\u566C\uFF09"
-    description: "\u9006\u56E0\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: ReverseTurnAnti
-    iconKey: icon_reverseturn_anti
-    isSelectable: 0
-    sortOrder: 160
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  skillBalances:
-  - skillId: acceleration
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 300
-    antiSkillId: acceleration_anti
-    castConfirmDelaySeconds: 1
-  - skillId: slowtrap
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 300
-    antiSkillId: slowtrap_anti
-    castConfirmDelaySeconds: 1
-  - skillId: blackcurtain
-    cooldownSeconds: 16
-    castLockSeconds: 14
-    obsessionGain: 200
-    antiSkillId: anti_blackcurtain
-    castConfirmDelaySeconds: 1
-  - skillId: giant
-    cooldownSeconds: 8
-    castLockSeconds: 6
-    obsessionGain: 200
-    antiSkillId: giant_anti
-    castConfirmDelaySeconds: 1
-  - skillId: push_projectile_hands
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 300
-    antiSkillId: push_projectile_hands_anti
-    castConfirmDelaySeconds: 1
-  - skillId: reverseturn
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 200
-    antiSkillId: reverseturn_anti
-    castConfirmDelaySeconds: 1
-  - skillId: acceleration_anti
-    cooldownSeconds: 8
-    castLockSeconds: 6
-    obsessionGain: 0
-    antiSkillId: 
-    castConfirmDelaySeconds: 1
-  - skillId: slowtrap_anti
-    cooldownSeconds: 3
-    castLockSeconds: 1
-    obsessionGain: 0
-    antiSkillId: 
-    castConfirmDelaySeconds: 1
-  - skillId: anti_blackcurtain
-    cooldownSeconds: 16
-    castLockSeconds: 14
-    obsessionGain: 100
-    antiSkillId: 
-    castConfirmDelaySeconds: 1
-  - skillId: giant_anti
-    cooldownSeconds: 8
-    castLockSeconds: 6
-    obsessionGain: 0
-    antiSkillId: 
-    castConfirmDelaySeconds: 1
-  - skillId: push_projectile_hands_anti
-    cooldownSeconds: 10
-    castLockSeconds: 10
-    obsessionGain: 0
-    antiSkillId: 
-    castConfirmDelaySeconds: 1
-  - skillId: reverseturn_anti
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 0
-    antiSkillId: 
-    castConfirmDelaySeconds: 1
-  skillEffectParams:
-  - skillId: acceleration
-    effectType: Acceleration
-    paramKey: extraForwardForce
-    paramValue: 50
-  - skillId: acceleration
-    effectType: Acceleration
-    paramKey: extraMaxSpeed
-    paramValue: 40
-  - skillId: acceleration
-    effectType: Acceleration
-    paramKey: durationSeconds
-    paramValue: 10
-  - skillId: slowtrap
-    effectType: SlowTrap
-    paramKey: zoneDurationSeconds
-    paramValue: 10
-  - skillId: slowtrap
-    effectType: SlowTrap
-    paramKey: perTargetReapplyCooldown
-    paramValue: 0.5
-  - skillId: slowtrap
-    effectType: SlowTrap
-    paramKey: affectCaster
-    paramValue: false
-  - skillId: slowtrap
-    effectType: SlowTrap
-    paramKey: slowForwardForce
-    paramValue: 40
-  - skillId: slowtrap
-    effectType: SlowTrap
-    paramKey: slowMaxSpeed
-    paramValue: 20
-  - skillId: slowtrap
-    effectType: SlowTrap
-    paramKey: slowDurationSeconds
-    paramValue: 2
-  - skillId: blackcurtain
-    effectType: BlackCurtain
-    paramKey: expandDurationSeconds
-    paramValue: 1
-  - skillId: blackcurtain
-    effectType: BlackCurtain
-    paramKey: holdDurationSeconds
-    paramValue: 10
-  - skillId: blackcurtain
-    effectType: BlackCurtain
-    paramKey: fadeOutDurationSeconds
-    paramValue: 2
-  - skillId: blackcurtain
-    effectType: BlackCurtain
-    paramKey: maxOpacity
-    paramValue: 1
-  - skillId: giant
-    effectType: Giant
-    paramKey: scaleMultiplier
-    paramValue: 4
-  - skillId: giant
-    effectType: Giant
-    paramKey: durationSeconds
-    paramValue: 6
-  - skillId: giant
-    effectType: Giant
-    paramKey: growDurationSeconds
-    paramValue: 0.35
-  - skillId: giant
-    effectType: Giant
-    paramKey: shrinkDurationSeconds
-    paramValue: 0.35
-  - skillId: giant
-    effectType: Giant
-    paramKey: massMultiplier
-    paramValue: 3
-  - skillId: giant
-    effectType: Giant
-    paramKey: forwardForceMultiplier
-    paramValue: 3.5
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: buffDurationSeconds
-    paramValue: 15
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: buildUpSeconds
-    paramValue: 1
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: chargedPushCooldownSeconds
-    paramValue: 1
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: delayedPushActionSeconds
-    paramValue: 0.9
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: projectileForwardOffset
-    paramValue: 0
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: projectileHeightOffset
-    paramValue: 30
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: projectileSpeed
-    paramValue: 600
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: projectileLifetimeSeconds
-    paramValue: 3
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: projectileImpulseStrength
-    paramValue: 500
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: projectileColliderSize
-    paramValue: 60,90,20
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: ignoreSolidWorld
-    paramValue: false
-  - skillId: reverseturn
-    effectType: ReverseTurn
-    paramKey: invertDurationSeconds
-    paramValue: 10
-  - skillId: acceleration_anti
-    effectType: AccelerationAnti
-    paramKey: slowForwardForce
-    paramValue: 45
-  - skillId: acceleration_anti
-    effectType: AccelerationAnti
-    paramKey: slowMaxSpeed
-    paramValue: 40
-  - skillId: acceleration_anti
-    effectType: AccelerationAnti
-    paramKey: durationSeconds
-    paramValue: 6
-  - skillId: slowtrap_anti
-    effectType: SlowTrapAnti
-    paramKey: rootDurationSeconds
-    paramValue: 1
-  - skillId: slowtrap_anti
-    effectType: SlowTrapAnti
-    paramKey: extraForwardForce
-    paramValue: 10
-  - skillId: slowtrap_anti
-    effectType: SlowTrapAnti
-    paramKey: extraMaxSpeed
-    paramValue: 3
-  - skillId: slowtrap_anti
-    effectType: SlowTrapAnti
-    paramKey: accelerationDurationSeconds
-    paramValue: 2
-  - skillId: anti_blackcurtain
-    effectType: BlackCurtainAnti
-    paramKey: expandDurationSeconds
-    paramValue: 1
-  - skillId: anti_blackcurtain
-    effectType: BlackCurtainAnti
-    paramKey: holdDurationSeconds
-    paramValue: 10
-  - skillId: anti_blackcurtain
-    effectType: BlackCurtainAnti
-    paramKey: fadeOutDurationSeconds
-    paramValue: 2
-  - skillId: anti_blackcurtain
-    effectType: BlackCurtainAnti
-    paramKey: maxOpacity
-    paramValue: 1
-  - skillId: giant_anti
-    effectType: GiantAnti
-    paramKey: scaleMultiplier
-    paramValue: 0.3
-  - skillId: giant_anti
-    effectType: GiantAnti
-    paramKey: durationSeconds
-    paramValue: 6
-  - skillId: giant_anti
-    effectType: GiantAnti
-    paramKey: shrinkDurationSeconds
-    paramValue: 0.25
-  - skillId: giant_anti
-    effectType: GiantAnti
-    paramKey: restoreDurationSeconds
-    paramValue: 0.25
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: buildUpSeconds
-    paramValue: 0.3
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: projectileCount
-    paramValue: 5
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: projectileSpacing
-    paramValue: 30
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: additionalForwardSpawnOffset
-    paramValue: 100
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: additionalHeightSpawnOffset
-    paramValue: 30
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: projectileSpeed
-    paramValue: 600
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: projectileLifetimeSeconds
-    paramValue: 2
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: projectileImpulseStrength
-    paramValue: 600
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: projectileColliderSize
-    paramValue: 60,50,20
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: hitTurnTorqueImpulse
-    paramValue: 50
-  - skillId: reverseturn_anti
-    effectType: ReverseTurnAnti
-    paramKey: invertDurationSeconds
-    paramValue: 10
-  - skillId: slowtrap
-    effectType: SlowTrap
-    paramKey: zoneRadius
-    paramValue: 7.5
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: flightEndSpeedFraction
-    paramValue: 0.2
-  - skillId: push_projectile_hands
-    effectType: ProjectileHands
-    paramKey: progressCompletionFraction
-    paramValue: 0.8
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: reverseDirection
-    paramValue: true
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: allowSelfHit
-    paramValue: true
-  - skillId: push_projectile_hands_anti
-    effectType: ProjectileHandsAnti
-    paramKey: ignoreSolidWorld
-    paramValue: true
-  - skillId: reverseturn
-    effectType: ReverseTurn
-    paramKey: targetScope
-    paramValue: AllOthers
-  - skillId: reverseturn_anti
-    effectType: ReverseTurnAnti
-    paramKey: targetScope
-    paramValue: Self
-  - skillId: blackcurtain
-    effectType: BlackCurtain
-    paramKey: casterSeesTrackEdge
-    paramValue: true
-  - skillId: anti_blackcurtain
-    effectType: BlackCurtainAnti
-    paramKey: casterSeesTrackEdge
-    paramValue: false
-  - skillId: giant
-    effectType: Giant
-    paramKey: scalesMaxSpeed
-    paramValue: false
-  - skillId: giant_anti
-    effectType: GiantAnti
-    paramKey: massMultiplier
-    paramValue: 1
-  - skillId: giant_anti
-    effectType: GiantAnti
-    paramKey: forwardForceMultiplier
-    paramValue: 1
-  - skillId: acceleration
-    effectType: Acceleration
-    paramKey: stackRule
-    paramValue: MaxMagnitudeMaxDuration
   skillSelectionRules:
   - ruleSetId: default
     skillId: acceleration
@@ -595,7 +104,7 @@ MonoBehaviour:
     mapTag: 
     poolType: 3
   - ruleSetId: default
-    skillId: anti_blackcurtain
+    skillId: blackcurtain_anti
     isEnabled: 1
     allowDuplicate: 0
     weight: 1
@@ -634,27 +143,253 @@ MonoBehaviour:
     ruleSetId: default
     modeTag: default
   globalRules:
-  - ruleKey: combo_input_window_seconds
-    ruleValue: 0.35
-    ruleSetId: default
-    description: combo input gap window
-  - ruleKey: combo_max_buffer
-    ruleValue: 6
-    ruleSetId: default
-    description: "\u6413\u62DB\u8F93\u5165\u7F13\u51B2\u957F\u5EA6"
-  - ruleKey: anti_cast_confirm_delay_seconds
-    ruleValue: 1
-    ruleSetId: default
-    description: "\u53CD\u566C\u65BD\u6CD5\u524D\u6447"
   - ruleKey: target_frame_rate
     ruleValue: 120
     ruleSetId: default
     description: "\u987B\u4E3A tick_rate \u6574\u6570\u500D"
-  - ruleKey: cast_confirm_delay_seconds
-    ruleValue: 1
-    ruleSetId: default
-    description: "\u666E\u901A\u6280\u80FD\u65BD\u6CD5\u524D\u6447\u9ED8\u8BA4\u503C\uFF1BSkillBalance.castConfirmDelaySeconds
-      \u9010\u6280\u80FD\u8986\u76D6"
+  skills:
+  - skillId: acceleration
+    displayNameKey: skill.acceleration.name
+    descriptionKey: skill.acceleration.desc
+    sortOrder: 10
+    unlockState: unlocked
+    antiSkillId: acceleration_anti
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 300
+    effectDurationSeconds: 10
+  - skillId: slowtrap
+    displayNameKey: skill.slowtrap.name
+    descriptionKey: skill.slowtrap.desc
+    sortOrder: 20
+    unlockState: unlocked
+    antiSkillId: slowtrap_anti
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 300
+    effectDurationSeconds: 10
+  - skillId: blackcurtain
+    displayNameKey: skill.blackcurtain.name
+    descriptionKey: skill.blackcurtain.desc
+    sortOrder: 30
+    unlockState: unlocked
+    antiSkillId: blackcurtain_anti
+    cooldownSeconds: 16
+    castLockSeconds: 14
+    castConfirmDelaySeconds: 1
+    obsessionGain: 200
+    effectDurationSeconds: 10
+  - skillId: giant
+    displayNameKey: skill.giant.name
+    descriptionKey: skill.giant.desc
+    sortOrder: 40
+    unlockState: unlocked
+    antiSkillId: giant_anti
+    cooldownSeconds: 8
+    castLockSeconds: 6
+    castConfirmDelaySeconds: 1
+    obsessionGain: 200
+    effectDurationSeconds: 6
+  - skillId: push_projectile_hands
+    displayNameKey: skill.push_projectile_hands.name
+    descriptionKey: skill.push_projectile_hands.desc
+    sortOrder: 50
+    unlockState: unlocked
+    antiSkillId: push_projectile_hands_anti
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 300
+    effectDurationSeconds: 15
+  - skillId: reverseturn
+    displayNameKey: skill.reverseturn.name
+    descriptionKey: skill.reverseturn.desc
+    sortOrder: 60
+    unlockState: unlocked
+    antiSkillId: reverseturn_anti
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 200
+    effectDurationSeconds: 10
+  - skillId: acceleration_anti
+    displayNameKey: skill.acceleration_anti.name
+    descriptionKey: skill.acceleration_anti.desc
+    sortOrder: 110
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 8
+    castLockSeconds: 6
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 6
+  - skillId: slowtrap_anti
+    displayNameKey: skill.slowtrap_anti.name
+    descriptionKey: skill.slowtrap_anti.desc
+    sortOrder: 120
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 3
+    castLockSeconds: 1
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 1
+  - skillId: blackcurtain_anti
+    displayNameKey: skill.blackcurtain_anti.name
+    descriptionKey: skill.blackcurtain_anti.desc
+    sortOrder: 130
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 16
+    castLockSeconds: 14
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 10
+  - skillId: giant_anti
+    displayNameKey: skill.giant_anti.name
+    descriptionKey: skill.giant_anti.desc
+    sortOrder: 140
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 8
+    castLockSeconds: 6
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 6
+  - skillId: push_projectile_hands_anti
+    displayNameKey: skill.push_projectile_hands_anti.name
+    descriptionKey: skill.push_projectile_hands_anti.desc
+    sortOrder: 150
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 10
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 0
+  - skillId: reverseturn_anti
+    displayNameKey: skill.reverseturn_anti.name
+    descriptionKey: skill.reverseturn_anti.desc
+    sortOrder: 160
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 10
+  skillEffectAccelerations:
+  - skillId: acceleration
+    extraForwardForce: 50
+    extraMaxSpeed: 40
+    slowForwardForce: 0
+    slowMaxSpeed: 0
+  - skillId: acceleration_anti
+    extraForwardForce: 0
+    extraMaxSpeed: 0
+    slowForwardForce: 45
+    slowMaxSpeed: 40
+  skillEffectSlowTraps:
+  - skillId: slowtrap
+    perTargetReapplyCooldown: 0.5
+    affectCaster: 0
+    slowForwardForce: 40
+    slowMaxSpeed: 20
+    slowDurationSeconds: 2
+    extraForwardForce: 0
+    extraMaxSpeed: 0
+    accelerationDurationSeconds: 0
+  - skillId: slowtrap_anti
+    perTargetReapplyCooldown: 0
+    affectCaster: 0
+    slowForwardForce: 0
+    slowMaxSpeed: 0
+    slowDurationSeconds: 0
+    extraForwardForce: 10
+    extraMaxSpeed: 3
+    accelerationDurationSeconds: 2
+  skillEffectBlackCurtains:
+  - skillId: blackcurtain
+    expandDurationSeconds: 1
+    fadeOutDurationSeconds: 2
+    maxOpacity: 1
+  - skillId: blackcurtain_anti
+    expandDurationSeconds: 1
+    fadeOutDurationSeconds: 2
+    maxOpacity: 1
+  skillEffectGiants:
+  - skillId: giant
+    scaleMultiplier: 4
+    shrinkDurationSeconds: 0.35
+    growDurationSeconds: 0.35
+    massMultiplier: 3
+    forwardForceMultiplier: 3.5
+    restoreDurationSeconds: 0
+  - skillId: giant_anti
+    scaleMultiplier: 0.3
+    shrinkDurationSeconds: 0.25
+    growDurationSeconds: 0
+    massMultiplier: 0
+    forwardForceMultiplier: 0
+    restoreDurationSeconds: 0.25
+  pushes:
+  - pushId: basic
+    rotationSpeedDegPerSec: 180
+    windupSeconds: 0.1
+    pushCooldownSeconds: 0.4
+    delayedPushActionSeconds: 0
+    lifetimeSeconds: 0.3
+    impulseStrength: 100
+    speed: 0
+    forwardOffset: 7
+    heightOffset: 1
+    sideOffset: 4
+    leftSideBias: -0.1
+    rightSideBias: 0.1
+    projectileCount: 0
+    projectileSpacing: 0
+    colliderSize: {x: 0, y: 0, z: 0}
+    hitTurnTorqueImpulse: 0
+  - pushId: charged
+    rotationSpeedDegPerSec: 0
+    windupSeconds: 1
+    pushCooldownSeconds: 1
+    delayedPushActionSeconds: 0.9
+    lifetimeSeconds: 3
+    impulseStrength: 500
+    speed: 600
+    forwardOffset: 0
+    heightOffset: 30
+    sideOffset: 0
+    leftSideBias: 0
+    rightSideBias: 0
+    projectileCount: 0
+    projectileSpacing: 0
+    colliderSize: {x: 60, y: 90, z: 20}
+    hitTurnTorqueImpulse: 0
+  - pushId: charged_anti
+    rotationSpeedDegPerSec: 0
+    windupSeconds: 0.3
+    pushCooldownSeconds: 0
+    delayedPushActionSeconds: 0
+    lifetimeSeconds: 2
+    impulseStrength: 600
+    speed: 600
+    forwardOffset: 100
+    heightOffset: 30
+    sideOffset: 0
+    leftSideBias: 0
+    rightSideBias: 0
+    projectileCount: 5
+    projectileSpacing: 30
+    colliderSize: {x: 60, y: 50, z: 20}
+    hitTurnTorqueImpulse: 50
+  comboInputs:
+  - profileId: default
+    inputWindowSeconds: 0.35
+    maxBuffer: 6
   comboBindings:
   - slotIndex: 0
     name: Skill_1
@@ -675,20 +410,6 @@ MonoBehaviour:
     - W
     - Up
     - Up
-  handPushes:
-  - profileId: default
-    rotationSpeedDegPerSec: 180
-    pushWindupSeconds: 0.1
-    pushLifetimeSeconds: 0.3
-    pushForwardOffset: 7
-    pushSideOffset: 4
-    pushLeftSideBias: -0.1
-    pushRightSideBias: 0.1
-    pushHeightOffset: 1
-    pushImpulseStrength: 100
-    pushCooldownSeconds: 0.4
-    hitboxSize: {x: 5.805029, y: 3.65, z: 14.823451}
-    hitboxCenter: {x: -0.319919, y: 0, z: 0.207897}
   obsessions:
   - profileId: default
     maxValue: 1000
@@ -1767,7 +1488,7 @@ MonoBehaviour:
     zh: "\u53D1\u5C04\u5982\u6765\u795E\u638C"
     en: 
   - key: skill.reverseturn.name
-    zh: "\u9006\u56E0\u7F18"
+    zh: "\u9006\u59FB\u7F18"
     en: 
   - key: skill.reverseturn.desc
     zh: "\u5E72\u6270\u8F6C\u5411\u8F93\u5165"
@@ -1784,14 +1505,14 @@ MonoBehaviour:
   - key: skill.slowtrap_anti.desc
     zh: "\u7985\u5B9A\u7F13\u6D41\u7684\u53CD\u566C\u53D8\u4F53"
     en: 
-  - key: skill.anti_blackcurtain.name
+  - key: skill.blackcurtain_anti.name
     zh: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
     en: 
-  - key: skill.anti_blackcurtain.desc
+  - key: skill.blackcurtain_anti.desc
     zh: "\u4E00\u5FF5\u5149\u660E\u7684\u53CD\u566C\u53D8\u4F53"
     en: 
   - key: skill.giant_anti.name
-    zh: "\u6CD5\u76F8\u91D1\u8EAB \uFF08\u566C\uFF09"
+    zh: "\u6CD5\u76F8\u91D1\u8EAB\uFF08\u566C\uFF09"
     en: 
   - key: skill.giant_anti.desc
     zh: "\u6CD5\u76F8\u91D1\u8EAB\u7684\u53CD\u566C\u53D8\u4F53"
@@ -1803,10 +1524,10 @@ MonoBehaviour:
     zh: "\u5982\u6765\u795E\u638C\u7684\u53CD\u566C\u53D8\u4F53"
     en: 
   - key: skill.reverseturn_anti.name
-    zh: "\u9006\u56E0\u7F18\uFF08\u566C\uFF09"
+    zh: "\u9006\u59FB\u7F18\uFF08\u566C\uFF09"
     en: 
   - key: skill.reverseturn_anti.desc
-    zh: "\u9006\u56E0\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
+    zh: "\u9006\u59FB\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
     en: 
   - key: ai.personality.keeper.name
     zh: "P1 \u5B88\u4F4D\u578B"

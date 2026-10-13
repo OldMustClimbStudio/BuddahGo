@@ -9,9 +9,6 @@ public partial class ProjectConfigDatabase : ScriptableObject
     [SerializeField] private string _defaultModeTag = ProjectConfigConstants.DefaultModeTag;
 
     [Header("Skills")]
-    public List<SkillDefinitionRecord> skillDefinitions = new List<SkillDefinitionRecord>();
-    public List<SkillBalanceRecord> skillBalances = new List<SkillBalanceRecord>();
-    public List<SkillEffectParamRecord> skillEffectParams = new List<SkillEffectParamRecord>();
     public List<SkillSelectionRuleRecord> skillSelectionRules = new List<SkillSelectionRuleRecord>();
     public List<DefaultLoadoutRecord> defaultLoadouts = new List<DefaultLoadoutRecord>();
 

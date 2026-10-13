@@ -2,30 +2,30 @@
 ##type,string#key,text,text,string,string
 ##group,,,,doc,doc
 ##comment,domain.entity.field,简体中文,英文,,来源
-,skill.acceleration.name,神足通,,技能显示名,SkillDefinition.displayName
-,skill.acceleration.desc,加速自身一段时间,,技能描述,SkillDefinition.description
-,skill.slowtrap.name,禅定缓流,,技能显示名,SkillDefinition.displayName
-,skill.slowtrap.desc,减速区域,,技能描述,SkillDefinition.description
-,skill.blackcurtain.name,一念光明,,技能显示名,SkillDefinition.displayName
-,skill.blackcurtain.desc,触发黑幕效果,,技能描述,SkillDefinition.description
-,skill.giant.name,法相金身,,技能显示名,SkillDefinition.displayName
-,skill.giant.desc,放大自身形态,,技能描述,SkillDefinition.description
-,skill.push_projectile_hands.name,如来神掌,,技能显示名,SkillDefinition.displayName
-,skill.push_projectile_hands.desc,发射如来神掌,,技能描述,SkillDefinition.description
-,skill.reverseturn.name,逆因缘,,技能显示名,SkillDefinition.displayName
-,skill.reverseturn.desc,干扰转向输入,,技能描述,SkillDefinition.description
-,skill.acceleration_anti.name,神足通（噬）,,技能显示名,SkillDefinition.displayName
-,skill.acceleration_anti.desc,神足通的反噬变体,,技能描述,SkillDefinition.description
-,skill.slowtrap_anti.name,禅定缓流（噬）,,技能显示名,SkillDefinition.displayName
-,skill.slowtrap_anti.desc,禅定缓流的反噬变体,,技能描述,SkillDefinition.description
-,skill.anti_blackcurtain.name,一念光明（噬）,,技能显示名,SkillDefinition.displayName
-,skill.anti_blackcurtain.desc,一念光明的反噬变体,,技能描述,SkillDefinition.description
-,skill.giant_anti.name,法相金身 （噬）,,技能显示名,SkillDefinition.displayName
-,skill.giant_anti.desc,法相金身的反噬变体,,技能描述,SkillDefinition.description
-,skill.push_projectile_hands_anti.name,如来神掌（噬）,,技能显示名,SkillDefinition.displayName
-,skill.push_projectile_hands_anti.desc,如来神掌的反噬变体,,技能描述,SkillDefinition.description
-,skill.reverseturn_anti.name,逆因缘（噬）,,技能显示名,SkillDefinition.displayName
-,skill.reverseturn_anti.desc,逆因缘的反噬变体,,技能描述,SkillDefinition.description
+,skill.acceleration.name,神足通,,技能显示名,Skill.displayNameKey
+,skill.acceleration.desc,加速自身一段时间,,技能描述,Skill.descriptionKey
+,skill.slowtrap.name,禅定缓流,,技能显示名,Skill.displayNameKey
+,skill.slowtrap.desc,减速区域,,技能描述,Skill.descriptionKey
+,skill.blackcurtain.name,一念光明,,技能显示名,Skill.displayNameKey
+,skill.blackcurtain.desc,触发黑幕效果,,技能描述,Skill.descriptionKey
+,skill.giant.name,法相金身,,技能显示名,Skill.displayNameKey
+,skill.giant.desc,放大自身形态,,技能描述,Skill.descriptionKey
+,skill.push_projectile_hands.name,如来神掌,,技能显示名,Skill.displayNameKey
+,skill.push_projectile_hands.desc,发射如来神掌,,技能描述,Skill.descriptionKey
+,skill.reverseturn.name,逆姻缘,,技能显示名,Skill.displayNameKey
+,skill.reverseturn.desc,干扰转向输入,,技能描述,Skill.descriptionKey
+,skill.acceleration_anti.name,神足通（噬）,,技能显示名,Skill.displayNameKey
+,skill.acceleration_anti.desc,神足通的反噬变体,,技能描述,Skill.descriptionKey
+,skill.slowtrap_anti.name,禅定缓流（噬）,,技能显示名,Skill.displayNameKey
+,skill.slowtrap_anti.desc,禅定缓流的反噬变体,,技能描述,Skill.descriptionKey
+,skill.blackcurtain_anti.name,一念光明（噬）,,技能显示名,Skill.displayNameKey
+,skill.blackcurtain_anti.desc,一念光明的反噬变体,,技能描述,Skill.descriptionKey
+,skill.giant_anti.name,法相金身（噬）,,技能显示名,Skill.displayNameKey
+,skill.giant_anti.desc,法相金身的反噬变体,,技能描述,Skill.descriptionKey
+,skill.push_projectile_hands_anti.name,如来神掌（噬）,,技能显示名,Skill.displayNameKey
+,skill.push_projectile_hands_anti.desc,如来神掌的反噬变体,,技能描述,Skill.descriptionKey
+,skill.reverseturn_anti.name,逆姻缘（噬）,,技能显示名,Skill.displayNameKey
+,skill.reverseturn_anti.desc,逆姻缘的反噬变体,,技能描述,Skill.descriptionKey
 ,ai.personality.keeper.name,P1 守位型,,AI 人格显示名,AISkillPersonality.DisplayName
 ,ai.personality.hunter.name,P2 追猎型,,AI 人格显示名,AISkillPersonality.DisplayName
 ,ai.personality.brawler.name,P3 车群型,,AI 人格显示名,AISkillPersonality.DisplayName

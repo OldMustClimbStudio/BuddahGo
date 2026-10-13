@@ -156,17 +156,20 @@ public class ComboSkillInput : NetworkBehaviour
 
     private void ApplyConfiguredGlobalRules()
     {
-        if (!ProjectConfigRuntime.TryGetGlobalRuleRepository(out GlobalRuleRepository repository))
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db == null)
             return;
 
-        if (repository.TryGetFloat(ProjectConfigConstants.GlobalRuleComboInputWindowSeconds, out float configuredStepWindow))
-            stepWindowSeconds = Mathf.Max(MinimumStepWindowSeconds, configuredStepWindow);
-        if (repository.TryGetFloat("combo_max_buffer", out float configuredBuffer))
-            maxBuffer = Mathf.Max(1, Mathf.RoundToInt(configuredBuffer));
+        // Skill/ComboInput owns the input window and the buffer length (formerly GlobalRule combo_* keys).
+        ComboInputRecord input = DesignTableOverlay.Single(db.comboInputs, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.comboInputs, null);
+        if (input != null)
+        {
+            stepWindowSeconds = Mathf.Max(MinimumStepWindowSeconds, input.inputWindowSeconds);
+            maxBuffer = Mathf.Max(1, input.maxBuffer);
+        }
 
         // Skill/ComboBinding replaces the prefab bindings when present.
-        ProjectConfigDatabase db = ProjectConfigRuntime.Database;
-        if (db == null || db.comboBindings == null || db.comboBindings.Count == 0)
+        if (db.comboBindings == null || db.comboBindings.Count == 0)
             return;
         List<ComboBinding> configured = new List<ComboBinding>();
         for (int i = 0; i < db.comboBindings.Count; i++)

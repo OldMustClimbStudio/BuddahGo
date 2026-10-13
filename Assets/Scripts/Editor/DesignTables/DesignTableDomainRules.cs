@@ -8,16 +8,19 @@ namespace BuddahGo.DesignTables
     {
         public static void Validate(DesignTableSet set, List<Issue> issues)
         {
-            CheckpointCountMatchesLapRule(set, issues);
+            CheckpointCountMatchesTrack(set, issues);
             RosterMatchesPersonalities(set, issues);
             KeyMaxBelowComboWindow(set, issues);
-            AntiSkillsHaveBalanceRows(set, issues);
+            SkillRowsAreConsistent(set, issues);
             DefaultLoadoutUsesSelectableSkills(set, issues);
         }
 
-        private static void CheckpointCountMatchesLapRule(DesignTableSet set, List<Issue> issues)
+        private static void CheckpointCountMatchesTrack(DesignTableSet set, List<Issue> issues)
         {
-            DesignSheet lap = set.Find("Movement", "LapRule");
+            // Match/Track carries requiredCheckpointCount (v2); Movement/LapRule did before the move.
+            DesignSheet lap = set.Find("Match", "Track");
+            if (lap == null || lap.FindColumn("requiredCheckpointCount") == null)
+                lap = set.Find("Movement", "LapRule");
             DesignSheet cps = set.Find("Match", "TrackCheckpoint");
             if (lap == null || cps == null) return;
             ColumnSpec trackCol = lap.FindColumn("trackId");
@@ -47,34 +50,51 @@ namespace BuddahGo.DesignTables
 
         private static void KeyMaxBelowComboWindow(DesignTableSet set, List<Issue> issues)
         {
-            DesignSheet global = set.Find("AI", "SkillGlobal");
-            DesignSheet rules = set.Find("Global", "GlobalRule");
-            if (global == null || rules == null) return;
+            // The AI's key-hold maximum must stay inside the player's combo input window.
             float keyMax = -1f, window = -1f;
-            ColumnSpec k = global.FindColumn("key"), v = global.FindColumn("value");
-            foreach (DataRow row in global.Rows)
-                if (global.Cell(row, k).Trim() == "KeyMaxSeconds") keyMax = ValueConverter.ToFloat(global.Cell(row, v));
-            ColumnSpec rk = rules.FindColumn("ruleKey"), rv = rules.FindColumn("ruleValue");
-            foreach (DataRow row in rules.Rows)
-                if (rules.Cell(row, rk).Trim() == "combo_input_window_seconds") window = ValueConverter.ToFloat(rules.Cell(row, rv));
+            DesignSheet tuning = set.Find("AI", "SkillTuning");
+            if (tuning != null && tuning.FindColumn("keyMaxSeconds") != null && tuning.Rows.Count > 0)
+                keyMax = ValueConverter.ToFloat(tuning.Cell(tuning.Rows[0], tuning.FindColumn("keyMaxSeconds")));
+            else
+            {
+                DesignSheet global = set.Find("AI", "SkillGlobal");
+                if (global != null)
+                {
+                    ColumnSpec k = global.FindColumn("key"), v = global.FindColumn("value");
+                    foreach (DataRow row in global.Rows)
+                        if (global.Cell(row, k).Trim() == "KeyMaxSeconds") keyMax = ValueConverter.ToFloat(global.Cell(row, v));
+                }
+            }
+            DesignSheet combo = set.Find("Skill", "ComboInput");
+            if (combo != null && combo.FindColumn("inputWindowSeconds") != null && combo.Rows.Count > 0)
+                window = ValueConverter.ToFloat(combo.Cell(combo.Rows[0], combo.FindColumn("inputWindowSeconds")));
             if (keyMax >= 0f && window >= 0f && keyMax >= window)
-                issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "AI.xlsx/SkillGlobal", Message = "KeyMaxSeconds " + keyMax + " must be below combo_input_window_seconds " + window });
+                issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "AI.xlsx/SkillTuning", Message = "keyMaxSeconds " + keyMax + " must be below Skill/ComboInput.inputWindowSeconds " + window });
         }
 
-        private static void AntiSkillsHaveBalanceRows(DesignTableSet set, List<Issue> issues)
+        private static void SkillRowsAreConsistent(DesignTableSet set, List<Issue> issues)
         {
-            DesignSheet balance = set.Find("Skill", "SkillBalance");
-            if (balance == null) return;
-            ColumnSpec id = balance.FindColumn("skillId"), anti = balance.FindColumn("antiSkillId");
-            HashSet<string> ids = set.KeyValues(balance, "skillId");
-            foreach (DataRow row in balance.Rows)
+            DesignSheet skill = set.Find("Skill", "Skill");
+            if (skill == null) return;
+            ColumnSpec id = skill.FindColumn("skillId"), anti = skill.FindColumn("antiSkillId"), gain = skill.FindColumn("obsessionGain");
+            if (id == null || anti == null) return;
+            HashSet<string> antiIds = new HashSet<string>();
+            foreach (DataRow row in skill.Rows)
             {
-                string a = balance.Cell(row, anti).Trim();
-                if (!string.IsNullOrEmpty(a) && !ids.Contains(a))
-                    issues.Add(new Issue { Severity = IssueSeverity.Error, Location = balance.Location(row, anti), Message = "antiSkillId '" + a + "' has no SkillBalance row" });
-                string sid = balance.Cell(row, id).Trim();
-                if (string.IsNullOrEmpty(a) && !sid.Contains("anti"))
-                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = balance.Location(row, anti), Message = "normal skill '" + sid + "' has no antiSkillId" });
+                string a = skill.Cell(row, anti).Trim();
+                string sid = skill.Cell(row, id).Trim();
+                if (!string.IsNullOrEmpty(a)) antiIds.Add(a);
+                else if (!sid.EndsWith("_anti"))
+                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, anti), Message = "normal skill '" + sid + "' has no antiSkillId" });
+            }
+            if (gain == null) return;
+            // Backfire adds the requested skill's obsessionGain (SkillExecutor.QueueCast); the anti row's value is never read.
+            foreach (DataRow row in skill.Rows)
+            {
+                string sid = skill.Cell(row, id).Trim();
+                string g = skill.Cell(row, gain).Trim();
+                if (antiIds.Contains(sid) && !string.IsNullOrEmpty(g) && ValueConverter.ToFloat(g) != 0f)
+                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, gain), Message = "obsessionGain on anti skill '" + sid + "' is ignored (backfire uses the requested skill's gain); leave it blank" });
             }
         }
 

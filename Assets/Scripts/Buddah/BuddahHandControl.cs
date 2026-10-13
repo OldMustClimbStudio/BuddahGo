@@ -160,13 +160,21 @@ public class BuddahHandControl : NetworkBehaviour
     /// </summary>
     public float HandRotationAxis { get; private set; }
 
+    /// <summary>Skill/Push "basic" row → BuddahHandControl fields ("recordField=componentField").</summary>
+    public static readonly string[] PushBasicMap =
+    {
+        "rotationSpeedDegPerSec", "windupSeconds=pushWindupSeconds", "pushCooldownSeconds", "lifetimeSeconds=pushLifetimeSeconds", "impulseStrength=pushImpulseStrength",
+        "forwardOffset=pushForwardOffset", "heightOffset=pushHeightOffset", "sideOffset=pushSideOffset", "leftSideBias=pushLeftSideBias", "rightSideBias=pushRightSideBias"
+    };
+
     private void Awake()
     {
         animator = GetComponentInChildren<Animator>(true);
-        // Skill/HandPush owns the push numbers; prefab values stay as fallback.
+        // Skill/Push "basic" row owns the hand-push numbers; prefab values stay as fallback. Explicit mapping only:
+        // the charged / charged_anti rows of the same sheet belong to the projectile skills (SkillDatabase).
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
-            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.handPushes, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.handPushes, null));
+            DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.Single(db.pushes, r => r.pushId == "basic"), PushBasicMap);
 
         if (useGeneratedInputActions)
         {

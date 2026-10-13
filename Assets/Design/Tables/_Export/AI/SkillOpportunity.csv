@@ -1,5 +1,5 @@
 ##var,skillId,backlashSeverity,blockWhenGlobalVisible,minStraightSeconds,scoreBase,scoreSlope,maxValiditySeconds,minValiditySeconds,euclidMultiplier,maxYawDegrees,yawPenalty,scorePerContact,packBonus,source
-##type,string#key#ref=Skill/SkillDefinition.skillId,"float#range=0,1",bool,float,float,float,float,float,float,float,float,float,float,string
+##type,string#key#ref=Skill/Skill.skillId,"float#range=0,1",bool,float,float,float,float,float,float,float,float,float,float,string
 ##group,,,,,,,,,,,,,,doc
 ##comment,,,全局效果可见时不叠加,Acceleration,,,,,欧氏距离倍率,,,,,
 ,acceleration,1,false,3,,,,,,,,,,AISkillDecision.cs:72-78

@@ -2,8 +2,4 @@
 ##type,string#key,string#key,string,string,string,string
 ##group,,,,,doc,doc
 ##comment,snake_case,空=default,,,校验用,读取方
-,combo_input_window_seconds,default,0.35,combo input gap window,float,ComboSkillInput.ApplyConfiguredGlobalRules
-,combo_max_buffer,default,6,搓招输入缓冲长度,int,ComboSkillInput.maxBuffer（prefab）
-,anti_cast_confirm_delay_seconds,default,1,反噬施法前摇,float,SkillExecutor.cs:52
 ,target_frame_rate,default,120,须为 tick_rate 整数倍,int,FrameRateLock.cs:9
-,cast_confirm_delay_seconds,default,1,普通技能施法前摇默认值；SkillBalance.castConfirmDelaySeconds 逐技能覆盖,float,SkillExecutor.ResolveCastConfirmDelay / ConfirmationSeconds

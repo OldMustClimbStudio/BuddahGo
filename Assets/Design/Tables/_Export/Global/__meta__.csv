@@ -2,18 +2,22 @@
 ##type,string#key,string#key,string,string,string
 ##group,,,,,
 ##comment,,,,实际值来源,
-,Skill,SkillDefinition,SkillDefinitionRecord（displayName/description 改为 key）,Assets/Data/Config/ProjectConfigDatabase_Main.asset,
-,Skill,SkillBalance,SkillBalanceRecord + castConfirmDelaySeconds,Assets/Data/Config/ProjectConfigDatabase_Main.asset; SkillExecutor.cs:51-52,如来神掌 SO 为 18/15，运行时生效的是配置 12/10
-,Skill,SkillEffectParam,SkillEffectParamRecord（接通运行时读取）,Assets/Skills_Assets/Skills/*.asset + 代码常量,paramValue 以 SO 实际值为准，代码默认值已忽略
+,Skill,Skill,(生成) SkillRecord ← SkillDefinition + SkillBalance + SkillEffectParam 主时长,Assets/Data/Config/ProjectConfigDatabase_Main.asset; Assets/Skills_Assets/Skills/*.asset,2026-10-13 v2：身份、冷却/锁定/前摇、执念、主效果时长合一；behaviorType/iconKey/isSelectable/tags 四个死列删除
+,Skill,SkillEffectAcceleration,(生成) SkillEffectAccelerationRecord,Assets/Skills_Assets/Skills/*.asset,主时长 durationSeconds 在 Skill.effectDurationSeconds
+,Skill,SkillEffectSlowTrap,(生成) SkillEffectSlowTrapRecord,Assets/Skills_Assets/Skills/*.asset,区域时长 zoneDurationSeconds / 定身时长 rootDurationSeconds 在 Skill.effectDurationSeconds；区域半径见 SkillConstant
+,Skill,SkillEffectBlackCurtain,(生成) SkillEffectBlackCurtainRecord,Assets/Skills_Assets/Skills/*.asset,保持时长 holdDurationSeconds 在 Skill.effectDurationSeconds
+,Skill,SkillEffectGiant,(生成) SkillEffectGiantRecord,Assets/Skills_Assets/Skills/*.asset,持续 durationSeconds 在 Skill.effectDurationSeconds
+,Skill,Push,(生成) PushRecord ← BuddahHandControl + Skill_PushProjectileHands(_Anti),Assets/Character/Prefab/Buddah.prefab; Assets/Skills_Assets/Skills/Skill_PushProjectileHands*.asset,basic 行覆盖 BuddahHandControl，charged / charged_anti 行在 Play 模式覆盖两个技能 SO（SkillDatabase.ApplyDesignTables 的显式映射）
 ,Skill,SkillPresentation,(新增) SkillPresentationRecord,Assets/Skills_Assets/Skills/*.asset,ReverseTurn/AccelerationAnti 的 vfx 字段代码从不播放
 ,Skill,VfxRegistry,(新增) VfxRegistryRecord ← SkillVfxDatabase,Assets/Skills_Assets/SkillVfxDatabase.asset; RaceMap VfxStartupWarmup,
 ,Skill,FeelEvent,(新增) FeelEventRecord ← SkillFeelRouter.entries,Assets/Character/Prefab/Buddah.prefab,
 ,Skill,SkillSelectionRule,SkillSelectionRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,
 ,Skill,DefaultLoadout,DefaultLoadoutRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,运行时优先取此表（SkillLoadout.cs:90-101）；prefab 的 _defaultSkillIds 第 3 槽 blackcurtain 只是兜底
+,Skill,ComboInput,(生成) ComboInputRecord ← GlobalRule combo_*,Assets/Data/Config/ProjectConfigDatabase_Main.asset; Buddah.prefab ComboSkillInput,原 GlobalRule 的 combo_input_window_seconds / combo_max_buffer
 ,Skill,ComboBinding,(新增) ComboBindingRecord ← ComboSkillInput.bindings,Assets/Character/Prefab/Buddah.prefab,HUD SkillSlot prefab 的 tokens 由此表生成
-,Skill,HandPush,(新增) HandPushRecord ← BuddahHandControl,Assets/Character/Prefab/Buddah.prefab; Assets/Character/Prefab/Cube.prefab,
 ,Skill,Obsession,(新增) ObsessionRecord ← ObsessionFigure,Assets/Character/Prefab/Buddah.prefab,替代未读取的 GlobalRule 键 catchup_recovery_a / obsession_recovery_baseline
 ,Skill,BlackCurtainPresentation,(新增) BlackCurtainPresentationRecord,Assets/Scenes/RaceMap.unity BlackCurtainViewController; BlackCurtainScreenEffect.cs,
+,Skill,SkillConstant,(只读) 代码与 prefab 里的效果常量,代码常量；Cube.prefab；SlowTrapZone.prefab,改动需同步代码或资源，不由导出器写入
 ,Movement,MovementBase,(新增) MovementBaseRecord ← BuddahPredictedMotorConfig + Rigidbody,Assets/Character/Prefab/Buddah.prefab,legacy BuddahMovement 的副本不再使用
 ,Movement,PushReaction,(新增) PushReactionRecord,Assets/Character/Prefab/Buddah.prefab BuddahPredictedMotorConfig; BuddahPredictedImpulseSourceType.cs,
 ,Movement,ModifierRule,(新增) ModifierRuleRecord,New_Buddah BuddahPredictedMotor.Events.cs:365-402; Resolver.cs,
@@ -53,7 +57,7 @@
 ,UI,UiTiming,"(新增, 键值) UiTimingRecord",各 UI 组件 SerializeField 实际值,
 ,UI,MiniMap,(新增) MiniMapRecord（边界在 Match/Track）,Assets/UI/UIprefap.prefab,
 ,UI,Text,(新增) LocalizedTextRecord,MAIN 技能文案 + C# 硬编码文案（自动提取）+ 场景静态文本,自动提取的 key 需人工定稿；英文列为空表示待翻译
-,Global,GlobalRule,GlobalRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,6 个未读取键已退役：圈数→Movement/LapRule，倒计时→Match/ModeRule，执念→Skill/Obsession
+,Global,GlobalRule,GlobalRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,只放真正跨域的开关；搓招键→Skill/ComboInput，施法前摇→Skill.castConfirmDelaySeconds（含反噬行），圈数→Match/Track，倒计时→Match/ModeRule，执念→Skill/Obsession
 ,Global,StructuralConstant,(只读) 结构性常量,代码常量,全列 doc：仅记录，不导出
 ,Global,GlobalPhysics,"(新增, 只读候选) GlobalPhysicsRecord",ProjectSettings/DynamicsManager.asset,
 ,Global,PhysicsMaterial,(新增) PhysicsMaterialRecord,Assets/Material/*.physicMaterial,

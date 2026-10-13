@@ -1,17 +1,32 @@
 {
- "Skill/SkillDefinition": {
-  "record": "SkillDefinitionRecord",
-  "list": "skillDefinitions",
-  "tags": "skill,info"
+ "Skill/Skill": {
+  "record": "SkillRecord",
+  "list": "skills",
+  "tags": "skill,info,balance"
  },
- "Skill/SkillBalance": {
-  "record": "SkillBalanceRecord",
-  "list": "skillBalances",
+ "Skill/SkillEffectAcceleration": {
+  "record": "SkillEffectAccelerationRecord",
+  "list": "skillEffectAccelerations",
   "tags": "skill,balance"
  },
- "Skill/SkillEffectParam": {
-  "record": "SkillEffectParamRecord",
-  "list": "skillEffectParams",
+ "Skill/SkillEffectSlowTrap": {
+  "record": "SkillEffectSlowTrapRecord",
+  "list": "skillEffectSlowTraps",
+  "tags": "skill,balance"
+ },
+ "Skill/SkillEffectBlackCurtain": {
+  "record": "SkillEffectBlackCurtainRecord",
+  "list": "skillEffectBlackCurtains",
+  "tags": "skill,balance"
+ },
+ "Skill/SkillEffectGiant": {
+  "record": "SkillEffectGiantRecord",
+  "list": "skillEffectGiants",
+  "tags": "skill,balance"
+ },
+ "Skill/Push": {
+  "record": "PushRecord",
+  "list": "pushes",
   "tags": "skill,balance"
  },
  "Skill/SkillSelectionRule": {
@@ -24,15 +39,15 @@
   "list": "defaultLoadouts",
   "tags": "skill,info"
  },
+ "Skill/ComboInput": {
+  "record": "ComboInputRecord",
+  "list": "comboInputs",
+  "tags": "skill,balance"
+ },
  "Skill/ComboBinding": {
   "record": "ComboBindingRecord",
   "list": "comboBindings",
   "tags": "skill,info"
- },
- "Skill/HandPush": {
-  "record": "HandPushRecord",
-  "list": "handPushes",
-  "tags": "skill,balance"
  },
  "Skill/Obsession": {
   "record": "ObsessionRecord",

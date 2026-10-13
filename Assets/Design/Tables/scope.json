@@ -2,13 +2,16 @@
   "_comment": "Scope line decided 2026-10-13: export only gameplay balance and information sheets. Presentation sheets stay in the workbooks for reference and are validated but never exported.",
   "export": {
     "Skill": [
-      "SkillDefinition",
-      "SkillBalance",
-      "SkillEffectParam",
+      "Skill",
+      "SkillEffectAcceleration",
+      "SkillEffectSlowTrap",
+      "SkillEffectBlackCurtain",
+      "SkillEffectGiant",
+      "Push",
       "SkillSelectionRule",
       "DefaultLoadout",
+      "ComboInput",
       "ComboBinding",
-      "HandPush",
       "Obsession"
     ],
     "Movement": [
@@ -59,7 +62,8 @@
       "SkillPresentation",
       "VfxRegistry",
       "FeelEvent",
-      "BlackCurtainPresentation"
+      "BlackCurtainPresentation",
+      "SkillConstant"
     ],
     "Movement": [
       "Camera",
@@ -91,9 +95,6 @@
     "__meta__"
   ],
   "handWrittenRecords": [
-    "SkillDefinitionRecord",
-    "SkillBalanceRecord",
-    "SkillEffectParamRecord",
     "SkillSelectionRuleRecord",
     "DefaultLoadoutRecord",
     "GlobalRuleRecord"
@@ -105,15 +106,28 @@
     "Text": "localizedTexts"
   },
   "tags": {
-    "Skill/SkillDefinition": [
+    "Skill/Skill": [
       "skill",
-      "info"
+      "info",
+      "balance"
     ],
-    "Skill/SkillBalance": [
+    "Skill/SkillEffectAcceleration": [
       "skill",
       "balance"
     ],
-    "Skill/SkillEffectParam": [
+    "Skill/SkillEffectSlowTrap": [
+      "skill",
+      "balance"
+    ],
+    "Skill/SkillEffectBlackCurtain": [
+      "skill",
+      "balance"
+    ],
+    "Skill/SkillEffectGiant": [
+      "skill",
+      "balance"
+    ],
+    "Skill/Push": [
       "skill",
       "balance"
     ],
@@ -125,13 +139,13 @@
       "skill",
       "info"
     ],
+    "Skill/ComboInput": [
+      "skill",
+      "balance"
+    ],
     "Skill/ComboBinding": [
       "skill",
       "info"
-    ],
-    "Skill/HandPush": [
-      "skill",
-      "balance"
     ],
     "Skill/Obsession": [
       "skill",

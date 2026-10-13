@@ -114,7 +114,35 @@ public static class DesignTableOverlay
         return written;
     }
 
-    /// <summary>Set one field by name from its cell text (used for SkillEffectParam rows).</summary>
+    /// <summary>
+    /// Copy only the listed record fields onto the target: each entry is "recordField=targetField" (or just
+    /// "field" when both share the name). Unlike <see cref="Apply"/> nothing else on the record is matched, so a
+    /// row that is applied to a foreign object (e.g. a Push row onto a SkillAction) cannot clobber unrelated fields.
+    /// </summary>
+    public static int ApplyMapped(object target, object record, params string[] map)
+    {
+        if (target == null || record == null || map == null)
+            return 0;
+        int written = 0;
+        foreach (string entry in map)
+        {
+            int eq = entry.IndexOf('=');
+            string sourceName = eq > 0 ? entry.Substring(0, eq) : entry;
+            string targetName = eq > 0 ? entry.Substring(eq + 1) : entry;
+            FieldInfo source = record.GetType().GetField(sourceName, BindingFlags.Public | BindingFlags.Instance);
+            FieldInfo destination = source != null ? FindField(target.GetType(), targetName) : null;
+            if (destination == null)
+                continue;
+            if (TryCoerce(source.GetValue(record), destination.FieldType, out object coerced))
+            {
+                destination.SetValue(target, coerced);
+                written++;
+            }
+        }
+        return written;
+    }
+
+    /// <summary>Set one field by name from its cell text.</summary>
     public static bool TrySetField(object target, string fieldName, string rawValue)
     {
         if (target == null || string.IsNullOrEmpty(fieldName))
@@ -128,14 +156,20 @@ public static class DesignTableOverlay
         return true;
     }
 
+    /// <summary>Field lookup up the inheritance chain; exact name first, then case-insensitive (camelCase sheet headers onto PascalCase fields).</summary>
     public static FieldInfo FindField(Type type, string name)
     {
-        while (type != null && type != typeof(object))
+        for (Type t = type; t != null && t != typeof(object); t = t.BaseType)
         {
-            FieldInfo field = type.GetField(name, FieldFlags | BindingFlags.DeclaredOnly);
+            FieldInfo field = t.GetField(name, FieldFlags | BindingFlags.DeclaredOnly);
             if (field != null)
                 return field;
-            type = type.BaseType;
+        }
+        for (Type t = type; t != null && t != typeof(object); t = t.BaseType)
+        {
+            FieldInfo field = t.GetField(name, FieldFlags | BindingFlags.DeclaredOnly | BindingFlags.IgnoreCase);
+            if (field != null)
+                return field;
         }
         return null;
     }

@@ -420,7 +420,7 @@ def build_ai():
     pj = X.json_file('Assets/Resources/AI/SkillPersonalities.json')
     diffs = pj['Difficulties']; dnames = ['Easy', 'Normal', 'Hard']
     dkeys = [k for k in diffs[0].keys()]
-    cols = [C('difficulty', 'enum:SoloDifficulty#key', '')] + [C(k, 'int' if k == 'ImpairedReactionTicks' else 'float', '') for k in dkeys]
+    cols = [C('difficulty', 'enum:SoloDifficulty#key', '')] + [C(k, 'int' if k in ('ImpairedReactionTicks', 'ImpairedDrivingReactionTicks') else 'float', '') for k in dkeys]
     sheet(WB, 'SkillDifficulty', cols, [{'difficulty': dnames[i], **{k: d[k] for k in dkeys}} for i, d in enumerate(diffs)], 'AISkillDifficulty', 'Assets/Resources/AI/SkillPersonalities.json')
 
     kinds = ['acceleration', 'slowtrap', 'giant', 'push_projectile_hands', 'reverseturn', 'blackcurtain']

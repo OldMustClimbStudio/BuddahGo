@@ -26,6 +26,49 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 | 重建基线工作簿 | `python Tools/design-tables/build_tables.py . <输出目录>`：从工程实际值反向生成，只在重做基线时用 |
 | 回归测试 | EditMode `BuddahGo.Tests.DesignTableTests`（读表、语法、校验、干跑导出、增量判定） |
 
+## 修改手册
+
+### 单元格怎么写
+`##type` 行决定每列的写法与校验，常见类型：
+
+| `##type` | 写法 | 例子 |
+|---|---|---|
+| `int` / `float` | 数字，可带 `#range=最小,最大` | `12`、`0.35` |
+| `bool` | `true` / `false`（也接受 `1` / `0` / `是` / `否`） | `true` |
+| `string` / `text` | 原样文本；`text` 允许换行 | `acceleration` |
+| `enum:名称` | 写枚举名，名单在 `Global.xlsx` 的 `__enums__` sheet | `Selectable`、`Hard` |
+| `list,类型#sep=|` | 用分隔符连接，默认 `\|`，搓招用 `,` | `movement\|buff`、`W,Up,W` |
+| `vector3` / `color` | 逗号分隔 | `0,0,-2`、`1,0.7,0,1` |
+| `curve` | 关键帧列表 `time,value,inSlope,outSlope` 用 `\|` 连接 | `0,0,2,2\|1,1,0,0` |
+| `xxx#key` | 主键列，同表不可重复；多列 `#key` 组成复合键 | `skillId` |
+| `xxx#ref=表.列` | 外键，值必须存在于目标表；跨工作簿写 `UI/Text.key` | `acceleration_anti` |
+| `string#path` | 工程内相对路径，不存在只给警告 | `Assets/UI/…png` |
+
+- 留空：数字视为 0，bool 视为 false，列表视为空，外键留空表示"无"。`ruleSetId` / `modeTag` / `mapTag` 留空等于 default / 全部。
+- 公式可以用，导入读取的是计算结果；不要合并单元格、不要在表头行上方插行。
+- 单行全局表（`profileId` = `default`）只改值不加行；按行的表（技能、人格、出生点）加行即新增记录，主键必须唯一。
+- 临时屏蔽一行：在 A 列写 `##`。删除一行即删除记录。
+- 文案：数据表只放 key（如 `skill.giant.name`），文本在 `UI.xlsx/Text` 的 `zh` 列改；新增文案先在 Text 加 key，再在数据表引用，否则报"text key not found"。
+- `##group` 为 `doc` 的列只是说明，改了不会进游戏；`adv` 是高级/工程参数，改之前确认影响。
+- 想改一个表里没有的参数：先按"程序：常用操作"加列并生成记录类，再让对应组件读取；没有读取方的列不会生效。
+
+### 改完怎么进游戏
+1. **保存 xlsx。** Unity 检测到文件变化后 0.5 秒自动导入（Excel 可以继续开着）。没有自动导入时，菜单 `Tools/Design Tables/Import Changed`。
+2. **导入做了什么**：读全部工作簿 → 校验所有 sheet（主键、类型、范围、枚举、外键、路径、跨表规则，如检查点数量必须等于圈规则要求、AI 人格数等于名单数）→ 只重映射有变化的工作簿及引用它的 sheet → 写 `ProjectConfigDatabase_Main.asset`、`Resources/Config/ProjectConfigDatabase.json`、`_Export/*.csv` 镜像、`_Reports/validation.md`。
+3. **看结果**：Console 一行 `[DesignTables] changed=… remapped=… kept=… errors=0`；有错时每条形如 `Skill.xlsx/SkillBalance!F7 :: '12x' is not a number`，按单元格改回即可。只要有一条 Error，所有产物都不写，游戏继续用上一次数据。
+4. **什么算"变化"**：按工作簿文件内容哈希（记在本机 `Library/DesignTables/import-state.txt`）。改了 `UI.xlsx`，引用了 `UI/Text` 的 `Skill/SkillDefinition`、`Match/ModeRule` 等也会跟着重映射；没改的列表原样保留。日志出现 `nothing changed` 说明文件内容没变。
+5. **什么时候用 Force / Tag**：换了机器或删过 `Library`、怀疑产物不一致时用 `Import All (Force)`；只想推某一层（比如只推文案）用 `Import Tag/text`，它忽略哈希只重映射带该 tag 的 sheet。
+6. **进游戏生效时机**：各组件在 Awake/OnEnable 读表，所以进入场景或重新开局时生效；编辑器里正在 Play 时改表需要重新 Play。技能效果参数只在 Play 模式写入技能 SO，编辑模式下 Inspector 看到的仍是旧值。
+7. **提交**：把 xlsx、`_Export` 镜像、主资产、JSON 一起提交；review 看镜像 CSV 的行级 diff。回退就 `git checkout` 这几个文件再导入一次。
+
+### 常见问题
+- **保存后没有反应**：确认文件在 `Assets/Design/Tables/` 内且 Unity 窗口已获得焦点触发刷新；或菜单 `Auto Import On Save` 被关掉了；或 Unity 正在编译，导入会在编译结束后自动补做。
+- **报 "column 'xxx' has no field on …Record"**：表头加了新列但没有重新生成记录类，运行 `gen_records.py` 并等 Unity 编译。
+- **报 "not a member of enum"**：枚举名拼写或大小写不对，去 `Global/__enums__` 核对。
+- **报 "duplicate key"**：主键重复，或同一技能需要进多个选池时主键列不够（`SkillSelectionRule` 的主键含 `poolType`）。
+- **Excel 提示文件被占用**：导入是只读共享打开，不会锁文件；是另一个 Excel 实例或 `~$` 锁文件残留。
+- **改了值但游戏没变**：看报告是否 `outputs written: yes`；再确认该列不是 `doc` 列、该表在 `scope.json` 的 `export` 里、对应组件已接表（见 excel-spec 6.3）。
+
 ## 目录
 
 ```text

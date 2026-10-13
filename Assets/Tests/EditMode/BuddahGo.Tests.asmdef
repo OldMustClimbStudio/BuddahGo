@@ -8,7 +8,9 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": false,
-    "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
     "versionDefines": [],
     "noEngineReferences": false,
     "name": "BuddahGo.Tests",
@@ -18,7 +20,8 @@
         "Unity.InputSystem",
         "Unity.TextMeshPro",
         "Unity.Splines",
-        "Unity.Mathematics"
+        "Unity.Mathematics",
+        "BuddahGo.Editor"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"

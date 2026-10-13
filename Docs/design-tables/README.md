@@ -122,7 +122,7 @@ Tags_Layers、Scene_Flow、Input_Bindings、Prefab_Registry、Audio（预留，�
 
 ## 下一步
 
-2026-10-12 用户已拍板：沿用 ProjectConfigDatabase、源表放仓库内、先定 Excel 结构；2026-10-13 决定表值以实际生效值为基线、能入表的都入表（见 [decisions.md](decisions.md)）。规范在 [excel-spec.md](excel-spec.md)。基线工作簿已生成在 `Assets/Design/Tables/`（6 本、62 张 sheet，含 CSV 镜像），生成脚本在 `Tools/design-tables/`。下一步是导出器（Excel → ProjectConfigDatabase）与逐域迁移。
+2026-10-12 用户已拍板：沿用 ProjectConfigDatabase、源表放仓库内、先定 Excel 结构；2026-10-13 决定表值以实际生效值为基线、能入表的都入表（见 [decisions.md](decisions.md)）。规范在 [excel-spec.md](excel-spec.md)。基线工作簿已生成在 `Assets/Design/Tables/`（6 本、62 张 sheet，含 CSV 镜像），生成脚本在 `Tools/design-tables/`。范围线定为"平衡与信息"（decisions 12），导出器已实现（`Assets/Scripts/Editor/DesignTables/`，spec 第 6 节）：40 张 sheet 进 ProjectConfigDatabase，20 张表现类 sheet 只校验不导出。下一步是逐域把消费方从 prefab/SO/硬编码切到记录仓库。
 
 ### 原计划步骤
 

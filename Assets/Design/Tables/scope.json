@@ -1,0 +1,22 @@
+{
+  "_comment": "Scope line decided 2026-10-13: export only gameplay balance and information sheets. Presentation sheets stay in the workbooks for reference and are validated but never exported.",
+  "export": {
+    "Skill": ["SkillDefinition", "SkillBalance", "SkillEffectParam", "SkillSelectionRule", "DefaultLoadout", "ComboBinding", "HandPush", "Obsession"],
+    "Movement": ["MovementBase", "PushReaction", "ModifierRule", "LaunchHandoff", "RespawnRule", "LapRule", "WrongWayRule"],
+    "AI": ["DrivingTier", "DrivingGlobal", "SkillDifficulty", "Personality", "PersonalitySkillWeight", "PersonalitySituationBias", "SkillOpportunity", "SkillGlobal", "Roster"],
+    "Match": ["ModeRule", "Track", "TrackSpawn", "TrackCheckpoint", "TrackResultAnchor", "Lobby", "ResultVoteRule", "SelectionStage", "SelectionOption", "Intro", "IntroLayout", "RacerNaming"],
+    "UI": ["Text", "MenuOption", "SkillIcon"],
+    "Global": ["GlobalRule"]
+  },
+  "presentationOnly": {
+    "Skill": ["SkillPresentation", "VfxRegistry", "FeelEvent", "BlackCurtainPresentation"],
+    "Movement": ["Camera", "RacerVisual", "SplineTracking"],
+    "Match": ["ResultPresentation", "IntroSlotStyle"],
+    "UI": ["HudObsession", "UiTiming", "MiniMap"],
+    "Global": ["StructuralConstant", "GlobalPhysics", "PhysicsMaterial", "Tag", "Layer", "Scene", "InputBinding", "Timeline"]
+  },
+  "reserved": ["__enums__", "__meta__"],
+  "handWrittenRecords": ["SkillDefinitionRecord", "SkillBalanceRecord", "SkillEffectParamRecord", "SkillSelectionRuleRecord", "DefaultLoadoutRecord", "GlobalRuleRecord"],
+  "recordNameOverride": {"Text": "LocalizedTextRecord"},
+  "listNameOverride": {"Text": "localizedTexts"}
+}

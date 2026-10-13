@@ -260,7 +260,7 @@ def build_skill():
 
     # --- SkillSelectionRule / DefaultLoadout (MAIN) ---
     cols = [C('ruleSetId', 'string#key', '空=default'), C('skillId', 'string#key#ref=SkillDefinition.skillId', ''), C('modeTag', 'string#key', '空=全部'), C('mapTag', 'string#key', '空=全部'),
-            C('poolType', 'enum:SkillSelectionPoolType', 'Selectable/Fallback/Default/Hidden/TestOnly'), C('isEnabled', 'bool', ''), C('allowDuplicate', 'bool', ''), C('weight', 'float', '（无读取方）', 'doc')]
+            C('poolType', 'enum:SkillSelectionPoolType#key', 'Selectable/Fallback/Default/Hidden/TestOnly；同一技能可同时在多个池'), C('isEnabled', 'bool', ''), C('allowDuplicate', 'bool', ''), C('weight', 'float', '（无读取方）', 'doc')]
     pool = {0: 'Selectable', 1: 'Fallback', 2: 'Default', 3: 'Hidden', 4: 'TestOnly'}
     rows = [{'ruleSetId': r['ruleSetId'], 'skillId': r['skillId'], 'modeTag': r.get('modeTag') or '', 'mapTag': r.get('mapTag') or '', 'poolType': pool[r['poolType']],
              'isEnabled': boolv(r['isEnabled']), 'allowDuplicate': boolv(r['allowDuplicate']), 'weight': r['weight']} for r in main['skillSelectionRules']]

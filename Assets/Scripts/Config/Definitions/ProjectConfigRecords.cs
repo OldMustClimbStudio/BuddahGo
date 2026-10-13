@@ -46,6 +46,8 @@ public class SkillBalanceRecord
     [Min(0f)] public float castLockSeconds = 0f;
     [Min(0f)] public float obsessionGain = 0f;
     public string antiSkillId = string.Empty;
+    [Tooltip("施法前摇；未配置时沿用 SkillExecutor 的 1 秒。")]
+    [Min(0f)] public float castConfirmDelaySeconds = 1f;
 }
 
 [Serializable]

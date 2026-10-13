@@ -1,4 +1,4 @@
-# BuddahGo 策划配表 Excel 结构规范（v0.3，基线工作簿已生成）
+# BuddahGo 策划配表 Excel 结构规范（v0.4，导出器已实现）
 
 日期 2026-10-12。依据 [decisions.md](decisions.md)：沿用 `ProjectConfigDatabase`，源表放仓库内，先定结构。本稿是结构定稿前的草案，带「待同步」标记的条目未经用户确认不进入实现。
 
@@ -18,7 +18,7 @@
 ### 2.2 Unity 侧读写库
 | 库 | 许可 | 读 | 写 | 结论 |
 |---|---|---|---|---|
-| ExcelDataReader | MIT，netstandard2.0/2.1 | xlsx/xls/csv | 否 | 采用。只读、轻量、无 SharpZipLib 依赖；本项目 API 级别为 .NET Standard 2.1（`ProjectSettings.asset` apiCompatibilityLevel 6）。CodePages 注册只在读 BIFF2-5 的旧 xls 时需要，本项目只用 xlsx |
+| ExcelDataReader | MIT，netstandard2.0/2.1 | xlsx/xls/csv | 否 | 备选。最终未引入：xlsx 只是 zip + XML，.NET 自带的 ZipArchive + XmlReader 足够（见 `XlsxReader.cs`），省去 DLL 与许可管理 |
 | NPOI | Apache 2.0 | 是 | 是 | 不采用。Unity 2022.3 下与自带 ICSharpCode.SharpZipLib 版本冲突抛 TypeLoadException，Unity 判定为 by design（Issue UUM-68201） |
 | ClosedXML | MIT | 是 | 是 | 备选，仅当需要在 Unity 内回写 Excel 时评估；依赖 OpenXML SDK，体积大 |
 | EPPlus | Polyform NC，商用需付费 | 是 | 是 | 不采用 |
@@ -47,8 +47,9 @@ Assets/Design/Tables/                      源表与镜像（提交；xlsx 走 L
   _Reports/validation.md                   最近一次校验报告（导出器实现后生成）
 Assets/Data/Config/ProjectConfigDatabase_Main.asset   导出产物（提交）
 Assets/Resources/Config/ProjectConfigDatabase.json    导出产物（提交，修复现有损坏）
-Assets/Scripts/Editor/DesignTables/                   导入器、校验器、CLI 入口（待实现，BuddahGo.Editor 程序集）
-Assets/Plugins/ExcelDataReader/                       ExcelDataReader + .DataSet DLL（Editor only，待加入）
+Assets/Scripts/Editor/DesignTables/                   导入器、校验器、CLI 入口（BuddahGo.Editor 程序集）
+Assets/Design/Tables/scope.json                       导出范围（export / presentationOnly）
+Assets/Design/Tables/export-map.json                  sheet → 记录类 → 数据库列表（gen_records.py 生成）
 Tools/design-tables/                                  基线生成脚本（从工程实际值反向生成工作簿，仅建基线时用）
 ```
 
@@ -129,23 +130,32 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 
 已有记录类直接对应的 sheet：SkillDefinition（displayName/description 改为 key）、SkillBalance（加 castConfirmDelaySeconds）、SkillEffectParam（接通运行时）、SkillSelectionRule、DefaultLoadout、GlobalRule。其余为新增记录类，按 `__meta__` 的 recordClass 列实现。
 
-## 6. 直通车管线
+## 6. 直通车管线（已实现，`Assets/Scripts/Editor/DesignTables/`）
 
 ```text
-策划在 Excel 保存  →  Unity 重新导入 Assets/Design/Tables/X.xlsx
-  → OnPostprocessAllAssets 过滤 .xlsx（跳过 ~$ 锁文件，300 ms 防抖）
-  → DesignTableImporter 用 ExcelDataReader 读全部工作簿（FileShare.ReadWrite，占用时重试 3 次）
-  → 解析表头（##var/##type/##group/##comment）→ 按类型转换 → 填充记录类实例
-  → 校验：① 结构（主键唯一、必填）② 类型/范围/枚举/外键 ③ ProjectConfigValidator ④ SkillConfigCrossValidator（过渡期）
-  → 任一 Error：不写产物；Console 输出「SkillConfig.xlsx / SkillBalance / C7: antiSkillId 'x' 不存在」并写 _reports/validation.md
-  → 全部通过：写 ProjectConfigDatabase_Main.asset（SetDirty + SaveAssets）、ProjectConfigDatabase.json、_export/*.csv
+策划在 Excel 保存  →  Unity 重新导入 Assets/Design/Tables/<Domain>/<Domain>.xlsx
+  → DesignTablePostprocessor（过滤 ~$ 锁文件，0.5 s 防抖，编译/刷新中延后）
+  → DesignTableSet.Load：XlsxReader（ZipArchive + XmlReader，FileShare.ReadWrite，Excel 开着也能读）读全部工作簿
+  → DesignSheet.Parse：##var/##type/##group/##comment → ColumnSpec；A 列 ## 行跳过；A1 不带 ## 的 sheet 忽略
+  → DesignTableValidator：主键唯一/必填、类型、range、enum（Global/__enums__）、ref 外键、path 存在；DesignTableDomainRules：跨表规则
+  → DesignTableRecordMapper：按 ##var 反射填充 {Sheet}Record（export-map.json 决定 sheet → 记录类 → 数据库列表）
+  → ProjectConfigValidator（现有结构校验）
+  → 任一 Error：不写产物；Console 输出「Skill.xlsx/SkillBalance!F7 :: …」并写 _Reports/validation.md
+  → 全部通过：写 ProjectConfigDatabase_Main.asset、Resources/Config/ProjectConfigDatabase.json、_Export/*.csv 镜像
 ```
 
-- 手动入口：菜单 `Tools/Design Tables/Import All`、`Validate Only`、`Open Report`。
-- 批处理入口：`Unity -batchmode -executeMethod DesignTables.Cli.ImportAndValidate`，供 pre-commit 与 CI 使用；退出码非 0 即失败。
-- 回退策略：导入器只在校验全部通过时覆盖产物，失败保留上一次产物，游戏仍可运行。
-- 运行时不读 Excel。Player 构建不包含 ExcelDataReader（DLL 设为 Editor only）。
-- 与现有 `AIDifficultyAssetTool`、`SkillConfigCrossValidator` 的关系：前者在 AI 表迁入后退役；后者在 SO 字段删除前作为漂移检查保留。
+| 入口 | 位置 | 说明 |
+|---|---|---|
+| 自动 | `DesignTablePostprocessor` | 默认开启；菜单 `Tools/Design Tables/Auto Import On Save` 可关 |
+| 菜单 | `Tools/Design Tables/Import All` / `Validate Only` / `Open Report` / `Open Tables Folder` | 手动导入与校验 |
+| CLI | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit` | 退出码 0/1，供 pre-commit 与 CI；`ValidateOnly` 只校验 |
+| 记录类生成 | `python Tools/design-tables/gen_records.py .` | 表头改动（加列/改类型）后运行，再让 Unity 重新编译 |
+| 基线重建 | `python Tools/design-tables/build_tables.py . <out>` | 从工程实际值反向生成工作簿，仅建基线用 |
+
+- 文案桥接：列名以 `Key` 结尾且引用 `UI/Text` 时，若记录类只有去掉 `Key` 的字段（如 `SkillDefinitionRecord.displayName`），导出器把 key 解析成 zh 文本写入，运行时读法不变；生成的记录类保留 `*Key` 字段，消费方通过 `ProjectConfigRuntime.Texts.Get(key)` 取文本。
+- 枚举列在记录类里是 `string`，由 `__enums__` 校验，避免为每个表新增 C# 枚举；需要强类型时在消费方解析。
+- 作用域：`Assets/Design/Tables/scope.json` 的 `export` 决定哪些 sheet 进数据库；`presentationOnly` 的 sheet 只校验不导出。
+- 运行时不读 Excel；全部代码在 `BuddahGo.Editor` 程序集且以 `#if UNITY_EDITOR` 包裹。
 
 ## 7. 校验规则清单
 

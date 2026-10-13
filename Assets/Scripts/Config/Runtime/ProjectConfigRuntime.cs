@@ -8,6 +8,7 @@ public static class ProjectConfigRuntime
     public static SkillConfigRepository SkillConfigs { get; private set; }
     public static SelectionRuleRepository SelectionRules { get; private set; }
     public static GlobalRuleRepository GlobalRules { get; private set; }
+    public static LocalizedTextRepository Texts { get; private set; }
 
     public static bool EnsureInitialized(ProjectConfigDatabase preferredDatabase = null)
     {
@@ -18,13 +19,14 @@ public static class ProjectConfigRuntime
         if (databaseToUse == null)
             return false;
 
-        if (ReferenceEquals(Database, databaseToUse) && SkillConfigs != null && SelectionRules != null && GlobalRules != null)
+        if (ReferenceEquals(Database, databaseToUse) && SkillConfigs != null && SelectionRules != null && GlobalRules != null && Texts != null)
             return true;
 
         Database = databaseToUse;
         SkillConfigs = new SkillConfigRepository(Database);
         SelectionRules = new SelectionRuleRepository(Database);
         GlobalRules = new GlobalRuleRepository(Database);
+        Texts = new LocalizedTextRepository(Database);
         return true;
     }
 
@@ -55,6 +57,16 @@ public static class ProjectConfigRuntime
             return false;
 
         repository = GlobalRules;
+        return repository != null;
+    }
+
+    public static bool TryGetTextRepository(out LocalizedTextRepository repository)
+    {
+        repository = null;
+        if (!EnsureInitialized())
+            return false;
+
+        repository = Texts;
         return repository != null;
     }
 

@@ -1,7 +1,7 @@
 ##var,ruleSetId,skillId,modeTag,mapTag,poolType,isEnabled,allowDuplicate,weight
-##type,string#key,string#key#ref=SkillDefinition.skillId,string#key,string#key,enum:SkillSelectionPoolType,bool,bool,float
+##type,string#key,string#key#ref=SkillDefinition.skillId,string#key,string#key,enum:SkillSelectionPoolType#key,bool,bool,float
 ##group,,,,,,,,doc
-##comment,空=default,,空=全部,空=全部,Selectable/Fallback/Default/Hidden/TestOnly,,,（无读取方）
+##comment,空=default,,空=全部,空=全部,Selectable/Fallback/Default/Hidden/TestOnly；同一技能可同时在多个池,,,（无读取方）
 ,default,acceleration,,,Selectable,true,false,1
 ,default,slowtrap,,,Selectable,true,false,1
 ,default,blackcurtain,,,Selectable,true,false,1

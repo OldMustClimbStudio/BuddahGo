@@ -21,4 +21,6 @@
 9. **表值基线 = Unity 内实际生效的序列化值。** 以 prefab / 场景 / asset / JSON 中的字段值为准，代码默认值一律忽略；唯一真相按运行时实际读取顺序定：默认配装第 3 槽 slowtrap（MAIN 优先于 prefab），如来神掌冷却/锁定 12/10（配置优先于 SO）。
 10. **能入表的都入表。** 筛查清单中标记"偏工程"的内容也入表，用 `##group=adv` 标为高级列；结构性常量入 `Global/StructuralConstant` 但全列 `doc`（只记录不导出）。曲线字段入表，用关键帧列表 `time,value,inSlope,outSlope|…` 表示。过分复杂的内容不入表，见 excel-spec 第 9 节。
 11. **命名与文件夹分层规范**：目录 `Assets/Design/Tables/<Domain>/<Domain>.xlsx`，镜像 `_Export/<Domain>/<Sheet>.csv`；工作簿与 sheet 用 PascalCase 单数且与记录类同名（去掉 Record 后缀），子表以父表名为前缀；字段 camelCase 与 C# 一致（`*Seconds`、`*Degrees`、`*01`）；id 全小写 snake_case；文案 key 为 `domain.entity.field` 点分小写；主键列最左、`doc` 列最右。
+12. **范围线：只接管游戏内平衡与各类信息，不接管精确的特效/表现细节。** 导出器只把 `Assets/Design/Tables/scope.json` 的 `export` 列表（40 张 sheet）写入 ProjectConfigDatabase；`presentationOnly` 的 20 张 sheet 保留在工作簿里供查阅并参与校验，但不导出、不接消费方。
+13. **导出器实现方式**：不引入第三方 DLL，用 .NET 的 ZipArchive + XmlReader 直接读 xlsx；记录类由 `Tools/design-tables/gen_records.py` 从表头生成；触发方式为 AssetPostprocessor（可在菜单关闭）+ 菜单 + batchmode CLI。
 

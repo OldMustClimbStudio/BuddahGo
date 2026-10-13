@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "ProjectConfigDatabase", menuName = "Config/Project Config Database")]
-public class ProjectConfigDatabase : ScriptableObject
+public partial class ProjectConfigDatabase : ScriptableObject
 {
     [Header("Defaults")]
     [SerializeField] private string _defaultRuleSetId = ProjectConfigConstants.DefaultRuleSetId;

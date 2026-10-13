@@ -16,7 +16,7 @@
 | 特效资源恢复与洋红/不可见特效修复 | [vfx-asset-recovery.md](vfx-asset-recovery.md) |
 | 术语表 / 架构决策 | [../CONTEXT.md](../CONTEXT.md) · [adr/](adr/) |
 | 开场交接切换的本地卡顿修复（执行入口） | [handoff-continuity/HANDOFF.md](handoff-continuity/HANDOFF.md) |
-| 策划配表前期筛查：全系统可化表内容清单与待决问题 | [design-tables/README.md](design-tables/README.md) |
+| 策划配表系统：Excel 工作簿、导入器、分层导入、规范与筛查清单 | [design-tables/README.md](design-tables/README.md) |
 
 执行入口见 [harness.md](../harness.md)，提交、PR 和验证规则见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 旧阶段合同、详细设计原稿和复盘过程可从 Git 历史查阅，例如 `git log -- Docs/prediction-refactor-plan/`。

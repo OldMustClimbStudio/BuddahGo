@@ -133,6 +133,7 @@ namespace BuddahGo.DesignTables
             if (!options.DryRun && result.Success)
             {
                 WriteOutputs(set, scratch, asset, remap);
+                ProjectConfigRuntime.Invalidate();
                 // A tag-filtered import only certifies workbooks whose exported sheets were all re-mapped.
                 foreach (KeyValuePair<string, string> kv in currentHashes)
                     if (options.Tags == null || options.Tags.Count == 0 || AllSheetsOfWorkbookRemapped(set, kv.Key, remap)) state.Hashes[kv.Key] = kv.Value;

@@ -39,6 +39,7 @@ public class SkillDatabase : ScriptableObject
     {
         if (_byId == null)
             RebuildLookup();
+        EnsureDesignTablesApplied();
 
         return _byId.TryGetValue(skillId, out skill);
     }
@@ -238,9 +239,58 @@ public class SkillDatabase : ScriptableObject
         AddListToLookup(normalSkills, "normalSkills");
         AddListToLookup(antiSkills, "antiSkills");
         AddListToLookup(skills, "skills");
-        if (Application.isPlaying)
-            ApplyDesignTablesToSkills();
+        _tablesApplied = false;
+        EnsureDesignTablesApplied();
     }
+
+    // Entering Play Mode in the editor reloads the domain and calls OnEnable while Application.isPlaying is still
+    // false, so applying only from RebuildLookup skipped the tables for the whole session (effect durations kept
+    // their SO values). Every lookup now checks once per play session instead.
+    private bool _tablesApplied;
+
+    /// <summary>Play-state probe; tests replace it to reproduce the "lookup built before Play" sequence.</summary>
+    public static System.Func<bool> IsPlaying = () => Application.isPlaying;
+
+    private void EnsureDesignTablesApplied()
+    {
+        if (_tablesApplied || !IsPlaying() || _byId == null)
+            return;
+        _tablesApplied = true;
+#if UNITY_EDITOR
+        SnapshotSkillAssetsForEditor();
+#endif
+        ApplyDesignTablesToSkills();
+    }
+
+#if UNITY_EDITOR
+    // The overlay writes into the skill assets themselves; in the editor those are the project assets, so restore
+    // their serialized values when Play Mode ends (otherwise the inspector and the drift validator would show the
+    // table values, and any later save of the asset would bake them in).
+    private readonly Dictionary<SkillAction, string> _editorSnapshots = new Dictionary<SkillAction, string>();
+
+    private void SnapshotSkillAssetsForEditor()
+    {
+        if (_editorSnapshots.Count > 0)
+            return;
+        foreach (SkillAction skill in _byId.Values)
+            if (skill != null && !_editorSnapshots.ContainsKey(skill))
+                _editorSnapshots[skill] = JsonUtility.ToJson(skill);
+        if (_editorSnapshots.Count > 0)
+            UnityEditor.EditorApplication.playModeStateChanged += RestoreSkillAssetsOnExit;
+    }
+
+    private void RestoreSkillAssetsOnExit(UnityEditor.PlayModeStateChange change)
+    {
+        if (change != UnityEditor.PlayModeStateChange.ExitingPlayMode && change != UnityEditor.PlayModeStateChange.EnteredEditMode)
+            return;
+        UnityEditor.EditorApplication.playModeStateChanged -= RestoreSkillAssetsOnExit;
+        foreach (KeyValuePair<SkillAction, string> kv in _editorSnapshots)
+            if (kv.Key != null)
+                JsonUtility.FromJsonOverwrite(kv.Value, kv.Key);
+        _editorSnapshots.Clear();
+        _tablesApplied = false;
+    }
+#endif
 
     /// <summary>Apply the design tables to the skills of this database regardless of play mode (tests call it on copies of the assets).</summary>
     public void ApplyDesignTablesNow()

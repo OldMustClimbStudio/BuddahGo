@@ -155,6 +155,44 @@ namespace BuddahGo.Tests
         }
 
         [Test]
+        public void SkillTablesApplyWhenTheLookupWasBuiltBeforePlayMode()
+        {
+            // Editor Play Mode: the SkillDatabase OnEnable (domain reload) runs while Application.isPlaying is still false,
+            // and the first gameplay lookup happens once it is true. The durations must still come from the table.
+            ProjectConfigDatabase main = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset);
+            Assert.IsTrue(ProjectConfigRuntime.EnsureInitialized(main));
+            DesignTableSet set = DesignTableSet.Load();
+            SkillDatabase source = AssetDatabase.LoadAssetAtPath<SkillDatabase>(SkillDatabaseAsset);
+            Skill_Acceleration original = (Skill_Acceleration)source.normalSkills.Find(s => s != null && s.skillId == "acceleration");
+            Assert.IsNotNull(original);
+            Skill_Acceleration copy = UnityEngine.Object.Instantiate(original);
+            copy.durationSeconds = 999f;
+            SkillDatabase scratch = ScriptableObject.CreateInstance<SkillDatabase>();
+            Func<bool> previous = SkillDatabase.IsPlaying;
+            try
+            {
+                SkillDatabase.IsPlaying = () => false;
+                scratch.normalSkills.Add(copy);
+                // What the domain reload does on entering Play Mode: OnEnable → RebuildLookup while isPlaying is false.
+                typeof(SkillDatabase).GetMethod("RebuildLookup", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(scratch, null);
+                Assert.IsTrue(scratch.TryGet("acceleration", out _), "lookup built in edit state");
+                Assert.AreEqual(999f, copy.durationSeconds, "nothing is applied outside play");
+                SkillDatabase.IsPlaying = () => true;
+                Assert.IsTrue(scratch.TryGet("acceleration", out SkillAction resolved));
+                Assert.AreSame(copy, resolved);
+                Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", "acceleration", "effectDurationSeconds"), copy.durationSeconds,
+                    "Skill.effectDurationSeconds must reach the SO on the first lookup in play");
+                Assert.AreEqual(Cell(set, "Skill", "SkillEffectAcceleration", "skillId", "acceleration", "extraForwardForce"), copy.extraForwardForce);
+            }
+            finally
+            {
+                SkillDatabase.IsPlaying = previous;
+                UnityEngine.Object.DestroyImmediate(scratch);
+                UnityEngine.Object.DestroyImmediate(copy);
+            }
+        }
+
+        [Test]
         public void SavingAWorkbookQueuesItAndTheImportRemapsOnlyDependentSheets()
         {
             DesignTablePostprocessor.AllowInBatchMode = true;

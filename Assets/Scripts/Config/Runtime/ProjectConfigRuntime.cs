@@ -30,6 +30,15 @@ public static class ProjectConfigRuntime
         return true;
     }
 
+    /// <summary>Drop the cached repositories so the next lookup rebuilds them (the importer calls this after rewriting the asset's lists).</summary>
+    public static void Invalidate()
+    {
+        SkillConfigs = null;
+        SelectionRules = null;
+        GlobalRules = null;
+        Texts = null;
+    }
+
     public static bool TryGetSkillConfigRepository(out SkillConfigRepository repository)
     {
         repository = null;

@@ -21,7 +21,7 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 |---|---|
 | 新增或改列 | 改 xlsx 表头 → `python Tools/design-tables/gen_records.py .` 重新生成记录类与 `export-map.json` → Unity 重新编译 → 导入 |
 | 新增 sheet | 在 `Assets/Design/Tables/scope.json` 的 `export`（导出）或 `presentationOnly`（只校验）登记，补 `tags`，再按上一行走 |
-| 让组件读新表 | 在组件 Awake/OnEnable 调 `DesignTableOverlay.Apply(this, 记录)`（同名字段自动覆盖，列名不同用 `"记录字段=目标字段"` 映射）；文案用 `DesignTableOverlay.Text(key, 兜底)`；全局标量用 `DesignTableOverlay.GlobalFloat(ruleKey, 兜底)` |
+| 让组件读新表 | 在组件 Awake/OnEnable 调 `DesignTableOverlay.Apply(this, 记录)`（同名字段自动覆盖，列名不同用 `"记录字段=目标字段"` 映射）；一行要写到别的对象、或记录里有同名但不归它的字段时，用 `ApplyMapped` 只写列出的字段。取行：单行表用 `DefaultRow`，按赛道的表用 `CurrentTrack(this)` / `ForCurrentTrack(list, …, this)`，大厅用 `Lobby()`。文案用 `Text(key, 兜底)`，全局标量用 `GlobalFloat(ruleKey, 兜底)` |
 | CI / pre-commit | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit [-designForce] [-designTags skill,ai]`，退出码非 0 即失败 |
 | 重建基线工作簿 | `python Tools/design-tables/build_tables.py . <输出目录>`：从工程实际值反向生成（先 v1 模型再套 `v2_layout.py`），只在重做基线时用 |
 | 改表结构 | 在 `Tools/design-tables/v2_layout.py` 写变换函数，`python Tools/design-tables/migrate_v2.py . --phase <域>` 就地改写 xlsx + CSV 镜像 + scope.json，再 `gen_records.py`；值只搬不改，review 看 CSV diff |
@@ -37,16 +37,16 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 |---|---|---|
 | `int` / `float` | 数字，可带 `#range=最小,最大` | `12`、`0.35` |
 | `bool` | `true` / `false`（也接受 `1` / `0` / `是` / `否`） | `true` |
-| `string` / `text` | 原样文本；`text` 允许换行 | `acceleration` |
+| `string` / `text` | `string` 去掉首尾空格；`text` 原样保留（含首尾空格与换行），用于显示文案 | `acceleration`、`Player ` |
 | `enum:名称` | 写枚举名，名单在 `Global.xlsx` 的 `__enums__` sheet | `Selectable`、`Hard` |
 | `list,类型#sep=|` | 用分隔符连接，默认 `\|`，搓招用 `,` | `movement\|buff`、`W,Up,W` |
-| `vector3` / `color` | 逗号分隔 | `0,0,-2`、`1,0.7,0,1` |
+| `vector3` / `color` | 逗号分隔，分量数必须正好 3 / 4，少写报错 | `0,0,-2`、`1,0.7,0,1` |
 | `curve` | 关键帧列表 `time,value,inSlope,outSlope` 用 `\|` 连接 | `0,0,2,2\|1,1,0,0` |
 | `xxx#key` | 主键列，同表不可重复；多列 `#key` 组成复合键 | `skillId` |
 | `xxx#ref=表.列` | 外键，值必须存在于目标表；跨工作簿写 `UI/Text.key` | `acceleration_anti` |
 | `string#path` | 工程内相对路径，不存在只给警告 | `Assets/UI/…png` |
 
-- 留空：数字视为 0，bool 视为 false，列表视为空，外键留空表示"无"。`ruleSetId` / `modeTag` / `mapTag` 留空等于 default / 全部。
+- 留空：数字视为 0，bool 视为 false，列表视为空，外键留空表示"无"。`ruleSetId` / `modeTag` / `mapTag` 留空等于 default / 全部。空格就是 0：不会退回代码里的默认值，所以"该技能用的列"必须填值（例如 `AI/SkillOpportunity` 每个技能只读自己那几列，其余列留空也不会被读）。
 - 公式可以用，导入读取的是计算结果；不要合并单元格、不要在表头行上方插行。
 - 单行全局表（`profileId` = `default`）只改值不加行；按行的表（技能、人格、出生点）加行即新增记录，主键必须唯一。
 - 临时屏蔽一行：在 A 列写 `##`。删除一行即删除记录。
@@ -62,7 +62,7 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 3. **看结果**：Console 一行 `[DesignTables] changed=… remapped=… kept=… errors=0`；有错时每条形如 `Skill.xlsx/SkillBalance!F7 :: '12x' is not a number`，按单元格改回即可。只要有一条 Error，所有产物都不写，游戏继续用上一次数据。
 4. **什么算"变化"**：按工作簿文件内容哈希（记在本机 `Library/DesignTables/import-state.txt`）。改了 `UI.xlsx`，引用了 `UI/Text` 的 `Skill/SkillDefinition`、`Match/ModeRule` 等也会跟着重映射；没改的列表原样保留。日志出现 `nothing changed` 说明文件内容没变。
 5. **什么时候用 Force / Tag**：换了机器或删过 `Library`、怀疑产物不一致时用 `Import All (Force)`；只想推某一层（比如只推文案）用 `Import Tag/text`，它忽略哈希只重映射带该 tag 的 sheet。
-6. **进游戏生效时机**：各组件在 Awake/OnEnable 读表，所以进入场景或重新开局时生效；编辑器里正在 Play 时改表需要重新 Play。技能效果参数只在 Play 模式写入技能 SO，编辑模式下 Inspector 看到的仍是旧值。
+6. **进游戏生效时机**：各组件在 Awake/OnEnable 读表，所以进入场景或重新开局时生效；编辑器里正在 Play 时改表需要重新 Play。技能的主时长、家族参数与 Push 弹道在每局 Play 第一次查技能时写入技能 SO；编辑器退出 Play 后 SO 自动恢复原值，所以 Inspector 里看到的始终是资产本身的值，不是表值。
 7. **提交**：把 xlsx、`_Export` 镜像、主资产、JSON 一起提交；review 看镜像 CSV 的行级 diff。回退就 `git checkout` 这几个文件再导入一次。
 
 ### 常见问题
@@ -72,6 +72,7 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 - **报 "duplicate key"**：主键重复，或同一技能需要进多个选池时主键列不够（`SkillSelectionRule` 的主键含 `poolType`）。
 - **Excel 提示文件被占用**：导入是只读共享打开，不会锁文件；是另一个 Excel 实例或 `~$` 锁文件残留。
 - **改了值但游戏没变**：看报告是否 `outputs written: yes`；再确认该列不是 `doc` 列、该表在 `scope.json` 的 `export` 里、对应组件已接表（见 excel-spec 6.3）。
+- **新赛道 / 新场景没吃到表**：按赛道的表（Track、TrackWrongWay、TrackSpawn 等）只认 `Match/Track.sceneName` 与组件所在场景（其次活动场景）同名的行，没有行就沿用场景 / prefab 里的值，不会借用别的赛道。先在 Track 加一行。
 
 ## 目录
 

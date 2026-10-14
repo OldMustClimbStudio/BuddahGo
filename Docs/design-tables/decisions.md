@@ -38,3 +38,8 @@
 21. **跨对象覆盖只用显式映射**（`DesignTableOverlay.ApplyMapped`）：Push 行 → BuddahHandControl / 两个神掌 SO，Movement 行 → BuddahMovement / RaceBodyIntroStateController，Track 行 → LapProgress。同名自动覆盖（`Apply`）只用于记录与组件一一对应的情况；AI 表的 camelCase 表头按名忽略大小写匹配 PascalCase 字段。
 22. **可编辑性规则：导出表里每一列都必须有读取方，否则标 `doc` 或整表转 presentationOnly。** 2026-10-13 审计后：接通了 Movement 的胶囊半径/高度/中心（BuddahPredictedMotorConfig）、Track.trackSplineSamples（TrackSplineRef）、ModeRule.requiresReady（RoomStateManager）、Lobby.defaultVisibility / maxPlayerNameLength（SteamLobbyManager / RoomStateManager）、SelectionOption.iconKey / unlocked；标 doc 的列：Movement.autoThrottle / physicMaterial，ModeRule.minPlayersToStart / hostAutoReady，Track.minimapSpritePath / minimapImageWidth，Lobby.minPlayers / fishnetMaximumClients，SelectionStage 的 order / enabledOnline / enabledSolo / layoutMode / autoFillOnTimeout，Text.en，GlobalRule.description；转 presentationOnly 的表：ResultVoteRule、IntroLayout、SkillIcon。IMatchRules 暴露但游戏内尚无读取方的四个占位开关（allowSkipSpectating / allowPause / showRacerNameTags / showOpponentsOnMinimap）保留导出并在 comment 标明"占位"，因为它们是 Solo 契约的一部分。
 23. **测试不钉死策划数值。** `DesignTableTests` 与 `DesignTableRuntimeTests` 把产物值和表里的单元格比，不与字面量比，策划改数不会让测试失败；每个显式映射的目标字段都用反射核对存在。
+
+## 2026-10-14
+
+24. **编辑器 Play 中的技能表写入时机**：写入技能 SO 的值在每局 Play 首次查技能时写入，编辑器退出 Play 时恢复资产（2d34e2a）。起因：实测加速时长改为 3 秒后仍为 10 秒。
+25. **PR #62 review 定下的读取规则**（d38bc31）：按赛道的表只认组件所在场景（其次活动场景）的 Track 行，没有行就沿用场景值，不借用第一行；`text` 列保留首尾空格（"Player " 这类前缀）；空单元格就是 0，不回退代码默认值，`SkillOpportunity` 每个技能只读自己的列；向量 / 颜色分量数不符是错误；CreateRoomUI 的下拉选项以 `UI/MenuOption` 为准。

@@ -102,8 +102,8 @@ AI 表（`DrivingTier`、`SkillDifficulty`、`SkillTuning`）的表头也是 cam
 | `float#range=0,10` | float | 闭区间校验 |
 | `enum:SkillSelectionPoolType` | 对应 C# 枚举 | 写枚举名或整数，名单在 Global.xlsx 的 `__enums__` |
 | `list,string#sep=\|` | `List<string>` / `string[]` | `a\|b\|c`，空单元格=空列表 |
-| `vector3` | `Vector3` | `x,y,z` |
-| `text` | string | 允许换行，`\n` 转义 |
+| `vector3` | `Vector3` | `x,y,z`，分量数不符即错误（导入与运行时解析一致，不补 0） |
+| `text` | string | 允许换行，`\n` 转义；首尾空格原样保留（其他类型一律去首尾空格） |
 | `curve` | `AnimationCurve` | 关键帧列表 `time,value,inSlope,outSlope\|…`，与 Unity 序列化一一对应（不含加权切线） |
 
 类型行只做校验与转换，不生成代码；记录类由程序维护（沿用决定 1）。
@@ -172,22 +172,24 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 
 | 表 | 消费方 |
 |---|---|
-| Skill | SkillConfigRepository（冷却 / 锁定 / 执念 / 反噬 id / 显示名与描述经 UI/Text）；SkillExecutor 按实际执行行读 castConfirmDelaySeconds（含反噬行）；SkillDatabase 在 Play 模式把 effectDurationSeconds 写入各技能 SO 的主时长字段（`SkillDatabase.EffectDurationField`） |
-| SkillEffectAcceleration / SlowTrap / BlackCurtain / Giant | SkillDatabase 在 Play 模式按同名字段覆盖普通 / 反噬技能 SO |
+| Skill | SkillConfigRepository（冷却 / 锁定 / 执念 / 反噬 id / 显示名与描述经 UI/Text），施法时读取；SkillExecutor 按实际执行行读 castConfirmDelaySeconds（含反噬行）；effectDurationSeconds 由 SkillDatabase 写入各技能 SO 的主时长字段（`SkillDatabase.EffectDurationField`） |
+| SkillEffectAcceleration / SlowTrap / BlackCurtain / Giant | SkillDatabase 按同名字段覆盖普通 / 反噬技能 SO |
+
+写入技能 SO 的值（主时长、家族表、Push charged 行）在每局 Play 第一次查技能时写入（`SkillDatabase.EnsureDesignTablesApplied`），不依赖 SO 的 `OnEnable`：编辑器进入 Play 时域重载调用 `OnEnable` 的那一刻 `Application.isPlaying` 仍为 false。编辑器内写入前快照、退出 Play 时恢复，资产文件保持序列化原值；导表写出后 `ProjectConfigRuntime.Invalidate()` 丢弃仓库缓存。
 | Push | basic 行 → BuddahHandControl（`PushBasicMap` 显式映射）；charged / charged_anti 行 → Skill_PushProjectileHands(_Anti)（`SkillDatabase.PushChargedMap / PushChargedAntiMap`） |
 | ComboInput / ComboBinding / Obsession | ComboSkillInput（窗口与缓冲 + 绑定）/ ObsessionFigure |
 | SkillSelectionRule / DefaultLoadout / GlobalRule | 原有仓库；target_frame_rate 由 FrameRateLock 读取 |
 | Movement | BuddahPredictedMotorConfig（同名覆盖，含 Rigidbody 质量阻尼、实体胶囊半径/高度/中心、受击宽限、交接地面探测）；BuddahMovement 起跑时序与 RaceBodyIntroStateController 速度采样间隔用显式映射 |
 | Respawn | BuddahRespawn |
 | DrivingTier / DrivingTuning | AIDifficultyProfiles.Resolve（档位覆盖按名忽略大小写、速度 clamp、ThrustVectorPlanner 恢复阈值） |
-| SkillDifficulty / Personality / PersonalitySituationBias / SkillOpportunity / SkillTuning | AISkillCatalog.ApplyDesignTables（三槽权重填入 Weights[AISkillKind]；SkillTuning 单行按名覆盖 AISkillTuning；impairedDrivingReactionTicks 由 AIRacerDriver 读取） |
+| SkillDifficulty / Personality / PersonalitySituationBias / SkillOpportunity / SkillTuning | AISkillCatalog.ApplyDesignTables（三槽权重填入 Weights[AISkillKind]；SkillTuning 单行按名覆盖 AISkillTuning；SkillOpportunity 每个技能只读自己的列，单元格即取值、0 有效，blackcurtain 有独立的 minValiditySeconds；impairedDrivingReactionTicks 由 AIRacerDriver 读取） |
 | Roster | MatchSpawnManager 按槽位取人格与名字 |
 | ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、PropertiesSelectionManager、ResultDecisionManager、RaceFinishManager；requiresReady 由 RoomStateManager 每局开始时读取；aiCount 与 defaultDifficulty 由 SoloSetupPanel 读取 |
-| Track / TrackWrongWay / TrackSpawn / TrackCheckpoint / TrackResultAnchor | Track：RaceFinishManager 圈数、LapProgress 圈规则（显式映射）、MiniMapController 边界、RaceResultAreaManager 偏移、TrackSplineRef 弧长表分辨率；TrackWrongWay：RaceCompletionTracker；MatchSpawnManager、Checkpoint、EndFieldSpawnPoint 在 Awake 把场景物体移到表中世界坐标 |
+| Track / TrackWrongWay / TrackSpawn / TrackCheckpoint / TrackResultAnchor | 当前赛道 = `sceneName` 与组件所在场景同名的行，其次活动场景（场景物体在 FishNet 切换活动场景前就 Awake），没有行时组件保留场景 / prefab 值，不回退到第一行（`DesignTableOverlay.CurrentTrack / ForCurrentTrack`）。Track：RaceFinishManager 圈数、LapProgress 圈规则（显式映射）、MiniMapController 边界、RaceResultAreaManager 偏移、TrackSplineRef 弧长表分辨率；TrackWrongWay：RaceCompletionTracker；MatchSpawnManager、Checkpoint、EndFieldSpawnPoint 在 Awake 把场景物体移到表中世界坐标 |
 | Lobby | SteamLobbyManager 默认值与默认可见性、SessionLauncher 超时、RoomStateManager 玩家名截断长度 |
 | SelectionStage / SelectionOption | PropertiesSelectionManager（阶段名、选择模式、选项名/描述/图标 key/解锁；map / skin 占位行已屏蔽，代码兜底） |
 | Intro | IntroSequenceManager；RaceBodyIntroStateController 读 handoffLeadSeconds |
-| Text / MenuOption | RacerIdentity、MatchSpawnManager、CreateRoomUI 下拉框；文案经 `ProjectConfigRuntime.Texts` |
+| Text / MenuOption | RacerIdentity、MatchSpawnManager、SoloSetupPanel；CreateRoomUI 用 MenuOption 替换 MainMenu 场景里序列化的下拉选项，选中项按行的 value 读取而不是显示文本；文案经 `ProjectConfigRuntime.Texts` |
 
 只记录、不接运行时（presentationOnly 或 doc 列，决定 22）：SkillConstant、DrivingConstant、ModifierRule、ResultVoteRule、IntroLayout、SkillIcon（资源引用留在 prefab），以及各表标 `doc` 的列（Respawn 的 teleport 标志、Movement 的起跑常量 / autoThrottle / physicMaterial、ModeRule 的 minPlayersToStart / hostAutoReady、Track 的小地图资源列、Lobby 的 minPlayers / fishnetMaximumClients、SelectionStage 的占位列、Text.en、GlobalRule.description）；`ui.<class>.<slug>` 自动 key 的 UI 字面量待策划定稿 key 后再替换。ModeRule 的四个占位开关经 IMatchRules 暴露但游戏内尚无读取方，comment 已标明。
 

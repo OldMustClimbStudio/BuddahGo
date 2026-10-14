@@ -1,0 +1,23 @@
+##var,ownerId,paramKey,value,source
+##type,string#key,string#key,string,string
+##group,,,,doc
+##comment,技能 id，或 push_basic,,,代码 / 资源位置
+,push_basic,hitboxSize,"5.805029,3.65,14.823451",Cube.prefab BoxCollider size × scale
+,push_basic,hitboxCenter,"-0.319919,0,0.207897",Cube.prefab BoxCollider center
+,push_basic,leftHandTriggerName,LeftW,Animator trigger（BuddahHandControl）
+,push_basic,rightHandTriggerName,RightUp,Animator trigger（BuddahHandControl）
+,push_projectile_hands,ignoreSolidWorld,false,(无效字段)
+,slowtrap,zoneRadius,7.5,m（SlowTrapZone.prefab scale 15 × 胶囊半径 0.5）
+,push_projectile_hands,flightEndSpeedFraction,0.2,ChargedHandProjectileRuntime.cs:38
+,push_projectile_hands,progressCompletionFraction,0.8,ChargedHandProjectileRuntime.cs:37
+,push_projectile_hands_anti,reverseDirection,true,BuddahHandControl.cs:967
+,push_projectile_hands_anti,allowSelfHit,true,BuddahHandControl.cs:968
+,push_projectile_hands_anti,ignoreSolidWorld,true,BuddahHandControl.cs:969
+,reverseturn,targetScope,AllOthers,Skill_ReverseTurn.cs:26-39
+,reverseturn_anti,targetScope,Self,
+,blackcurtain,casterSeesTrackEdge,true,BlackCurtainPresentation.cs:35 (caster XOR anti)
+,blackcurtain_anti,casterSeesTrackEdge,false,
+,giant,scalesMaxSpeed,false,Resolver.cs:30-38
+,giant_anti,massMultiplier,1,Skill_Giant_Anti.cs:18
+,giant_anti,forwardForceMultiplier,1,Skill_Giant_Anti.cs:18
+,acceleration,stackRule,MaxMagnitudeMaxDuration,MovementAccelerationEffect.cs:38-46

@@ -156,11 +156,37 @@ public class ComboSkillInput : NetworkBehaviour
 
     private void ApplyConfiguredGlobalRules()
     {
-        if (!ProjectConfigRuntime.TryGetGlobalRuleRepository(out GlobalRuleRepository repository))
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db == null)
             return;
 
-        if (repository.TryGetFloat(ProjectConfigConstants.GlobalRuleComboInputWindowSeconds, out float configuredStepWindow))
-            stepWindowSeconds = Mathf.Max(MinimumStepWindowSeconds, configuredStepWindow);
+        // Skill/ComboInput owns the input window and the buffer length (formerly GlobalRule combo_* keys).
+        ComboInputRecord input = DesignTableOverlay.DefaultRow(db.comboInputs, r => r.profileId);
+        if (input != null)
+        {
+            stepWindowSeconds = Mathf.Max(MinimumStepWindowSeconds, input.inputWindowSeconds);
+            maxBuffer = Mathf.Max(1, input.maxBuffer);
+        }
+
+        // Skill/ComboBinding replaces the prefab bindings when present.
+        if (db.comboBindings == null || db.comboBindings.Count == 0)
+            return;
+        List<ComboBinding> configured = new List<ComboBinding>();
+        for (int i = 0; i < db.comboBindings.Count; i++)
+        {
+            ComboBindingRecord record = db.comboBindings[i];
+            if (record == null || record.sequence == null || record.sequence.Count == 0)
+                continue;
+            Token[] sequence = new Token[record.sequence.Count];
+            bool valid = true;
+            for (int k = 0; k < sequence.Length && valid; k++)
+                valid = Enum.TryParse(record.sequence[k], true, out sequence[k]);
+            if (!valid)
+                continue;
+            configured.Add(new ComboBinding { name = record.name, slotIndex = record.slotIndex, sequence = sequence });
+        }
+        if (configured.Count > 0)
+            bindings = configured;
     }
 
     private void PushToken(Token token, double now)

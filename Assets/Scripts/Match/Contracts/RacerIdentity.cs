@@ -20,7 +20,9 @@ namespace BuddahGo.Match
         {
             if (GetComponent<NetworkObject>().IsSpawned) throw new InvalidOperationException("Assign racer identity before spawn.");
             _id.Value = id.Value;
-            _displayName.Value = string.IsNullOrWhiteSpace(displayName) ? (id.IsAI ? "AI " + (id.AIIndex + 1) : "Player") : displayName.Trim();
+            _displayName.Value = string.IsNullOrWhiteSpace(displayName)
+                ? (id.IsAI ? DesignTableOverlay.Text("racer.ai_fallback_prefix", "AI ") + (id.AIIndex + 1) : DesignTableOverlay.Text("racer.human_fallback", "Player"))
+                : displayName.Trim();
         }
         public override void OnStartNetwork()
         {

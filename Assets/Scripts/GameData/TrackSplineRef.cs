@@ -17,6 +17,14 @@ public class TrackSplineRef : MonoBehaviour
     {
         Instance = this;
         if (!container) container = GetComponent<SplineContainer>();
+        // Match/Track.trackSplineSamples (adv) owns the arc-length table resolution; the scene value is the fallback.
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+        {
+            TrackRecord track = DesignTableOverlay.CurrentTrack(this);
+            if (track != null && track.trackSplineSamples > 0)
+                samples = track.trackSplineSamples;
+        }
         BuildArcLengthTable();
     }
 

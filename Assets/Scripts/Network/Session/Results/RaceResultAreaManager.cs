@@ -29,6 +29,12 @@ namespace SteamMultiplayer.Network.Results
 
         private void Awake()
         {
+            // Match/Track owns the result-area offsets for the current track.
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db != null)
+            {
+                DesignTableOverlay.Apply(this, DesignTableOverlay.CurrentTrack(this), "resultOverflowOffset=overflowOffset");
+            }
             if (Instance != null && Instance != this)
             {
                 Debug.LogWarning("[RaceResultAreaManager] Duplicate instance detected during Awake. Keeping scene NetworkObject alive and allowing network lifecycle to resolve the active instance.");

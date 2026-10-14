@@ -29,6 +29,7 @@ namespace BuddahGo.AI
             }
             var profile = Object.Instantiate(source);
             profile.name = source.name + " #" + racerIndex;
+            ApplyDesignTables(profile, difficulty, out float speedMin, out float speedMax);
             // Per-racer personality: a seed that differs per match and racer, a speed bias and a line offset.
             int seed = unchecked(System.Environment.TickCount * 31 + racerIndex * 7919 + (int)difficulty * 104729);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -37,9 +38,32 @@ namespace BuddahGo.AI
             if (seed == 0) seed = 1;
             var random = new System.Random(seed);
             profile.NoiseSeed = seed;
-            profile.TargetSpeed = Mathf.Clamp(profile.TargetSpeed + (float)(random.NextDouble() * 2.0 - 1.0) * profile.SpeedNoise, 20f, 80f);
+            profile.TargetSpeed = Mathf.Clamp(profile.TargetSpeed + (float)(random.NextDouble() * 2.0 - 1.0) * profile.SpeedNoise, speedMin, speedMax);
             profile.LateralOffset += (float)(random.NextDouble() * 2.0 - 1.0) * profile.LateralOffsetNoise;
             return profile;
+        }
+
+        // AI/DrivingTier overlays the asset values (camelCase headers match the PascalCase fields case-insensitively);
+        // AI/DrivingTuning feeds the speed clamp and the planner recovery thresholds. Without table rows the asset
+        // and the literals below stay in effect.
+        private static void ApplyDesignTables(AIDifficultyProfile profile, SoloDifficulty difficulty, out float speedMin, out float speedMax)
+        {
+            speedMin = 20f; speedMax = 80f;
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null) return;
+            string tier = difficulty.ToString();
+            DrivingTierRecord row = DesignTableOverlay.Single(db.drivingTiers, r => r.difficulty == tier);
+            if (row != null)
+            {
+                DesignTableOverlay.Apply(profile, row);
+                switch (row.rolloutTail) { case "Anchor": profile.RolloutTail = 0; break; case "KeepCandidate": profile.RolloutTail = 1; break; case "FullThrust": profile.RolloutTail = 2; break; }
+            }
+            DrivingTuningRecord tuning = DesignTableOverlay.DefaultRow(db.drivingTunings, r => r.profileId);
+            if (tuning == null) return;
+            speedMin = tuning.targetSpeedMin;
+            speedMax = tuning.targetSpeedMax;
+            ThrustVectorPlanner.RecoverySpeed = tuning.recoverySpeed;
+            ThrustVectorPlanner.RecoveryVelocityErrorDegrees = tuning.recoveryVelocityErrorDegrees;
         }
     }
 }

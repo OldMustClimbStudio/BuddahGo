@@ -9,7 +9,17 @@
 | 联机 | Steam 大厅建房/加入，房间就绪、属性与技能选择、比赛、结算与投票 |
 | 单机（Solo） | 主菜单直接开局，离线 host 上 1 名玩家对 5 个 AI；AI 驾驶分 Easy / Normal / Hard 三档，五种技能人格各自配装与施法；结算后可 Rematch 或回主菜单 |
 
-两种模式共用同一套运动、技能、计时与结算代码；差异集中在 `IMatchRules`（`Assets/Scripts/Match/`）。
+两种模式共用同一套运动、技能、计时与结算代码；差异集中在 `IMatchRules`（`Assets/Scripts/Match/`），其取值来自配表 `Match/ModeRule`。
+
+## 策划配表
+
+平衡数值、规则与文案由 `Assets/Design/Tables/` 下的六本 Excel 工作簿维护（Skill、Movement、AI、Match、UI、Global）。在 Excel 里改数保存，Unity 自动校验并写入 `ProjectConfigDatabase`；校验失败不写产物，错误定位到单元格，报告在 `Assets/Design/Tables/_Reports/validation.md`。手动入口在菜单 `Tools/Design Tables`（`Import Changed`、`Import Tag/…`、`Validate Only`），批处理入口：
+
+```bash
+Unity.exe -batchmode -nographics -projectPath <项目路径> -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit
+```
+
+表头约定、命名规则、新增列或表的步骤见 [Docs/design-tables/README.md](Docs/design-tables/README.md)。
 
 ## 开始开发
 
@@ -33,8 +43,11 @@ git lfs pull
 | `Assets/Scripts/AI/` | AI 驾驶（`ThrustVectorPlanner`、赛车线、难度配置）与技能人格；`AI/Diagnostics/` 为仅开发构建的取证 harness |
 | `Assets/Scripts/New_Buddah/`、`Buddah/` | 预测运动、手部推掌、技能执行 |
 | `Assets/Scripts/RaceIntro/` | 1–6 人开场路径与交接 |
+| `Assets/Scripts/Config/` | `ProjectConfigDatabase` 记录与仓库、`DesignTableOverlay`（运行时把配表记录覆盖到组件字段） |
+| `Assets/Scripts/Editor/DesignTables/` | Excel 配表导入器：xlsx 读取、表头校验、映射、增量导入、菜单与 CLI |
+| `Assets/Design/Tables/` | 策划配表源表（xlsx，LFS）、CSV 镜像、导出范围 `scope.json` |
 | `Assets/Tests/EditMode/` | EditMode 测试（`BuddahGo.Tests`） |
-| `Tools/` | AI 难度配置与验收脚本（`Tools/ai/`）、单机 benchmark、交接校验、性能与资源审计脚本 |
+| `Tools/` | 配表基线与记录类生成脚本（`Tools/design-tables/`）、AI 难度配置与验收脚本（`Tools/ai/`）、单机 benchmark、交接校验、性能与资源审计脚本 |
 
 ## 测试
 
@@ -57,5 +70,6 @@ Unity.exe -batchmode -nographics -projectPath <项目路径> -runTests -testPlat
 - [harness.md](harness.md)：Agent 共用执行入口。
 - [CONTRIBUTING.md](CONTRIBUTING.md)：分支、提交、PR、验证及资源规则。
 - [Docs/README.md](Docs/README.md)：架构、网络、预测与单机模式文档索引。
+- [Docs/design-tables/README.md](Docs/design-tables/README.md)：策划配表系统入口（规范、决策、筛查清单）。
 - [CONTEXT.md](CONTEXT.md)：领域术语；[Docs/adr/](Docs/adr/)：架构决策。
 - [Docs/unity-mcp.md](Docs/unity-mcp.md)：Unity MCP 启动方法。

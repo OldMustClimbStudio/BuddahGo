@@ -51,6 +51,15 @@ public class LapProgress : NetworkBehaviour
 
     private void Awake()
     {
+        // Match/Track for the current track owns the lap/checkpoint rules (explicit mapping; the Track row also carries minimap and result-area data).
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+        {
+            DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.CurrentTrack(this),
+                "crossCooldownSeconds=minimumCrossingCooldownSeconds", "maxProgressJumpWithoutCheckpoint01=maximumProgressJumpWithoutCheckpoint01", "minForwardDot",
+                "armDistanceMeters=minimumWorldDistanceFromStartToArmLap", "useSequentialCheckpoints", "autoAdvanceSplineCheckpoints", "requiredCheckpointCount",
+                "fallbackCheckpointProgresses01", "startPointTag");
+        }
         _tracker = GetComponent<SplineProgressTracker>();
         ResolveStartPointReference();
     }

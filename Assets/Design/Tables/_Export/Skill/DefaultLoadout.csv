@@ -1,0 +1,5 @@
+##var,loadoutId,ruleSetId,modeTag,slot0SkillId,slot1SkillId,slot2SkillId
+##type,string#key,string,string,string#ref=Skill.skillId,string#ref=Skill.skillId,string#ref=Skill.skillId
+##group,,,,,,
+##comment,,,,,,
+,race_default,default,default,acceleration,push_projectile_hands,slowtrap

@@ -1,0 +1,11 @@
+##var,modifierType,stackPolicy,minScaleMultiplier,scalesMaxSpeed,resetOnSkillReset,comment
+##type,enum:ModifierCommandType#key,enum:StackPolicy,float,bool,bool,string
+##group,,,,,,doc
+##comment,,当前代码：持续取较大值，幅度后写覆盖,倍率下限（代码 4 处重复 0.1）,Giant 是否缩放限速,ResetActiveSkillModifiers 是否重置,
+,Acceleration,RefreshMaxDurationOverwriteMagnitude,,,true,ValueA=extraForwardForce ValueB=extraMaxSpeed ValueC=duration
+,RootThenAcceleration,RefreshMaxDurationOverwriteMagnitude,,,true,定身期 force/maxSpeed=0，速度清零
+,InvertTurn,RefreshMaxDurationOverwriteMagnitude,,,true,FinalSteeringSign=-1 固定
+,Scale,RefreshMaxDurationOverwriteMagnitude,0.1,false,true,turnTorque×scale，force×forceMul，mass×massMul
+,PushGrace,RefreshMaxDuration,,,false,
+,SteeringSuppression,RefreshMaxDuration,,,false,转向清零
+,RoomBypass,RefreshMaxDuration,,,false,绕过房间闸门

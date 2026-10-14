@@ -1,0 +1,10 @@
+##var,key,value,source,comment
+##type,string#key,string,string,string
+##group,doc,doc,doc,doc
+##comment,,,,改动需同步代码，不由导出器写入
+,skill_slot_count,3,SkillLoadout.cs:9,RPC 签名写死 3 参数
+,max_ai,5,RacerId.cs:10,数组容量 6，人格数校验
+,ai_id_base,10000,RacerId.cs:9,协议常量
+,tick_rate,60,MainMenu.unity TimeManager,fixedDeltaTime 必须等于 1/tick
+,prediction_protocol_version,1,PredictionProtocol.cs:12,
+,max_players,6,9 处重复,见筛查清单

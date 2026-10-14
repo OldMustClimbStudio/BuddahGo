@@ -50,7 +50,7 @@ namespace BuddahGo.AI
             _impairedProfile.LookaheadSeconds *= difficulty.ImpairedLookaheadMultiplier;
             _impairedProfile.RolloutSeconds *= difficulty.ImpairedLookaheadMultiplier;
             _impairedProfile.MistakeProbability = Mathf.Clamp01(Profile.MistakeProbability + difficulty.ImpairedMistakeAddition);
-            _impairedProfile.ReactionTicks += difficulty.ImpairedReactionTicks;
+            _impairedProfile.ReactionTicks += difficulty.ImpairedDrivingReactionTicks;
         }
         public void ResetSkillPerception()
         {

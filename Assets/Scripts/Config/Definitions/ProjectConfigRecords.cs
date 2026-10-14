@@ -6,13 +6,6 @@ public static class ProjectConfigConstants
 {
     public const string DefaultRuleSetId = "default";
     public const string DefaultModeTag = "default";
-    public const string GlobalRuleComboInputWindowSeconds = "combo_input_window_seconds";
-    public const string GlobalRulePregameCountdownSeconds = "pregame_countdown_seconds";
-    public const string GlobalRuleRaceLapCount = "race_lap_count";
-    public const string GlobalRuleResultSceneCountdownSeconds = "result_scene_countdown_seconds";
-    public const string GlobalRuleFinishWindowSeconds = "finish_window_seconds";
-    public const string GlobalRuleCatchupRecoveryA = "catchup_recovery_a";
-    public const string GlobalRuleObsessionRecoveryBaseline = "obsession_recovery_baseline";
 }
 
 public enum SkillSelectionPoolType
@@ -24,38 +17,8 @@ public enum SkillSelectionPoolType
     TestOnly = 4
 }
 
-[Serializable]
-public class SkillDefinitionRecord
-{
-    public string skillId = string.Empty;
-    public string displayName = string.Empty;
-    [TextArea] public string description = string.Empty;
-    public string behaviorType = string.Empty;
-    public string iconKey = string.Empty;
-    public bool isSelectable = true;
-    public int sortOrder = 0;
-    public List<string> tags = new List<string>();
-    public string unlockState = "unlocked";
-}
-
-[Serializable]
-public class SkillBalanceRecord
-{
-    public string skillId = string.Empty;
-    [Min(0f)] public float cooldownSeconds = 0f;
-    [Min(0f)] public float castLockSeconds = 0f;
-    [Min(0f)] public float obsessionGain = 0f;
-    public string antiSkillId = string.Empty;
-}
-
-[Serializable]
-public class SkillEffectParamRecord
-{
-    public string skillId = string.Empty;
-    public string effectType = string.Empty;
-    public string paramKey = string.Empty;
-    public string paramValue = string.Empty;
-}
+// Skill identity, timing and obsession live in the generated SkillRecord (Skill.xlsx / Skill);
+// per-family effect numbers in SkillEffect<Family>Record and PushRecord (ProjectConfigRecords.Generated.cs).
 
 [Serializable]
 public class SkillSelectionRuleRecord

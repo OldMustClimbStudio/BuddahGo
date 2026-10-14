@@ -1,0 +1,8 @@
+##var,timelineId,path,durationSeconds,signals,gameplayEffect
+##type,string#key,string#path,float,"list,string#sep=|",string
+##group,,,,,doc
+##comment,,,最长 clip 结束时间,time:signalAsset,
+,TransitionToRaceMap,Assets/Animation/CG/TransitionToRaceMap.playable,18,,"决定 GO 时刻 Max(timeline, 样条÷速度)"
+,EndResultSwitchTimeline,Assets/Animation/CG/EndResultSwitchTimeline.playable,6,3:SIG_Result_TimelineFinished|1:SIG_Result_BlackFullyCovered,结算流程信号
+,LocalPlayerFinishTimeline,Assets/Animation/CG/LocalPlayerFinishTimeline.playable,1,,
+,PropertySelectionEnd,Assets/Animation/CG/PropertySelectionEnd.playable,2,,服务器等待后加载比赛场景

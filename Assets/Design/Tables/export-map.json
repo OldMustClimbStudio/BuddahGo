@@ -1,0 +1,172 @@
+{
+ "Skill/Skill": {
+  "record": "SkillRecord",
+  "list": "skills",
+  "tags": "skill,info,balance"
+ },
+ "Skill/SkillEffectAcceleration": {
+  "record": "SkillEffectAccelerationRecord",
+  "list": "skillEffectAccelerations",
+  "tags": "skill,balance"
+ },
+ "Skill/SkillEffectSlowTrap": {
+  "record": "SkillEffectSlowTrapRecord",
+  "list": "skillEffectSlowTraps",
+  "tags": "skill,balance"
+ },
+ "Skill/SkillEffectBlackCurtain": {
+  "record": "SkillEffectBlackCurtainRecord",
+  "list": "skillEffectBlackCurtains",
+  "tags": "skill,balance"
+ },
+ "Skill/SkillEffectGiant": {
+  "record": "SkillEffectGiantRecord",
+  "list": "skillEffectGiants",
+  "tags": "skill,balance"
+ },
+ "Skill/Push": {
+  "record": "PushRecord",
+  "list": "pushes",
+  "tags": "skill,balance"
+ },
+ "Skill/SkillSelectionRule": {
+  "record": "SkillSelectionRuleRecord",
+  "list": "skillSelectionRules",
+  "tags": "skill,info"
+ },
+ "Skill/DefaultLoadout": {
+  "record": "DefaultLoadoutRecord",
+  "list": "defaultLoadouts",
+  "tags": "skill,info"
+ },
+ "Skill/ComboInput": {
+  "record": "ComboInputRecord",
+  "list": "comboInputs",
+  "tags": "skill,balance"
+ },
+ "Skill/ComboBinding": {
+  "record": "ComboBindingRecord",
+  "list": "comboBindings",
+  "tags": "skill,info"
+ },
+ "Skill/Obsession": {
+  "record": "ObsessionRecord",
+  "list": "obsessions",
+  "tags": "skill,balance"
+ },
+ "Movement/Movement": {
+  "record": "MovementRecord",
+  "list": "movements",
+  "tags": "movement,balance"
+ },
+ "Movement/Respawn": {
+  "record": "RespawnRecord",
+  "list": "respawns",
+  "tags": "movement,balance"
+ },
+ "AI/DrivingTier": {
+  "record": "DrivingTierRecord",
+  "list": "drivingTiers",
+  "tags": "ai,balance"
+ },
+ "AI/DrivingTuning": {
+  "record": "DrivingTuningRecord",
+  "list": "drivingTunings",
+  "tags": "ai,balance"
+ },
+ "AI/SkillDifficulty": {
+  "record": "SkillDifficultyRecord",
+  "list": "skillDifficulties",
+  "tags": "ai,balance"
+ },
+ "AI/Personality": {
+  "record": "PersonalityRecord",
+  "list": "personalities",
+  "tags": "ai,balance"
+ },
+ "AI/PersonalitySituationBias": {
+  "record": "PersonalitySituationBiasRecord",
+  "list": "personalitySituationBiases",
+  "tags": "ai,balance"
+ },
+ "AI/SkillOpportunity": {
+  "record": "SkillOpportunityRecord",
+  "list": "skillOpportunities",
+  "tags": "ai,balance"
+ },
+ "AI/SkillTuning": {
+  "record": "SkillTuningRecord",
+  "list": "skillTunings",
+  "tags": "ai,balance"
+ },
+ "AI/Roster": {
+  "record": "RosterRecord",
+  "list": "rosters",
+  "tags": "ai,info"
+ },
+ "Match/ModeRule": {
+  "record": "ModeRuleRecord",
+  "list": "modeRules",
+  "tags": "match,info"
+ },
+ "Match/Track": {
+  "record": "TrackRecord",
+  "list": "tracks",
+  "tags": "match,track,balance"
+ },
+ "Match/TrackWrongWay": {
+  "record": "TrackWrongWayRecord",
+  "list": "trackWrongWays",
+  "tags": "match,track,balance"
+ },
+ "Match/TrackSpawn": {
+  "record": "TrackSpawnRecord",
+  "list": "trackSpawns",
+  "tags": "match,track"
+ },
+ "Match/TrackCheckpoint": {
+  "record": "TrackCheckpointRecord",
+  "list": "trackCheckpoints",
+  "tags": "match,track"
+ },
+ "Match/TrackResultAnchor": {
+  "record": "TrackResultAnchorRecord",
+  "list": "trackResultAnchors",
+  "tags": "match,track"
+ },
+ "Match/Lobby": {
+  "record": "LobbyRecord",
+  "list": "lobbies",
+  "tags": "match,info"
+ },
+ "Match/SelectionStage": {
+  "record": "SelectionStageRecord",
+  "list": "selectionStages",
+  "tags": "match,info"
+ },
+ "Match/SelectionOption": {
+  "record": "SelectionOptionRecord",
+  "list": "selectionOptions",
+  "tags": "match,info"
+ },
+ "Match/Intro": {
+  "record": "IntroRecord",
+  "list": "intros",
+  "tags": "match,balance"
+ },
+ "UI/Text": {
+  "record": "LocalizedTextRecord",
+  "list": "localizedTexts",
+  "tags": "ui,text"
+ },
+ "UI/MenuOption": {
+  "record": "MenuOptionRecord",
+  "list": "menuOptions",
+  "tags": "ui,text"
+ },
+ "Global/GlobalRule": {
+  "record": "GlobalRuleRecord",
+  "list": "globalRules",
+  "tags": "global,balance"
+ }
+}

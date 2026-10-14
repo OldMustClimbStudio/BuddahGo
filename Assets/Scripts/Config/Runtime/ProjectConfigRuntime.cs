@@ -8,6 +8,7 @@ public static class ProjectConfigRuntime
     public static SkillConfigRepository SkillConfigs { get; private set; }
     public static SelectionRuleRepository SelectionRules { get; private set; }
     public static GlobalRuleRepository GlobalRules { get; private set; }
+    public static LocalizedTextRepository Texts { get; private set; }
 
     public static bool EnsureInitialized(ProjectConfigDatabase preferredDatabase = null)
     {
@@ -18,14 +19,24 @@ public static class ProjectConfigRuntime
         if (databaseToUse == null)
             return false;
 
-        if (ReferenceEquals(Database, databaseToUse) && SkillConfigs != null && SelectionRules != null && GlobalRules != null)
+        if (ReferenceEquals(Database, databaseToUse) && SkillConfigs != null && SelectionRules != null && GlobalRules != null && Texts != null)
             return true;
 
         Database = databaseToUse;
         SkillConfigs = new SkillConfigRepository(Database);
         SelectionRules = new SelectionRuleRepository(Database);
         GlobalRules = new GlobalRuleRepository(Database);
+        Texts = new LocalizedTextRepository(Database);
         return true;
+    }
+
+    /// <summary>Drop the cached repositories so the next lookup rebuilds them (the importer calls this after rewriting the asset's lists).</summary>
+    public static void Invalidate()
+    {
+        SkillConfigs = null;
+        SelectionRules = null;
+        GlobalRules = null;
+        Texts = null;
     }
 
     public static bool TryGetSkillConfigRepository(out SkillConfigRepository repository)
@@ -55,6 +66,16 @@ public static class ProjectConfigRuntime
             return false;
 
         repository = GlobalRules;
+        return repository != null;
+    }
+
+    public static bool TryGetTextRepository(out LocalizedTextRepository repository)
+    {
+        repository = null;
+        if (!EnsureInitialized())
+            return false;
+
+        repository = Texts;
         return repository != null;
     }
 

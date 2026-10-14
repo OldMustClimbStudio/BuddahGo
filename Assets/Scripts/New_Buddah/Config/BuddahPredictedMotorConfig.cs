@@ -3,8 +3,39 @@ using UnityEngine;
 namespace NewBuddah.PredictionV2.Config
 {
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(-50)] // Apply table values before the motor caches base mass / reads the config.
     public class BuddahPredictedMotorConfig : MonoBehaviour
     {
+        private void Awake()
+        {
+            // Movement/Movement (default row) owns locomotion, rigidbody, push-grace and handoff ground-probe numbers (same field names).
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null)
+                return;
+            MovementRecord movement = DesignTableOverlay.Single(db.movements, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.movements, null);
+            if (movement == null)
+                return;
+            DesignTableOverlay.Apply(this, movement);
+            Rigidbody body = GetComponent<Rigidbody>();
+            if (body != null)
+            {
+                body.mass = movement.mass;
+                body.drag = movement.linearDrag;
+                body.angularDrag = movement.angularDrag;
+                body.maxAngularVelocity = movement.maxAngularVelocity;
+            }
+            // The racer's solid capsule (the first non-trigger CapsuleCollider in the prefab) takes the collider columns.
+            foreach (CapsuleCollider capsule in GetComponentsInChildren<CapsuleCollider>(true))
+            {
+                if (capsule.isTrigger)
+                    continue;
+                if (movement.colliderRadius > 0f) capsule.radius = movement.colliderRadius;
+                if (movement.colliderHeight > 0f) capsule.height = movement.colliderHeight;
+                capsule.center = movement.colliderCenter;
+                break;
+            }
+        }
+
         [Header("Stage 1 Locomotion")]
         [SerializeField] private float forwardForce = 50f;
         [SerializeField] private float turnTorque = 30f;

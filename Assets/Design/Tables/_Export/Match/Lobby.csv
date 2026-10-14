@@ -1,0 +1,5 @@
+##var,profileId,maxPlayers,defaultLobbyNameKey,defaultVisibility,maxSearchResults,clientConnectTimeoutSeconds,hostStartTimeoutSeconds,maxPlayerNameLength,minPlayers,fishnetMaximumClients
+##type,string#key,int,string#ref=UI/Text.key,enum:LobbyVisibility,int,float,float,int,int,int
+##group,,,,,,,,,doc,doc
+##comment,,,,SteamLobbyManager.PendingVisibility 初值,,SessionLauncher.cs:66,SessionLauncher.cs:81,RoomStateManager 玩家名截断长度,无读取方，只记录,ServerManager 场景设置，只记录
+,default,6,lobby.default_room_name,Public,20,30,20,32,2,6

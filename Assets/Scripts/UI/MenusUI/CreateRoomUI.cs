@@ -22,6 +22,9 @@ namespace SteamMultiplayer.UI
 
         private SteamLobbyManager _steamLobbyManager;
         private bool _subscribed;
+        private bool _optionsInitialized;
+        private string[] _maxPlayersValues;
+        private string[] _visibilityValues;
 
         private void Awake()
         {
@@ -133,14 +136,18 @@ namespace SteamMultiplayer.UI
             if (maxPlayersDropdown == null || maxPlayersDropdown.options.Count == 0)
                 return 4;
 
-            string selected = maxPlayersDropdown.options[maxPlayersDropdown.value].text;
-            return int.TryParse(selected, out int parsed) ? Mathf.Clamp(parsed, 4, 6) : 4;
+            // The table row's value, not the label: labels are display text and may be localized.
+            string selected = SelectedValue(maxPlayersDropdown, _maxPlayersValues) ?? maxPlayersDropdown.options[maxPlayersDropdown.value].text;
+            return int.TryParse(selected, out int parsed) ? Mathf.Clamp(parsed, 2, 6) : 4;
         }
 
         private LobbyVisibility GetSelectedVisibility()
         {
             if (visibilityDropdown == null)
                 return LobbyVisibility.Public;
+
+            if (System.Enum.TryParse(SelectedValue(visibilityDropdown, _visibilityValues), true, out LobbyVisibility configured))
+                return configured;
 
             return visibilityDropdown.value switch
             {
@@ -152,19 +159,60 @@ namespace SteamMultiplayer.UI
 
         private void EnsureDefaultOptions()
         {
-            if (maxPlayersDropdown != null && maxPlayersDropdown.options.Count == 0)
+            // Once per panel: re-enabling the panel keeps the player's current choice.
+            if (_optionsInitialized)
+                return;
+            _optionsInitialized = true;
+
+            // UI/MenuOption replaces the options serialized in the scene; without table rows the scene options stay.
+            _maxPlayersValues = FillFromMenuOptionTable(maxPlayersDropdown, "max_players");
+            if (maxPlayersDropdown != null && _maxPlayersValues == null && maxPlayersDropdown.options.Count == 0)
             {
                 maxPlayersDropdown.AddOptions(new System.Collections.Generic.List<string> { "4", "5", "6" });
                 maxPlayersDropdown.value = 2;
                 maxPlayersDropdown.RefreshShownValue();
             }
 
-            if (visibilityDropdown != null && visibilityDropdown.options.Count == 0)
+            _visibilityValues = FillFromMenuOptionTable(visibilityDropdown, "visibility");
+            if (visibilityDropdown != null && _visibilityValues == null && visibilityDropdown.options.Count == 0)
             {
                 visibilityDropdown.AddOptions(new System.Collections.Generic.List<string> { "Public", "Friends Only", "Private" });
                 visibilityDropdown.value = 0;
                 visibilityDropdown.RefreshShownValue();
             }
+        }
+
+        private static string SelectedValue(TMP_Dropdown dropdown, string[] values)
+        {
+            return values != null && dropdown.value >= 0 && dropdown.value < values.Length ? values[dropdown.value] : null;
+        }
+
+        // UI/MenuOption owns the dropdown option lists (ordered by index) and defaults. Returns the row values in
+        // option order, or null when the table has no rows for the group (the dropdown is left untouched).
+        private static string[] FillFromMenuOptionTable(TMP_Dropdown dropdown, string optionGroup)
+        {
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (dropdown == null || db == null || db.menuOptions == null)
+                return null;
+            System.Collections.Generic.List<MenuOptionRecord> rows = db.menuOptions.FindAll(o => o != null && o.optionGroup == optionGroup);
+            if (rows.Count == 0)
+                return null;
+            rows.Sort((a, b) => a.index.CompareTo(b.index));
+            System.Collections.Generic.List<string> labels = new System.Collections.Generic.List<string>(rows.Count);
+            string[] values = new string[rows.Count];
+            int defaultIndex = 0;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                if (rows[i].isDefault)
+                    defaultIndex = i;
+                values[i] = rows[i].value;
+                labels.Add(DesignTableOverlay.Text(rows[i].labelKey, rows[i].value));
+            }
+            dropdown.ClearOptions();
+            dropdown.AddOptions(labels);
+            dropdown.SetValueWithoutNotify(defaultIndex);
+            dropdown.RefreshShownValue();
+            return values;
         }
 
         private void HandleBack()

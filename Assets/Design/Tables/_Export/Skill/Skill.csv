@@ -1,0 +1,16 @@
+##var,skillId,displayNameKey,descriptionKey,sortOrder,unlockState,antiSkillId,cooldownSeconds,castLockSeconds,castConfirmDelaySeconds,obsessionGain,effectDurationSeconds
+##type,enum:SkillId#key,string#ref=UI/Text.key,string#ref=UI/Text.key,int,enum:SkillUnlockState,string#ref=Skill.skillId,"float#range=0,120","float#range=0,120","float#range=0,5","float#range=0,1000","float#range=0,120"
+##group,,,,,,,,,,,
+##comment,技能唯一 id，snake_case；名单在 Global/__enums__ 的 SkillId,显示名文案 key,描述文案 key,选择界面排序,unlocked / locked / hidden,反噬变体 id；普通技能必填，反噬行留空,冷却，从请求时刻+前摇起算,施法锁定,施法前摇；反噬行按本行生效（原 GlobalRule anti_cast_confirm_delay_seconds）,施法增加的执念；反噬按原技能取值，反噬行必须留空,主效果持续时间，写入技能 SO 的主时长字段：acceleration/giant→durationSeconds，slowtrap→zoneDurationSeconds，slowtrap_anti→rootDurationSeconds，blackcurtain→holdDurationSeconds，push_projectile_hands→buffDurationSeconds，reverseturn→invertDurationSeconds；push_projectile_hands_anti 瞬发无时长
+,acceleration,skill.acceleration.name,skill.acceleration.desc,10,unlocked,acceleration_anti,5,3,1,300,3
+,slowtrap,skill.slowtrap.name,skill.slowtrap.desc,20,unlocked,slowtrap_anti,8,6,1,300,6
+,blackcurtain,skill.blackcurtain.name,skill.blackcurtain.desc,30,unlocked,blackcurtain_anti,16,14,1,200,10
+,giant,skill.giant.name,skill.giant.desc,40,unlocked,giant_anti,8,6,1,200,6
+,push_projectile_hands,skill.push_projectile_hands.name,skill.push_projectile_hands.desc,50,unlocked,push_projectile_hands_anti,12,10,1,300,15
+,reverseturn,skill.reverseturn.name,skill.reverseturn.desc,60,unlocked,reverseturn_anti,12,10,1,200,10
+,acceleration_anti,skill.acceleration_anti.name,skill.acceleration_anti.desc,110,hidden,,5,3,1,,3
+,slowtrap_anti,skill.slowtrap_anti.name,skill.slowtrap_anti.desc,120,hidden,,3,1,1,,1
+,blackcurtain_anti,skill.blackcurtain_anti.name,skill.blackcurtain_anti.desc,130,hidden,,16,14,1,,10
+,giant_anti,skill.giant_anti.name,skill.giant_anti.desc,140,hidden,,8,6,1,,6
+,push_projectile_hands_anti,skill.push_projectile_hands_anti.name,skill.push_projectile_hands_anti.desc,150,hidden,,10,10,1,,
+,reverseturn_anti,skill.reverseturn_anti.name,skill.reverseturn_anti.desc,160,hidden,,12,10,1,,10

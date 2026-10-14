@@ -1,0 +1,10 @@
+##var,optionGroup,index,value,labelKey,isDefault
+##type,string#key,int#key,string,string#ref=Text.key,bool
+##group,,,,,
+##comment,,,,,
+,max_players,0,4,menu.option.max_players.4,true
+,max_players,1,5,menu.option.max_players.5,false
+,max_players,2,6,menu.option.max_players.6,false
+,visibility,0,Public,menu.option.visibility.public,true
+,visibility,1,FriendsOnly,menu.option.visibility.friendsonly,false
+,visibility,2,Private,menu.option.visibility.private,false

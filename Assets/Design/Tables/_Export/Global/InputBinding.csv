@@ -1,0 +1,15 @@
+##var,map,action,bindingPath,scheme,codeOverride
+##type,string#key,string#key,string#key,string,string
+##group,,,,,doc
+##comment,,,,,代码绕过绑定的位置
+,Player,Movement,<Keyboard>/a,;Keyboard&Mouse,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
+,Player,Movement,<Keyboard>/d,;Keyboard&Mouse;XR,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
+,Player,Movement,<Keyboard>/space,,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
+,Player,HandRotation,<Keyboard>/leftArrow,,BuddahHandControl.cs:412-418
+,Player,HandRotation,<Keyboard>/rightArrow,,BuddahHandControl.cs:412-418
+,Player,HandPush,<Keyboard>/w,,"BuddahHandControl.cs:443,452; ComboSkillInput.cs:121-126"
+,Player,HandPush,<Keyboard>/upArrow,,"BuddahHandControl.cs:443,452; ComboSkillInput.cs:121-126"
+,Menu,MenuSelect,<Mouse>/leftButton,,
+,Menu,MenuCancel,<Keyboard>/escape,,
+,Menu,MenuInspect,<Mouse>/rightButton,,
+,Menu,MenuInspect,<Keyboard>/f,,

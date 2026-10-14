@@ -1,0 +1,5 @@
+##var,stageKey,displayNameKey,selectionMode,order,enabledOnline,enabledSolo,layoutMode,autoFillOnTimeout
+##type,string#key,string#ref=UI/Text.key,enum:PropertySelectionMode,int,bool,bool,enum:SelectionLayout,bool
+##group,,,,doc,doc,doc,doc,doc
+##comment,map / skill_loadout / skin；map 与 skin 行以 ## 屏蔽：占位阶段，代码兜底，有真实地图/皮肤后取消屏蔽,,Vote / HostOnly / Single / Multi,占位：PropertiesSelectionManager 未读取,占位：PropertiesSelectionManager 未读取,占位：PropertiesSelectionManager 未读取,占位：PropertiesSelectionManager 未读取,占位：PropertiesSelectionManager 未读取
+,skill_loadout,selection.stage.skill_loadout,Multi,1,true,true,SkillWall,true

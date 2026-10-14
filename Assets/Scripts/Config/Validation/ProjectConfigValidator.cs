@@ -27,22 +27,22 @@ public static class ProjectConfigValidator
             return results;
         }
 
-        ValidateSkillDefinitions(database, results);
-        ValidateSkillBalances(database, results);
-        ValidateEffectParams(database, results);
+        ValidateSkills(database, results);
         ValidateSelectionRules(database, results);
         ValidateDefaultLoadouts(database, results);
         ValidateGlobalRules(database, results);
         return results;
     }
 
-    private static void ValidateSkillDefinitions(ProjectConfigDatabase database, List<ProjectConfigValidationMessage> results)
+    private static void ValidateSkills(ProjectConfigDatabase database, List<ProjectConfigValidationMessage> results)
     {
         HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        for (int i = 0; i < database.skillDefinitions.Count; i++)
+        HashSet<string> knownSkillIds = BuildSkillIdSet(database);
+        HashSet<string> antiIds = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < database.skills.Count; i++)
         {
-            SkillDefinitionRecord record = database.skillDefinitions[i];
-            string context = "SkillDefinition[" + i + "]";
+            SkillRecord record = database.skills[i];
+            string context = "Skill[" + i + "]";
             string skillId = NormalizeId(record != null ? record.skillId : string.Empty);
             if (string.IsNullOrWhiteSpace(skillId))
             {
@@ -53,62 +53,28 @@ public static class ProjectConfigValidator
             if (!seen.Add(skillId))
                 results.Add(Create(ProjectConfigValidationSeverity.Error, context, "Duplicate skillId '" + skillId + "'."));
 
-            if (string.IsNullOrWhiteSpace(record.behaviorType))
-                results.Add(Create(ProjectConfigValidationSeverity.Error, context, "Missing behaviorType for skill '" + skillId + "'."));
-        }
-    }
-
-    private static void ValidateSkillBalances(ProjectConfigDatabase database, List<ProjectConfigValidationMessage> results)
-    {
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        HashSet<string> knownSkillIds = BuildDefinitionIdSet(database);
-
-        for (int i = 0; i < database.skillBalances.Count; i++)
-        {
-            SkillBalanceRecord record = database.skillBalances[i];
-            string context = "SkillBalance[" + i + "]";
-            string skillId = NormalizeId(record != null ? record.skillId : string.Empty);
-            if (string.IsNullOrWhiteSpace(skillId))
-            {
-                results.Add(Create(ProjectConfigValidationSeverity.Error, context, "Missing skillId."));
-                continue;
-            }
-
-            if (!seen.Add(skillId))
-                results.Add(Create(ProjectConfigValidationSeverity.Error, context, "Duplicate balance record for skillId '" + skillId + "'."));
-
-            if (!knownSkillIds.Contains(skillId))
-                results.Add(Create(ProjectConfigValidationSeverity.Warning, context, "Balance record references missing SkillDefinition '" + skillId + "'."));
-
             string antiSkillId = NormalizeId(record.antiSkillId);
-            if (!string.IsNullOrWhiteSpace(antiSkillId) && !knownSkillIds.Contains(antiSkillId))
-                results.Add(Create(ProjectConfigValidationSeverity.Error, context, "antiSkillId '" + antiSkillId + "' does not exist."));
+            if (!string.IsNullOrWhiteSpace(antiSkillId))
+            {
+                if (!knownSkillIds.Contains(antiSkillId))
+                    results.Add(Create(ProjectConfigValidationSeverity.Error, context, "antiSkillId '" + antiSkillId + "' does not exist."));
+                else
+                    antiIds.Add(antiSkillId);
+            }
         }
-    }
 
-    private static void ValidateEffectParams(ProjectConfigDatabase database, List<ProjectConfigValidationMessage> results)
-    {
-        for (int i = 0; i < database.skillEffectParams.Count; i++)
+        // Backfire adds the obsession of the requested skill (SkillExecutor.QueueCast); a value on the anti row is never read.
+        for (int i = 0; i < database.skills.Count; i++)
         {
-            SkillEffectParamRecord record = database.skillEffectParams[i];
-            string context = "SkillEffectParam[" + i + "]";
-            if (string.IsNullOrWhiteSpace(record != null ? record.skillId : string.Empty))
-                results.Add(Create(ProjectConfigValidationSeverity.Error, context, "Missing skillId."));
-
-            if (string.IsNullOrWhiteSpace(record != null ? record.effectType : string.Empty))
-                results.Add(Create(ProjectConfigValidationSeverity.Error, context, "Missing effectType."));
-
-            if (string.IsNullOrWhiteSpace(record != null ? record.paramKey : string.Empty))
-                results.Add(Create(ProjectConfigValidationSeverity.Error, context, "Missing paramKey."));
-
-            if (record != null && record.paramValue == null)
-                results.Add(Create(ProjectConfigValidationSeverity.Error, context, "paramValue is null."));
+            SkillRecord record = database.skills[i];
+            if (record != null && antiIds.Contains(NormalizeId(record.skillId)) && record.obsessionGain != 0f)
+                results.Add(Create(ProjectConfigValidationSeverity.Warning, "Skill[" + i + "]", "obsessionGain on anti skill '" + record.skillId + "' is ignored; backfire uses the requested skill's gain."));
         }
     }
 
     private static void ValidateSelectionRules(ProjectConfigDatabase database, List<ProjectConfigValidationMessage> results)
     {
-        HashSet<string> knownSkillIds = BuildDefinitionIdSet(database);
+        HashSet<string> knownSkillIds = BuildSkillIdSet(database);
         Dictionary<string, bool> duplicatePolicyByPoolContext = new Dictionary<string, bool>(StringComparer.Ordinal);
 
         for (int i = 0; i < database.skillSelectionRules.Count; i++)
@@ -168,7 +134,7 @@ public static class ProjectConfigValidator
 
     private static void ValidateDefaultLoadouts(ProjectConfigDatabase database, List<ProjectConfigValidationMessage> results)
     {
-        HashSet<string> knownSkillIds = BuildDefinitionIdSet(database);
+        HashSet<string> knownSkillIds = BuildSkillIdSet(database);
         HashSet<string> contextKeys = new HashSet<string>(StringComparer.Ordinal);
 
         for (int i = 0; i < database.defaultLoadouts.Count; i++)
@@ -222,12 +188,12 @@ public static class ProjectConfigValidator
         }
     }
 
-    private static HashSet<string> BuildDefinitionIdSet(ProjectConfigDatabase database)
+    private static HashSet<string> BuildSkillIdSet(ProjectConfigDatabase database)
     {
         HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
-        for (int i = 0; i < database.skillDefinitions.Count; i++)
+        for (int i = 0; i < database.skills.Count; i++)
         {
-            SkillDefinitionRecord record = database.skillDefinitions[i];
+            SkillRecord record = database.skills[i];
             string skillId = NormalizeId(record != null ? record.skillId : string.Empty);
             if (!string.IsNullOrWhiteSpace(skillId))
                 ids.Add(skillId);

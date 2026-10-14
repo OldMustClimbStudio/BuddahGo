@@ -1,0 +1,287 @@
+##var,key,zh,en,comment,context
+##type,string#key,text,text,string,string
+##group,,,doc,doc,doc
+##comment,domain.entity.field,简体中文,英文：本地化尚未接入，运行时只读 zh,,来源
+,skill.acceleration.name,神足通,,技能显示名,Skill.displayNameKey
+,skill.acceleration.desc,加速自身一段时间,,技能描述,Skill.descriptionKey
+,skill.slowtrap.name,禅定缓流,,技能显示名,Skill.displayNameKey
+,skill.slowtrap.desc,减速区域,,技能描述,Skill.descriptionKey
+,skill.blackcurtain.name,一念光明,,技能显示名,Skill.displayNameKey
+,skill.blackcurtain.desc,触发黑幕效果,,技能描述,Skill.descriptionKey
+,skill.giant.name,法相金身,,技能显示名,Skill.displayNameKey
+,skill.giant.desc,放大自身形态,,技能描述,Skill.descriptionKey
+,skill.push_projectile_hands.name,如来神掌,,技能显示名,Skill.displayNameKey
+,skill.push_projectile_hands.desc,发射如来神掌,,技能描述,Skill.descriptionKey
+,skill.reverseturn.name,逆姻缘,,技能显示名,Skill.displayNameKey
+,skill.reverseturn.desc,干扰转向输入,,技能描述,Skill.descriptionKey
+,skill.acceleration_anti.name,神足通（噬）,,技能显示名,Skill.displayNameKey
+,skill.acceleration_anti.desc,神足通的反噬变体,,技能描述,Skill.descriptionKey
+,skill.slowtrap_anti.name,禅定缓流（噬）,,技能显示名,Skill.displayNameKey
+,skill.slowtrap_anti.desc,禅定缓流的反噬变体,,技能描述,Skill.descriptionKey
+,skill.blackcurtain_anti.name,一念光明（噬）,,技能显示名,Skill.displayNameKey
+,skill.blackcurtain_anti.desc,一念光明的反噬变体,,技能描述,Skill.descriptionKey
+,skill.giant_anti.name,法相金身（噬）,,技能显示名,Skill.displayNameKey
+,skill.giant_anti.desc,法相金身的反噬变体,,技能描述,Skill.descriptionKey
+,skill.push_projectile_hands_anti.name,如来神掌（噬）,,技能显示名,Skill.displayNameKey
+,skill.push_projectile_hands_anti.desc,如来神掌的反噬变体,,技能描述,Skill.descriptionKey
+,skill.reverseturn_anti.name,逆姻缘（噬）,,技能显示名,Skill.displayNameKey
+,skill.reverseturn_anti.desc,逆姻缘的反噬变体,,技能描述,Skill.descriptionKey
+,ai.personality.keeper.name,P1 守位型,,AI 人格显示名,AISkillPersonality.DisplayName
+,ai.personality.hunter.name,P2 追猎型,,AI 人格显示名,AISkillPersonality.DisplayName
+,ai.personality.brawler.name,P3 车群型,,AI 人格显示名,AISkillPersonality.DisplayName
+,ai.personality.trickster.name,P4 干扰型,,AI 人格显示名,AISkillPersonality.DisplayName
+,ai.personality.opportunist.name,P5 机会型,,AI 人格显示名,AISkillPersonality.DisplayName
+,match.default_player_name,玩家,Player,Solo 默认玩家名,SoloMatchRules.DefaultPlayerName
+,lobby.default_room_name,My Room,My Room,默认房间名,SteamLobbyManager._defaultLobbyName
+,selection.stage.map,Map Selection,Map Selection,,PropertiesSelectionManager:1125
+,selection.stage.skill_loadout,Skill Loadout Selection,Skill Loadout Selection,,:1082
+,selection.stage.skin,Skin Selection,Skin Selection,,:1133
+,selection.option.map_a.name,Map A,Map A,占位,
+,selection.option.map_a.desc,Default placeholder map A.,Default placeholder map A.,占位,
+,selection.option.map_b.name,Map B,Map B,占位,
+,selection.option.map_b.desc,Default placeholder map B.,Default placeholder map B.,占位,
+,selection.option.map_c.name,Map C,Map C,占位,
+,selection.option.map_c.desc,Default placeholder map C.,Default placeholder map C.,占位,
+,selection.option.skin_a.name,Skin A,Skin A,占位,
+,selection.option.skin_a.desc,Default placeholder skin A.,Default placeholder skin A.,占位,
+,selection.option.skin_b.name,Skin B,Skin B,占位,
+,selection.option.skin_b.desc,Default placeholder skin B.,Default placeholder skin B.,占位,
+,selection.option.skin_c.name,Skin C,Skin C,占位,
+,selection.option.skin_c.desc,Default placeholder skin C.,Default placeholder skin C.,占位,
+,racer.ai_fallback_prefix,AI ,AI ,AI 名为空时前缀+序号,RacerIdentity.cs:23
+,racer.human_fallback,Player,Player,,RacerIdentity.cs:23
+,racer.online_human_prefix,Player ,Player ,后接 clientId,MatchSpawnManager.cs:135
+,menu.option.max_players.4,4,4,,MaxPlayer
+,menu.option.max_players.5,5,5,,MaxPlayer
+,menu.option.max_players.6,6,6,,MaxPlayer
+,menu.option.visibility.public,Public,Public,,RoomVisibility
+,menu.option.visibility.friendsonly,FriendsOnly,FriendsOnly,,RoomVisibility
+,menu.option.visibility.private,Private,Private,,RoomVisibility
+,ui.raceridentity.ai,AI ,AI ,自动提取，待策划定稿 key,Assets/Scripts/Match/Contracts/RacerIdentity.cs:23
+,ui.sessionlauncher.单机设置缺失,单机设置缺失。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:45
+,ui.sessionlauncher.主机地址为空,主机地址为空。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:58
+,ui.sessionlauncher.无法连接主机,无法连接主机。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:65
+,ui.sessionlauncher.无法启动本地服务器,无法启动本地服务器。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:78
+,ui.sessionlauncher.无法连接本地服务器,无法连接本地服务器。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:80
+,ui.sessionlauncher.传输层配置无效_需要_fishyfacepunch_yak_multipass,传输层配置无效：需要 FishyFacepunch + Yak Multipass。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:90
+,ui.sessionlauncher.传输层顺序无效,传输层顺序无效。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:93
+,ui.sessionlauncher.会话仍在运行或关闭中_请稍后重试,会话仍在运行或关闭中，请稍后重试。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:95
+,ui.sessionlauncher.连接超时_请重试,连接超时，请重试。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:146
+,ui.quitconfirmdialog.退出到主菜单,退出到主菜单？,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/QuitConfirmDialog.cs:29
+,ui.quitconfirmdialog.本局进度不会保留_比赛仍在进行,本局进度不会保留。比赛仍在进行。,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/QuitConfirmDialog.cs:31
+,ui.quitconfirmdialog.继续比赛,继续比赛,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/QuitConfirmDialog.cs:33
+,ui.quitconfirmdialog.退出到主菜单_2,退出到主菜单,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/QuitConfirmDialog.cs:35
+,ui.quitconfirmdialog.暂时无法退出_请取消后重试,暂时无法退出，请取消后重试。,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/QuitConfirmDialog.cs:86
+,ui.quitconfirmdialog.正在返回主菜单,正在返回主菜单…,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/QuitConfirmDialog.cs:90
+,ui.soloresultsview.practice_完成,Practice 完成,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:31
+,ui.soloresultsview.再来一局,再来一局,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:40
+,ui.soloresultsview.返回,返回,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:42
+,ui.soloresultsview.暂时无法再来一局_可以返回主菜单,暂时无法再来一局，可以返回主菜单。,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:67
+,ui.soloresultsview.正在进入选择,正在进入选择…,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:68
+,ui.soloresultsview.比赛结果,比赛结果,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:86
+,ui.soloresultsview.计时数据暂不可用,计时数据暂不可用,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:99
+,ui.soloresultsview.总用时,总用时  ,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:103
+,ui.soloresultsview.完整圈速数据不可用,完整圈速数据不可用,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:103
+,ui.soloresultsview.第_i_1_圈_formattime_result_lapseconds_i,第 {i + 1} 圈  {FormatTime(result.LapSeconds[i])},,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:106
+,ui.soloresultsview.圈时,     圈时  ,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloResultsView.cs:117
+,ui.solosetuppanel.简单,简单,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:11
+,ui.solosetuppanel.普通,普通,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:11
+,ui.solosetuppanel.困难,困难,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:11
+,ui.solosetuppanel.单人游戏,单人游戏,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:25
+,ui.solosetuppanel.六人单人赛_玩家_5_ai,六人单人赛 · 玩家 + 5 AI,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:26
+,ui.solosetuppanel.五种技能人格_固定配装,五种技能人格 · 固定配装,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:28
+,ui.solosetuppanel.难度,难度,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:30
+,ui.solosetuppanel.开始单人赛,开始单人赛,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:41
+,ui.solosetuppanel.初始化尚未完成_请稍后重试,初始化尚未完成，请稍后重试。,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:84
+,ui.solosetuppanel.启动失败_请重试,启动失败，请重试。,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloSetupPanel.cs:89
+,ui.solouibootstrap.正在初始化,正在初始化…,,自动提取，待策划定稿 key,Assets/Scripts/Match/UI/SoloUIBootstrap.cs:94
+,ui.leaderboardmanager.empty,(empty),(empty),自动提取，待策划定稿 key,Assets/Scripts/Network/Gameplay/LeaderboardManager.cs:278
+,ui.leaderboardmanager.finished_entry_finishorder, - Finished #{entry.FinishOrder}, - Finished #{entry.FinishOrder},自动提取，待策划定稿 key,Assets/Scripts/Network/Gameplay/LeaderboardManager.cs:284
+,ui.leaderboardmanager.lap, - Lap , - Lap ,自动提取，待策划定稿 key,Assets/Scripts/Network/Gameplay/LeaderboardManager.cs:288
+,ui.steamlobbymanager.my_room,My Room,My Room,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:107
+,ui.steamlobbymanager.steam_is_not_initialized,Steam is not initialized.,Steam is not initialized.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:235
+,ui.steamlobbymanager.already_in_a_lobby,Already in a lobby.,Already in a lobby.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:242
+,ui.steamlobbymanager.leaving_currentlobbyname,"Leaving \""{CurrentLobbyName}\""...","Leaving \""{CurrentLobbyName}\""...",自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:311
+,ui.steamlobbymanager.left_lobby,Left lobby.,Left lobby.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:322
+,ui.steamlobbymanager.creating_lobby_name,"Creating lobby \""{name}\""...","Creating lobby \""{name}\""...",自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:389
+,ui.steamlobbymanager.steammatchmaking_createlobbyasync_return,SteamMatchmaking.CreateLobbyAsync returned null (Steam error).,SteamMatchmaking.CreateLobbyAsync returned null (Steam error).,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:395
+,ui.steamlobbymanager.lobby_created_name,Lobby created: {name},Lobby created: {name},自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:425
+,ui.steamlobbymanager.starting_host,Starting host...,Starting host...,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:430
+,ui.steamlobbymanager.gamenetworkmanager_not_found,GameNetworkManager not found.,GameNetworkManager not found.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:436
+,ui.steamlobbymanager.joining_lobby_steamid_value,Joining lobby {steamId.Value}...,Joining lobby {steamId.Value}...,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:446
+,ui.steamlobbymanager.joinlobbyasync_steamid_value_returned_nu,JoinLobbyAsync({steamId.Value}) returned null – lobby may be full or gone.,JoinLobbyAsync({steamId.Value}) returned null – lobby may be full or gone.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:452
+,ui.steamlobbymanager.lobby_steamid_value_is_invalid_or_missin,Lobby {steamId.Value} is invalid or missing host metadata.,Lobby {steamId.Value} is invalid or missing host metadata.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:466
+,ui.steamlobbymanager.prediction_protocol_mismatch_host_remote,"Prediction protocol mismatch: host={remoteLabel}, you={PredictionProtocol.Version}. Both sides need a build with the same prediction protocol version.","Prediction protocol mismatch: host={remoteLabel}, you={PredictionProtocol.Version}. Both sides need a build with the same prediction protocol version.",自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:478
+,ui.steamlobbymanager.joined_lobby_lobbyname,"Joined lobby \""{lobbyName}\"".","Joined lobby \""{lobbyName}\"".",自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:483
+,ui.steamlobbymanager.connecting_to_host_hoststeamid,Connecting to host {hostSteamId}...,Connecting to host {hostSteamId}...,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:492
+,ui.steamlobbymanager.refreshing_lobby_list,Refreshing lobby list...,Refreshing lobby list...,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:509
+,ui.steamlobbymanager.lobby_list_ready_list_count_found,Lobby list ready: {list.Count} found.,Lobby list ready: {list.Count} found.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:524
+,ui.steamlobbymanager.host_has_left_the_room,Host has left the room.,Host has left the room.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:612
+,ui.steamlobbymanager.waiting_in_menu,Waiting in menu.,Waiting in menu.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:625
+,ui.steamlobbymanager.host_connection_started,Host connection started.,Host connection started.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:671
+,ui.steamlobbymanager.connected_to_host,Connected to host.,Connected to host.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:671
+,ui.steamlobbymanager.failed_to_connect_to_host,Failed to connect to host.,Failed to connect to host.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:675
+,ui.steamlobbymanager.host_server_started,Host server started.,Host server started.,自动提取，待策划定稿 key,Assets/Scripts/Network/Lobby/SteamLobbyManager.cs:685
+,ui.roomroster.none,(none),(none),自动提取，待策划定稿 key,Assets/Scripts/Network/Room/RoomRoster.cs:86
+,ui.roomroster.player_playername_rolelabel_readylabel,{player.PlayerName} [{roleLabel}] [{readyLabel}],{player.PlayerName} [{roleLabel}] [{readyLabel}],自动提取，待策划定稿 key,Assets/Scripts/Network/Room/RoomRoster.cs:95
+,ui.propertiesselectionmanager.duplicate_propertiesselectionmanager_det,Duplicate PropertiesSelectionManager detected; destroying duplicate instance.,Duplicate PropertiesSelectionManager detected; destroying duplicate instance.,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:104
+,ui.propertiesselectionmanager.skillloadoutstagekey_slotindex,{SkillLoadoutStageKey}_{slotIndex},{SkillLoadoutStageKey}_{slotIndex},自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:181
+,ui.propertiesselectionmanager.selection_submitted_player_caller_client,"Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}","Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}",自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:456
+,ui.propertiesselectionmanager.all_required_selections_submitted_for_st,All required selections submitted for stage '{propertyKey}'. Advancing immediately.,All required selections submitted for stage '{propertyKey}'. Advancing immediately.,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:514
+,ui.propertiesselectionmanager.stage_started_stagekey,Stage started: '{stageKey}',Stage started: '{stageKey}',自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:589
+,ui.propertiesselectionmanager.resolved_match_scene_is_empty_or_scenema,Resolved match scene is empty or SceneManager missing.,Resolved match scene is empty or SceneManager missing.,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:641
+,ui.propertiesselectionmanager.loading_match_scene_resolvedmatchscenena,Loading match scene: {_resolvedMatchSceneName},Loading match scene: {_resolvedMatchSceneName},自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:654
+,ui.propertiesselectionmanager.validated_skill_loadout_submission_for_p,Validated skill loadout submission for player={playerId},Validated skill loadout submission for player={playerId},自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1036
+,ui.propertiesselectionmanager.skill_loadout_selection,Skill Loadout Selection,Skill Loadout Selection,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1082
+,ui.propertiesselectionmanager.map_selection,Map Selection,Map Selection,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1125
+,ui.propertiesselectionmanager.map_a,Map A,Map A,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1126
+,ui.propertiesselectionmanager.default_placeholder_map_a,Default placeholder map A.,Default placeholder map A.,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1126
+,ui.propertiesselectionmanager.map_b,Map B,Map B,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1127
+,ui.propertiesselectionmanager.default_placeholder_map_b,Default placeholder map B.,Default placeholder map B.,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1127
+,ui.propertiesselectionmanager.map_c,Map C,Map C,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1128
+,ui.propertiesselectionmanager.default_placeholder_map_c,Default placeholder map C.,Default placeholder map C.,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1128
+,ui.propertiesselectionmanager.skin_selection,Skin Selection,Skin Selection,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1133
+,ui.propertiesselectionmanager.skin_a,Skin A,Skin A,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1134
+,ui.propertiesselectionmanager.default_placeholder_skin_a,Default placeholder skin A.,Default placeholder skin A.,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1134
+,ui.propertiesselectionmanager.skin_b,Skin B,Skin B,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1135
+,ui.propertiesselectionmanager.default_placeholder_skin_b,Default placeholder skin B.,Default placeholder skin B.,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1135
+,ui.propertiesselectionmanager.skin_c,Skin C,Skin C,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1136
+,ui.propertiesselectionmanager.default_placeholder_skin_c,Default placeholder skin C.,Default placeholder skin C.,自动提取，待策划定稿 key,Assets/Scripts/Network/Session/PropertySelection/PropertiesSelectionManager.cs:1136
+,ui.resultdecisionmanager.choice_caller_clientid_choice,choice:{caller.ClientId}:{choice},choice:{caller.ClientId}:{choice},自动提取，待策划定稿 key,Assets/Scripts/Network/Session/Results/ResultDecisionManager.cs:118
+,ui.resultdecisionmanager.decision_playername_choicelabel,{decision.PlayerName}: {choiceLabel},{decision.PlayerName}: {choiceLabel},自动提取，待策划定稿 key,Assets/Scripts/Network/Session/Results/ResultDecisionManager.cs:160
+,ui.resultdecisionmanager.disconnect_conn_clientid,disconnect:{conn.ClientId},disconnect:{conn.ClientId},自动提取，待策划定稿 key,Assets/Scripts/Network/Session/Results/ResultDecisionManager.cs:243
+,ui.leaderboardtmpui.race_status_waiting_for_players,Race Status: Waiting for players...,Race Status: Waiting for players...,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:195
+,ui.leaderboardtmpui.race_status_starting_in_roomstatemanager,Race Status: Starting in {RoomStateManager.Instance.RaceCountdownSecondsRemaining}...,Race Status: Starting in {RoomStateManager.Instance.RaceCountdownSecondsRemaining}...,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:197
+,ui.leaderboardtmpui.race_status_result_area,Race Status: Result Area,Race Status: Result Area,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:199
+,ui.leaderboardtmpui.race_status_started,Race Status: Started,Race Status: Started,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:201
+,ui.leaderboardtmpui.your_progress_local_player_not_found,Your Progress: (local player not found),Your Progress: (local player not found),自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:211
+,ui.leaderboardtmpui.your_obsession_localobsession_current_0_,Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0},Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0},自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:215
+,ui.leaderboardtmpui.backfire_chance_localobsession_currentba,Backfire Chance: {_localObsession.CurrentBackfireProbabilityPercent:0.0}%,Backfire Chance: {_localObsession.CurrentBackfireProbabilityPercent:0.0}%,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:216
+,ui.leaderboardtmpui.gap_to_leader_localobsession_completiong,Gap To Leader: {_localObsession.CompletionGapToLeaderPercent:0.0}%,Gap To Leader: {_localObsession.CompletionGapToLeaderPercent:0.0}%,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:217
+,ui.leaderboardtmpui.your_obsession_local_obsession_not_found,Your Obsession: (local obsession not found),Your Obsession: (local obsession not found),自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:221
+,ui.leaderboardtmpui.backfire_chance_local_obsession_not_foun,Backfire Chance: (local obsession not found),Backfire Chance: (local obsession not found),自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:222
+,ui.leaderboardtmpui.gap_to_leader_local_obsession_not_found,Gap To Leader: (local obsession not found),Gap To Leader: (local obsession not found),自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:223
+,ui.leaderboardtmpui.no_data,(no data),(no data),自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:240
+,ui.leaderboardtmpui.i_1_entry_displayname_lap_entry_lap_entr,{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix},{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix},自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/LeaderboardTMPUI.cs:259
+,ui.resultdecisionui.countdown,Countdown: --,Countdown: --,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/ResultDecisionUI.cs:110
+,ui.resultdecisionui.waiting_for_resultdecisionmanager,Waiting for ResultDecisionManager...,Waiting for ResultDecisionManager...,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/ResultDecisionUI.cs:111
+,ui.resultdecisionui.next_decision_in_decisionmanager_remaini,Next Decision In: {_decisionManager.RemainingSeconds}s,Next Decision In: {_decisionManager.RemainingSeconds}s,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/ResultDecisionUI.cs:117
+,ui.resultdecisionui.all_players_agreed_starting_a_new_game,All players agreed. Starting a new game...,All players agreed. Starting a new game...,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/ResultDecisionUI.cs:121
+,ui.resultdecisionui.returning_everyone_to_the_room,Returning everyone to the room...,Returning everyone to the room...,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/ResultDecisionUI.cs:122
+,ui.resultdecisionui.choose_whether_to_start_a_new_game_or_re,Choose whether to start a new game or return to the room.,Choose whether to start a new game or return to the room.,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/ResultDecisionUI.cs:167
+,ui.resultdecisionui.your_choice_localdecision_choice,Your Choice: {localDecision.Choice},Your Choice: {localDecision.Choice},自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/ResultDecisionUI.cs:169
+,ui.resultdecisionui.waiting_for_your_decision_state,Waiting for your decision state...,Waiting for your decision state...,自动提取，待策划定稿 key,Assets/Scripts/UI/InGameUI/Legacy/ResultDecisionUI.cs:172
+,ui.createroomui.steamlobbymanager_not_found,SteamLobbyManager not found.,SteamLobbyManager not found.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/CreateRoomUI.cs:70
+,ui.createroomui.creating_room,Creating room...,Creating room...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/CreateRoomUI.cs:78
+,ui.createroomui.room_created_lobby_id_value,Room created: {lobby.Id.Value},Room created: {lobby.Id.Value},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/CreateRoomUI.cs:112
+,ui.createroomui.create_failed_reason,Create failed: {reason},Create failed: {reason},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/CreateRoomUI.cs:117
+,ui.createroomui.friends_only,Friends Only,Friends Only,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/CreateRoomUI.cs:164
+,ui.lobbybrowserlistitemui.unnamed_room,Unnamed Room,Unnamed Room,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserListItemUI.cs:40
+,ui.lobbybrowserlistitemui.data_currentplayers_data_maxplayers,{data.CurrentPlayers} / {data.MaxPlayers},{data.CurrentPlayers} / {data.MaxPlayers},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserListItemUI.cs:43
+,ui.lobbybrowserlistitemui.host_data_hoststeamid,Host: {data.HostSteamId},Host: {data.HostSteamId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserListItemUI.cs:46
+,ui.lobbybrowserlistitemui.lobby_id_data_lobbyid,Lobby ID: {data.LobbyId},Lobby ID: {data.LobbyId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserListItemUI.cs:49
+,ui.lobbybrowserui.no_rooms_loaded,No rooms loaded.,No rooms loaded.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserUI.cs:43
+,ui.lobbybrowserui.refreshing_rooms,Refreshing rooms...,Refreshing rooms...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserUI.cs:77
+,ui.lobbybrowserui.joining_room_lobbyid,Joining room {lobbyId}...,Joining room {lobbyId}...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserUI.cs:90
+,ui.lobbybrowserui.no_joinable_rooms_found,No joinable rooms found.,No joinable rooms found.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserUI.cs:128
+,ui.lobbybrowserui.found_lobbies_count_rooms,Found {lobbies.Count} rooms.,Found {lobbies.Count} rooms.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserUI.cs:147
+,ui.lobbybrowserui.join_failed_reason,Join failed: {reason},Join failed: {reason},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserUI.cs:152
+,ui.propertiesselectorui.properties_selector,Properties Selector,Properties Selector,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:163
+,ui.propertiesselectorui.waiting_for_propertiesselectionmanager,Waiting for PropertiesSelectionManager...,Waiting for PropertiesSelectionManager...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:173
+,ui.propertiesselectorui.loading_match,Loading Match,Loading Match,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:205
+,ui.propertiesselectorui.loading_selectionmanager_resolvedmatchsc,Loading {_selectionManager.ResolvedMatchSceneName}...,Loading {_selectionManager.ResolvedMatchSceneName}...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:206
+,ui.propertiesselectorui.choose_skillloadout_slotcount_skills,Choose {SkillLoadout.SlotCount} skills,Choose {SkillLoadout.SlotCount} skills,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:213
+,ui.propertiesselectorui.step_selectionmanager_currentstageindex_,Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel},Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:215
+,ui.propertiesselectorui.time_remaining_selectionmanager_stagecou,Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s,Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:218
+,ui.propertiesselectorui.syncing_stage_data,Syncing stage data,Syncing stage data,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:222
+,ui.propertiesselectorui.waiting_for_host_stage_configuration,Waiting for host stage configuration...,Waiting for host stage configuration...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:223
+,ui.propertiesselectorui.all_stages_complete,All stages complete,All stages complete,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:228
+,ui.propertiesselectorui.waiting_to_enter_match,Waiting to enter match...,Waiting to enter match...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:229
+,ui.propertiesselectorui.resolved_map_mapoptionid,Resolved Map: {mapOptionId},Resolved Map: {mapOptionId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:236
+,ui.propertiesselectorui.resolved_map_pending,Resolved Map: pending,Resolved Map: pending,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:237
+,ui.propertiesselectorui.everyone_is_voting_on_the_current_stage_,Everyone is voting on the current stage option.,Everyone is voting on the current stage option.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:245
+,ui.propertiesselectorui.only_the_host_can_choose_during_this_sta,Only the host can choose during this stage.,Only the host can choose during this stage.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:246
+,ui.propertiesselectorui.choose_all_desired_options_before_the_ti,Choose all desired options before the timer ends.,Choose all desired options before the timer ends.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:248
+,ui.propertiesselectorui.choose_all_desired_options,Choose all desired options.,Choose all desired options.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:248
+,ui.propertiesselectorui.each_player_chooses_one_option_before_th,Each player chooses one option before the timer ends.,Each player chooses one option before the timer ends.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:250
+,ui.propertiesselectorui.each_player_chooses_one_option,Each player chooses one option.,Each player chooses one option.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:250
+,ui.propertiesselectorui.no_active_stage,No active stage.,No active stage.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:257
+,ui.propertiesselectorui.filledcount_skillloadout_slotcount_strin,{filledCount}/{SkillLoadout.SlotCount} [{string.Join(,{filledCount}/{SkillLoadout.SlotCount} [{string.Join(,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:283
+,ui.propertiesselectorui.names,", names)}]",", names)}]",自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:283
+,ui.propertiesselectorui.participant_playername_selectedoptionid,{participant.PlayerName}: {selectedOptionId},{participant.PlayerName}: {selectedOptionId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:285
+,ui.propertiesselectorui.n,\n,\n,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:299
+,ui.propertiesselectorui.no_players_connected,No players connected.,No players connected.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:299
+,ui.propertycarouselview.focused_none,Focused: None,Focused: None,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyCarouselView.cs:333
+,ui.propertycarouselview.confirmed_none,Confirmed: None,Confirmed: None,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyCarouselView.cs:339
+,ui.propertycarouselview.confirmed_lastsubmittedoptionid,Confirmed: {_lastSubmittedOptionId},Confirmed: {_lastSubmittedOptionId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyCarouselView.cs:340
+,ui.propertycarouselview.focused_item_optionid_n_confirmedsuffix,Focused: {item.OptionId}\n{confirmedSuffix},Focused: {item.OptionId}\n{confirmedSuffix},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyCarouselView.cs:341
+,ui.propertycarouselview.votes_count,Votes: {count},Votes: {count},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyCarouselView.cs:348
+,ui.propertycarouselview.selected_count,Selected: {count},Selected: {count},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyCarouselView.cs:349
+,ui.propertygroupview.selected_getoptiondisplayname_localselec,Selected: {GetOptionDisplayName(localSelectedOptionId)},Selected: {GetOptionDisplayName(localSelectedOptionId)},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyGroupView.cs:49
+,ui.propertygroupview.selected_none,Selected: None,Selected: None,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyGroupView.cs:50
+,ui.propertygroupview.mode_vote,Mode: Vote,Mode: Vote,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyGroupView.cs:105
+,ui.propertygroupview.mode_host_only,Mode: Host Only,Mode: Host Only,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyGroupView.cs:106
+,ui.propertygroupview.mode_multi_select,Mode: Multi Select,Mode: Multi Select,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyGroupView.cs:107
+,ui.propertygroupview.mode_single_select,Mode: Single Select,Mode: Single Select,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyGroupView.cs:108
+,ui.propertygroupview.votes_selectedcount,Votes: {selectedCount},Votes: {selectedCount},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyGroupView.cs:119
+,ui.propertygroupview.players_selectedcount,Players: {selectedCount},Players: {selectedCount},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyGroupView.cs:120
+,ui.roomplayerentryui.unknown_player,Unknown Player,Unknown Player,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/RoomPlayerEntryUI.cs:15
+,ui.roomui.opening_properties_selector,Opening Properties Selector...,Opening Properties Selector...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/RoomUI.cs:183
+,ui.roomui.room_lobby_id_value,Room #{lobby.Id.Value},Room #{lobby.Id.Value},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/RoomUI.cs:234
+,ui.roomui.waiting_for_room_state_manager,Waiting for room state manager...,Waiting for room state manager...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/RoomUI.cs:248
+,ui.roomui.host_can_start_the_game,Host can start the game.,Host can start the game.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/RoomUI.cs:253
+,ui.roomui.waiting_for_players_to_get_ready,Waiting for players to get ready.,Waiting for players to get ready.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/RoomUI.cs:254
+,ui.roomui.waiting_for_host_to_start_the_game,Waiting for host to start the game.,Waiting for host to start the game.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/RoomUI.cs:256
+,ui.roomui.cancel_ready,Cancel Ready,Cancel Ready,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/RoomUI.cs:359
+,ui.skillinspectpanelui.esc_to_close,Esc to close,Esc to close,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/SkillInspectPanelUI.cs:18
+,ui.skillinspectableitem.inspect_skillid,Inspect_{SkillId},Inspect_{SkillId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/SkillInspectableItem.cs:80
+,ui.skillwallitemview.skillwallitem_skillid,SkillWallItem_{_skillId},SkillWallItem_{_skillId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/SkillWallItemView.cs:78
+,ui.skillwallselectioncontroller.ignored_select_request_for_unknown_skill,Ignored select request for unknown skill '{skillId}'.,Ignored select request for unknown skill '{skillId}'.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/SkillWallSelectionController.cs:222
+,ui.skillwallselectioncontroller.ignored_select_request_because_skillid_i,Ignored select request because '{skillId}' is already selected.,Ignored select request because '{skillId}' is already selected.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/SkillWallSelectionController.cs:228
+,ui.skillwallselectioncontroller.ignored_select_request_because_all_skill,Ignored select request because all {SkillLoadout.SlotCount} slots are full.,Ignored select request because all {SkillLoadout.SlotCount} slots are full.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/SkillWallSelectionController.cs:235
+,ui.skillwallselectioncontroller.skipped_wall_build_because_required_refe,Skipped wall build because required references are missing.,Skipped wall build because required references are missing.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/SkillWallSelectionController.cs:574
+,ui.skillwallselectioncontroller.built_skill_wall_with_spawneditems_count,Built skill wall with {_spawnedItems.Count} selectable items.,Built skill wall with {_spawnedItems.Count} selectable items.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/SkillWallSelectionController.cs:604
+,ui.skillwallselectioncontroller.scenemanagerfound_hasscenemanager_spawne,"sceneManagerFound={hasSceneManager}, spawned={isSpawned}, singletonNull={PropertiesSelectionManager.Instance == null}","sceneManagerFound={hasSceneManager}, spawned={isSpawned}, singletonNull={PropertiesSelectionManager.Instance == null}",自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/SkillWallSelectionController.cs:989
+,ui.static.lobby_id_input,Lobby Id Input,Lobby Id Input,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @RoomNameText
+,ui.static.option_a,Option A,Option A,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Item Label
+,ui.static.room_visibility,Room Visibility,Room Visibility,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @RoomVisibilityText
+,ui.static.max_player,Max Player,Max Player,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @MaxPlayerText
+,ui.static.create,Create,Create,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.create_room,Create Room,Create Room,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.public,Public,Public,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Label
+,ui.static.room_name,Room Name,Room Name,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @RoomNameText
+,ui.static.browse_rooms,Browse Rooms,Browse Rooms,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.ready,Ready,Ready,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.join_room,Join Room,Join Room,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.enter_text,Enter text...,Enter text...,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Placeholder
+,ui.static.4,4,4,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Label
+,ui.static.start_game,Start Game,Start Game,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.return,Return,Return,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.refresh,Refresh,Refresh,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.back,Back,Back,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.join,Join,Join,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.playernum,PlayerNum:,PlayerNum:,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @PlayerNumText
+,ui.static.leave_room,Leave Room,Leave Room,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.your_role,Your Role:,Your Role:,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @YourRole
+,ui.static.quit,Quit,Quit,场景/prefab 静态文本,Assets/Scenes/MainMenu.unity @Text (TMP)
+,ui.static.pagetitletext,pageTitleText,pageTitleText,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @PageTitleText
+,ui.static.技能描述文本,技能描述文本,,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @技能描述文本
+,ui.static.confirm,Confirm,Confirm,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @Text (TMP)
+,ui.static.提示文本,提示文本,,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @提示文本
+,ui.static.countdowntext,countdownText,countdownText,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @countdownText
+,ui.static.resolvedmaptext,resolvedMapText,resolvedMapText,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @resolvedMapText
+,ui.static.playersselectiontext,PlayersSelectionText,PlayersSelectionText,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @PlayersSelectionText
+,ui.static.标题文本,标题文本,,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @标题文本
+,ui.static.statustext,statusText,statusText,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @statusText
+,ui.static.stagetitletext,StageTitleText,StageTitleText,场景/prefab 静态文本,Assets/Scenes/PropertySelection.unity @StageTitleText
+,ui.static.return_to_room,Return To Room,Return To Room,场景/prefab 静态文本,Assets/Scenes/RaceMap.unity @Text (TMP)
+,ui.static.start_new_game,Start New Game,Start New Game,场景/prefab 静态文本,Assets/Scenes/RaceMap.unity @Text (TMP)
+,ui.static.endmatch,EndMatch,EndMatch,场景/prefab 静态文本,Assets/Scenes/RaceMap.unity @Text (TMP)
+,ui.static.player3,Player3,Player3,场景/prefab 静态文本,Assets/UI/UIprefap.prefab @Player3
+,ui.static.player2,Player2,Player2,场景/prefab 静态文本,Assets/UI/UIprefap.prefab @Player2
+,ui.static.player1,Player1,Player1,场景/prefab 静态文本,Assets/UI/UIprefap.prefab @Player1
+,ui.static.right,Right,Right,场景/prefab 静态文本,Assets/UIMenus/PropertySelector/PropertyGroupView.prefab @Text (TMP)
+,ui.static.left,Left,Left,场景/prefab 静态文本,Assets/UIMenus/PropertySelector/PropertyGroupView.prefab @Text (TMP)
+,ui.static.select,Select,Select,场景/prefab 静态文本,Assets/UIMenus/PropertySelector/PropertyGroupView.prefab @Text (TMP)
+,ui.static.hosttext,hostText,hostText,场景/prefab 静态文本,Assets/UIMenus/Lobby/LobbyBrowserListItem.prefab @hostText
+,ui.static.lobbyidtext,LobbyIdText,LobbyIdText,场景/prefab 静态文本,Assets/UIMenus/Lobby/LobbyBrowserListItem.prefab @LobbyIdText

@@ -14,201 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _defaultRuleSetId: default
   _defaultModeTag: default
-  skillDefinitions:
-  - skillId: acceleration
-    displayName: "\u795E\u8DB3\u901A"
-    description: "\u52A0\u901F\u81EA\u8EAB\u4E00\u6BB5\u65F6\u95F4"
-    behaviorType: Acceleration
-    iconKey: icon_acceleration
-    isSelectable: 1
-    sortOrder: 10
-    tags:
-    - movement
-    - buff
-    unlockState: unlocked
-  - skillId: slowtrap
-    displayName: "\u7985\u5B9A\u7F13\u6D41"
-    description: "\u51CF\u901F\u533A\u57DF"
-    behaviorType: SlowTrap
-    iconKey: icon_slow_trap
-    isSelectable: 1
-    sortOrder: 20
-    tags:
-    - trap
-    - debuff
-    unlockState: unlocked
-  - skillId: blackcurtain
-    displayName: "\u4E00\u5FF5\u5149\u660E"
-    description: "\u89E6\u53D1\u9ED1\u5E55\u6548\u679C"
-    behaviorType: BlackCurtain
-    iconKey: icon_blackcurtain
-    isSelectable: 1
-    sortOrder: 30
-    tags:
-    - special
-    - vision
-    unlockState: unlocked
-  - skillId: giant
-    displayName: "\u6CD5\u76F8\u91D1\u8EAB"
-    description: "\u653E\u5927\u81EA\u8EAB\u5F62\u6001"
-    behaviorType: Giant
-    iconKey: icon_giant
-    isSelectable: 1
-    sortOrder: 40
-    tags:
-    - body
-    - buff
-    unlockState: unlocked
-  - skillId: push_projectile_hands
-    displayName: "\u5982\u6765\u795E\u638C"
-    description: "\u53D1\u5C04\u5982\u6765\u795E\u638C"
-    behaviorType: PushProjectileHands
-    iconKey: icon_push_projectile_hands
-    isSelectable: 1
-    sortOrder: 50
-    tags:
-    - projectile
-    - attack
-    unlockState: unlocked
-  - skillId: reverseturn
-    displayName: "\u9006\u56E0\u7F18"
-    description: "\u5E72\u6270\u8F6C\u5411\u8F93\u5165"
-    behaviorType: ReverseTurn
-    iconKey: icon_reverseturn
-    isSelectable: 1
-    sortOrder: 60
-    tags:
-    - control
-    - debuff
-    unlockState: unlocked
-  - skillId: acceleration_anti
-    displayName: "\u795E\u8DB3\u901A\uFF08\u566C\uFF09"
-    description: "\u795E\u8DB3\u901A\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: AccelerationAnti
-    iconKey: icon_acceleration_anti
-    isSelectable: 0
-    sortOrder: 110
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: slowtrap_anti
-    displayName: "\u7985\u5B9A\u7F13\u6D41\uFF08\u566C\uFF09"
-    description: "\u7985\u5B9A\u7F13\u6D41\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: SlowTrapAnti
-    iconKey: icon_slowtrap_anti
-    isSelectable: 0
-    sortOrder: 120
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: anti_blackcurtain
-    displayName: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
-    description: "\u4E00\u5FF5\u5149\u660E\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: BlackCurtainAnti
-    iconKey: icon_blackcurtain_anti
-    isSelectable: 0
-    sortOrder: 130
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: giant_anti
-    displayName: "\u6CD5\u76F8\u91D1\u8EAB \uFF08\u566C\uFF09"
-    description: "\u6CD5\u76F8\u91D1\u8EAB\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: GiantAnti
-    iconKey: icon_giant_anti
-    isSelectable: 0
-    sortOrder: 140
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: push_projectile_hands_anti
-    displayName: "\u5982\u6765\u795E\u638C\uFF08\u566C\uFF09"
-    description: "\u5982\u6765\u795E\u638C\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: PushProjectileHandsAnti
-    iconKey: icon_push_projectile_hands_anti
-    isSelectable: 0
-    sortOrder: 150
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  - skillId: reverseturn_anti
-    displayName: "\u9006\u56E0\u7F18\uFF08\u566C\uFF09"
-    description: "\u9006\u56E0\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
-    behaviorType: ReverseTurnAnti
-    iconKey: icon_reverseturn_anti
-    isSelectable: 0
-    sortOrder: 160
-    tags:
-    - anti
-    - hidden
-    unlockState: hidden
-  skillBalances:
-  - skillId: acceleration
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 300
-    antiSkillId: acceleration_anti
-  - skillId: slowtrap
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 300
-    antiSkillId: slowtrap_anti
-  - skillId: blackcurtain
-    cooldownSeconds: 16
-    castLockSeconds: 14
-    obsessionGain: 200
-    antiSkillId: anti_blackcurtain
-  - skillId: giant
-    cooldownSeconds: 8
-    castLockSeconds: 6
-    obsessionGain: 200
-    antiSkillId: giant_anti
-  - skillId: push_projectile_hands
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 300
-    antiSkillId: push_projectile_hands_anti
-  - skillId: reverseturn
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 200
-    antiSkillId: reverseturn_anti
-  - skillId: acceleration_anti
-    cooldownSeconds: 8
-    castLockSeconds: 6
-    obsessionGain: 0
-    antiSkillId: 
-  - skillId: slowtrap_anti
-    cooldownSeconds: 3
-    castLockSeconds: 1
-    obsessionGain: 0
-    antiSkillId: 
-  - skillId: anti_blackcurtain
-    cooldownSeconds: 16
-    castLockSeconds: 14
-    obsessionGain: 100
-    antiSkillId: 
-  - skillId: giant_anti
-    cooldownSeconds: 8
-    castLockSeconds: 6
-    obsessionGain: 0
-    antiSkillId: 
-  - skillId: push_projectile_hands_anti
-    cooldownSeconds: 10
-    castLockSeconds: 10
-    obsessionGain: 0
-    antiSkillId: 
-  - skillId: reverseturn_anti
-    cooldownSeconds: 12
-    castLockSeconds: 10
-    obsessionGain: 0
-    antiSkillId: 
-  skillEffectParams: []
   skillSelectionRules:
   - ruleSetId: default
     skillId: acceleration
@@ -299,7 +104,7 @@ MonoBehaviour:
     mapTag: 
     poolType: 3
   - ruleSetId: default
-    skillId: anti_blackcurtain
+    skillId: blackcurtain_anti
     isEnabled: 1
     allowDuplicate: 0
     weight: 1
@@ -338,7 +143,1535 @@ MonoBehaviour:
     ruleSetId: default
     modeTag: default
   globalRules:
-  - ruleKey: combo_input_window_seconds
-    ruleValue: 0.35
+  - ruleKey: target_frame_rate
+    ruleValue: 120
     ruleSetId: default
-    description: combo input gap window
+    description: 
+  skills:
+  - skillId: acceleration
+    displayNameKey: skill.acceleration.name
+    descriptionKey: skill.acceleration.desc
+    sortOrder: 10
+    unlockState: unlocked
+    antiSkillId: acceleration_anti
+    cooldownSeconds: 5
+    castLockSeconds: 3
+    castConfirmDelaySeconds: 1
+    obsessionGain: 300
+    effectDurationSeconds: 3
+  - skillId: slowtrap
+    displayNameKey: skill.slowtrap.name
+    descriptionKey: skill.slowtrap.desc
+    sortOrder: 20
+    unlockState: unlocked
+    antiSkillId: slowtrap_anti
+    cooldownSeconds: 8
+    castLockSeconds: 6
+    castConfirmDelaySeconds: 1
+    obsessionGain: 300
+    effectDurationSeconds: 6
+  - skillId: blackcurtain
+    displayNameKey: skill.blackcurtain.name
+    descriptionKey: skill.blackcurtain.desc
+    sortOrder: 30
+    unlockState: unlocked
+    antiSkillId: blackcurtain_anti
+    cooldownSeconds: 16
+    castLockSeconds: 14
+    castConfirmDelaySeconds: 1
+    obsessionGain: 200
+    effectDurationSeconds: 10
+  - skillId: giant
+    displayNameKey: skill.giant.name
+    descriptionKey: skill.giant.desc
+    sortOrder: 40
+    unlockState: unlocked
+    antiSkillId: giant_anti
+    cooldownSeconds: 8
+    castLockSeconds: 6
+    castConfirmDelaySeconds: 1
+    obsessionGain: 200
+    effectDurationSeconds: 6
+  - skillId: push_projectile_hands
+    displayNameKey: skill.push_projectile_hands.name
+    descriptionKey: skill.push_projectile_hands.desc
+    sortOrder: 50
+    unlockState: unlocked
+    antiSkillId: push_projectile_hands_anti
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 300
+    effectDurationSeconds: 15
+  - skillId: reverseturn
+    displayNameKey: skill.reverseturn.name
+    descriptionKey: skill.reverseturn.desc
+    sortOrder: 60
+    unlockState: unlocked
+    antiSkillId: reverseturn_anti
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 200
+    effectDurationSeconds: 10
+  - skillId: acceleration_anti
+    displayNameKey: skill.acceleration_anti.name
+    descriptionKey: skill.acceleration_anti.desc
+    sortOrder: 110
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 5
+    castLockSeconds: 3
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 3
+  - skillId: slowtrap_anti
+    displayNameKey: skill.slowtrap_anti.name
+    descriptionKey: skill.slowtrap_anti.desc
+    sortOrder: 120
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 3
+    castLockSeconds: 1
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 1
+  - skillId: blackcurtain_anti
+    displayNameKey: skill.blackcurtain_anti.name
+    descriptionKey: skill.blackcurtain_anti.desc
+    sortOrder: 130
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 16
+    castLockSeconds: 14
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 10
+  - skillId: giant_anti
+    displayNameKey: skill.giant_anti.name
+    descriptionKey: skill.giant_anti.desc
+    sortOrder: 140
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 8
+    castLockSeconds: 6
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 6
+  - skillId: push_projectile_hands_anti
+    displayNameKey: skill.push_projectile_hands_anti.name
+    descriptionKey: skill.push_projectile_hands_anti.desc
+    sortOrder: 150
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 10
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 0
+  - skillId: reverseturn_anti
+    displayNameKey: skill.reverseturn_anti.name
+    descriptionKey: skill.reverseturn_anti.desc
+    sortOrder: 160
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 12
+    castLockSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 10
+  skillEffectAccelerations:
+  - skillId: acceleration
+    extraForwardForce: 50
+    extraMaxSpeed: 40
+    slowForwardForce: 0
+    slowMaxSpeed: 0
+  - skillId: acceleration_anti
+    extraForwardForce: 0
+    extraMaxSpeed: 0
+    slowForwardForce: 45
+    slowMaxSpeed: 40
+  skillEffectSlowTraps:
+  - skillId: slowtrap
+    perTargetReapplyCooldown: 0.5
+    affectCaster: 0
+    slowForwardForce: 40
+    slowMaxSpeed: 20
+    slowDurationSeconds: 2
+    extraForwardForce: 0
+    extraMaxSpeed: 0
+    accelerationDurationSeconds: 0
+  - skillId: slowtrap_anti
+    perTargetReapplyCooldown: 0
+    affectCaster: 0
+    slowForwardForce: 0
+    slowMaxSpeed: 0
+    slowDurationSeconds: 0
+    extraForwardForce: 10
+    extraMaxSpeed: 3
+    accelerationDurationSeconds: 2
+  skillEffectBlackCurtains:
+  - skillId: blackcurtain
+    expandDurationSeconds: 1
+    fadeOutDurationSeconds: 2
+    maxOpacity: 1
+  - skillId: blackcurtain_anti
+    expandDurationSeconds: 1
+    fadeOutDurationSeconds: 2
+    maxOpacity: 1
+  skillEffectGiants:
+  - skillId: giant
+    scaleMultiplier: 4
+    shrinkDurationSeconds: 0.35
+    growDurationSeconds: 0.35
+    massMultiplier: 3
+    forwardForceMultiplier: 3.5
+    restoreDurationSeconds: 0
+  - skillId: giant_anti
+    scaleMultiplier: 0.3
+    shrinkDurationSeconds: 0.25
+    growDurationSeconds: 0
+    massMultiplier: 0
+    forwardForceMultiplier: 0
+    restoreDurationSeconds: 0.25
+  pushes:
+  - pushId: basic
+    rotationSpeedDegPerSec: 180
+    windupSeconds: 0.1
+    pushCooldownSeconds: 0.4
+    delayedPushActionSeconds: 0
+    lifetimeSeconds: 0.3
+    impulseStrength: 100
+    speed: 0
+    forwardOffset: 7
+    heightOffset: 1
+    sideOffset: 4
+    leftSideBias: -0.1
+    rightSideBias: 0.1
+    projectileCount: 0
+    projectileSpacing: 0
+    colliderSize: {x: 0, y: 0, z: 0}
+    hitTurnTorqueImpulse: 0
+  - pushId: charged
+    rotationSpeedDegPerSec: 0
+    windupSeconds: 1
+    pushCooldownSeconds: 1
+    delayedPushActionSeconds: 0.9
+    lifetimeSeconds: 3
+    impulseStrength: 500
+    speed: 600
+    forwardOffset: 0
+    heightOffset: 30
+    sideOffset: 0
+    leftSideBias: 0
+    rightSideBias: 0
+    projectileCount: 0
+    projectileSpacing: 0
+    colliderSize: {x: 60, y: 90, z: 20}
+    hitTurnTorqueImpulse: 0
+  - pushId: charged_anti
+    rotationSpeedDegPerSec: 0
+    windupSeconds: 0.3
+    pushCooldownSeconds: 0
+    delayedPushActionSeconds: 0
+    lifetimeSeconds: 2
+    impulseStrength: 600
+    speed: 600
+    forwardOffset: 100
+    heightOffset: 30
+    sideOffset: 0
+    leftSideBias: 0
+    rightSideBias: 0
+    projectileCount: 5
+    projectileSpacing: 30
+    colliderSize: {x: 60, y: 50, z: 20}
+    hitTurnTorqueImpulse: 50
+  comboInputs:
+  - profileId: default
+    inputWindowSeconds: 0.35
+    maxBuffer: 6
+  comboBindings:
+  - slotIndex: 0
+    name: Skill_1
+    sequence:
+    - W
+    - Up
+    - W
+  - slotIndex: 1
+    name: Skill_2
+    sequence:
+    - Up
+    - W
+    - Up
+  - slotIndex: 2
+    name: Skill_3
+    sequence:
+    - W
+    - W
+    - Up
+    - Up
+  obsessions:
+  - profileId: default
+    maxValue: 1000
+    minValue: 0
+    initialValue: 0
+    drainPerSecond: 10
+    catchupRecoveryA: 0.01
+    backfirePMaxPercent: 95
+    backfireK: 0.008
+    backfireMidpointX: 500
+    backfireKeepPMaxAtOrAboveX: 1000
+  movements:
+  - profileId: default
+    forwardForce: 50
+    maxSpeed: 80
+    turnTorque: 30
+    turnDecayPerSecond: 3
+    turnInputMultiplier: 2
+    mass: 2
+    linearDrag: 0
+    angularDrag: 0.05
+    maxAngularVelocity: 50
+    colliderRadius: 3.886929
+    colliderHeight: 8.493212
+    colliderCenter: {x: -0.051696, y: 2.950664, z: -0.150903}
+    pushGraceSeconds: 0.25
+    pushExtraMaxSpeed: 6
+    launchInheritSeconds: 0.2
+    launchBlendSeconds: 0.32
+    handoffGroundSnapMaxDistance: 1.5
+    handoffGroundProbeHeight: 3
+    velocitySampleDeltaSeconds: 0.02
+  respawns:
+  - profileId: default
+    contactSeconds: 2
+    cooldownSeconds: 1.5
+    heightOffset: 3
+    clearanceRadius: 0.75
+    liftStep: 1.5
+    maxLift: 6
+    floorTag: RespawnFloor
+  drivingTiers:
+  - difficulty: Easy
+    lookaheadSeconds: 1
+    speedMargin: 2
+    lateralDamping: 0.986
+    attitudeDeadbandDegrees: 1.5
+    attitudeHysteresisDegrees: 0.5
+    predictionGain: 0.3
+    thrustPaceFactor: 0.9
+    planningBrakeAcceleration: 10
+    rolloutSeconds: 1.8
+    rolloutHoldSeconds: 0.6
+    thrustReplanTicks: 3
+    rolloutSubsteps: 2
+    useWallCorridor: 1
+    wallMargin: 1.5
+    rolloutWallWeight: 0.7
+    rolloutCenterWeight: 0.02
+    rolloutTail: KeepCandidate
+    speedNoise: 6
+    lateralOffsetNoise: 3.5
+    angleNoiseDegrees: 10
+    wobbleTicks: 30
+    mistakeProbability: 0.25
+    reactionJitterTicks: 5
+    rolloutSampleTicks: 6
+    rolloutLateralWeight: 1
+    rolloutLateralVelocityWeight: 0.7
+    rolloutOverspeedWeight: 0
+    rolloutUnderspeedWeight: 1
+    rolloutProgressWeight: 1
+    rolloutTerminalWeight: 1
+    switchPenaltyPerDegree: 0.3
+    maxThrustAngleDegrees: 170
+    targetSpeed: 67
+    lateralOffset: 0
+    reactionTicks: 8
+  - difficulty: Normal
+    lookaheadSeconds: 1
+    speedMargin: 2
+    lateralDamping: 0.986
+    attitudeDeadbandDegrees: 1.5
+    attitudeHysteresisDegrees: 0.5
+    predictionGain: 0.3
+    thrustPaceFactor: 0.9
+    planningBrakeAcceleration: 10
+    rolloutSeconds: 2
+    rolloutHoldSeconds: 0.6
+    thrustReplanTicks: 2
+    rolloutSubsteps: 2
+    useWallCorridor: 1
+    wallMargin: 1.5
+    rolloutWallWeight: 0.2
+    rolloutCenterWeight: 0.02
+    rolloutTail: KeepCandidate
+    speedNoise: 4
+    lateralOffsetNoise: 2.5
+    angleNoiseDegrees: 5
+    wobbleTicks: 30
+    mistakeProbability: 0.1
+    reactionJitterTicks: 3
+    rolloutSampleTicks: 6
+    rolloutLateralWeight: 1
+    rolloutLateralVelocityWeight: 0.7
+    rolloutOverspeedWeight: 0
+    rolloutUnderspeedWeight: 1
+    rolloutProgressWeight: 1
+    rolloutTerminalWeight: 1
+    switchPenaltyPerDegree: 0.3
+    maxThrustAngleDegrees: 170
+    targetSpeed: 74
+    lateralOffset: 0
+    reactionTicks: 3
+  - difficulty: Hard
+    lookaheadSeconds: 1
+    speedMargin: 2
+    lateralDamping: 0.986
+    attitudeDeadbandDegrees: 1.5
+    attitudeHysteresisDegrees: 0.5
+    predictionGain: 0.3
+    thrustPaceFactor: 0.9
+    planningBrakeAcceleration: 10
+    rolloutSeconds: 2
+    rolloutHoldSeconds: 0.6
+    thrustReplanTicks: 2
+    rolloutSubsteps: 2
+    useWallCorridor: 1
+    wallMargin: 1.5
+    rolloutWallWeight: 0
+    rolloutCenterWeight: 0.02
+    rolloutTail: KeepCandidate
+    speedNoise: 2
+    lateralOffsetNoise: 1.5
+    angleNoiseDegrees: 2
+    wobbleTicks: 30
+    mistakeProbability: 0.03
+    reactionJitterTicks: 0
+    rolloutSampleTicks: 6
+    rolloutLateralWeight: 1
+    rolloutLateralVelocityWeight: 0.7
+    rolloutOverspeedWeight: 0
+    rolloutUnderspeedWeight: 3
+    rolloutProgressWeight: 1
+    rolloutTerminalWeight: 1
+    switchPenaltyPerDegree: 0.3
+    maxThrustAngleDegrees: 90
+    targetSpeed: 80
+    lateralOffset: 0
+    reactionTicks: 0
+  drivingTunings:
+  - profileId: default
+    targetSpeedMin: 20
+    targetSpeedMax: 80
+    recoverySpeed: 5
+    recoveryVelocityErrorDegrees: 90
+  skillDifficulties:
+  - difficulty: Easy
+    riskWeight: 0
+    severeStopProbability: 1.01
+    mildStopProbability: 1.01
+    decisionSeconds: 0.3
+    reactionMinSeconds: 0.6
+    reactionMaxSeconds: 1
+    keyMistakeProbability: 0.15
+    aimToleranceDegrees: 20
+    adaptSeconds: 2
+    readaptSeconds: 1
+    impairedLookaheadMultiplier: 0.5
+    impairedMistakeAddition: 0.2
+    impairedReactionTicks: 10
+    impairedDrivingReactionTicks: 10
+    decisionNoise: 0.1
+  - difficulty: Normal
+    riskWeight: 0.5
+    severeStopProbability: 0.7
+    mildStopProbability: 1.01
+    decisionSeconds: 0.25
+    reactionMinSeconds: 0.3
+    reactionMaxSeconds: 0.5
+    keyMistakeProbability: 0.06
+    aimToleranceDegrees: 12
+    adaptSeconds: 1
+    readaptSeconds: 0.6
+    impairedLookaheadMultiplier: 0.6
+    impairedMistakeAddition: 0.1
+    impairedReactionTicks: 6
+    impairedDrivingReactionTicks: 6
+    decisionNoise: 0.05
+  - difficulty: Hard
+    riskWeight: 1
+    severeStopProbability: 0.45
+    mildStopProbability: 0.65
+    decisionSeconds: 0.2
+    reactionMinSeconds: 0.1
+    reactionMaxSeconds: 0.2
+    keyMistakeProbability: 0.01
+    aimToleranceDegrees: 6
+    adaptSeconds: 0.4
+    readaptSeconds: 0.3
+    impairedLookaheadMultiplier: 0.75
+    impairedMistakeAddition: 0.05
+    impairedReactionTicks: 3
+    impairedDrivingReactionTicks: 3
+    decisionNoise: 0.02
+  personalities:
+  - personalityId: keeper
+    displayNameKey: ai.personality.keeper.name
+    slot0SkillId: slowtrap
+    slot1SkillId: acceleration
+    slot2SkillId: giant
+    slot0Weight: 1.3
+    slot1Weight: 1
+    slot2Weight: 0.8
+    patience: 0.25
+    tempoSeconds: 1.5
+    target: Behind
+    impairedTargetMultiplier: 1
+    handsShots: 0
+  - personalityId: hunter
+    displayNameKey: ai.personality.hunter.name
+    slot0SkillId: push_projectile_hands
+    slot1SkillId: acceleration
+    slot2SkillId: reverseturn
+    slot0Weight: 1.3
+    slot1Weight: 1
+    slot2Weight: 0.9
+    patience: 0.25
+    tempoSeconds: 1.2
+    target: Ahead
+    impairedTargetMultiplier: 1
+    handsShots: 4
+  - personalityId: brawler
+    displayNameKey: ai.personality.brawler.name
+    slot0SkillId: giant
+    slot1SkillId: push_projectile_hands
+    slot2SkillId: slowtrap
+    slot0Weight: 1.3
+    slot1Weight: 0.9
+    slot2Weight: 1
+    patience: 0.3
+    tempoSeconds: 1
+    target: PackCentre
+    impairedTargetMultiplier: 1
+    handsShots: 3
+  - personalityId: trickster
+    displayNameKey: ai.personality.trickster.name
+    slot0SkillId: reverseturn
+    slot1SkillId: blackcurtain
+    slot2SkillId: slowtrap
+    slot0Weight: 1.2
+    slot1Weight: 1.2
+    slot2Weight: 0.8
+    patience: 0.3
+    tempoSeconds: 2
+    target: EnteringCorner
+    impairedTargetMultiplier: 1
+    handsShots: 0
+  - personalityId: opportunist
+    displayNameKey: ai.personality.opportunist.name
+    slot0SkillId: acceleration
+    slot1SkillId: push_projectile_hands
+    slot2SkillId: blackcurtain
+    slot0Weight: 1.2
+    slot1Weight: 1
+    slot2Weight: 0.8
+    patience: 0.35
+    tempoSeconds: 1.5
+    target: Impaired
+    impairedTargetMultiplier: 1.6
+    handsShots: 2
+  personalitySituationBiases:
+  - personalityId: keeper
+    situation: Pursued
+    bias: 1.4
+  - personalityId: keeper
+    situation: LeadingAlone
+    bias: 0.5
+  - personalityId: keeper
+    situation: Chasing
+    bias: 0.9
+  - personalityId: keeper
+    situation: Pack
+    bias: 1
+  - personalityId: keeper
+    situation: TrailingAlone
+    bias: 1
+  - personalityId: hunter
+    situation: Pursued
+    bias: 0.8
+  - personalityId: hunter
+    situation: LeadingAlone
+    bias: 0.6
+  - personalityId: hunter
+    situation: Chasing
+    bias: 1.4
+  - personalityId: hunter
+    situation: Pack
+    bias: 1
+  - personalityId: hunter
+    situation: TrailingAlone
+    bias: 1.1
+  - personalityId: brawler
+    situation: Pursued
+    bias: 1
+  - personalityId: brawler
+    situation: LeadingAlone
+    bias: 0.4
+  - personalityId: brawler
+    situation: Chasing
+    bias: 0.9
+  - personalityId: brawler
+    situation: Pack
+    bias: 1.5
+  - personalityId: brawler
+    situation: TrailingAlone
+    bias: 0.4
+  - personalityId: trickster
+    situation: Pursued
+    bias: 1.1
+  - personalityId: trickster
+    situation: LeadingAlone
+    bias: 0.7
+  - personalityId: trickster
+    situation: Chasing
+    bias: 1.2
+  - personalityId: trickster
+    situation: Pack
+    bias: 1.2
+  - personalityId: trickster
+    situation: TrailingAlone
+    bias: 1
+  - personalityId: opportunist
+    situation: Pursued
+    bias: 1
+  - personalityId: opportunist
+    situation: LeadingAlone
+    bias: 0.8
+  - personalityId: opportunist
+    situation: Chasing
+    bias: 1.2
+  - personalityId: opportunist
+    situation: Pack
+    bias: 1
+  - personalityId: opportunist
+    situation: TrailingAlone
+    bias: 1
+  skillOpportunities:
+  - skillId: acceleration
+    backlashSeverity: 1
+    blockWhenGlobalVisible: 0
+    minStraightSeconds: 3
+    scoreBase: 0
+    scoreSlope: 0
+    maxValiditySeconds: 0
+    minValiditySeconds: 0
+    euclidMultiplier: 0
+    maxYawDegrees: 0
+    yawPenalty: 0
+    scorePerContact: 0
+    packBonus: 0
+  - skillId: slowtrap
+    backlashSeverity: 0.1
+    blockWhenGlobalVisible: 0
+    minStraightSeconds: 0
+    scoreBase: 0.3
+    scoreSlope: 0.7
+    maxValiditySeconds: 6
+    minValiditySeconds: 0
+    euclidMultiplier: 0
+    maxYawDegrees: 0
+    yawPenalty: 0
+    scorePerContact: 0
+    packBonus: 0
+  - skillId: giant
+    backlashSeverity: 0.5
+    blockWhenGlobalVisible: 0
+    minStraightSeconds: 0
+    scoreBase: 0
+    scoreSlope: 0
+    maxValiditySeconds: 0
+    minValiditySeconds: 2
+    euclidMultiplier: 1.5
+    maxYawDegrees: 0
+    yawPenalty: 0
+    scorePerContact: 0.5
+    packBonus: 0
+  - skillId: push_projectile_hands
+    backlashSeverity: 0.3
+    blockWhenGlobalVisible: 0
+    minStraightSeconds: 0
+    scoreBase: 0.35
+    scoreSlope: 0.65
+    maxValiditySeconds: 0
+    minValiditySeconds: 0
+    euclidMultiplier: 1.5
+    maxYawDegrees: 110
+    yawPenalty: 0.5
+    scorePerContact: 0
+    packBonus: 0
+  - skillId: reverseturn
+    backlashSeverity: 0.9
+    blockWhenGlobalVisible: 1
+    minStraightSeconds: 0
+    scoreBase: 0
+    scoreSlope: 0
+    maxValiditySeconds: 0
+    minValiditySeconds: 2
+    euclidMultiplier: 0
+    maxYawDegrees: 0
+    yawPenalty: 0
+    scorePerContact: 0
+    packBonus: 0
+  - skillId: blackcurtain
+    backlashSeverity: 0.4
+    blockWhenGlobalVisible: 1
+    minStraightSeconds: 0
+    scoreBase: 0
+    scoreSlope: 0
+    maxValiditySeconds: 0
+    minValiditySeconds: 2
+    euclidMultiplier: 0
+    maxYawDegrees: 0
+    yawPenalty: 0
+    scorePerContact: 0
+    packBonus: 0.25
+  skillTunings:
+  - profileId: default
+    snapshotSeconds: 0.15
+    situationHysteresisSeconds: 1.5
+    nearDistance: 60
+    farDistance: 300
+    trapDistance: 65
+    contactDistance: 35
+    handsDistance: 300
+    laneWidth: 14
+    straightCurvature: 0.0035
+    cornerCurvature: 0.006
+    keyMinSeconds: 0.2
+    keyMaxSeconds: 0.3
+    aimHorizonSeconds: 2
+    speedDropFraction: 0.2
+    speedDropImpairSeconds: 0.5
+    speedDropMinSpeed: 5
+    straightLookaheadSeconds: 10
+    cornerLookaheadSeconds: 2
+    cornerValidityBase: 2
+    cornerValidityScale: 2
+    targetBonusImpaired: 2
+    targetBonusAhead: 1
+    targetBonusBehind: 1
+    targetBonusPackCentrePerNeighbour: 0.25
+    packMinNeighbours: 2
+    severeSeverityThreshold: 0.5
+    maxWindowSeconds: 6
+    minRelativeSpeed: 0.1
+    maxElapsedSeconds: 1
+    maxComboRetries: 1
+  rosters:
+  - slotIndex: 0
+    personalityId: keeper
+    displayNameOverrideKey: 
+  - slotIndex: 1
+    personalityId: hunter
+    displayNameOverrideKey: 
+  - slotIndex: 2
+    personalityId: brawler
+    displayNameOverrideKey: 
+  - slotIndex: 3
+    personalityId: trickster
+    displayNameOverrideKey: 
+  - slotIndex: 4
+    personalityId: opportunist
+    displayNameOverrideKey: 
+  modeRules:
+  - modeId: Online
+    autoStartRoom: 0
+    requiresReady: 1
+    selectionTimeoutEnabled: 1
+    skipMapVote: 0
+    voteOnResults: 1
+    resultDecisionTimeoutEnabled: 1
+    returnTarget: Room
+    endWhenAllRacersFinished: 0
+    endOnHumanFinish: 0
+    allowSkipSpectating: 0
+    allowQuitDialog: 0
+    allowPause: 0
+    showRacerNameTags: 0
+    showOpponentsOnMinimap: 0
+    defaultPlayerNameKey: 
+    pregameCountdownSeconds: 18
+    selectionStageSeconds: 60
+    postFirstFinishCountdownSeconds: 15
+    resultDecisionSeconds: 60
+    aiCount: 0
+    defaultDifficulty: 
+  - modeId: Solo
+    autoStartRoom: 1
+    requiresReady: 0
+    selectionTimeoutEnabled: 0
+    skipMapVote: 1
+    voteOnResults: 0
+    resultDecisionTimeoutEnabled: 0
+    returnTarget: MainMenuHome
+    endWhenAllRacersFinished: 1
+    endOnHumanFinish: 0
+    allowSkipSpectating: 0
+    allowQuitDialog: 1
+    allowPause: 0
+    showRacerNameTags: 0
+    showOpponentsOnMinimap: 0
+    defaultPlayerNameKey: match.default_player_name
+    pregameCountdownSeconds: 18
+    selectionStageSeconds: 60
+    postFirstFinishCountdownSeconds: 15
+    resultDecisionSeconds: 60
+    aiCount: 5
+    defaultDifficulty: Normal
+  - modeId: Practice
+    autoStartRoom: 1
+    requiresReady: 0
+    selectionTimeoutEnabled: 0
+    skipMapVote: 1
+    voteOnResults: 0
+    resultDecisionTimeoutEnabled: 0
+    returnTarget: MainMenuHome
+    endWhenAllRacersFinished: 1
+    endOnHumanFinish: 1
+    allowSkipSpectating: 0
+    allowQuitDialog: 1
+    allowPause: 0
+    showRacerNameTags: 0
+    showOpponentsOnMinimap: 0
+    defaultPlayerNameKey: match.default_player_name
+    pregameCountdownSeconds: 18
+    selectionStageSeconds: 60
+    postFirstFinishCountdownSeconds: 15
+    resultDecisionSeconds: 60
+    aiCount: 0
+    defaultDifficulty: Normal
+  tracks:
+  - trackId: racemap
+    sceneName: RaceMap
+    lapsToFinish: 3
+    crossCooldownSeconds: 0.5
+    maxProgressJumpWithoutCheckpoint01: 0.5
+    minForwardDot: 0
+    armDistanceMeters: 25
+    useSequentialCheckpoints: 1
+    autoAdvanceSplineCheckpoints: 0
+    requiredCheckpointCount: 3
+    fallbackCheckpointProgresses01:
+    - 0.25
+    - 0.5
+    - 0.75
+    startPointTag: StartingPoint
+    resultOverflowOffset: {x: 2.5, y: 0, z: 0}
+    missingPlayerOffset: {x: 0, y: 0, z: -3}
+    minimapWorldMinX: -653
+    minimapWorldMaxX: 469
+    minimapWorldMinZ: -1038
+    minimapWorldMaxZ: 247
+    trackSplineSamples: 200
+  trackWrongWays:
+  - trackId: racemap
+    wrongWayWrapStartThreshold: 0.2
+    wrongWayWrapEndThreshold: 0.8
+    wrongWayForwardDotThreshold: 0
+    wrongWayRecoveryLapProgressThreshold: 0.05
+    wrongWayForceRespawnLapProgressThreshold: 0.85
+    wrongWayRespawnLapProgress: 0.01
+    wrongWayLap0RespawnLapProgress: 0.99
+    startGraceSeconds: 0.35
+  trackSpawns:
+  - trackId: racemap
+    order: 0
+    position: {x: -346.81, y: 3.3, z: -68.83}
+    rotationY: -109.701
+  - trackId: racemap
+    order: 1
+    position: {x: -327.23, y: 3.3, z: -72.67}
+    rotationY: -108.437
+  - trackId: racemap
+    order: 2
+    position: {x: -308.77, y: 3.3, z: -56.99}
+    rotationY: -113.06
+  - trackId: racemap
+    order: 3
+    position: {x: -335.51245, y: 3.3, z: -64.78464}
+    rotationY: -109.701
+  - trackId: racemap
+    order: 4
+    position: {x: -315.93246, y: 3.3, z: -68.62462}
+    rotationY: -108.437
+  - trackId: racemap
+    order: 5
+    position: {x: -297.4724, y: 3.3, z: -52.944626}
+    rotationY: -113.06
+  trackCheckpoints:
+  - trackId: racemap
+    checkpointId: 1
+    position: {x: 107.9, y: 13.05, z: -540.1}
+    rotationY: 21.983
+    size: {x: 1, y: 1, z: 1}
+  - trackId: racemap
+    checkpointId: 2
+    position: {x: -265.1, y: 13.05, z: -475.1}
+    rotationY: 21.983
+    size: {x: 1, y: 1, z: 1}
+  - trackId: racemap
+    checkpointId: 3
+    position: {x: -297.4, y: 13.05, z: -52.9}
+    rotationY: -20.009
+    size: {x: 1, y: 1, z: 1}
+  trackResultAnchors:
+  - trackId: racemap
+    rank: 1
+    position: {x: 1493.2, y: 4.4, z: -683.8}
+    rotationY: 180
+  - trackId: racemap
+    rank: 2
+    position: {x: 1494.4, y: 4.4, z: -774.2}
+    rotationY: 2.08
+  - trackId: racemap
+    rank: 3
+    position: {x: 1539.8, y: 4.4, z: -775.4}
+    rotationY: -17.806
+  - trackId: racemap
+    rank: 4
+    position: {x: 1451.2, y: 4.4, z: -775.4}
+    rotationY: 28.34
+  - trackId: racemap
+    rank: 5
+    position: {x: 1462.3, y: 4.4, z: -799.1}
+    rotationY: 16.363
+  - trackId: racemap
+    rank: 6
+    position: {x: 1519.2, y: 4.4, z: -803.9}
+    rotationY: -16.928
+  lobbies:
+  - profileId: default
+    maxPlayers: 6
+    defaultLobbyNameKey: lobby.default_room_name
+    defaultVisibility: Public
+    maxSearchResults: 20
+    clientConnectTimeoutSeconds: 30
+    hostStartTimeoutSeconds: 20
+    maxPlayerNameLength: 32
+  selectionStages:
+  - stageKey: skill_loadout
+    displayNameKey: selection.stage.skill_loadout
+    selectionMode: Multi
+  selectionOptions: []
+  intros:
+  - profileId: default
+    fallbackIntroDurationSeconds: 3
+    introSpeedMetersPerSecond: 60
+    handoffLeadSeconds: 0.5
+    introLeadInSeconds: 1
+    randomizeSlots: 1
+    deterministicShuffleSeed: 20260405
+  localizedTexts:
+  - key: skill.acceleration.name
+    zh: "\u795E\u8DB3\u901A"
+  - key: skill.acceleration.desc
+    zh: "\u52A0\u901F\u81EA\u8EAB\u4E00\u6BB5\u65F6\u95F4"
+  - key: skill.slowtrap.name
+    zh: "\u7985\u5B9A\u7F13\u6D41"
+  - key: skill.slowtrap.desc
+    zh: "\u51CF\u901F\u533A\u57DF"
+  - key: skill.blackcurtain.name
+    zh: "\u4E00\u5FF5\u5149\u660E"
+  - key: skill.blackcurtain.desc
+    zh: "\u89E6\u53D1\u9ED1\u5E55\u6548\u679C"
+  - key: skill.giant.name
+    zh: "\u6CD5\u76F8\u91D1\u8EAB"
+  - key: skill.giant.desc
+    zh: "\u653E\u5927\u81EA\u8EAB\u5F62\u6001"
+  - key: skill.push_projectile_hands.name
+    zh: "\u5982\u6765\u795E\u638C"
+  - key: skill.push_projectile_hands.desc
+    zh: "\u53D1\u5C04\u5982\u6765\u795E\u638C"
+  - key: skill.reverseturn.name
+    zh: "\u9006\u59FB\u7F18"
+  - key: skill.reverseturn.desc
+    zh: "\u5E72\u6270\u8F6C\u5411\u8F93\u5165"
+  - key: skill.acceleration_anti.name
+    zh: "\u795E\u8DB3\u901A\uFF08\u566C\uFF09"
+  - key: skill.acceleration_anti.desc
+    zh: "\u795E\u8DB3\u901A\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.slowtrap_anti.name
+    zh: "\u7985\u5B9A\u7F13\u6D41\uFF08\u566C\uFF09"
+  - key: skill.slowtrap_anti.desc
+    zh: "\u7985\u5B9A\u7F13\u6D41\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.blackcurtain_anti.name
+    zh: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
+  - key: skill.blackcurtain_anti.desc
+    zh: "\u4E00\u5FF5\u5149\u660E\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.giant_anti.name
+    zh: "\u6CD5\u76F8\u91D1\u8EAB\uFF08\u566C\uFF09"
+  - key: skill.giant_anti.desc
+    zh: "\u6CD5\u76F8\u91D1\u8EAB\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.push_projectile_hands_anti.name
+    zh: "\u5982\u6765\u795E\u638C\uFF08\u566C\uFF09"
+  - key: skill.push_projectile_hands_anti.desc
+    zh: "\u5982\u6765\u795E\u638C\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.reverseturn_anti.name
+    zh: "\u9006\u59FB\u7F18\uFF08\u566C\uFF09"
+  - key: skill.reverseturn_anti.desc
+    zh: "\u9006\u59FB\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: ai.personality.keeper.name
+    zh: "P1 \u5B88\u4F4D\u578B"
+  - key: ai.personality.hunter.name
+    zh: "P2 \u8FFD\u730E\u578B"
+  - key: ai.personality.brawler.name
+    zh: "P3 \u8F66\u7FA4\u578B"
+  - key: ai.personality.trickster.name
+    zh: "P4 \u5E72\u6270\u578B"
+  - key: ai.personality.opportunist.name
+    zh: "P5 \u673A\u4F1A\u578B"
+  - key: match.default_player_name
+    zh: "\u73A9\u5BB6"
+  - key: lobby.default_room_name
+    zh: My Room
+  - key: selection.stage.map
+    zh: Map Selection
+  - key: selection.stage.skill_loadout
+    zh: Skill Loadout Selection
+  - key: selection.stage.skin
+    zh: Skin Selection
+  - key: selection.option.map_a.name
+    zh: Map A
+  - key: selection.option.map_a.desc
+    zh: Default placeholder map A.
+  - key: selection.option.map_b.name
+    zh: Map B
+  - key: selection.option.map_b.desc
+    zh: Default placeholder map B.
+  - key: selection.option.map_c.name
+    zh: Map C
+  - key: selection.option.map_c.desc
+    zh: Default placeholder map C.
+  - key: selection.option.skin_a.name
+    zh: Skin A
+  - key: selection.option.skin_a.desc
+    zh: Default placeholder skin A.
+  - key: selection.option.skin_b.name
+    zh: Skin B
+  - key: selection.option.skin_b.desc
+    zh: Default placeholder skin B.
+  - key: selection.option.skin_c.name
+    zh: Skin C
+  - key: selection.option.skin_c.desc
+    zh: Default placeholder skin C.
+  - key: racer.ai_fallback_prefix
+    zh: 'AI '
+  - key: racer.human_fallback
+    zh: Player
+  - key: racer.online_human_prefix
+    zh: 'Player '
+  - key: menu.option.max_players.4
+    zh: 4
+  - key: menu.option.max_players.5
+    zh: 5
+  - key: menu.option.max_players.6
+    zh: 6
+  - key: menu.option.visibility.public
+    zh: Public
+  - key: menu.option.visibility.friendsonly
+    zh: FriendsOnly
+  - key: menu.option.visibility.private
+    zh: Private
+  - key: ui.raceridentity.ai
+    zh: 'AI '
+  - key: "ui.sessionlauncher.\u5355\u673A\u8BBE\u7F6E\u7F3A\u5931"
+    zh: "\u5355\u673A\u8BBE\u7F6E\u7F3A\u5931\u3002"
+  - key: "ui.sessionlauncher.\u4E3B\u673A\u5730\u5740\u4E3A\u7A7A"
+    zh: "\u4E3B\u673A\u5730\u5740\u4E3A\u7A7A\u3002"
+  - key: "ui.sessionlauncher.\u65E0\u6CD5\u8FDE\u63A5\u4E3B\u673A"
+    zh: "\u65E0\u6CD5\u8FDE\u63A5\u4E3B\u673A\u3002"
+  - key: "ui.sessionlauncher.\u65E0\u6CD5\u542F\u52A8\u672C\u5730\u670D\u52A1\u5668"
+    zh: "\u65E0\u6CD5\u542F\u52A8\u672C\u5730\u670D\u52A1\u5668\u3002"
+  - key: "ui.sessionlauncher.\u65E0\u6CD5\u8FDE\u63A5\u672C\u5730\u670D\u52A1\u5668"
+    zh: "\u65E0\u6CD5\u8FDE\u63A5\u672C\u5730\u670D\u52A1\u5668\u3002"
+  - key: "ui.sessionlauncher.\u4F20\u8F93\u5C42\u914D\u7F6E\u65E0\u6548_\u9700\u8981_fishyfacepunch_yak_multipass"
+    zh: "\u4F20\u8F93\u5C42\u914D\u7F6E\u65E0\u6548\uFF1A\u9700\u8981 FishyFacepunch
+      + Yak Multipass\u3002"
+  - key: "ui.sessionlauncher.\u4F20\u8F93\u5C42\u987A\u5E8F\u65E0\u6548"
+    zh: "\u4F20\u8F93\u5C42\u987A\u5E8F\u65E0\u6548\u3002"
+  - key: "ui.sessionlauncher.\u4F1A\u8BDD\u4ECD\u5728\u8FD0\u884C\u6216\u5173\u95ED\u4E2D_\u8BF7\u7A0D\u540E\u91CD\u8BD5"
+    zh: "\u4F1A\u8BDD\u4ECD\u5728\u8FD0\u884C\u6216\u5173\u95ED\u4E2D\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002"
+  - key: "ui.sessionlauncher.\u8FDE\u63A5\u8D85\u65F6_\u8BF7\u91CD\u8BD5"
+    zh: "\u8FDE\u63A5\u8D85\u65F6\uFF0C\u8BF7\u91CD\u8BD5\u3002"
+  - key: "ui.quitconfirmdialog.\u9000\u51FA\u5230\u4E3B\u83DC\u5355"
+    zh: "\u9000\u51FA\u5230\u4E3B\u83DC\u5355\uFF1F"
+  - key: "ui.quitconfirmdialog.\u672C\u5C40\u8FDB\u5EA6\u4E0D\u4F1A\u4FDD\u7559_\u6BD4\u8D5B\u4ECD\u5728\u8FDB\u884C"
+    zh: "\u672C\u5C40\u8FDB\u5EA6\u4E0D\u4F1A\u4FDD\u7559\u3002\u6BD4\u8D5B\u4ECD\u5728\u8FDB\u884C\u3002"
+  - key: "ui.quitconfirmdialog.\u7EE7\u7EED\u6BD4\u8D5B"
+    zh: "\u7EE7\u7EED\u6BD4\u8D5B"
+  - key: "ui.quitconfirmdialog.\u9000\u51FA\u5230\u4E3B\u83DC\u5355_2"
+    zh: "\u9000\u51FA\u5230\u4E3B\u83DC\u5355"
+  - key: "ui.quitconfirmdialog.\u6682\u65F6\u65E0\u6CD5\u9000\u51FA_\u8BF7\u53D6\u6D88\u540E\u91CD\u8BD5"
+    zh: "\u6682\u65F6\u65E0\u6CD5\u9000\u51FA\uFF0C\u8BF7\u53D6\u6D88\u540E\u91CD\u8BD5\u3002"
+  - key: "ui.quitconfirmdialog.\u6B63\u5728\u8FD4\u56DE\u4E3B\u83DC\u5355"
+    zh: "\u6B63\u5728\u8FD4\u56DE\u4E3B\u83DC\u5355\u2026"
+  - key: "ui.soloresultsview.practice_\u5B8C\u6210"
+    zh: "Practice \u5B8C\u6210"
+  - key: "ui.soloresultsview.\u518D\u6765\u4E00\u5C40"
+    zh: "\u518D\u6765\u4E00\u5C40"
+  - key: "ui.soloresultsview.\u8FD4\u56DE"
+    zh: "\u8FD4\u56DE"
+  - key: "ui.soloresultsview.\u6682\u65F6\u65E0\u6CD5\u518D\u6765\u4E00\u5C40_\u53EF\u4EE5\u8FD4\u56DE\u4E3B\u83DC\u5355"
+    zh: "\u6682\u65F6\u65E0\u6CD5\u518D\u6765\u4E00\u5C40\uFF0C\u53EF\u4EE5\u8FD4\u56DE\u4E3B\u83DC\u5355\u3002"
+  - key: "ui.soloresultsview.\u6B63\u5728\u8FDB\u5165\u9009\u62E9"
+    zh: "\u6B63\u5728\u8FDB\u5165\u9009\u62E9\u2026"
+  - key: "ui.soloresultsview.\u6BD4\u8D5B\u7ED3\u679C"
+    zh: "\u6BD4\u8D5B\u7ED3\u679C"
+  - key: "ui.soloresultsview.\u8BA1\u65F6\u6570\u636E\u6682\u4E0D\u53EF\u7528"
+    zh: "\u8BA1\u65F6\u6570\u636E\u6682\u4E0D\u53EF\u7528"
+  - key: "ui.soloresultsview.\u603B\u7528\u65F6"
+    zh: "\u603B\u7528\u65F6  "
+  - key: "ui.soloresultsview.\u5B8C\u6574\u5708\u901F\u6570\u636E\u4E0D\u53EF\u7528"
+    zh: "\u5B8C\u6574\u5708\u901F\u6570\u636E\u4E0D\u53EF\u7528"
+  - key: "ui.soloresultsview.\u7B2C_i_1_\u5708_formattime_result_lapseconds_i"
+    zh: "\u7B2C {i + 1} \u5708  {FormatTime(result.LapSeconds[i])}"
+  - key: "ui.soloresultsview.\u5708\u65F6"
+    zh: "     \u5708\u65F6  "
+  - key: "ui.solosetuppanel.\u7B80\u5355"
+    zh: "\u7B80\u5355"
+  - key: "ui.solosetuppanel.\u666E\u901A"
+    zh: "\u666E\u901A"
+  - key: "ui.solosetuppanel.\u56F0\u96BE"
+    zh: "\u56F0\u96BE"
+  - key: "ui.solosetuppanel.\u5355\u4EBA\u6E38\u620F"
+    zh: "\u5355\u4EBA\u6E38\u620F"
+  - key: "ui.solosetuppanel.\u516D\u4EBA\u5355\u4EBA\u8D5B_\u73A9\u5BB6_5_ai"
+    zh: "\u516D\u4EBA\u5355\u4EBA\u8D5B \xB7 \u73A9\u5BB6 + 5 AI"
+  - key: "ui.solosetuppanel.\u4E94\u79CD\u6280\u80FD\u4EBA\u683C_\u56FA\u5B9A\u914D\u88C5"
+    zh: "\u4E94\u79CD\u6280\u80FD\u4EBA\u683C \xB7 \u56FA\u5B9A\u914D\u88C5"
+  - key: "ui.solosetuppanel.\u96BE\u5EA6"
+    zh: "\u96BE\u5EA6"
+  - key: "ui.solosetuppanel.\u5F00\u59CB\u5355\u4EBA\u8D5B"
+    zh: "\u5F00\u59CB\u5355\u4EBA\u8D5B"
+  - key: "ui.solosetuppanel.\u521D\u59CB\u5316\u5C1A\u672A\u5B8C\u6210_\u8BF7\u7A0D\u540E\u91CD\u8BD5"
+    zh: "\u521D\u59CB\u5316\u5C1A\u672A\u5B8C\u6210\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002"
+  - key: "ui.solosetuppanel.\u542F\u52A8\u5931\u8D25_\u8BF7\u91CD\u8BD5"
+    zh: "\u542F\u52A8\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u3002"
+  - key: "ui.solouibootstrap.\u6B63\u5728\u521D\u59CB\u5316"
+    zh: "\u6B63\u5728\u521D\u59CB\u5316\u2026"
+  - key: ui.leaderboardmanager.empty
+    zh: (empty)
+  - key: ui.leaderboardmanager.finished_entry_finishorder
+    zh: ' - Finished #{entry.FinishOrder}'
+  - key: ui.leaderboardmanager.lap
+    zh: ' - Lap '
+  - key: ui.steamlobbymanager.my_room
+    zh: My Room
+  - key: ui.steamlobbymanager.steam_is_not_initialized
+    zh: Steam is not initialized.
+  - key: ui.steamlobbymanager.already_in_a_lobby
+    zh: Already in a lobby.
+  - key: ui.steamlobbymanager.leaving_currentlobbyname
+    zh: Leaving \"{CurrentLobbyName}\"...
+  - key: ui.steamlobbymanager.left_lobby
+    zh: Left lobby.
+  - key: ui.steamlobbymanager.creating_lobby_name
+    zh: Creating lobby \"{name}\"...
+  - key: ui.steamlobbymanager.steammatchmaking_createlobbyasync_return
+    zh: SteamMatchmaking.CreateLobbyAsync returned null (Steam error).
+  - key: ui.steamlobbymanager.lobby_created_name
+    zh: 'Lobby created: {name}'
+  - key: ui.steamlobbymanager.starting_host
+    zh: Starting host...
+  - key: ui.steamlobbymanager.gamenetworkmanager_not_found
+    zh: GameNetworkManager not found.
+  - key: ui.steamlobbymanager.joining_lobby_steamid_value
+    zh: Joining lobby {steamId.Value}...
+  - key: ui.steamlobbymanager.joinlobbyasync_steamid_value_returned_nu
+    zh: "JoinLobbyAsync({steamId.Value}) returned null \u2013 lobby may be full or
+      gone."
+  - key: ui.steamlobbymanager.lobby_steamid_value_is_invalid_or_missin
+    zh: Lobby {steamId.Value} is invalid or missing host metadata.
+  - key: ui.steamlobbymanager.prediction_protocol_mismatch_host_remote
+    zh: 'Prediction protocol mismatch: host={remoteLabel}, you={PredictionProtocol.Version}.
+      Both sides need a build with the same prediction protocol version.'
+  - key: ui.steamlobbymanager.joined_lobby_lobbyname
+    zh: Joined lobby \"{lobbyName}\".
+  - key: ui.steamlobbymanager.connecting_to_host_hoststeamid
+    zh: Connecting to host {hostSteamId}...
+  - key: ui.steamlobbymanager.refreshing_lobby_list
+    zh: Refreshing lobby list...
+  - key: ui.steamlobbymanager.lobby_list_ready_list_count_found
+    zh: 'Lobby list ready: {list.Count} found.'
+  - key: ui.steamlobbymanager.host_has_left_the_room
+    zh: Host has left the room.
+  - key: ui.steamlobbymanager.waiting_in_menu
+    zh: Waiting in menu.
+  - key: ui.steamlobbymanager.host_connection_started
+    zh: Host connection started.
+  - key: ui.steamlobbymanager.connected_to_host
+    zh: Connected to host.
+  - key: ui.steamlobbymanager.failed_to_connect_to_host
+    zh: Failed to connect to host.
+  - key: ui.steamlobbymanager.host_server_started
+    zh: Host server started.
+  - key: ui.roomroster.none
+    zh: (none)
+  - key: ui.roomroster.player_playername_rolelabel_readylabel
+    zh: '{player.PlayerName} [{roleLabel}] [{readyLabel}]'
+  - key: ui.propertiesselectionmanager.duplicate_propertiesselectionmanager_det
+    zh: Duplicate PropertiesSelectionManager detected; destroying duplicate instance.
+  - key: ui.propertiesselectionmanager.skillloadoutstagekey_slotindex
+    zh: '{SkillLoadoutStageKey}_{slotIndex}'
+  - key: ui.propertiesselectionmanager.selection_submitted_player_caller_client
+    zh: 'Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}'
+  - key: ui.propertiesselectionmanager.all_required_selections_submitted_for_st
+    zh: All required selections submitted for stage '{propertyKey}'. Advancing immediately.
+  - key: ui.propertiesselectionmanager.stage_started_stagekey
+    zh: 'Stage started: ''{stageKey}'''
+  - key: ui.propertiesselectionmanager.resolved_match_scene_is_empty_or_scenema
+    zh: Resolved match scene is empty or SceneManager missing.
+  - key: ui.propertiesselectionmanager.loading_match_scene_resolvedmatchscenena
+    zh: 'Loading match scene: {_resolvedMatchSceneName}'
+  - key: ui.propertiesselectionmanager.validated_skill_loadout_submission_for_p
+    zh: Validated skill loadout submission for player={playerId}
+  - key: ui.propertiesselectionmanager.skill_loadout_selection
+    zh: Skill Loadout Selection
+  - key: ui.propertiesselectionmanager.map_selection
+    zh: Map Selection
+  - key: ui.propertiesselectionmanager.map_a
+    zh: Map A
+  - key: ui.propertiesselectionmanager.default_placeholder_map_a
+    zh: Default placeholder map A.
+  - key: ui.propertiesselectionmanager.map_b
+    zh: Map B
+  - key: ui.propertiesselectionmanager.default_placeholder_map_b
+    zh: Default placeholder map B.
+  - key: ui.propertiesselectionmanager.map_c
+    zh: Map C
+  - key: ui.propertiesselectionmanager.default_placeholder_map_c
+    zh: Default placeholder map C.
+  - key: ui.propertiesselectionmanager.skin_selection
+    zh: Skin Selection
+  - key: ui.propertiesselectionmanager.skin_a
+    zh: Skin A
+  - key: ui.propertiesselectionmanager.default_placeholder_skin_a
+    zh: Default placeholder skin A.
+  - key: ui.propertiesselectionmanager.skin_b
+    zh: Skin B
+  - key: ui.propertiesselectionmanager.default_placeholder_skin_b
+    zh: Default placeholder skin B.
+  - key: ui.propertiesselectionmanager.skin_c
+    zh: Skin C
+  - key: ui.propertiesselectionmanager.default_placeholder_skin_c
+    zh: Default placeholder skin C.
+  - key: ui.resultdecisionmanager.choice_caller_clientid_choice
+    zh: choice:{caller.ClientId}:{choice}
+  - key: ui.resultdecisionmanager.decision_playername_choicelabel
+    zh: '{decision.PlayerName}: {choiceLabel}'
+  - key: ui.resultdecisionmanager.disconnect_conn_clientid
+    zh: disconnect:{conn.ClientId}
+  - key: ui.leaderboardtmpui.race_status_waiting_for_players
+    zh: 'Race Status: Waiting for players...'
+  - key: ui.leaderboardtmpui.race_status_starting_in_roomstatemanager
+    zh: 'Race Status: Starting in {RoomStateManager.Instance.RaceCountdownSecondsRemaining}...'
+  - key: ui.leaderboardtmpui.race_status_result_area
+    zh: 'Race Status: Result Area'
+  - key: ui.leaderboardtmpui.race_status_started
+    zh: 'Race Status: Started'
+  - key: ui.leaderboardtmpui.your_progress_local_player_not_found
+    zh: 'Your Progress: (local player not found)'
+  - key: ui.leaderboardtmpui.your_obsession_localobsession_current_0_
+    zh: 'Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0}'
+  - key: ui.leaderboardtmpui.backfire_chance_localobsession_currentba
+    zh: 'Backfire Chance: {_localObsession.CurrentBackfireProbabilityPercent:0.0}%'
+  - key: ui.leaderboardtmpui.gap_to_leader_localobsession_completiong
+    zh: 'Gap To Leader: {_localObsession.CompletionGapToLeaderPercent:0.0}%'
+  - key: ui.leaderboardtmpui.your_obsession_local_obsession_not_found
+    zh: 'Your Obsession: (local obsession not found)'
+  - key: ui.leaderboardtmpui.backfire_chance_local_obsession_not_foun
+    zh: 'Backfire Chance: (local obsession not found)'
+  - key: ui.leaderboardtmpui.gap_to_leader_local_obsession_not_found
+    zh: 'Gap To Leader: (local obsession not found)'
+  - key: ui.leaderboardtmpui.no_data
+    zh: (no data)
+  - key: ui.leaderboardtmpui.i_1_entry_displayname_lap_entry_lap_entr
+    zh: '{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}'
+  - key: ui.resultdecisionui.countdown
+    zh: 'Countdown: --'
+  - key: ui.resultdecisionui.waiting_for_resultdecisionmanager
+    zh: Waiting for ResultDecisionManager...
+  - key: ui.resultdecisionui.next_decision_in_decisionmanager_remaini
+    zh: 'Next Decision In: {_decisionManager.RemainingSeconds}s'
+  - key: ui.resultdecisionui.all_players_agreed_starting_a_new_game
+    zh: All players agreed. Starting a new game...
+  - key: ui.resultdecisionui.returning_everyone_to_the_room
+    zh: Returning everyone to the room...
+  - key: ui.resultdecisionui.choose_whether_to_start_a_new_game_or_re
+    zh: Choose whether to start a new game or return to the room.
+  - key: ui.resultdecisionui.your_choice_localdecision_choice
+    zh: 'Your Choice: {localDecision.Choice}'
+  - key: ui.resultdecisionui.waiting_for_your_decision_state
+    zh: Waiting for your decision state...
+  - key: ui.createroomui.steamlobbymanager_not_found
+    zh: SteamLobbyManager not found.
+  - key: ui.createroomui.creating_room
+    zh: Creating room...
+  - key: ui.createroomui.room_created_lobby_id_value
+    zh: 'Room created: {lobby.Id.Value}'
+  - key: ui.createroomui.create_failed_reason
+    zh: 'Create failed: {reason}'
+  - key: ui.createroomui.friends_only
+    zh: Friends Only
+  - key: ui.lobbybrowserlistitemui.unnamed_room
+    zh: Unnamed Room
+  - key: ui.lobbybrowserlistitemui.data_currentplayers_data_maxplayers
+    zh: '{data.CurrentPlayers} / {data.MaxPlayers}'
+  - key: ui.lobbybrowserlistitemui.host_data_hoststeamid
+    zh: 'Host: {data.HostSteamId}'
+  - key: ui.lobbybrowserlistitemui.lobby_id_data_lobbyid
+    zh: 'Lobby ID: {data.LobbyId}'
+  - key: ui.lobbybrowserui.no_rooms_loaded
+    zh: No rooms loaded.
+  - key: ui.lobbybrowserui.refreshing_rooms
+    zh: Refreshing rooms...
+  - key: ui.lobbybrowserui.joining_room_lobbyid
+    zh: Joining room {lobbyId}...
+  - key: ui.lobbybrowserui.no_joinable_rooms_found
+    zh: No joinable rooms found.
+  - key: ui.lobbybrowserui.found_lobbies_count_rooms
+    zh: Found {lobbies.Count} rooms.
+  - key: ui.lobbybrowserui.join_failed_reason
+    zh: 'Join failed: {reason}'
+  - key: ui.propertiesselectorui.properties_selector
+    zh: Properties Selector
+  - key: ui.propertiesselectorui.waiting_for_propertiesselectionmanager
+    zh: Waiting for PropertiesSelectionManager...
+  - key: ui.propertiesselectorui.loading_match
+    zh: Loading Match
+  - key: ui.propertiesselectorui.loading_selectionmanager_resolvedmatchsc
+    zh: Loading {_selectionManager.ResolvedMatchSceneName}...
+  - key: ui.propertiesselectorui.choose_skillloadout_slotcount_skills
+    zh: Choose {SkillLoadout.SlotCount} skills
+  - key: ui.propertiesselectorui.step_selectionmanager_currentstageindex_
+    zh: 'Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}:
+      {stageLabel}'
+  - key: ui.propertiesselectorui.time_remaining_selectionmanager_stagecou
+    zh: 'Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s'
+  - key: ui.propertiesselectorui.syncing_stage_data
+    zh: Syncing stage data
+  - key: ui.propertiesselectorui.waiting_for_host_stage_configuration
+    zh: Waiting for host stage configuration...
+  - key: ui.propertiesselectorui.all_stages_complete
+    zh: All stages complete
+  - key: ui.propertiesselectorui.waiting_to_enter_match
+    zh: Waiting to enter match...
+  - key: ui.propertiesselectorui.resolved_map_mapoptionid
+    zh: 'Resolved Map: {mapOptionId}'
+  - key: ui.propertiesselectorui.resolved_map_pending
+    zh: 'Resolved Map: pending'
+  - key: ui.propertiesselectorui.everyone_is_voting_on_the_current_stage_
+    zh: Everyone is voting on the current stage option.
+  - key: ui.propertiesselectorui.only_the_host_can_choose_during_this_sta
+    zh: Only the host can choose during this stage.
+  - key: ui.propertiesselectorui.choose_all_desired_options_before_the_ti
+    zh: Choose all desired options before the timer ends.
+  - key: ui.propertiesselectorui.choose_all_desired_options
+    zh: Choose all desired options.
+  - key: ui.propertiesselectorui.each_player_chooses_one_option_before_th
+    zh: Each player chooses one option before the timer ends.
+  - key: ui.propertiesselectorui.each_player_chooses_one_option
+    zh: Each player chooses one option.
+  - key: ui.propertiesselectorui.no_active_stage
+    zh: No active stage.
+  - key: ui.propertiesselectorui.filledcount_skillloadout_slotcount_strin
+    zh: '{filledCount}/{SkillLoadout.SlotCount} [{string.Join('
+  - key: ui.propertiesselectorui.names
+    zh: ', names)}]'
+  - key: ui.propertiesselectorui.participant_playername_selectedoptionid
+    zh: '{participant.PlayerName}: {selectedOptionId}'
+  - key: ui.propertiesselectorui.n
+    zh: \n
+  - key: ui.propertiesselectorui.no_players_connected
+    zh: No players connected.
+  - key: ui.propertycarouselview.focused_none
+    zh: 'Focused: None'
+  - key: ui.propertycarouselview.confirmed_none
+    zh: 'Confirmed: None'
+  - key: ui.propertycarouselview.confirmed_lastsubmittedoptionid
+    zh: 'Confirmed: {_lastSubmittedOptionId}'
+  - key: ui.propertycarouselview.focused_item_optionid_n_confirmedsuffix
+    zh: 'Focused: {item.OptionId}\n{confirmedSuffix}'
+  - key: ui.propertycarouselview.votes_count
+    zh: 'Votes: {count}'
+  - key: ui.propertycarouselview.selected_count
+    zh: 'Selected: {count}'
+  - key: ui.propertygroupview.selected_getoptiondisplayname_localselec
+    zh: 'Selected: {GetOptionDisplayName(localSelectedOptionId)}'
+  - key: ui.propertygroupview.selected_none
+    zh: 'Selected: None'
+  - key: ui.propertygroupview.mode_vote
+    zh: 'Mode: Vote'
+  - key: ui.propertygroupview.mode_host_only
+    zh: 'Mode: Host Only'
+  - key: ui.propertygroupview.mode_multi_select
+    zh: 'Mode: Multi Select'
+  - key: ui.propertygroupview.mode_single_select
+    zh: 'Mode: Single Select'
+  - key: ui.propertygroupview.votes_selectedcount
+    zh: 'Votes: {selectedCount}'
+  - key: ui.propertygroupview.players_selectedcount
+    zh: 'Players: {selectedCount}'
+  - key: ui.roomplayerentryui.unknown_player
+    zh: Unknown Player
+  - key: ui.roomui.opening_properties_selector
+    zh: Opening Properties Selector...
+  - key: ui.roomui.room_lobby_id_value
+    zh: Room #{lobby.Id.Value}
+  - key: ui.roomui.waiting_for_room_state_manager
+    zh: Waiting for room state manager...
+  - key: ui.roomui.host_can_start_the_game
+    zh: Host can start the game.
+  - key: ui.roomui.waiting_for_players_to_get_ready
+    zh: Waiting for players to get ready.
+  - key: ui.roomui.waiting_for_host_to_start_the_game
+    zh: Waiting for host to start the game.
+  - key: ui.roomui.cancel_ready
+    zh: Cancel Ready
+  - key: ui.skillinspectpanelui.esc_to_close
+    zh: Esc to close
+  - key: ui.skillinspectableitem.inspect_skillid
+    zh: Inspect_{SkillId}
+  - key: ui.skillwallitemview.skillwallitem_skillid
+    zh: SkillWallItem_{_skillId}
+  - key: ui.skillwallselectioncontroller.ignored_select_request_for_unknown_skill
+    zh: Ignored select request for unknown skill '{skillId}'.
+  - key: ui.skillwallselectioncontroller.ignored_select_request_because_skillid_i
+    zh: Ignored select request because '{skillId}' is already selected.
+  - key: ui.skillwallselectioncontroller.ignored_select_request_because_all_skill
+    zh: Ignored select request because all {SkillLoadout.SlotCount} slots are full.
+  - key: ui.skillwallselectioncontroller.skipped_wall_build_because_required_refe
+    zh: Skipped wall build because required references are missing.
+  - key: ui.skillwallselectioncontroller.built_skill_wall_with_spawneditems_count
+    zh: Built skill wall with {_spawnedItems.Count} selectable items.
+  - key: ui.skillwallselectioncontroller.scenemanagerfound_hasscenemanager_spawne
+    zh: sceneManagerFound={hasSceneManager}, spawned={isSpawned}, singletonNull={PropertiesSelectionManager.Instance
+      == null}
+  - key: ui.static.lobby_id_input
+    zh: Lobby Id Input
+  - key: ui.static.option_a
+    zh: Option A
+  - key: ui.static.room_visibility
+    zh: Room Visibility
+  - key: ui.static.max_player
+    zh: Max Player
+  - key: ui.static.create
+    zh: Create
+  - key: ui.static.create_room
+    zh: Create Room
+  - key: ui.static.public
+    zh: Public
+  - key: ui.static.room_name
+    zh: Room Name
+  - key: ui.static.browse_rooms
+    zh: Browse Rooms
+  - key: ui.static.ready
+    zh: Ready
+  - key: ui.static.join_room
+    zh: Join Room
+  - key: ui.static.enter_text
+    zh: Enter text...
+  - key: ui.static.4
+    zh: 4
+  - key: ui.static.start_game
+    zh: Start Game
+  - key: ui.static.return
+    zh: Return
+  - key: ui.static.refresh
+    zh: Refresh
+  - key: ui.static.back
+    zh: Back
+  - key: ui.static.join
+    zh: Join
+  - key: ui.static.playernum
+    zh: 'PlayerNum:'
+  - key: ui.static.leave_room
+    zh: Leave Room
+  - key: ui.static.your_role
+    zh: 'Your Role:'
+  - key: ui.static.quit
+    zh: Quit
+  - key: ui.static.pagetitletext
+    zh: pageTitleText
+  - key: "ui.static.\u6280\u80FD\u63CF\u8FF0\u6587\u672C"
+    zh: "\u6280\u80FD\u63CF\u8FF0\u6587\u672C"
+  - key: ui.static.confirm
+    zh: Confirm
+  - key: "ui.static.\u63D0\u793A\u6587\u672C"
+    zh: "\u63D0\u793A\u6587\u672C"
+  - key: ui.static.countdowntext
+    zh: countdownText
+  - key: ui.static.resolvedmaptext
+    zh: resolvedMapText
+  - key: ui.static.playersselectiontext
+    zh: PlayersSelectionText
+  - key: "ui.static.\u6807\u9898\u6587\u672C"
+    zh: "\u6807\u9898\u6587\u672C"
+  - key: ui.static.statustext
+    zh: statusText
+  - key: ui.static.stagetitletext
+    zh: StageTitleText
+  - key: ui.static.return_to_room
+    zh: Return To Room
+  - key: ui.static.start_new_game
+    zh: Start New Game
+  - key: ui.static.endmatch
+    zh: EndMatch
+  - key: ui.static.player3
+    zh: Player3
+  - key: ui.static.player2
+    zh: Player2
+  - key: ui.static.player1
+    zh: Player1
+  - key: ui.static.right
+    zh: Right
+  - key: ui.static.left
+    zh: Left
+  - key: ui.static.select
+    zh: Select
+  - key: ui.static.hosttext
+    zh: hostText
+  - key: ui.static.lobbyidtext
+    zh: LobbyIdText
+  menuOptions:
+  - optionGroup: max_players
+    index: 0
+    value: 4
+    labelKey: menu.option.max_players.4
+    isDefault: 1
+  - optionGroup: max_players
+    index: 1
+    value: 5
+    labelKey: menu.option.max_players.5
+    isDefault: 0
+  - optionGroup: max_players
+    index: 2
+    value: 6
+    labelKey: menu.option.max_players.6
+    isDefault: 0
+  - optionGroup: visibility
+    index: 0
+    value: Public
+    labelKey: menu.option.visibility.public
+    isDefault: 1
+  - optionGroup: visibility
+    index: 1
+    value: FriendsOnly
+    labelKey: menu.option.visibility.friendsonly
+    isDefault: 0
+  - optionGroup: visibility
+    index: 2
+    value: Private
+    labelKey: menu.option.visibility.private
+    isDefault: 0

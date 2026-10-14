@@ -1,0 +1,5 @@
+##var,profileId,trackEdgeFadeInDelaySeconds,hideOtherPlayersForVictim,disableOutdoorVolumeDuringBlackCurtain,expansionDelaySeconds,maxBlackHoleStrength,maxExpansionProgress,centerWorldOffset,materialPath,outdoorVolumeObjectName,blackCurtainActiveVolumeObjectName
+##type,string#key,float,bool,bool,float,float,float,vector3,string#path,string,string
+##group,,,,,,,,,doc,doc,doc
+##comment,,,,,BlackCurtainScreenEffect.cs:8,:7,:9,SO,,场景物体名,
+,default,0.5,true,true,0.5,15,2,"0,1,0",,Volume,Volumn_Dark

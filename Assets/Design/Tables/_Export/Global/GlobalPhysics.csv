@@ -1,0 +1,5 @@
+##var,profileId,gravity,bounceThreshold,sleepThreshold,defaultContactOffset,defaultSolverIterations,defaultMaxAngularSpeed,fixedTimestep
+##type,string#key,vector3,float,float,float,int,float,float
+##group,,,,adv,adv,adv,,adv
+##comment,,,,,,,等于角色最大角速度,必须等于 1/tick_rate
+,default,"0,-9.81,0",2,0.005,0.01,6,50,0.016667

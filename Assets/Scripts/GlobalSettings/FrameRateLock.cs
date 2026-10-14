@@ -7,6 +7,7 @@ namespace BuddahGo.GlobalSettings
     // across frames. Without this, a non-integer fps-to-tick ratio produces a
     // "beat frequency" tremor in visual-root smoothing that shows as regular
     // micro-oscillation on fast-moving predicted objects.
+    // Global/GlobalRule target_frame_rate owns the value; 120 is the fallback.
     public static class FrameRateLock
     {
         private const int TargetFrameRate = 120;
@@ -15,7 +16,8 @@ namespace BuddahGo.GlobalSettings
         private static void Apply()
         {
             QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = TargetFrameRate;
+            int configured = DesignTableOverlay.GlobalInt("target_frame_rate", TargetFrameRate);
+            Application.targetFrameRate = configured > 0 ? configured : TargetFrameRate;
         }
     }
 }

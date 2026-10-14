@@ -1,0 +1,7 @@
+##var,trackId,checkpointId,objectName,position,rotationY,size
+##type,string#key#ref=Track.trackId,int#key,string,vector3,float,vector3
+##group,,,doc,,,
+##comment,,,,世界坐标（父物体 CheckPoints 有偏移）,,BoxCollider size（未乘 scale）
+,racemap,1,Check1,"107.9,13.05,-540.1",21.983,"1,1,1"
+,racemap,2,Check2,"-265.1,13.05,-475.1",21.983,"1,1,1"
+,racemap,3,Check3,"-297.4,13.05,-52.9",-20.009,"1,1,1"

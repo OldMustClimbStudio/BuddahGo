@@ -1,0 +1,5 @@
+##var,profileId,directionalOffsetPerSpeed,maxDirectionalOffset,baseFieldOfView,zoomBySpeed,speedForMaxZoomOut,minSpeedFieldOfView,maxSpeedFieldOfView,maxSpeedDistanceOffset,speedZoomSmoothTime,adaptToPlayerScale,cameraDistanceScaleFactor,cameraFovPerExtraScale,offsetSmoothTime,stableIntroExitSmoothTime,stableIntroExitBlendDuration
+##type,string#key,vector3,vector3,float,bool,float,float,float,float,float,bool,float,float,float,float,float
+##group,,,,,,,,,,,,,,,,
+##comment,,,,被 Cinemachine lens 覆盖，无效,,与 maxSpeed 80 耦合,,,,,,,,,代码默认,代码默认
+,default,"0.5,0,0.4","15,0,15",40,true,80,30,35,10,0.1,true,1,0,0.75,0.6,1.2

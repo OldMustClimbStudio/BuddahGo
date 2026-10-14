@@ -1,0 +1,4 @@
+##var,stageKey,optionId,displayNameKey,descriptionKey,iconKey,unlocked
+##type,string#key#ref=SelectionStage.stageKey,string#key,string#ref=UI/Text.key,string#ref=UI/Text.key,string,bool
+##group,,,,,,
+##comment,,,,,SelectablePropertyOption.PreviewIconKey,SelectablePropertyOption.IsUnlocked

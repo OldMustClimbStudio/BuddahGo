@@ -1,0 +1,33 @@
+##var,key,value,source,comment
+##type,string#key,float,string,string
+##group,,,doc,doc
+##comment,,,,
+,sideSwitchLateral,3,TVP:27,[Eng]
+,holdLateral,18,TVP:27,[Eng]
+,topSpeed,79,TVP:28,[Eng] 与 maxSpeed 耦合
+,topPace,78,TVP:28,[Eng]
+,minBrakeAngleDegrees,120,TVP:29,[Eng]
+,maxTargetDegrees,178,TVP:29,[Eng]
+,attitudeAcceleration,4.82,TVP:30,[Eng] rad/s² 物理拟合
+,minPredictionSeconds,0.3,TVP:31,[Eng]
+,maxPredictionSeconds,1,TVP:31,[Eng]
+,reanchorDegrees,200,TVP:32,[Eng]
+,collisionReanchorDegrees,180,TVP:32,[Eng]
+,fullTurnDegrees,360,TVP:32,[Eng]
+,reprojectLateral,15,TVP:33,[Eng] m
+,collisionMemorySeconds,0.5,TVP:33,[Eng]
+,wobbleClampSigmas,3,TVP:33,[Eng]
+,velocityHeadingMinSpeedSquared,25,TVP:34,[Eng]
+,nearSearchSegments,8,TVP:35,[Eng]
+,wideSearchSegments,40,TVP:35,[Eng]
+,rolloutSearchSegments,6,TVP:35,[Eng]
+,racingLineSampleMeters,2,SplineRacingLine.Capture:75,[Eng]
+,racingLineMinSamples,16,SplineRacingLine.Capture:77,[Eng]
+,curvatureChordMeters,12,"SplineRacingLine:113,149",[Eng]
+,windowPaceMeters,80,SplineRacingLine:132,[Eng] 与 maxSpeed 耦合
+,wallProbeMaxDistance,80,TrackWallProbe.cs:11,[Eng]
+,wallProbeHeight,1.5,TrackWallProbe.cs:11,[Eng]
+,sideContactNormalY,0.7,AIRacerDriver.cs:90,[Eng]
+,groundNormalY,0.99,AIRacerDriver.cs:96,[Eng]
+,defaultFriction,0.6,AIRacerDriver.cs:98,[Eng]
+,groundContactValiditySeconds,0.1,AIRacerDriver.cs:142,[Eng]

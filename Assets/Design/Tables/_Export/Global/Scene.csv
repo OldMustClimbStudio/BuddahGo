@@ -1,0 +1,7 @@
+##var,buildIndex,sceneName,path,enabled
+##type,int#key,string#key,string#path,bool
+##group,,,,
+##comment,,代码 SceneNames 常量,,
+,0,MainMenu,Assets/Scenes/MainMenu.unity,true
+,1,PropertySelection,Assets/Scenes/PropertySelection.unity,true
+,2,RaceMap,Assets/Scenes/RaceMap.unity,true

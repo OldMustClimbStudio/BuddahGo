@@ -51,3 +51,6 @@ LightingData.asset binary
 # Recorded AI tuning telemetry stays as evidence but lives in LFS, out of text diffs and line counts.
 Tools/ai/**/*.csv filter=lfs diff=lfs merge=lfs -text
 Tools/ai/**/*.jsonl filter=lfs diff=lfs merge=lfs -text
+
+# Design tables: Excel sources are binary (LFS); the CSV mirror under _Export stays text for diffs.
+*.xlsx filter=lfs diff=lfs merge=lfs -text

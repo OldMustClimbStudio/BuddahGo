@@ -1,93 +1,2609 @@
 {
-  "_defaultRuleSetId": "default",
-  "_defaultModeTag": "race",
-  "skillDefinitions": [
-    {
-      "skillId": "acceleration",
-      "displayName": "Acceleration",
-      "description": "Boost your forward force and max speed for a short duration.",
-      "behaviorType": "Acceleration",
-      "iconKey": "icon_acceleration",
-      "isSelectable": true,
-      "sortOrder": 10,
-      "tags": [ "movement", "buff" ],
-      "unlockState": "unlocked"
-    },
-    {
-      "skillId": "slow_trap",
-      "displayName": "Slow Trap",
-      "description": "Create a trailing trap zone that slows racers behind you.",
-      "behaviorType": "SlowTrap",
-      "iconKey": "icon_slow_trap",
-      "isSelectable": true,
-      "sortOrder": 20,
-      "tags": [ "trap", "debuff" ],
-      "unlockState": "unlocked"
-    },
-    {
-      "skillId": "blackcurtain",
-      "displayName": "Black Curtain",
-      "description": "Obscure vision with a high-impact special effect.",
-      "behaviorType": "BlackCurtain",
-      "iconKey": "icon_blackcurtain",
-      "isSelectable": true,
-      "sortOrder": 30,
-      "tags": [ "special", "vision" ],
-      "unlockState": "unlocked"
-    }
-  ],
-  "skillBalances": [
-    {
-      "skillId": "acceleration",
-      "cooldownSeconds": 6.0,
-      "castLockSeconds": 0.25,
-      "obsessionGain": 2.0,
-      "antiSkillId": "acceleration_anti"
-    },
-    {
-      "skillId": "slow_trap",
-      "cooldownSeconds": 8.0,
-      "castLockSeconds": 0.35,
-      "obsessionGain": 1.0,
-      "antiSkillId": "slow_trap_anti"
-    },
-    {
-      "skillId": "blackcurtain",
-      "cooldownSeconds": 12.0,
-      "castLockSeconds": 0.5,
-      "obsessionGain": 3.0,
-      "antiSkillId": "anti_blackcurtain"
-    }
-  ],
-  "skillEffectParams": [
-    { "skillId": "acceleration", "effectType": "movement", "paramKey": "extraForwardForce", "paramValue": "10.0" },
-    { "skillId": "acceleration", "effectType": "movement", "paramKey": "extraMaxSpeed", "paramValue": "3.0" },
-    { "skillId": "slow_trap", "effectType": "zone", "paramKey": "durationSeconds", "paramValue": "5.0" },
-    { "skillId": "blackcurtain", "effectType": "screen", "paramKey": "durationSeconds", "paramValue": "2.5" }
-  ],
-  "skillSelectionRules": [
-    { "ruleSetId": "default", "skillId": "acceleration", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 0 },
-    { "ruleSetId": "default", "skillId": "slow_trap", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 0 },
-    { "ruleSetId": "default", "skillId": "blackcurtain", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 0 },
-    { "ruleSetId": "default", "skillId": "acceleration", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 1 },
-    { "ruleSetId": "default", "skillId": "slow_trap", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 1 },
-    { "ruleSetId": "default", "skillId": "blackcurtain", "isEnabled": true, "allowDuplicate": false, "weight": 1.0, "modeTag": "race", "mapTag": "", "poolType": 1 }
-  ],
-  "defaultLoadouts": [
-    {
-      "loadoutId": "race_default",
-      "slot0SkillId": "acceleration",
-      "slot1SkillId": "slow_trap",
-      "slot2SkillId": "blackcurtain",
-      "ruleSetId": "default",
-      "modeTag": "race"
-    }
-  ],
-  "globalRules": [
-    {
-      "ruleKey": "combo_input_window_seconds",
-      "ruleValue": "0.35",
-      "ruleSetId": "default",
-      "description": "Input gap window for combo-to-slot matching."
-    }
-  ]
+    "_defaultRuleSetId": "default",
+    "_defaultModeTag": "default",
+    "skillSelectionRules": [
+        {
+            "ruleSetId": "default",
+            "skillId": "acceleration",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 0
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "slowtrap",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 0
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "blackcurtain",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 0
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "giant",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 0
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "push_projectile_hands",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 0
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "reverseturn",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 0
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "acceleration",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 1
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "push_projectile_hands",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 1
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "blackcurtain",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 1
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "acceleration_anti",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 3
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "slowtrap_anti",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 3
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "blackcurtain_anti",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 3
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "giant_anti",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 3
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "push_projectile_hands_anti",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 3
+        },
+        {
+            "ruleSetId": "default",
+            "skillId": "reverseturn_anti",
+            "isEnabled": true,
+            "allowDuplicate": false,
+            "weight": 1.0,
+            "modeTag": "",
+            "mapTag": "",
+            "poolType": 3
+        }
+    ],
+    "defaultLoadouts": [
+        {
+            "loadoutId": "race_default",
+            "slot0SkillId": "acceleration",
+            "slot1SkillId": "push_projectile_hands",
+            "slot2SkillId": "slowtrap",
+            "ruleSetId": "default",
+            "modeTag": "default"
+        }
+    ],
+    "globalRules": [
+        {
+            "ruleKey": "target_frame_rate",
+            "ruleValue": "120",
+            "ruleSetId": "default",
+            "description": ""
+        }
+    ],
+    "skills": [
+        {
+            "skillId": "acceleration",
+            "displayNameKey": "skill.acceleration.name",
+            "descriptionKey": "skill.acceleration.desc",
+            "sortOrder": 10,
+            "unlockState": "unlocked",
+            "antiSkillId": "acceleration_anti",
+            "cooldownSeconds": 5.0,
+            "castLockSeconds": 3.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 300.0,
+            "effectDurationSeconds": 3.0
+        },
+        {
+            "skillId": "slowtrap",
+            "displayNameKey": "skill.slowtrap.name",
+            "descriptionKey": "skill.slowtrap.desc",
+            "sortOrder": 20,
+            "unlockState": "unlocked",
+            "antiSkillId": "slowtrap_anti",
+            "cooldownSeconds": 8.0,
+            "castLockSeconds": 6.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 300.0,
+            "effectDurationSeconds": 6.0
+        },
+        {
+            "skillId": "blackcurtain",
+            "displayNameKey": "skill.blackcurtain.name",
+            "descriptionKey": "skill.blackcurtain.desc",
+            "sortOrder": 30,
+            "unlockState": "unlocked",
+            "antiSkillId": "blackcurtain_anti",
+            "cooldownSeconds": 16.0,
+            "castLockSeconds": 14.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 200.0,
+            "effectDurationSeconds": 10.0
+        },
+        {
+            "skillId": "giant",
+            "displayNameKey": "skill.giant.name",
+            "descriptionKey": "skill.giant.desc",
+            "sortOrder": 40,
+            "unlockState": "unlocked",
+            "antiSkillId": "giant_anti",
+            "cooldownSeconds": 8.0,
+            "castLockSeconds": 6.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 200.0,
+            "effectDurationSeconds": 6.0
+        },
+        {
+            "skillId": "push_projectile_hands",
+            "displayNameKey": "skill.push_projectile_hands.name",
+            "descriptionKey": "skill.push_projectile_hands.desc",
+            "sortOrder": 50,
+            "unlockState": "unlocked",
+            "antiSkillId": "push_projectile_hands_anti",
+            "cooldownSeconds": 12.0,
+            "castLockSeconds": 10.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 300.0,
+            "effectDurationSeconds": 15.0
+        },
+        {
+            "skillId": "reverseturn",
+            "displayNameKey": "skill.reverseturn.name",
+            "descriptionKey": "skill.reverseturn.desc",
+            "sortOrder": 60,
+            "unlockState": "unlocked",
+            "antiSkillId": "reverseturn_anti",
+            "cooldownSeconds": 12.0,
+            "castLockSeconds": 10.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 200.0,
+            "effectDurationSeconds": 10.0
+        },
+        {
+            "skillId": "acceleration_anti",
+            "displayNameKey": "skill.acceleration_anti.name",
+            "descriptionKey": "skill.acceleration_anti.desc",
+            "sortOrder": 110,
+            "unlockState": "hidden",
+            "antiSkillId": "",
+            "cooldownSeconds": 5.0,
+            "castLockSeconds": 3.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 0.0,
+            "effectDurationSeconds": 3.0
+        },
+        {
+            "skillId": "slowtrap_anti",
+            "displayNameKey": "skill.slowtrap_anti.name",
+            "descriptionKey": "skill.slowtrap_anti.desc",
+            "sortOrder": 120,
+            "unlockState": "hidden",
+            "antiSkillId": "",
+            "cooldownSeconds": 3.0,
+            "castLockSeconds": 1.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 0.0,
+            "effectDurationSeconds": 1.0
+        },
+        {
+            "skillId": "blackcurtain_anti",
+            "displayNameKey": "skill.blackcurtain_anti.name",
+            "descriptionKey": "skill.blackcurtain_anti.desc",
+            "sortOrder": 130,
+            "unlockState": "hidden",
+            "antiSkillId": "",
+            "cooldownSeconds": 16.0,
+            "castLockSeconds": 14.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 0.0,
+            "effectDurationSeconds": 10.0
+        },
+        {
+            "skillId": "giant_anti",
+            "displayNameKey": "skill.giant_anti.name",
+            "descriptionKey": "skill.giant_anti.desc",
+            "sortOrder": 140,
+            "unlockState": "hidden",
+            "antiSkillId": "",
+            "cooldownSeconds": 8.0,
+            "castLockSeconds": 6.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 0.0,
+            "effectDurationSeconds": 6.0
+        },
+        {
+            "skillId": "push_projectile_hands_anti",
+            "displayNameKey": "skill.push_projectile_hands_anti.name",
+            "descriptionKey": "skill.push_projectile_hands_anti.desc",
+            "sortOrder": 150,
+            "unlockState": "hidden",
+            "antiSkillId": "",
+            "cooldownSeconds": 10.0,
+            "castLockSeconds": 10.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 0.0,
+            "effectDurationSeconds": 0.0
+        },
+        {
+            "skillId": "reverseturn_anti",
+            "displayNameKey": "skill.reverseturn_anti.name",
+            "descriptionKey": "skill.reverseturn_anti.desc",
+            "sortOrder": 160,
+            "unlockState": "hidden",
+            "antiSkillId": "",
+            "cooldownSeconds": 12.0,
+            "castLockSeconds": 10.0,
+            "castConfirmDelaySeconds": 1.0,
+            "obsessionGain": 0.0,
+            "effectDurationSeconds": 10.0
+        }
+    ],
+    "skillEffectAccelerations": [
+        {
+            "skillId": "acceleration",
+            "extraForwardForce": 50.0,
+            "extraMaxSpeed": 40.0,
+            "slowForwardForce": 0.0,
+            "slowMaxSpeed": 0.0
+        },
+        {
+            "skillId": "acceleration_anti",
+            "extraForwardForce": 0.0,
+            "extraMaxSpeed": 0.0,
+            "slowForwardForce": 45.0,
+            "slowMaxSpeed": 40.0
+        }
+    ],
+    "skillEffectSlowTraps": [
+        {
+            "skillId": "slowtrap",
+            "perTargetReapplyCooldown": 0.5,
+            "affectCaster": false,
+            "slowForwardForce": 40.0,
+            "slowMaxSpeed": 20.0,
+            "slowDurationSeconds": 2.0,
+            "extraForwardForce": 0.0,
+            "extraMaxSpeed": 0.0,
+            "accelerationDurationSeconds": 0.0
+        },
+        {
+            "skillId": "slowtrap_anti",
+            "perTargetReapplyCooldown": 0.0,
+            "affectCaster": false,
+            "slowForwardForce": 0.0,
+            "slowMaxSpeed": 0.0,
+            "slowDurationSeconds": 0.0,
+            "extraForwardForce": 10.0,
+            "extraMaxSpeed": 3.0,
+            "accelerationDurationSeconds": 2.0
+        }
+    ],
+    "skillEffectBlackCurtains": [
+        {
+            "skillId": "blackcurtain",
+            "expandDurationSeconds": 1.0,
+            "fadeOutDurationSeconds": 2.0,
+            "maxOpacity": 1.0
+        },
+        {
+            "skillId": "blackcurtain_anti",
+            "expandDurationSeconds": 1.0,
+            "fadeOutDurationSeconds": 2.0,
+            "maxOpacity": 1.0
+        }
+    ],
+    "skillEffectGiants": [
+        {
+            "skillId": "giant",
+            "scaleMultiplier": 4.0,
+            "shrinkDurationSeconds": 0.3499999940395355,
+            "growDurationSeconds": 0.3499999940395355,
+            "massMultiplier": 3.0,
+            "forwardForceMultiplier": 3.5,
+            "restoreDurationSeconds": 0.0
+        },
+        {
+            "skillId": "giant_anti",
+            "scaleMultiplier": 0.30000001192092898,
+            "shrinkDurationSeconds": 0.25,
+            "growDurationSeconds": 0.0,
+            "massMultiplier": 0.0,
+            "forwardForceMultiplier": 0.0,
+            "restoreDurationSeconds": 0.25
+        }
+    ],
+    "pushes": [
+        {
+            "pushId": "basic",
+            "rotationSpeedDegPerSec": 180.0,
+            "windupSeconds": 0.10000000149011612,
+            "pushCooldownSeconds": 0.4000000059604645,
+            "delayedPushActionSeconds": 0.0,
+            "lifetimeSeconds": 0.30000001192092898,
+            "impulseStrength": 100.0,
+            "speed": 0.0,
+            "forwardOffset": 7.0,
+            "heightOffset": 1.0,
+            "sideOffset": 4.0,
+            "leftSideBias": -0.10000000149011612,
+            "rightSideBias": 0.10000000149011612,
+            "projectileCount": 0,
+            "projectileSpacing": 0.0,
+            "colliderSize": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "hitTurnTorqueImpulse": 0.0
+        },
+        {
+            "pushId": "charged",
+            "rotationSpeedDegPerSec": 0.0,
+            "windupSeconds": 1.0,
+            "pushCooldownSeconds": 1.0,
+            "delayedPushActionSeconds": 0.8999999761581421,
+            "lifetimeSeconds": 3.0,
+            "impulseStrength": 500.0,
+            "speed": 600.0,
+            "forwardOffset": 0.0,
+            "heightOffset": 30.0,
+            "sideOffset": 0.0,
+            "leftSideBias": 0.0,
+            "rightSideBias": 0.0,
+            "projectileCount": 0,
+            "projectileSpacing": 0.0,
+            "colliderSize": {
+                "x": 60.0,
+                "y": 90.0,
+                "z": 20.0
+            },
+            "hitTurnTorqueImpulse": 0.0
+        },
+        {
+            "pushId": "charged_anti",
+            "rotationSpeedDegPerSec": 0.0,
+            "windupSeconds": 0.30000001192092898,
+            "pushCooldownSeconds": 0.0,
+            "delayedPushActionSeconds": 0.0,
+            "lifetimeSeconds": 2.0,
+            "impulseStrength": 600.0,
+            "speed": 600.0,
+            "forwardOffset": 100.0,
+            "heightOffset": 30.0,
+            "sideOffset": 0.0,
+            "leftSideBias": 0.0,
+            "rightSideBias": 0.0,
+            "projectileCount": 5,
+            "projectileSpacing": 30.0,
+            "colliderSize": {
+                "x": 60.0,
+                "y": 50.0,
+                "z": 20.0
+            },
+            "hitTurnTorqueImpulse": 50.0
+        }
+    ],
+    "comboInputs": [
+        {
+            "profileId": "default",
+            "inputWindowSeconds": 0.3499999940395355,
+            "maxBuffer": 6
+        }
+    ],
+    "comboBindings": [
+        {
+            "slotIndex": 0,
+            "name": "Skill_1",
+            "sequence": [
+                "W",
+                "Up",
+                "W"
+            ]
+        },
+        {
+            "slotIndex": 1,
+            "name": "Skill_2",
+            "sequence": [
+                "Up",
+                "W",
+                "Up"
+            ]
+        },
+        {
+            "slotIndex": 2,
+            "name": "Skill_3",
+            "sequence": [
+                "W",
+                "W",
+                "Up",
+                "Up"
+            ]
+        }
+    ],
+    "obsessions": [
+        {
+            "profileId": "default",
+            "maxValue": 1000.0,
+            "minValue": 0.0,
+            "initialValue": 0.0,
+            "drainPerSecond": 10.0,
+            "catchupRecoveryA": 0.009999999776482582,
+            "backfirePMaxPercent": 95.0,
+            "backfireK": 0.00800000037997961,
+            "backfireMidpointX": 500.0,
+            "backfireKeepPMaxAtOrAboveX": 1000.0
+        }
+    ],
+    "movements": [
+        {
+            "profileId": "default",
+            "forwardForce": 50.0,
+            "maxSpeed": 80.0,
+            "turnTorque": 30.0,
+            "turnDecayPerSecond": 3.0,
+            "turnInputMultiplier": 2.0,
+            "mass": 2.0,
+            "linearDrag": 0.0,
+            "angularDrag": 0.05000000074505806,
+            "maxAngularVelocity": 50.0,
+            "colliderRadius": 3.8869290351867677,
+            "colliderHeight": 8.49321174621582,
+            "colliderCenter": {
+                "x": -0.05169599875807762,
+                "y": 2.9506640434265138,
+                "z": -0.15090300142765046
+            },
+            "pushGraceSeconds": 0.25,
+            "pushExtraMaxSpeed": 6.0,
+            "launchInheritSeconds": 0.20000000298023225,
+            "launchBlendSeconds": 0.3199999928474426,
+            "handoffGroundSnapMaxDistance": 1.5,
+            "handoffGroundProbeHeight": 3.0,
+            "velocitySampleDeltaSeconds": 0.019999999552965165
+        }
+    ],
+    "respawns": [
+        {
+            "profileId": "default",
+            "contactSeconds": 2.0,
+            "cooldownSeconds": 1.5,
+            "heightOffset": 3.0,
+            "clearanceRadius": 0.75,
+            "liftStep": 1.5,
+            "maxLift": 6.0,
+            "floorTag": "RespawnFloor"
+        }
+    ],
+    "drivingTiers": [
+        {
+            "difficulty": "Easy",
+            "lookaheadSeconds": 1.0,
+            "speedMargin": 2.0,
+            "lateralDamping": 0.9860000014305115,
+            "attitudeDeadbandDegrees": 1.5,
+            "attitudeHysteresisDegrees": 0.5,
+            "predictionGain": 0.30000001192092898,
+            "thrustPaceFactor": 0.8999999761581421,
+            "planningBrakeAcceleration": 10.0,
+            "rolloutSeconds": 1.7999999523162842,
+            "rolloutHoldSeconds": 0.6000000238418579,
+            "thrustReplanTicks": 3,
+            "rolloutSubsteps": 2,
+            "useWallCorridor": true,
+            "wallMargin": 1.5,
+            "rolloutWallWeight": 0.699999988079071,
+            "rolloutCenterWeight": 0.019999999552965165,
+            "rolloutTail": "KeepCandidate",
+            "speedNoise": 6.0,
+            "lateralOffsetNoise": 3.5,
+            "angleNoiseDegrees": 10.0,
+            "wobbleTicks": 30,
+            "mistakeProbability": 0.25,
+            "reactionJitterTicks": 5,
+            "rolloutSampleTicks": 6,
+            "rolloutLateralWeight": 1.0,
+            "rolloutLateralVelocityWeight": 0.699999988079071,
+            "rolloutOverspeedWeight": 0.0,
+            "rolloutUnderspeedWeight": 1.0,
+            "rolloutProgressWeight": 1.0,
+            "rolloutTerminalWeight": 1.0,
+            "switchPenaltyPerDegree": 0.30000001192092898,
+            "maxThrustAngleDegrees": 170.0,
+            "targetSpeed": 67.0,
+            "lateralOffset": 0.0,
+            "reactionTicks": 8
+        },
+        {
+            "difficulty": "Normal",
+            "lookaheadSeconds": 1.0,
+            "speedMargin": 2.0,
+            "lateralDamping": 0.9860000014305115,
+            "attitudeDeadbandDegrees": 1.5,
+            "attitudeHysteresisDegrees": 0.5,
+            "predictionGain": 0.30000001192092898,
+            "thrustPaceFactor": 0.8999999761581421,
+            "planningBrakeAcceleration": 10.0,
+            "rolloutSeconds": 2.0,
+            "rolloutHoldSeconds": 0.6000000238418579,
+            "thrustReplanTicks": 2,
+            "rolloutSubsteps": 2,
+            "useWallCorridor": true,
+            "wallMargin": 1.5,
+            "rolloutWallWeight": 0.20000000298023225,
+            "rolloutCenterWeight": 0.019999999552965165,
+            "rolloutTail": "KeepCandidate",
+            "speedNoise": 4.0,
+            "lateralOffsetNoise": 2.5,
+            "angleNoiseDegrees": 5.0,
+            "wobbleTicks": 30,
+            "mistakeProbability": 0.10000000149011612,
+            "reactionJitterTicks": 3,
+            "rolloutSampleTicks": 6,
+            "rolloutLateralWeight": 1.0,
+            "rolloutLateralVelocityWeight": 0.699999988079071,
+            "rolloutOverspeedWeight": 0.0,
+            "rolloutUnderspeedWeight": 1.0,
+            "rolloutProgressWeight": 1.0,
+            "rolloutTerminalWeight": 1.0,
+            "switchPenaltyPerDegree": 0.30000001192092898,
+            "maxThrustAngleDegrees": 170.0,
+            "targetSpeed": 74.0,
+            "lateralOffset": 0.0,
+            "reactionTicks": 3
+        },
+        {
+            "difficulty": "Hard",
+            "lookaheadSeconds": 1.0,
+            "speedMargin": 2.0,
+            "lateralDamping": 0.9860000014305115,
+            "attitudeDeadbandDegrees": 1.5,
+            "attitudeHysteresisDegrees": 0.5,
+            "predictionGain": 0.30000001192092898,
+            "thrustPaceFactor": 0.8999999761581421,
+            "planningBrakeAcceleration": 10.0,
+            "rolloutSeconds": 2.0,
+            "rolloutHoldSeconds": 0.6000000238418579,
+            "thrustReplanTicks": 2,
+            "rolloutSubsteps": 2,
+            "useWallCorridor": true,
+            "wallMargin": 1.5,
+            "rolloutWallWeight": 0.0,
+            "rolloutCenterWeight": 0.019999999552965165,
+            "rolloutTail": "KeepCandidate",
+            "speedNoise": 2.0,
+            "lateralOffsetNoise": 1.5,
+            "angleNoiseDegrees": 2.0,
+            "wobbleTicks": 30,
+            "mistakeProbability": 0.029999999329447748,
+            "reactionJitterTicks": 0,
+            "rolloutSampleTicks": 6,
+            "rolloutLateralWeight": 1.0,
+            "rolloutLateralVelocityWeight": 0.699999988079071,
+            "rolloutOverspeedWeight": 0.0,
+            "rolloutUnderspeedWeight": 3.0,
+            "rolloutProgressWeight": 1.0,
+            "rolloutTerminalWeight": 1.0,
+            "switchPenaltyPerDegree": 0.30000001192092898,
+            "maxThrustAngleDegrees": 90.0,
+            "targetSpeed": 80.0,
+            "lateralOffset": 0.0,
+            "reactionTicks": 0
+        }
+    ],
+    "drivingTunings": [
+        {
+            "profileId": "default",
+            "targetSpeedMin": 20.0,
+            "targetSpeedMax": 80.0,
+            "recoverySpeed": 5.0,
+            "recoveryVelocityErrorDegrees": 90.0
+        }
+    ],
+    "skillDifficulties": [
+        {
+            "difficulty": "Easy",
+            "riskWeight": 0.0,
+            "severeStopProbability": 1.0099999904632569,
+            "mildStopProbability": 1.0099999904632569,
+            "decisionSeconds": 0.30000001192092898,
+            "reactionMinSeconds": 0.6000000238418579,
+            "reactionMaxSeconds": 1.0,
+            "keyMistakeProbability": 0.15000000596046449,
+            "aimToleranceDegrees": 20.0,
+            "adaptSeconds": 2.0,
+            "readaptSeconds": 1.0,
+            "impairedLookaheadMultiplier": 0.5,
+            "impairedMistakeAddition": 0.20000000298023225,
+            "impairedReactionTicks": 10,
+            "impairedDrivingReactionTicks": 10,
+            "decisionNoise": 0.10000000149011612
+        },
+        {
+            "difficulty": "Normal",
+            "riskWeight": 0.5,
+            "severeStopProbability": 0.699999988079071,
+            "mildStopProbability": 1.0099999904632569,
+            "decisionSeconds": 0.25,
+            "reactionMinSeconds": 0.30000001192092898,
+            "reactionMaxSeconds": 0.5,
+            "keyMistakeProbability": 0.05999999865889549,
+            "aimToleranceDegrees": 12.0,
+            "adaptSeconds": 1.0,
+            "readaptSeconds": 0.6000000238418579,
+            "impairedLookaheadMultiplier": 0.6000000238418579,
+            "impairedMistakeAddition": 0.10000000149011612,
+            "impairedReactionTicks": 6,
+            "impairedDrivingReactionTicks": 6,
+            "decisionNoise": 0.05000000074505806
+        },
+        {
+            "difficulty": "Hard",
+            "riskWeight": 1.0,
+            "severeStopProbability": 0.44999998807907107,
+            "mildStopProbability": 0.6499999761581421,
+            "decisionSeconds": 0.20000000298023225,
+            "reactionMinSeconds": 0.10000000149011612,
+            "reactionMaxSeconds": 0.20000000298023225,
+            "keyMistakeProbability": 0.009999999776482582,
+            "aimToleranceDegrees": 6.0,
+            "adaptSeconds": 0.4000000059604645,
+            "readaptSeconds": 0.30000001192092898,
+            "impairedLookaheadMultiplier": 0.75,
+            "impairedMistakeAddition": 0.05000000074505806,
+            "impairedReactionTicks": 3,
+            "impairedDrivingReactionTicks": 3,
+            "decisionNoise": 0.019999999552965165
+        }
+    ],
+    "personalities": [
+        {
+            "personalityId": "keeper",
+            "displayNameKey": "ai.personality.keeper.name",
+            "slot0SkillId": "slowtrap",
+            "slot1SkillId": "acceleration",
+            "slot2SkillId": "giant",
+            "slot0Weight": 1.2999999523162842,
+            "slot1Weight": 1.0,
+            "slot2Weight": 0.800000011920929,
+            "patience": 0.25,
+            "tempoSeconds": 1.5,
+            "target": "Behind",
+            "impairedTargetMultiplier": 1.0,
+            "handsShots": 0
+        },
+        {
+            "personalityId": "hunter",
+            "displayNameKey": "ai.personality.hunter.name",
+            "slot0SkillId": "push_projectile_hands",
+            "slot1SkillId": "acceleration",
+            "slot2SkillId": "reverseturn",
+            "slot0Weight": 1.2999999523162842,
+            "slot1Weight": 1.0,
+            "slot2Weight": 0.8999999761581421,
+            "patience": 0.25,
+            "tempoSeconds": 1.2000000476837159,
+            "target": "Ahead",
+            "impairedTargetMultiplier": 1.0,
+            "handsShots": 4
+        },
+        {
+            "personalityId": "brawler",
+            "displayNameKey": "ai.personality.brawler.name",
+            "slot0SkillId": "giant",
+            "slot1SkillId": "push_projectile_hands",
+            "slot2SkillId": "slowtrap",
+            "slot0Weight": 1.2999999523162842,
+            "slot1Weight": 0.8999999761581421,
+            "slot2Weight": 1.0,
+            "patience": 0.30000001192092898,
+            "tempoSeconds": 1.0,
+            "target": "PackCentre",
+            "impairedTargetMultiplier": 1.0,
+            "handsShots": 3
+        },
+        {
+            "personalityId": "trickster",
+            "displayNameKey": "ai.personality.trickster.name",
+            "slot0SkillId": "reverseturn",
+            "slot1SkillId": "blackcurtain",
+            "slot2SkillId": "slowtrap",
+            "slot0Weight": 1.2000000476837159,
+            "slot1Weight": 1.2000000476837159,
+            "slot2Weight": 0.800000011920929,
+            "patience": 0.30000001192092898,
+            "tempoSeconds": 2.0,
+            "target": "EnteringCorner",
+            "impairedTargetMultiplier": 1.0,
+            "handsShots": 0
+        },
+        {
+            "personalityId": "opportunist",
+            "displayNameKey": "ai.personality.opportunist.name",
+            "slot0SkillId": "acceleration",
+            "slot1SkillId": "push_projectile_hands",
+            "slot2SkillId": "blackcurtain",
+            "slot0Weight": 1.2000000476837159,
+            "slot1Weight": 1.0,
+            "slot2Weight": 0.800000011920929,
+            "patience": 0.3499999940395355,
+            "tempoSeconds": 1.5,
+            "target": "Impaired",
+            "impairedTargetMultiplier": 1.600000023841858,
+            "handsShots": 2
+        }
+    ],
+    "personalitySituationBiases": [
+        {
+            "personalityId": "keeper",
+            "situation": "Pursued",
+            "bias": 1.399999976158142
+        },
+        {
+            "personalityId": "keeper",
+            "situation": "LeadingAlone",
+            "bias": 0.5
+        },
+        {
+            "personalityId": "keeper",
+            "situation": "Chasing",
+            "bias": 0.8999999761581421
+        },
+        {
+            "personalityId": "keeper",
+            "situation": "Pack",
+            "bias": 1.0
+        },
+        {
+            "personalityId": "keeper",
+            "situation": "TrailingAlone",
+            "bias": 1.0
+        },
+        {
+            "personalityId": "hunter",
+            "situation": "Pursued",
+            "bias": 0.800000011920929
+        },
+        {
+            "personalityId": "hunter",
+            "situation": "LeadingAlone",
+            "bias": 0.6000000238418579
+        },
+        {
+            "personalityId": "hunter",
+            "situation": "Chasing",
+            "bias": 1.399999976158142
+        },
+        {
+            "personalityId": "hunter",
+            "situation": "Pack",
+            "bias": 1.0
+        },
+        {
+            "personalityId": "hunter",
+            "situation": "TrailingAlone",
+            "bias": 1.100000023841858
+        },
+        {
+            "personalityId": "brawler",
+            "situation": "Pursued",
+            "bias": 1.0
+        },
+        {
+            "personalityId": "brawler",
+            "situation": "LeadingAlone",
+            "bias": 0.4000000059604645
+        },
+        {
+            "personalityId": "brawler",
+            "situation": "Chasing",
+            "bias": 0.8999999761581421
+        },
+        {
+            "personalityId": "brawler",
+            "situation": "Pack",
+            "bias": 1.5
+        },
+        {
+            "personalityId": "brawler",
+            "situation": "TrailingAlone",
+            "bias": 0.4000000059604645
+        },
+        {
+            "personalityId": "trickster",
+            "situation": "Pursued",
+            "bias": 1.100000023841858
+        },
+        {
+            "personalityId": "trickster",
+            "situation": "LeadingAlone",
+            "bias": 0.699999988079071
+        },
+        {
+            "personalityId": "trickster",
+            "situation": "Chasing",
+            "bias": 1.2000000476837159
+        },
+        {
+            "personalityId": "trickster",
+            "situation": "Pack",
+            "bias": 1.2000000476837159
+        },
+        {
+            "personalityId": "trickster",
+            "situation": "TrailingAlone",
+            "bias": 1.0
+        },
+        {
+            "personalityId": "opportunist",
+            "situation": "Pursued",
+            "bias": 1.0
+        },
+        {
+            "personalityId": "opportunist",
+            "situation": "LeadingAlone",
+            "bias": 0.800000011920929
+        },
+        {
+            "personalityId": "opportunist",
+            "situation": "Chasing",
+            "bias": 1.2000000476837159
+        },
+        {
+            "personalityId": "opportunist",
+            "situation": "Pack",
+            "bias": 1.0
+        },
+        {
+            "personalityId": "opportunist",
+            "situation": "TrailingAlone",
+            "bias": 1.0
+        }
+    ],
+    "skillOpportunities": [
+        {
+            "skillId": "acceleration",
+            "backlashSeverity": 1.0,
+            "blockWhenGlobalVisible": false,
+            "minStraightSeconds": 3.0,
+            "scoreBase": 0.0,
+            "scoreSlope": 0.0,
+            "maxValiditySeconds": 0.0,
+            "minValiditySeconds": 0.0,
+            "euclidMultiplier": 0.0,
+            "maxYawDegrees": 0.0,
+            "yawPenalty": 0.0,
+            "scorePerContact": 0.0,
+            "packBonus": 0.0
+        },
+        {
+            "skillId": "slowtrap",
+            "backlashSeverity": 0.10000000149011612,
+            "blockWhenGlobalVisible": false,
+            "minStraightSeconds": 0.0,
+            "scoreBase": 0.30000001192092898,
+            "scoreSlope": 0.699999988079071,
+            "maxValiditySeconds": 6.0,
+            "minValiditySeconds": 0.0,
+            "euclidMultiplier": 0.0,
+            "maxYawDegrees": 0.0,
+            "yawPenalty": 0.0,
+            "scorePerContact": 0.0,
+            "packBonus": 0.0
+        },
+        {
+            "skillId": "giant",
+            "backlashSeverity": 0.5,
+            "blockWhenGlobalVisible": false,
+            "minStraightSeconds": 0.0,
+            "scoreBase": 0.0,
+            "scoreSlope": 0.0,
+            "maxValiditySeconds": 0.0,
+            "minValiditySeconds": 2.0,
+            "euclidMultiplier": 1.5,
+            "maxYawDegrees": 0.0,
+            "yawPenalty": 0.0,
+            "scorePerContact": 0.5,
+            "packBonus": 0.0
+        },
+        {
+            "skillId": "push_projectile_hands",
+            "backlashSeverity": 0.30000001192092898,
+            "blockWhenGlobalVisible": false,
+            "minStraightSeconds": 0.0,
+            "scoreBase": 0.3499999940395355,
+            "scoreSlope": 0.6499999761581421,
+            "maxValiditySeconds": 0.0,
+            "minValiditySeconds": 0.0,
+            "euclidMultiplier": 1.5,
+            "maxYawDegrees": 110.0,
+            "yawPenalty": 0.5,
+            "scorePerContact": 0.0,
+            "packBonus": 0.0
+        },
+        {
+            "skillId": "reverseturn",
+            "backlashSeverity": 0.8999999761581421,
+            "blockWhenGlobalVisible": true,
+            "minStraightSeconds": 0.0,
+            "scoreBase": 0.0,
+            "scoreSlope": 0.0,
+            "maxValiditySeconds": 0.0,
+            "minValiditySeconds": 2.0,
+            "euclidMultiplier": 0.0,
+            "maxYawDegrees": 0.0,
+            "yawPenalty": 0.0,
+            "scorePerContact": 0.0,
+            "packBonus": 0.0
+        },
+        {
+            "skillId": "blackcurtain",
+            "backlashSeverity": 0.4000000059604645,
+            "blockWhenGlobalVisible": true,
+            "minStraightSeconds": 0.0,
+            "scoreBase": 0.0,
+            "scoreSlope": 0.0,
+            "maxValiditySeconds": 0.0,
+            "minValiditySeconds": 2.0,
+            "euclidMultiplier": 0.0,
+            "maxYawDegrees": 0.0,
+            "yawPenalty": 0.0,
+            "scorePerContact": 0.0,
+            "packBonus": 0.25
+        }
+    ],
+    "skillTunings": [
+        {
+            "profileId": "default",
+            "snapshotSeconds": 0.15000000596046449,
+            "situationHysteresisSeconds": 1.5,
+            "nearDistance": 60.0,
+            "farDistance": 300.0,
+            "trapDistance": 65.0,
+            "contactDistance": 35.0,
+            "handsDistance": 300.0,
+            "laneWidth": 14.0,
+            "straightCurvature": 0.0035000001080334188,
+            "cornerCurvature": 0.006000000052154064,
+            "keyMinSeconds": 0.20000000298023225,
+            "keyMaxSeconds": 0.30000001192092898,
+            "aimHorizonSeconds": 2.0,
+            "speedDropFraction": 0.20000000298023225,
+            "speedDropImpairSeconds": 0.5,
+            "speedDropMinSpeed": 5.0,
+            "straightLookaheadSeconds": 10.0,
+            "cornerLookaheadSeconds": 2.0,
+            "cornerValidityBase": 2.0,
+            "cornerValidityScale": 2.0,
+            "targetBonusImpaired": 2.0,
+            "targetBonusAhead": 1.0,
+            "targetBonusBehind": 1.0,
+            "targetBonusPackCentrePerNeighbour": 0.25,
+            "packMinNeighbours": 2,
+            "severeSeverityThreshold": 0.5,
+            "maxWindowSeconds": 6.0,
+            "minRelativeSpeed": 0.10000000149011612,
+            "maxElapsedSeconds": 1.0,
+            "maxComboRetries": 1
+        }
+    ],
+    "rosters": [
+        {
+            "slotIndex": 0,
+            "personalityId": "keeper",
+            "displayNameOverrideKey": ""
+        },
+        {
+            "slotIndex": 1,
+            "personalityId": "hunter",
+            "displayNameOverrideKey": ""
+        },
+        {
+            "slotIndex": 2,
+            "personalityId": "brawler",
+            "displayNameOverrideKey": ""
+        },
+        {
+            "slotIndex": 3,
+            "personalityId": "trickster",
+            "displayNameOverrideKey": ""
+        },
+        {
+            "slotIndex": 4,
+            "personalityId": "opportunist",
+            "displayNameOverrideKey": ""
+        }
+    ],
+    "modeRules": [
+        {
+            "modeId": "Online",
+            "autoStartRoom": false,
+            "requiresReady": true,
+            "selectionTimeoutEnabled": true,
+            "skipMapVote": false,
+            "voteOnResults": true,
+            "resultDecisionTimeoutEnabled": true,
+            "returnTarget": "Room",
+            "endWhenAllRacersFinished": false,
+            "endOnHumanFinish": false,
+            "allowSkipSpectating": false,
+            "allowQuitDialog": false,
+            "allowPause": false,
+            "showRacerNameTags": false,
+            "showOpponentsOnMinimap": false,
+            "defaultPlayerNameKey": "",
+            "pregameCountdownSeconds": 18,
+            "selectionStageSeconds": 60,
+            "postFirstFinishCountdownSeconds": 15.0,
+            "resultDecisionSeconds": 60,
+            "aiCount": 0,
+            "defaultDifficulty": ""
+        },
+        {
+            "modeId": "Solo",
+            "autoStartRoom": true,
+            "requiresReady": false,
+            "selectionTimeoutEnabled": false,
+            "skipMapVote": true,
+            "voteOnResults": false,
+            "resultDecisionTimeoutEnabled": false,
+            "returnTarget": "MainMenuHome",
+            "endWhenAllRacersFinished": true,
+            "endOnHumanFinish": false,
+            "allowSkipSpectating": false,
+            "allowQuitDialog": true,
+            "allowPause": false,
+            "showRacerNameTags": false,
+            "showOpponentsOnMinimap": false,
+            "defaultPlayerNameKey": "match.default_player_name",
+            "pregameCountdownSeconds": 18,
+            "selectionStageSeconds": 60,
+            "postFirstFinishCountdownSeconds": 15.0,
+            "resultDecisionSeconds": 60,
+            "aiCount": 5,
+            "defaultDifficulty": "Normal"
+        },
+        {
+            "modeId": "Practice",
+            "autoStartRoom": true,
+            "requiresReady": false,
+            "selectionTimeoutEnabled": false,
+            "skipMapVote": true,
+            "voteOnResults": false,
+            "resultDecisionTimeoutEnabled": false,
+            "returnTarget": "MainMenuHome",
+            "endWhenAllRacersFinished": true,
+            "endOnHumanFinish": true,
+            "allowSkipSpectating": false,
+            "allowQuitDialog": true,
+            "allowPause": false,
+            "showRacerNameTags": false,
+            "showOpponentsOnMinimap": false,
+            "defaultPlayerNameKey": "match.default_player_name",
+            "pregameCountdownSeconds": 18,
+            "selectionStageSeconds": 60,
+            "postFirstFinishCountdownSeconds": 15.0,
+            "resultDecisionSeconds": 60,
+            "aiCount": 0,
+            "defaultDifficulty": "Normal"
+        }
+    ],
+    "tracks": [
+        {
+            "trackId": "racemap",
+            "sceneName": "RaceMap",
+            "lapsToFinish": 3,
+            "crossCooldownSeconds": 0.5,
+            "maxProgressJumpWithoutCheckpoint01": 0.5,
+            "minForwardDot": 0.0,
+            "armDistanceMeters": 25.0,
+            "useSequentialCheckpoints": true,
+            "autoAdvanceSplineCheckpoints": false,
+            "requiredCheckpointCount": 3,
+            "fallbackCheckpointProgresses01": [
+                0.25,
+                0.5,
+                0.75
+            ],
+            "startPointTag": "StartingPoint",
+            "resultOverflowOffset": {
+                "x": 2.5,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "missingPlayerOffset": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -3.0
+            },
+            "minimapWorldMinX": -653.0,
+            "minimapWorldMaxX": 469.0,
+            "minimapWorldMinZ": -1038.0,
+            "minimapWorldMaxZ": 247.0,
+            "trackSplineSamples": 200
+        }
+    ],
+    "trackWrongWays": [
+        {
+            "trackId": "racemap",
+            "wrongWayWrapStartThreshold": 0.20000000298023225,
+            "wrongWayWrapEndThreshold": 0.800000011920929,
+            "wrongWayForwardDotThreshold": 0.0,
+            "wrongWayRecoveryLapProgressThreshold": 0.05000000074505806,
+            "wrongWayForceRespawnLapProgressThreshold": 0.8500000238418579,
+            "wrongWayRespawnLapProgress": 0.009999999776482582,
+            "wrongWayLap0RespawnLapProgress": 0.9900000095367432,
+            "startGraceSeconds": 0.3499999940395355
+        }
+    ],
+    "trackSpawns": [
+        {
+            "trackId": "racemap",
+            "order": 0,
+            "position": {
+                "x": -346.80999755859377,
+                "y": 3.299999952316284,
+                "z": -68.83000183105469
+            },
+            "rotationY": -109.70099639892578
+        },
+        {
+            "trackId": "racemap",
+            "order": 1,
+            "position": {
+                "x": -327.2300109863281,
+                "y": 3.299999952316284,
+                "z": -72.66999816894531
+            },
+            "rotationY": -108.43699645996094
+        },
+        {
+            "trackId": "racemap",
+            "order": 2,
+            "position": {
+                "x": -308.7699890136719,
+                "y": 3.299999952316284,
+                "z": -56.9900016784668
+            },
+            "rotationY": -113.05999755859375
+        },
+        {
+            "trackId": "racemap",
+            "order": 3,
+            "position": {
+                "x": -335.512451171875,
+                "y": 3.299999952316284,
+                "z": -64.78463745117188
+            },
+            "rotationY": -109.70099639892578
+        },
+        {
+            "trackId": "racemap",
+            "order": 4,
+            "position": {
+                "x": -315.9324645996094,
+                "y": 3.299999952316284,
+                "z": -68.62461853027344
+            },
+            "rotationY": -108.43699645996094
+        },
+        {
+            "trackId": "racemap",
+            "order": 5,
+            "position": {
+                "x": -297.472412109375,
+                "y": 3.299999952316284,
+                "z": -52.94462585449219
+            },
+            "rotationY": -113.05999755859375
+        }
+    ],
+    "trackCheckpoints": [
+        {
+            "trackId": "racemap",
+            "checkpointId": 1,
+            "position": {
+                "x": 107.9000015258789,
+                "y": 13.050000190734864,
+                "z": -540.0999755859375
+            },
+            "rotationY": 21.982999801635743,
+            "size": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+            }
+        },
+        {
+            "trackId": "racemap",
+            "checkpointId": 2,
+            "position": {
+                "x": -265.1000061035156,
+                "y": 13.050000190734864,
+                "z": -475.1000061035156
+            },
+            "rotationY": 21.982999801635743,
+            "size": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+            }
+        },
+        {
+            "trackId": "racemap",
+            "checkpointId": 3,
+            "position": {
+                "x": -297.3999938964844,
+                "y": 13.050000190734864,
+                "z": -52.900001525878909
+            },
+            "rotationY": -20.009000778198243,
+            "size": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+            }
+        }
+    ],
+    "trackResultAnchors": [
+        {
+            "trackId": "racemap",
+            "rank": 1,
+            "position": {
+                "x": 1493.199951171875,
+                "y": 4.400000095367432,
+                "z": -683.7999877929688
+            },
+            "rotationY": 180.0
+        },
+        {
+            "trackId": "racemap",
+            "rank": 2,
+            "position": {
+                "x": 1494.4000244140625,
+                "y": 4.400000095367432,
+                "z": -774.2000122070313
+            },
+            "rotationY": 2.0799999237060549
+        },
+        {
+            "trackId": "racemap",
+            "rank": 3,
+            "position": {
+                "x": 1539.800048828125,
+                "y": 4.400000095367432,
+                "z": -775.4000244140625
+            },
+            "rotationY": -17.805999755859376
+        },
+        {
+            "trackId": "racemap",
+            "rank": 4,
+            "position": {
+                "x": 1451.199951171875,
+                "y": 4.400000095367432,
+                "z": -775.4000244140625
+            },
+            "rotationY": 28.34000015258789
+        },
+        {
+            "trackId": "racemap",
+            "rank": 5,
+            "position": {
+                "x": 1462.300048828125,
+                "y": 4.400000095367432,
+                "z": -799.0999755859375
+            },
+            "rotationY": 16.363000869750978
+        },
+        {
+            "trackId": "racemap",
+            "rank": 6,
+            "position": {
+                "x": 1519.199951171875,
+                "y": 4.400000095367432,
+                "z": -803.9000244140625
+            },
+            "rotationY": -16.92799949645996
+        }
+    ],
+    "lobbies": [
+        {
+            "profileId": "default",
+            "maxPlayers": 6,
+            "defaultLobbyNameKey": "lobby.default_room_name",
+            "defaultVisibility": "Public",
+            "maxSearchResults": 20,
+            "clientConnectTimeoutSeconds": 30.0,
+            "hostStartTimeoutSeconds": 20.0,
+            "maxPlayerNameLength": 32
+        }
+    ],
+    "selectionStages": [
+        {
+            "stageKey": "skill_loadout",
+            "displayNameKey": "selection.stage.skill_loadout",
+            "selectionMode": "Multi"
+        }
+    ],
+    "selectionOptions": [],
+    "intros": [
+        {
+            "profileId": "default",
+            "fallbackIntroDurationSeconds": 3.0,
+            "introSpeedMetersPerSecond": 60.0,
+            "handoffLeadSeconds": 0.5,
+            "introLeadInSeconds": 1.0,
+            "randomizeSlots": true,
+            "deterministicShuffleSeed": 20260405
+        }
+    ],
+    "localizedTexts": [
+        {
+            "key": "skill.acceleration.name",
+            "zh": "神足通"
+        },
+        {
+            "key": "skill.acceleration.desc",
+            "zh": "加速自身一段时间"
+        },
+        {
+            "key": "skill.slowtrap.name",
+            "zh": "禅定缓流"
+        },
+        {
+            "key": "skill.slowtrap.desc",
+            "zh": "减速区域"
+        },
+        {
+            "key": "skill.blackcurtain.name",
+            "zh": "一念光明"
+        },
+        {
+            "key": "skill.blackcurtain.desc",
+            "zh": "触发黑幕效果"
+        },
+        {
+            "key": "skill.giant.name",
+            "zh": "法相金身"
+        },
+        {
+            "key": "skill.giant.desc",
+            "zh": "放大自身形态"
+        },
+        {
+            "key": "skill.push_projectile_hands.name",
+            "zh": "如来神掌"
+        },
+        {
+            "key": "skill.push_projectile_hands.desc",
+            "zh": "发射如来神掌"
+        },
+        {
+            "key": "skill.reverseturn.name",
+            "zh": "逆姻缘"
+        },
+        {
+            "key": "skill.reverseturn.desc",
+            "zh": "干扰转向输入"
+        },
+        {
+            "key": "skill.acceleration_anti.name",
+            "zh": "神足通（噬）"
+        },
+        {
+            "key": "skill.acceleration_anti.desc",
+            "zh": "神足通的反噬变体"
+        },
+        {
+            "key": "skill.slowtrap_anti.name",
+            "zh": "禅定缓流（噬）"
+        },
+        {
+            "key": "skill.slowtrap_anti.desc",
+            "zh": "禅定缓流的反噬变体"
+        },
+        {
+            "key": "skill.blackcurtain_anti.name",
+            "zh": "一念光明（噬）"
+        },
+        {
+            "key": "skill.blackcurtain_anti.desc",
+            "zh": "一念光明的反噬变体"
+        },
+        {
+            "key": "skill.giant_anti.name",
+            "zh": "法相金身（噬）"
+        },
+        {
+            "key": "skill.giant_anti.desc",
+            "zh": "法相金身的反噬变体"
+        },
+        {
+            "key": "skill.push_projectile_hands_anti.name",
+            "zh": "如来神掌（噬）"
+        },
+        {
+            "key": "skill.push_projectile_hands_anti.desc",
+            "zh": "如来神掌的反噬变体"
+        },
+        {
+            "key": "skill.reverseturn_anti.name",
+            "zh": "逆姻缘（噬）"
+        },
+        {
+            "key": "skill.reverseturn_anti.desc",
+            "zh": "逆姻缘的反噬变体"
+        },
+        {
+            "key": "ai.personality.keeper.name",
+            "zh": "P1 守位型"
+        },
+        {
+            "key": "ai.personality.hunter.name",
+            "zh": "P2 追猎型"
+        },
+        {
+            "key": "ai.personality.brawler.name",
+            "zh": "P3 车群型"
+        },
+        {
+            "key": "ai.personality.trickster.name",
+            "zh": "P4 干扰型"
+        },
+        {
+            "key": "ai.personality.opportunist.name",
+            "zh": "P5 机会型"
+        },
+        {
+            "key": "match.default_player_name",
+            "zh": "玩家"
+        },
+        {
+            "key": "lobby.default_room_name",
+            "zh": "My Room"
+        },
+        {
+            "key": "selection.stage.map",
+            "zh": "Map Selection"
+        },
+        {
+            "key": "selection.stage.skill_loadout",
+            "zh": "Skill Loadout Selection"
+        },
+        {
+            "key": "selection.stage.skin",
+            "zh": "Skin Selection"
+        },
+        {
+            "key": "selection.option.map_a.name",
+            "zh": "Map A"
+        },
+        {
+            "key": "selection.option.map_a.desc",
+            "zh": "Default placeholder map A."
+        },
+        {
+            "key": "selection.option.map_b.name",
+            "zh": "Map B"
+        },
+        {
+            "key": "selection.option.map_b.desc",
+            "zh": "Default placeholder map B."
+        },
+        {
+            "key": "selection.option.map_c.name",
+            "zh": "Map C"
+        },
+        {
+            "key": "selection.option.map_c.desc",
+            "zh": "Default placeholder map C."
+        },
+        {
+            "key": "selection.option.skin_a.name",
+            "zh": "Skin A"
+        },
+        {
+            "key": "selection.option.skin_a.desc",
+            "zh": "Default placeholder skin A."
+        },
+        {
+            "key": "selection.option.skin_b.name",
+            "zh": "Skin B"
+        },
+        {
+            "key": "selection.option.skin_b.desc",
+            "zh": "Default placeholder skin B."
+        },
+        {
+            "key": "selection.option.skin_c.name",
+            "zh": "Skin C"
+        },
+        {
+            "key": "selection.option.skin_c.desc",
+            "zh": "Default placeholder skin C."
+        },
+        {
+            "key": "racer.ai_fallback_prefix",
+            "zh": "AI "
+        },
+        {
+            "key": "racer.human_fallback",
+            "zh": "Player"
+        },
+        {
+            "key": "racer.online_human_prefix",
+            "zh": "Player "
+        },
+        {
+            "key": "menu.option.max_players.4",
+            "zh": "4"
+        },
+        {
+            "key": "menu.option.max_players.5",
+            "zh": "5"
+        },
+        {
+            "key": "menu.option.max_players.6",
+            "zh": "6"
+        },
+        {
+            "key": "menu.option.visibility.public",
+            "zh": "Public"
+        },
+        {
+            "key": "menu.option.visibility.friendsonly",
+            "zh": "FriendsOnly"
+        },
+        {
+            "key": "menu.option.visibility.private",
+            "zh": "Private"
+        },
+        {
+            "key": "ui.raceridentity.ai",
+            "zh": "AI "
+        },
+        {
+            "key": "ui.sessionlauncher.单机设置缺失",
+            "zh": "单机设置缺失。"
+        },
+        {
+            "key": "ui.sessionlauncher.主机地址为空",
+            "zh": "主机地址为空。"
+        },
+        {
+            "key": "ui.sessionlauncher.无法连接主机",
+            "zh": "无法连接主机。"
+        },
+        {
+            "key": "ui.sessionlauncher.无法启动本地服务器",
+            "zh": "无法启动本地服务器。"
+        },
+        {
+            "key": "ui.sessionlauncher.无法连接本地服务器",
+            "zh": "无法连接本地服务器。"
+        },
+        {
+            "key": "ui.sessionlauncher.传输层配置无效_需要_fishyfacepunch_yak_multipass",
+            "zh": "传输层配置无效：需要 FishyFacepunch + Yak Multipass。"
+        },
+        {
+            "key": "ui.sessionlauncher.传输层顺序无效",
+            "zh": "传输层顺序无效。"
+        },
+        {
+            "key": "ui.sessionlauncher.会话仍在运行或关闭中_请稍后重试",
+            "zh": "会话仍在运行或关闭中，请稍后重试。"
+        },
+        {
+            "key": "ui.sessionlauncher.连接超时_请重试",
+            "zh": "连接超时，请重试。"
+        },
+        {
+            "key": "ui.quitconfirmdialog.退出到主菜单",
+            "zh": "退出到主菜单？"
+        },
+        {
+            "key": "ui.quitconfirmdialog.本局进度不会保留_比赛仍在进行",
+            "zh": "本局进度不会保留。比赛仍在进行。"
+        },
+        {
+            "key": "ui.quitconfirmdialog.继续比赛",
+            "zh": "继续比赛"
+        },
+        {
+            "key": "ui.quitconfirmdialog.退出到主菜单_2",
+            "zh": "退出到主菜单"
+        },
+        {
+            "key": "ui.quitconfirmdialog.暂时无法退出_请取消后重试",
+            "zh": "暂时无法退出，请取消后重试。"
+        },
+        {
+            "key": "ui.quitconfirmdialog.正在返回主菜单",
+            "zh": "正在返回主菜单…"
+        },
+        {
+            "key": "ui.soloresultsview.practice_完成",
+            "zh": "Practice 完成"
+        },
+        {
+            "key": "ui.soloresultsview.再来一局",
+            "zh": "再来一局"
+        },
+        {
+            "key": "ui.soloresultsview.返回",
+            "zh": "返回"
+        },
+        {
+            "key": "ui.soloresultsview.暂时无法再来一局_可以返回主菜单",
+            "zh": "暂时无法再来一局，可以返回主菜单。"
+        },
+        {
+            "key": "ui.soloresultsview.正在进入选择",
+            "zh": "正在进入选择…"
+        },
+        {
+            "key": "ui.soloresultsview.比赛结果",
+            "zh": "比赛结果"
+        },
+        {
+            "key": "ui.soloresultsview.计时数据暂不可用",
+            "zh": "计时数据暂不可用"
+        },
+        {
+            "key": "ui.soloresultsview.总用时",
+            "zh": "总用时  "
+        },
+        {
+            "key": "ui.soloresultsview.完整圈速数据不可用",
+            "zh": "完整圈速数据不可用"
+        },
+        {
+            "key": "ui.soloresultsview.第_i_1_圈_formattime_result_lapseconds_i",
+            "zh": "第 {i + 1} 圈  {FormatTime(result.LapSeconds[i])}"
+        },
+        {
+            "key": "ui.soloresultsview.圈时",
+            "zh": "     圈时  "
+        },
+        {
+            "key": "ui.solosetuppanel.简单",
+            "zh": "简单"
+        },
+        {
+            "key": "ui.solosetuppanel.普通",
+            "zh": "普通"
+        },
+        {
+            "key": "ui.solosetuppanel.困难",
+            "zh": "困难"
+        },
+        {
+            "key": "ui.solosetuppanel.单人游戏",
+            "zh": "单人游戏"
+        },
+        {
+            "key": "ui.solosetuppanel.六人单人赛_玩家_5_ai",
+            "zh": "六人单人赛 · 玩家 + 5 AI"
+        },
+        {
+            "key": "ui.solosetuppanel.五种技能人格_固定配装",
+            "zh": "五种技能人格 · 固定配装"
+        },
+        {
+            "key": "ui.solosetuppanel.难度",
+            "zh": "难度"
+        },
+        {
+            "key": "ui.solosetuppanel.开始单人赛",
+            "zh": "开始单人赛"
+        },
+        {
+            "key": "ui.solosetuppanel.初始化尚未完成_请稍后重试",
+            "zh": "初始化尚未完成，请稍后重试。"
+        },
+        {
+            "key": "ui.solosetuppanel.启动失败_请重试",
+            "zh": "启动失败，请重试。"
+        },
+        {
+            "key": "ui.solouibootstrap.正在初始化",
+            "zh": "正在初始化…"
+        },
+        {
+            "key": "ui.leaderboardmanager.empty",
+            "zh": "(empty)"
+        },
+        {
+            "key": "ui.leaderboardmanager.finished_entry_finishorder",
+            "zh": " - Finished #{entry.FinishOrder}"
+        },
+        {
+            "key": "ui.leaderboardmanager.lap",
+            "zh": " - Lap "
+        },
+        {
+            "key": "ui.steamlobbymanager.my_room",
+            "zh": "My Room"
+        },
+        {
+            "key": "ui.steamlobbymanager.steam_is_not_initialized",
+            "zh": "Steam is not initialized."
+        },
+        {
+            "key": "ui.steamlobbymanager.already_in_a_lobby",
+            "zh": "Already in a lobby."
+        },
+        {
+            "key": "ui.steamlobbymanager.leaving_currentlobbyname",
+            "zh": "Leaving \\\"{CurrentLobbyName}\\\"..."
+        },
+        {
+            "key": "ui.steamlobbymanager.left_lobby",
+            "zh": "Left lobby."
+        },
+        {
+            "key": "ui.steamlobbymanager.creating_lobby_name",
+            "zh": "Creating lobby \\\"{name}\\\"..."
+        },
+        {
+            "key": "ui.steamlobbymanager.steammatchmaking_createlobbyasync_return",
+            "zh": "SteamMatchmaking.CreateLobbyAsync returned null (Steam error)."
+        },
+        {
+            "key": "ui.steamlobbymanager.lobby_created_name",
+            "zh": "Lobby created: {name}"
+        },
+        {
+            "key": "ui.steamlobbymanager.starting_host",
+            "zh": "Starting host..."
+        },
+        {
+            "key": "ui.steamlobbymanager.gamenetworkmanager_not_found",
+            "zh": "GameNetworkManager not found."
+        },
+        {
+            "key": "ui.steamlobbymanager.joining_lobby_steamid_value",
+            "zh": "Joining lobby {steamId.Value}..."
+        },
+        {
+            "key": "ui.steamlobbymanager.joinlobbyasync_steamid_value_returned_nu",
+            "zh": "JoinLobbyAsync({steamId.Value}) returned null – lobby may be full or gone."
+        },
+        {
+            "key": "ui.steamlobbymanager.lobby_steamid_value_is_invalid_or_missin",
+            "zh": "Lobby {steamId.Value} is invalid or missing host metadata."
+        },
+        {
+            "key": "ui.steamlobbymanager.prediction_protocol_mismatch_host_remote",
+            "zh": "Prediction protocol mismatch: host={remoteLabel}, you={PredictionProtocol.Version}. Both sides need a build with the same prediction protocol version."
+        },
+        {
+            "key": "ui.steamlobbymanager.joined_lobby_lobbyname",
+            "zh": "Joined lobby \\\"{lobbyName}\\\"."
+        },
+        {
+            "key": "ui.steamlobbymanager.connecting_to_host_hoststeamid",
+            "zh": "Connecting to host {hostSteamId}..."
+        },
+        {
+            "key": "ui.steamlobbymanager.refreshing_lobby_list",
+            "zh": "Refreshing lobby list..."
+        },
+        {
+            "key": "ui.steamlobbymanager.lobby_list_ready_list_count_found",
+            "zh": "Lobby list ready: {list.Count} found."
+        },
+        {
+            "key": "ui.steamlobbymanager.host_has_left_the_room",
+            "zh": "Host has left the room."
+        },
+        {
+            "key": "ui.steamlobbymanager.waiting_in_menu",
+            "zh": "Waiting in menu."
+        },
+        {
+            "key": "ui.steamlobbymanager.host_connection_started",
+            "zh": "Host connection started."
+        },
+        {
+            "key": "ui.steamlobbymanager.connected_to_host",
+            "zh": "Connected to host."
+        },
+        {
+            "key": "ui.steamlobbymanager.failed_to_connect_to_host",
+            "zh": "Failed to connect to host."
+        },
+        {
+            "key": "ui.steamlobbymanager.host_server_started",
+            "zh": "Host server started."
+        },
+        {
+            "key": "ui.roomroster.none",
+            "zh": "(none)"
+        },
+        {
+            "key": "ui.roomroster.player_playername_rolelabel_readylabel",
+            "zh": "{player.PlayerName} [{roleLabel}] [{readyLabel}]"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.duplicate_propertiesselectionmanager_det",
+            "zh": "Duplicate PropertiesSelectionManager detected; destroying duplicate instance."
+        },
+        {
+            "key": "ui.propertiesselectionmanager.skillloadoutstagekey_slotindex",
+            "zh": "{SkillLoadoutStageKey}_{slotIndex}"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.selection_submitted_player_caller_client",
+            "zh": "Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.all_required_selections_submitted_for_st",
+            "zh": "All required selections submitted for stage '{propertyKey}'. Advancing immediately."
+        },
+        {
+            "key": "ui.propertiesselectionmanager.stage_started_stagekey",
+            "zh": "Stage started: '{stageKey}'"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.resolved_match_scene_is_empty_or_scenema",
+            "zh": "Resolved match scene is empty or SceneManager missing."
+        },
+        {
+            "key": "ui.propertiesselectionmanager.loading_match_scene_resolvedmatchscenena",
+            "zh": "Loading match scene: {_resolvedMatchSceneName}"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.validated_skill_loadout_submission_for_p",
+            "zh": "Validated skill loadout submission for player={playerId}"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.skill_loadout_selection",
+            "zh": "Skill Loadout Selection"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.map_selection",
+            "zh": "Map Selection"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.map_a",
+            "zh": "Map A"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.default_placeholder_map_a",
+            "zh": "Default placeholder map A."
+        },
+        {
+            "key": "ui.propertiesselectionmanager.map_b",
+            "zh": "Map B"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.default_placeholder_map_b",
+            "zh": "Default placeholder map B."
+        },
+        {
+            "key": "ui.propertiesselectionmanager.map_c",
+            "zh": "Map C"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.default_placeholder_map_c",
+            "zh": "Default placeholder map C."
+        },
+        {
+            "key": "ui.propertiesselectionmanager.skin_selection",
+            "zh": "Skin Selection"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.skin_a",
+            "zh": "Skin A"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.default_placeholder_skin_a",
+            "zh": "Default placeholder skin A."
+        },
+        {
+            "key": "ui.propertiesselectionmanager.skin_b",
+            "zh": "Skin B"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.default_placeholder_skin_b",
+            "zh": "Default placeholder skin B."
+        },
+        {
+            "key": "ui.propertiesselectionmanager.skin_c",
+            "zh": "Skin C"
+        },
+        {
+            "key": "ui.propertiesselectionmanager.default_placeholder_skin_c",
+            "zh": "Default placeholder skin C."
+        },
+        {
+            "key": "ui.resultdecisionmanager.choice_caller_clientid_choice",
+            "zh": "choice:{caller.ClientId}:{choice}"
+        },
+        {
+            "key": "ui.resultdecisionmanager.decision_playername_choicelabel",
+            "zh": "{decision.PlayerName}: {choiceLabel}"
+        },
+        {
+            "key": "ui.resultdecisionmanager.disconnect_conn_clientid",
+            "zh": "disconnect:{conn.ClientId}"
+        },
+        {
+            "key": "ui.leaderboardtmpui.race_status_waiting_for_players",
+            "zh": "Race Status: Waiting for players..."
+        },
+        {
+            "key": "ui.leaderboardtmpui.race_status_starting_in_roomstatemanager",
+            "zh": "Race Status: Starting in {RoomStateManager.Instance.RaceCountdownSecondsRemaining}..."
+        },
+        {
+            "key": "ui.leaderboardtmpui.race_status_result_area",
+            "zh": "Race Status: Result Area"
+        },
+        {
+            "key": "ui.leaderboardtmpui.race_status_started",
+            "zh": "Race Status: Started"
+        },
+        {
+            "key": "ui.leaderboardtmpui.your_progress_local_player_not_found",
+            "zh": "Your Progress: (local player not found)"
+        },
+        {
+            "key": "ui.leaderboardtmpui.your_obsession_localobsession_current_0_",
+            "zh": "Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0}"
+        },
+        {
+            "key": "ui.leaderboardtmpui.backfire_chance_localobsession_currentba",
+            "zh": "Backfire Chance: {_localObsession.CurrentBackfireProbabilityPercent:0.0}%"
+        },
+        {
+            "key": "ui.leaderboardtmpui.gap_to_leader_localobsession_completiong",
+            "zh": "Gap To Leader: {_localObsession.CompletionGapToLeaderPercent:0.0}%"
+        },
+        {
+            "key": "ui.leaderboardtmpui.your_obsession_local_obsession_not_found",
+            "zh": "Your Obsession: (local obsession not found)"
+        },
+        {
+            "key": "ui.leaderboardtmpui.backfire_chance_local_obsession_not_foun",
+            "zh": "Backfire Chance: (local obsession not found)"
+        },
+        {
+            "key": "ui.leaderboardtmpui.gap_to_leader_local_obsession_not_found",
+            "zh": "Gap To Leader: (local obsession not found)"
+        },
+        {
+            "key": "ui.leaderboardtmpui.no_data",
+            "zh": "(no data)"
+        },
+        {
+            "key": "ui.leaderboardtmpui.i_1_entry_displayname_lap_entry_lap_entr",
+            "zh": "{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}"
+        },
+        {
+            "key": "ui.resultdecisionui.countdown",
+            "zh": "Countdown: --"
+        },
+        {
+            "key": "ui.resultdecisionui.waiting_for_resultdecisionmanager",
+            "zh": "Waiting for ResultDecisionManager..."
+        },
+        {
+            "key": "ui.resultdecisionui.next_decision_in_decisionmanager_remaini",
+            "zh": "Next Decision In: {_decisionManager.RemainingSeconds}s"
+        },
+        {
+            "key": "ui.resultdecisionui.all_players_agreed_starting_a_new_game",
+            "zh": "All players agreed. Starting a new game..."
+        },
+        {
+            "key": "ui.resultdecisionui.returning_everyone_to_the_room",
+            "zh": "Returning everyone to the room..."
+        },
+        {
+            "key": "ui.resultdecisionui.choose_whether_to_start_a_new_game_or_re",
+            "zh": "Choose whether to start a new game or return to the room."
+        },
+        {
+            "key": "ui.resultdecisionui.your_choice_localdecision_choice",
+            "zh": "Your Choice: {localDecision.Choice}"
+        },
+        {
+            "key": "ui.resultdecisionui.waiting_for_your_decision_state",
+            "zh": "Waiting for your decision state..."
+        },
+        {
+            "key": "ui.createroomui.steamlobbymanager_not_found",
+            "zh": "SteamLobbyManager not found."
+        },
+        {
+            "key": "ui.createroomui.creating_room",
+            "zh": "Creating room..."
+        },
+        {
+            "key": "ui.createroomui.room_created_lobby_id_value",
+            "zh": "Room created: {lobby.Id.Value}"
+        },
+        {
+            "key": "ui.createroomui.create_failed_reason",
+            "zh": "Create failed: {reason}"
+        },
+        {
+            "key": "ui.createroomui.friends_only",
+            "zh": "Friends Only"
+        },
+        {
+            "key": "ui.lobbybrowserlistitemui.unnamed_room",
+            "zh": "Unnamed Room"
+        },
+        {
+            "key": "ui.lobbybrowserlistitemui.data_currentplayers_data_maxplayers",
+            "zh": "{data.CurrentPlayers} / {data.MaxPlayers}"
+        },
+        {
+            "key": "ui.lobbybrowserlistitemui.host_data_hoststeamid",
+            "zh": "Host: {data.HostSteamId}"
+        },
+        {
+            "key": "ui.lobbybrowserlistitemui.lobby_id_data_lobbyid",
+            "zh": "Lobby ID: {data.LobbyId}"
+        },
+        {
+            "key": "ui.lobbybrowserui.no_rooms_loaded",
+            "zh": "No rooms loaded."
+        },
+        {
+            "key": "ui.lobbybrowserui.refreshing_rooms",
+            "zh": "Refreshing rooms..."
+        },
+        {
+            "key": "ui.lobbybrowserui.joining_room_lobbyid",
+            "zh": "Joining room {lobbyId}..."
+        },
+        {
+            "key": "ui.lobbybrowserui.no_joinable_rooms_found",
+            "zh": "No joinable rooms found."
+        },
+        {
+            "key": "ui.lobbybrowserui.found_lobbies_count_rooms",
+            "zh": "Found {lobbies.Count} rooms."
+        },
+        {
+            "key": "ui.lobbybrowserui.join_failed_reason",
+            "zh": "Join failed: {reason}"
+        },
+        {
+            "key": "ui.propertiesselectorui.properties_selector",
+            "zh": "Properties Selector"
+        },
+        {
+            "key": "ui.propertiesselectorui.waiting_for_propertiesselectionmanager",
+            "zh": "Waiting for PropertiesSelectionManager..."
+        },
+        {
+            "key": "ui.propertiesselectorui.loading_match",
+            "zh": "Loading Match"
+        },
+        {
+            "key": "ui.propertiesselectorui.loading_selectionmanager_resolvedmatchsc",
+            "zh": "Loading {_selectionManager.ResolvedMatchSceneName}..."
+        },
+        {
+            "key": "ui.propertiesselectorui.choose_skillloadout_slotcount_skills",
+            "zh": "Choose {SkillLoadout.SlotCount} skills"
+        },
+        {
+            "key": "ui.propertiesselectorui.step_selectionmanager_currentstageindex_",
+            "zh": "Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel}"
+        },
+        {
+            "key": "ui.propertiesselectorui.time_remaining_selectionmanager_stagecou",
+            "zh": "Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s"
+        },
+        {
+            "key": "ui.propertiesselectorui.syncing_stage_data",
+            "zh": "Syncing stage data"
+        },
+        {
+            "key": "ui.propertiesselectorui.waiting_for_host_stage_configuration",
+            "zh": "Waiting for host stage configuration..."
+        },
+        {
+            "key": "ui.propertiesselectorui.all_stages_complete",
+            "zh": "All stages complete"
+        },
+        {
+            "key": "ui.propertiesselectorui.waiting_to_enter_match",
+            "zh": "Waiting to enter match..."
+        },
+        {
+            "key": "ui.propertiesselectorui.resolved_map_mapoptionid",
+            "zh": "Resolved Map: {mapOptionId}"
+        },
+        {
+            "key": "ui.propertiesselectorui.resolved_map_pending",
+            "zh": "Resolved Map: pending"
+        },
+        {
+            "key": "ui.propertiesselectorui.everyone_is_voting_on_the_current_stage_",
+            "zh": "Everyone is voting on the current stage option."
+        },
+        {
+            "key": "ui.propertiesselectorui.only_the_host_can_choose_during_this_sta",
+            "zh": "Only the host can choose during this stage."
+        },
+        {
+            "key": "ui.propertiesselectorui.choose_all_desired_options_before_the_ti",
+            "zh": "Choose all desired options before the timer ends."
+        },
+        {
+            "key": "ui.propertiesselectorui.choose_all_desired_options",
+            "zh": "Choose all desired options."
+        },
+        {
+            "key": "ui.propertiesselectorui.each_player_chooses_one_option_before_th",
+            "zh": "Each player chooses one option before the timer ends."
+        },
+        {
+            "key": "ui.propertiesselectorui.each_player_chooses_one_option",
+            "zh": "Each player chooses one option."
+        },
+        {
+            "key": "ui.propertiesselectorui.no_active_stage",
+            "zh": "No active stage."
+        },
+        {
+            "key": "ui.propertiesselectorui.filledcount_skillloadout_slotcount_strin",
+            "zh": "{filledCount}/{SkillLoadout.SlotCount} [{string.Join("
+        },
+        {
+            "key": "ui.propertiesselectorui.names",
+            "zh": ", names)}]"
+        },
+        {
+            "key": "ui.propertiesselectorui.participant_playername_selectedoptionid",
+            "zh": "{participant.PlayerName}: {selectedOptionId}"
+        },
+        {
+            "key": "ui.propertiesselectorui.n",
+            "zh": "\\n"
+        },
+        {
+            "key": "ui.propertiesselectorui.no_players_connected",
+            "zh": "No players connected."
+        },
+        {
+            "key": "ui.propertycarouselview.focused_none",
+            "zh": "Focused: None"
+        },
+        {
+            "key": "ui.propertycarouselview.confirmed_none",
+            "zh": "Confirmed: None"
+        },
+        {
+            "key": "ui.propertycarouselview.confirmed_lastsubmittedoptionid",
+            "zh": "Confirmed: {_lastSubmittedOptionId}"
+        },
+        {
+            "key": "ui.propertycarouselview.focused_item_optionid_n_confirmedsuffix",
+            "zh": "Focused: {item.OptionId}\\n{confirmedSuffix}"
+        },
+        {
+            "key": "ui.propertycarouselview.votes_count",
+            "zh": "Votes: {count}"
+        },
+        {
+            "key": "ui.propertycarouselview.selected_count",
+            "zh": "Selected: {count}"
+        },
+        {
+            "key": "ui.propertygroupview.selected_getoptiondisplayname_localselec",
+            "zh": "Selected: {GetOptionDisplayName(localSelectedOptionId)}"
+        },
+        {
+            "key": "ui.propertygroupview.selected_none",
+            "zh": "Selected: None"
+        },
+        {
+            "key": "ui.propertygroupview.mode_vote",
+            "zh": "Mode: Vote"
+        },
+        {
+            "key": "ui.propertygroupview.mode_host_only",
+            "zh": "Mode: Host Only"
+        },
+        {
+            "key": "ui.propertygroupview.mode_multi_select",
+            "zh": "Mode: Multi Select"
+        },
+        {
+            "key": "ui.propertygroupview.mode_single_select",
+            "zh": "Mode: Single Select"
+        },
+        {
+            "key": "ui.propertygroupview.votes_selectedcount",
+            "zh": "Votes: {selectedCount}"
+        },
+        {
+            "key": "ui.propertygroupview.players_selectedcount",
+            "zh": "Players: {selectedCount}"
+        },
+        {
+            "key": "ui.roomplayerentryui.unknown_player",
+            "zh": "Unknown Player"
+        },
+        {
+            "key": "ui.roomui.opening_properties_selector",
+            "zh": "Opening Properties Selector..."
+        },
+        {
+            "key": "ui.roomui.room_lobby_id_value",
+            "zh": "Room #{lobby.Id.Value}"
+        },
+        {
+            "key": "ui.roomui.waiting_for_room_state_manager",
+            "zh": "Waiting for room state manager..."
+        },
+        {
+            "key": "ui.roomui.host_can_start_the_game",
+            "zh": "Host can start the game."
+        },
+        {
+            "key": "ui.roomui.waiting_for_players_to_get_ready",
+            "zh": "Waiting for players to get ready."
+        },
+        {
+            "key": "ui.roomui.waiting_for_host_to_start_the_game",
+            "zh": "Waiting for host to start the game."
+        },
+        {
+            "key": "ui.roomui.cancel_ready",
+            "zh": "Cancel Ready"
+        },
+        {
+            "key": "ui.skillinspectpanelui.esc_to_close",
+            "zh": "Esc to close"
+        },
+        {
+            "key": "ui.skillinspectableitem.inspect_skillid",
+            "zh": "Inspect_{SkillId}"
+        },
+        {
+            "key": "ui.skillwallitemview.skillwallitem_skillid",
+            "zh": "SkillWallItem_{_skillId}"
+        },
+        {
+            "key": "ui.skillwallselectioncontroller.ignored_select_request_for_unknown_skill",
+            "zh": "Ignored select request for unknown skill '{skillId}'."
+        },
+        {
+            "key": "ui.skillwallselectioncontroller.ignored_select_request_because_skillid_i",
+            "zh": "Ignored select request because '{skillId}' is already selected."
+        },
+        {
+            "key": "ui.skillwallselectioncontroller.ignored_select_request_because_all_skill",
+            "zh": "Ignored select request because all {SkillLoadout.SlotCount} slots are full."
+        },
+        {
+            "key": "ui.skillwallselectioncontroller.skipped_wall_build_because_required_refe",
+            "zh": "Skipped wall build because required references are missing."
+        },
+        {
+            "key": "ui.skillwallselectioncontroller.built_skill_wall_with_spawneditems_count",
+            "zh": "Built skill wall with {_spawnedItems.Count} selectable items."
+        },
+        {
+            "key": "ui.skillwallselectioncontroller.scenemanagerfound_hasscenemanager_spawne",
+            "zh": "sceneManagerFound={hasSceneManager}, spawned={isSpawned}, singletonNull={PropertiesSelectionManager.Instance == null}"
+        },
+        {
+            "key": "ui.static.lobby_id_input",
+            "zh": "Lobby Id Input"
+        },
+        {
+            "key": "ui.static.option_a",
+            "zh": "Option A"
+        },
+        {
+            "key": "ui.static.room_visibility",
+            "zh": "Room Visibility"
+        },
+        {
+            "key": "ui.static.max_player",
+            "zh": "Max Player"
+        },
+        {
+            "key": "ui.static.create",
+            "zh": "Create"
+        },
+        {
+            "key": "ui.static.create_room",
+            "zh": "Create Room"
+        },
+        {
+            "key": "ui.static.public",
+            "zh": "Public"
+        },
+        {
+            "key": "ui.static.room_name",
+            "zh": "Room Name"
+        },
+        {
+            "key": "ui.static.browse_rooms",
+            "zh": "Browse Rooms"
+        },
+        {
+            "key": "ui.static.ready",
+            "zh": "Ready"
+        },
+        {
+            "key": "ui.static.join_room",
+            "zh": "Join Room"
+        },
+        {
+            "key": "ui.static.enter_text",
+            "zh": "Enter text..."
+        },
+        {
+            "key": "ui.static.4",
+            "zh": "4"
+        },
+        {
+            "key": "ui.static.start_game",
+            "zh": "Start Game"
+        },
+        {
+            "key": "ui.static.return",
+            "zh": "Return"
+        },
+        {
+            "key": "ui.static.refresh",
+            "zh": "Refresh"
+        },
+        {
+            "key": "ui.static.back",
+            "zh": "Back"
+        },
+        {
+            "key": "ui.static.join",
+            "zh": "Join"
+        },
+        {
+            "key": "ui.static.playernum",
+            "zh": "PlayerNum:"
+        },
+        {
+            "key": "ui.static.leave_room",
+            "zh": "Leave Room"
+        },
+        {
+            "key": "ui.static.your_role",
+            "zh": "Your Role:"
+        },
+        {
+            "key": "ui.static.quit",
+            "zh": "Quit"
+        },
+        {
+            "key": "ui.static.pagetitletext",
+            "zh": "pageTitleText"
+        },
+        {
+            "key": "ui.static.技能描述文本",
+            "zh": "技能描述文本"
+        },
+        {
+            "key": "ui.static.confirm",
+            "zh": "Confirm"
+        },
+        {
+            "key": "ui.static.提示文本",
+            "zh": "提示文本"
+        },
+        {
+            "key": "ui.static.countdowntext",
+            "zh": "countdownText"
+        },
+        {
+            "key": "ui.static.resolvedmaptext",
+            "zh": "resolvedMapText"
+        },
+        {
+            "key": "ui.static.playersselectiontext",
+            "zh": "PlayersSelectionText"
+        },
+        {
+            "key": "ui.static.标题文本",
+            "zh": "标题文本"
+        },
+        {
+            "key": "ui.static.statustext",
+            "zh": "statusText"
+        },
+        {
+            "key": "ui.static.stagetitletext",
+            "zh": "StageTitleText"
+        },
+        {
+            "key": "ui.static.return_to_room",
+            "zh": "Return To Room"
+        },
+        {
+            "key": "ui.static.start_new_game",
+            "zh": "Start New Game"
+        },
+        {
+            "key": "ui.static.endmatch",
+            "zh": "EndMatch"
+        },
+        {
+            "key": "ui.static.player3",
+            "zh": "Player3"
+        },
+        {
+            "key": "ui.static.player2",
+            "zh": "Player2"
+        },
+        {
+            "key": "ui.static.player1",
+            "zh": "Player1"
+        },
+        {
+            "key": "ui.static.right",
+            "zh": "Right"
+        },
+        {
+            "key": "ui.static.left",
+            "zh": "Left"
+        },
+        {
+            "key": "ui.static.select",
+            "zh": "Select"
+        },
+        {
+            "key": "ui.static.hosttext",
+            "zh": "hostText"
+        },
+        {
+            "key": "ui.static.lobbyidtext",
+            "zh": "LobbyIdText"
+        }
+    ],
+    "menuOptions": [
+        {
+            "optionGroup": "max_players",
+            "index": 0,
+            "value": "4",
+            "labelKey": "menu.option.max_players.4",
+            "isDefault": true
+        },
+        {
+            "optionGroup": "max_players",
+            "index": 1,
+            "value": "5",
+            "labelKey": "menu.option.max_players.5",
+            "isDefault": false
+        },
+        {
+            "optionGroup": "max_players",
+            "index": 2,
+            "value": "6",
+            "labelKey": "menu.option.max_players.6",
+            "isDefault": false
+        },
+        {
+            "optionGroup": "visibility",
+            "index": 0,
+            "value": "Public",
+            "labelKey": "menu.option.visibility.public",
+            "isDefault": true
+        },
+        {
+            "optionGroup": "visibility",
+            "index": 1,
+            "value": "FriendsOnly",
+            "labelKey": "menu.option.visibility.friendsonly",
+            "isDefault": false
+        },
+        {
+            "optionGroup": "visibility",
+            "index": 2,
+            "value": "Private",
+            "labelKey": "menu.option.visibility.private",
+            "isDefault": false
+        }
+    ]
+}

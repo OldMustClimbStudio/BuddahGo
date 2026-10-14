@@ -1,11 +1,13 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>Reports cross-asset drift without applying values or changing runtime repositories.</summary>
+/// <summary>Reports drift between SkillAction assets and the design tables without applying values or changing runtime repositories.</summary>
 public static class SkillConfigCrossValidator
 {
     public static List<ProjectConfigValidationMessage> Validate(ProjectConfigDatabase config)
@@ -35,7 +37,7 @@ public static class SkillConfigCrossValidator
             Collect(database.antiSkills, actions, path, results);
             Collect(database.skills, actions, path, results);
 
-            foreach (string id in repository.Definitions.Keys)
+            foreach (string id in repository.Skills.Keys)
                 if (!actions.ContainsKey(id))
                     Add(results, ProjectConfigValidationSeverity.Warning, path,
                         "Config skill '" + id + "' has no action in this SkillDatabase.");
@@ -45,19 +47,21 @@ public static class SkillConfigCrossValidator
                 string id = pair.Key;
                 SkillAction action = pair.Value;
                 string context = path + " -> " + AssetDatabase.GetAssetPath(action);
-                if (!repository.TryGetDefinition(id, out _))
-                    Add(results, ProjectConfigValidationSeverity.Warning, context, "Action id '" + id + "' has no config definition.");
-                if (repository.TryGetBalance(id, out SkillBalanceRecord balance))
+                if (repository.TryGet(id, out SkillRecord row))
                 {
-                    Compare(results, context, "cooldownSeconds", action.cooldownSeconds, balance.cooldownSeconds);
-                    Compare(results, context, "castLockSeconds", action.castLockSeconds, balance.castLockSeconds);
-                    Compare(results, context, "obsessionGain", action.obsessionGain, balance.obsessionGain);
-                    if (!string.Equals((action.antiSkillId ?? string.Empty).Trim(), (balance.antiSkillId ?? string.Empty).Trim(), StringComparison.Ordinal))
+                    Compare(results, context, "cooldownSeconds", action.cooldownSeconds, row.cooldownSeconds);
+                    Compare(results, context, "castLockSeconds", action.castLockSeconds, row.castLockSeconds);
+                    if (!string.IsNullOrEmpty(row.antiSkillId) || !string.IsNullOrWhiteSpace(action.antiSkillId))
+                        Compare(results, context, "obsessionGain", action.obsessionGain, row.obsessionGain);
+                    if (!string.Equals((action.antiSkillId ?? string.Empty).Trim(), (row.antiSkillId ?? string.Empty).Trim(), StringComparison.Ordinal))
                         Add(results, ProjectConfigValidationSeverity.Warning, context,
-                            "antiSkillId differs: action='" + action.antiSkillId + "', config='" + balance.antiSkillId + "'. Config takes priority when nonempty.");
+                            "antiSkillId differs: action='" + action.antiSkillId + "', config='" + row.antiSkillId + "'. Config takes priority when nonempty.");
+                    string durationField = SkillDatabase.EffectDurationField(action);
+                    if (durationField != null && row.effectDurationSeconds > 0f)
+                        CompareField(results, context, action, durationField, row.effectDurationSeconds);
                 }
                 else
-                    Add(results, ProjectConfigValidationSeverity.Info, context, "No balance row; runtime uses SkillAction balance values.");
+                    Add(results, ProjectConfigValidationSeverity.Warning, context, "Action id '" + id + "' has no Skill row; runtime uses SkillAction balance values.");
 
                 string anti = string.Empty;
                 string layer = "none";
@@ -90,33 +94,80 @@ public static class SkillConfigCrossValidator
                         Add(results, ProjectConfigValidationSeverity.Warning, context,
                             "Declared vfxId '" + vfx.stringValue + "' has no valid library prefab. Check whether this action actually uses the field.");
                 }
-                if (config.skillEffectParams == null)
-                    continue;
-                foreach (SkillEffectParamRecord parameter in config.skillEffectParams)
-                {
-                    if (parameter == null || !string.Equals((parameter.skillId ?? string.Empty).Trim(), id, StringComparison.Ordinal))
-                        continue;
-                    SerializedProperty property = serializedAction.FindProperty((parameter.paramKey ?? string.Empty).Trim());
-                    if (property == null)
-                    {
-                        Add(results, ProjectConfigValidationSeverity.Warning, context,
-                            "Effect parameter '" + parameter.effectType + "/" + parameter.paramKey + "' has no same-name serialized field; no alias was assumed.");
-                        continue;
-                    }
-                    if (property.propertyType == SerializedPropertyType.Float || property.propertyType == SerializedPropertyType.Integer)
-                    {
-                        if (float.TryParse(parameter.paramValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float configuredNumber))
-                            Compare(results, context, parameter.paramKey,
-                                property.propertyType == SerializedPropertyType.Float ? property.floatValue : property.intValue, configuredNumber);
-                        else
-                            Add(results, ProjectConfigValidationSeverity.Warning, context, "Nonnumeric config value for '" + parameter.paramKey + "'.");
-                    }
-                    else if (property.propertyType == SerializedPropertyType.String && property.stringValue != parameter.paramValue)
-                        Add(results, ProjectConfigValidationSeverity.Warning, context, "String effect parameter differs: " + parameter.paramKey + ".");
-                }
+
+                // SkillEffect<Family> rows: every column with a same-name serialized field on this action is compared.
+                CompareFamily(results, context, action, id, config.skillEffectAccelerations);
+                CompareFamily(results, context, action, id, config.skillEffectSlowTraps);
+                CompareFamily(results, context, action, id, config.skillEffectBlackCurtains);
+                CompareFamily(results, context, action, id, config.skillEffectGiants);
+                // Skill/Push charged rows use the explicit mapping of SkillDatabase.
+                if (id == "push_projectile_hands")
+                    CompareMapped(results, context, action, Find(config.pushes, "charged"), SkillDatabase.PushChargedMap);
+                else if (id == "push_projectile_hands_anti")
+                    CompareMapped(results, context, action, Find(config.pushes, "charged_anti"), SkillDatabase.PushChargedAntiMap);
             }
         }
         return results;
+    }
+
+    private static PushRecord Find(List<PushRecord> rows, string pushId)
+    {
+        return rows == null ? null : rows.Find(r => r != null && r.pushId == pushId);
+    }
+
+    private static void CompareFamily(List<ProjectConfigValidationMessage> results, string context, SkillAction action, string id, IList rows)
+    {
+        if (rows == null)
+            return;
+        foreach (object row in rows)
+        {
+            if (row == null)
+                continue;
+            FieldInfo idField = row.GetType().GetField("skillId", BindingFlags.Public | BindingFlags.Instance);
+            if (idField == null || (idField.GetValue(row) as string ?? string.Empty).Trim() != id)
+                continue;
+            foreach (FieldInfo field in row.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (field.Name == "skillId")
+                    continue;
+                object value = field.GetValue(row);
+                if (value is float f)
+                    CompareField(results, context, action, field.Name, f);
+                else if (value is int n)
+                    CompareField(results, context, action, field.Name, n);
+            }
+        }
+    }
+
+    private static void CompareMapped(List<ProjectConfigValidationMessage> results, string context, SkillAction action, PushRecord row, string[] map)
+    {
+        if (row == null)
+            return;
+        foreach (string entry in map)
+        {
+            int eq = entry.IndexOf('=');
+            string source = eq > 0 ? entry.Substring(0, eq) : entry;
+            string target = eq > 0 ? entry.Substring(eq + 1) : entry;
+            FieldInfo field = typeof(PushRecord).GetField(source, BindingFlags.Public | BindingFlags.Instance);
+            object value = field != null ? field.GetValue(row) : null;
+            if (value is float f)
+                CompareField(results, context, action, target, f, "Push." + source);
+            else if (value is int n)
+                CompareField(results, context, action, target, n, "Push." + source);
+        }
+    }
+
+    /// <summary>Compare a serialized numeric field of the action with the table value; blank numeric cells (0) on a field the class lacks are skipped by FindProperty.</summary>
+    private static void CompareField(List<ProjectConfigValidationMessage> results, string context, SkillAction action, string fieldName, float configured, string label = null)
+    {
+        using var serializedAction = new SerializedObject(action);
+        SerializedProperty property = serializedAction.FindProperty(fieldName);
+        if (property == null)
+            return;
+        if (property.propertyType == SerializedPropertyType.Float)
+            Compare(results, context, label ?? fieldName, property.floatValue, configured);
+        else if (property.propertyType == SerializedPropertyType.Integer)
+            Compare(results, context, label ?? fieldName, property.intValue, configured);
     }
 
     private static void Collect(List<SkillAction> source, Dictionary<string, SkillAction> actions,

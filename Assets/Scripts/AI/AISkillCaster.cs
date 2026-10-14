@@ -133,7 +133,7 @@ namespace BuddahGo.AI
                 if (tick >= Commitment.Deadline) { Cancel("opportunity-expired"); return; }
                 bool wasActive = Commitment.Active;
                 if (Commitment.NextKey(tick, delta, _tuning.KeyMinSeconds, _tuning.KeyMaxSeconds, _combo.StepWindowSeconds,
-                    Difficulty.KeyMistakeProbability, _keyRandom, out var key))
+                    Difficulty.KeyMistakeProbability, _keyRandom, out var key, _tuning.MaxComboRetries))
                 {
                     Telemetry.Keys++;
                     Emit("key", key == ComboSkillInput.Token.W ? "W" : "Up", Commitment.Slot);
@@ -156,7 +156,7 @@ namespace BuddahGo.AI
 
         private void Decide(AISkillSnapshot frame, int self, uint tick, float delta)
         {
-            float elapsed = _lastDecision == 0 ? Difficulty.DecisionSeconds : Mathf.Min(1f, (tick - _lastDecision) * delta);
+            float elapsed = _lastDecision == 0 ? Difficulty.DecisionSeconds : Mathf.Min(_tuning.MaxElapsedSeconds, (tick - _lastDecision) * delta);
             _lastDecision = tick; _nextDecision = tick + AISkillCommitment.SecondsToTicks(Difficulty.DecisionSeconds, delta);
             UpdateSituation(AISkillDecision.Situation(frame, self, _tuning), tick, delta);
             float age = (tick - frame.Tick) * delta;

@@ -40,6 +40,10 @@ namespace SteamMultiplayer.Network.Results
 
         private void Awake()
         {
+            // Match/ModeRule owns the result vote duration.
+            ModeRuleRecord mode = DesignTableOverlay.CurrentModeRule();
+            if (mode != null && mode.resultDecisionSeconds > 0)
+                decisionDurationSeconds = mode.resultDecisionSeconds;
             if (Instance != null && Instance != this)
             {
                 Debug.LogWarning("[ResultDecisionManager] Duplicate instance detected during Awake. Keeping scene NetworkObject alive and allowing network lifecycle to resolve the active instance.");

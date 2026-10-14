@@ -1,0 +1,9 @@
+##var,personalityId,displayNameKey,slot0SkillId,slot1SkillId,slot2SkillId,slot0Weight,slot1Weight,slot2Weight,patience,tempoSeconds,target,impairedTargetMultiplier,handsShots
+##type,string#key,string#ref=UI/Text.key,string#ref=Skill/Skill.skillId,string#ref=Skill/Skill.skillId,string#ref=Skill/Skill.skillId,"float#range=0,1.5","float#range=0,1.5","float#range=0,1.5","float#range=0,0.6","float#range=0.5,4",enum:AISkillTargetPreference,"float#range=1,2","int#range=0,6"
+##group,,,,,,,,,,,,,
+##comment,,产品中的 AI 显示名,,,四键招,第 1 槽技能的选择权重,第 2 槽技能的选择权重,第 3 槽技能的选择权重,θ,τ,,,
+,keeper,ai.personality.keeper.name,slowtrap,acceleration,giant,1.3,1,0.8,0.25,1.5,Behind,1,0
+,hunter,ai.personality.hunter.name,push_projectile_hands,acceleration,reverseturn,1.3,1,0.9,0.25,1.2,Ahead,1,4
+,brawler,ai.personality.brawler.name,giant,push_projectile_hands,slowtrap,1.3,0.9,1,0.3,1,PackCentre,1,3
+,trickster,ai.personality.trickster.name,reverseturn,blackcurtain,slowtrap,1.2,1.2,0.8,0.3,2,EnteringCorner,1,0
+,opportunist,ai.personality.opportunist.name,acceleration,push_projectile_hands,blackcurtain,1.2,1,0.8,0.35,1.5,Impaired,1.6,2

@@ -1,0 +1,5 @@
+##var,ruleKey,ruleSetId,ruleValue,description,valueType,consumer
+##type,string#key,string#key,string,string,string,string
+##group,,,,doc,doc,doc
+##comment,snake_case,空=default,,说明，只记录,校验用,读取方
+,target_frame_rate,default,120,须为 tick_rate 整数倍,int,FrameRateLock.cs:9

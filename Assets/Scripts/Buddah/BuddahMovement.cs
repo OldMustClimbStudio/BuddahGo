@@ -72,6 +72,11 @@ public class BuddahMovement : NetworkBehaviour
     private void Awake()
     {
         PlayerRegistry.Register(this);
+        // Movement/Movement owns the launch timings that the prediction handoff still reads from here (explicit mapping:
+        // the legacy locomotion fields on this component must not be overwritten by the V2 motor values).
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+            DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.Single(db.movements, null), "launchInheritSeconds=launchInheritTime", "launchBlendSeconds=launchBlendTime");
         inputActions = new InputSystem_Actions();
         movementAction = inputActions.Player.Movement;
         _playerInputSource = new PlayerBuddahInputSource(movementAction);

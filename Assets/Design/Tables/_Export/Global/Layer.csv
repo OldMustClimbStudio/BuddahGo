@@ -1,0 +1,13 @@
+##var,index,name,usedBy
+##type,int#key,string,string
+##group,,,doc
+##comment,,,
+,0,Default,
+,1,TransparentFX,
+,2,Ignore Raycast,
+,4,Water,
+,5,UI,
+,6,Buddah,Buddah.prefab 根
+,7,BlackCurtainTrail,拖尾子物体
+,8,TrackEdge,Events.cs:750 GetMask
+,9,RollbackBoundingBox,Events.cs:750 GetMask

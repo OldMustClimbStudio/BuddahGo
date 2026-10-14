@@ -1,0 +1,5 @@
+##var,profileId,inputWindowSeconds,maxBuffer
+##type,string#key,"float#range=0.05,2","int#range=1,16"
+##group,,,
+##comment,,连续按键最大间隔，超时清空缓冲（ComboSkillInput.stepWindowSeconds）,搓招输入缓冲长度（ComboSkillInput.maxBuffer）
+,default,0.35,6

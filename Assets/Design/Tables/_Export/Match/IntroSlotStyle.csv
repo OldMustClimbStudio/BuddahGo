@@ -1,0 +1,5 @@
+##var,styleId,yawScale,rollScale,swayAmplitude,swayFrequency,arcLengthSamples
+##type,string#key,float,float,float,float,int
+##group,,,,,,adv
+##comment,,,,,,SplineIntroPath
+,default,0.75,10,0.06,3.5,2048

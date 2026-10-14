@@ -1,0 +1,7 @@
+##var,modeId,autoStartRoom,requiresReady,selectionTimeoutEnabled,skipMapVote,voteOnResults,resultDecisionTimeoutEnabled,returnTarget,endWhenAllRacersFinished,endOnHumanFinish,allowSkipSpectating,allowQuitDialog,allowPause,showRacerNameTags,showOpponentsOnMinimap,defaultPlayerNameKey,pregameCountdownSeconds,selectionStageSeconds,postFirstFinishCountdownSeconds,resultDecisionSeconds,aiCount,defaultDifficulty,minPlayersToStart,hostAutoReady
+##type,enum:MatchMode#key,bool,bool,bool,bool,bool,bool,enum:ReturnTarget,bool,bool,bool,bool,bool,bool,bool,string#ref=UI/Text.key,int,int,float,int,"int#range=0,5",enum:SoloDifficulty,int,bool
+##group,,,,,,,,,,,,,,,,,,,,,,,doc,doc
+##comment,Online / Solo / Practice,,RoomStateManager 每局开始时读取：是否所有客户端准备后主机才能开始,,,,,,,,占位：经 IMatchRules 暴露，游戏内尚无读取方（S6/S7）,,占位：经 IMatchRules 暴露，游戏内尚无读取方（S6/S7）,占位：经 IMatchRules 暴露，游戏内尚无读取方（S6/S7）,占位：经 IMatchRules 暴露，游戏内尚无读取方（S6/S7）,,RoomStateManager prefab,PropertiesSelectionManager 场景,RaceFinishManager 场景,ResultDecisionManager 场景,Solo 固定 5,单人设置面板的默认难度（SoloSetupPanel；原 RacerNaming.defaultDifficulty）,无读取方，只记录（开局门槛由 requiresReady 与准备状态决定）,无读取方，只记录
+,Online,false,true,true,false,true,true,Room,false,false,false,false,false,false,false,,18,60,15,60,0,,1,true
+,Solo,true,false,false,true,false,false,MainMenuHome,true,false,false,true,false,false,false,match.default_player_name,18,60,15,60,5,Normal,1,true
+,Practice,true,false,false,true,false,false,MainMenuHome,true,true,false,true,false,false,false,match.default_player_name,18,60,15,60,0,Normal,1,true

@@ -79,6 +79,13 @@ public class MiniMapController : MonoBehaviour
 
     private void OnEnable()
     {
+        // Match/Track owns the minimap world bounds for the current track.
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        if (db != null)
+        {
+            DesignTableOverlay.Apply(this, DesignTableOverlay.CurrentTrack(this),
+                "minimapWorldMinX=worldMinX", "minimapWorldMaxX=worldMaxX", "minimapWorldMinZ=worldMinZ", "minimapWorldMaxZ=worldMaxZ");
+        }
         TryBindPlayer("OnEnable");
     }
 

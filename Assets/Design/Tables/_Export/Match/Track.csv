@@ -1,0 +1,5 @@
+##var,trackId,sceneName,lapsToFinish,crossCooldownSeconds,maxProgressJumpWithoutCheckpoint01,minForwardDot,armDistanceMeters,useSequentialCheckpoints,autoAdvanceSplineCheckpoints,requiredCheckpointCount,fallbackCheckpointProgresses01,startPointTag,resultOverflowOffset,missingPlayerOffset,minimapWorldMinX,minimapWorldMaxX,minimapWorldMinZ,minimapWorldMaxZ,trackSplineSamples,minimapSpritePath,minimapImageWidth
+##type,string#key,string#ref=Global/Scene.sceneName,int,float,float,float,float,bool,bool,int,"list,float#sep=|",string#ref=Global/Tag.name,vector3,vector3,float,float,float,float,int,string#path,float
+##group,,,,,,,,,,,,,,,,,,,adv,doc,doc
+##comment,,,完赛圈数（RaceFinishManager 与 LapProgress 共用，唯一来源）,minimumCrossingCooldownSeconds,,,minimumWorldDistanceFromStartToArmLap,,,须等于 TrackCheckpoint 行数,,,,,,,,,TrackSplineRef.samples 弧长表分辨率（场景值为兜底）,资源引用留在 prefab，只记录,只记录（MiniMapController 按 RectTransform 实际尺寸计算）
+,racemap,RaceMap,3,0.5,0.5,0,25,true,false,3,0.25|0.5|0.75,StartingPoint,"2.5,0,0","0,0,-3",-653,469,-1038,247,200,Assets/UI/UI资源/地图UI-PNG/地图 1.png,1120

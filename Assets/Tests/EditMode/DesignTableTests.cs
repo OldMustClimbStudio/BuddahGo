@@ -11,6 +11,20 @@ namespace BuddahGo.Tests
     {
         private const string SkillWorkbook = DesignTableSet.TablesRoot + "/Skill/Skill.xlsx";
 
+        /// <summary>Numeric cell of the row whose key column equals keyValue; keeps the tests free of design numbers.</summary>
+        private static float Cell(DesignTableSet set, string workbook, string sheet, string keyVar, string keyValue, string var)
+        {
+            DesignSheet s = set.Find(workbook, sheet);
+            Assert.IsNotNull(s, workbook + "/" + sheet + " missing");
+            ColumnSpec key = s.FindColumn(keyVar), column = s.FindColumn(var);
+            Assert.IsNotNull(column, sheet + "." + var + " missing");
+            foreach (DataRow row in s.Rows)
+                if (s.Cell(row, key).Trim() == keyValue)
+                    return ValueConverter.ToFloat(s.Cell(row, column));
+            Assert.Fail("row '" + keyValue + "' not found in " + workbook + "/" + sheet);
+            return 0f;
+        }
+
         [Test]
         public void XlsxReader_ReadsSheetsAndHeaderMarkers()
         {
@@ -126,36 +140,39 @@ namespace BuddahGo.Tests
                 SkillRecord acceleration = db.skills.Find(r => r.skillId == "acceleration");
                 Assert.AreEqual("skill.acceleration.name", acceleration.displayNameKey);
                 Assert.AreEqual("神足通", db.localizedTexts.Find(t => t.key == acceleration.displayNameKey).zh, "display text lives in UI/Text");
-                Assert.AreEqual(12f, db.skills.Find(r => r.skillId == "push_projectile_hands").cooldownSeconds, "effective config value, not the SO value");
-                Assert.AreEqual(1f, acceleration.castConfirmDelaySeconds);
-                Assert.AreEqual(10f, acceleration.effectDurationSeconds, "primary duration moved into Skill");
+                // Numeric checks compare the database with the sheet cell, never with a literal: designers change these numbers.
+                DesignTableSet set = DesignTableSet.Load();
+                Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", "push_projectile_hands", "cooldownSeconds"), db.skills.Find(r => r.skillId == "push_projectile_hands").cooldownSeconds, "Skill row value, not the SO value");
+                Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", "acceleration", "castConfirmDelaySeconds"), acceleration.castConfirmDelaySeconds);
+                Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", "acceleration", "effectDurationSeconds"), acceleration.effectDurationSeconds, "primary duration lives in Skill");
+                Assert.Greater(acceleration.effectDurationSeconds, 0f);
                 Assert.AreEqual(0f, db.skills.Find(r => r.skillId == "blackcurtain_anti").obsessionGain, "anti rows carry no obsession gain (A6)");
                 Assert.AreEqual("blackcurtain_anti", db.skills.Find(r => r.skillId == "blackcurtain").antiSkillId, "renamed anti id (A5)");
                 Assert.AreEqual(2, db.skillEffectGiants.Count);
-                Assert.AreEqual(4f, db.skillEffectGiants.Find(r => r.skillId == "giant").scaleMultiplier);
+                Assert.AreEqual(Cell(set, "Skill", "SkillEffectGiant", "skillId", "giant", "scaleMultiplier"), db.skillEffectGiants.Find(r => r.skillId == "giant").scaleMultiplier);
                 Assert.AreEqual(3, db.pushes.Count);
-                Assert.AreEqual(600f, db.pushes.Find(r => r.pushId == "charged").speed);
-                Assert.AreEqual(6, db.comboInputs[0].maxBuffer);
+                Assert.AreEqual(Cell(set, "Skill", "Push", "pushId", "charged", "speed"), db.pushes.Find(r => r.pushId == "charged").speed);
+                Assert.AreEqual((int)Cell(set, "Skill", "ComboInput", "profileId", "default", "maxBuffer"), db.comboInputs[0].maxBuffer);
                 Assert.AreEqual(3, db.drivingTiers.Count);
-                Assert.AreEqual(90f, db.drivingTiers.Find(r => r.difficulty == "Hard").maxThrustAngleDegrees, "camelCase headers");
-                Assert.AreEqual(80f, db.drivingTunings[0].targetSpeedMax, "DrivingGlobal read keys became DrivingTuning");
+                Assert.AreEqual(Cell(set, "AI", "DrivingTier", "difficulty", "Hard", "maxThrustAngleDegrees"), db.drivingTiers.Find(r => r.difficulty == "Hard").maxThrustAngleDegrees, "camelCase headers");
+                Assert.AreEqual(Cell(set, "AI", "DrivingTuning", "profileId", "default", "targetSpeedMax"), db.drivingTunings[0].targetSpeedMax, "DrivingGlobal read keys became DrivingTuning");
                 Assert.AreEqual(5, db.personalities.Count);
-                Assert.AreEqual(1.3f, db.personalities.Find(p => p.personalityId == "keeper").slot0Weight, "weights live on the loadout slots");
-                Assert.AreEqual(0.3f, db.skillTunings[0].keyMaxSeconds, "SkillGlobal became a one-row SkillTuning");
-                Assert.AreEqual(6, db.skillDifficulties.Find(d => d.difficulty == "Normal").impairedDrivingReactionTicks, "driving impairment split from skill impairment");
+                Assert.AreEqual(Cell(set, "AI", "Personality", "personalityId", "keeper", "slot0Weight"), db.personalities.Find(p => p.personalityId == "keeper").slot0Weight, "weights live on the loadout slots");
+                Assert.AreEqual(Cell(set, "AI", "SkillTuning", "profileId", "default", "keyMaxSeconds"), db.skillTunings[0].keyMaxSeconds, "SkillGlobal became a one-row SkillTuning");
+                Assert.AreEqual((int)Cell(set, "AI", "SkillDifficulty", "difficulty", "Normal", "impairedDrivingReactionTicks"), db.skillDifficulties.Find(d => d.difficulty == "Normal").impairedDrivingReactionTicks, "driving impairment split from skill impairment");
                 Assert.AreEqual(3, db.comboBindings.Count);
                 Assert.AreEqual(4, db.comboBindings[2].sequence.Count);
-                Assert.AreEqual(1000f, db.obsessions[0].maxValue);
+                Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "maxValue"), db.obsessions[0].maxValue);
                 Assert.AreEqual(3, db.modeRules.Count);
                 Assert.AreEqual("Normal", db.modeRules.Find(m => m.modeId == "Solo").defaultDifficulty, "RacerNaming.defaultDifficulty moved onto ModeRule");
                 Assert.AreEqual(1, db.selectionStages.Count, "map / skin placeholder stages are commented out with ##");
                 Assert.AreEqual(0, db.selectionOptions.Count, "placeholder options are commented out with ##");
                 Assert.AreEqual(6, db.trackSpawns.Count);
                 Assert.AreEqual(1, db.movements.Count);
-                Assert.AreEqual(0.25f, db.movements[0].pushGraceSeconds, "PushReaction merged into Movement");
-                Assert.AreEqual(0.2f, db.movements[0].launchInheritSeconds, "LaunchHandoff merged into Movement");
+                Assert.AreEqual(Cell(set, "Movement", "Movement", "profileId", "default", "pushGraceSeconds"), db.movements[0].pushGraceSeconds, "PushReaction merged into Movement");
+                Assert.AreEqual(Cell(set, "Movement", "Movement", "profileId", "default", "launchInheritSeconds"), db.movements[0].launchInheritSeconds, "LaunchHandoff merged into Movement");
                 Assert.AreEqual(1, db.respawns.Count);
-                Assert.AreEqual(3, db.tracks[0].requiredCheckpointCount, "LapRule merged into Track");
+                Assert.AreEqual((int)Cell(set, "Match", "Track", "trackId", "racemap", "requiredCheckpointCount"), db.tracks[0].requiredCheckpointCount, "LapRule merged into Track");
                 Assert.AreEqual(1, db.trackWrongWays.Count);
                 Assert.Greater(db.localizedTexts.Count, 200);
                 Assert.IsTrue(db.globalRules.Exists(r => r.ruleKey == "target_frame_rate"));

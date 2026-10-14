@@ -214,8 +214,20 @@ namespace BuddahGo.DesignTables
                 case "e":
                     return string.Empty;
                 default:
-                    return v ?? inline ?? string.Empty;
+                    return v != null ? NormalizeNumber(v) : inline ?? string.Empty;
             }
+        }
+
+        /// <summary>
+        /// Excel stores edited numbers with binary noise ("8.0000000000000002E-3" for 0.008). Round-trip them through
+        /// double with 15 significant digits so validation, mapping and the CSV mirror see "0.008" and the mirror diff
+        /// only shows cells the designer actually changed.
+        /// </summary>
+        private static string NormalizeNumber(string v)
+        {
+            if (v.Length == 0 || (v.IndexOf('.') < 0 && v.IndexOf('E') < 0 && v.IndexOf('e') < 0))
+                return v;
+            return double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out double d) ? d.ToString("G15", CultureInfo.InvariantCulture) : v;
         }
 
         /// <summary>"B7" → 1, "AA3" → 26.</summary>

@@ -79,4 +79,5 @@ Assets/Adobe/Substance3DForUnity/Runtime/Plugins/Temp.meta
 
 # Excel lock/temp files
 ~$*.xlsx
+~$*.xlsx.meta
 *.xlsx#

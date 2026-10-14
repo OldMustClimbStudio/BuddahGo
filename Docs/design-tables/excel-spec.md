@@ -126,8 +126,8 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 | Skill | Skill（身份 + 冷却/锁定/前摇 + 执念 + 主效果时长）、SkillEffectAcceleration、SkillEffectSlowTrap、SkillEffectBlackCurtain、SkillEffectGiant、Push（basic / charged / charged_anti）、SkillSelectionRule、DefaultLoadout、ComboInput、ComboBinding、Obsession | SkillPresentation、VfxRegistry、FeelEvent、BlackCurtainPresentation、SkillConstant（代码 / prefab 常量） |
 | Movement | Movement（运动 + 受击宽限 + 起跑交接）、Respawn | ModifierRule、Camera、RacerVisual、SplineTracking |
 | AI | DrivingTier、DrivingTuning、SkillDifficulty、Personality（含三槽权重）、PersonalitySituationBias、SkillOpportunity、SkillTuning、Roster | DrivingConstant |
-| Match | ModeRule、Track（含圈数与圈规则）、TrackWrongWay、TrackSpawn、TrackCheckpoint、TrackResultAnchor、Lobby、ResultVoteRule、SelectionStage、SelectionOption、Intro（唯一的 handoffLeadSeconds）、IntroLayout | ResultPresentation、IntroSlotStyle |
-| UI | Text、MenuOption、SkillIcon | HudObsession、UiTiming、MiniMap |
+| Match | ModeRule、Track（含圈数与圈规则）、TrackWrongWay、TrackSpawn、TrackCheckpoint、TrackResultAnchor、Lobby、SelectionStage、SelectionOption、Intro（唯一的 handoffLeadSeconds） | ResultVoteRule、ResultPresentation、IntroLayout、IntroSlotStyle |
+| UI | Text、MenuOption | SkillIcon、HudObsession、UiTiming、MiniMap |
 | Global | GlobalRule | StructuralConstant、GlobalPhysics、PhysicsMaterial、Tag、Layer、Scene、InputBinding、Timeline、`__enums__`、`__meta__` |
 
 手写记录类只剩 SkillSelectionRuleRecord、DefaultLoadoutRecord、GlobalRuleRecord；其余（含 SkillRecord）由 `gen_records.py` 从表头生成，`__meta__` 的 recordClass 列记录来源。技能家族表的普通与反噬各一行，空格表示该行的技能类没有这个字段；ReverseTurn 与 ProjectileHands 没有家族表（主时长在 Skill，弹道参数在 Push，其余是代码常量，见 SkillConstant）。
@@ -152,7 +152,7 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 | 菜单 | `Tools/Design Tables/Import Changed` | 按文件哈希只导入变化的工作簿（日常用） |
 | 菜单 | `Import All (Force)` / `Validate Only` / `Open Report` / `Open Tables Folder` | 全量导入、只校验、打开报告与目录 |
 | 菜单 | `Import Tag/balance|info|text|track|skill|movement|ai|match|ui|global` | 只推送带该 tag 的 sheet（忽略哈希） |
-| CLI | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit [-designForce] [-designTags skill,ai]` | 退出码 0/1；不带参数时按哈希增量导入；`ValidateOnly` 只校验 |
+| CLI | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit [-designForce] [-designTags skill,ai]` | 退出码 0/1；不带参数时按哈希增量导入；`ValidateOnly` 只校验；`ProbeAutoImport` 验证"保存 → 资源导入回调 → 自动导表"这条路 |
 | 记录类生成 | `python Tools/design-tables/gen_records.py .` | 表头或 `scope.json`（范围、tags）改动后运行，再让 Unity 重新编译 |
 | 基线重建 | `python Tools/design-tables/build_tables.py . <out>` | 从工程实际值反向生成工作簿，仅建基线用 |
 
@@ -177,19 +177,21 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 | Push | basic 行 → BuddahHandControl（`PushBasicMap` 显式映射）；charged / charged_anti 行 → Skill_PushProjectileHands(_Anti)（`SkillDatabase.PushChargedMap / PushChargedAntiMap`） |
 | ComboInput / ComboBinding / Obsession | ComboSkillInput（窗口与缓冲 + 绑定）/ ObsessionFigure |
 | SkillSelectionRule / DefaultLoadout / GlobalRule | 原有仓库；target_frame_rate 由 FrameRateLock 读取 |
-| Movement | BuddahPredictedMotorConfig（同名覆盖，含 Rigidbody 质量阻尼、受击宽限、交接地面探测）；BuddahMovement 起跑时序与 RaceBodyIntroStateController 速度采样间隔用显式映射 |
+| Movement | BuddahPredictedMotorConfig（同名覆盖，含 Rigidbody 质量阻尼、实体胶囊半径/高度/中心、受击宽限、交接地面探测）；BuddahMovement 起跑时序与 RaceBodyIntroStateController 速度采样间隔用显式映射 |
 | Respawn | BuddahRespawn |
 | DrivingTier / DrivingTuning | AIDifficultyProfiles.Resolve（档位覆盖按名忽略大小写、速度 clamp、ThrustVectorPlanner 恢复阈值） |
 | SkillDifficulty / Personality / PersonalitySituationBias / SkillOpportunity / SkillTuning | AISkillCatalog.ApplyDesignTables（三槽权重填入 Weights[AISkillKind]；SkillTuning 单行按名覆盖 AISkillTuning；impairedDrivingReactionTicks 由 AIRacerDriver 读取） |
 | Roster | MatchSpawnManager 按槽位取人格与名字 |
-| ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、PropertiesSelectionManager、ResultDecisionManager、RaceFinishManager；aiCount 与 defaultDifficulty 由 SoloSetupPanel 读取 |
-| Track / TrackWrongWay / TrackSpawn / TrackCheckpoint / TrackResultAnchor | Track：RaceFinishManager 圈数、LapProgress 圈规则（显式映射）、MiniMapController 边界、RaceResultAreaManager 偏移；TrackWrongWay：RaceCompletionTracker；MatchSpawnManager、Checkpoint、EndFieldSpawnPoint 在 Awake 把场景物体移到表中世界坐标 |
-| Lobby | SteamLobbyManager 默认值、SessionLauncher 超时 |
-| SelectionStage / SelectionOption | PropertiesSelectionManager（map / skin 占位行已屏蔽，代码兜底） |
+| ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、PropertiesSelectionManager、ResultDecisionManager、RaceFinishManager；requiresReady 由 RoomStateManager 每局开始时读取；aiCount 与 defaultDifficulty 由 SoloSetupPanel 读取 |
+| Track / TrackWrongWay / TrackSpawn / TrackCheckpoint / TrackResultAnchor | Track：RaceFinishManager 圈数、LapProgress 圈规则（显式映射）、MiniMapController 边界、RaceResultAreaManager 偏移、TrackSplineRef 弧长表分辨率；TrackWrongWay：RaceCompletionTracker；MatchSpawnManager、Checkpoint、EndFieldSpawnPoint 在 Awake 把场景物体移到表中世界坐标 |
+| Lobby | SteamLobbyManager 默认值与默认可见性、SessionLauncher 超时、RoomStateManager 玩家名截断长度 |
+| SelectionStage / SelectionOption | PropertiesSelectionManager（阶段名、选择模式、选项名/描述/图标 key/解锁；map / skin 占位行已屏蔽，代码兜底） |
 | Intro | IntroSequenceManager；RaceBodyIntroStateController 读 handoffLeadSeconds |
 | Text / MenuOption | RacerIdentity、MatchSpawnManager、CreateRoomUI 下拉框；文案经 `ProjectConfigRuntime.Texts` |
 
-只记录、不接运行时（presentationOnly 或 doc 列）：SkillConstant、DrivingConstant、ModifierRule、Respawn 的 teleport 标志列、Movement 的三个起跑常量列、ResultVoteRule 的法定规则、IntroLayout、SkillIcon（资源引用留在 prefab）、`ui.<class>.<slug>` 自动 key 的 UI 字面量（待策划定稿 key 后再替换）。
+只记录、不接运行时（presentationOnly 或 doc 列，决定 22）：SkillConstant、DrivingConstant、ModifierRule、ResultVoteRule、IntroLayout、SkillIcon（资源引用留在 prefab），以及各表标 `doc` 的列（Respawn 的 teleport 标志、Movement 的起跑常量 / autoThrottle / physicMaterial、ModeRule 的 minPlayersToStart / hostAutoReady、Track 的小地图资源列、Lobby 的 minPlayers / fishnetMaximumClients、SelectionStage 的占位列、Text.en、GlobalRule.description）；`ui.<class>.<slug>` 自动 key 的 UI 字面量待策划定稿 key 后再替换。ModeRule 的四个占位开关经 IMatchRules 暴露但游戏内尚无读取方，comment 已标明。
+
+通道验证：`BuddahGo.Tests.DesignTableRuntimeTests` 用反射核对每个显式映射的目标字段存在，把导入后的数据库与表格单元格逐值比对（仓库取值、技能 SO 副本上的主时长 / 家族参数 / Push 弹道），并模拟 Unity 的资源导入回调验证"保存工作簿 → 只重映射该工作簿及其依赖"。批处理探针 `DesignTableCli.ProbeAutoImport` 通过 `AssetDatabase.ImportAsset` 真实触发 AssetPostprocessor 回调并执行导入，退出码 0 表示回调触发且产物已写。
 
 - 文案桥接：列名以 `Key` 结尾且引用 `UI/Text` 时，若记录类只有去掉 `Key` 的字段，导出器把 key 解析成 zh 文本写入；生成的记录类保留 `*Key` 字段，消费方通过 `DesignTableOverlay.Text(key, 兜底)` 取文本（SkillRecord 走这条路）。
 - 跨对象覆盖：一行要写到不同对象时用 `DesignTableOverlay.ApplyMapped(target, record, "记录列=目标字段", …)`，只写列出的字段，防止同名字段误覆盖（Push 行对技能 SO 的 cooldownSeconds 就是这种风险）。

@@ -24,10 +24,22 @@ namespace BuddahGo.DesignTables
             set => EditorPrefs.SetBool(AutoImportPref, value);
         }
 
+        /// <summary>Batch mode normally ignores asset imports; the CLI probe and tests set this to exercise the callback path.</summary>
+        public static bool AllowInBatchMode;
+
+        /// <summary>Workbooks saved since the last import ran (names without extension).</summary>
+        public static HashSet<string> PendingWorkbooks => _pendingWorkbooks;
+
         private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
-            if (!AutoImport || Application.isBatchMode)
+            if (!AutoImport || (Application.isBatchMode && !AllowInBatchMode))
                 return;
+            Schedule(importedAssets);
+        }
+
+        /// <summary>Queue every design workbook among the imported paths; true when at least one was queued.</summary>
+        public static bool Schedule(string[] importedAssets)
+        {
             bool hit = false;
             foreach (string path in importedAssets)
             {
@@ -40,11 +52,23 @@ namespace BuddahGo.DesignTables
                 hit = true;
             }
             if (!hit)
-                return;
+                return false;
 
             if (_requestedAt < 0)
                 EditorApplication.update += Pump;
             _requestedAt = EditorApplication.timeSinceStartup;
+            return true;
+        }
+
+        /// <summary>Run the queued import now instead of waiting for the debounce (tests and the batch probe).</summary>
+        public static DesignTableExporter.Result RunPendingNow(bool dryRun = false)
+        {
+            EditorApplication.update -= Pump;
+            _requestedAt = -1;
+            // Only the saved workbooks (and sheets referencing them) are re-mapped; hashes catch edits Unity missed.
+            HashSet<string> changed = new HashSet<string>(_pendingWorkbooks, StringComparer.Ordinal);
+            _pendingWorkbooks.Clear();
+            return DesignTableExporter.Run(new DesignTableExporter.Options { ChangedWorkbooks = changed, DryRun = dryRun });
         }
 
         private static void Pump()
@@ -62,10 +86,7 @@ namespace BuddahGo.DesignTables
             }
             try
             {
-                // Only the saved workbooks (and sheets referencing them) are re-mapped; hashes catch edits Unity missed.
-                HashSet<string> changed = new HashSet<string>(_pendingWorkbooks, StringComparer.Ordinal);
-                _pendingWorkbooks.Clear();
-                DesignTableExporter.Run(new DesignTableExporter.Options { ChangedWorkbooks = changed });
+                RunPendingNow();
             }
             catch (Exception e)
             {

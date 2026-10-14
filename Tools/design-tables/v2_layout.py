@@ -407,3 +407,69 @@ PHASES = {'skill': migrate_skill, 'movement': migrate_movement, 'ai': migrate_ai
 def migrate_all(m):
     for fn in PHASES.values():
         fn(m)
+
+
+# =====================================================================================================
+# Editability pass (2026-10-13): every exported column has a reader, or is marked doc / presentationOnly
+# =====================================================================================================
+def _doc(sheet, var, com):
+    sheet.set_col(var, grp='doc', com=com)
+
+
+def _docs_last(sheet):
+    sheet.cols = [c for c in sheet.cols if c[2] != 'doc'] + [c for c in sheet.cols if c[2] == 'doc']
+
+
+def migrate_editability(m):
+    mv = m.get('Movement', 'Movement')
+    _doc(mv, 'autoThrottle', '油门恒 1，代码常量，只记录')
+    _doc(mv, 'physicMaterial', '资源引用留在 prefab，只记录')
+    mv.set_col('colliderRadius', com='角色实体胶囊（BuddahPredictedMotorConfig 在 Awake 写入 CapsuleCollider）')
+    mv.set_col('colliderHeight', com='同上')
+    mv.set_col('colliderCenter', com='同上')
+    _docs_last(mv)
+
+    mr = m.get('Match', 'ModeRule')
+    _doc(mr, 'minPlayersToStart', '无读取方，只记录（开局门槛由 requiresReady 与准备状态决定）')
+    _doc(mr, 'hostAutoReady', '无读取方，只记录')
+    mr.set_col('requiresReady', com='RoomStateManager 每局开始时读取：是否所有客户端准备后主机才能开始')
+    for v in ('allowSkipSpectating', 'allowPause', 'showRacerNameTags', 'showOpponentsOnMinimap'):
+        mr.set_col(v, com='占位：经 IMatchRules 暴露，游戏内尚无读取方（S6/S7）')
+    _docs_last(mr)
+
+    tr = m.get('Match', 'Track')
+    _doc(tr, 'minimapSpritePath', '资源引用留在 prefab，只记录')
+    _doc(tr, 'minimapImageWidth', '只记录（MiniMapController 按 RectTransform 实际尺寸计算）')
+    tr.set_col('trackSplineSamples', com='TrackSplineRef.samples 弧长表分辨率（场景值为兜底）')
+    _docs_last(tr)
+
+    lb = m.get('Match', 'Lobby')
+    _doc(lb, 'minPlayers', '无读取方，只记录')
+    _doc(lb, 'fishnetMaximumClients', 'ServerManager 场景设置，只记录')
+    lb.set_col('defaultVisibility', com='SteamLobbyManager.PendingVisibility 初值')
+    lb.set_col('maxPlayerNameLength', com='RoomStateManager 玩家名截断长度')
+    _docs_last(lb)
+
+    ss = m.get('Match', 'SelectionStage')
+    for v in ('order', 'enabledOnline', 'enabledSolo', 'layoutMode', 'autoFillOnTimeout'):
+        _doc(ss, v, '占位：PropertiesSelectionManager 未读取')
+    _docs_last(ss)
+    so = m.get('Match', 'SelectionOption')
+    so.set_col('iconKey', com='SelectablePropertyOption.PreviewIconKey')
+    so.set_col('unlocked', com='SelectablePropertyOption.IsUnlocked')
+
+    tx = m.get('UI', 'Text')
+    _doc(tx, 'en', '英文：本地化尚未接入，运行时只读 zh')
+    _docs_last(tx)
+
+    gr = m.get('Global', 'GlobalRule')
+    _doc(gr, 'description', '说明，只记录')
+    _docs_last(gr)
+
+    for wb, name, note in (('Match', 'ResultVoteRule', 'presentationOnly：法定规则硬编码在 ResultDecisionManager.EvaluateDecisionServer，仅记录'),
+                           ('Match', 'IntroLayout', 'presentationOnly：布局 prefab 引用留在场景，仅记录'),
+                           ('UI', 'SkillIcon', 'presentationOnly：图标引用留在 SkillUiSpriteLibrary prefab，仅记录')):
+        m.get(wb, name).notes = note
+
+
+PHASES['editability'] = migrate_editability

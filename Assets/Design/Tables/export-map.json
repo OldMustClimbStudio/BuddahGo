@@ -139,11 +139,6 @@
   "list": "lobbies",
   "tags": "match,info"
  },
- "Match/ResultVoteRule": {
-  "record": "ResultVoteRuleRecord",
-  "list": "resultVoteRules",
-  "tags": "match,info"
- },
  "Match/SelectionStage": {
   "record": "SelectionStageRecord",
   "list": "selectionStages",
@@ -159,11 +154,6 @@
   "list": "intros",
   "tags": "match,balance"
  },
- "Match/IntroLayout": {
-  "record": "IntroLayoutRecord",
-  "list": "introLayouts",
-  "tags": "match,info"
- },
  "UI/Text": {
   "record": "LocalizedTextRecord",
   "list": "localizedTexts",
@@ -173,11 +163,6 @@
   "record": "MenuOptionRecord",
   "list": "menuOptions",
   "tags": "ui,text"
- },
- "UI/SkillIcon": {
-  "record": "SkillIconRecord",
-  "list": "skillIcons",
-  "tags": "ui,info"
  },
  "Global/GlobalRule": {
   "record": "GlobalRuleRecord",

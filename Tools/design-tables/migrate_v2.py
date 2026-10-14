@@ -41,6 +41,13 @@ SCOPE_EDITS = {
         'tags_remove': ['Match/RacerNaming'],
         'tags_add': {},
     },
+    'editability': {
+        'export': {'Match': ['ModeRule', 'Track', 'TrackWrongWay', 'TrackSpawn', 'TrackCheckpoint', 'TrackResultAnchor', 'Lobby', 'SelectionStage', 'SelectionOption', 'Intro'],
+                   'UI': ['Text', 'MenuOption']},
+        'presentationOnly': {'Match': ['ResultVoteRule', 'ResultPresentation', 'IntroLayout', 'IntroSlotStyle'], 'UI': ['SkillIcon', 'HudObsession', 'UiTiming', 'MiniMap']},
+        'tags_remove': ['Match/ResultVoteRule', 'Match/IntroLayout', 'UI/SkillIcon'],
+        'tags_add': {},
+    },
 }
 
 

@@ -25,7 +25,8 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 | CI / pre-commit | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit [-designForce] [-designTags skill,ai]`，退出码非 0 即失败 |
 | 重建基线工作簿 | `python Tools/design-tables/build_tables.py . <输出目录>`：从工程实际值反向生成（先 v1 模型再套 `v2_layout.py`），只在重做基线时用 |
 | 改表结构 | 在 `Tools/design-tables/v2_layout.py` 写变换函数，`python Tools/design-tables/migrate_v2.py . --phase <域>` 就地改写 xlsx + CSV 镜像 + scope.json，再 `gen_records.py`；值只搬不改，review 看 CSV diff |
-| 回归测试 | EditMode `BuddahGo.Tests.DesignTableTests`（读表、语法、校验、干跑导出、增量判定） |
+| 回归测试 | EditMode `BuddahGo.Tests.DesignTableTests`（读表、语法、校验、干跑导出、增量判定）与 `DesignTableRuntimeTests`（映射字段存在、产物值等于单元格值、保存回调只重映射依赖表）；两者都与表格单元格比值，策划改数不会让测试失败 |
+| 验证自动导入 | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ProbeAutoImport -quit`：真实触发 xlsx 的资源导入回调并执行导表，退出码 0 即通 |
 
 ## 修改手册
 
@@ -51,7 +52,8 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 - 临时屏蔽一行：在 A 列写 `##`。删除一行即删除记录。
 - 文案：数据表只放 key（如 `skill.giant.name`），文本在 `UI.xlsx/Text` 的 `zh` 列改；新增文案先在 Text 加 key，再在数据表引用，否则报"text key not found"。
 - 技能：身份、冷却/锁定/前摇、执念、主效果时长都在 `Skill` 一张表（反噬行的 `obsessionGain` 留空，反噬按原技能加执念）；家族专有参数在 `SkillEffect<家族>`，普通与反噬各一行，空格表示该行没有这个字段；推掌与神掌弹道在 `Push`（basic / charged / charged_anti）；新技能先在 `Global/__enums__` 的 `SkillId` 登记。
-- `##group` 为 `doc` 的列只是说明，改了不会进游戏；`adv` 是高级/工程参数，改之前确认影响。
+- `##group` 为 `doc` 的列只是说明，改了不会进游戏；`adv` 是高级/工程参数，改之前确认影响。规则（决定 22）：导出表里不是 `doc` 的列都有读取方，comment 写明是谁读；无人读的列必须标 `doc`，整表无人读的转 presentationOnly。
+- Excel 保存后的数字可能带二进制噪音（0.008 存成 8.0000000000000002E-3），导入器会按 15 位有效数字归一，镜像 diff 只显示你改过的格子。
 - 想改一个表里没有的参数：先按"程序：常用操作"加列并生成记录类，再让对应组件读取；没有读取方的列不会生效。
 
 ### 改完怎么进游戏

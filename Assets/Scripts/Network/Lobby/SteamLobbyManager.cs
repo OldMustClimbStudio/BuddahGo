@@ -188,6 +188,8 @@ namespace SteamMultiplayer.Network
                 _defaultMaxPlayers = Mathf.Clamp(lobby.maxPlayers, 2, 6);
                 _defaultLobbyName = DesignTableOverlay.Text(lobby.defaultLobbyNameKey, _defaultLobbyName);
                 _maxSearchResults = Mathf.Clamp(lobby.maxSearchResults, 1, 50);
+                if (Enum.TryParse(lobby.defaultVisibility, true, out LobbyVisibility visibility))
+                    PendingVisibility = visibility;
             }
             if (Instance != null && Instance != this)
             {

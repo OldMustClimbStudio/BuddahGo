@@ -36,16 +36,13 @@
       "TrackCheckpoint",
       "TrackResultAnchor",
       "Lobby",
-      "ResultVoteRule",
       "SelectionStage",
       "SelectionOption",
-      "Intro",
-      "IntroLayout"
+      "Intro"
     ],
     "UI": [
       "Text",
-      "MenuOption",
-      "SkillIcon"
+      "MenuOption"
     ],
     "Global": [
       "GlobalRule"
@@ -66,10 +63,13 @@
       "SplineTracking"
     ],
     "Match": [
+      "ResultVoteRule",
       "ResultPresentation",
+      "IntroLayout",
       "IntroSlotStyle"
     ],
     "UI": [
+      "SkillIcon",
       "HudObsession",
       "UiTiming",
       "MiniMap"
@@ -219,10 +219,6 @@
       "match",
       "info"
     ],
-    "Match/ResultVoteRule": [
-      "match",
-      "info"
-    ],
     "Match/SelectionStage": [
       "match",
       "info"
@@ -235,10 +231,6 @@
       "match",
       "balance"
     ],
-    "Match/IntroLayout": [
-      "match",
-      "info"
-    ],
     "UI/Text": [
       "ui",
       "text"
@@ -246,10 +238,6 @@
     "UI/MenuOption": [
       "ui",
       "text"
-    ],
-    "UI/SkillIcon": [
-      "ui",
-      "info"
     ],
     "Global/GlobalRule": [
       "global",

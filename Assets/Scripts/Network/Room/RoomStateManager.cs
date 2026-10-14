@@ -19,7 +19,18 @@ namespace SteamMultiplayer.Network
 {
     public class RoomStateManager : NetworkBehaviour
     {
-        private const int MaxPlayerNameLength = 32;
+        private const int DefaultMaxPlayerNameLength = 32;
+
+        // Match/Lobby.maxPlayerNameLength; the constant is the fallback without a table row.
+        private static int MaxPlayerNameLength
+        {
+            get
+            {
+                ProjectConfigDatabase db = DesignTableOverlay.Db;
+                LobbyRecord lobby = db != null ? DesignTableOverlay.Single(db.lobbies, null) : null;
+                return lobby != null && lobby.maxPlayerNameLength > 0 ? lobby.maxPlayerNameLength : DefaultMaxPlayerNameLength;
+            }
+        }
 
         /* 简介：此脚本用于管理房间内的玩家状态、准备状态、游戏开始流程等核心逻辑。
             作为一个网络对象，RoomStateManager在服务器上维护房间的核心数据，并通过同步变量和同步列表将状态更新传递给所有客户端。
@@ -200,10 +211,12 @@ namespace SteamMultiplayer.Network
         {
             base.OnStartServer();
             Instance = this;
-            // Match/ModeRule owns the pregame countdown.
+            // Match/ModeRule owns the pregame countdown and whether every client must be ready before the host can start.
             ModeRuleRecord mode = DesignTableOverlay.CurrentModeRule();
             if (mode != null && mode.pregameCountdownSeconds > 0)
                 _pregameCountdownSeconds = mode.pregameCountdownSeconds;
+            if (mode != null)
+                _requireAllClientsReady = mode.requiresReady;
 
             if (InstanceFinder.ServerManager != null)
             {

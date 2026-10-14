@@ -40,14 +40,14 @@
 ,Match,TrackCheckpoint,(新增) TrackCheckpointRecord ← Checkpoint,Assets/Scenes/RaceMap.unity,
 ,Match,TrackResultAnchor,(新增) TrackResultAnchorRecord ← EndFieldSpawnPoint,Assets/Scenes/RaceMap.unity,
 ,Match,Lobby,(新增) LobbyRecord,Assets/Scenes/MainMenu.unity SteamLobbyManager; SessionLauncher.cs,
-,Match,ResultVoteRule,(新增) ResultVoteRuleRecord,ResultDecisionManager.EvaluateDecisionServer:252-275,
+,Match,ResultVoteRule,(新增) ResultVoteRuleRecord,ResultDecisionManager.EvaluateDecisionServer:252-275,presentationOnly：法定规则硬编码在 ResultDecisionManager.EvaluateDecisionServer，仅记录
 ,Match,ResultPresentation,(新增) ResultPresentationRecord,Assets/Scenes/RaceMap.unity,
 ,Match,SelectionStage,(新增) SelectionStageRecord,PropertiesSelectionManager.RegisterDefaultStageProperties:566-568,v2：地图/皮肤占位行屏蔽（结果无人读取）
 ,Match,SelectionOption,(新增) SelectionOptionRecord,PropertiesSelectionManager:1126-1136（占位数据）,v2：占位选项全部屏蔽，PropertiesSelectionManager 回退到代码占位
 ,Match,Intro,(新增) IntroRecord ← IntroSequenceManager,Assets/Scenes/RaceMap.unity,
-,Match,IntroLayout,(新增) IntroLayoutRecord ← IntroSequenceManager.layouts,Assets/Scenes/RaceMap.unity,4P/5P/6P 为占位 prefab；Solo 永远用 6P
+,Match,IntroLayout,(新增) IntroLayoutRecord ← IntroSequenceManager.layouts,Assets/Scenes/RaceMap.unity,presentationOnly：布局 prefab 引用留在场景，仅记录
 ,Match,IntroSlotStyle,(新增) IntroSlotStyleRecord（范围内未找到消费方）,Assets/Placeholder/Intro/Layout4P.prefab,
-,UI,SkillIcon,(新增) SkillIconRecord ← SkillUiSpriteLibrary,Assets/UI/UIprefap.prefab,*_anti 无图标；配置 iconKey 列未使用
+,UI,SkillIcon,(新增) SkillIconRecord ← SkillUiSpriteLibrary,Assets/UI/UIprefap.prefab,presentationOnly：图标引用留在 SkillUiSpriteLibrary prefab，仅记录
 ,UI,MenuOption,(新增) MenuOptionRecord,Assets/Scenes/MainMenu.unity TMP_Dropdown m_Options,代码兜底 CreateRoomUI.cs:131-167
 ,UI,HudObsession,(新增) HudObsessionRecord ← ObsessionUI,Assets/UI/UIprefap.prefab,
 ,UI,UiTiming,"(新增, 键值) UiTimingRecord",各 UI 组件 SerializeField 实际值,

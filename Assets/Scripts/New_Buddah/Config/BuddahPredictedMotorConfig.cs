@@ -24,6 +24,16 @@ namespace NewBuddah.PredictionV2.Config
                 body.angularDrag = movement.angularDrag;
                 body.maxAngularVelocity = movement.maxAngularVelocity;
             }
+            // The racer's solid capsule (the first non-trigger CapsuleCollider in the prefab) takes the collider columns.
+            foreach (CapsuleCollider capsule in GetComponentsInChildren<CapsuleCollider>(true))
+            {
+                if (capsule.isTrigger)
+                    continue;
+                if (movement.colliderRadius > 0f) capsule.radius = movement.colliderRadius;
+                if (movement.colliderHeight > 0f) capsule.height = movement.colliderHeight;
+                capsule.center = movement.colliderCenter;
+                break;
+            }
         }
 
         [Header("Stage 1 Locomotion")]

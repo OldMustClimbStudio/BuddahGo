@@ -57,20 +57,14 @@ public partial class ProjectConfigDatabase
     public List<TrackResultAnchorRecord> trackResultAnchors = new List<TrackResultAnchorRecord>();
     [Header("Match / Lobby")]
     public List<LobbyRecord> lobbies = new List<LobbyRecord>();
-    [Header("Match / ResultVoteRule")]
-    public List<ResultVoteRuleRecord> resultVoteRules = new List<ResultVoteRuleRecord>();
     [Header("Match / SelectionStage")]
     public List<SelectionStageRecord> selectionStages = new List<SelectionStageRecord>();
     [Header("Match / SelectionOption")]
     public List<SelectionOptionRecord> selectionOptions = new List<SelectionOptionRecord>();
     [Header("Match / Intro")]
     public List<IntroRecord> intros = new List<IntroRecord>();
-    [Header("Match / IntroLayout")]
-    public List<IntroLayoutRecord> introLayouts = new List<IntroLayoutRecord>();
     [Header("UI / Text")]
     public List<LocalizedTextRecord> localizedTexts = new List<LocalizedTextRecord>();
     [Header("UI / MenuOption")]
     public List<MenuOptionRecord> menuOptions = new List<MenuOptionRecord>();
-    [Header("UI / SkillIcon")]
-    public List<SkillIconRecord> skillIcons = new List<SkillIconRecord>();
 }

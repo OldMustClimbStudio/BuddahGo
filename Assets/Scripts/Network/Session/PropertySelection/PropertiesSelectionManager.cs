@@ -1163,7 +1163,8 @@ namespace SteamMultiplayer.Network
                     if (option == null || option.stageKey != stageKey)
                         continue;
                     options.Add(SelectablePropertyOption.Create(stageKey, option.optionId,
-                        DesignTableOverlay.Text(option.displayNameKey, option.optionId), DesignTableOverlay.Text(option.descriptionKey, string.Empty)));
+                        DesignTableOverlay.Text(option.displayNameKey, option.optionId), DesignTableOverlay.Text(option.descriptionKey, string.Empty),
+                        option.iconKey, option.unlocked));
                 }
             }
             if (options.Count == 0)

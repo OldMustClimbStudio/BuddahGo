@@ -168,7 +168,7 @@
             "ruleKey": "target_frame_rate",
             "ruleValue": "120",
             "ruleSetId": "default",
-            "description": "须为 tick_rate 整数倍"
+            "description": ""
         }
     ],
     "skills": [
@@ -179,11 +179,11 @@
             "sortOrder": 10,
             "unlockState": "unlocked",
             "antiSkillId": "acceleration_anti",
-            "cooldownSeconds": 12.0,
-            "castLockSeconds": 10.0,
+            "cooldownSeconds": 10.0,
+            "castLockSeconds": 8.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 300.0,
-            "effectDurationSeconds": 10.0
+            "effectDurationSeconds": 3.0
         },
         {
             "skillId": "slowtrap",
@@ -192,11 +192,11 @@
             "sortOrder": 20,
             "unlockState": "unlocked",
             "antiSkillId": "slowtrap_anti",
-            "cooldownSeconds": 12.0,
-            "castLockSeconds": 10.0,
+            "cooldownSeconds": 8.0,
+            "castLockSeconds": 6.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 300.0,
-            "effectDurationSeconds": 10.0
+            "effectDurationSeconds": 6.0
         },
         {
             "skillId": "blackcurtain",
@@ -257,11 +257,11 @@
             "sortOrder": 110,
             "unlockState": "hidden",
             "antiSkillId": "",
-            "cooldownSeconds": 8.0,
-            "castLockSeconds": 6.0,
+            "cooldownSeconds": 5.0,
+            "castLockSeconds": 3.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 0.0,
-            "effectDurationSeconds": 6.0
+            "effectDurationSeconds": 3.0
         },
         {
             "skillId": "slowtrap_anti",
@@ -533,7 +533,6 @@
             "turnTorque": 30.0,
             "turnDecayPerSecond": 3.0,
             "turnInputMultiplier": 2.0,
-            "autoThrottle": 1.0,
             "mass": 2.0,
             "linearDrag": 0.0,
             "angularDrag": 0.05000000074505806,
@@ -545,7 +544,6 @@
                 "y": 2.9506640434265138,
                 "z": -0.15090300142765046
             },
-            "physicMaterial": "Character",
             "pushGraceSeconds": 0.25,
             "pushExtraMaxSpeed": 6.0,
             "launchInheritSeconds": 0.20000000298023225,
@@ -1128,8 +1126,6 @@
             "selectionStageSeconds": 60,
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
-            "minPlayersToStart": 1,
-            "hostAutoReady": true,
             "aiCount": 0,
             "defaultDifficulty": ""
         },
@@ -1154,8 +1150,6 @@
             "selectionStageSeconds": 60,
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
-            "minPlayersToStart": 1,
-            "hostAutoReady": true,
             "aiCount": 5,
             "defaultDifficulty": "Normal"
         },
@@ -1180,8 +1174,6 @@
             "selectionStageSeconds": 60,
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
-            "minPlayersToStart": 1,
-            "hostAutoReady": true,
             "aiCount": 0,
             "defaultDifficulty": "Normal"
         }
@@ -1214,12 +1206,10 @@
                 "y": 0.0,
                 "z": -3.0
             },
-            "minimapSpritePath": "Assets/UI/UI资源/地图UI-PNG/地图 1.png",
             "minimapWorldMinX": -653.0,
             "minimapWorldMaxX": 469.0,
             "minimapWorldMinZ": -1038.0,
             "minimapWorldMaxZ": 247.0,
-            "minimapImageWidth": 1120.0,
             "trackSplineSamples": 200
         }
     ],
@@ -1411,35 +1401,19 @@
         {
             "profileId": "default",
             "maxPlayers": 6,
-            "minPlayers": 2,
             "defaultLobbyNameKey": "lobby.default_room_name",
             "defaultVisibility": "Public",
             "maxSearchResults": 20,
             "clientConnectTimeoutSeconds": 30.0,
             "hostStartTimeoutSeconds": 20.0,
-            "maxPlayerNameLength": 32,
-            "fishnetMaximumClients": 6
-        }
-    ],
-    "resultVoteRules": [
-        {
-            "modeId": "Online",
-            "vetoChoice": "ReturnToRoom",
-            "unanimousChoice": "StartNewGame",
-            "timeoutChoice": "ReturnToRoom",
-            "disconnectChoice": "ReturnToRoom"
+            "maxPlayerNameLength": 32
         }
     ],
     "selectionStages": [
         {
             "stageKey": "skill_loadout",
-            "order": 1,
             "displayNameKey": "selection.stage.skill_loadout",
-            "selectionMode": "Multi",
-            "enabledOnline": true,
-            "enabledSolo": true,
-            "layoutMode": "SkillWall",
-            "autoFillOnTimeout": true
+            "selectionMode": "Multi"
         }
     ],
     "selectionOptions": [],
@@ -1454,1480 +1428,1138 @@
             "deterministicShuffleSeed": 20260405
         }
     ],
-    "introLayouts": [
-        {
-            "playerCount": 1,
-            "layoutName": "Layout_1P",
-            "slots": [
-                "Slot_0"
-            ]
-        },
-        {
-            "playerCount": 2,
-            "layoutName": "Layout_2P",
-            "slots": [
-                "Slot_0",
-                "Slot_1"
-            ]
-        },
-        {
-            "playerCount": 3,
-            "layoutName": "Layout_3P",
-            "slots": [
-                "Slot_0",
-                "Slot_1",
-                "Slot_2"
-            ]
-        },
-        {
-            "playerCount": 4,
-            "layoutName": "Layout_4P (Placeholder)",
-            "slots": [
-                "Layout4P.prefab:Slot_0",
-                "Layout4P.prefab:Slot_1",
-                "Layout4P.prefab:Slot_2",
-                "Layout4P.prefab:Slot_3"
-            ]
-        },
-        {
-            "playerCount": 5,
-            "layoutName": "Layout_5P (Placeholder)",
-            "slots": [
-                "Layout5P.prefab:Slot_0",
-                "Layout5P.prefab:Slot_1",
-                "Layout5P.prefab:Slot_2",
-                "Layout5P.prefab:Slot_3",
-                "Layout5P.prefab:Slot_4"
-            ]
-        },
-        {
-            "playerCount": 6,
-            "layoutName": "Layout_6P (Placeholder)",
-            "slots": [
-                "Layout6P.prefab:Slot_0",
-                "Layout6P.prefab:Slot_1",
-                "Layout6P.prefab:Slot_2",
-                "Layout6P.prefab:Slot_3",
-                "Layout6P.prefab:Slot_4",
-                "Layout6P.prefab:Slot_5"
-            ]
-        }
-    ],
     "localizedTexts": [
         {
             "key": "skill.acceleration.name",
-            "zh": "神足通",
-            "en": ""
+            "zh": "神足通"
         },
         {
             "key": "skill.acceleration.desc",
-            "zh": "加速自身一段时间",
-            "en": ""
+            "zh": "加速自身一段时间"
         },
         {
             "key": "skill.slowtrap.name",
-            "zh": "禅定缓流",
-            "en": ""
+            "zh": "禅定缓流"
         },
         {
             "key": "skill.slowtrap.desc",
-            "zh": "减速区域",
-            "en": ""
+            "zh": "减速区域"
         },
         {
             "key": "skill.blackcurtain.name",
-            "zh": "一念光明",
-            "en": ""
+            "zh": "一念光明"
         },
         {
             "key": "skill.blackcurtain.desc",
-            "zh": "触发黑幕效果",
-            "en": ""
+            "zh": "触发黑幕效果"
         },
         {
             "key": "skill.giant.name",
-            "zh": "法相金身",
-            "en": ""
+            "zh": "法相金身"
         },
         {
             "key": "skill.giant.desc",
-            "zh": "放大自身形态",
-            "en": ""
+            "zh": "放大自身形态"
         },
         {
             "key": "skill.push_projectile_hands.name",
-            "zh": "如来神掌",
-            "en": ""
+            "zh": "如来神掌"
         },
         {
             "key": "skill.push_projectile_hands.desc",
-            "zh": "发射如来神掌",
-            "en": ""
+            "zh": "发射如来神掌"
         },
         {
             "key": "skill.reverseturn.name",
-            "zh": "逆姻缘",
-            "en": ""
+            "zh": "逆姻缘"
         },
         {
             "key": "skill.reverseturn.desc",
-            "zh": "干扰转向输入",
-            "en": ""
+            "zh": "干扰转向输入"
         },
         {
             "key": "skill.acceleration_anti.name",
-            "zh": "神足通（噬）",
-            "en": ""
+            "zh": "神足通（噬）"
         },
         {
             "key": "skill.acceleration_anti.desc",
-            "zh": "神足通的反噬变体",
-            "en": ""
+            "zh": "神足通的反噬变体"
         },
         {
             "key": "skill.slowtrap_anti.name",
-            "zh": "禅定缓流（噬）",
-            "en": ""
+            "zh": "禅定缓流（噬）"
         },
         {
             "key": "skill.slowtrap_anti.desc",
-            "zh": "禅定缓流的反噬变体",
-            "en": ""
+            "zh": "禅定缓流的反噬变体"
         },
         {
             "key": "skill.blackcurtain_anti.name",
-            "zh": "一念光明（噬）",
-            "en": ""
+            "zh": "一念光明（噬）"
         },
         {
             "key": "skill.blackcurtain_anti.desc",
-            "zh": "一念光明的反噬变体",
-            "en": ""
+            "zh": "一念光明的反噬变体"
         },
         {
             "key": "skill.giant_anti.name",
-            "zh": "法相金身（噬）",
-            "en": ""
+            "zh": "法相金身（噬）"
         },
         {
             "key": "skill.giant_anti.desc",
-            "zh": "法相金身的反噬变体",
-            "en": ""
+            "zh": "法相金身的反噬变体"
         },
         {
             "key": "skill.push_projectile_hands_anti.name",
-            "zh": "如来神掌（噬）",
-            "en": ""
+            "zh": "如来神掌（噬）"
         },
         {
             "key": "skill.push_projectile_hands_anti.desc",
-            "zh": "如来神掌的反噬变体",
-            "en": ""
+            "zh": "如来神掌的反噬变体"
         },
         {
             "key": "skill.reverseturn_anti.name",
-            "zh": "逆姻缘（噬）",
-            "en": ""
+            "zh": "逆姻缘（噬）"
         },
         {
             "key": "skill.reverseturn_anti.desc",
-            "zh": "逆姻缘的反噬变体",
-            "en": ""
+            "zh": "逆姻缘的反噬变体"
         },
         {
             "key": "ai.personality.keeper.name",
-            "zh": "P1 守位型",
-            "en": ""
+            "zh": "P1 守位型"
         },
         {
             "key": "ai.personality.hunter.name",
-            "zh": "P2 追猎型",
-            "en": ""
+            "zh": "P2 追猎型"
         },
         {
             "key": "ai.personality.brawler.name",
-            "zh": "P3 车群型",
-            "en": ""
+            "zh": "P3 车群型"
         },
         {
             "key": "ai.personality.trickster.name",
-            "zh": "P4 干扰型",
-            "en": ""
+            "zh": "P4 干扰型"
         },
         {
             "key": "ai.personality.opportunist.name",
-            "zh": "P5 机会型",
-            "en": ""
+            "zh": "P5 机会型"
         },
         {
             "key": "match.default_player_name",
-            "zh": "玩家",
-            "en": "Player"
+            "zh": "玩家"
         },
         {
             "key": "lobby.default_room_name",
-            "zh": "My Room",
-            "en": "My Room"
+            "zh": "My Room"
         },
         {
             "key": "selection.stage.map",
-            "zh": "Map Selection",
-            "en": "Map Selection"
+            "zh": "Map Selection"
         },
         {
             "key": "selection.stage.skill_loadout",
-            "zh": "Skill Loadout Selection",
-            "en": "Skill Loadout Selection"
+            "zh": "Skill Loadout Selection"
         },
         {
             "key": "selection.stage.skin",
-            "zh": "Skin Selection",
-            "en": "Skin Selection"
+            "zh": "Skin Selection"
         },
         {
             "key": "selection.option.map_a.name",
-            "zh": "Map A",
-            "en": "Map A"
+            "zh": "Map A"
         },
         {
             "key": "selection.option.map_a.desc",
-            "zh": "Default placeholder map A.",
-            "en": "Default placeholder map A."
+            "zh": "Default placeholder map A."
         },
         {
             "key": "selection.option.map_b.name",
-            "zh": "Map B",
-            "en": "Map B"
+            "zh": "Map B"
         },
         {
             "key": "selection.option.map_b.desc",
-            "zh": "Default placeholder map B.",
-            "en": "Default placeholder map B."
+            "zh": "Default placeholder map B."
         },
         {
             "key": "selection.option.map_c.name",
-            "zh": "Map C",
-            "en": "Map C"
+            "zh": "Map C"
         },
         {
             "key": "selection.option.map_c.desc",
-            "zh": "Default placeholder map C.",
-            "en": "Default placeholder map C."
+            "zh": "Default placeholder map C."
         },
         {
             "key": "selection.option.skin_a.name",
-            "zh": "Skin A",
-            "en": "Skin A"
+            "zh": "Skin A"
         },
         {
             "key": "selection.option.skin_a.desc",
-            "zh": "Default placeholder skin A.",
-            "en": "Default placeholder skin A."
+            "zh": "Default placeholder skin A."
         },
         {
             "key": "selection.option.skin_b.name",
-            "zh": "Skin B",
-            "en": "Skin B"
+            "zh": "Skin B"
         },
         {
             "key": "selection.option.skin_b.desc",
-            "zh": "Default placeholder skin B.",
-            "en": "Default placeholder skin B."
+            "zh": "Default placeholder skin B."
         },
         {
             "key": "selection.option.skin_c.name",
-            "zh": "Skin C",
-            "en": "Skin C"
+            "zh": "Skin C"
         },
         {
             "key": "selection.option.skin_c.desc",
-            "zh": "Default placeholder skin C.",
-            "en": "Default placeholder skin C."
+            "zh": "Default placeholder skin C."
         },
         {
             "key": "racer.ai_fallback_prefix",
-            "zh": "AI",
-            "en": "AI"
+            "zh": "AI"
         },
         {
             "key": "racer.human_fallback",
-            "zh": "Player",
-            "en": "Player"
+            "zh": "Player"
         },
         {
             "key": "racer.online_human_prefix",
-            "zh": "Player",
-            "en": "Player"
+            "zh": "Player"
         },
         {
             "key": "menu.option.max_players.4",
-            "zh": "4",
-            "en": "4"
+            "zh": "4"
         },
         {
             "key": "menu.option.max_players.5",
-            "zh": "5",
-            "en": "5"
+            "zh": "5"
         },
         {
             "key": "menu.option.max_players.6",
-            "zh": "6",
-            "en": "6"
+            "zh": "6"
         },
         {
             "key": "menu.option.visibility.public",
-            "zh": "Public",
-            "en": "Public"
+            "zh": "Public"
         },
         {
             "key": "menu.option.visibility.friendsonly",
-            "zh": "FriendsOnly",
-            "en": "FriendsOnly"
+            "zh": "FriendsOnly"
         },
         {
             "key": "menu.option.visibility.private",
-            "zh": "Private",
-            "en": "Private"
+            "zh": "Private"
         },
         {
             "key": "ui.raceridentity.ai",
-            "zh": "AI",
-            "en": "AI"
+            "zh": "AI"
         },
         {
             "key": "ui.sessionlauncher.单机设置缺失",
-            "zh": "单机设置缺失。",
-            "en": ""
+            "zh": "单机设置缺失。"
         },
         {
             "key": "ui.sessionlauncher.主机地址为空",
-            "zh": "主机地址为空。",
-            "en": ""
+            "zh": "主机地址为空。"
         },
         {
             "key": "ui.sessionlauncher.无法连接主机",
-            "zh": "无法连接主机。",
-            "en": ""
+            "zh": "无法连接主机。"
         },
         {
             "key": "ui.sessionlauncher.无法启动本地服务器",
-            "zh": "无法启动本地服务器。",
-            "en": ""
+            "zh": "无法启动本地服务器。"
         },
         {
             "key": "ui.sessionlauncher.无法连接本地服务器",
-            "zh": "无法连接本地服务器。",
-            "en": ""
+            "zh": "无法连接本地服务器。"
         },
         {
             "key": "ui.sessionlauncher.传输层配置无效_需要_fishyfacepunch_yak_multipass",
-            "zh": "传输层配置无效：需要 FishyFacepunch + Yak Multipass。",
-            "en": ""
+            "zh": "传输层配置无效：需要 FishyFacepunch + Yak Multipass。"
         },
         {
             "key": "ui.sessionlauncher.传输层顺序无效",
-            "zh": "传输层顺序无效。",
-            "en": ""
+            "zh": "传输层顺序无效。"
         },
         {
             "key": "ui.sessionlauncher.会话仍在运行或关闭中_请稍后重试",
-            "zh": "会话仍在运行或关闭中，请稍后重试。",
-            "en": ""
+            "zh": "会话仍在运行或关闭中，请稍后重试。"
         },
         {
             "key": "ui.sessionlauncher.连接超时_请重试",
-            "zh": "连接超时，请重试。",
-            "en": ""
+            "zh": "连接超时，请重试。"
         },
         {
             "key": "ui.quitconfirmdialog.退出到主菜单",
-            "zh": "退出到主菜单？",
-            "en": ""
+            "zh": "退出到主菜单？"
         },
         {
             "key": "ui.quitconfirmdialog.本局进度不会保留_比赛仍在进行",
-            "zh": "本局进度不会保留。比赛仍在进行。",
-            "en": ""
+            "zh": "本局进度不会保留。比赛仍在进行。"
         },
         {
             "key": "ui.quitconfirmdialog.继续比赛",
-            "zh": "继续比赛",
-            "en": ""
+            "zh": "继续比赛"
         },
         {
             "key": "ui.quitconfirmdialog.退出到主菜单_2",
-            "zh": "退出到主菜单",
-            "en": ""
+            "zh": "退出到主菜单"
         },
         {
             "key": "ui.quitconfirmdialog.暂时无法退出_请取消后重试",
-            "zh": "暂时无法退出，请取消后重试。",
-            "en": ""
+            "zh": "暂时无法退出，请取消后重试。"
         },
         {
             "key": "ui.quitconfirmdialog.正在返回主菜单",
-            "zh": "正在返回主菜单…",
-            "en": ""
+            "zh": "正在返回主菜单…"
         },
         {
             "key": "ui.soloresultsview.practice_完成",
-            "zh": "Practice 完成",
-            "en": ""
+            "zh": "Practice 完成"
         },
         {
             "key": "ui.soloresultsview.再来一局",
-            "zh": "再来一局",
-            "en": ""
+            "zh": "再来一局"
         },
         {
             "key": "ui.soloresultsview.返回",
-            "zh": "返回",
-            "en": ""
+            "zh": "返回"
         },
         {
             "key": "ui.soloresultsview.暂时无法再来一局_可以返回主菜单",
-            "zh": "暂时无法再来一局，可以返回主菜单。",
-            "en": ""
+            "zh": "暂时无法再来一局，可以返回主菜单。"
         },
         {
             "key": "ui.soloresultsview.正在进入选择",
-            "zh": "正在进入选择…",
-            "en": ""
+            "zh": "正在进入选择…"
         },
         {
             "key": "ui.soloresultsview.比赛结果",
-            "zh": "比赛结果",
-            "en": ""
+            "zh": "比赛结果"
         },
         {
             "key": "ui.soloresultsview.计时数据暂不可用",
-            "zh": "计时数据暂不可用",
-            "en": ""
+            "zh": "计时数据暂不可用"
         },
         {
             "key": "ui.soloresultsview.总用时",
-            "zh": "总用时",
-            "en": ""
+            "zh": "总用时"
         },
         {
             "key": "ui.soloresultsview.完整圈速数据不可用",
-            "zh": "完整圈速数据不可用",
-            "en": ""
+            "zh": "完整圈速数据不可用"
         },
         {
             "key": "ui.soloresultsview.第_i_1_圈_formattime_result_lapseconds_i",
-            "zh": "第 {i + 1} 圈  {FormatTime(result.LapSeconds[i])}",
-            "en": ""
+            "zh": "第 {i + 1} 圈  {FormatTime(result.LapSeconds[i])}"
         },
         {
             "key": "ui.soloresultsview.圈时",
-            "zh": "圈时",
-            "en": ""
+            "zh": "圈时"
         },
         {
             "key": "ui.solosetuppanel.简单",
-            "zh": "简单",
-            "en": ""
+            "zh": "简单"
         },
         {
             "key": "ui.solosetuppanel.普通",
-            "zh": "普通",
-            "en": ""
+            "zh": "普通"
         },
         {
             "key": "ui.solosetuppanel.困难",
-            "zh": "困难",
-            "en": ""
+            "zh": "困难"
         },
         {
             "key": "ui.solosetuppanel.单人游戏",
-            "zh": "单人游戏",
-            "en": ""
+            "zh": "单人游戏"
         },
         {
             "key": "ui.solosetuppanel.六人单人赛_玩家_5_ai",
-            "zh": "六人单人赛 · 玩家 + 5 AI",
-            "en": ""
+            "zh": "六人单人赛 · 玩家 + 5 AI"
         },
         {
             "key": "ui.solosetuppanel.五种技能人格_固定配装",
-            "zh": "五种技能人格 · 固定配装",
-            "en": ""
+            "zh": "五种技能人格 · 固定配装"
         },
         {
             "key": "ui.solosetuppanel.难度",
-            "zh": "难度",
-            "en": ""
+            "zh": "难度"
         },
         {
             "key": "ui.solosetuppanel.开始单人赛",
-            "zh": "开始单人赛",
-            "en": ""
+            "zh": "开始单人赛"
         },
         {
             "key": "ui.solosetuppanel.初始化尚未完成_请稍后重试",
-            "zh": "初始化尚未完成，请稍后重试。",
-            "en": ""
+            "zh": "初始化尚未完成，请稍后重试。"
         },
         {
             "key": "ui.solosetuppanel.启动失败_请重试",
-            "zh": "启动失败，请重试。",
-            "en": ""
+            "zh": "启动失败，请重试。"
         },
         {
             "key": "ui.solouibootstrap.正在初始化",
-            "zh": "正在初始化…",
-            "en": ""
+            "zh": "正在初始化…"
         },
         {
             "key": "ui.leaderboardmanager.empty",
-            "zh": "(empty)",
-            "en": "(empty)"
+            "zh": "(empty)"
         },
         {
             "key": "ui.leaderboardmanager.finished_entry_finishorder",
-            "zh": "- Finished #{entry.FinishOrder}",
-            "en": "- Finished #{entry.FinishOrder}"
+            "zh": "- Finished #{entry.FinishOrder}"
         },
         {
             "key": "ui.leaderboardmanager.lap",
-            "zh": "- Lap",
-            "en": "- Lap"
+            "zh": "- Lap"
         },
         {
             "key": "ui.steamlobbymanager.my_room",
-            "zh": "My Room",
-            "en": "My Room"
+            "zh": "My Room"
         },
         {
             "key": "ui.steamlobbymanager.steam_is_not_initialized",
-            "zh": "Steam is not initialized.",
-            "en": "Steam is not initialized."
+            "zh": "Steam is not initialized."
         },
         {
             "key": "ui.steamlobbymanager.already_in_a_lobby",
-            "zh": "Already in a lobby.",
-            "en": "Already in a lobby."
+            "zh": "Already in a lobby."
         },
         {
             "key": "ui.steamlobbymanager.leaving_currentlobbyname",
-            "zh": "Leaving \\\"{CurrentLobbyName}\\\"...",
-            "en": "Leaving \\\"{CurrentLobbyName}\\\"..."
+            "zh": "Leaving \\\"{CurrentLobbyName}\\\"..."
         },
         {
             "key": "ui.steamlobbymanager.left_lobby",
-            "zh": "Left lobby.",
-            "en": "Left lobby."
+            "zh": "Left lobby."
         },
         {
             "key": "ui.steamlobbymanager.creating_lobby_name",
-            "zh": "Creating lobby \\\"{name}\\\"...",
-            "en": "Creating lobby \\\"{name}\\\"..."
+            "zh": "Creating lobby \\\"{name}\\\"..."
         },
         {
             "key": "ui.steamlobbymanager.steammatchmaking_createlobbyasync_return",
-            "zh": "SteamMatchmaking.CreateLobbyAsync returned null (Steam error).",
-            "en": "SteamMatchmaking.CreateLobbyAsync returned null (Steam error)."
+            "zh": "SteamMatchmaking.CreateLobbyAsync returned null (Steam error)."
         },
         {
             "key": "ui.steamlobbymanager.lobby_created_name",
-            "zh": "Lobby created: {name}",
-            "en": "Lobby created: {name}"
+            "zh": "Lobby created: {name}"
         },
         {
             "key": "ui.steamlobbymanager.starting_host",
-            "zh": "Starting host...",
-            "en": "Starting host..."
+            "zh": "Starting host..."
         },
         {
             "key": "ui.steamlobbymanager.gamenetworkmanager_not_found",
-            "zh": "GameNetworkManager not found.",
-            "en": "GameNetworkManager not found."
+            "zh": "GameNetworkManager not found."
         },
         {
             "key": "ui.steamlobbymanager.joining_lobby_steamid_value",
-            "zh": "Joining lobby {steamId.Value}...",
-            "en": "Joining lobby {steamId.Value}..."
+            "zh": "Joining lobby {steamId.Value}..."
         },
         {
             "key": "ui.steamlobbymanager.joinlobbyasync_steamid_value_returned_nu",
-            "zh": "JoinLobbyAsync({steamId.Value}) returned null – lobby may be full or gone.",
-            "en": "JoinLobbyAsync({steamId.Value}) returned null – lobby may be full or gone."
+            "zh": "JoinLobbyAsync({steamId.Value}) returned null – lobby may be full or gone."
         },
         {
             "key": "ui.steamlobbymanager.lobby_steamid_value_is_invalid_or_missin",
-            "zh": "Lobby {steamId.Value} is invalid or missing host metadata.",
-            "en": "Lobby {steamId.Value} is invalid or missing host metadata."
+            "zh": "Lobby {steamId.Value} is invalid or missing host metadata."
         },
         {
             "key": "ui.steamlobbymanager.prediction_protocol_mismatch_host_remote",
-            "zh": "Prediction protocol mismatch: host={remoteLabel}, you={PredictionProtocol.Version}. Both sides need a build with the same prediction protocol version.",
-            "en": "Prediction protocol mismatch: host={remoteLabel}, you={PredictionProtocol.Version}. Both sides need a build with the same prediction protocol version."
+            "zh": "Prediction protocol mismatch: host={remoteLabel}, you={PredictionProtocol.Version}. Both sides need a build with the same prediction protocol version."
         },
         {
             "key": "ui.steamlobbymanager.joined_lobby_lobbyname",
-            "zh": "Joined lobby \\\"{lobbyName}\\\".",
-            "en": "Joined lobby \\\"{lobbyName}\\\"."
+            "zh": "Joined lobby \\\"{lobbyName}\\\"."
         },
         {
             "key": "ui.steamlobbymanager.connecting_to_host_hoststeamid",
-            "zh": "Connecting to host {hostSteamId}...",
-            "en": "Connecting to host {hostSteamId}..."
+            "zh": "Connecting to host {hostSteamId}..."
         },
         {
             "key": "ui.steamlobbymanager.refreshing_lobby_list",
-            "zh": "Refreshing lobby list...",
-            "en": "Refreshing lobby list..."
+            "zh": "Refreshing lobby list..."
         },
         {
             "key": "ui.steamlobbymanager.lobby_list_ready_list_count_found",
-            "zh": "Lobby list ready: {list.Count} found.",
-            "en": "Lobby list ready: {list.Count} found."
+            "zh": "Lobby list ready: {list.Count} found."
         },
         {
             "key": "ui.steamlobbymanager.host_has_left_the_room",
-            "zh": "Host has left the room.",
-            "en": "Host has left the room."
+            "zh": "Host has left the room."
         },
         {
             "key": "ui.steamlobbymanager.waiting_in_menu",
-            "zh": "Waiting in menu.",
-            "en": "Waiting in menu."
+            "zh": "Waiting in menu."
         },
         {
             "key": "ui.steamlobbymanager.host_connection_started",
-            "zh": "Host connection started.",
-            "en": "Host connection started."
+            "zh": "Host connection started."
         },
         {
             "key": "ui.steamlobbymanager.connected_to_host",
-            "zh": "Connected to host.",
-            "en": "Connected to host."
+            "zh": "Connected to host."
         },
         {
             "key": "ui.steamlobbymanager.failed_to_connect_to_host",
-            "zh": "Failed to connect to host.",
-            "en": "Failed to connect to host."
+            "zh": "Failed to connect to host."
         },
         {
             "key": "ui.steamlobbymanager.host_server_started",
-            "zh": "Host server started.",
-            "en": "Host server started."
+            "zh": "Host server started."
         },
         {
             "key": "ui.roomroster.none",
-            "zh": "(none)",
-            "en": "(none)"
+            "zh": "(none)"
         },
         {
             "key": "ui.roomroster.player_playername_rolelabel_readylabel",
-            "zh": "{player.PlayerName} [{roleLabel}] [{readyLabel}]",
-            "en": "{player.PlayerName} [{roleLabel}] [{readyLabel}]"
+            "zh": "{player.PlayerName} [{roleLabel}] [{readyLabel}]"
         },
         {
             "key": "ui.propertiesselectionmanager.duplicate_propertiesselectionmanager_det",
-            "zh": "Duplicate PropertiesSelectionManager detected; destroying duplicate instance.",
-            "en": "Duplicate PropertiesSelectionManager detected; destroying duplicate instance."
+            "zh": "Duplicate PropertiesSelectionManager detected; destroying duplicate instance."
         },
         {
             "key": "ui.propertiesselectionmanager.skillloadoutstagekey_slotindex",
-            "zh": "{SkillLoadoutStageKey}_{slotIndex}",
-            "en": "{SkillLoadoutStageKey}_{slotIndex}"
+            "zh": "{SkillLoadoutStageKey}_{slotIndex}"
         },
         {
             "key": "ui.propertiesselectionmanager.selection_submitted_player_caller_client",
-            "zh": "Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}",
-            "en": "Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}"
+            "zh": "Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}"
         },
         {
             "key": "ui.propertiesselectionmanager.all_required_selections_submitted_for_st",
-            "zh": "All required selections submitted for stage '{propertyKey}'. Advancing immediately.",
-            "en": "All required selections submitted for stage '{propertyKey}'. Advancing immediately."
+            "zh": "All required selections submitted for stage '{propertyKey}'. Advancing immediately."
         },
         {
             "key": "ui.propertiesselectionmanager.stage_started_stagekey",
-            "zh": "Stage started: '{stageKey}'",
-            "en": "Stage started: '{stageKey}'"
+            "zh": "Stage started: '{stageKey}'"
         },
         {
             "key": "ui.propertiesselectionmanager.resolved_match_scene_is_empty_or_scenema",
-            "zh": "Resolved match scene is empty or SceneManager missing.",
-            "en": "Resolved match scene is empty or SceneManager missing."
+            "zh": "Resolved match scene is empty or SceneManager missing."
         },
         {
             "key": "ui.propertiesselectionmanager.loading_match_scene_resolvedmatchscenena",
-            "zh": "Loading match scene: {_resolvedMatchSceneName}",
-            "en": "Loading match scene: {_resolvedMatchSceneName}"
+            "zh": "Loading match scene: {_resolvedMatchSceneName}"
         },
         {
             "key": "ui.propertiesselectionmanager.validated_skill_loadout_submission_for_p",
-            "zh": "Validated skill loadout submission for player={playerId}",
-            "en": "Validated skill loadout submission for player={playerId}"
+            "zh": "Validated skill loadout submission for player={playerId}"
         },
         {
             "key": "ui.propertiesselectionmanager.skill_loadout_selection",
-            "zh": "Skill Loadout Selection",
-            "en": "Skill Loadout Selection"
+            "zh": "Skill Loadout Selection"
         },
         {
             "key": "ui.propertiesselectionmanager.map_selection",
-            "zh": "Map Selection",
-            "en": "Map Selection"
+            "zh": "Map Selection"
         },
         {
             "key": "ui.propertiesselectionmanager.map_a",
-            "zh": "Map A",
-            "en": "Map A"
+            "zh": "Map A"
         },
         {
             "key": "ui.propertiesselectionmanager.default_placeholder_map_a",
-            "zh": "Default placeholder map A.",
-            "en": "Default placeholder map A."
+            "zh": "Default placeholder map A."
         },
         {
             "key": "ui.propertiesselectionmanager.map_b",
-            "zh": "Map B",
-            "en": "Map B"
+            "zh": "Map B"
         },
         {
             "key": "ui.propertiesselectionmanager.default_placeholder_map_b",
-            "zh": "Default placeholder map B.",
-            "en": "Default placeholder map B."
+            "zh": "Default placeholder map B."
         },
         {
             "key": "ui.propertiesselectionmanager.map_c",
-            "zh": "Map C",
-            "en": "Map C"
+            "zh": "Map C"
         },
         {
             "key": "ui.propertiesselectionmanager.default_placeholder_map_c",
-            "zh": "Default placeholder map C.",
-            "en": "Default placeholder map C."
+            "zh": "Default placeholder map C."
         },
         {
             "key": "ui.propertiesselectionmanager.skin_selection",
-            "zh": "Skin Selection",
-            "en": "Skin Selection"
+            "zh": "Skin Selection"
         },
         {
             "key": "ui.propertiesselectionmanager.skin_a",
-            "zh": "Skin A",
-            "en": "Skin A"
+            "zh": "Skin A"
         },
         {
             "key": "ui.propertiesselectionmanager.default_placeholder_skin_a",
-            "zh": "Default placeholder skin A.",
-            "en": "Default placeholder skin A."
+            "zh": "Default placeholder skin A."
         },
         {
             "key": "ui.propertiesselectionmanager.skin_b",
-            "zh": "Skin B",
-            "en": "Skin B"
+            "zh": "Skin B"
         },
         {
             "key": "ui.propertiesselectionmanager.default_placeholder_skin_b",
-            "zh": "Default placeholder skin B.",
-            "en": "Default placeholder skin B."
+            "zh": "Default placeholder skin B."
         },
         {
             "key": "ui.propertiesselectionmanager.skin_c",
-            "zh": "Skin C",
-            "en": "Skin C"
+            "zh": "Skin C"
         },
         {
             "key": "ui.propertiesselectionmanager.default_placeholder_skin_c",
-            "zh": "Default placeholder skin C.",
-            "en": "Default placeholder skin C."
+            "zh": "Default placeholder skin C."
         },
         {
             "key": "ui.resultdecisionmanager.choice_caller_clientid_choice",
-            "zh": "choice:{caller.ClientId}:{choice}",
-            "en": "choice:{caller.ClientId}:{choice}"
+            "zh": "choice:{caller.ClientId}:{choice}"
         },
         {
             "key": "ui.resultdecisionmanager.decision_playername_choicelabel",
-            "zh": "{decision.PlayerName}: {choiceLabel}",
-            "en": "{decision.PlayerName}: {choiceLabel}"
+            "zh": "{decision.PlayerName}: {choiceLabel}"
         },
         {
             "key": "ui.resultdecisionmanager.disconnect_conn_clientid",
-            "zh": "disconnect:{conn.ClientId}",
-            "en": "disconnect:{conn.ClientId}"
+            "zh": "disconnect:{conn.ClientId}"
         },
         {
             "key": "ui.leaderboardtmpui.race_status_waiting_for_players",
-            "zh": "Race Status: Waiting for players...",
-            "en": "Race Status: Waiting for players..."
+            "zh": "Race Status: Waiting for players..."
         },
         {
             "key": "ui.leaderboardtmpui.race_status_starting_in_roomstatemanager",
-            "zh": "Race Status: Starting in {RoomStateManager.Instance.RaceCountdownSecondsRemaining}...",
-            "en": "Race Status: Starting in {RoomStateManager.Instance.RaceCountdownSecondsRemaining}..."
+            "zh": "Race Status: Starting in {RoomStateManager.Instance.RaceCountdownSecondsRemaining}..."
         },
         {
             "key": "ui.leaderboardtmpui.race_status_result_area",
-            "zh": "Race Status: Result Area",
-            "en": "Race Status: Result Area"
+            "zh": "Race Status: Result Area"
         },
         {
             "key": "ui.leaderboardtmpui.race_status_started",
-            "zh": "Race Status: Started",
-            "en": "Race Status: Started"
+            "zh": "Race Status: Started"
         },
         {
             "key": "ui.leaderboardtmpui.your_progress_local_player_not_found",
-            "zh": "Your Progress: (local player not found)",
-            "en": "Your Progress: (local player not found)"
+            "zh": "Your Progress: (local player not found)"
         },
         {
             "key": "ui.leaderboardtmpui.your_obsession_localobsession_current_0_",
-            "zh": "Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0}",
-            "en": "Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0}"
+            "zh": "Your Obsession: {_localObsession.Current:0.0}/{_localObsession.Max:0.0}"
         },
         {
             "key": "ui.leaderboardtmpui.backfire_chance_localobsession_currentba",
-            "zh": "Backfire Chance: {_localObsession.CurrentBackfireProbabilityPercent:0.0}%",
-            "en": "Backfire Chance: {_localObsession.CurrentBackfireProbabilityPercent:0.0}%"
+            "zh": "Backfire Chance: {_localObsession.CurrentBackfireProbabilityPercent:0.0}%"
         },
         {
             "key": "ui.leaderboardtmpui.gap_to_leader_localobsession_completiong",
-            "zh": "Gap To Leader: {_localObsession.CompletionGapToLeaderPercent:0.0}%",
-            "en": "Gap To Leader: {_localObsession.CompletionGapToLeaderPercent:0.0}%"
+            "zh": "Gap To Leader: {_localObsession.CompletionGapToLeaderPercent:0.0}%"
         },
         {
             "key": "ui.leaderboardtmpui.your_obsession_local_obsession_not_found",
-            "zh": "Your Obsession: (local obsession not found)",
-            "en": "Your Obsession: (local obsession not found)"
+            "zh": "Your Obsession: (local obsession not found)"
         },
         {
             "key": "ui.leaderboardtmpui.backfire_chance_local_obsession_not_foun",
-            "zh": "Backfire Chance: (local obsession not found)",
-            "en": "Backfire Chance: (local obsession not found)"
+            "zh": "Backfire Chance: (local obsession not found)"
         },
         {
             "key": "ui.leaderboardtmpui.gap_to_leader_local_obsession_not_found",
-            "zh": "Gap To Leader: (local obsession not found)",
-            "en": "Gap To Leader: (local obsession not found)"
+            "zh": "Gap To Leader: (local obsession not found)"
         },
         {
             "key": "ui.leaderboardtmpui.no_data",
-            "zh": "(no data)",
-            "en": "(no data)"
+            "zh": "(no data)"
         },
         {
             "key": "ui.leaderboardtmpui.i_1_entry_displayname_lap_entry_lap_entr",
-            "zh": "{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}",
-            "en": "{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}"
+            "zh": "{i + 1}. {entry.DisplayName} - Lap {entry.Lap} - {entry.FinalCompletionPercent:0.0}%{finishSuffix}"
         },
         {
             "key": "ui.resultdecisionui.countdown",
-            "zh": "Countdown: --",
-            "en": "Countdown: --"
+            "zh": "Countdown: --"
         },
         {
             "key": "ui.resultdecisionui.waiting_for_resultdecisionmanager",
-            "zh": "Waiting for ResultDecisionManager...",
-            "en": "Waiting for ResultDecisionManager..."
+            "zh": "Waiting for ResultDecisionManager..."
         },
         {
             "key": "ui.resultdecisionui.next_decision_in_decisionmanager_remaini",
-            "zh": "Next Decision In: {_decisionManager.RemainingSeconds}s",
-            "en": "Next Decision In: {_decisionManager.RemainingSeconds}s"
+            "zh": "Next Decision In: {_decisionManager.RemainingSeconds}s"
         },
         {
             "key": "ui.resultdecisionui.all_players_agreed_starting_a_new_game",
-            "zh": "All players agreed. Starting a new game...",
-            "en": "All players agreed. Starting a new game..."
+            "zh": "All players agreed. Starting a new game..."
         },
         {
             "key": "ui.resultdecisionui.returning_everyone_to_the_room",
-            "zh": "Returning everyone to the room...",
-            "en": "Returning everyone to the room..."
+            "zh": "Returning everyone to the room..."
         },
         {
             "key": "ui.resultdecisionui.choose_whether_to_start_a_new_game_or_re",
-            "zh": "Choose whether to start a new game or return to the room.",
-            "en": "Choose whether to start a new game or return to the room."
+            "zh": "Choose whether to start a new game or return to the room."
         },
         {
             "key": "ui.resultdecisionui.your_choice_localdecision_choice",
-            "zh": "Your Choice: {localDecision.Choice}",
-            "en": "Your Choice: {localDecision.Choice}"
+            "zh": "Your Choice: {localDecision.Choice}"
         },
         {
             "key": "ui.resultdecisionui.waiting_for_your_decision_state",
-            "zh": "Waiting for your decision state...",
-            "en": "Waiting for your decision state..."
+            "zh": "Waiting for your decision state..."
         },
         {
             "key": "ui.createroomui.steamlobbymanager_not_found",
-            "zh": "SteamLobbyManager not found.",
-            "en": "SteamLobbyManager not found."
+            "zh": "SteamLobbyManager not found."
         },
         {
             "key": "ui.createroomui.creating_room",
-            "zh": "Creating room...",
-            "en": "Creating room..."
+            "zh": "Creating room..."
         },
         {
             "key": "ui.createroomui.room_created_lobby_id_value",
-            "zh": "Room created: {lobby.Id.Value}",
-            "en": "Room created: {lobby.Id.Value}"
+            "zh": "Room created: {lobby.Id.Value}"
         },
         {
             "key": "ui.createroomui.create_failed_reason",
-            "zh": "Create failed: {reason}",
-            "en": "Create failed: {reason}"
+            "zh": "Create failed: {reason}"
         },
         {
             "key": "ui.createroomui.friends_only",
-            "zh": "Friends Only",
-            "en": "Friends Only"
+            "zh": "Friends Only"
         },
         {
             "key": "ui.lobbybrowserlistitemui.unnamed_room",
-            "zh": "Unnamed Room",
-            "en": "Unnamed Room"
+            "zh": "Unnamed Room"
         },
         {
             "key": "ui.lobbybrowserlistitemui.data_currentplayers_data_maxplayers",
-            "zh": "{data.CurrentPlayers} / {data.MaxPlayers}",
-            "en": "{data.CurrentPlayers} / {data.MaxPlayers}"
+            "zh": "{data.CurrentPlayers} / {data.MaxPlayers}"
         },
         {
             "key": "ui.lobbybrowserlistitemui.host_data_hoststeamid",
-            "zh": "Host: {data.HostSteamId}",
-            "en": "Host: {data.HostSteamId}"
+            "zh": "Host: {data.HostSteamId}"
         },
         {
             "key": "ui.lobbybrowserlistitemui.lobby_id_data_lobbyid",
-            "zh": "Lobby ID: {data.LobbyId}",
-            "en": "Lobby ID: {data.LobbyId}"
+            "zh": "Lobby ID: {data.LobbyId}"
         },
         {
             "key": "ui.lobbybrowserui.no_rooms_loaded",
-            "zh": "No rooms loaded.",
-            "en": "No rooms loaded."
+            "zh": "No rooms loaded."
         },
         {
             "key": "ui.lobbybrowserui.refreshing_rooms",
-            "zh": "Refreshing rooms...",
-            "en": "Refreshing rooms..."
+            "zh": "Refreshing rooms..."
         },
         {
             "key": "ui.lobbybrowserui.joining_room_lobbyid",
-            "zh": "Joining room {lobbyId}...",
-            "en": "Joining room {lobbyId}..."
+            "zh": "Joining room {lobbyId}..."
         },
         {
             "key": "ui.lobbybrowserui.no_joinable_rooms_found",
-            "zh": "No joinable rooms found.",
-            "en": "No joinable rooms found."
+            "zh": "No joinable rooms found."
         },
         {
             "key": "ui.lobbybrowserui.found_lobbies_count_rooms",
-            "zh": "Found {lobbies.Count} rooms.",
-            "en": "Found {lobbies.Count} rooms."
+            "zh": "Found {lobbies.Count} rooms."
         },
         {
             "key": "ui.lobbybrowserui.join_failed_reason",
-            "zh": "Join failed: {reason}",
-            "en": "Join failed: {reason}"
+            "zh": "Join failed: {reason}"
         },
         {
             "key": "ui.propertiesselectorui.properties_selector",
-            "zh": "Properties Selector",
-            "en": "Properties Selector"
+            "zh": "Properties Selector"
         },
         {
             "key": "ui.propertiesselectorui.waiting_for_propertiesselectionmanager",
-            "zh": "Waiting for PropertiesSelectionManager...",
-            "en": "Waiting for PropertiesSelectionManager..."
+            "zh": "Waiting for PropertiesSelectionManager..."
         },
         {
             "key": "ui.propertiesselectorui.loading_match",
-            "zh": "Loading Match",
-            "en": "Loading Match"
+            "zh": "Loading Match"
         },
         {
             "key": "ui.propertiesselectorui.loading_selectionmanager_resolvedmatchsc",
-            "zh": "Loading {_selectionManager.ResolvedMatchSceneName}...",
-            "en": "Loading {_selectionManager.ResolvedMatchSceneName}..."
+            "zh": "Loading {_selectionManager.ResolvedMatchSceneName}..."
         },
         {
             "key": "ui.propertiesselectorui.choose_skillloadout_slotcount_skills",
-            "zh": "Choose {SkillLoadout.SlotCount} skills",
-            "en": "Choose {SkillLoadout.SlotCount} skills"
+            "zh": "Choose {SkillLoadout.SlotCount} skills"
         },
         {
             "key": "ui.propertiesselectorui.step_selectionmanager_currentstageindex_",
-            "zh": "Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel}",
-            "en": "Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel}"
+            "zh": "Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel}"
         },
         {
             "key": "ui.propertiesselectorui.time_remaining_selectionmanager_stagecou",
-            "zh": "Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s",
-            "en": "Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s"
+            "zh": "Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s"
         },
         {
             "key": "ui.propertiesselectorui.syncing_stage_data",
-            "zh": "Syncing stage data",
-            "en": "Syncing stage data"
+            "zh": "Syncing stage data"
         },
         {
             "key": "ui.propertiesselectorui.waiting_for_host_stage_configuration",
-            "zh": "Waiting for host stage configuration...",
-            "en": "Waiting for host stage configuration..."
+            "zh": "Waiting for host stage configuration..."
         },
         {
             "key": "ui.propertiesselectorui.all_stages_complete",
-            "zh": "All stages complete",
-            "en": "All stages complete"
+            "zh": "All stages complete"
         },
         {
             "key": "ui.propertiesselectorui.waiting_to_enter_match",
-            "zh": "Waiting to enter match...",
-            "en": "Waiting to enter match..."
+            "zh": "Waiting to enter match..."
         },
         {
             "key": "ui.propertiesselectorui.resolved_map_mapoptionid",
-            "zh": "Resolved Map: {mapOptionId}",
-            "en": "Resolved Map: {mapOptionId}"
+            "zh": "Resolved Map: {mapOptionId}"
         },
         {
             "key": "ui.propertiesselectorui.resolved_map_pending",
-            "zh": "Resolved Map: pending",
-            "en": "Resolved Map: pending"
+            "zh": "Resolved Map: pending"
         },
         {
             "key": "ui.propertiesselectorui.everyone_is_voting_on_the_current_stage_",
-            "zh": "Everyone is voting on the current stage option.",
-            "en": "Everyone is voting on the current stage option."
+            "zh": "Everyone is voting on the current stage option."
         },
         {
             "key": "ui.propertiesselectorui.only_the_host_can_choose_during_this_sta",
-            "zh": "Only the host can choose during this stage.",
-            "en": "Only the host can choose during this stage."
+            "zh": "Only the host can choose during this stage."
         },
         {
             "key": "ui.propertiesselectorui.choose_all_desired_options_before_the_ti",
-            "zh": "Choose all desired options before the timer ends.",
-            "en": "Choose all desired options before the timer ends."
+            "zh": "Choose all desired options before the timer ends."
         },
         {
             "key": "ui.propertiesselectorui.choose_all_desired_options",
-            "zh": "Choose all desired options.",
-            "en": "Choose all desired options."
+            "zh": "Choose all desired options."
         },
         {
             "key": "ui.propertiesselectorui.each_player_chooses_one_option_before_th",
-            "zh": "Each player chooses one option before the timer ends.",
-            "en": "Each player chooses one option before the timer ends."
+            "zh": "Each player chooses one option before the timer ends."
         },
         {
             "key": "ui.propertiesselectorui.each_player_chooses_one_option",
-            "zh": "Each player chooses one option.",
-            "en": "Each player chooses one option."
+            "zh": "Each player chooses one option."
         },
         {
             "key": "ui.propertiesselectorui.no_active_stage",
-            "zh": "No active stage.",
-            "en": "No active stage."
+            "zh": "No active stage."
         },
         {
             "key": "ui.propertiesselectorui.filledcount_skillloadout_slotcount_strin",
-            "zh": "{filledCount}/{SkillLoadout.SlotCount} [{string.Join(",
-            "en": "{filledCount}/{SkillLoadout.SlotCount} [{string.Join("
+            "zh": "{filledCount}/{SkillLoadout.SlotCount} [{string.Join("
         },
         {
             "key": "ui.propertiesselectorui.names",
-            "zh": ", names)}]",
-            "en": ", names)}]"
+            "zh": ", names)}]"
         },
         {
             "key": "ui.propertiesselectorui.participant_playername_selectedoptionid",
-            "zh": "{participant.PlayerName}: {selectedOptionId}",
-            "en": "{participant.PlayerName}: {selectedOptionId}"
+            "zh": "{participant.PlayerName}: {selectedOptionId}"
         },
         {
             "key": "ui.propertiesselectorui.n",
-            "zh": "\\n",
-            "en": "\\n"
+            "zh": "\\n"
         },
         {
             "key": "ui.propertiesselectorui.no_players_connected",
-            "zh": "No players connected.",
-            "en": "No players connected."
+            "zh": "No players connected."
         },
         {
             "key": "ui.propertycarouselview.focused_none",
-            "zh": "Focused: None",
-            "en": "Focused: None"
+            "zh": "Focused: None"
         },
         {
             "key": "ui.propertycarouselview.confirmed_none",
-            "zh": "Confirmed: None",
-            "en": "Confirmed: None"
+            "zh": "Confirmed: None"
         },
         {
             "key": "ui.propertycarouselview.confirmed_lastsubmittedoptionid",
-            "zh": "Confirmed: {_lastSubmittedOptionId}",
-            "en": "Confirmed: {_lastSubmittedOptionId}"
+            "zh": "Confirmed: {_lastSubmittedOptionId}"
         },
         {
             "key": "ui.propertycarouselview.focused_item_optionid_n_confirmedsuffix",
-            "zh": "Focused: {item.OptionId}\\n{confirmedSuffix}",
-            "en": "Focused: {item.OptionId}\\n{confirmedSuffix}"
+            "zh": "Focused: {item.OptionId}\\n{confirmedSuffix}"
         },
         {
             "key": "ui.propertycarouselview.votes_count",
-            "zh": "Votes: {count}",
-            "en": "Votes: {count}"
+            "zh": "Votes: {count}"
         },
         {
             "key": "ui.propertycarouselview.selected_count",
-            "zh": "Selected: {count}",
-            "en": "Selected: {count}"
+            "zh": "Selected: {count}"
         },
         {
             "key": "ui.propertygroupview.selected_getoptiondisplayname_localselec",
-            "zh": "Selected: {GetOptionDisplayName(localSelectedOptionId)}",
-            "en": "Selected: {GetOptionDisplayName(localSelectedOptionId)}"
+            "zh": "Selected: {GetOptionDisplayName(localSelectedOptionId)}"
         },
         {
             "key": "ui.propertygroupview.selected_none",
-            "zh": "Selected: None",
-            "en": "Selected: None"
+            "zh": "Selected: None"
         },
         {
             "key": "ui.propertygroupview.mode_vote",
-            "zh": "Mode: Vote",
-            "en": "Mode: Vote"
+            "zh": "Mode: Vote"
         },
         {
             "key": "ui.propertygroupview.mode_host_only",
-            "zh": "Mode: Host Only",
-            "en": "Mode: Host Only"
+            "zh": "Mode: Host Only"
         },
         {
             "key": "ui.propertygroupview.mode_multi_select",
-            "zh": "Mode: Multi Select",
-            "en": "Mode: Multi Select"
+            "zh": "Mode: Multi Select"
         },
         {
             "key": "ui.propertygroupview.mode_single_select",
-            "zh": "Mode: Single Select",
-            "en": "Mode: Single Select"
+            "zh": "Mode: Single Select"
         },
         {
             "key": "ui.propertygroupview.votes_selectedcount",
-            "zh": "Votes: {selectedCount}",
-            "en": "Votes: {selectedCount}"
+            "zh": "Votes: {selectedCount}"
         },
         {
             "key": "ui.propertygroupview.players_selectedcount",
-            "zh": "Players: {selectedCount}",
-            "en": "Players: {selectedCount}"
+            "zh": "Players: {selectedCount}"
         },
         {
             "key": "ui.roomplayerentryui.unknown_player",
-            "zh": "Unknown Player",
-            "en": "Unknown Player"
+            "zh": "Unknown Player"
         },
         {
             "key": "ui.roomui.opening_properties_selector",
-            "zh": "Opening Properties Selector...",
-            "en": "Opening Properties Selector..."
+            "zh": "Opening Properties Selector..."
         },
         {
             "key": "ui.roomui.room_lobby_id_value",
-            "zh": "Room #{lobby.Id.Value}",
-            "en": "Room #{lobby.Id.Value}"
+            "zh": "Room #{lobby.Id.Value}"
         },
         {
             "key": "ui.roomui.waiting_for_room_state_manager",
-            "zh": "Waiting for room state manager...",
-            "en": "Waiting for room state manager..."
+            "zh": "Waiting for room state manager..."
         },
         {
             "key": "ui.roomui.host_can_start_the_game",
-            "zh": "Host can start the game.",
-            "en": "Host can start the game."
+            "zh": "Host can start the game."
         },
         {
             "key": "ui.roomui.waiting_for_players_to_get_ready",
-            "zh": "Waiting for players to get ready.",
-            "en": "Waiting for players to get ready."
+            "zh": "Waiting for players to get ready."
         },
         {
             "key": "ui.roomui.waiting_for_host_to_start_the_game",
-            "zh": "Waiting for host to start the game.",
-            "en": "Waiting for host to start the game."
+            "zh": "Waiting for host to start the game."
         },
         {
             "key": "ui.roomui.cancel_ready",
-            "zh": "Cancel Ready",
-            "en": "Cancel Ready"
+            "zh": "Cancel Ready"
         },
         {
             "key": "ui.skillinspectpanelui.esc_to_close",
-            "zh": "Esc to close",
-            "en": "Esc to close"
+            "zh": "Esc to close"
         },
         {
             "key": "ui.skillinspectableitem.inspect_skillid",
-            "zh": "Inspect_{SkillId}",
-            "en": "Inspect_{SkillId}"
+            "zh": "Inspect_{SkillId}"
         },
         {
             "key": "ui.skillwallitemview.skillwallitem_skillid",
-            "zh": "SkillWallItem_{_skillId}",
-            "en": "SkillWallItem_{_skillId}"
+            "zh": "SkillWallItem_{_skillId}"
         },
         {
             "key": "ui.skillwallselectioncontroller.ignored_select_request_for_unknown_skill",
-            "zh": "Ignored select request for unknown skill '{skillId}'.",
-            "en": "Ignored select request for unknown skill '{skillId}'."
+            "zh": "Ignored select request for unknown skill '{skillId}'."
         },
         {
             "key": "ui.skillwallselectioncontroller.ignored_select_request_because_skillid_i",
-            "zh": "Ignored select request because '{skillId}' is already selected.",
-            "en": "Ignored select request because '{skillId}' is already selected."
+            "zh": "Ignored select request because '{skillId}' is already selected."
         },
         {
             "key": "ui.skillwallselectioncontroller.ignored_select_request_because_all_skill",
-            "zh": "Ignored select request because all {SkillLoadout.SlotCount} slots are full.",
-            "en": "Ignored select request because all {SkillLoadout.SlotCount} slots are full."
+            "zh": "Ignored select request because all {SkillLoadout.SlotCount} slots are full."
         },
         {
             "key": "ui.skillwallselectioncontroller.skipped_wall_build_because_required_refe",
-            "zh": "Skipped wall build because required references are missing.",
-            "en": "Skipped wall build because required references are missing."
+            "zh": "Skipped wall build because required references are missing."
         },
         {
             "key": "ui.skillwallselectioncontroller.built_skill_wall_with_spawneditems_count",
-            "zh": "Built skill wall with {_spawnedItems.Count} selectable items.",
-            "en": "Built skill wall with {_spawnedItems.Count} selectable items."
+            "zh": "Built skill wall with {_spawnedItems.Count} selectable items."
         },
         {
             "key": "ui.skillwallselectioncontroller.scenemanagerfound_hasscenemanager_spawne",
-            "zh": "sceneManagerFound={hasSceneManager}, spawned={isSpawned}, singletonNull={PropertiesSelectionManager.Instance == null}",
-            "en": "sceneManagerFound={hasSceneManager}, spawned={isSpawned}, singletonNull={PropertiesSelectionManager.Instance == null}"
+            "zh": "sceneManagerFound={hasSceneManager}, spawned={isSpawned}, singletonNull={PropertiesSelectionManager.Instance == null}"
         },
         {
             "key": "ui.static.lobby_id_input",
-            "zh": "Lobby Id Input",
-            "en": "Lobby Id Input"
+            "zh": "Lobby Id Input"
         },
         {
             "key": "ui.static.option_a",
-            "zh": "Option A",
-            "en": "Option A"
+            "zh": "Option A"
         },
         {
             "key": "ui.static.room_visibility",
-            "zh": "Room Visibility",
-            "en": "Room Visibility"
+            "zh": "Room Visibility"
         },
         {
             "key": "ui.static.max_player",
-            "zh": "Max Player",
-            "en": "Max Player"
+            "zh": "Max Player"
         },
         {
             "key": "ui.static.create",
-            "zh": "Create",
-            "en": "Create"
+            "zh": "Create"
         },
         {
             "key": "ui.static.create_room",
-            "zh": "Create Room",
-            "en": "Create Room"
+            "zh": "Create Room"
         },
         {
             "key": "ui.static.public",
-            "zh": "Public",
-            "en": "Public"
+            "zh": "Public"
         },
         {
             "key": "ui.static.room_name",
-            "zh": "Room Name",
-            "en": "Room Name"
+            "zh": "Room Name"
         },
         {
             "key": "ui.static.browse_rooms",
-            "zh": "Browse Rooms",
-            "en": "Browse Rooms"
+            "zh": "Browse Rooms"
         },
         {
             "key": "ui.static.ready",
-            "zh": "Ready",
-            "en": "Ready"
+            "zh": "Ready"
         },
         {
             "key": "ui.static.join_room",
-            "zh": "Join Room",
-            "en": "Join Room"
+            "zh": "Join Room"
         },
         {
             "key": "ui.static.enter_text",
-            "zh": "Enter text...",
-            "en": "Enter text..."
+            "zh": "Enter text..."
         },
         {
             "key": "ui.static.4",
-            "zh": "4",
-            "en": "4"
+            "zh": "4"
         },
         {
             "key": "ui.static.start_game",
-            "zh": "Start Game",
-            "en": "Start Game"
+            "zh": "Start Game"
         },
         {
             "key": "ui.static.return",
-            "zh": "Return",
-            "en": "Return"
+            "zh": "Return"
         },
         {
             "key": "ui.static.refresh",
-            "zh": "Refresh",
-            "en": "Refresh"
+            "zh": "Refresh"
         },
         {
             "key": "ui.static.back",
-            "zh": "Back",
-            "en": "Back"
+            "zh": "Back"
         },
         {
             "key": "ui.static.join",
-            "zh": "Join",
-            "en": "Join"
+            "zh": "Join"
         },
         {
             "key": "ui.static.playernum",
-            "zh": "PlayerNum:",
-            "en": "PlayerNum:"
+            "zh": "PlayerNum:"
         },
         {
             "key": "ui.static.leave_room",
-            "zh": "Leave Room",
-            "en": "Leave Room"
+            "zh": "Leave Room"
         },
         {
             "key": "ui.static.your_role",
-            "zh": "Your Role:",
-            "en": "Your Role:"
+            "zh": "Your Role:"
         },
         {
             "key": "ui.static.quit",
-            "zh": "Quit",
-            "en": "Quit"
+            "zh": "Quit"
         },
         {
             "key": "ui.static.pagetitletext",
-            "zh": "pageTitleText",
-            "en": "pageTitleText"
+            "zh": "pageTitleText"
         },
         {
             "key": "ui.static.技能描述文本",
-            "zh": "技能描述文本",
-            "en": ""
+            "zh": "技能描述文本"
         },
         {
             "key": "ui.static.confirm",
-            "zh": "Confirm",
-            "en": "Confirm"
+            "zh": "Confirm"
         },
         {
             "key": "ui.static.提示文本",
-            "zh": "提示文本",
-            "en": ""
+            "zh": "提示文本"
         },
         {
             "key": "ui.static.countdowntext",
-            "zh": "countdownText",
-            "en": "countdownText"
+            "zh": "countdownText"
         },
         {
             "key": "ui.static.resolvedmaptext",
-            "zh": "resolvedMapText",
-            "en": "resolvedMapText"
+            "zh": "resolvedMapText"
         },
         {
             "key": "ui.static.playersselectiontext",
-            "zh": "PlayersSelectionText",
-            "en": "PlayersSelectionText"
+            "zh": "PlayersSelectionText"
         },
         {
             "key": "ui.static.标题文本",
-            "zh": "标题文本",
-            "en": ""
+            "zh": "标题文本"
         },
         {
             "key": "ui.static.statustext",
-            "zh": "statusText",
-            "en": "statusText"
+            "zh": "statusText"
         },
         {
             "key": "ui.static.stagetitletext",
-            "zh": "StageTitleText",
-            "en": "StageTitleText"
+            "zh": "StageTitleText"
         },
         {
             "key": "ui.static.return_to_room",
-            "zh": "Return To Room",
-            "en": "Return To Room"
+            "zh": "Return To Room"
         },
         {
             "key": "ui.static.start_new_game",
-            "zh": "Start New Game",
-            "en": "Start New Game"
+            "zh": "Start New Game"
         },
         {
             "key": "ui.static.endmatch",
-            "zh": "EndMatch",
-            "en": "EndMatch"
+            "zh": "EndMatch"
         },
         {
             "key": "ui.static.player3",
-            "zh": "Player3",
-            "en": "Player3"
+            "zh": "Player3"
         },
         {
             "key": "ui.static.player2",
-            "zh": "Player2",
-            "en": "Player2"
+            "zh": "Player2"
         },
         {
             "key": "ui.static.player1",
-            "zh": "Player1",
-            "en": "Player1"
+            "zh": "Player1"
         },
         {
             "key": "ui.static.right",
-            "zh": "Right",
-            "en": "Right"
+            "zh": "Right"
         },
         {
             "key": "ui.static.left",
-            "zh": "Left",
-            "en": "Left"
+            "zh": "Left"
         },
         {
             "key": "ui.static.select",
-            "zh": "Select",
-            "en": "Select"
+            "zh": "Select"
         },
         {
             "key": "ui.static.hosttext",
-            "zh": "hostText",
-            "en": "hostText"
+            "zh": "hostText"
         },
         {
             "key": "ui.static.lobbyidtext",
-            "zh": "LobbyIdText",
-            "en": "LobbyIdText"
+            "zh": "LobbyIdText"
         }
     ],
     "menuOptions": [
@@ -2972,44 +2604,6 @@
             "value": "Private",
             "labelKey": "menu.option.visibility.private",
             "isDefault": false
-        }
-    ],
-    "skillIcons": [
-        {
-            "skillId": "acceleration",
-            "hudIdleSpritePath": "Assets/UI/UI资源/文字PNG/New/神足通.png",
-            "hudActiveSpritePath": "Assets/UI/UI资源/文字PNG/New/神足通-白.png",
-            "previewSpritePath": ""
-        },
-        {
-            "skillId": "blackcurtain",
-            "hudIdleSpritePath": "Assets/UI/UI资源/文字PNG/New/一念光明.png",
-            "hudActiveSpritePath": "Assets/UI/UI资源/文字PNG/New/一念光明-白.png",
-            "previewSpritePath": ""
-        },
-        {
-            "skillId": "giant",
-            "hudIdleSpritePath": "Assets/UI/UI资源/文字PNG/New/法像金身.png",
-            "hudActiveSpritePath": "Assets/UI/UI资源/文字PNG/New/法像金身-白.png",
-            "previewSpritePath": ""
-        },
-        {
-            "skillId": "push_projectile_hands",
-            "hudIdleSpritePath": "Assets/UI/UI资源/文字PNG/New/如来神掌.png",
-            "hudActiveSpritePath": "Assets/UI/UI资源/文字PNG/New/如来神掌-白.png",
-            "previewSpritePath": ""
-        },
-        {
-            "skillId": "reverseturn",
-            "hudIdleSpritePath": "Assets/UI/UI资源/文字PNG/New/逆姻缘.png",
-            "hudActiveSpritePath": "Assets/UI/UI资源/文字PNG/New/逆姻缘-白.png",
-            "previewSpritePath": ""
-        },
-        {
-            "skillId": "slowtrap",
-            "hudIdleSpritePath": "Assets/UI/UI资源/文字PNG/New/禅定缓流.png",
-            "hudActiveSpritePath": "Assets/UI/UI资源/文字PNG/New/禅定缓流-白.png",
-            "previewSpritePath": ""
         }
     ]
 }

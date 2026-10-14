@@ -1,7 +1,7 @@
 ##var,key,zh,en,comment,context
 ##type,string#key,text,text,string,string
-##group,,,,doc,doc
-##comment,domain.entity.field,简体中文,英文,,来源
+##group,,,doc,doc,doc
+##comment,domain.entity.field,简体中文,英文：本地化尚未接入，运行时只读 zh,,来源
 ,skill.acceleration.name,神足通,,技能显示名,Skill.displayNameKey
 ,skill.acceleration.desc,加速自身一段时间,,技能描述,Skill.descriptionKey
 ,skill.slowtrap.name,禅定缓流,,技能显示名,Skill.displayNameKey

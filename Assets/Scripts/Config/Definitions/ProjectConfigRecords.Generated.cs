@@ -213,8 +213,6 @@ public class MovementRecord
     /// <summary>float</summary>
     [Tooltip("V2 预测马达值（legacy 为 1）")] public float turnInputMultiplier = 0f;
     /// <summary>float</summary>
-    [Tooltip("油门恒 1")] public float autoThrottle = 0f;
-    /// <summary>float</summary>
     [Tooltip("Rigidbody")] public float mass = 0f;
     /// <summary>float</summary>
     public float linearDrag = 0f;
@@ -223,13 +221,11 @@ public class MovementRecord
     /// <summary>float</summary>
     [Tooltip("项目默认 DynamicsManager")] public float maxAngularVelocity = 0f;
     /// <summary>float</summary>
-    public float colliderRadius = 0f;
+    [Tooltip("角色实体胶囊（BuddahPredictedMotorConfig 在 Awake 写入 CapsuleCollider）")] public float colliderRadius = 0f;
     /// <summary>float</summary>
-    public float colliderHeight = 0f;
+    [Tooltip("同上")] public float colliderHeight = 0f;
     /// <summary>vector3</summary>
-    public Vector3 colliderCenter = Vector3.zero;
-    /// <summary>string#ref=Global/PhysicsMaterial.materialId</summary>
-    public string physicMaterial = string.Empty;
+    [Tooltip("同上")] public Vector3 colliderCenter = Vector3.zero;
     /// <summary>float</summary>
     [Tooltip("受击宽限 s（原 PushReaction.graceSeconds，三种来源数值相同）")] public float pushGraceSeconds = 0f;
     /// <summary>float</summary>
@@ -565,7 +561,7 @@ public class ModeRuleRecord
     /// <summary>bool</summary>
     public bool autoStartRoom = false;
     /// <summary>bool</summary>
-    [Tooltip("实际由 RoomStateManager._requireAllClientsReady 决定")] public bool requiresReady = false;
+    [Tooltip("RoomStateManager 每局开始时读取：是否所有客户端准备后主机才能开始")] public bool requiresReady = false;
     /// <summary>bool</summary>
     public bool selectionTimeoutEnabled = false;
     /// <summary>bool</summary>
@@ -581,15 +577,15 @@ public class ModeRuleRecord
     /// <summary>bool</summary>
     public bool endOnHumanFinish = false;
     /// <summary>bool</summary>
-    [Tooltip("占位")] public bool allowSkipSpectating = false;
+    [Tooltip("占位：经 IMatchRules 暴露，游戏内尚无读取方（S6/S7）")] public bool allowSkipSpectating = false;
     /// <summary>bool</summary>
     public bool allowQuitDialog = false;
     /// <summary>bool</summary>
-    [Tooltip("占位")] public bool allowPause = false;
+    [Tooltip("占位：经 IMatchRules 暴露，游戏内尚无读取方（S6/S7）")] public bool allowPause = false;
     /// <summary>bool</summary>
-    [Tooltip("占位")] public bool showRacerNameTags = false;
+    [Tooltip("占位：经 IMatchRules 暴露，游戏内尚无读取方（S6/S7）")] public bool showRacerNameTags = false;
     /// <summary>bool</summary>
-    [Tooltip("占位")] public bool showOpponentsOnMinimap = false;
+    [Tooltip("占位：经 IMatchRules 暴露，游戏内尚无读取方（S6/S7）")] public bool showOpponentsOnMinimap = false;
     /// <summary>string#ref=UI/Text.key</summary>
     public string defaultPlayerNameKey = string.Empty;
     /// <summary>int</summary>
@@ -600,10 +596,6 @@ public class ModeRuleRecord
     [Tooltip("RaceFinishManager 场景")] public float postFirstFinishCountdownSeconds = 0f;
     /// <summary>int</summary>
     [Tooltip("ResultDecisionManager 场景")] public int resultDecisionSeconds = 0;
-    /// <summary>int</summary>
-    [Tooltip("CanHostStartGame")] public int minPlayersToStart = 0;
-    /// <summary>bool</summary>
-    public bool hostAutoReady = false;
     /// <summary>int#range=0,5</summary>
     [Tooltip("Solo 固定 5")] public int aiCount = 0;
     /// <summary>enum:SoloDifficulty</summary>
@@ -642,8 +634,6 @@ public class TrackRecord
     public Vector3 resultOverflowOffset = Vector3.zero;
     /// <summary>vector3</summary>
     public Vector3 missingPlayerOffset = Vector3.zero;
-    /// <summary>string#path</summary>
-    public string minimapSpritePath = string.Empty;
     /// <summary>float</summary>
     public float minimapWorldMinX = 0f;
     /// <summary>float</summary>
@@ -652,10 +642,8 @@ public class TrackRecord
     public float minimapWorldMinZ = 0f;
     /// <summary>float</summary>
     public float minimapWorldMaxZ = 0f;
-    /// <summary>float</summary>
-    [Tooltip("RaceMap 覆盖值")] public float minimapImageWidth = 0f;
     /// <summary>int</summary>
-    public int trackSplineSamples = 0;
+    [Tooltip("TrackSplineRef.samples 弧长表分辨率（场景值为兜底）")] public int trackSplineSamples = 0;
 }
 
 /// <summary>Match.xlsx / TrackWrongWay</summary>
@@ -734,12 +722,10 @@ public class LobbyRecord
     public string profileId = string.Empty;
     /// <summary>int</summary>
     public int maxPlayers = 0;
-    /// <summary>int</summary>
-    public int minPlayers = 0;
     /// <summary>string#ref=UI/Text.key</summary>
     public string defaultLobbyNameKey = string.Empty;
     /// <summary>enum:LobbyVisibility</summary>
-    public string defaultVisibility = string.Empty;
+    [Tooltip("SteamLobbyManager.PendingVisibility 初值")] public string defaultVisibility = string.Empty;
     /// <summary>int</summary>
     public int maxSearchResults = 0;
     /// <summary>float</summary>
@@ -747,25 +733,7 @@ public class LobbyRecord
     /// <summary>float</summary>
     [Tooltip("SessionLauncher.cs:81")] public float hostStartTimeoutSeconds = 0f;
     /// <summary>int</summary>
-    [Tooltip("RoomStateManager.cs:22")] public int maxPlayerNameLength = 0;
-    /// <summary>int</summary>
-    [Tooltip("ServerManager")] public int fishnetMaximumClients = 0;
-}
-
-/// <summary>Match.xlsx / ResultVoteRule</summary>
-[Serializable]
-public class ResultVoteRuleRecord
-{
-    /// <summary>enum:MatchMode#key (key)</summary>
-    public string modeId = string.Empty;
-    /// <summary>enum:ResultPlayerChoice</summary>
-    [Tooltip("任一玩家选它立即生效")] public string vetoChoice = string.Empty;
-    /// <summary>enum:ResultPlayerChoice</summary>
-    [Tooltip("全员一致才生效")] public string unanimousChoice = string.Empty;
-    /// <summary>enum:ResultPlayerChoice</summary>
-    public string timeoutChoice = string.Empty;
-    /// <summary>enum:ResultPlayerChoice</summary>
-    public string disconnectChoice = string.Empty;
+    [Tooltip("RoomStateManager 玩家名截断长度")] public int maxPlayerNameLength = 0;
 }
 
 /// <summary>Match.xlsx / SelectionStage</summary>
@@ -774,20 +742,10 @@ public class SelectionStageRecord
 {
     /// <summary>string#key (key)</summary>
     [Tooltip("map / skill_loadout / skin；map 与 skin 行以 ## 屏蔽：占位阶段，代码兜底，有真实地图/皮肤后取消屏蔽")] public string stageKey = string.Empty;
-    /// <summary>int</summary>
-    public int order = 0;
     /// <summary>string#ref=UI/Text.key</summary>
     public string displayNameKey = string.Empty;
     /// <summary>enum:PropertySelectionMode</summary>
     [Tooltip("Vote / HostOnly / Single / Multi")] public string selectionMode = string.Empty;
-    /// <summary>bool</summary>
-    public bool enabledOnline = false;
-    /// <summary>bool</summary>
-    public bool enabledSolo = false;
-    /// <summary>enum:SelectionLayout</summary>
-    [Tooltip("Carousel / SkillWall")] public string layoutMode = string.Empty;
-    /// <summary>bool</summary>
-    public bool autoFillOnTimeout = false;
 }
 
 /// <summary>Match.xlsx / SelectionOption</summary>
@@ -803,9 +761,9 @@ public class SelectionOptionRecord
     /// <summary>string#ref=UI/Text.key</summary>
     public string descriptionKey = string.Empty;
     /// <summary>string</summary>
-    public string iconKey = string.Empty;
+    [Tooltip("SelectablePropertyOption.PreviewIconKey")] public string iconKey = string.Empty;
     /// <summary>bool</summary>
-    public bool unlocked = false;
+    [Tooltip("SelectablePropertyOption.IsUnlocked")] public bool unlocked = false;
 }
 
 /// <summary>Match.xlsx / Intro</summary>
@@ -828,18 +786,6 @@ public class IntroRecord
     [Tooltip("固定种子=每局相同")] public int deterministicShuffleSeed = 0;
 }
 
-/// <summary>Match.xlsx / IntroLayout</summary>
-[Serializable]
-public class IntroLayoutRecord
-{
-    /// <summary>int#key (key)</summary>
-    public int playerCount = 0;
-    /// <summary>string</summary>
-    public string layoutName = string.Empty;
-    /// <summary>list,string#sep=|</summary>
-    [Tooltip("槽位物体（场景或 Placeholder prefab）")] public List<string> slots = new List<string>();
-}
-
 /// <summary>UI.xlsx / Text</summary>
 [Serializable]
 public class LocalizedTextRecord
@@ -848,8 +794,6 @@ public class LocalizedTextRecord
     [Tooltip("domain.entity.field")] public string key = string.Empty;
     /// <summary>text</summary>
     [Tooltip("简体中文")] public string zh = string.Empty;
-    /// <summary>text</summary>
-    [Tooltip("英文")] public string en = string.Empty;
 }
 
 /// <summary>UI.xlsx / MenuOption</summary>
@@ -866,18 +810,4 @@ public class MenuOptionRecord
     public string labelKey = string.Empty;
     /// <summary>bool</summary>
     public bool isDefault = false;
-}
-
-/// <summary>UI.xlsx / SkillIcon</summary>
-[Serializable]
-public class SkillIconRecord
-{
-    /// <summary>string#key#ref=Skill/Skill.skillId (key)</summary>
-    public string skillId = string.Empty;
-    /// <summary>string#path</summary>
-    [Tooltip("black")] public string hudIdleSpritePath = string.Empty;
-    /// <summary>string#path</summary>
-    [Tooltip("white")] public string hudActiveSpritePath = string.Empty;
-    /// <summary>string#path</summary>
-    [Tooltip("选择界面（未实现）")] public string previewSpritePath = string.Empty;
 }

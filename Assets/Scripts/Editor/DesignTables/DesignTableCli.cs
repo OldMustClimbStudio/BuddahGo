@@ -27,6 +27,25 @@ namespace BuddahGo.DesignTables
             Exit(DesignTableExporter.Run(options));
         }
 
+        /// <summary>
+        /// Probe of the "save in Excel → Unity re-imports the xlsx → auto import" path without an interactive editor:
+        /// re-import Skill.xlsx through the AssetDatabase so the AssetPostprocessor callback queues it, then run the
+        /// queued import. Exit code 0 when the callback fired and the import re-mapped the Skill sheets and wrote outputs.
+        /// </summary>
+        public static void ProbeAutoImport()
+        {
+            DesignTablePostprocessor.AllowInBatchMode = true;
+            string path = DesignTableSet.TablesRoot + "/Skill/Skill.xlsx";
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+            bool scheduled = DesignTablePostprocessor.PendingWorkbooks.Contains("Skill");
+            DesignTableExporter.Result result = scheduled ? DesignTablePostprocessor.RunPendingNow() : null;
+            bool ok = scheduled && result != null && result.Success && result.OutputsWritten && result.RemappedSheets.Contains("Skill/Skill");
+            Debug.Log("[DesignTables] auto-import probe: callback=" + scheduled + " remapped=" + (result != null ? result.SheetsExported : 0)
+                + " kept=" + (result != null ? result.SheetsKept : 0) + " written=" + (result != null && result.OutputsWritten) + " -> " + (ok ? "OK" : "FAILED"));
+            if (Application.isBatchMode)
+                EditorApplication.Exit(ok ? 0 : 1);
+        }
+
         private static DesignTableExporter.Options ParseOptions(bool dryRun)
         {
             DesignTableExporter.Options options = new DesignTableExporter.Options { DryRun = dryRun };

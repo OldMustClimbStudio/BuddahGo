@@ -242,6 +242,16 @@ public class SkillDatabase : ScriptableObject
             ApplyDesignTablesToSkills();
     }
 
+    /// <summary>Apply the design tables to the skills of this database regardless of play mode (tests call it on copies of the assets).</summary>
+    public void ApplyDesignTablesNow()
+    {
+        _byId = new Dictionary<string, SkillAction>();
+        AddListToLookup(normalSkills, "normalSkills");
+        AddListToLookup(antiSkills, "antiSkills");
+        AddListToLookup(skills, "skills");
+        ApplyDesignTablesToSkills();
+    }
+
     /// <summary>SO field that receives Skill.effectDurationSeconds for a skill class (null = the skill has no primary duration).</summary>
     public static string EffectDurationField(SkillAction skill)
     {

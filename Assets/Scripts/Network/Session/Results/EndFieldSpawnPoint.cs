@@ -16,7 +16,7 @@ namespace SteamMultiplayer.Network.Results
             ProjectConfigDatabase db = DesignTableOverlay.Db;
             if (db == null)
                 return;
-            string trackId = DesignTableOverlay.CurrentTrackId();
+            string trackId = DesignTableOverlay.CurrentTrackId(this);
             TrackResultAnchorRecord row = DesignTableOverlay.Single(db.trackResultAnchors, r => r.trackId == trackId && r.rank == spawnOrderIndex + 1);
             if (row != null)
                 transform.SetPositionAndRotation(row.position, Quaternion.Euler(0f, row.rotationY, 0f));

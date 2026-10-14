@@ -46,15 +46,56 @@ public static class DesignTableOverlay
         return Mathf.RoundToInt(GlobalFloat(ruleKey, fallback));
     }
 
-    /// <summary>Track row whose sceneName matches the active scene; falls back to the first Track row.</summary>
-    public static string CurrentTrackId()
+    /// <summary>Row whose profileId is "default", else the first row (single-profile sheets).</summary>
+    public static T DefaultRow<T>(List<T> list, Func<T, string> profileIdOf) where T : class
+    {
+        return Single(list, r => profileIdOf(r) == "default") ?? Single(list, null);
+    }
+
+    /// <summary>
+    /// Track row for the scene <paramref name="context"/> lives in, else for the active scene; null when neither
+    /// scene has a Track row. Scene objects run Awake while FishNet is still loading their scene (the previous scene
+    /// is still active), so the object's own scene is checked first. There is no first-row fallback: a scene without
+    /// a row keeps its scene/prefab values instead of receiving another track's positions.
+    /// </summary>
+    public static TrackRecord CurrentTrack(Component context = null)
     {
         ProjectConfigDatabase db = Db;
-        if (db == null || db.tracks == null || db.tracks.Count == 0)
-            return string.Empty;
-        string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-        TrackRecord match = Single(db.tracks, t => string.Equals(t.sceneName, scene, StringComparison.Ordinal));
-        return (match ?? db.tracks[0]).trackId;
+        if (db == null || db.tracks == null)
+            return null;
+        TrackRecord match = null;
+        if (context != null)
+        {
+            string own = context.gameObject.scene.name;
+            match = Single(db.tracks, t => string.Equals(t.sceneName, own, StringComparison.Ordinal));
+        }
+        if (match == null)
+        {
+            string active = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            match = Single(db.tracks, t => string.Equals(t.sceneName, active, StringComparison.Ordinal));
+        }
+        return match;
+    }
+
+    /// <summary>trackId of <see cref="CurrentTrack"/>; empty when the scene has no Track row.</summary>
+    public static string CurrentTrackId(Component context = null)
+    {
+        TrackRecord track = CurrentTrack(context);
+        return track != null ? track.trackId : string.Empty;
+    }
+
+    /// <summary>Row of a per-track sheet for the current track; null when the scene has no Track row or the sheet no row for it.</summary>
+    public static T ForCurrentTrack<T>(List<T> list, Func<T, string> trackIdOf, Component context = null) where T : class
+    {
+        string trackId = CurrentTrackId(context);
+        return string.IsNullOrEmpty(trackId) ? null : Single(list, r => trackIdOf(r) == trackId);
+    }
+
+    /// <summary>The Match/Lobby row (single profile).</summary>
+    public static LobbyRecord Lobby()
+    {
+        ProjectConfigDatabase db = Db;
+        return db != null ? Single(db.lobbies, null) : null;
     }
 
     /// <summary>"Online", "Solo" or "Practice" from the active match rules.</summary>
@@ -208,8 +249,12 @@ public static class DesignTableOverlay
     private static float[] Parts(string raw, int n)
     {
         string[] split = raw.Split(',');
+        // Same rule as the importer's ValueConverter: a wrong component count is an error, not zero padding
+        // (a 3-part color would otherwise get alpha 0). TryParse turns the exception into false.
+        if (split.Length != n)
+            throw new FormatException("expected " + n + " comma-separated components, got " + split.Length);
         float[] parts = new float[n];
-        for (int i = 0; i < n && i < split.Length; i++)
+        for (int i = 0; i < n; i++)
             parts[i] = float.Parse(split[i].Trim(), CultureInfo.InvariantCulture);
         return parts;
     }

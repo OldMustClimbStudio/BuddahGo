@@ -59,11 +59,11 @@ public class RaceFinishManager : NetworkBehaviour
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
         {
-            string trackId = DesignTableOverlay.CurrentTrackId();
-            TrackRecord track = DesignTableOverlay.Single(db.tracks, r => r.trackId == trackId) ?? DesignTableOverlay.Single(db.tracks, null);
+            TrackRecord track = DesignTableOverlay.CurrentTrack(this);
             if (track != null && track.lapsToFinish > 0) lapsToFinish = track.lapsToFinish;
+            // A blank cell imports as 0, which would end the race the moment the first racer finishes.
             ModeRuleRecord mode = DesignTableOverlay.CurrentModeRule();
-            if (mode != null) postFirstFinishCountdownSeconds = mode.postFirstFinishCountdownSeconds;
+            if (mode != null && mode.postFirstFinishCountdownSeconds > 0f) postFirstFinishCountdownSeconds = mode.postFirstFinishCountdownSeconds;
         }
         if (Instance != null && Instance != this)
         {

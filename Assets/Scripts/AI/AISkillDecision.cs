@@ -118,7 +118,7 @@ namespace BuddahGo.AI
                         float distanceWeight = 1f / (1f + Mathf.Abs(gap) / tuning.FarDistance);
                         score = other.CornerFraction * distanceWeight;
                         if (kind == AISkillKind.Curtain && Mathf.Abs(gap) < tuning.NearDistance) score += tuning.CurtainPackBonus;
-                        validity = Mathf.Max(tuning.ReverseMinValiditySeconds, other.CornerSeconds);
+                        validity = Mathf.Max(kind == AISkillKind.Curtain ? tuning.CurtainMinValiditySeconds : tuning.ReverseMinValiditySeconds, other.CornerSeconds);
                         globalScore += score;
                         break;
                 }

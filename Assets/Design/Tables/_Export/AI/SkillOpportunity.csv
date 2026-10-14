@@ -7,4 +7,4 @@
 ,giant,0.5,false,,,,,2,1.5,,,0.5,,"DEC:98-105,131-132"
 ,push_projectile_hands,0.3,false,,0.35,0.65,,,1.5,110,0.5,,,DEC:106-114
 ,reverseturn,0.9,true,,,,,2,,,,,,"DEC:115-121,133-134"
-,blackcurtain,0.4,true,,,,,,,,,,0.25,"DEC:115-121,135-136"
+,blackcurtain,0.4,true,,,,,2,,,,,0.25,"DEC:115-121,135-136"

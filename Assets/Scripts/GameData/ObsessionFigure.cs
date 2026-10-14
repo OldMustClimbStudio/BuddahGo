@@ -57,7 +57,7 @@ public class ObsessionFigure : NetworkBehaviour
         // Skill/Obsession owns the obsession curve; prefab values stay as fallback.
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
-            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.obsessions, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.obsessions, null));
+            DesignTableOverlay.Apply(this, DesignTableOverlay.DefaultRow(db.obsessions, r => r.profileId));
     }
 
     public override void OnStartNetwork()

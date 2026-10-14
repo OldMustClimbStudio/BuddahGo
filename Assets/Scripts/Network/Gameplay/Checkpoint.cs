@@ -11,7 +11,7 @@ public class Checkpoint : MonoBehaviour
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db == null)
             return;
-        string trackId = DesignTableOverlay.CurrentTrackId();
+        string trackId = DesignTableOverlay.CurrentTrackId(this);
         TrackCheckpointRecord row = DesignTableOverlay.Single(db.trackCheckpoints, r => r.trackId == trackId && r.checkpointId == checkpointId);
         if (row != null)
             transform.SetPositionAndRotation(row.position, Quaternion.Euler(0f, row.rotationY, 0f));

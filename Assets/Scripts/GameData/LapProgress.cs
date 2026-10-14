@@ -55,8 +55,7 @@ public class LapProgress : NetworkBehaviour
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
         {
-            string trackId = DesignTableOverlay.CurrentTrackId();
-            DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.Single(db.tracks, r => r.trackId == trackId) ?? DesignTableOverlay.Single(db.tracks, null),
+            DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.CurrentTrack(this),
                 "crossCooldownSeconds=minimumCrossingCooldownSeconds", "maxProgressJumpWithoutCheckpoint01=maximumProgressJumpWithoutCheckpoint01", "minForwardDot",
                 "armDistanceMeters=minimumWorldDistanceFromStartToArmLap", "useSequentialCheckpoints", "autoAdvanceSplineCheckpoints", "requiredCheckpointCount",
                 "fallbackCheckpointProgresses01", "startPointTag");

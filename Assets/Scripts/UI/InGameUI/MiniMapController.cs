@@ -83,8 +83,7 @@ public class MiniMapController : MonoBehaviour
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
         {
-            string trackId = DesignTableOverlay.CurrentTrackId();
-            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.tracks, t => t.trackId == trackId),
+            DesignTableOverlay.Apply(this, DesignTableOverlay.CurrentTrack(this),
                 "minimapWorldMinX=worldMinX", "minimapWorldMaxX=worldMaxX", "minimapWorldMinZ=worldMinZ", "minimapWorldMaxZ=worldMaxZ");
         }
         TryBindPlayer("OnEnable");

@@ -58,7 +58,7 @@ namespace BuddahGo.AI
                 DesignTableOverlay.Apply(profile, row);
                 switch (row.rolloutTail) { case "Anchor": profile.RolloutTail = 0; break; case "KeepCandidate": profile.RolloutTail = 1; break; case "FullThrust": profile.RolloutTail = 2; break; }
             }
-            DrivingTuningRecord tuning = DesignTableOverlay.Single(db.drivingTunings, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.drivingTunings, null);
+            DrivingTuningRecord tuning = DesignTableOverlay.DefaultRow(db.drivingTunings, r => r.profileId);
             if (tuning == null) return;
             speedMin = tuning.targetSpeedMin;
             speedMax = tuning.targetSpeedMax;

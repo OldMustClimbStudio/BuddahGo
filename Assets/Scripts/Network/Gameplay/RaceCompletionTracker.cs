@@ -58,8 +58,7 @@ public class RaceCompletionTracker : NetworkBehaviour
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
         {
-            string trackId = DesignTableOverlay.CurrentTrackId();
-            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.trackWrongWays, r => r.trackId == trackId) ?? DesignTableOverlay.Single(db.trackWrongWays, null));
+            DesignTableOverlay.Apply(this, DesignTableOverlay.ForCurrentTrack(db.trackWrongWays, r => r.trackId, this));
         }
         ResolveDependencies();
     }

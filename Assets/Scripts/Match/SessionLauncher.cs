@@ -86,8 +86,7 @@ namespace BuddahGo.Match
         // Match/Lobby owns the startup timeouts; the literal is the fallback.
         private static float LobbyTimeout(float fallback, Func<LobbyRecord, float> pick)
         {
-            ProjectConfigDatabase db = DesignTableOverlay.Db;
-            LobbyRecord lobby = db != null ? DesignTableOverlay.Single(db.lobbies, null) : null;
+            LobbyRecord lobby = DesignTableOverlay.Lobby();
             float value = lobby != null ? pick(lobby) : 0f;
             return value > 0f ? value : fallback;
         }

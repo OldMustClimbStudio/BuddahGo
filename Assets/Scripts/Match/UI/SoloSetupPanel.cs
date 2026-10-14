@@ -26,7 +26,8 @@ namespace SteamMultiplayer.UI
             _difficulty = (SoloDifficulty)Mathf.Clamp(PlayerPrefs.GetInt(DifficultyKey, defaultDifficulty), 0, 2);
             var card = SoloUIFactory.Card(transform, "SoloSetup", 520f);
             SoloUIFactory.Label(card, "Title", "单人游戏", new Vector2(0f, 205f), new Vector2(600f, 50f), font, 34f);
-            SoloUIFactory.Label(card, "RacerCount", "六人单人赛 · 玩家 + 5 AI",
+            int aiCount = ConfiguredAICount();
+            SoloUIFactory.Label(card, "RacerCount", RacerCountNumerals[aiCount + 1] + "人单人赛 · 玩家 + " + aiCount + " AI",
                 new Vector2(0f, 125f), new Vector2(600f, 56f), font, 26f);
             SoloUIFactory.Label(card, "Personalities", "五种技能人格 · 固定配装",
                 new Vector2(0f, 70f), new Vector2(600f, 42f), font, 21f);
@@ -65,6 +66,17 @@ namespace SteamMultiplayer.UI
             SoloUIFactory.Focus(_start);
         }
 
+        // Index = racers in the match (player + AI), for the "六人单人赛" style count label.
+        private static readonly string[] RacerCountNumerals = { "零", "一", "二", "三", "四", "五", "六" };
+
+        // Match/ModeRule (Solo) owns the AI count; RacerId.MaxAI is the fallback and the upper bound.
+        // The count label and the started match both read it here so they cannot disagree.
+        private static int ConfiguredAICount()
+        {
+            ModeRuleRecord solo = DesignTableOverlay.ModeRule("Solo");
+            return solo != null ? Mathf.Clamp(solo.aiCount, 0, RacerId.MaxAI) : RacerId.MaxAI;
+        }
+
         private void SelectDifficulty(SoloDifficulty difficulty)
         {
             _difficulty = difficulty;
@@ -87,10 +99,7 @@ namespace SteamMultiplayer.UI
             if (session == null) { _status.text = "初始化尚未完成，请稍后重试。"; return; }
             PlayerPrefs.SetInt(DifficultyKey, (int)_difficulty);
             PlayerPrefs.Save();
-            // Match/ModeRule (Solo) owns the AI count; RacerId.MaxAI is the fallback and the upper bound.
-            ModeRuleRecord solo = DesignTableOverlay.ModeRule("Solo");
-            int aiCount = solo != null ? Mathf.Clamp(solo.aiCount, 0, RacerId.MaxAI) : RacerId.MaxAI;
-            if (!session.StartSoloHost(new SoloMatchSettings(aiCount, _difficulty)))
+            if (!session.StartSoloHost(new SoloMatchSettings(ConfiguredAICount(), _difficulty)))
             {
                 _status.text = string.IsNullOrEmpty(session.LastError) ? "启动失败，请重试。" : session.LastError;
                 return;

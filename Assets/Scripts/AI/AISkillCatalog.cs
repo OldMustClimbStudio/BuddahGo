@@ -71,7 +71,7 @@ namespace BuddahGo.AI
         public float TrapScoreBase = .3f, TrapScoreSlope = .7f, TrapMaxValiditySeconds = 6f;
         public float GiantEuclidMultiplier = 1.5f, GiantMinValiditySeconds = 2f, GiantScorePerContact = .5f;
         public float HandsEuclidMultiplier = 1.5f, HandsMaxYawDegrees = 110f, HandsScoreBase = .35f, HandsScoreSlope = .65f, HandsYawPenalty = .5f;
-        public float ReverseMinValiditySeconds = 2f, CurtainPackBonus = .25f;
+        public float ReverseMinValiditySeconds = 2f, CurtainMinValiditySeconds = 2f, CurtainPackBonus = .25f;
         // Snapshot / scoring constants (AI/SkillGlobal); defaults equal the former literals.
         public float SpeedDropImpairSeconds = .5f, SpeedDropMinSpeed = 5f;
         public float StraightLookaheadSeconds = 10f, CornerLookaheadSeconds = 2f, CornerValidityBase = 2f, CornerValidityScale = 2f;
@@ -143,7 +143,7 @@ namespace BuddahGo.AI
                                 p.SituationBias[(int)si] = b.bias;
                 }
             Tuning ??= new AISkillTuning();
-            SkillTuningRecord tuning = DesignTableOverlay.Single(db.skillTunings, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.skillTunings, null);
+            SkillTuningRecord tuning = DesignTableOverlay.DefaultRow(db.skillTunings, r => r.profileId);
             if (tuning != null)
                 DesignTableOverlay.Apply(Tuning, tuning);
             if (db.skillOpportunities != null)
@@ -154,20 +154,19 @@ namespace BuddahGo.AI
                     if (k < 0) continue;
                     if (Tuning.BacklashSeverity != null && k < Tuning.BacklashSeverity.Length) Tuning.BacklashSeverity[k] = o.backlashSeverity;
                     if (Tuning.BlockWhenGlobalVisible != null && k < Tuning.BlockWhenGlobalVisible.Length) Tuning.BlockWhenGlobalVisible[k] = o.blockWhenGlobalVisible;
+                    // Each skill reads only its own columns, and those cells are the values (0 included); the
+                    // columns a skill does not use stay blank in the sheet and are never read for it.
                     switch ((AISkillKind)k)
                     {
-                        case AISkillKind.Acceleration: Set(ref Tuning.AccelerationMinStraightSeconds, o.minStraightSeconds); break;
-                        case AISkillKind.SlowTrap: Set(ref Tuning.TrapScoreBase, o.scoreBase); Set(ref Tuning.TrapScoreSlope, o.scoreSlope); Set(ref Tuning.TrapMaxValiditySeconds, o.maxValiditySeconds); break;
-                        case AISkillKind.Giant: Set(ref Tuning.GiantEuclidMultiplier, o.euclidMultiplier); Set(ref Tuning.GiantMinValiditySeconds, o.minValiditySeconds); Set(ref Tuning.GiantScorePerContact, o.scorePerContact); break;
-                        case AISkillKind.Hands: Set(ref Tuning.HandsEuclidMultiplier, o.euclidMultiplier); Set(ref Tuning.HandsMaxYawDegrees, o.maxYawDegrees); Set(ref Tuning.HandsScoreBase, o.scoreBase); Set(ref Tuning.HandsScoreSlope, o.scoreSlope); Set(ref Tuning.HandsYawPenalty, o.yawPenalty); break;
-                        case AISkillKind.Reverse: Set(ref Tuning.ReverseMinValiditySeconds, o.minValiditySeconds); break;
-                        case AISkillKind.Curtain: Set(ref Tuning.CurtainPackBonus, o.packBonus); break;
+                        case AISkillKind.Acceleration: Tuning.AccelerationMinStraightSeconds = o.minStraightSeconds; break;
+                        case AISkillKind.SlowTrap: Tuning.TrapScoreBase = o.scoreBase; Tuning.TrapScoreSlope = o.scoreSlope; Tuning.TrapMaxValiditySeconds = o.maxValiditySeconds; break;
+                        case AISkillKind.Giant: Tuning.GiantEuclidMultiplier = o.euclidMultiplier; Tuning.GiantMinValiditySeconds = o.minValiditySeconds; Tuning.GiantScorePerContact = o.scorePerContact; break;
+                        case AISkillKind.Hands: Tuning.HandsEuclidMultiplier = o.euclidMultiplier; Tuning.HandsMaxYawDegrees = o.maxYawDegrees; Tuning.HandsScoreBase = o.scoreBase; Tuning.HandsScoreSlope = o.scoreSlope; Tuning.HandsYawPenalty = o.yawPenalty; break;
+                        case AISkillKind.Reverse: Tuning.ReverseMinValiditySeconds = o.minValiditySeconds; break;
+                        case AISkillKind.Curtain: Tuning.CurtainMinValiditySeconds = o.minValiditySeconds; Tuning.CurtainPackBonus = o.packBonus; break;
                     }
                 }
         }
-
-        // Empty sheet cells arrive as 0; keep the literal default in that case.
-        private static void Set(ref float field, float value) { if (value != 0f) field = value; }
 
         public AISkillDifficulty ForDifficulty(SoloDifficulty difficulty)
         {

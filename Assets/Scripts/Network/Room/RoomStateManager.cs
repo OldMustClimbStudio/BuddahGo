@@ -26,8 +26,7 @@ namespace SteamMultiplayer.Network
         {
             get
             {
-                ProjectConfigDatabase db = DesignTableOverlay.Db;
-                LobbyRecord lobby = db != null ? DesignTableOverlay.Single(db.lobbies, null) : null;
+                LobbyRecord lobby = DesignTableOverlay.Lobby();
                 return lobby != null && lobby.maxPlayerNameLength > 0 ? lobby.maxPlayerNameLength : DefaultMaxPlayerNameLength;
             }
         }

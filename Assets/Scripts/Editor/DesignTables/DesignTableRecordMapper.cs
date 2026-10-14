@@ -47,7 +47,9 @@ namespace BuddahGo.DesignTables
                 object record = Activator.CreateInstance(recordType);
                 foreach ((ColumnSpec column, FieldInfo field, bool resolveText) in bindings)
                 {
-                    string raw = sheet.Cell(row, column).Trim();
+                    // Display text keeps its surrounding spaces ("Player " is a prefix joined with an id); every other cell is trimmed.
+                    string cell = sheet.Cell(row, column);
+                    string raw = column.Type.BaseType == ColumnBaseType.Text ? cell : cell.Trim();
                     try
                     {
                         if (resolveText)

@@ -181,8 +181,7 @@ namespace SteamMultiplayer.Network
         private void Awake()
         {
             // Match/Lobby owns the lobby defaults.
-            ProjectConfigDatabase db = DesignTableOverlay.Db;
-            LobbyRecord lobby = db != null ? DesignTableOverlay.Single(db.lobbies, null) : null;
+            LobbyRecord lobby = DesignTableOverlay.Lobby();
             if (lobby != null)
             {
                 _defaultMaxPlayers = Mathf.Clamp(lobby.maxPlayers, 2, 6);

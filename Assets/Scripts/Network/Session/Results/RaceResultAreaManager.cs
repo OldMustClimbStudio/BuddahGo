@@ -33,8 +33,7 @@ namespace SteamMultiplayer.Network.Results
             ProjectConfigDatabase db = DesignTableOverlay.Db;
             if (db != null)
             {
-                string trackId = DesignTableOverlay.CurrentTrackId();
-                DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.tracks, t => t.trackId == trackId), "resultOverflowOffset=overflowOffset");
+                DesignTableOverlay.Apply(this, DesignTableOverlay.CurrentTrack(this), "resultOverflowOffset=overflowOffset");
             }
             if (Instance != null && Instance != this)
             {

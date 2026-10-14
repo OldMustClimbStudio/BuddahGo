@@ -21,8 +21,7 @@ public class TrackSplineRef : MonoBehaviour
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
         {
-            string trackId = DesignTableOverlay.CurrentTrackId();
-            TrackRecord track = DesignTableOverlay.Single(db.tracks, t => t.trackId == trackId);
+            TrackRecord track = DesignTableOverlay.CurrentTrack(this);
             if (track != null && track.trackSplineSamples > 0)
                 samples = track.trackSplineSamples;
         }

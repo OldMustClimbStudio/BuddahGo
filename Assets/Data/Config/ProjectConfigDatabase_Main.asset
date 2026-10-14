@@ -830,7 +830,7 @@ MonoBehaviour:
     scoreBase: 0
     scoreSlope: 0
     maxValiditySeconds: 0
-    minValiditySeconds: 0
+    minValiditySeconds: 2
     euclidMultiplier: 0
     maxYawDegrees: 0
     yawPenalty: 0
@@ -1166,11 +1166,11 @@ MonoBehaviour:
   - key: selection.option.skin_c.desc
     zh: Default placeholder skin C.
   - key: racer.ai_fallback_prefix
-    zh: AI
+    zh: 'AI '
   - key: racer.human_fallback
     zh: Player
   - key: racer.online_human_prefix
-    zh: Player
+    zh: 'Player '
   - key: menu.option.max_players.4
     zh: 4
   - key: menu.option.max_players.5
@@ -1184,7 +1184,7 @@ MonoBehaviour:
   - key: menu.option.visibility.private
     zh: Private
   - key: ui.raceridentity.ai
-    zh: AI
+    zh: 'AI '
   - key: "ui.sessionlauncher.\u5355\u673A\u8BBE\u7F6E\u7F3A\u5931"
     zh: "\u5355\u673A\u8BBE\u7F6E\u7F3A\u5931\u3002"
   - key: "ui.sessionlauncher.\u4E3B\u673A\u5730\u5740\u4E3A\u7A7A"
@@ -1231,13 +1231,13 @@ MonoBehaviour:
   - key: "ui.soloresultsview.\u8BA1\u65F6\u6570\u636E\u6682\u4E0D\u53EF\u7528"
     zh: "\u8BA1\u65F6\u6570\u636E\u6682\u4E0D\u53EF\u7528"
   - key: "ui.soloresultsview.\u603B\u7528\u65F6"
-    zh: "\u603B\u7528\u65F6"
+    zh: "\u603B\u7528\u65F6  "
   - key: "ui.soloresultsview.\u5B8C\u6574\u5708\u901F\u6570\u636E\u4E0D\u53EF\u7528"
     zh: "\u5B8C\u6574\u5708\u901F\u6570\u636E\u4E0D\u53EF\u7528"
   - key: "ui.soloresultsview.\u7B2C_i_1_\u5708_formattime_result_lapseconds_i"
     zh: "\u7B2C {i + 1} \u5708  {FormatTime(result.LapSeconds[i])}"
   - key: "ui.soloresultsview.\u5708\u65F6"
-    zh: "\u5708\u65F6"
+    zh: "     \u5708\u65F6  "
   - key: "ui.solosetuppanel.\u7B80\u5355"
     zh: "\u7B80\u5355"
   - key: "ui.solosetuppanel.\u666E\u901A"
@@ -1263,9 +1263,9 @@ MonoBehaviour:
   - key: ui.leaderboardmanager.empty
     zh: (empty)
   - key: ui.leaderboardmanager.finished_entry_finishorder
-    zh: '- Finished #{entry.FinishOrder}'
+    zh: ' - Finished #{entry.FinishOrder}'
   - key: ui.leaderboardmanager.lap
-    zh: '- Lap'
+    zh: ' - Lap '
   - key: ui.steamlobbymanager.my_room
     zh: My Room
   - key: ui.steamlobbymanager.steam_is_not_initialized

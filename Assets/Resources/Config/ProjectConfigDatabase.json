@@ -1034,7 +1034,7 @@
             "scoreBase": 0.0,
             "scoreSlope": 0.0,
             "maxValiditySeconds": 0.0,
-            "minValiditySeconds": 0.0,
+            "minValiditySeconds": 2.0,
             "euclidMultiplier": 0.0,
             "maxYawDegrees": 0.0,
             "yawPenalty": 0.0,
@@ -1615,7 +1615,7 @@
         },
         {
             "key": "racer.ai_fallback_prefix",
-            "zh": "AI"
+            "zh": "AI "
         },
         {
             "key": "racer.human_fallback",
@@ -1623,7 +1623,7 @@
         },
         {
             "key": "racer.online_human_prefix",
-            "zh": "Player"
+            "zh": "Player "
         },
         {
             "key": "menu.option.max_players.4",
@@ -1651,7 +1651,7 @@
         },
         {
             "key": "ui.raceridentity.ai",
-            "zh": "AI"
+            "zh": "AI "
         },
         {
             "key": "ui.sessionlauncher.单机设置缺失",
@@ -1743,7 +1743,7 @@
         },
         {
             "key": "ui.soloresultsview.总用时",
-            "zh": "总用时"
+            "zh": "总用时  "
         },
         {
             "key": "ui.soloresultsview.完整圈速数据不可用",
@@ -1755,7 +1755,7 @@
         },
         {
             "key": "ui.soloresultsview.圈时",
-            "zh": "圈时"
+            "zh": "     圈时  "
         },
         {
             "key": "ui.solosetuppanel.简单",
@@ -1807,11 +1807,11 @@
         },
         {
             "key": "ui.leaderboardmanager.finished_entry_finishorder",
-            "zh": "- Finished #{entry.FinishOrder}"
+            "zh": " - Finished #{entry.FinishOrder}"
         },
         {
             "key": "ui.leaderboardmanager.lap",
-            "zh": "- Lap"
+            "zh": " - Lap "
         },
         {
             "key": "ui.steamlobbymanager.my_room",

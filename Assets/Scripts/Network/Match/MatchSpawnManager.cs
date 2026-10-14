@@ -32,7 +32,7 @@ namespace SteamMultiplayer.Network.Match
             ProjectConfigDatabase db = DesignTableOverlay.Db;
             if (db == null || db.trackSpawns == null || _spawnPoints == null)
                 return;
-            string trackId = DesignTableOverlay.CurrentTrackId();
+            string trackId = DesignTableOverlay.CurrentTrackId(this);
             for (int i = 0; i < db.trackSpawns.Count; i++)
             {
                 TrackSpawnRecord row = db.trackSpawns[i];

@@ -161,7 +161,7 @@ public class ComboSkillInput : NetworkBehaviour
             return;
 
         // Skill/ComboInput owns the input window and the buffer length (formerly GlobalRule combo_* keys).
-        ComboInputRecord input = DesignTableOverlay.Single(db.comboInputs, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.comboInputs, null);
+        ComboInputRecord input = DesignTableOverlay.DefaultRow(db.comboInputs, r => r.profileId);
         if (input != null)
         {
             stepWindowSeconds = Mathf.Max(MinimumStepWindowSeconds, input.inputWindowSeconds);

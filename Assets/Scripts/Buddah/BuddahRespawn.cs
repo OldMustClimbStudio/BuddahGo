@@ -43,7 +43,7 @@ public class BuddahRespawn : MonoBehaviour
         // Movement/Respawn (default row) owns the respawn numbers.
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
-            DesignTableOverlay.Apply(this, DesignTableOverlay.Single(db.respawns, r => r.profileId == "default") ?? DesignTableOverlay.Single(db.respawns, null),
+            DesignTableOverlay.Apply(this, DesignTableOverlay.DefaultRow(db.respawns, r => r.profileId),
                 "contactSeconds=continuousContactRespawnSeconds", "cooldownSeconds=postRespawnCooldownSeconds", "heightOffset=respawnHeightOffset",
                 "clearanceRadius=respawnClearanceCheckRadius", "liftStep=additionalRespawnLiftStep", "maxLift=maxAdditionalRespawnLift", "floorTag=respawnFloorTag");
         if (rb == null) rb = GetComponent<Rigidbody>();

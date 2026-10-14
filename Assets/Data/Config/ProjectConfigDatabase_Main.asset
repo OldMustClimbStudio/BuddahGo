@@ -154,8 +154,8 @@ MonoBehaviour:
     sortOrder: 10
     unlockState: unlocked
     antiSkillId: acceleration_anti
-    cooldownSeconds: 10
-    castLockSeconds: 8
+    cooldownSeconds: 5
+    castLockSeconds: 3
     castConfirmDelaySeconds: 1
     obsessionGain: 300
     effectDurationSeconds: 3

@@ -179,8 +179,8 @@
             "sortOrder": 10,
             "unlockState": "unlocked",
             "antiSkillId": "acceleration_anti",
-            "cooldownSeconds": 10.0,
-            "castLockSeconds": 8.0,
+            "cooldownSeconds": 5.0,
+            "castLockSeconds": 3.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 300.0,
             "effectDurationSeconds": 3.0

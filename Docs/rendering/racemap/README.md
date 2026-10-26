@@ -7,8 +7,8 @@ The showcase itself is documented in [../showcase/README.md](../showcase/README.
 | Phase | Scope | State |
 |---|---|---|
 | 1 | Lighting and environment with stock URP Lit | done, approved 2026-10-26 (afternoon checkpoint) |
-| 1b | Sunset re-tune: the user asked on 2026-10-26 for the final look to read as a sunset | in progress |
-| 2 | Screen-space reflections on the project renderer | not started |
+| 1b | Sunset re-tune: the user asked on 2026-10-26 for the final look to read as a sunset | done, awaiting review |
+| 2 | Screen-space reflections and the shadow-distance policy | done, awaiting review |
 | 3 | Hand-written Lit for RaceMap's materials | not started |
 | 4 | Final review, docs, commit proposal | not started |
 
@@ -27,10 +27,13 @@ The showcase itself is documented in [../showcase/README.md](../showcase/README.
 
 ## Phase 1: lighting and environment
 
+This section records the approved afternoon checkpoint. Phase 1b replaced its sun, sky, ambient, fog and grade
+values with a sunset; phase 2 changed the shadow distance. The current values are in those sections.
+
 Images: [phase1_compare/all.jpg](phase1_compare/all.jpg) (before left, after right), per view in `phase1_compare/`.
 How the look was chosen: [phase1_candidates/](phase1_candidates/) (2x2 sheets). The full-resolution PNG captures are
-not committed and stay on the capturing machine (only `phase1_after/` can be regenerated from the committed scene;
-the others record states that no longer exist): `phase0_before/`,
+not committed and stay on the capturing machine (`phase1_after/` can be regenerated from commit 51af7d5; the others
+record states that no longer exist): `phase0_before/`,
 `phase1_after/`, the candidates `cand_golden/`, `cand_afternoon/`, `cand_midday/`, `cand_c_tuned1/`, and two diagnostic
 captures, `exp_a_sun_is_mainlight/` (MainLight made the sun on the old bake: players get shadows, but the whole track
 goes dark, because the old probes' occlusion marked it as shadowed) and `exp_b_plus_skybox_ambient_no_rebake/`
@@ -83,10 +86,10 @@ afternoon. Re-tune with both values, not the filter alone.
 **Gameplay hooks on the post volumes.** `BlackCurtainViewController` (on Main Camera) holds a direct reference to
 `Volume` as its "outdoor volume" and disables it for the player who sees the track edges, between the curtain's
 expand and fade-out; `Volume_Dark` is its "black-curtain active volume" and stays on. `Volume_Dark` therefore carries
-the same ACES and grade, 0.1 EV darker than gameplay as at HEAD (+0.31 vs +0.2), so the curtain no longer drops
+the same ACES and grade, 0.1 EV darker than gameplay as before phase 1 (5f91e51: +0.31 vs +0.2), so the curtain no longer drops
 tonemapping. The `Volume` GameObject also has Feel shakers, `MMWhiteBalanceShaker_URP` and `MMBloomShaker_URP`,
 driven by the skill-reflection, backfire-reflection and lap feedbacks. They look up WhiteBalance and Bloom in this
-profile without null checks, so both components must stay in it, and bloom keeps its HEAD values so the flashes
+profile without null checks, so both components must stay in it, and bloom keeps its pre-phase-1 values so the flashes
 keep their tuned strength.
 
 **Light probe layout** (`BuddahGo/Rendering/Generate RaceMap Light Probes`): every 20 m along the `MapPathLine`
@@ -104,7 +107,8 @@ infield sand and sample the same 0.41.
 
 **Why Baked Indirect.** Only three renderers are static (the sand plane, a plane 293 m below the map, the arch at the
 lap start), so the shadowmask had almost nothing to store, and its probe occlusion is what darkened the start grid.
-Realtime shadows now cover 150 m (High Fidelity); there are no baked shadows beyond that.
+Realtime shadows cover the shadow distance (150 m in phase 1, 220 m on High Fidelity since phase 2); there are no
+baked shadows beyond it.
 
 **Fog.** Exp2 at 0.0008 is 0.6% at 98 m (the player), 1.4% at 150 m and 2.9% at 215 m (the farthest ground the
 gameplay camera sees), so it is decorative: it gives no aerial perspective in gameplay and only hides the edge of the
@@ -153,56 +157,255 @@ directional light (`MainLight` before it became the sun) and the shadowmask samp
 added. The capture images are rendered without MSAA so that they stay comparable with the phase-0 captures. Bake:
 about 100 s with the GPU lightmapper.
 
-### Known limits and open items
+## Phase 1b: sunset
 
-- **Shadow distance and cascades.** High Fidelity renders shadows to 150 m in 4 cascades split at 10/30/70/150 m.
-  The gameplay camera sees ground from about 70 m to 215 m, so cascades 1-3 cover nothing on screen, the player's
-  shadow comes from cascade 4, and wall shadows fade out near the top of the frame. Balanced (50 m, 1 cascade) never
-  shows the player's shadow at the gameplay distance (about 98 m); Performant has no main-light shadows. These are
-  shared URP assets (MainMenu and PropertySelection also cast shadows with them, at close range), so nothing was
-  changed. Proposal for phase 2: High Fidelity about 220 m with the near splits kept in metres, Balanced about
-  150 m with 1-2 cascades.
-- **End-field glint.** CM_End looks south toward the sun; the very glossy end-field floor now shows a large sun glint
-  in the results shot (with the old 13 deg sun the reflection fell outside the frame). Material question for phase 3.
+Images: [phase1b_compare/all.jpg](phase1b_compare/all.jpg) (phase 1 afternoon left, sunset right) and the candidate
+sheets in [phase1b_candidates/](phase1b_candidates/) (A afternoon, B golden hour 18 deg, C sunset 12 deg, D late sunset
+7 deg). Local only: `phase1b_after/`, `cand_s_golden/`, `cand_s_sunset/`, `cand_s_late/`.
+
+### Why a hand-written sky
+
+A sweep of `Skybox/Procedural` (sun 7-12 deg, atmosphere 1.2-3.5, several tints) never produced a warm horizon under a
+cool zenith: thin atmosphere stays pale blue, thick atmosphere turns the whole sky flat yellow and then muddy
+red-brown. A brown sky would also make the baked ambient brown and remove the cool shadows that make a low sun read as
+a sunset. `Assets/Rendering/Shaders/SunsetSky.shader` (`BuddahGo/Skybox/Sunset Sky`, hand-written URP 14 HLSL) is a
+zenith-to-horizon gradient whose horizon warms toward the sun's azimuth, plus a tight glow, a wide halo and a sun disk
+that replaces the sky behind it. It reads the sun direction from `_WorldSpaceLightPos0`, which Unity sets from the Sun
+Source for every skybox draw; the glow follows `MainLight` in camera renders and the bake picks it up for ambient and
+reflections. Its colours do not follow the sun's elevation: they are tuned for this time of day. `RaceMap_Sky.mat` was
+reused (its content replaced in place, so the GUID and the scene reference stay).
+
+**Colour-space trap.** The sky's colour properties are `[HDR]`, and Unity passes them to the shader unconverted, so
+the material values are linear (verified by rendering a 0.5 grey sky into a float target: it reads 0.5).
+`RenderSettings.fogColor` is linearised instead, so the same numbers render far more saturated as fog than as sky.
+
+### What changed (against phase 1)
+
+| Item | Phase 1 | Phase 1b |
+|---|---|---|
+| `MainLight` | rotation (35, 340.7, 0), 5500 K, intensity 2.6 | rotation (10, 340.7, 0), 3600 K (filter unchanged), intensity 4.0 |
+| Sun lens flare | intensity 1 | 0.25 on `MainLight`'s component (its ghost ring crossed the player in the intro); the shared Oasis flare asset is unchanged |
+| Sky | `Skybox/Procedural` | `BuddahGo/Skybox/Sunset Sky`, linear values: zenith (0.17, 0.24, 0.52), horizon away from the sun (0.82, 0.50, 0.44), toward the sun (1.25, 0.45, 0.14), band falloff 7, spread 1.5, glow (0.85, 0.32, 0.08) power 64, halo 0.2 (power 3), disk (2.2, 0.95, 0.30) radius 1.6 deg, below the horizon the fog colour's linear value `RenderSettings.fogColor.linear` (1.083, 0.627, 0.224), exposure 1.2 (it scales the below-horizon colour too) |
+| Ambient | skybox x1.3 | skybox x1.2 |
+| Distance fog | 0.0008, (0.756, 0.988, 1.14) | 0.0009, (1.037, 0.813, 0.511), recalibrated as in phase 1 (1.6 levels off in total, -0.7 deg hue) |
+| `Volume` profile | exposure -0.1, contrast 5, saturation -5, no white balance | exposure +0.3, contrast 10, saturation 5, white balance temperature 4, tint -3 (the Feel shaker shakes relative to these) |
+| `Volume_Dark` profile | exposure -0.2, contrast 5, saturation -5 | exposure +0.2, contrast 10, saturation 5, white balance 4 / -3 added: still 0.1 EV under gameplay |
+| Baked lighting | | rebaked: lightmaps, probes, reflection probe, sky reflection |
+
+### How it was chosen
+
+The three sunset candidates were baked and captured (sheets above). A judge panel with three lenses (art direction,
+gameplay readability, technical artefacts) and a synthesis agent reviewed them; all three judges picked C (12 deg).
+B never shows the sun in the intro frame and reads as a hazy afternoon. D has the strongest sky but turns sand, lane and
+player magenta, has the lowest lane/curb contrast and clips the sand crests. The synthesis fitted a model of the sky
+and the grade to the sheets and merged the judges' advice into one set of changes:
+
+- The sun moves to 10 deg so the disk sits fully inside the intro frame.
+- The zenith turns azure and the anti-sun horizon puts blue below green. This takes the magenta out of the baked
+  ambient and out of the lane's sky reflection.
+- The glow is tighter and dimmer, and the flare goes down to 0.25.
+- White balance moves to 4 / -3, ambient to 1.2 and sun intensity to 4.0.
+
+One more step raised the sky exposure from 1.0 to 1.2, because the darker sky had cut the lane's reflection and its
+contrast against the curbs.
+
+| Start grid, gameplay camera | C (12 deg candidate) | Final |
+|---|---|---|
+| Lane against curb (WCAG contrast) | 2.00 | 1.88 (afternoon 2.02) |
+| Player shadow against lane | 1.33 | 1.28 |
+| Brightest sand crest, red | 235 | 233 (no clipping) |
+
+The low sun also removed the large sun glint that the 35 deg afternoon sun put on the glossy end-field floor in the
+results shot: the reflection now falls outside the frame.
+
+## Phase 2: screen-space reflections and shadow distance
+
+Images: [phase2_compare/all.jpg](phase2_compare/all.jpg) (phase 1b left, phase 2 right). Evidence in
+[phase2_evidence/](phase2_evidence/): `ssr_off_on.jpg`, `ssr_msaa8_off_on.jpg` (the shipped 8x MSAA path, captured
+with `RaceMapViewpointCapture.Capture(label, 8)`), `ssr_colour_mipmaps.jpg`, `shadow_distance_150_vs_220.jpg`,
+`quality_levels.jpg`, `propertyselection_shadows.jpg`. Local only: `phase2_after/`. The phase captures render
+without MSAA, so they show SSR's no-MSAA path.
+
+### SSR package
+
+jiaozi158/UnitySSReflectionURP moved from `Assets/Showcase/ThirdParty/` to `Assets/Plugins/UnitySSReflectionURP/` with
+`AssetDatabase.MoveAsset`, so every GUID is kept and the showcase keeps using the same copy. It carries its `LICENSE`
+(MIT) and `BuddahGo_NOTES.md` (upstream commit `555d946`, what was copied, the build requirement below and the
+`[BuddahGo]` patches). The patches: null checks in `ForwardGBufferPass.FrameCleanup`; a runtime copy of the post
+material, because the passes wrote per-frame values into the shared `.mat` (now byte-identical to upstream); and no
+SSR in reflection-probe captures, preview cameras or on OpenGL. Scripts under `Assets/Plugins` compile into `Assembly-CSharp-firstpass`; the
+showcase finds the types by scanning every assembly.
+
+### Setup
+
+| Where | Setting |
+|---|---|
+| `URP-HighFidelity-Renderer` | `ScreenSpaceReflectionURP` feature, 75% resolution, no colour mipmaps, the package's `ScreenSpaceReflection.mat`. Order: SSAO, SSR, then BlackCurtain, RenderBuddah, RenderMapEdge, RenderTrails (unchanged) |
+| `URP-Balanced-Renderer` | the same feature at 50%, trilinear colour mipmaps |
+| `URP-Performant-Renderer` | none |
+| `URP-HighFidelity`, `URP-Balanced` renderer lists | `URP-KeepDeferredVariants-Renderer` (Deferred, no features) appended after the default renderer; no camera selects it (default index 0, no camera or script picks index 1) |
+| `RaceMap_Environment_Profile` | `ScreenSpaceReflection`: Enabled, Approximation, quality High (64 steps), constant thickness 0.75, minimum smoothness 0.4, smoothness fade 0.6, edge fade 0.1 |
+
+The feature only enqueues its passes while a volume enables the component, and only RaceMap's profile has it. MainMenu
+and PropertySelection have no SSR component in their volumes; the showcase uses its own renderer. Surfaces with
+smoothness 0.4 or more reflect: the lane (0.93) with its glossy side walls, and the end-field floor. The curbs (0.06)
+and the sand do not. Players are drawn in the opaque pass too, so they appear in the reflections (`ssr_off_on.jpg`).
+
+**Build requirement.** In Forward, SSR redraws opaque objects with URP Lit's `GBuffer` pass, and URP 14 strips every
+pass named `GBuffer` from a build unless some renderer in a pipeline asset is Deferred
+(`ShaderScriptableStripper.StripUnusedFeatures_DeferredRendering`); the editor never strips. Without the extra
+Deferred renderer SSR therefore showed in the editor but would show nothing in a build. The upstream documentation
+asks for exactly this renderer. Checked with two Windows player builds of a one-material probe scene, reading URP's
+exported `Temp/shader-stripping.json`: without the Deferred renderer URP Lit's GBuffer pass kept 0 of 8 vertex
+variants (no fragment variants); with it, 4 of 8 vertex and 32 of 40 fragment variants. It keeps the deferred shader
+variants in the build, so shader compile time and build size grow (the probe scene's variants went from 1945 to 2576);
+the renderer is created with the pipeline but never draws. SSR was not checked in a full RaceMap build.
+
+**Tuning.** Object thickness was swept at 0.1, 0.25, 0.5, 0.75 and 1.0. Thin values speckle the lane's glossy side
+walls and stipple the grazing reflections in the intro. 1.0 stretches the head's reflection in gameplay. 0.75 was
+kept. High is cleaner than Medium in the intro and costs the same on Balanced. 75% resolution looks nearly identical
+to 100% and saves 0.27 ms. Trilinear colour mipmaps (the blur for rough reflections) bled the bright player into the
+lane pixels around it as a halo; without them the reflection is crisper, slightly stair-stepped at 75%, and the halo
+is gone (`ssr_colour_mipmaps.jpg`), so High Fidelity runs without them. Balanced keeps them because its 50%
+reflections need the blur.
+
+**Black curtain.** The curtain is a full-screen pass at BeforeRenderingTransparents, the same event as SSR's
+composite, and URP keeps same-event passes in feature order. SSR sits before BlackCurtain, so the curtain darkens the
+reflections along with the rest of the frame. Placed after it, SSR would composite reflections on top of the curtain;
+at full opacity there is nothing left to reflect (an editor simulation that drove the curtain material showed no
+difference), but during the expand and fade-out the reflections would skip the curtain's darkening. Who sees what: the
+controller disables `Volume`, and SSR with it, only for the player who sees the track edges and only during the hold;
+victims keep `Volume` (and SSR) for the whole curtain but never see the edge ribbons. RenderBuddah, RenderMapEdge and
+RenderTrails run after transparents and are not affected. All canvases are Screen Space Overlay; there is no UI camera.
+
+**Forward GBuffer pass.** In Forward, SSR redraws the opaque objects with their `UniversalGBuffer` pass (URP Lit has
+one) to get smoothness and normals. With MSAA (8x on High Fidelity) it uses its own depth target. Without MSAA it redraws
+into the camera depth with an Equal test. On OpenGL upstream clears the camera depth and refills it only from objects
+whose GBuffer pass survives, so the patch skips SSR on OpenGL entirely (WebGL defaults to Balanced; OpenGL is not a
+shipped target).
+
+### Shadow distance (approved policy)
+
+| Asset | Before | After |
+|---|---|---|
+| `URP-HighFidelity` | 150 m, 4 cascades at 10/30/70 m | 220 m, splits kept at 10/30/70 m (fractions 0.0455 / 0.1364 / 0.3182) |
+| `URP-Balanced` | 50 m, 1 cascade | 150 m, 2 cascades split at 30 m |
+
+At a 10 deg sun the track's shadows are long. At 150 m the far track shadows on the sand faded out halfway up the
+gameplay frame (`shadow_distance_150_vs_220.jpg`). A 10/60/120 m layout gave the player, about 98 m from the gameplay
+camera, a slightly crisper shadow edge (3%), but it softened PropertySelection's shadows in its 10-24 m band, so the
+approved splits were kept. MainMenu (its only caster in view is 354 m away) renders identically. PropertySelection
+differs only by single-pixel jitter along shadow edges (`propertyselection_shadows.jpg`). Balanced now shows the
+player's shadow at the gameplay distance (`quality_levels.jpg`). Neither change measurably costs frame time.
+
+Saving `URP-Balanced-Renderer` also persisted URP 14's load-time migration of that older asset (SSAO sample-count
+mapping and blue-noise textures, intermediate texture mode, shader references). URP applies the same migration in
+memory on load, so runtime behaviour is unchanged.
+
+### Cost
+
+`RaceMapRenderCost`, viewpoints 01-03, 3 rounds of 200 frames, 1080p, RTX 4070 Laptop, editor, one session:
+
+| Configuration | Median frame time |
+|---|---|
+| High Fidelity (8x MSAA), shadows 150 m, SSR off | 5.14 ms |
+| High Fidelity, shadows 220 m, SSR off | 5.11 ms |
+| High Fidelity, 220 m, SSR 100% High | 6.22 ms |
+| High Fidelity, 220 m, SSR 75% High, trilinear mipmaps | 5.95 ms |
+| Balanced (no MSAA), shadows 50 m, SSR off | 3.05 ms |
+| Balanced, 150 m 2 cascades, SSR off | 2.89 ms |
+| Balanced, 150 m, SSR 50% High (shipped) / Medium | 3.50 / 3.51 ms |
+| Performant | 2.50 ms |
+
+A before/after pair taken twice in the same session: 5.33 / 5.41 ms before phase 2 and 6.23 / 6.17 ms after, so
+phase 2 costs about 0.8-0.9 ms (16%) on High Fidelity. A later run (GPU in a faster state) compared the mipmap
+setting: SSR off 4.45 ms, 75% with trilinear mipmaps 5.22 ms, 75% without mipmaps (shipped) 5.16 ms. Most of SSR's cost is the extra opaque redraw and the copies,
+not the ray steps (High and Medium cost the same on Balanced). The sky shader was not measured on its own; the gameplay
+views show almost no sky.
+
+### Editor trap: captures after a scripted scene reload
+
+After a script reopens RaceMap (`EditorSceneManager.OpenScene`), the editor renders the sky's environment reflection
+wrongly until a bake runs or play mode is entered and left once. The lane comes out about 20% darker, and the curbs
+and shadowed sand darker too. Play mode, which reloads the domain and the scene as a build does, shows the correct
+state; a RaceMap player build was not checked, and opening the scene by hand or at editor start-up was not tested.
+Quick check: in `01_start_grid` the lane patch x 1000-1200, y 760-860 averages about (93, 68, 78) when correct and
+(76, 55, 66) in the wrong state. Ambient, probes, probe blending, reflection textures and the volume stack were identical in both states. A
+first phase-2 capture taken in that state looked like a shadow-distance problem until this was found. Capture after a
+bake or after a play-mode round trip.
+
+## Known limits and open items (current state)
+
+- **Not verified by playing a match.** The WhiteBalance and curtain fixes, SSR under a real black curtain (including
+  its fade phases), the trails, FishNet making RaceMap the active scene, and the sunset in motion were checked in code,
+  data and editor captures only.
+- **Player shadow on the lane.** At a 10 deg sun the player's shadow is a long, thin streak across the lane, curb and
+  sand. On the polished lane it is weak (1.28 against the lane) because the sky reflection is not shadowed. A fix needs
+  the lane material (phase 3), specular occlusion or a contact shadow.
 - **Track colour.** The lane (`地图_2/15`, `Map_subsMarble_graph_0_material`) is a polished, near-mirror dielectric
-  (smoothness about 0.93) with a dark base colour (sRGB about 0.37), so at the gameplay angle it shows a dark diffuse
-  layer under a sky reflection. The curb strips (`Map/2`, `Map_subsMarble 1_graph_0_material`) are a rough
-  specular-workflow surface (smoothness about 0.06, 4% reflectance) with a darker base (about 0.19). Now that the
-  lighting is plausible the lane reads as dark stone; a lighter or warmer lane is a material decision (phase 3).
-- **Grazing reflections.** With the probe at full intensity the polished lane reflects the sky at low camera angles;
-  in the intro shot the track reads slightly like water.
+  (smoothness about 0.93) with a dark base colour (sRGB about 0.37). At sunset it reads mauve-violet, and lane/curb
+  contrast is 1.88. The curb strips (`Map/2`, `Map_subsMarble 1_graph_0_material`) are a rough specular-workflow surface
+  (smoothness about 0.06, 4% reflectance) with a darker base (about 0.19). A lighter lane is a material decision
+  (phase 3).
+- **The track's own shadow.** The raised track (its top 2.62 m above the sand) casts a band about 15 m wide onto the sand
+  on the side away from the sun, which reads as a second edge. Inside the corners it shows the slab outline's straight
+  segments as blocky shapes. This is geometry, traced to the lane mesh's side walls.
+- **Sun disk under ACES.** The disk renders pale gold, not saturated orange. ACES desaturates bright values, so no disk
+  colour reaches deep orange without a lower exposure.
+- **Lens flare ghost.** The Oasis flare's ring ghost still crosses the player in the intro at 0.25 intensity. Removing
+  it means editing or replacing the flare asset (shared with Oasis).
+- **Horizon seam at the frame sides.** One fog colour matches the sun-side horizon; toward the edges of the intro frame,
+  where the horizon is rosier, a faint seam remains, and SSR reflects it at grazing angles.
+- **Intro reflections.** At the intro's grazing angle SSR shows some stipple under the player and on the lane's glossy
+  side walls. Without colour mipmaps the reflection edges are slightly stair-stepped at 75% resolution.
+- **Aliasing.** Specular glitter on the lane and end-field floor and moiré in the far sand come from high-frequency
+  normal maps; the captures have no MSAA. TAA would help both and would make PBR-accumulation SSR possible.
+- **Colour grading mode.** All pipeline assets grade in low dynamic range (ACES first, then the grading LUT). HDR
+  grading suits ACES better but is a shared-asset change for every scene; not changed.
+- **Balanced and Performant renderers.** Balanced has SSAO and now SSR; Performant has no renderer features and no
+  main-light shadows. RenderBuddah, BlackCurtain, RenderMapEdge and RenderTrails exist only on High Fidelity, so those
+  effects are missing on the lower levels. Players
+  still render (every renderer draws all layers). This predates these phases; Standalone defaults to High Fidelity and
+  no game script switches quality levels.
 - **Lap-start ambient dip.** For about 40 m at the west end of the start arch the racing line gets 55-70% of the usual
-  ambient (in the arch's shadow, see the probe paragraph). Plausible, not verified in a lap. If unwanted, let the track
-  meshes contribute GI in the bake (static Contribute GI, Receive GI = Light Probes) so it sees the lane instead of the
-  sand below it.
+  ambient (in the arch's shadow, see the probe paragraph). If unwanted, let the track meshes contribute GI in the bake
+  (static Contribute GI, Receive GI = Light Probes).
 - **Sand stripes.** The regular stripes are the sand texture's tiling, unchanged (material question).
-- **Not verified by playing.** The WhiteBalance and curtain fixes were checked in code and data, not by casting a
-  reflection or a black curtain in a match; FishNet making RaceMap the active scene (ReplaceOption.All with
-  `SceneManager._setActiveScene` at its default true, no override in the project) was also checked in code only.
-- **Remaining Oasis references.** `MainLight` still uses the Oasis sun lens flare asset, and the disabled
-  `Oasis Fog` object keeps its component; both predate this phase.
-- **Edge ribbons and the curtain.** The edge ribbons no longer cast shadows. When the black curtain makes them visible
-  they glow without a shadow, which suits an emissive edge; not checked in a match.
+- **Remaining Oasis references.** `MainLight` still uses the Oasis sun lens flare asset, and the disabled `Oasis Fog`
+  object keeps its component.
+- **Edge ribbons and the curtain.** The edge ribbons cast no shadows. When the black curtain makes them visible they
+  glow without a shadow, which suits an emissive edge.
 - The lightmapper reports one object with overlapping UVs (pre-existing; the lightmapped planes use UV0).
-- `Assets/Scenes/RaceMap/` still holds about 900 stale `Lightmap-*` files from older bakes; only `Lightmap-0..2` are
-  referenced. Not cleaned up.
+- `Assets/Scenes/RaceMap/` still holds about 900 stale `Lightmap-*` files and `ReflectionProbe-2.exr` from older bakes;
+  only `Lightmap-0..2` and `ReflectionProbe-0/1` are referenced. Not cleaned up.
 
-### Tools added
+## Tools and shaders added
 
 | Path | Purpose |
 |---|---|
-| `Assets/Editor/Rendering/RaceMapViewpointCapture.cs` | Fixed-viewpoint capture with the player proxy |
+| `Assets/Editor/Rendering/RaceMapViewpointCapture.cs` | Fixed-viewpoint capture with the player proxy (copies the prefab's shadow mode) |
 | `Assets/Editor/Rendering/RaceMapLightProbeLayout.cs` | Track-following light probe layout |
-| `Assets/Editor/Rendering/RaceMapRenderCost.cs` | Before/after frame-time measurement |
+| `Assets/Editor/Rendering/RaceMapRenderCost.cs` | Before/after frame-time measurement with the pipeline's MSAA |
 | `Tools/rendering/build_racemap_compare.py` | Labelled JPEG side-by-sides |
+| `Assets/Rendering/Shaders/SunsetSky.shader` | RaceMap's sunset sky (phase 1b) |
+| `Assets/Plugins/UnitySSReflectionURP/` | Screen-space reflections (third party, MIT, phase 2) |
 
-### Re-tuning checklist
+## Re-tuning checklist
 
 1. Sun direction, filter colour, colour temperature or intensity, sky material, ambient intensity, lighting
    settings: rebake (`Lightmapping.BakeAsync`, about 100 s) and save the scene; otherwise probe-lit objects keep the
-   old ambient.
-2. Track spline or walls changed: run `Generate RaceMap Light Probes`, then rebake.
-3. Post profiles: keep WhiteBalance and Bloom in `RaceMap_Environment_Profile` (Feel shakers), keep `Volume_Dark`'s
-   tonemapping in step with it (black curtain).
-4. Fog, post profiles, probe intensity: runtime values, no rebake.
-5. Capture `phaseN_after`, build the side-by-sides, compare with `phase0_before`.
+   old ambient and the lane keeps the old sky reflection.
+2. Sky colours are linear values; the fog colour is linearised. After a sky change: rebake, capture
+   `04_intro_shot1` after the bake, then iterate the fog colour until rows 284-292 (sky) match rows 298-302 (fully
+   fogged far sand), each averaged over the 32 columns x = 40, 100, ..., 1900 (multiply each channel by
+   (sky / band)^1.2 and re-capture; two or three steps converge). Set the sky's below-horizon colour to
+   `RenderSettings.fogColor.linear`, rebake once more and recapture. The fog's red channel is above 1 and the Lighting
+   window's LDR colour picker clamps it on a manual edit, so set it from code.
+3. Track spline or walls changed: run `Generate RaceMap Light Probes`, then rebake.
+4. Post profiles: keep WhiteBalance and Bloom in `RaceMap_Environment_Profile` (Feel shakers), keep `Volume_Dark`'s
+   tonemapping and grade in step with it, 0.1 EV darker (black curtain).
+5. SSR stays before BlackCurtain in the High Fidelity renderer's feature list, and both SSR pipeline assets keep
+   `URP-KeepDeferredVariants-Renderer` in their renderer lists (without it SSR is stripped from builds).
+6. Fog, post profiles, SSR volume settings, probe intensity: runtime values, no rebake.
+7. Capture `phaseN_after` after a bake or a play-mode round trip (see the editor trap), build the side-by-sides, and
+   compare with the previous phase.

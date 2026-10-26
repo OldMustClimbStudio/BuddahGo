@@ -17,7 +17,6 @@ MonoBehaviour:
   cooldownSeconds: 12
   castLockSeconds: 10
   obsessionGain: 300
-  antiSkillId: acceleration_anti
   extraForwardForce: 50
   extraMaxSpeed: 40
   durationSeconds: 10

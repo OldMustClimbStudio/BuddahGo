@@ -90,7 +90,8 @@ namespace BuddahGo.AI
 
             Status = "respawn-cancels-confirmation";
             var hunter = Racer(10001); caster = hunter.GetComponent<AISkillCaster>(); executor = hunter.GetComponent<SkillExecutor>();
-            before = caster.Telemetry.Executed; BeginCombo(hunter, 0);
+            // A confirming backfire survives respawn (Human Player rule), so this fixture must not roll one.
+            Normal(executor); before = caster.Telemetry.Executed; BeginCombo(hunter, 0);
             yield return WaitFor(() => executor.HasPendingCast, 4f);
             Check("combo reached real confirmation", executor.HasPendingCast);
             var motor = hunter.GetComponent<BuddahPredictedMotor>();

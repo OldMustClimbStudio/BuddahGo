@@ -34,13 +34,13 @@ public static class SkillConfigCrossValidator
 
             var actions = new Dictionary<string, SkillAction>(StringComparer.Ordinal);
             Collect(database.normalSkills, actions, path, results);
-            Collect(database.antiSkills, actions, path, results);
             Collect(database.skills, actions, path, results);
 
-            foreach (string id in repository.Skills.Keys)
-                if (!actions.ContainsKey(id))
+            // Hidden rows are never offered or cast (the retired *_anti rows stay hidden until phase B deletes them), so they need no action.
+            foreach (var pair in repository.Skills)
+                if (!actions.ContainsKey(pair.Key) && !IsHidden(pair.Value))
                     Add(results, ProjectConfigValidationSeverity.Warning, path,
-                        "Config skill '" + id + "' has no action in this SkillDatabase.");
+                        "Config skill '" + pair.Key + "' has no action in this SkillDatabase.");
 
             foreach (var pair in actions)
             {
@@ -51,38 +51,13 @@ public static class SkillConfigCrossValidator
                 {
                     Compare(results, context, "cooldownSeconds", action.cooldownSeconds, row.cooldownSeconds);
                     Compare(results, context, "castLockSeconds", action.castLockSeconds, row.castLockSeconds);
-                    if (!string.IsNullOrEmpty(row.antiSkillId) || !string.IsNullOrWhiteSpace(action.antiSkillId))
-                        Compare(results, context, "obsessionGain", action.obsessionGain, row.obsessionGain);
-                    if (!string.Equals((action.antiSkillId ?? string.Empty).Trim(), (row.antiSkillId ?? string.Empty).Trim(), StringComparison.Ordinal))
-                        Add(results, ProjectConfigValidationSeverity.Warning, context,
-                            "antiSkillId differs: action='" + action.antiSkillId + "', config='" + row.antiSkillId + "'. Config takes priority when nonempty.");
+                    Compare(results, context, "obsessionGain", action.obsessionGain, row.obsessionGain);
                     string durationField = SkillDatabase.EffectDurationField(action);
                     if (durationField != null && row.effectDurationSeconds > 0f)
                         CompareField(results, context, action, durationField, row.effectDurationSeconds);
                 }
                 else
                     Add(results, ProjectConfigValidationSeverity.Warning, context, "Action id '" + id + "' has no Skill row; runtime uses SkillAction balance values.");
-
-                string anti = string.Empty;
-                string layer = "none";
-                if (repository.TryGetAntiSkillId(id, out string configuredAnti))
-                {
-                    anti = configuredAnti;
-                    layer = "config";
-                }
-                else if (!string.IsNullOrWhiteSpace(action.antiSkillId))
-                {
-                    anti = action.antiSkillId.Trim();
-                    layer = "SkillAction";
-                }
-                else if (actions.ContainsKey(id + "_anti"))
-                {
-                    anti = id + "_anti";
-                    layer = "inferred suffix";
-                }
-                Add(results, ProjectConfigValidationSeverity.Info, context, "Anti resolution: " + layer + " -> '" + anti + "'.");
-                if (anti.Length > 0 && !actions.ContainsKey(anti))
-                    Add(results, ProjectConfigValidationSeverity.Warning, context, "Resolved anti id is absent; runtime would fall back to the normal skill.");
 
                 using var serializedAction = new SerializedObject(action);
                 SerializedProperty vfx = serializedAction.FindProperty("vfxId");
@@ -100,14 +75,17 @@ public static class SkillConfigCrossValidator
                 CompareFamily(results, context, action, id, config.skillEffectSlowTraps);
                 CompareFamily(results, context, action, id, config.skillEffectBlackCurtains);
                 CompareFamily(results, context, action, id, config.skillEffectGiants);
-                // Skill/Push charged rows use the explicit mapping of SkillDatabase.
+                // Skill/Push charged row uses the explicit mapping of SkillDatabase.
                 if (id == "push_projectile_hands")
                     CompareMapped(results, context, action, Find(config.pushes, "charged"), SkillDatabase.PushChargedMap);
-                else if (id == "push_projectile_hands_anti")
-                    CompareMapped(results, context, action, Find(config.pushes, "charged_anti"), SkillDatabase.PushChargedAntiMap);
             }
         }
         return results;
+    }
+
+    private static bool IsHidden(SkillRecord row)
+    {
+        return row != null && string.Equals((row.unlockState ?? string.Empty).Trim(), "hidden", StringComparison.OrdinalIgnoreCase);
     }
 
     private static PushRecord Find(List<PushRecord> rows, string pushId)

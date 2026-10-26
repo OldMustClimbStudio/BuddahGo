@@ -49,7 +49,7 @@ public class Skill_Acceleration : SkillAction
         // Authored Feel bindings take precedence over the timed VFX fallback.
     }
 
-    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         ExecuteObservers(caster, slotIndex);
 

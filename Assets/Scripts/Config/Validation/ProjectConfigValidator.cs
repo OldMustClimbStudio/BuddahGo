@@ -53,6 +53,8 @@ public static class ProjectConfigValidator
             if (!seen.Add(skillId))
                 results.Add(Create(ProjectConfigValidationSeverity.Error, context, "Duplicate skillId '" + skillId + "'."));
 
+            // antiSkillId and the hidden *_anti rows are table leftovers until phase B deletes them; the *_anti SkillActions are
+            // retired (a backfire fails the requested cast in SkillExecutor), so these checks only keep the leftovers consistent.
             string antiSkillId = NormalizeId(record.antiSkillId);
             if (!string.IsNullOrWhiteSpace(antiSkillId))
             {
@@ -63,12 +65,12 @@ public static class ProjectConfigValidator
             }
         }
 
-        // Backfire adds the obsession of the requested skill (SkillExecutor.QueueCast); a value on the anti row is never read.
+        // No anti row is ever executed, so an obsessionGain on it is never read.
         for (int i = 0; i < database.skills.Count; i++)
         {
             SkillRecord record = database.skills[i];
             if (record != null && antiIds.Contains(NormalizeId(record.skillId)) && record.obsessionGain != 0f)
-                results.Add(Create(ProjectConfigValidationSeverity.Warning, "Skill[" + i + "]", "obsessionGain on anti skill '" + record.skillId + "' is ignored; backfire uses the requested skill's gain."));
+                results.Add(Create(ProjectConfigValidationSeverity.Warning, "Skill[" + i + "]", "obsessionGain on retired anti skill '" + record.skillId + "' is never read: *_anti rows are no longer executed, and a backfire grants no obsession."));
         }
     }
 

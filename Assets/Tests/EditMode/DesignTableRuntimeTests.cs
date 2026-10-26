@@ -31,6 +31,25 @@ namespace BuddahGo.Tests
             return 0f;
         }
 
+        /// <summary>skillId of every Skill/Skill row, split by unlockState: hidden rows are never offered to players.</summary>
+        private static void SkillRows(DesignTableSet set, out HashSet<string> offered, out HashSet<string> hidden)
+        {
+            DesignSheet s = set.Find("Skill", "Skill");
+            Assert.IsNotNull(s, "Skill/Skill missing");
+            ColumnSpec id = s.FindColumn("skillId"), unlock = s.FindColumn("unlockState");
+            Assert.IsNotNull(id, "Skill.skillId missing");
+            Assert.IsNotNull(unlock, "Skill.unlockState missing");
+            offered = new HashSet<string>();
+            hidden = new HashSet<string>();
+            foreach (DataRow row in s.Rows)
+            {
+                string skillId = s.Cell(row, id).Trim();
+                if (skillId.Length == 0) continue;
+                bool isHidden = string.Equals(s.Cell(row, unlock).Trim(), "hidden", StringComparison.OrdinalIgnoreCase);
+                (isHidden ? hidden : offered).Add(skillId);
+            }
+        }
+
         private static Type T(string name)
         {
             foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
@@ -67,7 +86,6 @@ namespace BuddahGo.Tests
         {
             AssertMap(T("BuddahHandControl"), typeof(PushRecord), BuddahHandControl.PushBasicMap);
             AssertMap(T("Skill_PushProjectileHands"), typeof(PushRecord), SkillDatabase.PushChargedMap);
-            AssertMap(T("Skill_PushProjectileHands_Anti"), typeof(PushRecord), SkillDatabase.PushChargedAntiMap);
             AssertMap(T("BuddahMovement"), typeof(MovementRecord), "launchInheritSeconds=launchInheritTime", "launchBlendSeconds=launchBlendTime");
             AssertMap(T("RaceBodyIntroStateController"), typeof(IntroRecord), "handoffLeadSeconds=defaultHandoffLeadTime");
             AssertMap(T("RaceBodyIntroStateController"), typeof(MovementRecord), "velocitySampleDeltaSeconds");
@@ -119,7 +137,6 @@ namespace BuddahGo.Tests
             {
                 List<SkillAction> copies = new List<SkillAction>();
                 foreach (SkillAction action in source.normalSkills) { if (action == null) continue; SkillAction c = UnityEngine.Object.Instantiate(action); temp.Add(c); scratch.normalSkills.Add(c); copies.Add(c); }
-                foreach (SkillAction action in source.antiSkills) { if (action == null) continue; SkillAction c = UnityEngine.Object.Instantiate(action); temp.Add(c); scratch.antiSkills.Add(c); copies.Add(c); }
                 foreach (SkillAction action in source.skills) { if (action == null) continue; SkillAction c = UnityEngine.Object.Instantiate(action); temp.Add(c); scratch.skills.Add(c); copies.Add(c); }
                 scratch.ApplyDesignTablesNow();
 
@@ -135,7 +152,7 @@ namespace BuddahGo.Tests
                     Assert.AreEqual(expected, (float)f.GetValue(copy), copy.skillId + "." + field + " did not receive Skill.effectDurationSeconds");
                     checked_++;
                 }
-                Assert.GreaterOrEqual(checked_, 10, "primary durations applied");
+                Assert.GreaterOrEqual(checked_, 6, "primary durations applied (one per normal skill)");
 
                 Skill_Giant giant = (Skill_Giant)copies.Find(c => c.skillId == "giant");
                 Assert.AreEqual(Cell(set, "Skill", "SkillEffectGiant", "skillId", "giant", "scaleMultiplier"), giant.scaleMultiplier, "family sheet reaches the SO");
@@ -144,13 +161,54 @@ namespace BuddahGo.Tests
                 Skill_PushProjectileHands hands = (Skill_PushProjectileHands)copies.Find(c => c.skillId == "push_projectile_hands");
                 Assert.AreEqual(Cell(set, "Skill", "Push", "pushId", "charged", "speed"), hands.projectileSpeed, "Push charged row reaches the SO");
                 Assert.AreEqual(Cell(set, "Skill", "Push", "pushId", "charged", "windupSeconds"), hands.buildUpSeconds);
-                Skill_PushProjectileHands_Anti burst = (Skill_PushProjectileHands_Anti)copies.Find(c => c.skillId == "push_projectile_hands_anti");
-                Assert.AreEqual((int)Cell(set, "Skill", "Push", "pushId", "charged_anti", "projectileCount"), burst.projectileCount);
             }
             finally
             {
                 foreach (UnityEngine.Object o in temp)
                     if (o != null) UnityEngine.Object.DestroyImmediate(o);
+            }
+        }
+
+        [Test]
+        public void SkillDatabaseHoldsOnlyTheNormalSkills()
+        {
+            // A4: a backfire now fails the requested cast, so the six *_anti SkillActions are retired. Their hidden Skill rows
+            // stay in the tables until phase B; they must not resolve to an action and must never be offered for selection.
+            ProjectConfigDatabase main = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset);
+            Assert.IsNotNull(main, MainAsset);
+            Assert.IsTrue(ProjectConfigRuntime.EnsureInitialized(main));
+            SkillRows(DesignTableSet.Load(), out HashSet<string> offered, out HashSet<string> hidden);
+            SkillDatabase database = AssetDatabase.LoadAssetAtPath<SkillDatabase>(SkillDatabaseAsset);
+            Assert.IsNotNull(database, SkillDatabaseAsset);
+
+            foreach (string id in offered)
+                Assert.IsTrue(database.TryGet(id, out SkillAction action) && action != null, "Skill row '" + id + "' has no SkillAction");
+            foreach (string id in hidden)
+                Assert.IsFalse(database.TryGet(id, out _), "hidden Skill row '" + id + "' still resolves to a SkillAction");
+            CollectionAssert.AreEquivalent(offered, database.GetSelectableNormalSkills().ConvertAll(s => s.skillId), "selection offers exactly the non-hidden Skill rows");
+
+            Assert.IsNull(typeof(SkillAction).GetField("antiSkillId"), "SkillAction.antiSkillId is retired");
+            Assert.IsNull(typeof(SkillDatabase).GetField("antiSkills"), "SkillDatabase.antiSkills is retired");
+        }
+
+        [Test]
+        public void SkillCrossValidatorIgnoresHiddenRowsAndResolvesNoBackfireVariant()
+        {
+            ProjectConfigDatabase main = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset);
+            Assert.IsNotNull(main, MainAsset);
+            SkillDatabase database = AssetDatabase.LoadAssetAtPath<SkillDatabase>(SkillDatabaseAsset);
+            Assert.IsNotNull(database, SkillDatabaseAsset);
+            using (var serializedDatabase = new SerializedObject(database))
+                Assert.AreSame(main, serializedDatabase.FindProperty("_projectConfigDatabase").objectReferenceValue, "the validator must compare this skill database");
+            SkillRows(DesignTableSet.Load(), out _, out HashSet<string> hidden);
+
+            foreach (ProjectConfigValidationMessage message in SkillConfigCrossValidator.Validate(main))
+            {
+                StringAssert.DoesNotStartWith("Anti resolution", message.message, message.context);
+                if (message.severity != ProjectConfigValidationSeverity.Warning)
+                    continue;
+                foreach (string id in hidden)
+                    StringAssert.DoesNotContain("'" + id + "'", message.message, "warning about hidden Skill row '" + id + "'");
             }
         }
 

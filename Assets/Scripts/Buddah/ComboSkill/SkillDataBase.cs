@@ -14,11 +14,8 @@ public class SkillDatabase : ScriptableObject
     [Header("Normal Skills")]
     public List<SkillAction> normalSkills = new();
 
-    [Header("Anti Skills")]
-    public List<SkillAction> antiSkills = new();
-
     [Header("Legacy / Unsorted (Optional)")]
-    [Tooltip("Backward-compatible list. Runtime will merge this list with Normal Skills and Anti Skills.")]
+    [Tooltip("Backward-compatible list. Runtime will merge this list with Normal Skills.")]
     public List<SkillAction> skills = new();
 
     private Dictionary<string, SkillAction> _byId;
@@ -67,11 +64,10 @@ public class SkillDatabase : ScriptableObject
         }
 
         List<SkillAction> results = new List<SkillAction>();
-        HashSet<string> antiSkillIds = BuildAntiSkillIdSet();
         HashSet<string> seen = new HashSet<string>();
 
-        AddSelectableSkillsFromList(normalSkills, antiSkillIds, seen, results, "normalSkills");
-        AddSelectableSkillsFromList(skills, antiSkillIds, seen, results, "skills");
+        AddSelectableSkillsFromList(normalSkills, seen, results, "normalSkills");
+        AddSelectableSkillsFromList(skills, seen, results, "skills");
         return results;
     }
 
@@ -145,17 +141,6 @@ public class SkillDatabase : ScriptableObject
         }
 
         return fallbackSkill != null ? Mathf.Max(0f, fallbackSkill.ObsessionGain) : 0f;
-    }
-
-    public string GetAntiSkillId(string skillId, SkillAction fallbackSkill)
-    {
-        if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository)
-            && repository.TryGetAntiSkillId(skillId, out string configuredValue))
-        {
-            return configuredValue;
-        }
-
-        return fallbackSkill != null ? (fallbackSkill.antiSkillId ?? string.Empty).Trim() : string.Empty;
     }
 
     public bool GetAllowDuplicateSkillSelections(bool fallbackValue = false)
@@ -237,7 +222,6 @@ public class SkillDatabase : ScriptableObject
     {
         _byId = new Dictionary<string, SkillAction>();
         AddListToLookup(normalSkills, "normalSkills");
-        AddListToLookup(antiSkills, "antiSkills");
         AddListToLookup(skills, "skills");
         _tablesApplied = false;
         EnsureDesignTablesApplied();
@@ -297,7 +281,6 @@ public class SkillDatabase : ScriptableObject
     {
         _byId = new Dictionary<string, SkillAction>();
         AddListToLookup(normalSkills, "normalSkills");
-        AddListToLookup(antiSkills, "antiSkills");
         AddListToLookup(skills, "skills");
         ApplyDesignTablesToSkills();
     }
@@ -307,12 +290,11 @@ public class SkillDatabase : ScriptableObject
     {
         switch (skill)
         {
-            case Skill_Acceleration _: case Skill_Acceleration_Anti _: case Skill_Giant _: case Skill_Giant_Anti _: return "durationSeconds";
+            case Skill_Acceleration _: case Skill_Giant _: return "durationSeconds";
             case Skill_SlowTrap _: return "zoneDurationSeconds";
-            case Skill_SlowTrap_Anti _: return "rootDurationSeconds";
-            case Skill_BlackCurtain _: case Skill_BlackCurtain_Anti _: return "holdDurationSeconds";
+            case Skill_BlackCurtain _: return "holdDurationSeconds";
             case Skill_PushProjectileHands _: return "buffDurationSeconds";
-            case Skill_ReverseTurn _: case Skill_ReverseTurn_Anti _: return "invertDurationSeconds";
+            case Skill_ReverseTurn _: return "invertDurationSeconds";
             default: return null;
         }
     }
@@ -324,18 +306,13 @@ public class SkillDatabase : ScriptableObject
         "impulseStrength=projectileImpulseStrength", "speed=projectileSpeed", "forwardOffset=projectileForwardOffset", "heightOffset=projectileHeightOffset", "colliderSize=projectileColliderSize"
     };
 
-    /// <summary>Skill/Push "charged_anti" row → Skill_PushProjectileHands_Anti fields.</summary>
-    public static readonly string[] PushChargedAntiMap =
-    {
-        "windupSeconds=buildUpSeconds", "lifetimeSeconds=projectileLifetimeSeconds", "impulseStrength=projectileImpulseStrength", "speed=projectileSpeed",
-        "forwardOffset=additionalForwardSpawnOffset", "heightOffset=additionalHeightSpawnOffset", "projectileCount", "projectileSpacing", "colliderSize=projectileColliderSize", "hitTurnTorqueImpulse"
-    };
-
     // Design tables own the effect numbers; the SO fields are only the editor-time fallback.
     // Applied in play mode only so edit-mode validation can still compare SO values against the tables.
-    //   Skill.effectDurationSeconds      → the primary duration field of each skill class (EffectDurationField)
-    //   SkillEffect<Family> rows         → same-name fields of the normal / anti class (blank cells have no field on that class)
-    //   Push charged / charged_anti rows → explicit mapping onto the two projectile skills (basic row belongs to BuddahHandControl)
+    //   Skill.effectDurationSeconds → the primary duration field of each skill class (EffectDurationField)
+    //   SkillEffect<Family> rows    → same-name fields of the skill class (blank cells have no field on that class)
+    //   Push charged row            → explicit mapping onto Skill_PushProjectileHands (basic row belongs to BuddahHandControl)
+    // Rows without a SkillAction here are skipped silently. The retired *_anti rows (hidden; a backfire now fails the requested
+    // cast instead of running a variant) stay in the tables until phase B removes them, together with the charged_anti Push row.
     private void ApplyDesignTablesToSkills()
     {
         ProjectConfigDatabase db = DesignTableOverlay.Db;
@@ -361,8 +338,6 @@ public class SkillDatabase : ScriptableObject
 
         if (TryGetAction("push_projectile_hands", out SkillAction charged))
             DesignTableOverlay.ApplyMapped(charged, DesignTableOverlay.Single(db.pushes, r => r.pushId == "charged"), PushChargedMap);
-        if (TryGetAction("push_projectile_hands_anti", out SkillAction chargedAnti))
-            DesignTableOverlay.ApplyMapped(chargedAnti, DesignTableOverlay.Single(db.pushes, r => r.pushId == "charged_anti"), PushChargedAntiMap);
     }
 
     private void ApplyFamily<T>(List<T> rows, System.Func<T, string> skillIdOf) where T : class
@@ -404,7 +379,6 @@ public class SkillDatabase : ScriptableObject
 
     private void AddSelectableSkillsFromList(
         List<SkillAction> list,
-        HashSet<string> antiSkillIds,
         HashSet<string> seen,
         List<SkillAction> results,
         string listName)
@@ -417,9 +391,6 @@ public class SkillDatabase : ScriptableObject
             if (!TryGetValidSkillId(skill, out string skillId))
                 continue;
 
-            if (antiSkillIds.Contains(skillId))
-                continue;
-
             if (!seen.Add(skillId))
             {
                 Debug.LogWarning($"[SkillDatabase] Duplicate selectable skillId '{skillId}' skipped (list={listName}).");
@@ -428,21 +399,6 @@ public class SkillDatabase : ScriptableObject
 
             results.Add(skill);
         }
-    }
-
-    private HashSet<string> BuildAntiSkillIdSet()
-    {
-        HashSet<string> antiSkillIds = new HashSet<string>();
-        if (antiSkills == null)
-            return antiSkillIds;
-
-        foreach (SkillAction skill in antiSkills)
-        {
-            if (TryGetValidSkillId(skill, out string skillId))
-                antiSkillIds.Add(skillId);
-        }
-
-        return antiSkillIds;
     }
 
     private static bool TryGetValidSkillId(SkillAction skill, out string skillId)

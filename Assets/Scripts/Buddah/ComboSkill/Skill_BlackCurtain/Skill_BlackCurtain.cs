@@ -35,13 +35,13 @@ public class Skill_BlackCurtain : SkillAction
         if (caster == null)
             return;
 
-        BuddahGo.Match.SkillPerceptionState.ApplyCurtain(caster, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds, false);
+        BuddahGo.Match.SkillPerceptionState.ApplyCurtain(caster, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
 
         float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
         GameLog.Verbose($"[Skill_BlackCurtain][Server] Triggered by {caster.name}, totalDuration={actualDuration:0.00}s");
     }
 
-    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         var settings = new BlackCurtainPresentation.Settings
         {
@@ -59,7 +59,7 @@ public class Skill_BlackCurtain : SkillAction
             centerProperty = centerProperty,
             centerWorldOffset = centerWorldOffset,
         };
-        if (!BlackCurtainPresentation.TryPlay(caster, isAnti, localIsCaster, GetType().Name, settings))
+        if (!BlackCurtainPresentation.TryPlay(caster, localIsCaster, GetType().Name, settings))
             return;
 
         float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);

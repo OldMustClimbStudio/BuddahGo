@@ -253,7 +253,14 @@ namespace BuddahGo.AI
         {
             if (!Commitment.Active && !_executor.HasPendingCast) return;
             int slot = Commitment.Slot;
-            if (_executor.HasPendingCast) _executor.CancelPendingCastServer(); else Telemetry.Cancelled++;
+            bool committed = Commitment.Active;
+            if (_executor.HasPendingCast)
+            {
+                // The executor keeps a confirming backfire (Human Player rule): it still ends in Executed + IsBacklash.
+                // Once the commitment is gone there is nothing left to cancel, so repeated calls stay silent.
+                if (!_executor.CancelPendingCastServer() && !committed) return;
+            }
+            else Telemetry.Cancelled++;
             Commitment.Cancel(); _combo.ClearCombo();
             Emit("cancel", reason, slot);
         }

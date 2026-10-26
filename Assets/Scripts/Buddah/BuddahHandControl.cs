@@ -2,18 +2,34 @@ using FishNet.Object;
 using BuddahGo.Match;
 using FishNet.Object.Synchronizing;
 using System.Collections;
+using System.Collections.Generic;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(NetworkObject))]
 public class BuddahHandControl : NetworkBehaviour
 {
     [Header("Input")]
-    [Tooltip("Read from InputSystem_Actions -> Player -> HandRotation (LeftArrow / RightArrow).")]
+    [Tooltip("Read from InputSystem_Actions -> Player -> HandPush (mouse left / right button; W / UpArrow deprecated) and HandRotation (LeftArrow / RightArrow, fallback when there is no mouse).")]
     [SerializeField] private bool useGeneratedInputActions = true;
+
+    [Header("Mouse Aim")]
+    [Tooltip("Owner aims the hands with the cursor projected onto the ground plane. Off, or without a mouse, LeftArrow / RightArrow turn the hands.")]
+    [SerializeField] private bool useMouseAim = true;
+
+    [Tooltip("Time constant (seconds) of the exponential smoothing applied to the cursor target before the rotationSpeedDegPerSec cap. 0 = no smoothing.")]
+    [SerializeField, Min(0f)] private float mouseAimSmoothingSeconds = 0.06f;
+
+    [Tooltip("Cursor closer than this to the body (metres, multiplied by the body scale) holds the current aim target.")]
+    [SerializeField, Min(0f)] private float mouseAimDeadRadius = 1.5f;
+
+    [Tooltip("Height of the horizontal aim plane above the movement root (metres).")]
+    [SerializeField] private float mouseAimPlaneHeightOffset = 0f;
 
     [Header("Hand Bones")]
     [Tooltip("Optional: if empty, will try to auto-find via Animator Humanoid LeftHand/RightHand.")]
@@ -22,14 +38,14 @@ public class BuddahHandControl : NetworkBehaviour
     [SerializeField] private Transform rightHandBone;
 
     [Header("Rotation")]
-    [Tooltip("Degrees per second.")]
+    [Tooltip("Hand turn speed cap in degrees per second (mouse aim and the arrow-key fallback).")]
     [SerializeField] private float rotationSpeedDegPerSec = 180f;
 
     [Header("Hand Animation")]
-    [Tooltip("Animator trigger fired when W is pressed (left-hand one-shot animation).")]
+    [Tooltip("Animator trigger fired on a left-hand push (mouse left button; W deprecated).")]
     [SerializeField] private string leftHandTriggerName = "LeftW";
 
-    [Tooltip("Animator trigger fired when UpArrow is pressed (right-hand one-shot animation).")]
+    [Tooltip("Animator trigger fired on a right-hand push (mouse right button; UpArrow deprecated).")]
     [SerializeField] private string rightHandTriggerName = "RightUp";
 
     [Tooltip("If true, will replicate left/right hand trigger events to other clients.")]
@@ -101,7 +117,7 @@ public class BuddahHandControl : NetworkBehaviour
     public float ServerPushCooldown => GetActivePushCooldownServer(IsProjectilePushModeActiveServer(), _projectileUseChargedRuntimeServer);
     public float ProjectileBuffSecondsLeft => IsServerInitialized ? Mathf.Max(0f, _projectilePushModeUntilServer - Time.time) : 0f;
 
-    public bool CanPushServer(bool left) => IsServerInitialized && Time.time >= (left ? _nextPushServerTimeLeft : _nextPushServerTimeRight);
+    public bool CanPushServer(bool left) => IsServerInitialized && !IsMotorFrozen() && Time.time >= (left ? _nextPushServerTimeLeft : _nextPushServerTimeRight);
 
     public void InjectServerRotation(int axis, float tickDelta)
     {
@@ -143,7 +159,18 @@ public class BuddahHandControl : NetworkBehaviour
     private InputSystem_Actions inputActions;
     private InputAction handRotationAction;
     private Animator animator;
+    private NewBuddah.PredictionV2.Core.BuddahPredictedMotor _motor;
+    private PlayerScaleEffect _scaleEffect;
 
+    // Mouse aim (owner only).
+    private Camera _aimCamera;
+    private bool _hasMouseAimTarget;
+    private float _smoothedMouseAimYawDeg;
+    private static readonly List<RaycastResult> s_UiRaycastResults = new();
+
+    private const float HandRotationAxisEpsilonDeg = 0.001f;
+
+    // Owner-authoritative, body-relative and UNWRAPPED: observers Lerp the synced copy, so wrapping would spin them.
     private float handYawOffsetDeg;
     private float _lastSentYaw;
     private float _nextSendTime;
@@ -156,7 +183,7 @@ public class BuddahHandControl : NetworkBehaviour
 
     /// <summary>
     /// Current hand rotation input axis.
-    /// -1 = LeftArrow, +1 = RightArrow, 0 = none.
+    /// -1 = turning left (LeftArrow), +1 = turning right (RightArrow), 0 = none. With mouse aim it is the sign of this frame's step.
     /// </summary>
     public float HandRotationAxis { get; private set; }
 
@@ -170,8 +197,10 @@ public class BuddahHandControl : NetworkBehaviour
     private void Awake()
     {
         animator = GetComponentInChildren<Animator>(true);
+        _motor = GetComponent<NewBuddah.PredictionV2.Core.BuddahPredictedMotor>();
         // Skill/Push "basic" row owns the hand-push numbers; prefab values stay as fallback. Explicit mapping only:
-        // the charged / charged_anti rows of the same sheet belong to the projectile skills (SkillDatabase).
+        // the charged row of the same sheet belongs to the projectile skill (SkillDatabase); the leftover
+        // charged_anti row has no reader since the anti variants were retired (removed with the tables in phase B).
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
             DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.Single(db.pushes, r => r.pushId == "basic"), PushBasicMap);
@@ -179,7 +208,11 @@ public class BuddahHandControl : NetworkBehaviour
         if (useGeneratedInputActions)
         {
             inputActions = new InputSystem_Actions();
+            // HandRotation (←/→) is only the fallback when there is no mouse; the mouse aims the hands.
             handRotationAction = inputActions.Player.HandRotation;
+            // HandPush bindings: <Mouse>/leftButton = left hand, <Mouse>/rightButton = right hand (primary keys).
+            // The action is PassThrough so a press of one button is never swallowed while the other is held.
+            // 废弃内容（deprecated）: W/↑ 推掌绑定暂时保留，后续可能再调整；主键位是鼠标左/右键。见 Docs/gameplay/README.md §3
             handPushAction = inputActions.Player.HandPush;
         }
 
@@ -245,14 +278,81 @@ public class BuddahHandControl : NetworkBehaviour
         if (IsRaceGameplayBlocked())
             return;
 
-        HandRotationAxis = ReadHandRotationAxis();
+        UpdateHandAimLocal(Time.deltaTime);
+        TrySendYawToServer();
+    }
 
-        if (Mathf.Abs(HandRotationAxis) > 0.001f)
+    private void UpdateHandAimLocal(float deltaTime)
+    {
+        // A local modal (quit dialog) owns the mouse while it is open, as it owns steering.
+        if (LocalInputBlock.IsBlocked)
         {
-            handYawOffsetDeg += HandRotationAxis * rotationSpeedDegPerSec * Time.deltaTime;
+            HandRotationAxis = 0f;
+            return;
         }
 
-        TrySendYawToServer();
+        if (TryGetMouseAimTarget(deltaTime, out float targetYawDeg))
+        {
+            // Recomputed every frame, so the hands keep their world aim while A/D turns the body.
+            float step = HandAimMath.RateLimitedStep(handYawOffsetDeg, targetYawDeg, rotationSpeedDegPerSec, deltaTime);
+            handYawOffsetDeg += step;
+            HandRotationAxis = step > HandRotationAxisEpsilonDeg ? 1f : step < -HandRotationAxisEpsilonDeg ? -1f : 0f;
+            return;
+        }
+
+        // Fallback without a mouse (or when the cursor ray misses the aim plane): LeftArrow / RightArrow.
+        _hasMouseAimTarget = false;
+        HandRotationAxis = ReadHandRotationAxis();
+        if (Mathf.Abs(HandRotationAxis) > 0.001f)
+        {
+            handYawOffsetDeg += HandRotationAxis * rotationSpeedDegPerSec * deltaTime;
+        }
+    }
+
+    /// <summary>
+    /// Owner: the smoothed, body-relative cursor target in degrees. False when there is no mouse or camera,
+    /// or the cursor ray misses the aim plane. Inside the dead radius the current target is held.
+    /// </summary>
+    private bool TryGetMouseAimTarget(float deltaTime, out float targetYawDeg)
+    {
+        targetYawDeg = handYawOffsetDeg;
+
+        Mouse mouse = Mouse.current;
+        if (!useMouseAim || mouse == null)
+            return false;
+
+        if (_aimCamera == null || !_aimCamera.isActiveAndEnabled)
+            _aimCamera = Camera.main;
+        if (_aimCamera == null)
+            return false;
+
+        // transform is the movement root: the server rebuilds the push as AngleAxis(yaw, up) * transform.forward,
+        // so the offset is measured from this forward, not from the smoothed visual root.
+        Vector3 bodyPosition = transform.position;
+        float scaleMultiplier = GetPushScaleMultiplier();
+        Ray cursorRay = _aimCamera.ScreenPointToRay(mouse.position.ReadValue());
+        HandAimSampleKind sample = HandAimMath.TryGetTargetYawOffset(
+            cursorRay,
+            bodyPosition.y + mouseAimPlaneHeightOffset,
+            bodyPosition,
+            transform.forward,
+            mouseAimDeadRadius * scaleMultiplier,
+            out float rawTargetYawDeg);
+
+        if (sample == HandAimSampleKind.Miss)
+            return false;
+
+        if (!_hasMouseAimTarget)
+        {
+            _smoothedMouseAimYawDeg = handYawOffsetDeg;
+            _hasMouseAimTarget = true;
+        }
+
+        if (sample == HandAimSampleKind.Aim)
+            _smoothedMouseAimYawDeg = HandAimMath.SmoothAngle(_smoothedMouseAimYawDeg, rawTargetYawDeg, deltaTime, mouseAimSmoothingSeconds);
+
+        targetYawDeg = _smoothedMouseAimYawDeg;
+        return true;
     }
 
     private void RefreshProjectilePushModeExpiration()
@@ -406,6 +506,7 @@ public class BuddahHandControl : NetworkBehaviour
         }
     }
 
+    // Fallback hand turning (no mouse, or the cursor ray misses the aim plane). Mouse aim is the primary input.
     private float ReadHandRotationAxis()
     {
         if (handRotationAction == null)
@@ -436,40 +537,137 @@ public class BuddahHandControl : NetworkBehaviour
 
     private void OnHandPushPerformed(InputAction.CallbackContext ctx)
     {
+        // HandPush is a PassThrough action, so each bound control reports on its own (a Button action's conflict
+        // resolution would swallow the second hand while the first button is held). Only presses push; releases
+        // also arrive here and are ignored.
+        if (!ctx.ReadValueAsButton())
+            return;
+
         GameLog.Verbose($"[HandControl] HandPush PERFORMED. IsOwner={IsOwner}, control={ctx.control?.path}");
 
-        if (!IsOwner || animator == null || IsRaceGameplayBlocked())
+        if (!IsOwner || animator == null)
         {
             Debug.LogWarning($"[HandControl] Ignored HandPush. IsOwner={IsOwner}, animatorNull={animator==null}");
             return;
         }
 
-        if (ctx.control is not KeyControl key)
+        // Mouse clicks outside the race (intro, results) are normal, so this is not a warning.
+        if (IsRaceGameplayBlocked())
         {
-            Debug.LogWarning("[HandControl] HandPush was not a KeyControl.");
+            GameLog.Verbose("[HandControl] Ignored HandPush: race gameplay is blocked.");
             return;
         }
 
-        GameLog.Verbose($"[HandControl] Key = {key.keyCode}");
+        // A local modal (quit dialog) owns the input while it is open.
+        if (LocalInputBlock.IsBlocked)
+            return;
 
-        if (key.keyCode == Key.W)
+        // Frozen (禁锢) locks pushes: no animation here, and the server refuses the request too (TryPushServer).
+        if (IsMotorFrozen())
+            return;
+
+        if (!TryResolvePushHand(ctx.control, out bool isLeft, out Mouse clickMouse))
         {
-            float activeCooldown = GetActivePushCooldownLocal();
+            Debug.LogWarning($"[HandControl] HandPush from an unsupported control: {ctx.control?.path}");
+            return;
+        }
+
+        // A click on an interactive UI element (button, toggle...) belongs to the UI, not to the hands.
+        if (clickMouse != null && IsPointerOverInteractiveUi(clickMouse.position.ReadValue()))
+            return;
+
+        GameLog.Verbose($"[HandControl] Push {(isLeft ? "left" : "right")} hand from {ctx.control.path}");
+
+        float activeCooldown = GetActivePushCooldownLocal();
+        if (isLeft)
+        {
             if (Time.time < _nextPushLocalTimeLeft)
                 return;
             _nextPushLocalTimeLeft = Time.time + activeCooldown;
-            TryStartPush(true);
-            StartDelayedPushAnimationLocal(true);
         }
-        else if (key.keyCode == Key.UpArrow)
+        else
         {
-            float activeCooldown = GetActivePushCooldownLocal();
             if (Time.time < _nextPushLocalTimeRight)
                 return;
             _nextPushLocalTimeRight = Time.time + activeCooldown;
-            TryStartPush(false);
-            StartDelayedPushAnimationLocal(false);
         }
+
+        TryStartPush(isLeft);
+        StartDelayedPushAnimationLocal(isLeft);
+    }
+
+    /// <summary>
+    /// Maps a HandPush control to a hand. Mouse left button = left hand, mouse right button = right hand (primary keys);
+    /// <paramref name="clickMouse"/> is set for mouse buttons only.
+    /// </summary>
+    private static bool TryResolvePushHand(InputControl control, out bool isLeft, out Mouse clickMouse)
+    {
+        isLeft = false;
+        clickMouse = null;
+
+        if (control is ButtonControl button && button.device is Mouse mouse)
+        {
+            if (button == mouse.leftButton)
+            {
+                isLeft = true;
+                clickMouse = mouse;
+                return true;
+            }
+
+            if (button == mouse.rightButton)
+            {
+                clickMouse = mouse;
+                return true;
+            }
+
+            return false;
+        }
+
+        // 废弃内容（deprecated）: W/↑ 推掌暂时保留，后续可能再调整；主键位是鼠标左/右键。见 Docs/gameplay/README.md §3
+        if (control is KeyControl key)
+        {
+            if (key.keyCode == Key.W)
+            {
+                isLeft = true;
+                return true;
+            }
+
+            if (key.keyCode == Key.UpArrow)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// True when the topmost UI raycast hit under the pointer belongs to an active, interactable Selectable.
+    /// Non-interactive HUD graphics (images, labels) do not block pushes.
+    /// </summary>
+    private static bool IsPointerOverInteractiveUi(Vector2 screenPosition)
+    {
+        EventSystem eventSystem = EventSystem.current;
+        if (eventSystem == null)
+            return false;
+
+        var pointer = new PointerEventData(eventSystem) { position = screenPosition };
+        s_UiRaycastResults.Clear();
+        eventSystem.RaycastAll(pointer, s_UiRaycastResults);
+
+        bool blocked = false;
+        if (s_UiRaycastResults.Count > 0 && s_UiRaycastResults[0].gameObject != null)
+        {
+            // The click goes to the topmost hit and bubbles up to its nearest Selectable parent.
+            Selectable selectable = s_UiRaycastResults[0].gameObject.GetComponentInParent<Selectable>();
+            blocked = selectable != null && selectable.IsActive() && selectable.IsInteractable();
+        }
+
+        s_UiRaycastResults.Clear();
+        return blocked;
+    }
+
+    private bool IsMotorFrozen()
+    {
+        return _motor != null && _motor.IsFrozen;
     }
 
     private void StartDelayedPushAnimationLocal(bool isLeft)
@@ -541,6 +739,10 @@ public class BuddahHandControl : NetworkBehaviour
 
     private bool TryPushServer(bool isLeft, float yawSnapshotDeg, Vector3 handWorldPositionSnapshot, bool animateServerInput)
     {
+        // Frozen (禁锢) locks pushes. Checked before any cooldown write, so a refused push does not burn the hand cooldown.
+        if (IsMotorFrozen())
+            return false;
+
         if (!ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject))
             return false;
 
@@ -672,11 +874,13 @@ public class BuddahHandControl : NetworkBehaviour
 
     private float GetPushScaleMultiplier()
     {
-        var scaleEffect = GetComponent<PlayerScaleEffect>();
-        if (scaleEffect == null)
+        // Cached: mouse aim reads it every frame on the owner.
+        if (_scaleEffect == null)
+            _scaleEffect = GetComponent<PlayerScaleEffect>();
+        if (_scaleEffect == null)
             return 1f;
 
-        return Mathf.Max(0.1f, scaleEffect.CurrentScaleMultiplier);
+        return Mathf.Max(0.1f, _scaleEffect.CurrentScaleMultiplier);
     }
 
     private Vector3 GetPushSpawnPosition(
@@ -959,111 +1163,6 @@ public class BuddahHandControl : NetworkBehaviour
             buildUpSeconds,
             projectileLifetimeSeconds,
             scaledVisualSize);
-    }
-
-    // The server plans the burst once; peers receive these world-space origins.
-    public void FireChargedProjectileBurstReplicated(Skill_PushProjectileHands_Anti skill)
-    {
-        if (!IsServerInitialized || skill == null)
-            return;
-
-        SpawnChargedProjectileBurst(new ProjectileBurstParameters
-        {
-            projectileCount = skill.projectileCount,
-            projectileSpacing = skill.projectileSpacing,
-            buildUpSeconds = skill.buildUpSeconds,
-            projectileSpeed = skill.projectileSpeed,
-            projectileLifetimeSeconds = skill.projectileLifetimeSeconds,
-            projectileImpulseStrength = skill.projectileImpulseStrength,
-            projectileColliderSize = skill.projectileColliderSize,
-            reverseDirection = true,
-            allowSelfHit = true,
-            ignoreSolidWorld = true,
-            hitTurnTorqueImpulse = skill.hitTurnTorqueImpulse,
-            additionalForwardSpawnOffset = skill.additionalForwardSpawnOffset,
-            additionalHeightSpawnOffset = skill.additionalHeightSpawnOffset,
-            spawnServerHitboxes = true,
-            spawnVisuals = false,
-            visualPrefabOverride = null,
-            progressPropertyOverride = null,
-            replicatedSkillId = skill.skillId
-        });
-    }
-
-    private void SpawnChargedProjectileBurst(ProjectileBurstParameters burst)
-    {
-        int safeProjectileCount = Mathf.Max(1, burst.projectileCount);
-        float safeSpacing = Mathf.Max(0f, burst.projectileSpacing);
-        float scaleMultiplier = GetPushScaleMultiplier();
-        Vector3 outwardDir = GetCurrentAimDirectionServer();
-        Vector3 burstAnchor = GetProjectileBurstAnchorPosition(outwardDir, scaleMultiplier, burst.additionalForwardSpawnOffset, burst.additionalHeightSpawnOffset);
-        Vector3 travelDir = burst.reverseDirection ? -outwardDir : outwardDir;
-        Vector3 sideDir = Vector3.Cross(Vector3.up, outwardDir).normalized;
-        Vector3 scaledColliderSize = SanitizeColliderSize(burst.projectileColliderSize * scaleMultiplier);
-        Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
-        string resolvedProgressProperty = string.IsNullOrWhiteSpace(burst.progressPropertyOverride) ? DefaultChargedProjectileProgressProperty : burst.progressPropertyOverride;
-        if (burst.spawnServerHitboxes && string.IsNullOrEmpty(burst.replicatedSkillId))
-            Debug.LogWarning("[BuddahHandControl] Charged burst has no skillId; hitboxes spawn but replicated visuals cannot be resolved.", this);
-        Vector3[] replicatedStarts = string.IsNullOrEmpty(burst.replicatedSkillId) ? null : new Vector3[safeProjectileCount];
-
-        for (int i = 0; i < safeProjectileCount; i++)
-        {
-            Vector3 spawnPos = ProjectileBurstPlanner.GetSpawnPosition(burstAnchor, sideDir, i, safeProjectileCount, safeSpacing, scaleMultiplier);
-
-            if (replicatedStarts != null)
-                replicatedStarts[i] = spawnPos;
-
-            if (burst.spawnServerHitboxes)
-            {
-                Vector3 impulse = travelDir * Mathf.Max(0f, burst.projectileImpulseStrength);
-                ChargedHandProjectileRuntime.SpawnServer(
-                    base.NetworkObject,
-                    spawnPos,
-                    travelDir,
-                    burst.projectileSpeed,
-                    burst.buildUpSeconds,
-                    burst.projectileLifetimeSeconds,
-                    impulse,
-                    scaledColliderSize,
-                    burst.hitTurnTorqueImpulse,
-                    burst.allowSelfHit,
-                    burst.ignoreSolidWorld);
-            }
-
-            if (burst.spawnVisuals)
-            {
-                ChargedHandProjectileRuntime.SpawnVisual(
-                    spawnPos,
-                    travelDir,
-                    burst.projectileSpeed,
-                    burst.buildUpSeconds,
-                    burst.projectileLifetimeSeconds,
-                    burst.visualPrefabOverride != null ? burst.visualPrefabOverride : projectilePrefab,
-                    projectileVisualLocalEuler,
-                    scaledVisualSize,
-                    resolvedProgressProperty,
-                    transform);
-            }
-        }
-
-        if (replicatedStarts != null)
-        {
-            SkillExecutor executor = GetComponent<SkillExecutor>();
-            if (executor != null)
-                executor.PlayChargedBurstVisualsServer(burst.replicatedSkillId, replicatedStarts, travelDir,
-                    burst.projectileSpeed, burst.buildUpSeconds, burst.projectileLifetimeSeconds,
-                    projectileVisualLocalEuler, scaledVisualSize);
-        }
-    }
-
-    public void SpawnChargedBurstVisualsAtPositions(Vector3[] starts, Vector3 direction, float speed,
-        float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
-        GameObject visualPrefab, string progressProperty)
-    {
-        for (int i = 0; i < starts.Length; i++)
-            ChargedHandProjectileRuntime.SpawnVisual(starts[i], direction, speed, buildUpSeconds,
-                lifetimeSeconds, visualPrefab != null ? visualPrefab : projectilePrefab,
-                localEuler, visualSize, progressProperty, transform);
     }
 
     private Vector3 GetCurrentAimDirectionServer()

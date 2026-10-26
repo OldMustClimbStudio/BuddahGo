@@ -8,6 +8,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 
+// Player combos are retired (A2); this component stays on the prefab for the AI until A7 (InjectServerKey,
+// TryGetSequenceForSlot, StepWindowSeconds, ClearCombo, OnComboProgress, the table-driven bindings).
 public class ComboSkillInput : NetworkBehaviour
 {
     private const float MinimumStepWindowSeconds = 0.01f;
@@ -37,7 +39,7 @@ public class ComboSkillInput : NetworkBehaviour
     }
 
     [Header("Input")]
-    [Tooltip("Use InputSystem_Actions -> Player -> HandPush (W / UpArrow).")]
+    [Tooltip("Use InputSystem_Actions -> Player -> HandPush (W / UpArrow). The owner listener is retired (A2); kept for serialized compatibility.")]
     [SerializeField] private bool useGeneratedInputActions = true;
 
     [Header("Combo Window")]
@@ -79,17 +81,12 @@ public class ComboSkillInput : NetworkBehaviour
         }
     }
 
+    // Player combos (搓招) are retired (README A2): players cast with the single SkillSlot keys, so the owner no longer
+    // enables _actions or listens to HandPush here, and W/↑ presses only push. The class stays for the AI, which
+    // still injects keys through InjectServerKey until A7. OnHandPushPerformed is kept (unwired) for a possible revisit.
     public override void OnStartClient()
     {
         base.OnStartClient();
-
-        if (!IsOwner)
-            return;
-
-        _actions?.Enable();
-
-        if (_handPushAction != null)
-            _handPushAction.performed += OnHandPushPerformed;
     }
 
     public override void OnStopClient()
@@ -110,14 +107,17 @@ public class ComboSkillInput : NetworkBehaviour
         _actions?.Disable();
     }
 
+    // Not subscribed since the A2 combo retirement (see OnStartClient).
     private void OnHandPushPerformed(InputAction.CallbackContext ctx)
     {
         if (!IsOwner || IsRaceGameplayBlocked())
             return;
 
-        if (ctx.control is not KeyControl key)
+        // HandPush is a PassThrough action: releases arrive too and are not combo keys.
+        if (!ctx.ReadValueAsButton() || ctx.control is not KeyControl key)
             return;
 
+        // 废弃内容（deprecated）: W/↑ 推掌暂时保留，后续可能再调整；主键位是鼠标左/右键。见 Docs/gameplay/README.md §3
         Token? token = key.keyCode switch
         {
             Key.W => Token.W,

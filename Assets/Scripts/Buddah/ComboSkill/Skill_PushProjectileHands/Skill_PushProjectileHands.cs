@@ -86,7 +86,7 @@ public class Skill_PushProjectileHands : SkillAction
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, buffDurationSeconds);
     }
 
-    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         ExecuteObservers(caster, slotIndex);
 

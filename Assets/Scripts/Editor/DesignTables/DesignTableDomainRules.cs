@@ -72,6 +72,9 @@ namespace BuddahGo.DesignTables
                 issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "AI.xlsx/SkillTuning", Message = "keyMaxSeconds " + keyMax + " must be below Skill/ComboInput.inputWindowSeconds " + window });
         }
 
+        // antiSkillId and the hidden *_anti rows are table leftovers until phase B deletes them (this returns early once the column
+        // is gone). The *_anti SkillActions are retired: a backfire fails the requested cast in SkillExecutor, so no anti row is
+        // executed and its obsessionGain is never read.
         private static void SkillRowsAreConsistent(DesignTableSet set, List<Issue> issues)
         {
             DesignSheet skill = set.Find("Skill", "Skill");
@@ -88,13 +91,12 @@ namespace BuddahGo.DesignTables
                     issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, anti), Message = "normal skill '" + sid + "' has no antiSkillId" });
             }
             if (gain == null) return;
-            // Backfire adds the requested skill's obsessionGain (SkillExecutor.QueueCast); the anti row's value is never read.
             foreach (DataRow row in skill.Rows)
             {
                 string sid = skill.Cell(row, id).Trim();
                 string g = skill.Cell(row, gain).Trim();
                 if (antiIds.Contains(sid) && !string.IsNullOrEmpty(g) && ValueConverter.ToFloat(g) != 0f)
-                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, gain), Message = "obsessionGain on anti skill '" + sid + "' is ignored (backfire uses the requested skill's gain); leave it blank" });
+                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, gain), Message = "obsessionGain on retired anti skill '" + sid + "' is never read (*_anti rows are no longer executed, and a backfire grants no obsession); leave it blank" });
             }
         }
 

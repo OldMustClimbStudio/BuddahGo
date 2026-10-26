@@ -18,11 +18,6 @@ public abstract class SkillAction : ScriptableObject
 
     public float ObsessionGain => obsessionGain;
 
-    // 反噬技能相关参数放在这里
-    [Header("Anti (Backfire) Variant")]
-    [Tooltip("If set, casting this skill may instead cast the Anti variant based on ObsessionFigure.")]
-    public string antiSkillId = string.Empty;
-
     protected static float ResolveVfxDuration(float configuredSeconds, float fallbackSeconds)
     {
         return configuredSeconds > 0f ? configuredSeconds : fallbackSeconds;
@@ -50,7 +45,7 @@ public abstract class SkillAction : ScriptableObject
     /// <summary>
     /// Observer-side execution with network context. Default behavior keeps older skills working.
     /// </summary>
-    public virtual void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public virtual void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         ExecuteObservers(caster, slotIndex);
     }
@@ -58,7 +53,7 @@ public abstract class SkillAction : ScriptableObject
     /// <summary>
     /// Runs only on the owning client for local feel (camera/UI/input feedback).
     /// </summary>
-    public virtual void ExecuteLocal(SkillExecutor caster, int slotIndex, bool isAnti)
+    public virtual void ExecuteLocal(SkillExecutor caster, int slotIndex)
     {
         // optional
     }

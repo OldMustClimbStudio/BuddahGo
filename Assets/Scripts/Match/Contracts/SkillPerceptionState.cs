@@ -16,17 +16,18 @@ namespace BuddahGo.Match
         }
         public void Clear() { CurtainUntilTick = 0; VisionImpairedUntilTick = 0; }
 
-        public static void ApplyCurtain(SkillExecutor caster, float duration, bool backlash)
+        /// <summary>Server: every racer sees the curtain for durationSeconds; all but the caster have impaired vision.</summary>
+        public static void ApplyCurtain(SkillExecutor caster, float durationSeconds)
         {
             if (caster == null || !caster.IsServerInitialized || caster.TimeManager == null) return;
             var racers = RacerDirectory.Current;
             if (racers == null) return;
-            uint until = caster.TimeManager.LocalTick + (uint)Mathf.CeilToInt(duration / (float)caster.TimeManager.TickDelta);
+            uint until = caster.TimeManager.LocalTick + (uint)Mathf.CeilToInt(durationSeconds / (float)caster.TimeManager.TickDelta);
             foreach (var racer in racers.All)
             {
                 if (racer == null || !racer.TryGetComponent(out SkillPerceptionState perception)) continue;
                 bool self = racer.gameObject == caster.gameObject;
-                perception.SetCurtain(until, self == backlash);
+                perception.SetCurtain(until, !self);
             }
         }
     }

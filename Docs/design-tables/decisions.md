@@ -1,6 +1,8 @@
 # 配表决策记录
 
-用户拍板的决定按日期追加，每条附影响范围。筛查阶段的待决清单见 [README.md](README.md)。
+用户拍板的决定按日期追加，每条附影响范围。用户没有裁定、由实现采用的做法标「建议（实现采用）」，与已定的决定区分。筛查阶段的待确认问题见各 inventory 清单末尾。
+
+> 2026-10-26 核对（代码 0dbc551）：下列早期条目已被取代，原文保留作历史。决定 5、7 的工作簿名 SkillConfig / UIText 按决定 11 落为 `Skill/Skill.xlsx`、`UI/UI.xlsx`（文案在 `UI/UI.xlsx` 的 `Text`）；决定 8 的 `_reports/validation.md` 现为 `_Reports/validation.md`；决定 9 里如来神掌的"锁定 10"随 `castLockSeconds` 退役（决定 26）；决定 12 的 40 / 20 张是当时的数字，0dbc551 导出 37 张、presentationOnly 26 张，另有 `__enums__`、`__meta__`；决定 16 的 `Push` 三行现为 basic / charged 两行；决定 17 作废：反噬的施法失效，不加执念（玩法 README 6.2 已定）；决定 18 里 antiSkillId 的部分作废（决定 26）；决定 21 的"两个神掌 SO"现为一个：charged 行 → Skill_PushProjectileHands（`charged_anti` 已删，决定 26）。
 
 ## 2026-10-12
 
@@ -31,7 +33,7 @@
 
 16. **按 [structure-audit.md](structure-audit.md) 第三节的 v2 结构重组工作簿。** 技能→运动→AI→比赛每域一次提交（7ae8ea1、67ffe66、c51d32f、4830192），不碰 RPC 与预测；每处问题的处理见 structure-audit 第五节。
     影响：`Skill` = SkillDefinition + SkillBalance + 主效果时长；`SkillEffect<Family>` 强类型表；`Push` 三行；`Movement` / `Respawn` 各一行；LapRule 并入 `Match/Track`、WrongWayRule → `Match/TrackWrongWay`；AI 表 camelCase、单行 `DrivingTuning` / `SkillTuning`、权重进 Personality 三槽；RacerNaming 删除、占位阶段行屏蔽；`GlobalRule` 只留 `target_frame_rate`。
-17. **反噬行的 obsessionGain 保持现行语义。** 反噬仍按原技能加执念；anti 行该列留空，非 0 报 Warning（表级 `DesignTableDomainRules.SkillRowsAreConsistent`，资产级 `ProjectConfigValidator`）。
+17. （2026-10-26 作废，见 26）**反噬行的 obsessionGain 保持现行语义。** 反噬仍按原技能加执念；anti 行该列留空，非 0 报 Warning（表级 `DesignTableDomainRules.SkillRowsAreConsistent`，资产级 `ProjectConfigValidator`）。
 18. **技能 id 改名 `anti_blackcurtain` → `blackcurtain_anti`**，`Global/__enums__` 增加 `SkillId` 作为唯一名单（`Skill.skillId` 类型 `enum:SkillId`）；SO 资产的 skillId / antiSkillId 同步改，文案 key 随之改为 `skill.blackcurtain_anti.*`。
 19. **逆转技能中文定为「逆姻缘」**（与 HUD 贴图文件一致），文案 key 不变。
 20. **主效果时长进 `Skill.effectDurationSeconds`**，按技能类写入 SO 的主时长字段（`SkillDatabase.EffectDurationField`）；家族表只放其余参数；代码 / prefab 里的效果常量进 presentationOnly 的 `SkillConstant`。
@@ -46,8 +48,8 @@
 
 ## 2026-10-26（玩法深化阶段 B，[Docs/gameplay/README.md](../gameplay/README.md) §7.2）
 
-26. **反噬变体从表里退役。** 反噬改为统一惩罚（本槽照常进冷却，惩罚参数在 `Obsession`），`Skill` 删 `castLockSeconds`、`antiSkillId` 两列与 6 行 `_anti`，家族表、`Push`、`SkillPresentation`、`SkillConstant`、`SkillSelectionRule`、`FeelEvent` 的反噬行与反噬专用列一并删除，读取它们的代码同时删掉。保留 `Anti_Reflection_*`、VfxRegistry 的反噬 id、`SkillId` 枚举的 anti 值与 `skill.*_anti.*` 文案。决定 17 作废，决定 18 里 antiSkillId 的部分作废。
-27. **缘起入表：一张 `Skill/Yuanqi` 宽表 + 每对一张 `YuanqiEffect<对>` 家族表**，与 `Skill` + `SkillEffect<家族>` 同构；字段名就是 SO 字段名；`Yuanqi` 行显式映射（`SkillDatabase.YuanqiRowMap`），家族行同名覆盖并按 `YuanqiFamilyActionType` 校验类名；没有参数的对不建家族表；`pairNumber` 只为对照，标 doc。
-28. **训练木桩配置并入 `Match/ModeRule` 的 Practice 行**（实现选择：比新建 Match/TrainingDummy 表小，木桩只在 Practice 出现）；摆放的工程值留在 `MatchSpawnManager`。
-29. **`ModifierCommandType` 枚举值与 C# 同号**（实现选择）：value 列也被当作成员名接受，原来从 0 起编会让 `1` 指向错误的命令。
+26. **反噬变体从表里退役**（已定：玩法 README 6.2「六种 `_anti` 变体由统一惩罚取代」、7.0「退役的行和列先留在表里，代码不再读取，阶段 B 再删」）。反噬改为统一惩罚（本次施法失效、不加执念，本槽照常进冷却，惩罚参数在 `Obsession`），`Skill` 删 `castLockSeconds`、`antiSkillId` 两列与 6 行 `_anti`，家族表、`Push`、`SkillPresentation`、`SkillConstant`、`SkillSelectionRule`、`FeelEvent` 的反噬行与反噬专用列一并删除，读取它们的代码同时删掉。`FeelEvent` 的 `Anti_Reflection_Shared / Local` 保留：统一反噬的确认窗口播的就是它（已定，玩法 README 6.2）。VfxRegistry 的反噬 id、`SkillId` 枚举的 6 个 anti 值与 `skill.*_anti.*` 文案也保留，没有行引用它们（建议（实现采用））。决定 17 作废，决定 18 里 antiSkillId 的部分作废。
+27. **缘起入表：一张 `Skill/Yuanqi` 宽表 + 每对一张 `YuanqiEffect<对>` 家族表**，与 `Skill` + `SkillEffect<家族>` 同构；字段名就是 SO 字段名，没有参数的对不建家族表，`pairNumber` 只为对照、标 doc（已定：[缘起架构](../gameplay/yuanqi-architecture.md) Q14，2026-10-25「预留字段名；表要可延展、可读」，结构见该文 §3.1–3.3）。参数初值是 [缘起设计](../gameplay/yuanqi.md) 的阶段 A 占位值（2026-10-25 已定，试玩后在表里调）。以下是建议（实现采用）：`Yuanqi` 行显式映射（`SkillDatabase.YuanqiRowMap`），家族行同名覆盖并按 `YuanqiFamilyActionType` 校验类名。
+28. **训练木桩配置并入 `Match/ModeRule` 的 Practice 行**（建议（实现采用）：玩法 README 7.2 的原计划（66b3602 及之前）给了"新建 Match 表"和"并进 ModeRule 的 Practice 行"两种做法，用户未裁定；并进 ModeRule 比新建 `Match/TrainingDummy` 表小，木桩只在 Practice 出现）；摆放的工程值留在 `MatchSpawnManager`。数量 3、间距 15 m、复位 3 s 是玩法 README A1 的已定值；起点距离 90 m、横向 10 m 是建议（实现采用）（用户定的是"起跑后第一段直道，偏左 / 居中 / 偏右"）。
+29. **`ModifierCommandType` 枚举值与 C# 同号**（建议（实现采用））：导入校验接受 value 整数，消费方把整数当 C# 枚举值；原来从 0 起编，`1` 在表里是 RootThenAcceleration、在代码里是 Acceleration。
 

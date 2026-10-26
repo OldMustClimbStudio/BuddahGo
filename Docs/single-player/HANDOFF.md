@@ -1,3 +1,5 @@
+**2026-10-26 玩法机制更新（PR #63 `feat/mechanics-update`，draft，未合并 dev）：** 玩家改为单键施法、鼠标瞄准与鼠标推掌，取消全局施法锁，反噬统一为 10 秒惩罚，新增同招加价与缘起；Practice（0 AI）生成 3 个训练木桩，自动验证 `MechanicsPracticeHarness` 13/13 通过。AI 尚未适配（玩法深化 §7.1 的 A7），单人赛 AI、联机与用户试玩都未验证。全文见 [progress.md](progress.md) 顶部，规则见 [玩法深化](../gameplay/README.md)，训练模式验证见 [训练模式验证记录](../gameplay/practice-verification.md)。
+
 **2026-10-04 PR #59 最终 legacy 清理（`118ded0` / `a205d46` / `fcb9d97`）：** 死成员与 Explicit 扫参退休、`Tools/ai` beam 时代与被取代迭代的证据删除（历史报告里的这些路径以 `20401e5` 为准，链接已改为永久链接）、RaceMap 开场布局覆盖 Apply 回 prefab（整场景属性逐项一致）。EditMode 293/293。技能/特效 LFS 资源核查无丢失；反复出现的特效丢失根因是从未入库的材质 `b739a3f…` 与过期的 VFX 导入缓存，见 [PR59 复核 §9](pr59-code-review-2026-10-04.md) 与 [VFX 恢复记录](../vfx-asset-recovery.md)。
 
 **2026-10-03 AI 技能人格已实现，用户试玩待确认：** 用户已授权完整实现最新人格规格，覆盖旧“仅文档、等待开始”的限制；沿用 f0f123b 之后的实现分支 / PR #59。用户确认单机固定玩家 + 五种人格，固定三槽与 Rematch 配装。 **复核后修正（同日）：** 固定六人维持用户暂定；复活清理限定到服务器 AI；反转执念增益 0→200 作为平衡实验（DNF 主因未定，干扰型的施法主要是黑幕）；AI 施法入口先拒绝可见全局重叠；定身只阻止新决策、不取消搓招或已接受施法；掌形仅瞄准进行中阻塞决策；harness 增加输入／决策耗时拆分；详见 [实现复核](ai-skill-implementation-review-2026-10-03.md)。修正后未重跑测试、自然赛或构建，等待用户测试。当前功能、建议默认值与真实验证边界见 [实施记录](ai-skill-implementation-2026-10-03.md)；规格见 [AI 技能](ai-skills.md)、[五人格](ai-personalities.md) 与 [设计复核](ai-skill-design-review-2026-10-03.md)。已验收驾驶不重新调参，历史测试不替代本次技能验收。
@@ -27,7 +29,7 @@
 - 旧第二次 handoff 修复的 53/53 与每轮停留属于历史证据。最新统一呈现时间线实测最低有符号速度约 57.97 m/s，原停留已解决。受控完赛只用于到达 Rematch，不能充当自然完赛、strict14 或 V3 精度证据。
 - 独立 Development 三窗口共 10800 帧、GC 零缺失，窗口验证 `VALID`；测量配置与 Home 清理后配置已分开。此结果不代表普通 Release 性能或完整 V12 通过。
 - `aa7fb05` 已恢复原 VFX 导入，未替换原材质或新增包；首次导入失败的历史原因仍未知，见 [VFX 恢复记录](../vfx-asset-recovery.md)。`9e428c1` 进一步修复神足通原粒子调用、掌形发射根残留及 Animator 场景扫描警告；六技能本地触发/到期、正常掌形生命周期、神足通粒子/拖尾、所测 Rematch 与活跃特效退出清理通过，针对性回归 14/14，见 [技能验收范围](skill-acceptance.md)。
-- 对手命中/受控效果、反噬掌形与爆发完整画面尚未验证，用户手感已有初步反馈但未逐项确认；最终源码自然生命周期/strict14、V3、完整 V12 与预算未通过。三文件曾按授权恢复后又被 Unity 改写，保留证据，不循环 restore，clean-source 未闭合。用户初步技能反馈已收到，逐项覆盖未全部确认；23:51 UTC 已收到明确 AI 开始信号，A1 已在 `354f10a` 实现并完成自然一圈检查点，下一步 A2。
+- 对手命中/受控效果、反噬掌形与爆发完整画面尚未验证（2026-10-26：反噬掌形已随统一反噬删除；对木桩的减速、反转、冲量与缘起命中由 `MechanicsPracticeHarness` 受控验证，见 [训练模式验证记录](../gameplay/practice-verification.md) S7–S10，自然对战与画面仍未验证），用户手感已有初步反馈但未逐项确认；最终源码自然生命周期/strict14、V3、完整 V12 与预算未通过。三文件曾按授权恢复后又被 Unity 改写，保留证据，不循环 restore，clean-source 未闭合。用户初步技能反馈已收到，逐项覆盖未全部确认；23:51 UTC 已收到明确 AI 开始信号，A1 已在 `354f10a` 实现并完成自然一圈检查点，下一步 A2。
 
 **AI 开工授权（2026-10-01 23:51 UTC）**：用户明确授权在现有 `feat/single-player-mode` / PR #59 从 A1 开始，按 A1–A4 推进，不新开 AI 分支或阶段 PR；原话与验收边界见 [progress.md](progress.md) 的“当前状态与验收边界”和“最新授权原文”。
 
@@ -43,6 +45,7 @@ AI 实施与测试顺序：**A1 单 AI 无技能一圈 → A2 单 AI 无技能�
 | 功能清单、模块架构、接缝、流程、坑 | [design.md](design.md) |
 | 各阶段的目标、完成标准、验证项 | [phases.md](phases.md) |
 | 用户试玩交接、AI 圈速/轨迹与技能测试方案 | [ai-testing.md](ai-testing.md) |
+| 玩家与 AI 共享的技能规则（单键施法、施法节奏、执念与反噬、缘起、训练木桩） | [玩法深化](../gameplay/README.md)、[训练模式验证记录](../gameplay/practice-verification.md) |
 | 为什么这样定 | [Docs/adr/](../adr/) |
 | 进度、调参记录、决策、新发现 | [progress.md](progress.md) |
 
@@ -52,7 +55,7 @@ AI 实施与测试顺序：**A1 单 AI 无技能一圈 → A2 单 AI 无技能�
 
 **Practice 试玩交付方式（2026-10-01 用户更新）**：功能实现完成且必要编译/基础检查通过后，告知用户可玩版本、启动方式和 [快速试玩清单](practice-playtest.md)。strict14、完整 benchmark/V12 及程序化长测不再作为先交付试玩包的条件；未跑、中断、失败各按事实保留，不因此标通过。已知会阻止正常游玩的功能问题仍须说明和处理。Practice → 用户技能试玩 → 明确 AI 开始信号的门槛及 A1–A4 不变。
 
-选择页、本地 handoff 与六技能本地行为已有分项证据；剩余操作、画面和手感由用户按清单快速反馈。工程验收未全部闭合不等于禁止试玩，也不等于 Practice 已被用户接受。
+选择页、本地 handoff 与六技能本地行为已有分项证据；剩余操作、画面和手感由用户按清单快速反馈。2026-10-26 起 Practice 有 3 个训练木桩，作用于他人的技能效果可以在 Practice 里验证；机制更新的自动验证和重跑方法见 [训练模式验证记录](../gameplay/practice-verification.md)。工程验收未全部闭合不等于禁止试玩，也不等于 Practice 已被用户接受。
 
 Practice 的目标是让本地单机完整承接既有联机流程与表现，特别是加载/场景 handoff、开场镜头/动画/倒计时到驾驶的姿态、镜头和输入控制权交接，并真实验证流畅。此要求是本地适配与验收，不是运行联机测试；也不授权全局移除 prediction。用户此前提出的本地 handoff 问题已由 `cb4a9ad` 在已测首局/Rematch 与控制事件范围内修复验证，见 [Solo 呈现时间契约](solo-presentation-timeline.md)；此结论不替代完整 Practice、自然生命周期或技能/VFX 验收。 具体验收表见 [phases.md](phases.md) 的 S1 本地流程与表现验收；主 S1 任务负责实际运行，模块修复与验收需协调同一构建。
 
@@ -130,6 +133,7 @@ S1 开工条件已满足：重构（#47–#58）已经合入 `dev`，本分支�
 - **单人房间自动开始已接入**：`RoomStateManager.StartSoloAfterInitialScenes` 等待本地连接认证和初始场景加载后调用 `TryStartSoloMatchServer`。单机结算返回已通过 `SessionControl.Current.RequestStopSession()` 延后完整关闭；真实结果页按钮与重复生命周期验收仍未闭合，不能以代码存在代替验证。
 - **AI 的计圈和复活复用现有代码**：只把 owner 门槛改为 `IsProgressAuthority`，不要另写一套计圈规则。
 - **handoff 流畅度需实测**：不能因本地 host 就假定所有姿态/镜头/输入交接自然流畅。先检查开场与驾驶控制权、加载状态、物理/视觉平滑接缝及实际预测调用路径；当前任务不授权全局移除 prediction，不凭静态分析断言抖动原因或修复通过。
+- **训练木桩不是参赛者**：Practice 的木桩由 `MatchSpawnManager.SpawnTrainingDummies` 用同一个 Racer prefab 生成，无 owner，`RacerIdentity.IsTrainingDummy` 为真，racer id 保持未分配（−1）；服务器在生成前给它加普通 MonoBehaviour（`TrainingDummy`、`TrainingDummyReadout`），不加 NetworkBehaviour。`RacerAuthority.IsServerControlled` / `HasLocalControl` 包含木桩，`IsServerAI` / `IsProgressAuthority` 不包含，所以它不跑计圈、计时、逆行和排名；技能按场上 `SkillExecutor` 找目标时会找到它。数量与位置在 `Match/ModeRule` 的 Practice 行。
 - **AI 的 owner 是无效的**：AI 的 `OwnerId` 恒为 -1，`Owner` 是 EmptyConnection，不是 null。任何按 owner 做的判断或键，都会把所有 AI 当成同一个对象。按 owner 区分的代码见 design.md §3.3，统一改用 RacerId（ADR 0002）。
 - **比赛是自动全油门的**：油门固定为 1，AI 只需要转向和施法。
 - **运动没有线性阻力**：所以 AI 必须往前推演才能稳定走线。不要为了让 AI 好控制而改运动参数。

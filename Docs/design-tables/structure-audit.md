@@ -2,6 +2,8 @@
 
 日期 2026-10-13。起因：`acceleration` 的持续时间在 `Skill/SkillEffectParam`，冷却与锁定在 `Skill/SkillBalance`，同一个技能的时间参数分在两张表。本文盘点工作簿里所有"同一概念被拆散、或不该在一起的放在一起"的问题，追溯每一处在代码史里的来源，并给出重组建议。基线工作簿是按"实际生效值 + 现有代码结构"生成的，所以代码里的历史分层原样进了表；本文盘点；2026-10-13 拍板后按第三节实施，处理结果见第五节。
 
+> 2026-10-26 核对（代码 0dbc551）：机制更新阶段 B 之后，下列 2026-10-13 的说法不再成立，原文保留作记录。反噬变体退役（[decisions](decisions.md) 26）：A2 与第五节 A2 的"普通与反噬各一行"、A3 与第五节 A3 的 `basic / charged / charged_anti` 及"另两行映射到两个神掌 SO"、A5 的 `blackcurtain_anti` 行、A6 与第五节 A6 的反噬行 obsessionGain 规则、E1 的"含反噬行"、A1 与第五节 A1 的"锁定"（`castLockSeconds` 已删）、第三节里的"锁定 / 反噬 id"都已删除：家族表每个技能一行，`Push` 只剩 basic / charged（charged 映射到 Skill_PushProjectileHands），`Skill` 没有 `_anti` 行，也没有 `antiSkillId` / `castLockSeconds` 列（`SkillId` 枚举里的 6 个 anti 值保留）。A7：玩家搓招退役（单键释放），HUD 的按键 token 图已隐藏，不再需要由表生成；`ComboBinding` / `ComboInput` 只剩 AI 在读，玩法 A7（AI 适配）之后删除。A8、C1 仍是代码待办。新增的缘起表沿用第三节"一概念一表"：`Skill/Yuanqi` 宽表 + `YuanqiEffect<对>` 家族表。
+
 ## 一、数据分层的形成史（git 考古）
 
 | 时间 | 提交 | 发生了什么 | 留下的结构 |

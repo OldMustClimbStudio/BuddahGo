@@ -2,13 +2,13 @@
 
 > **头注**
 >
-> - **这是什么**：玩法机制更新（阶段 A + B）在训练模式里的自动验证记录，以及重跑方法。日期 2026-10-26，分支 `feat/mechanics-update`。
+> - **这是什么**：玩法机制更新（阶段 A + B）在训练模式里的自动验证记录，以及重跑方法。日期 2026-10-26，分支 `feat/mechanics-update`。它是 [README §7.3](README.md) 阶段 C 的第一级；规则见 [README](README.md)，代码构筑见 [缘起架构设计](yuanqi-architecture.md)，README 7.1 各步的“训练模式验证”按这里的场景编号引用。
 > - **范围**：只覆盖训练模式（单人、0 个 AI、本机 host）。联机（远端客户端的预测和 reconcile、两端画面）和 AI（单人赛的 AI 施法与缘起决策）都没有验证，见文末。
 > - **性质**：这是受控夹具，不是自然比赛：harness 用反射改执念的反噬参数和技能冷却、传送玩家、给玩家挂一个原地停车的转向覆盖、用虚拟键盘鼠标，并直接调用服务器接口施法。用户亲自试玩之前，手感、数值和画面都算“未验证”。
 
 ## 结果
 
-2026-10-26 在 Unity 2022.3.55f1c1 编辑器 play mode 里跑完 13 个场景，13/13 通过，0 个失败检查。报告原件在本机 `Logs/mechanics-practice/20261026-051232/`（`report.md`、`report.json`、`events.jsonl`，`Logs/` 不进版本库）。同一次会话里 EditMode 测试也全部通过（见 PR #63 的 Validation）。
+2026-10-26 在 Unity 2022.3.55f1c1 编辑器 play mode 里跑完 13 个场景，13/13 通过，0 个失败检查。报告原件在本机 `Logs/mechanics-practice/20261026-051232/`（`report.md`、`report.json`、`events.jsonl`，`Logs/` 不进版本库）。同一次会话里 headless EditMode 测试 559/559 通过（见 PR #63 的 Validation）。
 
 | 场景 | 内容 | 关键实测值 |
 |---|---|---|
@@ -42,12 +42,13 @@
    return dir;
    ```
 
-3. 每 15 秒左右查一次 `BuddahGo.AI.MechanicsPracticeHarness.Status`、`IsRunning`、`Summary`；完整一轮约 4 分钟。只跑部分场景：`Begin(dir, endRaceAtEnd: false, scenarioFilter: "S0,S5,S9", loadout: null)`。
+3. 每 15 秒左右查一次 `BuddahGo.AI.MechanicsPracticeHarness.Status`、`IsRunning`、`Summary`（或菜单 `Tools/Mechanics/Log Practice Verification Status`）；完整一轮约 4 分钟。只跑部分场景：`Begin(dir, endRaceAtEnd: false, scenarioFilter: "S0,S5,S9", loadout: null)`。
 
 代码在 `Assets/Scripts/AI/Diagnostics/MechanicsPracticeHarness.cs`（只在 Editor / Development 编译），菜单在 `Assets/Editor/MechanicsPracticeTools.cs`。
 
 ## 没有验证的
 
-- **联机**：远端客户端的预测与 reconcile（冻结、突进、反噬减速在远端 owner 上的表现，回放用回放 tick 结算修饰），状态板同步，观察者事件，黑幕落在别人屏幕上的效果。训练模式是本机 host，验证不了。
-- **AI**：单人赛里 5 个 AI 的施法、缘起和反噬次数。AI 适配（A7）不在这次范围，受影响的地方见 PR #63 的说明。
+- **联机**：远端客户端的预测与 reconcile（冻结、突进、反噬减速在远端 owner 上的表现，回放用回放 tick 结算修饰），观察者事件，黑幕落在别人屏幕上的效果。训练模式是本机 host，验证不了。
+- **AI**：单人赛里 5 个 AI 的施法、缘起和反噬次数。AI 适配（A7）不在这次范围，受影响的地方见 README 7.1 的 A7 和 PR #63 的说明。
+- **场景没覆盖的点**：#2 两种先后都触发过：先缓流、后神足通检查了半径、时长、载荷和消耗两招；S9 重新触发那一次是先神足通、后缓流，只检查了触发一次、范围内木桩再次冻住，没查消耗；复活后状态板清空、缘起能再触发没有单独测；冻结中被推没有测；一念光明、逆姻缘的生效窗口目前没有含它们的缘起，没有测。
 - **手感与画面**：转手平滑、突进 FOV、冻结定格、HUD 文字的位置和字体（缘起名和“冻结”在 SoloCJK 字体里缺字，现在显示英文或 id），都要用户试玩确认。表现层只留了接口，没有新特效。

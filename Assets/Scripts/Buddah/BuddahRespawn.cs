@@ -235,8 +235,9 @@ public class BuddahRespawn : MonoBehaviour
     {
         if (_ownerNetworkObject == null)
             _ownerNetworkObject = GetComponent<NetworkObject>();
+        // Server AI and Practice training dummies have no owner; the server runs their fall respawn.
         return _ownerNetworkObject == null || _ownerNetworkObject.IsOwner
-            || RacerAuthority.IsServerAI(GetComponent<RacerIdentity>());
+            || RacerAuthority.IsServerControlled(_ownerNetworkObject);
     }
 
     private Vector3 ResolveSafeRespawnPosition(Vector3 basePosition)

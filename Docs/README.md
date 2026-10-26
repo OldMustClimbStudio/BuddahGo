@@ -17,6 +17,8 @@
 | 术语表 / 架构决策 | [../CONTEXT.md](../CONTEXT.md) · [adr/](adr/) |
 | 开场交接切换的本地卡顿修复（执行入口） | [handoff-continuity/HANDOFF.md](handoff-continuity/HANDOFF.md) |
 | 策划配表系统：Excel 工作簿、导入器、分层导入、规范与筛查清单 | [design-tables/README.md](design-tables/README.md) |
+| RaceMap 渲染：日落光照、手写天空、SSR、阴影距离、`BuddahGo/Lit`、复调清单与编辑器陷阱 | [rendering/racemap/README.md](rendering/racemap/README.md) |
+| 渲染 shader 开源库调研与效果对比样板间（样板间工程仅在本地） | [rendering/shader-repo-survey.md](rendering/shader-repo-survey.md) · [rendering/showcase/README.md](rendering/showcase/README.md) |
 
 执行入口见 [harness.md](../harness.md)，提交、PR 和验证规则见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 旧阶段合同、详细设计原稿和复盘过程可从 Git 历史查阅，例如 `git log -- Docs/prediction-refactor-plan/`。

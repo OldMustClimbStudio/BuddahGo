@@ -153,6 +153,12 @@ Entry {
 | 一念光明 | 执行 + 展开 1 秒起，保持 10 秒 | 表 + SO 的 `expandDurationSeconds` |
 | 逆姻缘 | 执行起 10 秒 | 表 |
 
+实现落点（2026-10-26，wave 2 实现采用）：
+
+- **一招一条生效项**：同一招在旧 entry 还生效时再次施放，状态板先以原因 `superseded` 结束旧 entry（照常触发一次 `Ended`），再登记新 entry。神掌的 15 秒 buff 比 12 秒冷却长，没有这条，旧 entry 到期会在新一次施放仍生效时撤掉 #1 的冲量改写。
+- **时长兜底**：`SkillExecutor.ResolveEffectDurationSeconds` 先取表 `effectDurationSeconds`，无表行时取 SO 主时长字段，都没有就是 0（0 = 不登记），与上文一致。
+- **比赛中换配装**：只有诊断工具会这样做；`SkillLoadout.ServerSlotsChanged` 触发时先 `board.Clear()`，再按新配装重新登记缘起。
+
 ### 2.5 技能兼容接口与各技能的消耗语义（建议）
 
 ```csharp
@@ -173,6 +179,11 @@ public interface ISkillRuntimeHandle
 | 一念光明 / 逆姻缘 | 暂不提供句柄（没有任何已定缘起会消耗它们） | — |
 
 `EndModifier(type)` 是一条新的修饰命令类型（`ValueA` = 要结束的类型），只把对应期限设为当前 tick，不碰其他期限。它和 `Freeze` 一样要走附录 A 的 7 处改动。
+
+实现落点（2026-10-26，wave 2）：缓流的特效不是在施法者的子物体里按 `SkillVfxTag.VfxId` 搜索（区域特效跟随目标、不挂在施法者下面，搜不到），而是由 `SkillVfxReplicator` 记下自己生成的每个实例（有无父物体都记）；`StopVfxAll(vfxId, linger)` 走新增的 `StopVfxAllObserversRpc`，各端对匹配的实例调用 `TimedVfxInstance.StopNow(linger)`：立即停止发射，粒子淡出后销毁。
+
+- **缓流区域的所有结束方式都停特效**：到期、缘起消耗、服务器控制复位（AI 重生、AI 完赛）都走 `MovementSlowTrapZoneEffect` 的同一个结束入口，停掉区域特效，淡出时长用 SO 的 `zoneEndVfxLingerSeconds`（默认 1 秒）。SO 的 `vfxDurationSeconds` = 11 是区域 10 秒时期留下的旧值，表里区域已经是 6 秒（`SkillPresentation` 同为 11，归 design-tables A9，B 阶段再改）。现在它只是特效时长的上限，画出来的区域不会比实际区域和状态板 entry 活得更久。服务器控制复位原来直接 `Destroy(trap)`，现在改成 `trap.Consume(...)`。
+- **神足通的消耗与共享槽**：预测路径下 `EndModifier(Acceleration)` 只在加成为正时结束，所以消耗不会结束施法者身上的缓流减速。legacy 路径（预测关闭）的 `CancelAndRestore` 会连同合并进去的减速一起清掉。真正的边界情况（**待用户定**）：施法者先放神足通，之后敌人的缓流命中，减速覆盖了共享槽的加成（后写者生效，期限取两者较晚的一个）。这时 #2 或 #4 消耗神足通，对移动没有任何作用：施法者一直减速到较晚的期限，往往就是神足通原本的期限；#4 的冲刺从减速后的上限起步（80 − 20 + 60 = 120，而不是 140）。
 
 ### 2.6 `SkillExecutor` 的改动面（刻意收窄）
 
@@ -243,7 +254,7 @@ tags：`skill, info`。`Skill` 表自身不加列：缘起窗口用的就是现�
 | sheet | 列 | 对应 |
 |---|---|---|
 | `YuanqiEffectFrostLock` | `yuanqiId#key#ref=Yuanqi.yuanqiId`、`freezeSeconds`（N）、`radiusMeters`、`affectsTrainingDummies`（bool，默认 true） | #2 |
-| `YuanqiEffectGiantCharge` | `yuanqiId`、`burstSpeed`（初速或限速增量，见 5.1）、`decaySeconds`、`decayCurve`（`curve` 类型）、`impactImpulseMultiplier`（M，基准 `Push.basic.impulseStrength`） | #4 |
+| `YuanqiEffectGiantCharge` | `yuanqiId`、`burstExtraMaxSpeed`（限速增量，默认 60）、`burstSeconds`（回落秒数，默认 0.8）、`impactImpulseMultiplier`（M，基准 `Push.basic.impulseStrength`）。不设曲线列：马达的回落形状固定为 增量 × 剩余比例²，两端必须一致 | #4 |
 | （#1 金身巨掌） | 无参数，不建表；`Yuanqi` 行已经足够 | #1 |
 
 tags：`skill, balance`。

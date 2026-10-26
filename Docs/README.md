@@ -17,9 +17,10 @@
 | 术语表 / 架构决策 | [../CONTEXT.md](../CONTEXT.md) · [adr/](adr/) |
 | 开场交接切换的本地卡顿修复（执行入口） | [handoff-continuity/HANDOFF.md](handoff-continuity/HANDOFF.md) |
 | 策划配表系统：Excel 工作簿、导入器、分层导入、规范与筛查清单 | [design-tables/README.md](design-tables/README.md) |
-| 玩法深化设计稿：缘起、执念与反噬、单键施法与鼠标瞄准（未实现） | [gameplay/README.md](gameplay/README.md) |
+| 玩法深化：缘起、执念与反噬、单键施法与鼠标瞄准（阶段 A/B 已实现，AI 适配与联机验证未做） | [gameplay/README.md](gameplay/README.md) |
 | 缘起技能设计：每一对缘起的内容 | [gameplay/yuanqi.md](gameplay/yuanqi.md) |
-| 缘起架构设计：模块边界、配表扩展、禅足冰封的构筑（未实现） | [gameplay/yuanqi-architecture.md](gameplay/yuanqi-architecture.md) |
+| 缘起架构设计：模块边界、配表扩展、禅足冰封的构筑（已实现） | [gameplay/yuanqi-architecture.md](gameplay/yuanqi-architecture.md) |
+| 训练模式验证记录：13 个场景的实测值与重跑方法 | [gameplay/practice-verification.md](gameplay/practice-verification.md) |
 
 执行入口见 [harness.md](../harness.md)，提交、PR 和验证规则见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 旧阶段合同、详细设计原稿和复盘过程可从 Git 历史查阅，例如 `git log -- Docs/prediction-refactor-plan/`。

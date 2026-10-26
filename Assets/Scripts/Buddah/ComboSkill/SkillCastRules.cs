@@ -57,12 +57,12 @@ internal static class SkillCastRules
     }
 
     /// <summary>
-    /// Whether a confirming cast is dropped. A rolled backfire survives every ordinary cancel and ends in the penalty
-    /// when its window ends, as a Human Player's always does (the penalty also persists through respawn/teleport).
-    /// Only a freeze interrupt and executor teardown drop it.
+    /// Whether a confirming cast is dropped. A rolled backfire survives every ordinary cancel and a freeze interrupt
+    /// (user rule 2026-10-26: being frozen never lets a caster escape a backfire already rolled at the key press; its
+    /// cooldown stays spent and the penalty starts when the window ends). Only executor teardown drops it.
     /// </summary>
     internal static bool DropsPendingCast(bool isBackfire, SkillPendingCancelSource source)
-        => !isBackfire || source != SkillPendingCancelSource.Request;
+        => !isBackfire || source == SkillPendingCancelSource.Teardown;
 }
 
 /// <summary>

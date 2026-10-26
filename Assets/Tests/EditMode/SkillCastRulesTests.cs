@@ -98,13 +98,17 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void FreezeAndTeardownDropAnyConfirmingCast()
+        public void FreezeDropsAnOrdinaryCastButKeepsAConfirmingBackfire()
+        {
+            Assert.That(SkillCastRules.DropsPendingCast(false, SkillPendingCancelSource.Freeze), Is.True);
+            Assert.That(SkillCastRules.DropsPendingCast(true, SkillPendingCancelSource.Freeze), Is.False);
+        }
+
+        [Test]
+        public void TeardownDropsAnyConfirmingCast()
         {
             foreach (bool backfire in new[] { false, true })
-            {
-                Assert.That(SkillCastRules.DropsPendingCast(backfire, SkillPendingCancelSource.Freeze), Is.True);
                 Assert.That(SkillCastRules.DropsPendingCast(backfire, SkillPendingCancelSource.Teardown), Is.True);
-            }
         }
 
         [Test]

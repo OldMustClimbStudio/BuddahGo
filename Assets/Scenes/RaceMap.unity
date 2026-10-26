@@ -15,15 +15,15 @@ RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 9
   m_Fog: 1
-  m_FogColor: {r: 0.75559, g: 0.987678, b: 1.140413, a: 1}
+  m_FogColor: {r: 1.036835, g: 0.813274, b: 0.510614, a: 1}
   m_FogMode: 3
-  m_FogDensity: 0.0008
+  m_FogDensity: 0.0009
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
   m_AmbientSkyColor: {r: 0.254902, g: 0.44830096, b: 0.7176471, a: 1}
   m_AmbientEquatorColor: {r: 0.88420105, g: 0.97492677, b: 1.3091658, a: 1}
   m_AmbientGroundColor: {r: 0, g: 0, b: 0, a: 1}
-  m_AmbientIntensity: 1.3
+  m_AmbientIntensity: 1.2
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.1792453, g: 0.1792453, b: 0.1792453, a: 1}
   m_SkyboxMaterial: {fileID: 2100000, guid: 5b175773fe5e0954dbcde76fc45f4955, type: 2}
@@ -2228,13 +2228,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 462235204}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.29645085, y: 0.15987074, z: -0.050407052, w: -0.94022197}
+  m_LocalRotation: {x: -0.085922495, y: 0.16699126, z: -0.014609841, w: -0.9820987}
   m_LocalPosition: {x: -1.38, y: 0.316, z: 40.28}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1284195162}
-  m_LocalEulerAnglesHint: {x: 13, y: -19.3, z: 0}
+  m_LocalEulerAnglesHint: {x: 10, y: -19.3, z: 0}
 --- !u!114 &462235206
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2248,7 +2248,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_LensFlareData: {fileID: 11400000, guid: d0f179920b791ff479b5fed24e80b74b, type: 2}
-  intensity: 1
+  intensity: 0.25
   maxAttenuationDistance: 100
   maxAttenuationScale: 100
   distanceAttenuationCurve:
@@ -2396,7 +2396,7 @@ Light:
   m_Type: 1
   m_Shape: 0
   m_Color: {r: 1, g: 0.92, b: 0.82, a: 1}
-  m_Intensity: 2.6
+  m_Intensity: 4
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -2439,7 +2439,7 @@ Light:
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
-  m_ColorTemperature: 5500
+  m_ColorTemperature: 3600
   m_UseColorTemperature: 1
   m_BoundingSphereOverride: {x: 1.02e-43, y: 3.1e-44, z: 6.0549e-41, w: 1.8654e-41}
   m_UseBoundingSphereOverride: 0

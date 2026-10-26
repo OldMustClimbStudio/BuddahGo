@@ -325,6 +325,7 @@
 - [ ] SoloCJK 字体子集重烘：“冻”“起”等字缺失，“冻结”和缘起名现在显示英文或 id（A6）
 - [ ] 缘起特效（#2 结冰与冰块、#4 突进与撞击、#1 巨掌）：表现接口已留，美术未做
 - [ ] 占位值和新参数的试玩调整：#2 的 N、R，#4 的突进与 M，转手平滑，突进 FOV，反噬结束的 ×0.8（全部在配表或组件字段上）
+- [ ] 是否入表（design-tables 决定 4，需用户确认）：鼠标瞄准平滑 `BuddahHandControl.mouseAimSmoothingSeconds` 0.06 秒和死区 `mouseAimDeadRadius` 1.5 米目前只是代码序列化默认值，按 7.2 的完成标准（代码里不再有阶段 A 的默认值作为数值来源）应进 `Skill/Push` basic 行（建议作 adv 列）；木桩复位阈值（`TrainingDummy.disturbedContactSpeed` 0.5 m/s 等）和表现、HUD 布局参数按范围线可以留在代码
 
 已答复：
 

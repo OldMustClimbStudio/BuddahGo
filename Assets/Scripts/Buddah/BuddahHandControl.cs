@@ -31,6 +31,10 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     [Tooltip("Height of the horizontal aim plane above the movement root (metres).")]
     [SerializeField] private float mouseAimPlaneHeightOffset = 0f;
 
+    [Header("Freeze")]
+    [Tooltip("After a freeze (禁锢) ends, the owner re-sends its hand yaw once after this delay: the server drops yaw updates while it still sees the racer frozen, so a turn made in that tail would otherwise stay unsynced.")]
+    [SerializeField, Min(0f)] private float yawResendAfterFreezeSeconds = 0.3f;
+
     [Header("Hand Bones")]
     [Tooltip("Optional: if empty, will try to auto-find via Animator Humanoid LeftHand/RightHand.")]
     [SerializeField] private Transform leftHandBone;
@@ -131,6 +135,12 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     public void InjectServerRotation(int axis, float tickDelta)
     {
         if (!RacerAuthority.IsServerAI(this) || !ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject)) return;
+        // Frozen (禁锢): the hands stop turning, so the AI's rotation input is dropped.
+        if (IsMotorFrozen())
+        {
+            HandRotationAxis = 0f;
+            return;
+        }
         HandRotationAxis = Mathf.Clamp(axis, -1, 1);
         _syncedYawOffsetDeg.Value = Mathf.DeltaAngle(0f, _syncedYawOffsetDeg.Value + HandRotationAxis * rotationSpeedDegPerSec * tickDelta);
     }
@@ -196,6 +206,15 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     private float _smoothedMouseAimYawDeg;
     private static readonly List<RaycastResult> s_UiRaycastResults = new();
 
+    // Owner: the cursor's aim-plane point, sampled once per frame (TryGetAimGroundPoint).
+    private int _aimGroundPointFrame = -1;
+    private bool _hasAimGroundPoint;
+    private Vector3 _aimGroundPoint;
+
+    // Owner: freeze edge for the post-freeze yaw resend (0 = none scheduled).
+    private bool _wasFrozenLocal;
+    private float _yawResendAt;
+
     private const float HandRotationAxisEpsilonDeg = 0.001f;
 
     // Owner-authoritative, body-relative and UNWRAPPED: observers Lerp the synced copy, so wrapping would spin them.
@@ -227,8 +246,7 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
         animator = GetComponentInChildren<Animator>(true);
         _motor = GetComponent<NewBuddah.PredictionV2.Core.BuddahPredictedMotor>();
         // Skill/Push "basic" row owns the hand-push numbers; prefab values stay as fallback. Explicit mapping only:
-        // the charged row of the same sheet belongs to the projectile skill (SkillDatabase); the leftover
-        // charged_anti row has no reader since the anti variants were retired (removed with the tables in phase B).
+        // the charged row of the same sheet belongs to the projectile skill (SkillDatabase).
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
             DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.Single(db.pushes, r => r.pushId == "basic"), PushBasicMap);
@@ -312,6 +330,17 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
 
     private void UpdateHandAimLocal(float deltaTime)
     {
+        // Frozen (禁锢): the hands stop turning; the aim input is ignored (the server drops yaw updates too).
+        bool frozen = IsMotorFrozen();
+        TrackLocalFreezeForYawResend(frozen);
+        if (frozen)
+        {
+            HandRotationAxis = 0f;
+            // Re-seed the smoothing from the held yaw when the freeze ends, instead of jumping to a stale target.
+            _hasMouseAimTarget = false;
+            return;
+        }
+
         // A local modal (quit dialog) owns the mouse while it is open, as it owns steering.
         if (LocalInputBlock.IsBlocked)
         {
@@ -345,23 +374,16 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     {
         targetYawDeg = handYawOffsetDeg;
 
-        Mouse mouse = Mouse.current;
-        if (!useMouseAim || mouse == null)
-            return false;
-
-        if (_aimCamera == null || !_aimCamera.isActiveAndEnabled)
-            _aimCamera = Camera.main;
-        if (_aimCamera == null)
+        if (!TryGetCursorRay(out Ray cursorRay))
             return false;
 
         // transform is the movement root: the server rebuilds the push as AngleAxis(yaw, up) * transform.forward,
         // so the offset is measured from this forward, not from the smoothed visual root.
         Vector3 bodyPosition = transform.position;
         float scaleMultiplier = GetPushScaleMultiplier();
-        Ray cursorRay = _aimCamera.ScreenPointToRay(mouse.position.ReadValue());
         HandAimSampleKind sample = HandAimMath.TryGetTargetYawOffset(
             cursorRay,
-            bodyPosition.y + mouseAimPlaneHeightOffset,
+            GetAimPlaneHeight(),
             bodyPosition,
             transform.forward,
             mouseAimDeadRadius * scaleMultiplier,
@@ -381,6 +403,66 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
 
         targetYawDeg = _smoothedMouseAimYawDeg;
         return true;
+    }
+
+    /// <summary>
+    /// Owner: the cursor's point on the horizontal aim plane this frame, i.e. the ground point the hands aim at (the
+    /// dead radius does not apply). Presentation only; no reticle is drawn. False when this is not the owner, mouse aim
+    /// is off or there is no mouse or camera, race gameplay or a local modal blocks the input, or the ray misses the
+    /// plane this frame. Sampled once per frame, so any reader in any order gets the same point.
+    /// </summary>
+    public bool TryGetAimGroundPoint(out Vector3 point)
+    {
+        int frame = Time.frameCount;
+        if (_aimGroundPointFrame != frame)
+        {
+            _aimGroundPointFrame = frame;
+            _hasAimGroundPoint = TrySampleAimGroundPoint(out _aimGroundPoint);
+        }
+        point = _aimGroundPoint;
+        return _hasAimGroundPoint;
+    }
+
+    private bool TrySampleAimGroundPoint(out Vector3 point)
+    {
+        point = Vector3.zero;
+        if (!IsOwner || IsRaceGameplayBlocked() || LocalInputBlock.IsBlocked)
+            return false;
+        if (!TryGetCursorRay(out Ray cursorRay))
+            return false;
+
+        var plane = new Plane(Vector3.up, new Vector3(0f, GetAimPlaneHeight(), 0f));
+        if (!plane.Raycast(cursorRay, out float enter))
+            return false;
+        point = cursorRay.GetPoint(enter);
+        return true;
+    }
+
+    // Owner mouse aim input: the camera ray through the cursor. False with mouse aim off, no mouse or no camera.
+    private bool TryGetCursorRay(out Ray cursorRay)
+    {
+        cursorRay = default;
+        Mouse mouse = Mouse.current;
+        if (!useMouseAim || mouse == null)
+            return false;
+
+        if (_aimCamera == null || !_aimCamera.isActiveAndEnabled)
+            _aimCamera = Camera.main;
+        if (_aimCamera == null)
+            return false;
+
+        cursorRay = _aimCamera.ScreenPointToRay(mouse.position.ReadValue());
+        return true;
+    }
+
+    private float GetAimPlaneHeight() => transform.position.y + mouseAimPlaneHeightOffset;
+
+    // Owner: a freeze just ended locally → schedule one yaw resend (see yawResendAfterFreezeSeconds).
+    private void TrackLocalFreezeForYawResend(bool frozen)
+    {
+        if (_wasFrozenLocal && !frozen)
+            _yawResendAt = Time.time + yawResendAfterFreezeSeconds;
+        _wasFrozenLocal = frozen;
     }
 
     private void RefreshProjectilePushModeExpiration()
@@ -446,9 +528,11 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
         if (Time.time < _nextSendTime)
             return;
 
-        if (Mathf.Abs(handYawOffsetDeg - _lastSentYaw) < 0.1f)
+        bool resendDue = _yawResendAt > 0f && Time.time >= _yawResendAt;
+        if (!resendDue && Mathf.Abs(handYawOffsetDeg - _lastSentYaw) < 0.1f)
             return;
 
+        _yawResendAt = 0f;
         _lastSentYaw = handYawOffsetDeg;
         _nextSendTime = Time.time + 0.05f;
         SetHandYawServerRpc(handYawOffsetDeg);
@@ -457,6 +541,9 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     [ServerRpc]
     private void SetHandYawServerRpc(float yawOffsetDeg)
     {
+        // Frozen (禁锢): the hands stop turning on every peer, so the server keeps the synced yaw while frozen.
+        if (IsMotorFrozen())
+            return;
         _syncedYawOffsetDeg.Value = yawOffsetDeg;
     }
 

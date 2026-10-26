@@ -10,7 +10,10 @@ public class RaceMapUIBootstrap : MonoBehaviour
     private void Start()
     {
         if (_spawnedUi != null)
+        {
+            EnsureRuntimeHud(_spawnedUi);
             return;
+        }
 
         if (uiPrefab == null)
         {
@@ -23,12 +26,21 @@ public class RaceMapUIBootstrap : MonoBehaviour
         {
             _spawnedUi = existingUi;
             _spawnedFromBootstrap = false;
+            EnsureRuntimeHud(_spawnedUi);
             return;
         }
 
         _spawnedUi = Instantiate(uiPrefab);
         _spawnedUi.name = uiPrefab.name;
         _spawnedFromBootstrap = true;
+        EnsureRuntimeHud(_spawnedUi);
+    }
+
+    // HUD parts that exist only at runtime (A6, no prefab edit): the caster's 缘起 toast on the HUD canvas.
+    private static void EnsureRuntimeHud(GameObject hud)
+    {
+        if (hud != null && hud.GetComponent<YuanqiToastUI>() == null)
+            hud.AddComponent<YuanqiToastUI>();
     }
 
     private void OnDestroy()

@@ -66,6 +66,16 @@ public class ObsessionFigure : NetworkBehaviour
     public event Action<float, float> OnValueChanged;
     public event Action<float, float> OnCompletionGapChanged;
 
+    /// <summary>
+    /// Backfire penalty start (true) and end (false), raised once per change on the server and on every client (the
+    /// host raises it once). Driven by the replicated end tick: the SyncVar change starts it, and each peer ends it
+    /// when its own clock passes the end tick (a client does not wait for the server's 0). A late joiner gets one
+    /// start if it joins mid-penalty. When the object stops, a running penalty reports its end.
+    /// </summary>
+    public event Action<bool> BackfireStateChanged;
+
+    private readonly PresentationFlag _backfireState = new PresentationFlag();
+
     public float Current => _current.Value;
     public float Max => maxValue;
     public float DrainPerSecond => drainPerSecond;
@@ -97,12 +107,16 @@ public class ObsessionFigure : NetworkBehaviour
     {
         base.OnStartNetwork();
         _current.OnChange += OnValueChangedSync;
+        _backfireEndTick.OnChange += OnBackfireEndTickChangedSync;
     }
 
     public override void OnStopNetwork()
     {
         base.OnStopNetwork();
         _current.OnChange -= OnValueChangedSync;
+        _backfireEndTick.OnChange -= OnBackfireEndTickChangedSync;
+        if (_backfireState.Reset())
+            RaiseBackfireStateChanged(false);
     }
 
     public override void OnStartServer()
@@ -136,6 +150,9 @@ public class ObsessionFigure : NetworkBehaviour
         {
             UpdateCompletionGapToLeaderPercent();
         }
+
+        // Every peer: the client-side end check (this peer's clock passed the end tick) and late joiners.
+        RefreshBackfireState();
     }
 
     private void UpdateCompletionGapToLeaderPercent()
@@ -228,14 +245,18 @@ public class ObsessionFigure : NetworkBehaviour
             GameLog.Verbose($"[ObsessionFigure][Server] Backfire re-entered while active on '{name}'; keeping the later end.");
 
         _backfireEndTick.Value = ObsessionBackfireRules.ExtendEndTick(_backfireEndTick.Value, endTick);
+        // The SyncVar callback raises it too; the edge makes the second call a no-op.
+        RefreshBackfireState();
         if (NetDebug.EnableVerboseLog)
             GameLog.Verbose($"[ObsessionFigure][Server] Backfire penalty on '{name}' for {BackfireLockSeconds:0.##}s at obsession {_current.Value:0.#}.");
     }
 
     private void EndBackfireServer()
     {
-        _backfireEndTick.Value = 0u;
+        // Multiply before clearing the end tick: BackfireStateChanged(false) listeners already read the kept value.
         MultiplyServer(backfireEndKeepRatio);
+        _backfireEndTick.Value = 0u;
+        RefreshBackfireState();
         if (NetDebug.EnableVerboseLog)
             GameLog.Verbose($"[ObsessionFigure][Server] Backfire penalty ended on '{name}'; obsession now {_current.Value:0.#}.");
     }
@@ -243,6 +264,31 @@ public class ObsessionFigure : NetworkBehaviour
     private void OnValueChangedSync(float oldValue, float newValue, bool asServer)
     {
         OnValueChanged?.Invoke(oldValue, newValue);
+    }
+
+    private void OnBackfireEndTickChangedSync(uint oldTick, uint newTick, bool asServer)
+    {
+        RefreshBackfireState();
+    }
+
+    // Edge of IsBackfireActive; the same flag on server and client, so a host raises each change once.
+    private void RefreshBackfireState()
+    {
+        if (!IsServerInitialized && !IsClientInitialized)
+            return;
+        if (_backfireState.Update(IsBackfireActive))
+            RaiseBackfireStateChanged(_backfireState.Reported);
+    }
+
+    private void RaiseBackfireStateChanged(bool active)
+    {
+        if (NetDebug.EnableVerboseLog)
+            GameLog.Verbose($"[ObsessionFigure] Backfire penalty {(active ? "started" : "ended")} on '{name}' (server={IsServerInitialized}, owner={IsOwner}, left={BackfireSecondsLeft:0.##}s).");
+        if (BackfireStateChanged == null)
+            return;
+        // A failing presentation listener must not break the obsession update loop.
+        try { BackfireStateChanged(active); }
+        catch (Exception exception) { Debug.LogException(exception, this); }
     }
 
     public float GetBackfireProbabilityPercent(float obsessionValue)

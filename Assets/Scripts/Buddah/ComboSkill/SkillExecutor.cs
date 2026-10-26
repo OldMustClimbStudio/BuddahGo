@@ -16,20 +16,66 @@ public class SkillExecutor : NetworkBehaviour
 {
     public readonly struct LocalSkillUiEvent
     {
-        public LocalSkillUiEvent(int slotIndex, float cooldownSeconds, float castLockSeconds)
+        /// <summary>SurchargeStacks value of a backfire: it cleared every skill's stacks.</summary>
+        public const int StacksClearedByBackfire = -1;
+
+        public LocalSkillUiEvent(int slotIndex, float cooldownSeconds,
+            int surchargeStacks = 0, float repeatWindowSeconds = 0f, float repeatGainMultiplier = 1f,
+            float secondsSinceServerEvent = 0f)
         {
             SlotIndex = slotIndex;
             CooldownSeconds = cooldownSeconds;
-            CastLockSeconds = castLockSeconds;
+            SurchargeStacks = surchargeStacks;
+            RepeatWindowSeconds = repeatWindowSeconds;
+            RepeatGainMultiplier = repeatGainMultiplier;
+            SecondsSinceServerEvent = Mathf.Max(0f, secondsSinceServerEvent);
+        }
+
+        /// <summary>
+        /// Seconds between the server's execution (or backfire) and this event on the owner: the RPC's server tick
+        /// against this peer's estimate of the server tick (0 on the host and when unknown). The HUD anchors the
+        /// cooldown and the surcharge window at Time.time minus this, i.e. on the server's clock like the backfire and
+        /// freeze timers, instead of at the RPC's arrival (which put both a full round trip late on remote clients).
+        /// </summary>
+        public float SecondsSinceServerEvent { get; }
+
+        /// <summary>
+        /// Age of a server tick on this peer: (estimated server tick − event tick) × tick delta; 0 when the event tick is
+        /// unknown (0) or the estimate has not reached it yet.
+        /// </summary>
+        internal static float SecondsSinceServerTick(uint eventTick, uint estimatedServerTick, double tickDelta)
+        {
+            if (eventTick == 0u || estimatedServerTick <= eventTick || tickDelta <= 0d)
+                return 0f;
+            return (float)((estimatedServerTick - eventTick) * tickDelta);
         }
 
         public int SlotIndex { get; }
         public float CooldownSeconds { get; }
-        // Always 0 since the global cast lock was retired (A3); the HUD lock display is reworked in A6.
-        public float CastLockSeconds { get; }
+        // No CastLockSeconds: the global cast lock was retired (A3) and its HUD hold with it (A6).
+        /// <summary>
+        /// Same-skill surcharge stacks this execution paid (gain × RepeatGainMultiplier^stacks; 0 = base gain).
+        /// <see cref="StacksClearedByBackfire"/> (−1): the cast backfired and every skill's stacks were cleared.
+        /// A recast within RepeatWindowSeconds after this slot's cooldown ends pays stacks + 1.
+        /// </summary>
+        public int SurchargeStacks { get; }
+        /// <summary>ObsessionFigure.repeatWindowSeconds: seconds after the cooldown end during which a recast stacks.</summary>
+        public float RepeatWindowSeconds { get; }
+        /// <summary>ObsessionFigure.repeatGainMultiplier: obsession gain multiplier per stack, compounding.</summary>
+        public float RepeatGainMultiplier { get; }
     }
 
     public event Action<LocalSkillUiEvent> LocalSkillUiTriggered;
+
+    /// <summary>
+    /// Every client (host included): a 缘起 of this racer triggered (yuanqiId, payload, localIsCaster). Raised from the
+    /// 缘起 ObserversRpc after YuanqiAction.PlayObservers, also when this client's SkillDatabase lacks the id. The
+    /// presentation hook for artists: the payload carries the centre, radius, seconds, direction and target ids.
+    /// </summary>
+    public event Action<string, YuanqiPresentationPayload, bool> YuanqiObserved;
+
+    /// <summary>Every client (host included): this racer's 缘起 body hit a victim (金足破阵 impact), one per victim per burst.</summary>
+    public event Action<YuanqiImpactInfo> YuanqiImpactObserved;
 
     public enum CastStage { Requested, Rejected, Accepted, Executed, Cancelled }
     public readonly struct CastEvent
@@ -124,6 +170,11 @@ public class SkillExecutor : NetworkBehaviour
     /// <summary>Server: this racer's 缘起 registry (null on clients and training dummies).</summary>
     public YuanqiRegistry YuanqiRegistry => _yuanqiRegistry;
 
+    // Every peer, every racer: freeze / burst presentation events and the frozen Animator hold (plain MonoBehaviour).
+    private RacerSkillPresentationState _presentationState;
+    /// <summary>Every peer: this racer's freeze / burst presentation state (null before the network starts).</summary>
+    public RacerSkillPresentationState PresentationState => _presentationState;
+
     // Owner-only skill keys (Q/E/R and 1/2/3). Player combos are retired; AI still casts through ComboSkillInput.
     private InputSystem_Actions _skillKeyInput;
     private bool _skillKeysBound;
@@ -141,6 +192,29 @@ public class SkillExecutor : NetworkBehaviour
         ResolvePlayerCamera();
         if (predictionBootstrap == null) predictionBootstrap = GetComponent<BuddahPredictionBootstrap>();
         if (predictionSkillMovementBridge == null) predictionSkillMovementBridge = GetComponent<BuddahPredictionSkillMovementBridge>();
+    }
+
+    // Once per peer (the host gets one call): attaches the presentation state on the server, the owner and observers.
+    public override void OnStartNetwork()
+    {
+        base.OnStartNetwork();
+        AttachPresentationState();
+    }
+
+    public override void OnStopNetwork()
+    {
+        if (_presentationState != null)
+            _presentationState.Unbind();
+        base.OnStopNetwork();
+    }
+
+    // Idempotent: a re-spawned object (or a component a HUD added first) is bound again, never duplicated.
+    private void AttachPresentationState()
+    {
+        _presentationState = RacerSkillPresentationState.GetOrAdd(gameObject);
+        ResolveMotor();
+        ResolveCharacterAnimator();
+        _presentationState.Bind(_motor, characterAnimator);
     }
 
     public override void OnStartServer()
@@ -608,7 +682,7 @@ public class SkillExecutor : NetworkBehaviour
         cast.Skill.ExecuteServer(this, cast.Slot);
         _obs?.AddServer(cast.ObsessionGain);
         _repeatSurcharge.CommitExecution(cast.SkillId, cast.SurchargeStacks, cast.CooldownEndTime);
-        CastObserversRpc(cast.Slot, cast.SkillId);
+        CastObserversRpc(cast.Slot, cast.SkillId, cast.SurchargeStacks, ServerTickForHud());
         // After CastObserversRpc: a 缘起 may trigger and consume right here, and its end presentation must reach the
         // clients after the start presentation (trail, FOV) it ends.
         BeginSkillStateServer(cast.Slot, cast.SkillId, cast.Skill);
@@ -671,13 +745,23 @@ public class SkillExecutor : NetworkBehaviour
         SkillConsumedObserversRpc(skillId, slot);
     }
 
-    /// <summary>Server: plays a 缘起 trigger on every peer (YuanqiAction.PlayObservers); the owner also raises LocalYuanqiTriggered.</summary>
+    /// <summary>
+    /// Server: plays a 缘起 trigger on every peer (YuanqiAction.PlayObservers, then YuanqiObserved); the owner also
+    /// raises LocalYuanqiTriggered.
+    /// </summary>
     public void PlayYuanqiObservers(string yuanqiId, YuanqiPresentationPayload payload)
     {
         if (!IsServerInitialized || string.IsNullOrWhiteSpace(yuanqiId)) return;
         if (payload.TargetObjectIds == null)
             payload.TargetObjectIds = Array.Empty<int>();
         YuanqiObserversRpc(yuanqiId, payload);
+    }
+
+    /// <summary>Server: one 缘起 body impact on <paramref name="victimObjectId"/>; every peer raises YuanqiImpactObserved.</summary>
+    public void PlayYuanqiImpactObservers(string yuanqiId, int victimObjectId, Vector3 point, Vector3 impulse)
+    {
+        if (!IsServerInitialized) return;
+        YuanqiImpactObserversRpc(yuanqiId ?? string.Empty, victimObjectId, point, impulse);
     }
 
     // The backfired cast fails: no ExecuteServer, no obsession gain, no surcharge stack, no skill presentation.
@@ -698,7 +782,7 @@ public class SkillExecutor : NetworkBehaviour
         // CastObserversRpc is skipped, so the owner HUD learns the spent cooldown here.
         NetworkConnection conn = Owner;
         if (conn != null && conn.IsValid)
-            BackfireSkillUiTargetRpc(conn, cast.Slot, cast.CooldownSeconds);
+            BackfireSkillUiTargetRpc(conn, cast.Slot, cast.CooldownSeconds, ServerTickForHud());
 
         ServerCastChanged?.Invoke(new CastEvent(CastStage.Executed, cast.Slot, cast.SkillId, backlash: true));
     }
@@ -724,8 +808,10 @@ public class SkillExecutor : NetworkBehaviour
         PlayFeelLocal(isBackfire ? BackfireReflectionLocalFeelEventId : SkillReflectionLocalFeelEventId);
     }
 
+    // surchargeStacks: the same-skill surcharge stacks this execution paid (owner HUD only).
+    // serverTick: the server tick of the execution, so the owner HUD anchors the cooldown on the server's clock.
     [ObserversRpc]
-    private void CastObserversRpc(int slotIndex, string skillId)
+    private void CastObserversRpc(int slotIndex, string skillId, int surchargeStacks, uint serverTick)
     {
         if (database == null) return;
 
@@ -742,13 +828,29 @@ public class SkillExecutor : NetworkBehaviour
             if (IsOwner)
             {
                 float resolvedCooldownSeconds = database.GetCooldownSeconds(skillId, skill);
-                LocalSkillUiTriggered?.Invoke(new LocalSkillUiEvent(slotIndex, resolvedCooldownSeconds, 0f));
+                LocalSkillUiTriggered?.Invoke(CreateSkillUiEvent(slotIndex, resolvedCooldownSeconds, surchargeStacks, serverTick));
 
                 if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Owner] ExecuteLocal '{skillId}' (slot {slotIndex})");
                 skill.ExecuteLocal(this, slotIndex);
             }
         }
     }
+
+    // Owner HUD event; the surcharge window and multiplier come from this peer's ObsessionFigure (same table values).
+    // Its age is the server tick of the event against this peer's estimate of the server tick (TimeManager.Tick).
+    private LocalSkillUiEvent CreateSkillUiEvent(int slotIndex, float cooldownSeconds, int surchargeStacks, uint serverTick)
+    {
+        ResolveObsessionFigure();
+        float repeatWindowSeconds = _obs != null ? _obs.RepeatWindowSeconds : 0f;
+        float repeatGainMultiplier = _obs != null ? _obs.RepeatGainMultiplier : 1f;
+        float age = TimeManager != null
+            ? LocalSkillUiEvent.SecondsSinceServerTick(serverTick, TimeManager.Tick, TimeManager.TickDelta)
+            : 0f;
+        return new LocalSkillUiEvent(slotIndex, cooldownSeconds, surchargeStacks, repeatWindowSeconds, repeatGainMultiplier, age);
+    }
+
+    // Server: the tick an owner HUD event happened on (0 = unknown, the HUD then anchors at the RPC's arrival).
+    private uint ServerTickForHud() => TimeManager != null ? TimeManager.Tick : 0u;
 
     public void ApplyAccelerationToOwner(float extraForwardForce, float extraMaxSpeed, float durationSeconds)
     {
@@ -1156,11 +1258,12 @@ public class SkillExecutor : NetworkBehaviour
         MovementEffects.ApplyMaxSpeedMultiplierOwner(multiplier, durationSeconds);
     }
 
-    // A backfired cast skips CastObserversRpc; the owner HUD still shows the spent slot cooldown.
+    // A backfired cast skips CastObserversRpc; the owner HUD still shows the spent slot cooldown. The backfire cleared
+    // every skill's surcharge stacks (SurchargeStacks = -1).
     [TargetRpc]
-    private void BackfireSkillUiTargetRpc(NetworkConnection conn, int slotIndex, float cooldownSeconds)
+    private void BackfireSkillUiTargetRpc(NetworkConnection conn, int slotIndex, float cooldownSeconds, uint serverTick)
     {
-        LocalSkillUiTriggered?.Invoke(new LocalSkillUiEvent(slotIndex, cooldownSeconds, 0f));
+        LocalSkillUiTriggered?.Invoke(CreateSkillUiEvent(slotIndex, cooldownSeconds, LocalSkillUiEvent.StacksClearedByBackfire, serverTick));
     }
 
     // 缘起 consumed a skill: its early-end presentation, resolved from this client's SkillDatabase like CastObserversRpc.
@@ -1189,7 +1292,25 @@ public class SkillExecutor : NetworkBehaviour
             Debug.LogWarning($"[Yuanqi][Observers] Unknown yuanqiId '{yuanqiId}' in the client SkillDatabase.");
         }
 
+        // The presentation interface (artists' VFX); a failing listener must not swallow the owner's HUD event.
+        try { YuanqiObserved?.Invoke(yuanqiId, payload, IsOwner); }
+        catch (Exception exception) { Debug.LogException(exception, this); }
+
         if (IsOwner)
             LocalYuanqiTriggered?.Invoke(yuanqiId);
+    }
+
+    // 缘起 body impact (BuddahBodyImpact, server): presentation only, every peer.
+    [ObserversRpc]
+    private void YuanqiImpactObserversRpc(string yuanqiId, int victimObjectId, Vector3 point, Vector3 impulse)
+    {
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Yuanqi][Observers] '{yuanqiId}' impact by {name} on object {victimObjectId}, impulse={impulse}");
+        YuanqiImpactObserved?.Invoke(new YuanqiImpactInfo
+        {
+            YuanqiId = yuanqiId,
+            VictimObjectId = victimObjectId,
+            Point = point,
+            Impulse = impulse,
+        });
     }
 }

@@ -3,8 +3,9 @@ using UnityEngine;
 
 /// <summary>
 /// What a pair gets when it triggers (and again when a Sustained pair ends). EntryA always matches the action's skillA.
-/// Consuming goes through the skill's own handle and then ends its board entry; both are idempotent, so the registry can
-/// apply consumeA / consumeB after the pair already consumed in its own order.
+/// Consuming goes through the skill's own handle and then ends its board entry; both are idempotent. What is consumed is
+/// data (the action's consumeA / consumeB, table Skill/Yuanqi); a pair only picks WHEN through ConsumeConfigured
+/// (before or after its effect), and the registry applies the same flags again after OnTriggerServer.
 /// </summary>
 public sealed class YuanqiContext
 {
@@ -35,6 +36,18 @@ public sealed class YuanqiContext
 
     /// <summary>Ends skill B's remaining effect (handle.Consume) and its board entry. Idempotent.</summary>
     public void ConsumeB(string reason) => Consume(EntryB, reason);
+
+    /// <summary>
+    /// Consumes the entries the action's consumeA / consumeB flags name (whatever the skillA / skillB order of the row),
+    /// nothing else. Idempotent. Pairs call this instead of ConsumeA / ConsumeB so a table edit is never ignored.
+    /// </summary>
+    public void ConsumeConfigured(string reason)
+    {
+        if (Action == null)
+            return;
+        if (Action.consumeA) ConsumeA(reason);
+        if (Action.consumeB) ConsumeB(reason);
+    }
 
     private void Consume(SkillStateEntry entry, string reason)
     {

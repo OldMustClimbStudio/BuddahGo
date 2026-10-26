@@ -24,13 +24,3 @@ MonoBehaviour:
   freezeSeconds: 1.5
   radiusMeters: 12
   affectsTrainingDummies: 1
-  groundVfxId: frost_lock_ground_vfx
-  blockVfxId: frost_lock_block_vfx
-  placeholderFadeSeconds: 0.35
-  placeholderGroundThickness: 0.08
-  placeholderGroundLift: 0.03
-  placeholderGroundProbeUp: 3
-  placeholderGroundProbeDown: 20
-  placeholderBlockPadding: 0.4
-  placeholderGroundColor: {r: 0.55, g: 0.85, b: 1, a: 0.35}
-  placeholderBlockColor: {r: 0.7, g: 0.92, b: 1, a: 0.45}

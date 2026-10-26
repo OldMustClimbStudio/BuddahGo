@@ -18,7 +18,7 @@ public abstract class YuanqiAction : ScriptableObject
     [Tooltip("ctx.EntryA always belongs to skillA, whichever skill was cast first.")]
     public string skillA;
     public string skillB;
-    [Tooltip("Applied by the registry after OnTriggerServer (idempotent if the pair already consumed it).")]
+    [Tooltip("Table Skill/Yuanqi decides what is consumed: the pair may consume earlier through ctx.ConsumeConfigured, the registry applies the flags after OnTriggerServer (idempotent). Pairs never consume unconditionally.")]
     public bool consumeA;
     public bool consumeB;
 
@@ -27,7 +27,10 @@ public abstract class YuanqiAction : ScriptableObject
     public YuanqiRetrigger retriggerPolicy = YuanqiRetrigger.OncePerOverlap;
     public bool isEnabled = true;
 
-    /// <summary>Server: both skills just overlapped. Set ctx.Presentation for observers; consume in the pair's own order.</summary>
+    /// <summary>
+    /// Server: both skills just overlapped. Set ctx.Presentation for observers. A pair that must consume before its
+    /// effect calls ctx.ConsumeConfigured first (the flags decide what); otherwise the registry consumes afterwards.
+    /// </summary>
     public abstract void OnTriggerServer(YuanqiContext ctx);
 
     /// <summary>Server, Sustained only: either entry ended (expiry, consume or reset). Undo every rewrite.</summary>

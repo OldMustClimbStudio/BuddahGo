@@ -123,8 +123,8 @@ public sealed class YuanqiRegistry : MonoBehaviour
         try { action.OnTriggerServer(ctx); }
         catch (Exception exception) { Debug.LogException(exception, this); }
 
-        if (action.consumeA) ctx.ConsumeA(reason);
-        if (action.consumeB) ctx.ConsumeB(reason);
+        // The table's consume flags, also when the pair did not consume (idempotent if it already did).
+        ctx.ConsumeConfigured(reason);
 
         if (action.mode == YuanqiMode.Sustained)
         {

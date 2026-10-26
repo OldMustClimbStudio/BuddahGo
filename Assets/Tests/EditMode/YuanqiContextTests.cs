@@ -93,6 +93,44 @@ namespace BuddahGo.Tests
             Assert.IsTrue(a.IsEnded, "the board stays consistent when a skill fails to end its effect");
         }
 
+        [TestCase(true, true)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(false, false)]
+        public void ConsumeConfiguredFollowsTheTableFlags(bool consumeA, bool consumeB)
+        {
+            var handleA = new CountingHandle("acceleration");
+            var handleB = new CountingHandle("slowtrap");
+            SkillStateEntry a = _board.Begin("acceleration", 0, new SkillActiveWindow(0f, 3f), handleA);
+            SkillStateEntry b = _board.Begin("slowtrap", 1, new SkillActiveWindow(0f, 6f), handleB);
+            var action = ScriptableObject.CreateInstance<YuanqiTestAction>();
+            try
+            {
+                action.consumeA = consumeA;
+                action.consumeB = consumeB;
+                var ctx = new YuanqiContext(null, action, a, b, _now, _board);
+                ctx.ConsumeConfigured("yuanqi:test");
+                ctx.ConsumeConfigured("yuanqi:test");
+
+                Assert.AreEqual(consumeA ? 1 : 0, handleA.ConsumeCount, "skillA consumed only when consumeA");
+                Assert.AreEqual(consumeB ? 1 : 0, handleB.ConsumeCount, "skillB consumed only when consumeB");
+                Assert.AreEqual(consumeA, a.IsEnded);
+                Assert.AreEqual(consumeB, b.IsEnded);
+            }
+            finally { Object.DestroyImmediate(action); }
+        }
+
+        [Test]
+        public void ConsumeConfiguredWithoutAnActionConsumesNothing()
+        {
+            var handle = new CountingHandle("acceleration");
+            SkillStateEntry a = _board.Begin("acceleration", 0, new SkillActiveWindow(0f, 3f), handle);
+            SkillStateEntry b = _board.Begin("slowtrap", 1, new SkillActiveWindow(0f, 6f), null);
+            new YuanqiContext(null, null, a, b, _now, _board).ConsumeConfigured("yuanqi:test");
+            Assert.AreEqual(0, handle.ConsumeCount);
+            Assert.IsFalse(a.IsEnded || b.IsEnded);
+        }
+
         [Test]
         public void ClearEndsEveryEntry()
         {

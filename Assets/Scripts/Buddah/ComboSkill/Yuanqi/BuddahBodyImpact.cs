@@ -57,6 +57,7 @@ internal sealed class BuddahBodyImpactRule
 /// While armed and while the caster's motor burst is active, touching another racer (training dummies included)
 /// routes one impulse to it through BuddahPredictionRouter: magnitude given by Arm, direction horizontal from the
 /// caster to the victim, once per victim per Arm. Frozen victims stay put (the motor drops impulses while rooted).
+/// Every hit is also presented on every peer through SkillExecutor.YuanqiImpactObserved (victim, point, impulse).
 /// The component stays on the caster between bursts; contacts are ignored while it is not armed.
 /// </summary>
 [DisallowMultipleComponent]
@@ -67,15 +68,19 @@ public sealed class BuddahBodyImpact : MonoBehaviour
     private readonly BuddahBodyImpactRule _rule = new BuddahBodyImpactRule();
     private SkillExecutor _caster;
     private BuddahPredictedMotor _motor;
+    // The 缘起 that armed this burst, reported with each impact (YuanqiImpactInfo.YuanqiId).
+    private string _sourceYuanqiId = string.Empty;
 
-    public void Arm(float impulseMagnitude, float seconds)
+    /// <param name="sourceYuanqiId">The arming 缘起 (presentation only), e.g. giant_charge.</param>
+    public void Arm(float impulseMagnitude, float seconds, string sourceYuanqiId = null)
     {
         ResolveRefs();
         if (_caster == null || !_caster.IsServerInitialized)
             return;
 
         _rule.Arm(impulseMagnitude, seconds, Time.time);
-        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Yuanqi][BodyImpact] '{name}' armed: impulse={_rule.ImpulseMagnitude:0.#} for {seconds:0.##}s");
+        _sourceYuanqiId = sourceYuanqiId ?? string.Empty;
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Yuanqi][BodyImpact] '{name}' armed by '{_sourceYuanqiId}': impulse={_rule.ImpulseMagnitude:0.#} for {seconds:0.##}s");
     }
 
     private void OnCollisionEnter(Collision collision) => TryImpact(collision);
@@ -108,6 +113,8 @@ public sealed class BuddahBodyImpact : MonoBehaviour
         bool routed = BuddahPredictionRouter.RouteImpulse(victimObject, impulse, 0f, BuddahPredictedImpulseSourceType.BodyImpact, _caster.NetworkObject);
         Vector3 contactPoint = collision.contactCount > 0 ? collision.GetContact(0).point : victim.transform.position;
         SkillCombatEvents.Record("hit", EvidenceKind, _caster.NetworkObject, victimObject, contactPoint, routed);
+        // Presentation of every claimed hit, routed or not (the body did hit; a frozen victim just does not move).
+        _caster.PlayYuanqiImpactObservers(_sourceYuanqiId, victimObject.ObjectId, contactPoint, impulse);
         if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Yuanqi][BodyImpact] '{name}' hit '{victim.name}' impulse={impulse} routed={routed}");
     }
 

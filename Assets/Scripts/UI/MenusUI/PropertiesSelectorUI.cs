@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using BuddahGo.Match;
 using TMPro;
@@ -32,6 +33,12 @@ namespace SteamMultiplayer.UI
         [SerializeField] private Button readyButton;
         [SerializeField] private TextMeshProUGUI readyButtonText;
 
+        [Header("缘起 List (runtime text under the stage title, skill stage only)")]
+        [SerializeField] private float yuanqiListFontSize = 26f;
+        [SerializeField] private float yuanqiListGap = 6f;
+        [SerializeField] private float yuanqiListHeight = 150f;
+        [SerializeField] private float skillWallLookupInterval = 1f;
+
         [Header("Debug")]
         [SerializeField] private bool forceRefreshEveryFrame = false;
 
@@ -40,6 +47,11 @@ namespace SteamMultiplayer.UI
         private bool _subscribed;
         private string _lastRenderedStageKey = string.Empty;
         private float _nextManagerDiagnosticTime;
+        private TextMeshProUGUI _yuanqiListText;
+        private SkillWallSelectionController _skillWall;
+        private float _nextSkillWallLookupTime;
+        private string _yuanqiListSignature;
+        private readonly List<string> _chosenSkillIds = new List<string>();
 
         private void Start()
         {
@@ -175,6 +187,7 @@ namespace SteamMultiplayer.UI
                 SetText(countdownText, string.Empty);
                 SetText(playersSelectionText, string.Empty);
                 SetText(resolvedMapText, string.Empty);
+                SetYuanqiListText(string.Empty);
                 return;
             }
 
@@ -182,6 +195,7 @@ namespace SteamMultiplayer.UI
                 _spawnedGroups[i].RefreshView();
 
             RefreshStatusTexts();
+            RefreshYuanqiList();
         }
 
         private void SetSelectionSummaryVisible(bool visible)
@@ -196,6 +210,100 @@ namespace SteamMultiplayer.UI
             if (countdownText != null) countdownText.gameObject.SetActive(showSessionSummary);
             if (playersSelectionText != null) playersSelectionText.gameObject.SetActive(showSessionSummary);
             if (resolvedMapText != null) resolvedMapText.gameObject.SetActive(showSessionSummary);
+            if (!visible) SetYuanqiListText(string.Empty);
+        }
+
+        // A6: the 缘起 the chosen skills can trigger (YuanqiCatalog, the same answer the server registry uses), from the
+        // local draft on the skill wall (falls back to the submitted selection). Rebuilt only when the ids change.
+        private void RefreshYuanqiList()
+        {
+            bool skillStage = _selectionManager != null && !_selectionManager.IsTransitioningToMatch
+                && string.Equals(_selectionManager.CurrentStagePropertyKey, PropertiesSelectionManager.SkillLoadoutStageKey, StringComparison.Ordinal);
+            if (!skillStage)
+            {
+                SetYuanqiListText(string.Empty);
+                return;
+            }
+
+            EnsureYuanqiListText();
+            if (_yuanqiListText == null)
+                return;
+
+            CollectChosenSkillIds(_chosenSkillIds);
+            string signature = HudGlyphCoverage.GlobalFallbackCount() + "|" + string.Join("|", _chosenSkillIds);
+            if (string.Equals(signature, _yuanqiListSignature, StringComparison.Ordinal))
+                return;
+            _yuanqiListSignature = signature;
+
+            TMP_FontAsset font = _yuanqiListText.font;
+            SkillDatabase database = HudSkillDatabase.Resolve();
+            var entries = new List<YuanqiHudEntry>();
+            if (database != null)
+            {
+                foreach (YuanqiAction pair in YuanqiCatalog.ForLoadout(database.GetYuanqis(), _chosenSkillIds))
+                {
+                    entries.Add(new YuanqiHudEntry(
+                        HudSkillDatabase.YuanqiName(database, font, pair.yuanqiId),
+                        HudSkillDatabase.SkillName(database, font, pair.skillA),
+                        HudSkillDatabase.SkillName(database, font, pair.skillB)));
+                }
+            }
+
+            SetYuanqiListText(YuanqiHudText.LoadoutList(
+                HudGlyphCoverage.Resolve(font, InGameHudLabels.YuanqiLoadoutHeader),
+                HudGlyphCoverage.Resolve(font, InGameHudLabels.YuanqiLoadoutNone),
+                entries, _chosenSkillIds.Count));
+        }
+
+        private void CollectChosenSkillIds(List<string> results)
+        {
+            results.Clear();
+            if (_skillWall == null && Time.unscaledTime >= _nextSkillWallLookupTime)
+            {
+                _nextSkillWallLookupTime = Time.unscaledTime + skillWallLookupInterval;
+                _skillWall = FindFirstObjectByType<SkillWallSelectionController>();
+            }
+
+            IReadOnlyList<string> ids = _skillWall != null ? _skillWall.SelectedSkillIds : null;
+            if (ids == null && _selectionManager != null && _selectionManager.TryGetLocalSkillLoadoutSelection(out string[] submitted))
+                ids = submitted;
+            if (ids == null)
+                return;
+
+            for (int i = 0; i < ids.Count; i++)
+            {
+                string id = (ids[i] ?? string.Empty).Trim();
+                if (id.Length > 0 && !results.Contains(id))
+                    results.Add(id);
+            }
+        }
+
+        private void EnsureYuanqiListText()
+        {
+            if (_yuanqiListText != null || stageTitleText == null)
+                return;
+            RectTransform title = stageTitleText.rectTransform;
+            if (!(title.parent is RectTransform parent))
+                return;
+
+            var pivot = new Vector2(title.pivot.x, 1f);
+            Vector2 position = title.anchoredPosition
+                + new Vector2(0f, -title.rect.height * title.pivot.y - yuanqiListGap);
+            _yuanqiListText = HudRuntimeText.Create(parent, "YuanqiLoadoutList", stageTitleText.font, yuanqiListFontSize,
+                stageTitleText.color, TextAlignmentOptions.TopLeft, title.anchorMin, pivot, position,
+                new Vector2(title.rect.width, yuanqiListHeight));
+            _yuanqiListText.horizontalAlignment = stageTitleText.horizontalAlignment;
+            _yuanqiListText.verticalAlignment = VerticalAlignmentOptions.Top;
+            _yuanqiListSignature = null;
+        }
+
+        private void SetYuanqiListText(string value)
+        {
+            if (_yuanqiListText == null)
+                return;
+            if (value.Length == 0)
+                _yuanqiListSignature = null;
+            HudRuntimeText.SetText(_yuanqiListText, value);
         }
 
         private void RefreshStatusTexts()

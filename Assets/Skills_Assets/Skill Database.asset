@@ -25,3 +25,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 341c52845e5a45848dcccedad97ac761, type: 2}
   - {fileID: 11400000, guid: 9a2d502b62f24b0aaae2c46305f93c40, type: 2}
   skills: []
+  yuanqis:
+  - {fileID: 11400000, guid: dcef880f34634db1a9ea11564efb180c, type: 2}
+  - {fileID: 11400000, guid: 8983687100234fc2bb577a62908ab62f, type: 2}
+  - {fileID: 11400000, guid: 2f10ec815de94f11a3b0e7c49d5cfbc7, type: 2}

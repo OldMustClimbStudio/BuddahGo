@@ -1,11 +1,14 @@
-// BuddahGo/Lit: the project's hand-written URP 14 PBR surface shader (opaque). Promoted from the rendering showcase's
-// Showcase/Lit. It keeps URP Lit's property names, keywords and pass layout (Shaders/Lit.shader), so a URP Lit
-// material switches shader without losing a value, and it reuses URP's stock ShadowCaster, GBuffer, DepthOnly,
-// DepthNormals and Meta passes. Direct lighting is URP's own; the indirect term adds four controls (see
-// BuddahGoLighting.hlsl), each of which reproduces stock Lit at 0.
+// BuddahGo/Lit: the project's hand-written URP 14 PBR surface shader, opaque or alpha-clipped (no transparency, no
+// detail maps, no clear coat). Promoted from the rendering showcase's Showcase/Lit. It keeps URP Lit's texture and
+// value property names, keywords and pass layout (Shaders/Lit.shader) and reuses URP's stock ShadowCaster, GBuffer,
+// DepthOnly, DepthNormals and Meta passes. Direct lighting is URP's own; the indirect term adds four weights (see
+// BuddahGoLighting.hlsl), each of which reproduces stock Lit at 0 (new materials start at 1 / 1 / 1 / 0).
 //
-// Keywords are driven by the Toggle drawers below (property names as in URP Lit), so the default material inspector
-// keeps them in step. Scripts that set these floats call MaterialEditor.ApplyMaterialPropertyDrawers afterwards.
+// Keywords are driven by the Toggle drawers below. The workflow toggle is URP's own _WorkflowMode; the map toggles
+// (_NormalMapOn, ...) are BuddahGo's, because URP Lit derives those keywords from its custom inspector.
+// BuddahGoLitShaderGUI (Assets/Editor/Rendering) carries a URP Lit material's keywords over when its shader is switched
+// in the inspector and keeps the alpha-clip queue in step. Scripts that set the toggle floats call
+// MaterialEditor.ApplyMaterialPropertyDrawers afterwards.
 // The GBuffer pass is required: screen-space reflections redraw opaque objects with it in the Forward path.
 Shader "BuddahGo/Lit"
 {
@@ -18,11 +21,11 @@ Shader "BuddahGo/Lit"
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
         [Header(Workflow)]
-        [Toggle(_SPECULAR_SETUP)] _SpecularSetup("Specular Workflow (off = Metallic)", Float) = 0.0
+        [ToggleOff(_SPECULAR_SETUP)] _WorkflowMode("Metallic Workflow (off = Specular)", Float) = 1.0
         [Toggle(_METALLICSPECGLOSSMAP)] _SpecGlossMapOn("Use Metallic / Specular Map", Float) = 0.0
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
         [Toggle(_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A)] _SmoothnessTextureChannel("Smoothness From Base Alpha", Float) = 0.0
-        [Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
+        _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _MetallicGlossMap("Metallic (R) Smoothness (A)", 2D) = "white" {}
         _SpecColor("Specular", Color) = (0.2, 0.2, 0.2)
         _SpecGlossMap("Specular (RGB) Smoothness (A)", 2D) = "white" {}
@@ -58,8 +61,7 @@ Shader "BuddahGo/Lit"
         [HideInInspector] _ZWrite("__zw", Float) = 1.0
         [HideInInspector] _QueueOffset("Queue Offset", Float) = 0.0
 
-        // Kept for URP Lit layout compatibility (constant buffer and material copies); not used by this shader.
-        [HideInInspector] _WorkflowMode("WorkflowMode", Float) = 1.0
+        // Kept so the constant buffer matches URP Lit's layout and URP Lit values survive a shader switch; not used.
         [HideInInspector] _DetailMask("Detail Mask", 2D) = "white" {}
         [HideInInspector] _DetailAlbedoMapScale("Scale", Range(0.0, 2.0)) = 1.0
         [HideInInspector] _DetailAlbedoMap("Detail Albedo x2", 2D) = "linearGrey" {}
@@ -306,4 +308,5 @@ Shader "BuddahGo/Lit"
     }
 
     FallBack "Hidden/Universal Render Pipeline/FallbackError"
+    CustomEditor "BuddahGo.Rendering.Editor.BuddahGoLitShaderGUI"
 }

@@ -1,8 +1,8 @@
 #ifndef BUDDAHGO_LIT_INPUT_INCLUDED
 #define BUDDAHGO_LIT_INPUT_INCLUDED
 
-// Material inputs for BuddahGo/Lit. Follows URP 14's Shaders/LitInput.hlsl so URP Lit materials switch shader without
-// losing a value and URP's stock ShadowCaster, GBuffer, DepthOnly, DepthNormals and Meta passes compile unchanged:
+// Material inputs for BuddahGo/Lit. Follows URP 14's Shaders/LitInput.hlsl so URP Lit material values carry over and
+// URP's stock ShadowCaster, GBuffer, DepthOnly, DepthNormals and Meta passes compile unchanged:
 // metallic and specular workflows, parallax, occlusion and emission. The detail-map and clear-coat properties stay in
 // the constant buffer for layout compatibility, but their keywords are not compiled. Added at the end of the buffer:
 // the BuddahGo indirect-lighting controls used by BuddahGoLighting.hlsl. No DOTS instancing (the project has no
@@ -33,7 +33,7 @@ CBUFFER_START(UnityPerMaterial)
     half _DetailNormalMapScale;
     half _Surface;
     // BuddahGo indirect lighting (0 = stock URP Lit behaviour for each term).
-    half _SpecularOcclusion;    // 1 = Lagarde specular occlusion from material AO x SSAO
+    half _SpecularOcclusion;    // 1 = Lagarde specular occlusion from min(material AO, SSAO)
     half _MultiBounceAO;        // 1 = albedo-aware multi-bounce diffuse occlusion
     half _HorizonOcclusion;     // 1 = fade reflections that a normal map pushes below the surface
     half _ShadowedReflections;  // 1 = environment reflections fully darkened inside the main light's shadow

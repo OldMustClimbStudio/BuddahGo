@@ -9,19 +9,13 @@
 //   * _SpecularOcclusion: specular occlusion after Lagarde & de Rousiers ("Moving Frostbite to PBR", 2014): rough
 //     surfaces are occluded like diffuse, smooth ones only where the view grazes an occluded area;
 //   * _HorizonOcclusion: fades reflection vectors that a normal map has pushed below the geometric surface;
-//   * _ShadowedReflections: darkens the environment reflection inside the main light's realtime shadow. Not physical
-//     (the sky is still visible from a shadowed floor), but it lets a cast shadow read on a polished floor, whose
-//     brightness is mostly reflected sky. It is a gameplay-readability control for the RaceMap lane.
-// Both occlusion terms take the combined material AO x screen-space AO, the value stock Lit applies flat.
+//   * _ShadowedReflections: darkens the environment reflection inside the main light's shadow (its shadow
+//     attenuation: realtime, plus baked shadowmask in Shadowmask or Subtractive scenes). Not physical (the sky is
+//     still visible from a shadowed floor), but it lets a cast shadow read on a polished floor, whose brightness is
+//     mostly reflected sky. It is a gameplay-readability control for the RaceMap lane.
+// Both occlusion terms take URP's indirect occlusion, min(material AO, SSAO), the value stock Lit applies flat.
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
-// Lagarde specular occlusion: the exponent tightens the occlusion cone as roughness falls.
-half BuddahGoSpecularOcclusion(half NoV, half ambientOcclusion, half perceptualRoughness)
-{
-    half roughness = perceptualRoughness * perceptualRoughness;
-    return saturate(pow(NoV + ambientOcclusion, exp2(-16.0h * roughness - 1.0h)) - 1.0h + ambientOcclusion);
-}
 
 half3 BuddahGoGlobalIllumination(BRDFData brdfData, half3 bakedGI, half occlusion, float3 positionWS,
                                  half3 normalWS, half3 vertexNormalWS, half3 viewDirectionWS,
@@ -37,7 +31,8 @@ half3 BuddahGoGlobalIllumination(BRDFData brdfData, half3 bakedGI, half occlusio
 
     // Indirect specular: reflection probes or the sky. Stock Lit multiplies by occlusion flat.
     half3 indirectSpecular = GlossyEnvironmentReflection(reflectVector, positionWS, brdfData.perceptualRoughness, 1.0h, normalizedScreenSpaceUV);
-    half specularOcclusion = lerp(occlusion, BuddahGoSpecularOcclusion(NoV, occlusion, brdfData.perceptualRoughness), _SpecularOcclusion);
+    // Lagarde specular occlusion from the core library (the exponent tightens the cone as roughness falls).
+    half specularOcclusion = lerp(occlusion, GetSpecularOcclusionFromAmbientOcclusion(NoV, occlusion, brdfData.roughness), _SpecularOcclusion);
     half horizon = saturate(1.0h + dot(reflectVector, vertexNormalWS));
     specularOcclusion *= lerp(1.0h, horizon * horizon, _HorizonOcclusion);
     specularOcclusion *= lerp(1.0h, mainLightShadow, _ShadowedReflections);
@@ -73,13 +68,20 @@ half4 BuddahGoFragmentPBR(InputData inputData, SurfaceData surfaceData, half3 ve
     uint meshRenderingLayers = GetMeshRenderingLayer();
     Light mainLight = GetMainLight(inputData, shadowMask, aoFactor);
 
+    // The shadow that darkens reflections only applies where the main light lights this mesh.
+    half reflectionShadow = mainLight.shadowAttenuation;
+#ifdef _LIGHT_LAYERS
+    if (!IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))
+        reflectionShadow = 1.0h;
+#endif
+
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI);
 
     LightingData lightingData = CreateLightingData(inputData, surfaceData);
     lightingData.giColor = BuddahGoGlobalIllumination(brdfData, inputData.bakedGI, aoFactor.indirectAmbientOcclusion,
                                                       inputData.positionWS, inputData.normalWS, vertexNormalWS,
                                                       inputData.viewDirectionWS, inputData.normalizedScreenSpaceUV,
-                                                      mainLight.shadowAttenuation);
+                                                      reflectionShadow);
 
 #ifdef _LIGHT_LAYERS
     if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))

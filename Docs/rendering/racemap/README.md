@@ -7,9 +7,9 @@ The showcase itself is documented in [../showcase/README.md](../showcase/README.
 | Phase | Scope | State |
 |---|---|---|
 | 1 | Lighting and environment with stock URP Lit | done, approved 2026-10-26 (afternoon checkpoint) |
-| 1b | Sunset re-tune: the user asked on 2026-10-26 for the final look to read as a sunset | done, awaiting review |
-| 2 | Screen-space reflections and the shadow-distance policy | done, awaiting review |
-| 3 | Hand-written Lit for RaceMap's materials | not started |
+| 1b | Sunset re-tune: the user asked on 2026-10-26 for the final look to read as a sunset | done, approved, committed |
+| 2 | Screen-space reflections and the shadow-distance policy | done, approved, committed |
+| 3 | Hand-written `BuddahGo/Lit` for RaceMap's marble and sand | done |
 | 4 | Final review, docs, commit proposal | not started |
 
 ## How to compare
@@ -328,11 +328,84 @@ views show almost no sky.
 After a script reopens RaceMap (`EditorSceneManager.OpenScene`), the editor renders the sky's environment reflection
 wrongly until a bake runs or play mode is entered and left once. The lane comes out about 20% darker, and the curbs
 and shadowed sand darker too. Play mode, which reloads the domain and the scene as a build does, shows the correct
-state; a RaceMap player build was not checked, and opening the scene by hand or at editor start-up was not tested.
+state, and so does RaceMap opened at editor start-up (checked in phase 3); a RaceMap player build was not checked, and
+opening the scene by hand was not tested.
 Quick check: in `01_start_grid` the lane patch x 1000-1200, y 760-860 averages about (93, 68, 78) when correct and
 (76, 55, 66) in the wrong state. Ambient, probes, probe blending, reflection textures and the volume stack were identical in both states. A
 first phase-2 capture taken in that state looked like a shadow-distance problem until this was found. Capture after a
 bake or after a play-mode round trip.
+
+## Phase 3: BuddahGo/Lit for the marble and sand
+
+Images: [phase3_compare/all.jpg](phase3_compare/all.jpg) (phase 2 left, phase 3 right) and
+[phase3_evidence/](phase3_evidence/): `shadowed_reflections_sweep.jpg`, `ssr_on_buddahgo_lit.jpg`,
+`occlusion_terms_intro_sand.jpg`. Local only: `phase3_after/`. The change is deliberately small: the materials look
+the same, and only shadows on glossy surfaces and occluded spots differ.
+
+### The shader
+
+`Assets/Rendering/Shaders/BuddahGoLit.shader` (`BuddahGo/Lit`) with `BuddahGoLitInput.hlsl`, `BuddahGoLighting.hlsl`
+and `BuddahGoLitForwardPass.hlsl`, hand-written URP 14 HLSL promoted from the showcase's `Showcase/Lit`. What changed
+on the way to production:
+
+- **URP Lit's full input layout.** Metallic and specular workflows, parallax, occlusion and emission, with URP Lit's
+  property names, so a URP Lit material switches shader without losing a value. The showcase version was
+  metallic-only without parallax, and the curbs use the specular workflow while all three materials use parallax.
+- **URP 14.0.11's complete keyword set.** Soft-shadow quality levels, mixed and vertex SH evaluation, decal buffers,
+  light layers, rendering layers and debug display. The showcase version declared only `_SHADOWS_SOFT`, so URP's soft
+  shadow quality keywords would have fallen back to hard shadows.
+- **A GBuffer pass** (URP's `LitGBufferPass.hlsl`). SSR redraws opaque objects with it in the Forward path; the
+  showcase version had none, so SSR would have treated those surfaces as non-reflective.
+- **Stock passes reused unchanged:** ShadowCaster, GBuffer, DepthOnly, DepthNormals, Meta. Direct lighting, light
+  layers, Forward+ and the colour assembly mirror URP's `UniversalFragmentPBR`.
+
+The indirect term has four material weights; 0 reproduces stock URP Lit for each:
+
+| Weight | Effect |
+|---|---|
+| `_SpecularOcclusion` | Specular occlusion after Lagarde & de Rousiers (2014), from material AO x SSAO: rough surfaces are occluded like diffuse, smooth ones only where the view grazes an occluded area |
+| `_MultiBounceAO` | Albedo-aware multi-bounce diffuse occlusion (Jimenez et al. 2016), so creases keep bounced colour |
+| `_HorizonOcclusion` | Fades reflection vectors that the normal map pushes below the surface |
+| `_ShadowedReflections` | New in production: darkens the environment reflection inside the main light's realtime shadow. Not physical (a shadowed floor still sees the sky), but on a polished floor, whose brightness is mostly reflected sky, it is what lets a cast shadow read. A gameplay-readability control |
+
+The material inspector is Unity's default one. Each keyword has a toggle on a URP Lit property name
+(`_NormalMapOn`, `_SpecularSetup`, `_SpecularHighlights`, ...); scripts that set those floats call
+`MaterialEditor.ApplyMaterialPropertyDrawers` afterwards.
+
+### The materials
+
+| Material (`Assets/Scenes/RaceMap/Materials/`) | Copied from | Used by | Weights (specular / multi-bounce / horizon / shadowed reflections) |
+|---|---|---|---|
+| `RaceMap_Lane` | `Map_subsMarble_graph_0_material` | the lane `地图_2/15` and `EndField/Floor` | 1 / 1 / 1 / 0.75 |
+| `RaceMap_Curb` | `Map_subsMarble 1_graph_0_material` (specular workflow) | the curb strips `Map/2` | 1 / 1 / 1 / 0 |
+| `RaceMap_Sand` | `Desert_Sand 1_graph_0_material` | the sand plane `沙地` (static, lightmapped) | 1 / 1 / 1 / 0 |
+
+The originals stay untouched: the Substance plugin's graph assets (`MapSubstances/*_graph_0/graph_0.asset`) reference
+them and may regenerate them. The copies keep the Substance textures, so a re-rendered graph still updates them.
+
+**Checks.**
+
+- **Identity.** With all four weights at 0, the five views differ from the stock materials by at most 2 levels
+  (dithering noise) and the keyword sets match exactly.
+- **Shadowed reflections on the lane.** Player shadow against lane (WCAG): 1.28 at 0, 1.48 at 0.5, 1.59 at 0.75 and
+  1.71 at 1.0. At 1.0 the shadowed lane turns matte, so 0.75 was kept (`shadowed_reflections_sweep.jpg`). Lane, curb
+  and sand in open areas do not change.
+- **Occlusion terms.** They mostly calm the sand's grazing glitter: the foreground ripple crests and the far infield
+  ripples (`occlusion_terms_intro_sand.jpg`). The lane barely changes.
+- **SSR.** It still reflects the player on the lane with both the no-MSAA and the 8x MSAA paths
+  (`ssr_on_buddahgo_lit.jpg`).
+- **Cost.** No measurable difference in two paired runs at 1080p 8x MSAA: stock 4.60 / 4.65 ms, BuddahGo/Lit
+  4.52 / 4.65 ms.
+- **Rebaked.** The reflection probe sees the new shading. The sand's Meta pass is unchanged, so its lightmap only
+  shows bake noise.
+
+**Water.** RaceMap has none: no object, material or shader matches water, ocean, river, lake, pool or 水, and its
+renderers use only `BuddahGo/Lit`, URP Lit and the edge ribbons' `SG_MapEdge`. The showcase's `Showcase/Water` is
+therefore not needed here.
+
+**Not migrated** (outside the brief's three materials, all URP Lit): the torii arch (URP's default `Lit.mat`,
+static), the plane 293 m below the map (default `Lit.mat`, static), the FBX pillar material `材质.004`, and three
+`LightDebugObject` spheres (see known limits).
 
 ## Known limits and open items (current state)
 
@@ -340,13 +413,12 @@ bake or after a play-mode round trip.
   its fade phases), the trails, FishNet making RaceMap the active scene, and the sunset in motion were checked in code,
   data and editor captures only.
 - **Player shadow on the lane.** At a 10 deg sun the player's shadow is a long, thin streak across the lane, curb and
-  sand. On the polished lane it is weak (1.28 against the lane) because the sky reflection is not shadowed. A fix needs
-  the lane material (phase 3), specular occlusion or a contact shadow.
+  sand. Phase 3's shadowed reflections raised it from 1.28 to 1.59 against the lane; a contact shadow would add more.
 - **Track colour.** The lane (`地图_2/15`, `Map_subsMarble_graph_0_material`) is a polished, near-mirror dielectric
   (smoothness about 0.93) with a dark base colour (sRGB about 0.37). At sunset it reads mauve-violet, and lane/curb
-  contrast is 1.88. The curb strips (`Map/2`, `Map_subsMarble 1_graph_0_material`) are a rough specular-workflow surface
-  (smoothness about 0.06, 4% reflectance) with a darker base (about 0.19). A lighter lane is a material decision
-  (phase 3).
+  contrast is 1.88 (unchanged by phase 3). The curb strips (`Map/2`, `Map_subsMarble 1_graph_0_material`) are a rough specular-workflow surface
+  (smoothness about 0.06, 4% reflectance) with a darker base (about 0.19). A lighter lane is a material (art) decision; phase 3
+  kept the colours.
 - **The track's own shadow.** The raised track (its top 2.62 m above the sand) casts a band about 15 m wide onto the sand
   on the side away from the sun, which reads as a second edge. Inside the corners it shows the slab outline's straight
   segments as blocky shapes. This is geometry, traced to the lane mesh's side walls.
@@ -371,6 +443,9 @@ bake or after a play-mode round trip.
   ambient (in the arch's shadow, see the probe paragraph). If unwanted, let the track meshes contribute GI in the bake
   (static Contribute GI, Receive GI = Light Probes).
 - **Sand stripes.** The regular stripes are the sand texture's tiling, unchanged (material question).
+- **Debug spheres in RaceMap.** `LightDebugObject` (three 20 m spheres with `Mat_Metal`, `Mat_Gray18`, `Mat_White`)
+  is active at about (320, 37, 0), near the torii, since the project's first import (8c2d457). Not touched; check
+  whether any in-game camera sees it.
 - **Remaining Oasis references.** `MainLight` still uses the Oasis sun lens flare asset, and the disabled `Oasis Fog`
   object keeps its component.
 - **Edge ribbons and the curtain.** The edge ribbons cast no shadows. When the black curtain makes them visible they
@@ -389,6 +464,7 @@ bake or after a play-mode round trip.
 | `Tools/rendering/build_racemap_compare.py` | Labelled JPEG side-by-sides |
 | `Assets/Rendering/Shaders/SunsetSky.shader` | RaceMap's sunset sky (phase 1b) |
 | `Assets/Plugins/UnitySSReflectionURP/` | Screen-space reflections (third party, MIT, phase 2) |
+| `Assets/Rendering/Shaders/BuddahGoLit.shader` (+ 3 `.hlsl`) | The project's hand-written Lit (phase 3) |
 
 ## Re-tuning checklist
 

@@ -270,6 +270,8 @@ tags：`skill, balance`。
 | `Tools/design-tables/gen_records.py` | 不改脚本，重跑即生成 `YuanqiRecord`、`YuanqiEffectFrostLockRecord`、`YuanqiEffectGiantChargeRecord` 与 `ProjectConfigDatabase.yuanqis` 等列表 |
 | `Docs/design-tables/inventory-skills.md`、`excel-spec.md` §5 / §6.3 | 补表目录与消费方 |
 
+实现落点（2026-10-26，阶段 B）：`ModifierCommandType` 一共追加四个值 `Freeze` 8、`EndModifier` 9、`Burst` 10、`MaxSpeedMultiplier` 11（已有值同时按 C# 重新编号），`StackPolicy` 加 `Restart`。`Movement/ModifierRule` 相应加四行：`Freeze`（RefreshMaxDuration，技能重置时清）、`EndModifier`（瞬时命令，无叠加策略，不清）、`Burst`（Restart，技能重置时清）、`MaxSpeedMultiplier`（反噬惩罚的 ×0.85，RefreshMaxDurationOverwriteMagnitude，`resetOnSkillReset = false`）。
+
 ### 3.5 映射（消费方接通）
 
 把缘起列表放进现有 `SkillDatabase`（`public List<YuanqiAction> yuanqis`），而不是另建数据库。理由：复用 `EnsureDesignTablesApplied` 的“每局 Play 首次查表时写入 SO、编辑器退出 Play 恢复资产”（决定 24），避免再出现一次 10 秒对 3 秒那种时机 bug。
@@ -278,7 +280,7 @@ tags：`skill, balance`。
 |---|---|---|
 | `Yuanqi` 行 | `Yuanqi_*` SO 的 `skillA / skillB / consumeA / consumeB / mode / retriggerPolicy / isEnabled` | `DesignTableOverlay.ApplyMapped`（显式列出，防止同名误写；决定 21） |
 | `YuanqiEffect<对>` 行 | 同名字段 | `DesignTableOverlay.Apply`（与 `ApplyFamily` 同款） |
-| 文案 | `SkillDatabase.GetResolvedYuanqiName(id)` → `DesignTableOverlay.Text(key, so.displayName)` | 选技能界面与 HUD 用 |
+| 文案 | `SkillDatabase.GetYuanqiDisplayName(id)` → `DesignTableOverlay.Text(key, so.displayName)`；说明文字 `GetYuanqiDescription(id, fallback)` | 选技能界面与 HUD 用 |
 
 `YuanqiRegistry` 开局登记时只读 SO（已被表覆盖），不直接读表，和 `SkillExecutor` 读 `SkillAction` 一个道理。
 
@@ -287,6 +289,8 @@ tags：`skill, balance`。
 - `skillA != skillB`；两招都是普通技能（不是 `_anti`，A4 之后 `_anti` 行本来就删了）。
 - 无序唯一：`{skillA, skillB}` 作为集合在表内唯一。
 - `consumeA / consumeB` 至少有定义（都 false 合法 = 两招照常持续）；`mode = Sustained` 时两者必须都 false（持续型没有“被消耗”的说法）。
+
+实现落点（2026-10-26，wave 3 复审修正）：`skillA / skillB` 也必填（留空导入成空串，`YuanqiCatalog.ForLoadout` 会静默丢掉这一对）；Sustained 判断按导入时的解析（名字不分大小写，或枚举值，`1` 也是 Sustained）。消耗什么只由 `consumeA / consumeB` 决定：一对只决定时机，调用 `ctx.ConsumeConfigured`（#4 在突进之前，#2 在禁锢之后），登记处在 `OnTriggerServer` 之后按同样的标志再调一次（幂等）；一对的类不再无条件 `ConsumeA / ConsumeB`。所以表里两招谁写在 A 列都行（`ctx.EntryA` 总是 `skillA`），改消耗标志也不会被代码忽略。
 - 每张家族表的 `yuanqiId` 必须存在于 `Yuanqi`，且对应 SO 的类名与家族匹配（像 `EffectDurationField` 那样按类型表驱动）。
 - 设计约束“避免三招两两互有效果”：对任何三个普通技能，若三对都在表里且 `isEnabled`，报 Warning（不是 Error，留给设计判断）。
 
@@ -391,6 +395,16 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → board.Begin(acceleration
 | 冻结期间的 HUD | owner 自己从 `IsFrozen` 倒计时；A6 的 `SkillSlotUI` 在冻结时显示锁 | — |
 | 触发提示 | A6 范围：施法者 HUD 弹缘起名（`yuanqi.frost_lock.name`） | — |
 
+实现落点（2026-10-26，wave 3）：用户定了表现层这一轮只做接口、不做新特效。wave 2 的程序化占位画面（冰盘、冰块，`Yuanqi/Presentation/YuanqiPlaceholderVisual`）已删除，`Yuanqi_FrostLock` 不再自己画任何东西。美术以后从下面这些接口挂特效，各端都能读到：
+
+- **缘起触发**：`SkillExecutor.YuanqiObserved(yuanqiId, payload, localIsCaster)`，由已有的缘起 ObserversRpc 发出。`YuanqiPresentationPayload` 带中心、半径、秒数、目标 id，新增的 `Direction` 是水平方向（#4 的突进方向；这改了线上格式，协议仍是 v2）。施法者自己的 `LocalYuanqiTriggered` 不变。
+- **撞击**：`SkillExecutor.YuanqiImpactObserved(YuanqiImpactInfo)`（`YuanqiId`、`VictimObjectId`、`Point`、`Impulse`），由 `BuddahBodyImpact` 每记一次撞击发一次（末尾追加的 ObserversRpc）。
+- **冻结与突进**：`RacerSkillPresentationState`（运行时挂到每端每个 racer 上，`SkillExecutor.PresentationState` 或 `RacerSkillPresentationState.GetOrAdd(racer)`）提供 `FrozenChanged`、`BurstChanged`、`IsFrozen`、`FreezeSecondsLeft`、`IsBurstActive`、`BurstSecondsLeft`。开始立即报告，结束要持续 0.1 秒才报告，防止快照抖动。
+- **反噬惩罚**：`ObsessionFigure.BackfireStateChanged(bool)`，服务器和每个客户端各发一次，由同步的结束 tick 驱动，中途加入的客户端也会收到一次开始。
+- **准星地面点**：`BuddahHandControl.TryGetAimGroundPoint(out Vector3)`（owner，每帧采样一次），不画准星。
+
+不需要美术的“动作层”这一轮直接实现了：冻结期间该 racer 的 Animator 速度设为 0，解冻后恢复（各端）；双手停止转动：owner 忽略瞄准输入，服务器丢弃 `SetHandYawServerRpc` 和 AI 的旋转注入，解冻后 owner 补发一次手的朝向。#4 突进时施法者自己的相机有一次短 FOV 抖动（`Yuanqi_GiantCharge.casterFovKickDegrees` 8 度，保持 0.15 秒，0.65 秒回落，待试玩调）。
+
 ### 4.8 参数与阶段 A 默认值
 
 | 字段 | 位置 | 阶段 A 占位值 | 备注 |
@@ -441,7 +455,7 @@ README 7.1 A5 给的整体顺序是“状态板 → 登记 → #4 → #2 → #1�
 
 - **突进**：新修饰命令 `Burst`（ValueA = 初始额外限速或初速，ValueB = 回落秒数；曲线从 SO / 表读，两端配置一致即可确定性）。resolver 在 Burst 生效期间把 `FinalMaxSpeed` 加上按剩余比例衰减的增量；起步那一下的速度用 `TryRouteImpulse(self)` 或在命令里直接 `SetPredictionVelocitiesSafely` 给到目标速度（二选一，实现时定）。
 - **撞击**：racer 上新组件 `BuddahBodyImpact`（服务器）监听 `OnCollisionEnter`，仅当本机 `IsBurstActive` 且对方是 Buddah 时，向对方 `TryRouteImpulse(M × Push.basic.impulseStrength)`，方向待 Q9；同一次突进每个受害者只记一次（`HashSet<int>` 随 Burst 开始清空）。
-- **收尾**：`ctx.HandleA(acceleration).Consume()`；金身不动。`Yuanqi_GiantCharge` 不需要 `OnEndServer`。
+- **收尾**：`ctx.HandleA(acceleration).Consume()`；金身不动。`Yuanqi_GiantCharge` 不需要 `OnEndServer`。实现（wave 3 复审）：突进前调 `ctx.ConsumeConfigured`，表行 `consumeA = true / consumeB = false` 决定只消耗神足通，与两招在表里的先后无关（见 3.6 末尾）。
 - **句柄改写**：不需要改写金身参数，撞击倍率由缘起模块自己持有。
 
 ### 5.2 #1 金身巨掌

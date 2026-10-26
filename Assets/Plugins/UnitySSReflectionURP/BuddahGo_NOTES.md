@@ -18,4 +18,5 @@
   (Deferred, no features) after their default renderer. No camera selects it. Removing it silently disables SSR in
   builds while the editor still shows it.
 - Used by: `URP-HighFidelity-Renderer` (75%) and `URP-Balanced-Renderer` (50%), the RaceMap post profile (volume
-  component), and the rendering showcase. Setup and tuning notes: `Docs/rendering/racemap/README.md`.
+  component), and the local rendering showcase (not in the repository). Setup and tuning notes:
+  `Docs/rendering/racemap/README.md`.

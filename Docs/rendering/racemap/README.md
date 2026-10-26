@@ -2,15 +2,33 @@
 
 Branch `refactor/vfx-optimization` · Unity 2022.3.55f1c1 · URP 14.0.11 · started 2026-10-25.
 This note tracks the phased move of the showcase look into the shipped map `Assets/Scenes/RaceMap.unity`.
-The showcase itself is documented in [../showcase/README.md](../showcase/README.md).
+The showcase that preceded it is documented in [../showcase/README.md](../showcase/README.md) (its Unity project
+stays local; only the note and images are in the repository).
 
 | Phase | Scope | State |
 |---|---|---|
-| 1 | Lighting and environment with stock URP Lit | done, approved 2026-10-26 (afternoon checkpoint) |
+| 1 | Lighting and environment with stock URP Lit | done, approved, committed |
 | 1b | Sunset re-tune: the user asked on 2026-10-26 for the final look to read as a sunset | done, approved, committed |
 | 2 | Screen-space reflections and the shadow-distance policy | done, approved, committed |
-| 3 | Hand-written `BuddahGo/Lit` for RaceMap's marble and sand | done |
-| 4 | Final review, docs, commit proposal | not started |
+| 3 | Hand-written `BuddahGo/Lit` for RaceMap's marble and sand | done, committed (on 2026-10-26 the user asked for phases 3 and 4 to run to the end without an approval stop) |
+| 4 | Final review of the whole branch, fixes, build and docs | done, committed |
+
+## Changes outside RaceMap
+
+Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach other scenes or every build:
+
+| Change | Effect elsewhere | Checked |
+|---|---|---|
+| `Buddah.prefab` `model` renderer casts two-sided shadows (phase 1) | the player's shadow in every scene | RaceMap captures |
+| `URP-HighFidelity` / `URP-Balanced`: shadow distance 220 m / 150 m (phase 2) | MainMenu and PropertySelection use the same assets | MainMenu identical, PropertySelection 1-px edge jitter |
+| `URP-HighFidelity-Renderer` / `URP-Balanced-Renderer`: SSR feature (phase 2) | none unless a volume enables SSR; only RaceMap's profile does | menu scenes have no SSR component |
+| `URP-KeepDeferredVariants-Renderer` in both renderer lists (phase 2) | builds keep the deferred shader variants: more variants, longer shader compile, never drawn | full player builds, stripping report below |
+| `Assets/Plugins/UnitySSReflectionURP/` (phase 2) | scripts compile into `Assembly-CSharp-firstpass` | build |
+| `Assets/Rendering/Shaders/` (sky, `BuddahGo/Lit`) and `Assets/Editor/Rendering/` | used only by RaceMap's materials; editor tools | build |
+
+Renderer index 1 in both pipeline assets is reserved for the Deferred keep-alive renderer; no camera may select it
+(`BlackCurtainViewController`'s renderer switching is off in RaceMap).
+
 
 ## How to compare
 
@@ -103,7 +121,8 @@ luminance) is 0.38-0.42 along the whole lap and at the end field, except about 4
 where the racing line drops to 0.23-0.28: that stretch lies in the 47 m arch's shadow, and the bake sees the shadowed
 sand under the lane (the track meshes are not static, so they take no part in the bake). Each probe-lit mesh takes one
 ambient sample at its bounds centre; for the kilometre-long lane and curb meshes those centres are in open air over the
-infield sand and sample the same 0.41.
+infield sand and sample the same 0.41. (These are the phase-1 afternoon values; the current numbers are under known
+limits.)
 
 **Why Baked Indirect.** Only three renderers are static (the sand plane, a plane 293 m below the map, the arch at the
 lap start), so the shadowmask had almost nothing to store, and its probe occlusion is what darkened the start grid.
@@ -122,7 +141,7 @@ an edit re-run the calibration or set the value from code.
 
 Three candidates were baked and rendered from the four viewpoints: golden hour (13 deg), afternoon (32 deg), midday
 (55 deg). Four independent judges (physical plausibility, gameplay readability, art direction, technical artifacts)
-scored them; all four picked the afternoon candidate (7-7.5/10; golden hour 4-6, midday 5-7, today's look 2-5).
+scored them; all four picked the afternoon candidate (7-7.5/10; golden hour 4-6, midday 5-7, the original look 2-5).
 The final values merge their tuning advice; where they conflicted (sun elevation 26-40 deg) the middle was taken.
 
 ### Review
@@ -259,7 +278,8 @@ asks for exactly this renderer. Checked with two Windows player builds of a one-
 exported `Temp/shader-stripping.json`: without the Deferred renderer URP Lit's GBuffer pass kept 0 of 8 vertex
 variants (no fragment variants); with it, 4 of 8 vertex and 32 of 40 fragment variants. It keeps the deferred shader
 variants in the build, so shader compile time and build size grow (the probe scene's variants went from 1945 to 2576);
-the renderer is created with the pipeline but never draws. SSR was not checked in a full RaceMap build.
+the renderer is created with the pipeline but never draws. The full player builds in phase 4 keep the GBuffer passes
+of URP Lit, `BuddahGo/Lit` and the player's `DefaultSkin` (see phase 4).
 
 **Tuning.** Object thickness was swept at 0.1, 0.25, 0.5, 0.75 and 1.0. Thin values speckle the lane's glossy side
 walls and stipple the grazing reflections in the intro. 1.0 stretches the head's reflection in gameplay. 0.75 was
@@ -335,6 +355,18 @@ Quick check: in `01_start_grid` the lane patch x 1000-1200, y 760-860 averages a
 first phase-2 capture taken in that state looked like a shadow-distance problem until this was found. Capture after a
 bake or after a play-mode round trip.
 
+### Review
+
+An adversarial review of phases 1b and 2 (four lenses, then one skeptic per high or medium finding) found one high
+finding: URP strips Lit's `GBuffer` pass from player builds unless a pipeline asset lists a Deferred renderer, so SSR
+would have done nothing in a build. The Deferred keep-alive renderer (see Setup) fixes it, and the phase 4 builds keep
+the passes. Also fixed from it: SSR in reflection-probe captures, preview cameras and OpenGL, and the per-frame writes
+into the shared `.mat` (the `[BuddahGo]` patches above); the sky's sun maths, now in full float precision; an evidence
+image cited for a curtain leak that it did not show (removed); the local PNG capture folders, now git-ignored; a
+capture-tool comment that claimed builds had been checked; SSR evidence on the shipped 8x MSAA path; and several
+statements in this note. Refuted by its skeptic: that the sky below the horizon, rendered brighter than the fog colour,
+shows on screen; no view shows that part of the sky.
+
 ## Phase 3: BuddahGo/Lit for the marble and sand
 
 Images: [phase3_compare/all.jpg](phase3_compare/all.jpg) (phase 2 left, phase 3 right) and
@@ -349,8 +381,10 @@ and `BuddahGoLitForwardPass.hlsl`, hand-written URP 14 HLSL promoted from the sh
 on the way to production:
 
 - **URP Lit's full input layout.** Metallic and specular workflows, parallax, occlusion and emission, with URP Lit's
-  property names, so a URP Lit material switches shader without losing a value. The showcase version was
-  metallic-only without parallax, and the curbs use the specular workflow while all three materials use parallax.
+  texture and value property names (`_WorkflowMode`, `_BumpMap`, `_Smoothness`, ...), so URP Lit values carry over.
+  The showcase version was metallic-only without parallax, and the curbs use the specular workflow while all three
+  materials use parallax. Limits: opaque or alpha-clipped only (no transparency, detail maps or clear coat, no
+  alpha-to-coverage).
 - **URP 14.0.11's complete keyword set.** Soft-shadow quality levels, mixed and vertex SH evaluation, decal buffers,
   light layers, rendering layers and debug display. The showcase version declared only `_SHADOWS_SOFT`, so URP's soft
   shadow quality keywords would have fallen back to hard shadows.
@@ -363,13 +397,18 @@ The indirect term has four material weights; 0 reproduces stock URP Lit for each
 
 | Weight | Effect |
 |---|---|
-| `_SpecularOcclusion` | Specular occlusion after Lagarde & de Rousiers (2014), from material AO x SSAO: rough surfaces are occluded like diffuse, smooth ones only where the view grazes an occluded area |
+| `_SpecularOcclusion` | Specular occlusion after Lagarde & de Rousiers (2014), from URP's indirect occlusion min(material AO, SSAO): rough surfaces are occluded like diffuse, smooth ones only where the view grazes an occluded area |
 | `_MultiBounceAO` | Albedo-aware multi-bounce diffuse occlusion (Jimenez et al. 2016), so creases keep bounced colour |
 | `_HorizonOcclusion` | Fades reflection vectors that the normal map pushes below the surface |
-| `_ShadowedReflections` | New in production: darkens the environment reflection inside the main light's realtime shadow. Not physical (a shadowed floor still sees the sky), but on a polished floor, whose brightness is mostly reflected sky, it is what lets a cast shadow read. A gameplay-readability control |
+| `_ShadowedReflections` | New in production: darkens the environment reflection inside the main light's shadow (its shadow attenuation: realtime, plus baked shadowmask in Shadowmask or Subtractive scenes; skipped where light layers exclude the mesh). Not physical (a shadowed floor still sees the sky), but on a polished floor, whose brightness is mostly reflected sky, it is what lets a cast shadow read. A gameplay-readability control |
 
-The material inspector is Unity's default one. Each keyword has a toggle on a URP Lit property name
-(`_NormalMapOn`, `_SpecularSetup`, `_SpecularHighlights`, ...); scripts that set those floats call
+New materials start with the weights at 1 / 1 / 1 / 0; set all four to 0 to match stock Lit exactly. The workflow
+toggle is URP's own `_WorkflowMode`; the map toggles (`_NormalMapOn`, `_ParallaxMapOn`, `_SpecGlossMapOn`,
+`_OcclusionMapOn`, `_EmissionOn`) are BuddahGo's own, because URP Lit derives those keywords in its custom inspector.
+`Assets/Editor/Rendering/BuddahGoLitShaderGUI.cs` draws the default inspector, carries a URP Lit material's keywords
+over to these toggles when its shader is switched (checked with a material using all seven: normal, parallax,
+occlusion, emission, specular map, specular workflow, alpha clip) and keeps the alpha-clip queue and RenderType tag in
+step. Scripts that set the toggle floats call `BuddahGoLitShaderGUI.CarryOverKeywords` or
 `MaterialEditor.ApplyMaterialPropertyDrawers` afterwards.
 
 ### The materials
@@ -407,18 +446,47 @@ therefore not needed here.
 static), the plane 293 m below the map (default `Lit.mat`, static), the FBX pillar material `材质.004`, and three
 `LightDebugObject` spheres (see known limits).
 
+## Phase 4: final review, builds and tests
+
+**Review.** An adversarial review of the whole branch (three lenses: `BuddahGo/Lit` against URP 14 Lit, phase 3
+integration, docs and PR readiness; one skeptic per finding) left no high or medium finding standing. Fixed from it:
+`_Metallic` lost a stray `[Gamma]`; switching a URP Lit material to `BuddahGo/Lit` kept the values but dropped the map
+and workflow keywords, so the workflow toggle is now URP's `_WorkflowMode` and `BuddahGoLitShaderGUI` carries the
+keywords over; specular occlusion uses the core library's guarded function; shadowed reflections respect light
+layers; an empty added-component override that phase 1's save left on the `UIprefap` instance was removed; URP's
+build keyword prefiltering in the two pipeline assets was committed; and several statements in this note were
+corrected (material names, the ambient dip on the sunset bake, the occlusion input, the showcase status).
+
+**Builds.** Two Windows (x64) player builds of MainMenu, PropertySelection and RaceMap:
+
+| Build | Result | Warnings | Time |
+|---|---|---|---|
+| With the local showcase in `Assets/` | succeeded, 0 errors | 66 (59 from the showcase's planar-reflection compute shader) | 7 min 22 s |
+| Showcase moved out of the project (the repository's tree) | succeeded, 0 errors | 7: the project's `SG_BlackCurtain` (2), URP's `StencilDeferred` (compiled because of the Deferred keep-alive renderer), the URP sample `Garden` scripts | 4 min 37 s |
+
+URP's stripping report (`Temp/shader-stripping.json`) for the second build keeps 7609 of 17870 variants, among them
+`BuddahGo/Lit` ForwardLit 48 vertex / 2176 fragment and GBuffer 16 / 256, URP Lit GBuffer 8 / 96, the player's
+`DefaultSkin` GBuffer 16 / 64, every pass of the SSR shader and the sunset sky. Player size 1.18 GB; no build of `dev`
+was made for comparison.
+
+**Tests.** The EditMode suite (`BuddahGo.Tests`) ran headless in batch mode on the final tree: 314 of 314 passed, none failed or skipped. It includes the serialized-RaceMap checks (spawns, layouts).
+
+**Not verified.** A match played in a player build (SSR, the black curtain, trails and the Feel shakers on screen),
+and Balanced or Performant in a player build.
+
 ## Known limits and open items (current state)
 
 - **Not verified by playing a match.** The WhiteBalance and curtain fixes, SSR under a real black curtain (including
   its fade phases), the trails, FishNet making RaceMap the active scene, and the sunset in motion were checked in code,
-  data and editor captures only.
+  data, editor captures and player builds only.
 - **Player shadow on the lane.** At a 10 deg sun the player's shadow is a long, thin streak across the lane, curb and
   sand. Phase 3's shadowed reflections raised it from 1.28 to 1.59 against the lane; a contact shadow would add more.
-- **Track colour.** The lane (`地图_2/15`, `Map_subsMarble_graph_0_material`) is a polished, near-mirror dielectric
+- **Track colour.** The lane (`地图_2/15`, `RaceMap_Lane`) is a polished, near-mirror dielectric
   (smoothness about 0.93) with a dark base colour (sRGB about 0.37). At sunset it reads mauve-violet, and lane/curb
-  contrast is 1.88 (unchanged by phase 3). The curb strips (`Map/2`, `Map_subsMarble 1_graph_0_material`) are a rough specular-workflow surface
+  contrast is 1.88 (unchanged by phase 3). The curb strips (`Map/2`, `RaceMap_Curb`) are a rough specular-workflow surface
   (smoothness about 0.06, 4% reflectance) with a darker base (about 0.19). A lighter lane is a material (art) decision; phase 3
-  kept the colours.
+  kept the colours. Values (tint, smoothness, tiling) are edited on the `RaceMap_*` copies; the textures come from the
+  Substance graphs in `Assets/Sources/地图/MapSubstances/`.
 - **The track's own shadow.** The raised track (its top 2.62 m above the sand) casts a band about 15 m wide onto the sand
   on the side away from the sun, which reads as a second edge. Inside the corners it shows the slab outline's straight
   segments as blocky shapes. This is geometry, traced to the lane mesh's side walls.
@@ -439,9 +507,11 @@ static), the plane 293 m below the map (default `Lit.mat`, static), the FBX pill
   effects are missing on the lower levels. Players
   still render (every renderer draws all layers). This predates these phases; Standalone defaults to High Fidelity and
   no game script switches quality levels.
-- **Lap-start ambient dip.** For about 40 m at the west end of the start arch the racing line gets 55-70% of the usual
-  ambient (in the arch's shadow, see the probe paragraph). If unwanted, let the track meshes contribute GI in the bake
-  (static Contribute GI, Receive GI = Light Probes).
+- **Ambient dip under the torii.** On the current sunset bake the lane-centre probes sit at a median ambient of 0.428
+  (L0 luminance; 10th-90th percentile 0.419-0.435). The only dip is under the torii arch, around x 280-320, z 150-215:
+  13 lane probes below 95% of the median, 4 below 85%, the lowest at 71%. The phase-1 afternoon bake had a deeper dip
+  (55-70%) at the west end of the arch. If unwanted, let the track meshes contribute GI in the bake (static Contribute
+  GI, Receive GI = Light Probes).
 - **Sand stripes.** The regular stripes are the sand texture's tiling, unchanged (material question).
 - **Debug spheres in RaceMap.** `LightDebugObject` (three 20 m spheres with `Mat_Metal`, `Mat_Gray18`, `Mat_White`)
   is active at about (320, 37, 0), near the torii, since the project's first import (8c2d457). Not touched; check

@@ -4,6 +4,12 @@
 // RaceMap needs FishNet to spawn players, so the capture places a temporary proxy of the player model (baked from
 // the Buddah prefab in an isolated prefab context, never instantiated with its network components) on the track
 // and renders a temporary camera that copies the gameplay camera's framing. Nothing is saved to the scene.
+//
+// Trap: right after a script reopens the scene (EditorSceneManager.OpenScene) the editor renders the sky's environment
+// reflection wrongly (the polished lane comes out about 20% darker) until a bake runs or play mode is entered and left
+// once. Play mode, which reloads like a build, shows the correct state (a RaceMap player build was not checked). Check:
+// in 01_start_grid the lane patch x 1000-1200, y 760-860 averages about (93, 68, 78) when correct, (76, 55, 66) when not.
+// Capture after a bake or after a play-mode round trip.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -72,6 +78,16 @@ namespace BuddahGo.Rendering.Editor
         /// <summary>Renders every viewpoint into Docs/rendering/racemap/&lt;label&gt;/. Returns one report line per image.</summary>
         public static string Capture(string label)
         {
+            return Capture(label, 1);
+        }
+
+        /// <summary>
+        /// Same as <see cref="Capture(string)"/> with an explicit MSAA sample count for the capture target. 1 keeps the
+        /// images comparable with the phase-0 captures; 8 matches the High Fidelity pipeline (some passes, e.g. SSR's
+        /// forward GBuffer, take a different path with MSAA).
+        /// </summary>
+        public static string Capture(string label, int msaaSamples)
+        {
             var scene = EditorSceneManager.GetActiveScene();
             if (scene.path != ScenePath)
                 return "FAILED: open " + ScenePath + " first (the capture never opens or saves scenes itself)";
@@ -100,7 +116,7 @@ namespace BuddahGo.Rendering.Editor
                     PlaceCamera(camera, view);
 
                     var path = Path.Combine(dir, view.Id + ".png");
-                    RenderToPng(camera, path);
+                    RenderToPng(camera, path, Mathf.Max(1, msaaSamples));
                     report.AppendLine(view.Id + ": " + path.Replace('\\', '/'));
 
                     if (proxy != null)
@@ -203,11 +219,11 @@ namespace BuddahGo.Rendering.Editor
             return camera;
         }
 
-        static void RenderToPng(Camera camera, string path)
+        static void RenderToPng(Camera camera, string path, int msaaSamples)
         {
-            // No MSAA on purpose: every phase is compared with the phase-0 captures, which were taken without it.
-            // The game itself renders with the pipeline asset's MSAA (8x on High Fidelity).
-            var desc = new RenderTextureDescriptor(Width, Height, RenderTextureFormat.ARGB32, 24) { sRGB = true, msaaSamples = 1 };
+            // MSAA 1 by default on purpose: every phase is compared with the phase-0 captures, which were taken without
+            // it. The game itself renders with the pipeline asset's MSAA (8x on High Fidelity).
+            var desc = new RenderTextureDescriptor(Width, Height, RenderTextureFormat.ARGB32, 24) { sRGB = true, msaaSamples = msaaSamples };
             var rt = RenderTexture.GetTemporary(desc);
             var previous = RenderTexture.active;
             Texture2D tex = null;

@@ -191,8 +191,9 @@ internal sealed class OwnerMovementEffectApplier
         GameLog.Verbose($"[SkillExecutor][Target] Freeze (legacy root) for {durationSeconds}s");
     }
 
-    // Ends the shared acceleration deadline early (缘起 consumes 神足通). It also ends a slow-trap debuff on the
-    // same modifier slot; callers decide whether that is acceptable.
+    // Ends the acceleration buff early (缘起 consumes 神足通). Prediction path: the motor's EndModifier(Acceleration)
+    // acts only on positive extras, so a slow-trap debuff in the same slot keeps running. The legacy owner path below
+    // (CancelAndRestore) drops the merged effect, slow included.
     internal void EndAccelerationServer()
     {
         if (_owner.UsePredictionMovementBridge() && _owner.PredictionMovementBridge != null)

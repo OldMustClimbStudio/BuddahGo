@@ -96,6 +96,32 @@ public class Skill_PushProjectileHands : SkillAction
         if (localCasterBuffFovBoost <= 0f)
             return;
 
-        caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, buffDurationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve);
+        // Tagged with the skill id so a 缘起 consume settles the boost only while this skill still owns the FOV slot.
+        caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, buffDurationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve, skillId);
+    }
+
+    public override ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster)
+    {
+        if (caster == null)
+            return null;
+        BuddahHandControl handControl = caster.GetComponent<BuddahHandControl>();
+        return handControl != null ? new ProjectileHandsRuntimeHandle(caster, handControl, skillId) : null;
+    }
+
+    // 缘起 consumed the buff: every peer drops the local charged-push mode (owner cooldown / delay, observers' charged
+    // visual) and the owner's FOV boost settles early.
+    public override void ExecuteConsumedObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
+    {
+        if (caster == null)
+            return;
+
+        BuddahHandControl handControl = caster.GetComponent<BuddahHandControl>();
+        if (handControl != null)
+            handControl.EndProjectilePushModeLocal();
+
+        if (localIsCaster)
+            caster.SettleCameraFovBoostEarlyLocal(skillId, localCasterBuffFovSettleSeconds, localCasterBuffFovSettleCurve);
+
+        GameLog.Verbose($"[Skill_PushProjectileHands][Observers] '{skillId}' consumed (slot {slotIndex}), localIsCaster={localIsCaster}");
     }
 }

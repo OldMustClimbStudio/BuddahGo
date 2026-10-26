@@ -68,4 +68,35 @@ internal static class SkillCameraFov
 
         onComplete();
     }
+
+    /// <summary>
+    /// Settle-only pulse: eases the FOV offset from <paramref name="fromOffset"/> (the current value) to 0, the same
+    /// way Run's settle phase does. Used when a 缘起 consumes the skill that owns the FOV boost.
+    /// </summary>
+    internal static IEnumerator RunSettle(Func<PlayerCamera> getCamera, Action onComplete,
+        float fromOffset, float settleSeconds, AnimationCurve settleCurve)
+    {
+        AnimationCurve resolvedSettleCurve = settleCurve ?? AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
+        float safeSettleSeconds = Mathf.Max(0.001f, settleSeconds);
+        float elapsed = 0f;
+        while (elapsed < safeSettleSeconds)
+        {
+            if (getCamera() == null)
+            {
+                onComplete();
+                yield break;
+            }
+
+            float normalizedTime = Mathf.Clamp01(elapsed / safeSettleSeconds);
+            float curveValue = Mathf.Clamp01(resolvedSettleCurve.Evaluate(normalizedTime));
+            getCamera().SetRuntimeFieldOfViewOffset(fromOffset * curveValue);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        if (getCamera() != null)
+            getCamera().SetRuntimeFieldOfViewOffset(0f);
+
+        onComplete();
+    }
 }

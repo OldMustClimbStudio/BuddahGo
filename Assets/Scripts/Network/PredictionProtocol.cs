@@ -13,7 +13,9 @@ namespace SteamMultiplayer.Network
     //        FreezeUntilTick, BurstUntilTick/BurstDurationTicks/BurstExtraMaxSpeed,
     //        MaxSpeedPenaltyUntilTick/MaxSpeedPenaltyMultiplier and ComputedStats gains IsFrozen /
     //        IsBurstActive / IsMaxSpeedPenaltyActive (reconcile payload); new SkillExecutor TargetRpcs
-    //        and ObserversRpcs, the anti-skill RPC removed, new backfire SyncVars.
+    //        and ObserversRpcs, the anti-skill RPC removed, new backfire SyncVars; 缘起 (wave 2) appends
+    //        SkillExecutor.SkillConsumedObserversRpc / YuanqiObserversRpc (YuanqiPresentationPayload) and
+    //        SkillVfxReplicator.StopVfxAllObserversRpc, and impulse source BodyImpact=5.
     public static class PredictionProtocol
     {
         public const int Version = 2;

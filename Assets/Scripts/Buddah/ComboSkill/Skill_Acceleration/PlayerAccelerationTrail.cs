@@ -50,6 +50,22 @@ public class PlayerAccelerationTrail : MonoBehaviour
         EnsureTrailVisible();
     }
 
+    /// <summary>
+    /// 缘起 consumed the acceleration: stop emitting now and fade the existing trail out normally
+    /// (ClearTrail is the instant variant used by resets).
+    /// </summary>
+    public void EndEarly()
+    {
+        _activeUntilTime = 0f;
+
+        if (trailRenderers == null || trailRenderers.Length == 0)
+            return;
+
+        // Inactive: Update starts the same fade once the object runs again (coroutines need an active object).
+        if (_isTrailVisible && _fadeOutRoutine == null && isActiveAndEnabled)
+            StartFadeOut();
+    }
+
     public void NotifyTeleportRebase()
     {
         if (trailRenderers == null || trailRenderers.Length == 0)

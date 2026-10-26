@@ -18,7 +18,12 @@ public class SkillDatabase : ScriptableObject
     [Tooltip("Backward-compatible list. Runtime will merge this list with Normal Skills.")]
     public List<SkillAction> skills = new();
 
+    [Header("缘起 (Skill Pairs)")]
+    [Tooltip("Every 缘起 pair asset. YuanqiCatalog picks the enabled pairs fully inside a loadout; observers resolve presentations by yuanqiId.")]
+    public List<YuanqiAction> yuanqis = new();
+
     private Dictionary<string, SkillAction> _byId;
+    private Dictionary<string, YuanqiAction> _yuanqiById;
 
     private void OnEnable()
     {
@@ -39,6 +44,25 @@ public class SkillDatabase : ScriptableObject
         EnsureDesignTablesApplied();
 
         return _byId.TryGetValue(skillId, out skill);
+    }
+
+    /// <summary>All 缘起 pair assets (table values applied in play, like the skills). Filter with YuanqiCatalog.ForLoadout.</summary>
+    public IReadOnlyList<YuanqiAction> GetYuanqis()
+    {
+        if (_byId == null)
+            RebuildLookup();
+        EnsureDesignTablesApplied();
+        return yuanqis;
+    }
+
+    public bool TryGetYuanqi(string yuanqiId, out YuanqiAction action)
+    {
+        action = null;
+        if (_byId == null || _yuanqiById == null)
+            RebuildLookup();
+        EnsureDesignTablesApplied();
+        string id = (yuanqiId ?? string.Empty).Trim();
+        return id.Length > 0 && _yuanqiById.TryGetValue(id, out action) && action != null;
     }
 
     public List<SkillAction> GetSelectableNormalSkills()
@@ -223,6 +247,7 @@ public class SkillDatabase : ScriptableObject
         _byId = new Dictionary<string, SkillAction>();
         AddListToLookup(normalSkills, "normalSkills");
         AddListToLookup(skills, "skills");
+        RebuildYuanqiLookup();
         _tablesApplied = false;
         EnsureDesignTablesApplied();
     }
@@ -249,8 +274,9 @@ public class SkillDatabase : ScriptableObject
 #if UNITY_EDITOR
     // The overlay writes into the skill assets themselves; in the editor those are the project assets, so restore
     // their serialized values when Play Mode ends (otherwise the inspector and the drift validator would show the
-    // table values, and any later save of the asset would bake them in).
-    private readonly Dictionary<SkillAction, string> _editorSnapshots = new Dictionary<SkillAction, string>();
+    // table values, and any later save of the asset would bake them in). The 缘起 assets are included: phase B
+    // overlays their table rows the same way.
+    private readonly Dictionary<ScriptableObject, string> _editorSnapshots = new Dictionary<ScriptableObject, string>();
 
     private void SnapshotSkillAssetsForEditor()
     {
@@ -259,6 +285,10 @@ public class SkillDatabase : ScriptableObject
         foreach (SkillAction skill in _byId.Values)
             if (skill != null && !_editorSnapshots.ContainsKey(skill))
                 _editorSnapshots[skill] = JsonUtility.ToJson(skill);
+        if (yuanqis != null)
+            foreach (YuanqiAction yuanqi in yuanqis)
+                if (yuanqi != null && !_editorSnapshots.ContainsKey(yuanqi))
+                    _editorSnapshots[yuanqi] = JsonUtility.ToJson(yuanqi);
         if (_editorSnapshots.Count > 0)
             UnityEditor.EditorApplication.playModeStateChanged += RestoreSkillAssetsOnExit;
     }
@@ -268,7 +298,7 @@ public class SkillDatabase : ScriptableObject
         if (change != UnityEditor.PlayModeStateChange.ExitingPlayMode && change != UnityEditor.PlayModeStateChange.EnteredEditMode)
             return;
         UnityEditor.EditorApplication.playModeStateChanged -= RestoreSkillAssetsOnExit;
-        foreach (KeyValuePair<SkillAction, string> kv in _editorSnapshots)
+        foreach (KeyValuePair<ScriptableObject, string> kv in _editorSnapshots)
             if (kv.Key != null)
                 JsonUtility.FromJsonOverwrite(kv.Value, kv.Key);
         _editorSnapshots.Clear();
@@ -282,6 +312,7 @@ public class SkillDatabase : ScriptableObject
         _byId = new Dictionary<string, SkillAction>();
         AddListToLookup(normalSkills, "normalSkills");
         AddListToLookup(skills, "skills");
+        RebuildYuanqiLookup();
         ApplyDesignTablesToSkills();
     }
 
@@ -374,6 +405,28 @@ public class SkillDatabase : ScriptableObject
             }
 
             _byId.Add(skillId, skill);
+        }
+    }
+
+    private void RebuildYuanqiLookup()
+    {
+        _yuanqiById = new Dictionary<string, YuanqiAction>();
+        if (yuanqis == null)
+            return;
+
+        foreach (YuanqiAction yuanqi in yuanqis)
+        {
+            string id = yuanqi != null ? (yuanqi.yuanqiId ?? string.Empty).Trim() : string.Empty;
+            if (id.Length == 0)
+                continue;
+
+            if (_yuanqiById.ContainsKey(id))
+            {
+                Debug.LogWarning($"[SkillDatabase] Duplicate yuanqiId '{id}' in database (list=yuanqis).");
+                continue;
+            }
+
+            _yuanqiById.Add(id, yuanqi);
         }
     }
 

@@ -4,8 +4,11 @@ using UnityEngine;
 /// <summary>
 /// Server-side trap zone driven by trigger colliders parented to the caster.
 /// The trigger object is supplied by a prefab (made by designer) and attached at runtime.
+/// It is also the skill's 缘起 handle: Consume removes the zone at once and stops its zone VFX on every peer.
+/// Every server-side end of the zone (expiry, 缘起 consume, server-controlled reset) stops the zone VFX the same way,
+/// so the drawn zone never outlives the gameplay zone and its board entry (the SO VFX duration is only an upper bound).
 /// </summary>
-public class MovementSlowTrapZoneEffect : MonoBehaviour
+public class MovementSlowTrapZoneEffect : MonoBehaviour, ISkillRuntimeHandle
 {
     [Header("Runtime State")]
     [SerializeField] private float _zoneTimeLeft = 5f;
@@ -24,6 +27,58 @@ public class MovementSlowTrapZoneEffect : MonoBehaviour
     private GameObject _triggerPrefabSource;
     private GameObject _debugReferenceInstance;
     private GameObject _debugReferencePrefabSource;
+
+    // 缘起 handle state (server). The zone VFX instance is unparented, so the replicator stops it by id.
+    private string _skillId = "slowtrap";
+    private string _vfxId;
+    private float _zoneEndVfxLingerSeconds;
+    private bool _ended;
+
+    public string SkillId => _skillId;
+
+    public bool IsActive => !_ended && this != null && enabled;
+
+    internal void ConfigureRuntimeHandle(string skillId, string vfxId, float zoneEndVfxLingerSeconds)
+    {
+        if (!string.IsNullOrWhiteSpace(skillId))
+            _skillId = skillId.Trim();
+        _vfxId = vfxId;
+        _zoneEndVfxLingerSeconds = Mathf.Max(0f, zoneEndVfxLingerSeconds);
+    }
+
+    /// <summary>
+    /// Server: the zone ends now (缘起 consume, server-controlled reset). The trigger and debug children are switched
+    /// off this frame (no more slows) and destroyed with the component; the zone VFX stops on every peer. Victims keep
+    /// the slow they already carry.
+    /// </summary>
+    public void Consume(string reason)
+    {
+        if (_ended || this == null)
+            return;
+        EndZone(reason);
+    }
+
+    // The one server-side end of the zone. The replicator call is a no-op off the server.
+    private void EndZone(string reason)
+    {
+        _ended = true;
+
+        if (_triggerInstance != null)
+            _triggerInstance.SetActive(false);
+        if (_debugReferenceInstance != null)
+            _debugReferenceInstance.SetActive(false);
+
+        if (_caster != null && !string.IsNullOrWhiteSpace(_vfxId))
+        {
+            var vfx = _caster.GetComponent<SkillVfxReplicator>();
+            if (vfx != null)
+                vfx.StopVfxAll(_vfxId, _zoneEndVfxLingerSeconds);
+        }
+
+        enabled = false; // OnDisable destroys the trigger and debug instances
+        Destroy(this);
+        GameLog.Verbose($"[Skill_SlowTrap][Server] Zone ended on {name} ({reason}).");
+    }
 
     public void ApplyOrRefresh(
         SkillExecutor caster,
@@ -76,6 +131,10 @@ public class MovementSlowTrapZoneEffect : MonoBehaviour
 
     public void HandleTriggerTouch(Collider other)
     {
+        // An ended zone may still get this frame's trigger callbacks before it is destroyed.
+        if (_ended || !isActiveAndEnabled)
+            return;
+
         if (_caster == null || !_caster.IsServerInitialized || other == null)
             return;
 
@@ -110,8 +169,9 @@ public class MovementSlowTrapZoneEffect : MonoBehaviour
         }
 
         _zoneTimeLeft -= Time.deltaTime;
+        // Expiry stops the zone VFX too: the SO VFX lifetime (slowtrap 11 s) can outlast the table zone (6 s).
         if (_zoneTimeLeft <= 0f)
-            Destroy(this);
+            EndZone("expired");
     }
 
     private void EnsureTriggerInstance(GameObject triggerColliderPrefab)

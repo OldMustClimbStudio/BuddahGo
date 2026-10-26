@@ -57,4 +57,30 @@ public abstract class SkillAction : ScriptableObject
     {
         // optional
     }
+
+    // ---- 缘起 (skill state board) ----
+
+    /// <summary>
+    /// Server: when this execution counts as "生效中" on the caster's SkillStateBoard. Default: from execution, for the
+    /// table Skill.effectDurationSeconds (SO primary duration without tables); 0 registers nothing.
+    /// </summary>
+    public virtual SkillActiveWindow GetActiveWindow(SkillExecutor caster)
+    {
+        return new SkillActiveWindow(0f, caster != null ? caster.ResolveEffectDurationSeconds(skillId) : 0f);
+    }
+
+    /// <summary>
+    /// Server, right after ExecuteServer: the handle a 缘起 uses to consume (or rewrite) this execution's running effect.
+    /// Null = the skill cannot be consumed.
+    /// </summary>
+    public virtual ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster) => null;
+
+    /// <summary>
+    /// Every peer (host included): presentation of an early end after a 缘起 consumed the skill (trail, FOV, VFX...).
+    /// Presentation only; the server already ended the effect itself.
+    /// </summary>
+    public virtual void ExecuteConsumedObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
+    {
+        // optional
+    }
 }

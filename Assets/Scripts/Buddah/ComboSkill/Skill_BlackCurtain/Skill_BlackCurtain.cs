@@ -68,4 +68,10 @@ public class Skill_BlackCurtain : SkillAction
         GameLog.Verbose($"[Skill_BlackCurtain][Observers] Local player affected by '{skillId}' (slot {slotIndex})");
     }
 
+    // 缘起 "生效中" is the caster's hold phase only (README 5.1): it starts after the expansion and lasts the hold
+    // (table Skill.effectDurationSeconds → holdDurationSeconds); the fade-out does not count.
+    public override SkillActiveWindow GetActiveWindow(SkillExecutor caster)
+    {
+        return new SkillActiveWindow(expandDurationSeconds, holdDurationSeconds);
+    }
 }

@@ -12,7 +12,7 @@ using UnityEngine.InputSystem.Controls;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(NetworkObject))]
-public class BuddahHandControl : NetworkBehaviour
+public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
 {
     [Header("Input")]
     [Tooltip("Read from InputSystem_Actions -> Player -> HandPush (mouse left / right button; W / UpArrow deprecated) and HandRotation (LeftArrow / RightArrow, fallback when there is no mouse).")]
@@ -117,6 +117,15 @@ public class BuddahHandControl : NetworkBehaviour
     public float ServerPushCooldown => GetActivePushCooldownServer(IsProjectilePushModeActiveServer(), _projectileUseChargedRuntimeServer);
     public float ProjectileBuffSecondsLeft => IsServerInitialized ? Mathf.Max(0f, _projectilePushModeUntilServer - Time.time) : 0f;
 
+    /// <summary>Skill/Push "basic" impulseStrength (table value in play): the base of 缘起 impulse multipliers (#4's M).</summary>
+    public float BasicPushImpulseStrength => pushImpulseStrength;
+
+    /// <summary>
+    /// Server, #1 金身巨掌 (IHandsImpulseScale): while true, the charged-projectile impulse is multiplied by the same
+    /// body-scale sample that already sizes the projectile. Cleared by ResetSkillInputAndEffects.
+    /// </summary>
+    public bool ImpulseFollowsScale { get; set; }
+
     public bool CanPushServer(bool left) => IsServerInitialized && !IsMotorFrozen() && Time.time >= (left ? _nextPushServerTimeLeft : _nextPushServerTimeRight);
 
     public void InjectServerRotation(int axis, float tickDelta)
@@ -138,6 +147,25 @@ public class BuddahHandControl : NetworkBehaviour
         if (IsServerInitialized) ClearProjectilePushModeServer();
         ClearProjectilePushModeLocal();
         HandRotationAxis = 0f;
+        ImpulseFollowsScale = false;
+    }
+
+    /// <summary>
+    /// Server: 缘起 consumed the charged-push buff. Only the buff ends; pushes already in windup keep their snapshot
+    /// (no input generation bump), the impulse rewrite belongs to the 缘起 that set it.
+    /// </summary>
+    public void EndProjectilePushModeServer()
+    {
+        if (!IsServerInitialized)
+            return;
+        ClearProjectilePushModeServer();
+        GameLog.Verbose("[HandControl] Projectile push mode ended early on server (consumed).");
+    }
+
+    /// <summary>Every peer: drops the local charged-push mode (presentation side of a consumed buff).</summary>
+    public void EndProjectilePushModeLocal()
+    {
+        ClearProjectilePushModeLocal();
     }
     public void CancelPendingServerInput() { if (IsServerInitialized) _inputGeneration++; }
 
@@ -1015,7 +1043,9 @@ public class BuddahHandControl : NetworkBehaviour
     {
         Vector3 scaledColliderSize = projectileColliderSize * scaleMultiplier;
         Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
-        Vector3 impulse = dir * projectileImpulseStrength;
+        // #1 金身巨掌: the impulse follows the same scale sample as the size, uncapped.
+        float impulseScale = ImpulseFollowsScale ? scaleMultiplier : 1f;
+        Vector3 impulse = dir * (projectileImpulseStrength * impulseScale);
         GameObject chargedVisualPrefab = _projectileChargedVisualPrefabServer;
         string chargedProgressProperty = string.IsNullOrWhiteSpace(_projectileChargedProgressPropertyServer) ? DefaultChargedProjectileProgressProperty : _projectileChargedProgressPropertyServer;
 

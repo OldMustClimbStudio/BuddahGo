@@ -9,7 +9,12 @@ namespace NewBuddah.PredictionV2.Core
         Scale = 4,
         PushGrace = 5,
         SteeringSuppression = 6,
-        RoomBypass = 7
+        RoomBypass = 7,
+        // Mechanics update (PredictionProtocol v2). Explicit numbers: they cross the wire as TargetRpc ints.
+        Freeze = 8,
+        EndModifier = 9,
+        Burst = 10,
+        MaxSpeedMultiplier = 11
     }
 
     public struct BuddahPredictedModifierCommandData
@@ -95,6 +100,54 @@ namespace NewBuddah.PredictionV2.Core
             {
                 Type = BuddahPredictedModifierCommandType.RoomBypass,
                 ValueA = durationSeconds,
+                Source = source
+            };
+        }
+
+        public static BuddahPredictedModifierCommandData CreateFreeze(float seconds, string source)
+        {
+            return new BuddahPredictedModifierCommandData
+            {
+                Type = BuddahPredictedModifierCommandType.Freeze,
+                ValueA = seconds,
+                Source = source
+            };
+        }
+
+        // Ends an active modifier early (deadline = now). It never starts or extends anything.
+        public static BuddahPredictedModifierCommandData CreateEndModifier(BuddahPredictedModifierCommandType target, string source)
+        {
+            return new BuddahPredictedModifierCommandData
+            {
+                Type = BuddahPredictedModifierCommandType.EndModifier,
+                ValueA = (int)target,
+                Source = source
+            };
+        }
+
+        internal static BuddahPredictedModifierCommandType ReadEndModifierTarget(BuddahPredictedModifierCommandData command)
+        {
+            return (BuddahPredictedModifierCommandType)UnityEngine.Mathf.RoundToInt(command.ValueA);
+        }
+
+        public static BuddahPredictedModifierCommandData CreateBurst(float extraMaxSpeed, float seconds, string source)
+        {
+            return new BuddahPredictedModifierCommandData
+            {
+                Type = BuddahPredictedModifierCommandType.Burst,
+                ValueA = extraMaxSpeed,
+                ValueB = seconds,
+                Source = source
+            };
+        }
+
+        public static BuddahPredictedModifierCommandData CreateMaxSpeedMultiplier(float multiplier, float seconds, string source)
+        {
+            return new BuddahPredictedModifierCommandData
+            {
+                Type = BuddahPredictedModifierCommandType.MaxSpeedMultiplier,
+                ValueA = multiplier,
+                ValueB = seconds,
                 Source = source
             };
         }

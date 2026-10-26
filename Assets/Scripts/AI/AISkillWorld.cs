@@ -72,6 +72,8 @@ namespace BuddahGo.AI
                     || modifiers.PostRootAccelUntilTick > tick && modifiers.RootUntilTick <= tick && modifiers.PostRootAccelExtraForwardForce > 0f;
                 bool slowed = modifiers.AccelUntilTick > tick && (modifiers.AccelExtraForwardForce < 0f || modifiers.AccelExtraMaxSpeed < 0f);
                 float impaired = Mathf.Max(Remaining(modifiers.RootUntilTick, tick, delta), Remaining(modifiers.InvertTurnUntilTick, tick, delta));
+                // A freeze reports IsRooted; without its own deadline a frozen racer would read as rooted with 0 s left.
+                impaired = Mathf.Max(impaired, Remaining(modifiers.FreezeUntilTick, tick, delta));
                 if (slowed) impaired = Mathf.Max(impaired, Remaining(modifiers.AccelUntilTick, tick, delta));
                 if (stats.ScaleMultiplier < .99f) impaired = Mathf.Max(impaired, Remaining(modifiers.ScaleUntilTick, tick, delta));
                 // A speed drop is only a short observed window; never infer another racer's intent.

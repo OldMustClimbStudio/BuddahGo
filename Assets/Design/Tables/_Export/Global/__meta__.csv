@@ -2,20 +2,23 @@
 ##type,string#key,string#key,string,string,string
 ##group,,,,,
 ##comment,,,,实际值来源,
-,Skill,Skill,(生成) SkillRecord ← SkillDefinition + SkillBalance + SkillEffectParam 主时长,Assets/Data/Config/ProjectConfigDatabase_Main.asset; Assets/Skills_Assets/Skills/*.asset,2026-10-13 v2：身份、冷却/锁定/前摇、执念、主效果时长合一；behaviorType/iconKey/isSelectable/tags 四个死列删除
+,Skill,Skill,(生成) SkillRecord ← SkillDefinition + SkillBalance + SkillEffectParam 主时长,Assets/Data/Config/ProjectConfigDatabase_Main.asset; Assets/Skills_Assets/Skills/*.asset,2026-10-13 v2：身份、冷却/前摇、执念、主效果时长合一；2026-10-26 阶段 B：castLockSeconds、antiSkillId 两列与 6 行 *_anti 删除（反噬改为统一惩罚）
 ,Skill,SkillEffectAcceleration,(生成) SkillEffectAccelerationRecord,Assets/Skills_Assets/Skills/*.asset,主时长 durationSeconds 在 Skill.effectDurationSeconds
-,Skill,SkillEffectSlowTrap,(生成) SkillEffectSlowTrapRecord,Assets/Skills_Assets/Skills/*.asset,区域时长 zoneDurationSeconds / 定身时长 rootDurationSeconds 在 Skill.effectDurationSeconds；区域半径见 SkillConstant
+,Skill,SkillEffectSlowTrap,(生成) SkillEffectSlowTrapRecord,Assets/Skills_Assets/Skills/*.asset,区域时长 zoneDurationSeconds 在 Skill.effectDurationSeconds；区域半径见 SkillConstant
 ,Skill,SkillEffectBlackCurtain,(生成) SkillEffectBlackCurtainRecord,Assets/Skills_Assets/Skills/*.asset,保持时长 holdDurationSeconds 在 Skill.effectDurationSeconds
 ,Skill,SkillEffectGiant,(生成) SkillEffectGiantRecord,Assets/Skills_Assets/Skills/*.asset,持续 durationSeconds 在 Skill.effectDurationSeconds
-,Skill,Push,(生成) PushRecord ← BuddahHandControl + Skill_PushProjectileHands(_Anti),Assets/Character/Prefab/Buddah.prefab; Assets/Skills_Assets/Skills/Skill_PushProjectileHands*.asset,basic 行覆盖 BuddahHandControl，charged / charged_anti 行在 Play 模式覆盖两个技能 SO（SkillDatabase.ApplyDesignTables 的显式映射）
-,Skill,SkillPresentation,(新增) SkillPresentationRecord,Assets/Skills_Assets/Skills/*.asset,ReverseTurn/AccelerationAnti 的 vfx 字段代码从不播放
+,Skill,Push,(生成) PushRecord ← BuddahHandControl + Skill_PushProjectileHands,Assets/Character/Prefab/Buddah.prefab; Assets/Skills_Assets/Skills/Skill_PushProjectileHands.asset,basic 行覆盖 BuddahHandControl，charged 行在 Play 模式覆盖技能 SO（SkillDatabase 的显式映射）；2026-10-26 阶段 B：charged_anti 行与它专用的三列删除
+,Skill,SkillPresentation,(新增) SkillPresentationRecord,Assets/Skills_Assets/Skills/*.asset,ReverseTurn 的 vfx 字段代码从不播放；2026-10-26 阶段 B：6 行 *_anti 删除
 ,Skill,VfxRegistry,(新增) VfxRegistryRecord ← SkillVfxDatabase,Assets/Skills_Assets/SkillVfxDatabase.asset; RaceMap VfxStartupWarmup,
 ,Skill,FeelEvent,(新增) FeelEventRecord ← SkillFeelRouter.entries,Assets/Character/Prefab/Buddah.prefab,
 ,Skill,SkillSelectionRule,SkillSelectionRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,
 ,Skill,DefaultLoadout,DefaultLoadoutRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,运行时优先取此表（SkillLoadout.cs:90-101）；prefab 的 _defaultSkillIds 第 3 槽 blackcurtain 只是兜底
 ,Skill,ComboInput,(生成) ComboInputRecord ← GlobalRule combo_*,Assets/Data/Config/ProjectConfigDatabase_Main.asset; Buddah.prefab ComboSkillInput,原 GlobalRule 的 combo_input_window_seconds / combo_max_buffer
 ,Skill,ComboBinding,(新增) ComboBindingRecord ← ComboSkillInput.bindings,Assets/Character/Prefab/Buddah.prefab,HUD SkillSlot prefab 的 tokens 由此表生成
-,Skill,Obsession,(新增) ObsessionRecord ← ObsessionFigure,Assets/Character/Prefab/Buddah.prefab,替代未读取的 GlobalRule 键 catchup_recovery_a / obsession_recovery_baseline
+,Skill,Obsession,(新增) ObsessionRecord ← ObsessionFigure,Assets/Character/Prefab/Buddah.prefab,替代未读取的 GlobalRule 键 catchup_recovery_a / obsession_recovery_baseline；2026-10-26 阶段 B：同招加价与反噬惩罚五列（原阶段 A 的 ObsessionFigure 序列化默认值）
+,Skill,Yuanqi,(生成) YuanqiRecord → Yuanqi_* SO,Assets/Skills_Assets/Yuanqi/*.asset,2026-10-26 阶段 B：缘起身份与收尾规则；SkillDatabase 用显式映射写 skillA/skillB/consumeA/consumeB/mode/retriggerPolicy/isEnabled
+,Skill,YuanqiEffectFrostLock,(生成) YuanqiEffectFrostLockRecord → Yuanqi_FrostLock,Assets/Skills_Assets/Yuanqi/Yuanqi_FrostLock.asset,#2 禅足冰封的参数（yuanqi.md 的 N、R）；占位值待试玩定
+,Skill,YuanqiEffectGiantCharge,(生成) YuanqiEffectGiantChargeRecord → Yuanqi_GiantCharge,Assets/Skills_Assets/Yuanqi/Yuanqi_GiantCharge.asset,#4 金足破阵的参数（突进 +60 / 0.8 s，yuanqi.md 的 M）；回落形状固定为 增量×剩余比例²，不设曲线列
 ,Skill,BlackCurtainPresentation,(新增) BlackCurtainPresentationRecord,Assets/Scenes/RaceMap.unity BlackCurtainViewController; BlackCurtainScreenEffect.cs,
 ,Skill,SkillConstant,(只读) 代码与 prefab 里的效果常量,代码常量；Cube.prefab；SlowTrapZone.prefab,改动需同步代码或资源，不由导出器写入
 ,Movement,Movement,(生成) MovementRecord ← MovementBase + PushReaction + LaunchHandoff,Assets/Character/Prefab/Buddah.prefab BuddahPredictedMotorConfig / Rigidbody / BuddahMovement / RaceBodyIntroStateController,2026-10-13 v2：同一组件的三张表合一；handoffLeadSeconds 只留 Match/Intro；impulseMultiplier（代码无区分）删除
@@ -33,7 +36,7 @@
 ,AI,SkillTuning,(生成) SkillTuningRecord → AISkillTuning（按名忽略大小写）,SkillPersonalities.json Tuning; AISkillWorld/Decision/Caster/Commitment.cs,v2：原 SkillGlobal 键值桶改为单行宽表
 ,AI,Roster,(新增) AIRosterRecord,MatchSpawnManager.SpawnSoloAI:165,
 ,AI,DrivingConstant,(只读) 规划器内部常量,ThrustVectorPlanner.cs 等,presentationOnly：[Eng] 项为代码常量，改动需同步代码
-,Match,ModeRule,(新增) MatchModeRuleRecord ← IMatchRules 实现 + 各 manager 时长,OnlineMatchRules.cs; SoloMatchRules.cs; RoomStateManager.prefab; PropertySelection.unity; RaceMap.unity,Practice 行 = Solo 且 aiCount=0，目前 UI 无入口；v2 并入 RacerNaming.defaultDifficulty，命名前缀 key 直接在 UI/Text
+,Match,ModeRule,(新增) MatchModeRuleRecord ← IMatchRules 实现 + 各 manager 时长,OnlineMatchRules.cs; SoloMatchRules.cs; RoomStateManager.prefab; PropertySelection.unity; RaceMap.unity,Practice 行 = Solo 且 aiCount=0，目前 UI 无入口；v2 并入 RacerNaming.defaultDifficulty，命名前缀 key 直接在 UI/Text；2026-10-26 阶段 B：训练木桩配置在 Practice 行的 trainingDummy* 列
 ,Match,Track,(新增) TrackRecord,Assets/Scenes/RaceMap.unity; Assets/UI/UIprefap.prefab MiniMapController,v2：并入原 Movement/LapRule；圈数只留此处
 ,Match,TrackWrongWay,(生成) TrackWrongWayRecord ← RaceCompletionTracker,Assets/Character/Prefab/Buddah.prefab,v2：原 Movement/WrongWayRule
 ,Match,TrackSpawn,(新增) TrackSpawnRecord ← MatchSpawnManager._spawnPoints,Assets/Scenes/RaceMap.unity,
@@ -53,13 +56,13 @@
 ,UI,UiTiming,"(新增, 键值) UiTimingRecord",各 UI 组件 SerializeField 实际值,
 ,UI,MiniMap,(新增) MiniMapRecord（边界在 Match/Track）,Assets/UI/UIprefap.prefab,
 ,UI,Text,(新增) LocalizedTextRecord,MAIN 技能文案 + C# 硬编码文案（自动提取）+ 场景静态文本,自动提取的 key 需人工定稿；英文列为空表示待翻译
-,Global,GlobalRule,GlobalRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,只放真正跨域的开关；搓招键→Skill/ComboInput，施法前摇→Skill.castConfirmDelaySeconds（含反噬行），圈数→Match/Track，倒计时→Match/ModeRule，执念→Skill/Obsession
+,Global,GlobalRule,GlobalRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,只放真正跨域的开关；搓招键→Skill/ComboInput，施法前摇→Skill.castConfirmDelaySeconds，圈数→Match/Track，倒计时→Match/ModeRule，执念→Skill/Obsession
 ,Global,StructuralConstant,(只读) 结构性常量,代码常量,全列 doc：仅记录，不导出
 ,Global,GlobalPhysics,"(新增, 只读候选) GlobalPhysicsRecord",ProjectSettings/DynamicsManager.asset,
 ,Global,PhysicsMaterial,(新增) PhysicsMaterialRecord,Assets/Material/*.physicMaterial,
 ,Global,Tag,(只读) Tag,ProjectSettings/TagManager.asset,
 ,Global,Layer,(只读) Layer,ProjectSettings/TagManager.asset,
 ,Global,Scene,(只读) Scene,ProjectSettings/EditorBuildSettings.asset,RaceMapEndField 不存在但两处仍引用
-,Global,InputBinding,(新增) InputBindingRecord,Assets/Scripts/InputSystem/InputSystem_Actions.inputactions,改键需先去掉硬编码 KeyCode
+,Global,InputBinding,(新增) InputBindingRecord,Assets/Scripts/InputSystem/InputSystem_Actions.inputactions,改键需先去掉硬编码 KeyCode；2026-10-26：技能键 Q/E/R 与 1/2/3 同时绑定，推掌主键位是鼠标左/右键，W/↑ 推掌是废弃内容（后续可能再调整）
 ,Global,Timeline,(只读) 由 timeline 资产导出,Assets/Animation/CG/*.playable,只读显示；改时长请改 timeline
 ,Global,__enums__,枚举定义（不导出，校验用）,代码枚举 + 本规范新增枚举,

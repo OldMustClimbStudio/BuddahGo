@@ -23,6 +23,12 @@ public partial class ProjectConfigDatabase
     public List<ComboBindingRecord> comboBindings = new List<ComboBindingRecord>();
     [Header("Skill / Obsession")]
     public List<ObsessionRecord> obsessions = new List<ObsessionRecord>();
+    [Header("Skill / Yuanqi")]
+    public List<YuanqiRecord> yuanqis = new List<YuanqiRecord>();
+    [Header("Skill / YuanqiEffectFrostLock")]
+    public List<YuanqiEffectFrostLockRecord> yuanqiEffectFrostLocks = new List<YuanqiEffectFrostLockRecord>();
+    [Header("Skill / YuanqiEffectGiantCharge")]
+    public List<YuanqiEffectGiantChargeRecord> yuanqiEffectGiantCharges = new List<YuanqiEffectGiantChargeRecord>();
     [Header("Movement / Movement")]
     public List<MovementRecord> movements = new List<MovementRecord>();
     [Header("Movement / Respawn")]

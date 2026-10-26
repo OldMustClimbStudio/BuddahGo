@@ -12,7 +12,10 @@
       "DefaultLoadout",
       "ComboInput",
       "ComboBinding",
-      "Obsession"
+      "Obsession",
+      "Yuanqi",
+      "YuanqiEffectFrostLock",
+      "YuanqiEffectGiantCharge"
     ],
     "Movement": [
       "Movement",
@@ -146,6 +149,18 @@
       "info"
     ],
     "Skill/Obsession": [
+      "skill",
+      "balance"
+    ],
+    "Skill/Yuanqi": [
+      "skill",
+      "info"
+    ],
+    "Skill/YuanqiEffectFrostLock": [
+      "skill",
+      "balance"
+    ],
+    "Skill/YuanqiEffectGiantCharge": [
       "skill",
       "balance"
     ],

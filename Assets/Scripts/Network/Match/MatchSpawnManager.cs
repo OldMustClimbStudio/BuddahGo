@@ -17,9 +17,11 @@ namespace SteamMultiplayer.Network.Match
         [SerializeField] private NetworkObject _playerPrefab;
         [SerializeField] private MatchSpawnPoint[] _spawnPoints;
 
-        // Practice training dummies (README A1, phase A defaults; phase B moves them into a Match table). Separate from
-        // _spawnPoints, which stays the six racer slots. Dummy i stands at d0 + start offset + spacing * i along the race
-        // direction, where d0 is the human launch point projected onto TrackSplineRef, spread left / centre / right.
+        // Practice training dummies (README A1). Separate from _spawnPoints, which stays the six racer slots. Dummy i stands
+        // at d0 + start offset + spacing * i along the race direction, where d0 is the human launch point projected onto
+        // TrackSplineRef, spread left / centre / right. Count, spacing, start offset, lateral offset and reset delay come
+        // from the Match/ModeRule Practice row (TrainingDummyModeRuleMap); the serialized values are the fallback when the
+        // table has no row. The placement probes below are engineering values and stay on the component.
         [Header("Practice Training Dummies")]
         [SerializeField, Min(0)] private int _trainingDummyCount = 3;
         [SerializeField, Min(0f)] private float _trainingDummySpacingMeters = 15f;
@@ -54,10 +56,23 @@ namespace SteamMultiplayer.Network.Match
         private readonly RaycastHit[] _trainingDummyProbeHits = new RaycastHit[16];
         private BuddahGo.AI.AISkillWorld _skillWorld;
 
+        /// <summary>Match/ModeRule Practice row → training-dummy fields ("recordField=componentField").</summary>
+        public static readonly string[] TrainingDummyModeRuleMap =
+        {
+            "trainingDummyCount=_trainingDummyCount", "trainingDummySpacingMeters=_trainingDummySpacingMeters",
+            "trainingDummyStartOffsetMeters=_trainingDummyStartOffsetMeters", "trainingDummyLateralOffsetMeters=_trainingDummyLateralOffsetMeters",
+            "trainingDummyResetDelaySeconds=_trainingDummyResetDelaySeconds"
+        };
+
+        // Dummies exist only in Practice (IMatchRules.SpawnTrainingDummies), so their config is always the Practice row,
+        // whatever mode is active when this Awake runs.
+        private const string TrainingDummyModeId = "Practice";
+
         private void Awake()
         {
             CacheSpawnPointsIfNeeded();
             ApplyTrackSpawnTable();
+            DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.ModeRule(TrainingDummyModeId), TrainingDummyModeRuleMap);
         }
 
         // Match/TrackSpawn owns the spawn transforms (world position, Y rotation) for the current track.

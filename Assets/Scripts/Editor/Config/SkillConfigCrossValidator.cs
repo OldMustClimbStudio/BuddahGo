@@ -7,7 +7,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>Reports drift between SkillAction assets and the design tables without applying values or changing runtime repositories.</summary>
+/// <summary>Reports drift between SkillAction / 缘起 assets and the design tables without applying values or changing runtime repositories.</summary>
 public static class SkillConfigCrossValidator
 {
     public static List<ProjectConfigValidationMessage> Validate(ProjectConfigDatabase config)
@@ -36,7 +36,7 @@ public static class SkillConfigCrossValidator
             Collect(database.normalSkills, actions, path, results);
             Collect(database.skills, actions, path, results);
 
-            // Hidden rows are never offered or cast (the retired *_anti rows stay hidden until phase B deletes them), so they need no action.
+            // Hidden rows are never offered or cast, so they need no action.
             foreach (var pair in repository.Skills)
                 if (!actions.ContainsKey(pair.Key) && !IsHidden(pair.Value))
                     Add(results, ProjectConfigValidationSeverity.Warning, path,
@@ -50,7 +50,6 @@ public static class SkillConfigCrossValidator
                 if (repository.TryGet(id, out SkillRecord row))
                 {
                     Compare(results, context, "cooldownSeconds", action.cooldownSeconds, row.cooldownSeconds);
-                    Compare(results, context, "castLockSeconds", action.castLockSeconds, row.castLockSeconds);
                     Compare(results, context, "obsessionGain", action.obsessionGain, row.obsessionGain);
                     string durationField = SkillDatabase.EffectDurationField(action);
                     if (durationField != null && row.effectDurationSeconds > 0f)
@@ -79,8 +78,105 @@ public static class SkillConfigCrossValidator
                 if (id == "push_projectile_hands")
                     CompareMapped(results, context, action, Find(config.pushes, "charged"), SkillDatabase.PushChargedMap);
             }
+
+            CompareYuanqis(results, path, database, config);
         }
         return results;
+    }
+
+    // Skill/Yuanqi rows (SkillDatabase.YuanqiRowMap) and YuanqiEffect<Pair> rows against the 缘起 assets of this database.
+    private static void CompareYuanqis(List<ProjectConfigValidationMessage> results, string path, SkillDatabase database, ProjectConfigDatabase config)
+    {
+        var assets = new Dictionary<string, YuanqiAction>(StringComparer.Ordinal);
+        if (database.yuanqis != null)
+        {
+            foreach (YuanqiAction yuanqi in database.yuanqis)
+            {
+                string id = yuanqi != null ? (yuanqi.yuanqiId ?? string.Empty).Trim() : string.Empty;
+                if (id.Length > 0 && !assets.ContainsKey(id))
+                    assets.Add(id, yuanqi);
+            }
+        }
+
+        var rows = new HashSet<string>(StringComparer.Ordinal);
+        if (config.yuanqis != null)
+        {
+            foreach (YuanqiRecord row in config.yuanqis)
+            {
+                string id = row != null ? (row.yuanqiId ?? string.Empty).Trim() : string.Empty;
+                if (id.Length == 0)
+                    continue;
+                rows.Add(id);
+                if (!assets.TryGetValue(id, out YuanqiAction yuanqi))
+                {
+                    Add(results, ProjectConfigValidationSeverity.Warning, path, "Config yuanqi '" + id + "' has no 缘起 asset in this SkillDatabase.");
+                    continue;
+                }
+                string context = path + " -> " + AssetDatabase.GetAssetPath(yuanqi);
+                foreach (string field in SkillDatabase.YuanqiRowMap)
+                    CompareText(results, context, yuanqi, field, typeof(YuanqiRecord).GetField(field)?.GetValue(row));
+            }
+        }
+
+        foreach (KeyValuePair<string, YuanqiAction> pair in assets)
+        {
+            string context = path + " -> " + AssetDatabase.GetAssetPath(pair.Value);
+            if (!rows.Contains(pair.Key))
+                Add(results, ProjectConfigValidationSeverity.Warning, context, "Yuanqi id '" + pair.Key + "' has no Skill/Yuanqi row; runtime uses the asset values.");
+            CompareYuanqiFamily(results, context, pair.Value, pair.Key, config.yuanqiEffectFrostLocks);
+            CompareYuanqiFamily(results, context, pair.Value, pair.Key, config.yuanqiEffectGiantCharges);
+        }
+    }
+
+    private static void CompareYuanqiFamily(List<ProjectConfigValidationMessage> results, string context, YuanqiAction yuanqi, string id, IList rows)
+    {
+        if (rows == null)
+            return;
+        foreach (object row in rows)
+        {
+            FieldInfo idField = row != null ? row.GetType().GetField("yuanqiId", BindingFlags.Public | BindingFlags.Instance) : null;
+            if (idField == null || (idField.GetValue(row) as string ?? string.Empty).Trim() != id)
+                continue;
+            Type expected = SkillDatabase.YuanqiFamilyActionType(row.GetType());
+            if (expected == null || !expected.IsInstanceOfType(yuanqi))
+            {
+                Add(results, ProjectConfigValidationSeverity.Warning, context, row.GetType().Name + " row '" + id + "' targets " + yuanqi.GetType().Name + "; SkillDatabase skips it.");
+                continue;
+            }
+            foreach (FieldInfo field in row.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (field.Name == "yuanqiId")
+                    continue;
+                object value = field.GetValue(row);
+                if (value is float f)
+                    CompareField(results, context, yuanqi, field.Name, f);
+                else if (value is int n)
+                    CompareField(results, context, yuanqi, field.Name, n);
+                else
+                    CompareText(results, context, yuanqi, field.Name, value);
+            }
+        }
+    }
+
+    // Bool / enum / string fields: the asset's serialized value against the table cell (enum by member name, case-insensitive).
+    private static void CompareText(List<ProjectConfigValidationMessage> results, string context, UnityEngine.Object asset, string fieldName, object configured)
+    {
+        using var serialized = new SerializedObject(asset);
+        SerializedProperty property = serialized.FindProperty(fieldName);
+        if (property == null || configured == null)
+            return;
+        string actual;
+        switch (property.propertyType)
+        {
+            case SerializedPropertyType.Boolean: actual = property.boolValue ? "true" : "false"; break;
+            case SerializedPropertyType.Enum: actual = property.enumValueIndex >= 0 && property.enumValueIndex < property.enumNames.Length ? property.enumNames[property.enumValueIndex] : property.intValue.ToString(CultureInfo.InvariantCulture); break;
+            case SerializedPropertyType.String: actual = property.stringValue ?? string.Empty; break;
+            default: return;
+        }
+        string expected = configured is bool b ? (b ? "true" : "false") : (configured.ToString() ?? string.Empty).Trim();
+        if (!string.Equals(actual.Trim(), expected, StringComparison.OrdinalIgnoreCase))
+            Add(results, ProjectConfigValidationSeverity.Warning, context,
+                fieldName + " differs: asset=" + actual + ", config=" + expected + ". Report only; the table wins in play.");
     }
 
     private static bool IsHidden(SkillRecord row)
@@ -136,7 +232,7 @@ public static class SkillConfigCrossValidator
     }
 
     /// <summary>Compare a serialized numeric field of the action with the table value; blank numeric cells (0) on a field the class lacks are skipped by FindProperty.</summary>
-    private static void CompareField(List<ProjectConfigValidationMessage> results, string context, SkillAction action, string fieldName, float configured, string label = null)
+    private static void CompareField(List<ProjectConfigValidationMessage> results, string context, UnityEngine.Object action, string fieldName, float configured, string label = null)
     {
         using var serializedAction = new SerializedObject(action);
         SerializedProperty property = serializedAction.FindProperty(fieldName);

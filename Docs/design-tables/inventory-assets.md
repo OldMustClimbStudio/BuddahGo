@@ -2,6 +2,8 @@
 
 筛查日期 2026-10-12，基线 dev 9ff6338。本文件只做盘点，不含实现。总览与跨域结论见 [README.md](README.md)。
 
+> 2026-10-26 玩法深化 A6 之后：`SkillSlot_1/2/3.prefab` 的 `SkillSlotUI.tokens`（W / ↑ 图）在运行时隐藏，已退役，不再与 `ComboSkillInput.bindings` 重复（AI 仍用 `ComboSkillInput`，直到 A7）。下文 ComboSkillInput 一段和重复项清单里关于 tokens 的说法按 2026-10-12 基线记录。
+
 范围：`Assets/Character/**`、`SharedAssets/**`、`Placeholder/**`、`Sources/**`、`Material/**`、`VFX/**`、`Settings/**`、`Resources/**`、`DefaultPrefabObjects.asset`、`FishNet.Config.XML`、`ProjectSettings/`（TagManager、DynamicsManager、InputManager、EditorBuildSettings），以及本项目 prefab 上自有组件的序列化值。GUID 已通过 .meta 解析到具体文件。"代码默认 X / prefab Y" 表示 Inspector 覆盖了 C# 初始值，配表以 prefab 为准。本文件与 skills / movement / match-flow 清单有意重叠，用于从资产侧交叉核对。
 
 ## 结论先行

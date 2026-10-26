@@ -1,5 +1,5 @@
-##var,profileId,maxValue,minValue,initialValue,drainPerSecond,catchupRecoveryA,backfirePMaxPercent,backfireK,backfireMidpointX,backfireKeepPMaxAtOrAboveX
-##type,string#key,float,float,float,float,float,float,float,float,float
-##group,,,,,,,,,,
-##comment,,上限,,出生初值,每秒自然下降,追赶加速衰减系数 R=a·gap²,反噬概率上限 %,sigmoid 陡度,sigmoid 中点,达到即取上限
-,default,1000,0,0,10,0.01,95,0.008,500,1000
+##var,profileId,maxValue,minValue,initialValue,drainPerSecond,catchupRecoveryA,backfirePMaxPercent,backfireK,backfireMidpointX,backfireKeepPMaxAtOrAboveX,repeatWindowSeconds,repeatGainMultiplier,backfireLockSeconds,backfireMaxSpeedMultiplier,backfireEndKeepRatio
+##type,string#key,float,float,float,float,float,float,float,float,float,"float#range=0,60","float#range=1,5","float#range=0,60","float#range=0.1,1","float#range=0,1"
+##group,,,,,,,,,,,,,,,
+##comment,单行 default；ObsessionFigure.Awake 按同名字段覆盖（DesignTableOverlay.Apply），prefab 值只作无表时的兜底,上限,,出生初值,每秒自然下降,追赶加速衰减系数 R=a·gap²,反噬概率上限 %,sigmoid 陡度,sigmoid 中点,达到即取上限,同招加价窗口 s：技能自己的冷却结束后这么久内重放同一技能，本次执念增量再乘一层（ObsessionFigure.repeatWindowSeconds，SkillExecutor 每槽记层数）,同招加价每层的执念倍率，复利 1.15 → 1.3225 → 1.52；超窗或反噬清零（ObsessionFigure.repeatGainMultiplier）；不可留空,反噬惩罚时长 s：确认窗口结束后锁住全部技能、执念停止自然下降、限速打折（ObsessionFigure.backfireLockSeconds）,惩罚期间的限速倍率，走预测修饰 MaxSpeedMultiplier，复活不清（ObsessionFigure.backfireMaxSpeedMultiplier）；不可留空,惩罚结束时执念保留的比例（ObsessionFigure.backfireEndKeepRatio）；不可留空，0 会清空执念
+,default,1000,0,0,10,0.01,95,0.008,500,1000,5,1.15,10,0.85,0.8

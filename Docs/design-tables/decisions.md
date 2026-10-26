@@ -43,3 +43,11 @@
 
 24. **编辑器 Play 中的技能表写入时机**：写入技能 SO 的值在每局 Play 首次查技能时写入，编辑器退出 Play 时恢复资产（2d34e2a）。起因：实测加速时长改为 3 秒后仍为 10 秒。
 25. **PR #62 review 定下的读取规则**（d38bc31）：按赛道的表只认组件所在场景（其次活动场景）的 Track 行，没有行就沿用场景值，不借用第一行；`text` 列保留首尾空格（"Player " 这类前缀）；空单元格就是 0，不回退代码默认值，`SkillOpportunity` 每个技能只读自己的列；向量 / 颜色分量数不符是错误；CreateRoomUI 的下拉选项以 `UI/MenuOption` 为准。
+
+## 2026-10-26（玩法深化阶段 B，[Docs/gameplay/README.md](../gameplay/README.md) §7.2）
+
+26. **反噬变体从表里退役。** 反噬改为统一惩罚（本槽照常进冷却，惩罚参数在 `Obsession`），`Skill` 删 `castLockSeconds`、`antiSkillId` 两列与 6 行 `_anti`，家族表、`Push`、`SkillPresentation`、`SkillConstant`、`SkillSelectionRule`、`FeelEvent` 的反噬行与反噬专用列一并删除，读取它们的代码同时删掉。保留 `Anti_Reflection_*`、VfxRegistry 的反噬 id、`SkillId` 枚举的 anti 值与 `skill.*_anti.*` 文案。决定 17 作废，决定 18 里 antiSkillId 的部分作废。
+27. **缘起入表：一张 `Skill/Yuanqi` 宽表 + 每对一张 `YuanqiEffect<对>` 家族表**，与 `Skill` + `SkillEffect<家族>` 同构；字段名就是 SO 字段名；`Yuanqi` 行显式映射（`SkillDatabase.YuanqiRowMap`），家族行同名覆盖并按 `YuanqiFamilyActionType` 校验类名；没有参数的对不建家族表；`pairNumber` 只为对照，标 doc。
+28. **训练木桩配置并入 `Match/ModeRule` 的 Practice 行**（实现选择：比新建 Match/TrainingDummy 表小，木桩只在 Practice 出现）；摆放的工程值留在 `MatchSpawnManager`。
+29. **`ModifierCommandType` 枚举值与 C# 同号**（实现选择）：value 列也被当作成员名接受，原来从 0 起编会让 `1` 指向错误的命令。
+

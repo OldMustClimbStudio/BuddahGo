@@ -91,66 +91,6 @@
             "modeTag": "",
             "mapTag": "",
             "poolType": 1
-        },
-        {
-            "ruleSetId": "default",
-            "skillId": "acceleration_anti",
-            "isEnabled": true,
-            "allowDuplicate": false,
-            "weight": 1.0,
-            "modeTag": "",
-            "mapTag": "",
-            "poolType": 3
-        },
-        {
-            "ruleSetId": "default",
-            "skillId": "slowtrap_anti",
-            "isEnabled": true,
-            "allowDuplicate": false,
-            "weight": 1.0,
-            "modeTag": "",
-            "mapTag": "",
-            "poolType": 3
-        },
-        {
-            "ruleSetId": "default",
-            "skillId": "blackcurtain_anti",
-            "isEnabled": true,
-            "allowDuplicate": false,
-            "weight": 1.0,
-            "modeTag": "",
-            "mapTag": "",
-            "poolType": 3
-        },
-        {
-            "ruleSetId": "default",
-            "skillId": "giant_anti",
-            "isEnabled": true,
-            "allowDuplicate": false,
-            "weight": 1.0,
-            "modeTag": "",
-            "mapTag": "",
-            "poolType": 3
-        },
-        {
-            "ruleSetId": "default",
-            "skillId": "push_projectile_hands_anti",
-            "isEnabled": true,
-            "allowDuplicate": false,
-            "weight": 1.0,
-            "modeTag": "",
-            "mapTag": "",
-            "poolType": 3
-        },
-        {
-            "ruleSetId": "default",
-            "skillId": "reverseturn_anti",
-            "isEnabled": true,
-            "allowDuplicate": false,
-            "weight": 1.0,
-            "modeTag": "",
-            "mapTag": "",
-            "poolType": 3
         }
     ],
     "defaultLoadouts": [
@@ -178,9 +118,7 @@
             "descriptionKey": "skill.acceleration.desc",
             "sortOrder": 10,
             "unlockState": "unlocked",
-            "antiSkillId": "acceleration_anti",
             "cooldownSeconds": 5.0,
-            "castLockSeconds": 3.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 300.0,
             "effectDurationSeconds": 3.0
@@ -191,9 +129,7 @@
             "descriptionKey": "skill.slowtrap.desc",
             "sortOrder": 20,
             "unlockState": "unlocked",
-            "antiSkillId": "slowtrap_anti",
             "cooldownSeconds": 8.0,
-            "castLockSeconds": 6.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 300.0,
             "effectDurationSeconds": 6.0
@@ -204,9 +140,7 @@
             "descriptionKey": "skill.blackcurtain.desc",
             "sortOrder": 30,
             "unlockState": "unlocked",
-            "antiSkillId": "blackcurtain_anti",
             "cooldownSeconds": 16.0,
-            "castLockSeconds": 14.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 200.0,
             "effectDurationSeconds": 10.0
@@ -217,9 +151,7 @@
             "descriptionKey": "skill.giant.desc",
             "sortOrder": 40,
             "unlockState": "unlocked",
-            "antiSkillId": "giant_anti",
             "cooldownSeconds": 8.0,
-            "castLockSeconds": 6.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 200.0,
             "effectDurationSeconds": 6.0
@@ -230,9 +162,7 @@
             "descriptionKey": "skill.push_projectile_hands.desc",
             "sortOrder": 50,
             "unlockState": "unlocked",
-            "antiSkillId": "push_projectile_hands_anti",
             "cooldownSeconds": 12.0,
-            "castLockSeconds": 10.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 300.0,
             "effectDurationSeconds": 15.0
@@ -243,89 +173,9 @@
             "descriptionKey": "skill.reverseturn.desc",
             "sortOrder": 60,
             "unlockState": "unlocked",
-            "antiSkillId": "reverseturn_anti",
             "cooldownSeconds": 12.0,
-            "castLockSeconds": 10.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 200.0,
-            "effectDurationSeconds": 10.0
-        },
-        {
-            "skillId": "acceleration_anti",
-            "displayNameKey": "skill.acceleration_anti.name",
-            "descriptionKey": "skill.acceleration_anti.desc",
-            "sortOrder": 110,
-            "unlockState": "hidden",
-            "antiSkillId": "",
-            "cooldownSeconds": 5.0,
-            "castLockSeconds": 3.0,
-            "castConfirmDelaySeconds": 1.0,
-            "obsessionGain": 0.0,
-            "effectDurationSeconds": 3.0
-        },
-        {
-            "skillId": "slowtrap_anti",
-            "displayNameKey": "skill.slowtrap_anti.name",
-            "descriptionKey": "skill.slowtrap_anti.desc",
-            "sortOrder": 120,
-            "unlockState": "hidden",
-            "antiSkillId": "",
-            "cooldownSeconds": 3.0,
-            "castLockSeconds": 1.0,
-            "castConfirmDelaySeconds": 1.0,
-            "obsessionGain": 0.0,
-            "effectDurationSeconds": 1.0
-        },
-        {
-            "skillId": "blackcurtain_anti",
-            "displayNameKey": "skill.blackcurtain_anti.name",
-            "descriptionKey": "skill.blackcurtain_anti.desc",
-            "sortOrder": 130,
-            "unlockState": "hidden",
-            "antiSkillId": "",
-            "cooldownSeconds": 16.0,
-            "castLockSeconds": 14.0,
-            "castConfirmDelaySeconds": 1.0,
-            "obsessionGain": 0.0,
-            "effectDurationSeconds": 10.0
-        },
-        {
-            "skillId": "giant_anti",
-            "displayNameKey": "skill.giant_anti.name",
-            "descriptionKey": "skill.giant_anti.desc",
-            "sortOrder": 140,
-            "unlockState": "hidden",
-            "antiSkillId": "",
-            "cooldownSeconds": 8.0,
-            "castLockSeconds": 6.0,
-            "castConfirmDelaySeconds": 1.0,
-            "obsessionGain": 0.0,
-            "effectDurationSeconds": 6.0
-        },
-        {
-            "skillId": "push_projectile_hands_anti",
-            "displayNameKey": "skill.push_projectile_hands_anti.name",
-            "descriptionKey": "skill.push_projectile_hands_anti.desc",
-            "sortOrder": 150,
-            "unlockState": "hidden",
-            "antiSkillId": "",
-            "cooldownSeconds": 10.0,
-            "castLockSeconds": 10.0,
-            "castConfirmDelaySeconds": 1.0,
-            "obsessionGain": 0.0,
-            "effectDurationSeconds": 0.0
-        },
-        {
-            "skillId": "reverseturn_anti",
-            "displayNameKey": "skill.reverseturn_anti.name",
-            "descriptionKey": "skill.reverseturn_anti.desc",
-            "sortOrder": 160,
-            "unlockState": "hidden",
-            "antiSkillId": "",
-            "cooldownSeconds": 12.0,
-            "castLockSeconds": 10.0,
-            "castConfirmDelaySeconds": 1.0,
-            "obsessionGain": 0.0,
             "effectDurationSeconds": 10.0
         }
     ],
@@ -333,16 +183,7 @@
         {
             "skillId": "acceleration",
             "extraForwardForce": 50.0,
-            "extraMaxSpeed": 40.0,
-            "slowForwardForce": 0.0,
-            "slowMaxSpeed": 0.0
-        },
-        {
-            "skillId": "acceleration_anti",
-            "extraForwardForce": 0.0,
-            "extraMaxSpeed": 0.0,
-            "slowForwardForce": 45.0,
-            "slowMaxSpeed": 40.0
+            "extraMaxSpeed": 40.0
         }
     ],
     "skillEffectSlowTraps": [
@@ -352,32 +193,12 @@
             "affectCaster": false,
             "slowForwardForce": 40.0,
             "slowMaxSpeed": 20.0,
-            "slowDurationSeconds": 2.0,
-            "extraForwardForce": 0.0,
-            "extraMaxSpeed": 0.0,
-            "accelerationDurationSeconds": 0.0
-        },
-        {
-            "skillId": "slowtrap_anti",
-            "perTargetReapplyCooldown": 0.0,
-            "affectCaster": false,
-            "slowForwardForce": 0.0,
-            "slowMaxSpeed": 0.0,
-            "slowDurationSeconds": 0.0,
-            "extraForwardForce": 10.0,
-            "extraMaxSpeed": 3.0,
-            "accelerationDurationSeconds": 2.0
+            "slowDurationSeconds": 2.0
         }
     ],
     "skillEffectBlackCurtains": [
         {
             "skillId": "blackcurtain",
-            "expandDurationSeconds": 1.0,
-            "fadeOutDurationSeconds": 2.0,
-            "maxOpacity": 1.0
-        },
-        {
-            "skillId": "blackcurtain_anti",
             "expandDurationSeconds": 1.0,
             "fadeOutDurationSeconds": 2.0,
             "maxOpacity": 1.0
@@ -390,17 +211,7 @@
             "shrinkDurationSeconds": 0.3499999940395355,
             "growDurationSeconds": 0.3499999940395355,
             "massMultiplier": 3.0,
-            "forwardForceMultiplier": 3.5,
-            "restoreDurationSeconds": 0.0
-        },
-        {
-            "skillId": "giant_anti",
-            "scaleMultiplier": 0.30000001192092898,
-            "shrinkDurationSeconds": 0.25,
-            "growDurationSeconds": 0.0,
-            "massMultiplier": 0.0,
-            "forwardForceMultiplier": 0.0,
-            "restoreDurationSeconds": 0.25
+            "forwardForceMultiplier": 3.5
         }
     ],
     "pushes": [
@@ -418,14 +229,11 @@
             "sideOffset": 4.0,
             "leftSideBias": -0.10000000149011612,
             "rightSideBias": 0.10000000149011612,
-            "projectileCount": 0,
-            "projectileSpacing": 0.0,
             "colliderSize": {
                 "x": 0.0,
                 "y": 0.0,
                 "z": 0.0
-            },
-            "hitTurnTorqueImpulse": 0.0
+            }
         },
         {
             "pushId": "charged",
@@ -441,37 +249,11 @@
             "sideOffset": 0.0,
             "leftSideBias": 0.0,
             "rightSideBias": 0.0,
-            "projectileCount": 0,
-            "projectileSpacing": 0.0,
             "colliderSize": {
                 "x": 60.0,
                 "y": 90.0,
                 "z": 20.0
-            },
-            "hitTurnTorqueImpulse": 0.0
-        },
-        {
-            "pushId": "charged_anti",
-            "rotationSpeedDegPerSec": 0.0,
-            "windupSeconds": 0.30000001192092898,
-            "pushCooldownSeconds": 0.0,
-            "delayedPushActionSeconds": 0.0,
-            "lifetimeSeconds": 2.0,
-            "impulseStrength": 600.0,
-            "speed": 600.0,
-            "forwardOffset": 100.0,
-            "heightOffset": 30.0,
-            "sideOffset": 0.0,
-            "leftSideBias": 0.0,
-            "rightSideBias": 0.0,
-            "projectileCount": 5,
-            "projectileSpacing": 30.0,
-            "colliderSize": {
-                "x": 60.0,
-                "y": 50.0,
-                "z": 20.0
-            },
-            "hitTurnTorqueImpulse": 50.0
+            }
         }
     ],
     "comboInputs": [
@@ -522,7 +304,66 @@
             "backfirePMaxPercent": 95.0,
             "backfireK": 0.00800000037997961,
             "backfireMidpointX": 500.0,
-            "backfireKeepPMaxAtOrAboveX": 1000.0
+            "backfireKeepPMaxAtOrAboveX": 1000.0,
+            "repeatWindowSeconds": 5.0,
+            "repeatGainMultiplier": 1.149999976158142,
+            "backfireLockSeconds": 10.0,
+            "backfireMaxSpeedMultiplier": 0.8500000238418579,
+            "backfireEndKeepRatio": 0.800000011920929
+        }
+    ],
+    "yuanqis": [
+        {
+            "yuanqiId": "giant_palm",
+            "displayNameKey": "yuanqi.giant_palm.name",
+            "descriptionKey": "yuanqi.giant_palm.desc",
+            "skillA": "giant",
+            "skillB": "push_projectile_hands",
+            "consumeA": false,
+            "consumeB": false,
+            "mode": "Sustained",
+            "retriggerPolicy": "OncePerOverlap",
+            "isEnabled": true
+        },
+        {
+            "yuanqiId": "frost_lock",
+            "displayNameKey": "yuanqi.frost_lock.name",
+            "descriptionKey": "yuanqi.frost_lock.desc",
+            "skillA": "acceleration",
+            "skillB": "slowtrap",
+            "consumeA": true,
+            "consumeB": true,
+            "mode": "Instant",
+            "retriggerPolicy": "OncePerOverlap",
+            "isEnabled": true
+        },
+        {
+            "yuanqiId": "giant_charge",
+            "displayNameKey": "yuanqi.giant_charge.name",
+            "descriptionKey": "yuanqi.giant_charge.desc",
+            "skillA": "acceleration",
+            "skillB": "giant",
+            "consumeA": true,
+            "consumeB": false,
+            "mode": "Instant",
+            "retriggerPolicy": "OncePerOverlap",
+            "isEnabled": true
+        }
+    ],
+    "yuanqiEffectFrostLocks": [
+        {
+            "yuanqiId": "frost_lock",
+            "freezeSeconds": 1.5,
+            "radiusMeters": 12.0,
+            "affectsTrainingDummies": true
+        }
+    ],
+    "yuanqiEffectGiantCharges": [
+        {
+            "yuanqiId": "giant_charge",
+            "burstExtraMaxSpeed": 60.0,
+            "burstSeconds": 0.800000011920929,
+            "impactImpulseMultiplier": 3.0
         }
     ],
     "movements": [
@@ -1127,7 +968,12 @@
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
             "aiCount": 0,
-            "defaultDifficulty": ""
+            "defaultDifficulty": "",
+            "trainingDummyCount": 0,
+            "trainingDummySpacingMeters": 0.0,
+            "trainingDummyStartOffsetMeters": 0.0,
+            "trainingDummyLateralOffsetMeters": 0.0,
+            "trainingDummyResetDelaySeconds": 0.0
         },
         {
             "modeId": "Solo",
@@ -1151,7 +997,12 @@
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
             "aiCount": 5,
-            "defaultDifficulty": "Normal"
+            "defaultDifficulty": "Normal",
+            "trainingDummyCount": 0,
+            "trainingDummySpacingMeters": 0.0,
+            "trainingDummyStartOffsetMeters": 0.0,
+            "trainingDummyLateralOffsetMeters": 0.0,
+            "trainingDummyResetDelaySeconds": 0.0
         },
         {
             "modeId": "Practice",
@@ -1175,7 +1026,12 @@
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
             "aiCount": 0,
-            "defaultDifficulty": "Normal"
+            "defaultDifficulty": "Normal",
+            "trainingDummyCount": 3,
+            "trainingDummySpacingMeters": 15.0,
+            "trainingDummyStartOffsetMeters": 90.0,
+            "trainingDummyLateralOffsetMeters": 10.0,
+            "trainingDummyResetDelaySeconds": 3.0
         }
     ],
     "tracks": [
@@ -1524,6 +1380,30 @@
         {
             "key": "skill.reverseturn_anti.desc",
             "zh": "逆姻缘的反噬变体"
+        },
+        {
+            "key": "yuanqi.giant_palm.name",
+            "zh": "金身巨掌"
+        },
+        {
+            "key": "yuanqi.giant_palm.desc",
+            "zh": "金身期间神掌随体型放大，推力一起变大"
+        },
+        {
+            "key": "yuanqi.frost_lock.name",
+            "zh": "禅足冰封"
+        },
+        {
+            "key": "yuanqi.frost_lock.desc",
+            "zh": "冻住周围的对手，两招都被消耗"
+        },
+        {
+            "key": "yuanqi.giant_charge.name",
+            "zh": "金足破阵"
+        },
+        {
+            "key": "yuanqi.giant_charge.desc",
+            "zh": "金身向前突进撞开对手，神足通被消耗"
         },
         {
             "key": "ai.personality.keeper.name",

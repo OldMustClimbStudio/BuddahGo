@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-/// <summary>Lookup over Skill.xlsx / Skill rows (identity, cooldown / lock / cast delay, obsession gain).</summary>
+/// <summary>Lookup over Skill.xlsx / Skill rows (identity, cooldown / cast delay, obsession gain, primary duration).</summary>
 public class SkillConfigRepository
 {
     private readonly Dictionary<string, SkillRecord> _byId = new Dictionary<string, SkillRecord>(StringComparer.Ordinal);
@@ -63,16 +63,6 @@ public class SkillConfigRepository
             return false;
 
         value = record.cooldownSeconds;
-        return true;
-    }
-
-    public bool TryGetCastLock(string skillId, out float value)
-    {
-        value = 0f;
-        if (!TryGet(skillId, out SkillRecord record))
-            return false;
-
-        value = record.castLockSeconds;
         return true;
     }
 

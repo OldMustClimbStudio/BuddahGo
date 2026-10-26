@@ -2,6 +2,8 @@
 
 把工程中实际生效的序列化值（prefab / 场景 / asset / JSON / ProjectSettings）抽取成 `Assets/Design/Tables/` 下的六本工作簿和 `_Export/` CSV 镜像。只在建立基线或重建基线时使用；日常流程是策划改 Excel、导出器写回工程。
 
+> **2026-10-26 起过时，勿用 `build_tables.py` 与已有的 `migrate_v2.py` 阶段。** 机制更新阶段 B 改了提交的工作簿，生成器没有跟进：`build_tables.py` / `v2_layout.py` 仍按退役结构生成（六个 `_anti` 行、`antiSkillId`、`castLockSeconds`），不认识 `Skill/Yuanqi`、`YuanqiEffectFrostLock`、`YuanqiEffectGiantCharge`、`Obsession` 五个惩罚列、`ModeRule` 的 `trainingDummy*` 列和 `InputBinding.status`；`_anti` 资产也已删除，`build_tables.py` 启动时就会因找不到文件中止。`migrate_v2.py` 的 `skill / movement / ai / match / editability` 是 2026-10-13 的一次性 v1→v2 迁移，对现在的工作簿不能重跑。改表结构请写新阶段，或直接用 `tablemodel.py` 读写工作簿与 CSV 镜像。
+
 ```bash
 python -m pip install --user openpyxl pyyaml
 python Tools/design-tables/build_tables.py <仓库根> <输出目录>

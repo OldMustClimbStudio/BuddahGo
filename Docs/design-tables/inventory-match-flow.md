@@ -39,6 +39,7 @@
 - 默认模式：`MatchRules.cs:7`、`:13` 的 `Reset()` 都是 `new OnlineMatchRules()`。模式选择在 `SessionLauncher.StartSoloHost`(46)、`StartOnlineHost`(52)、`StartOnlineClient`(60)。
 - Practice 入口无法到达：`SoloSetupPanel.StartPractice`(87) 固定传 `RacerId.MaxAI`。
 - `RaceEndPolicy.ShouldEnd`（`Match/RaceEndPolicy.cs:11-18`）：人类到达 → 全员到达 → 首个到达后倒计时满。倒计时秒数来自 RaceFinishManager（表 2）。
+- 2026-10-26 玩法深化阶段 B：训练木桩（README A1）的配置并入 `Match/ModeRule`，五列 `trainingDummyCount`（Practice 3）、`trainingDummySpacingMeters`（15）、`trainingDummyStartOffsetMeters`（90）、`trainingDummyLateralOffsetMeters`（10）、`trainingDummyResetDelaySeconds`（3），Online / Solo 的数量填 0。`MatchSpawnManager.Awake` 只读 Practice 行（`TrainingDummyModeRuleMap`），是否生成仍由 `IMatchRules.SpawnTrainingDummies` 决定；墙距、探测高度等摆放工程值留在组件上。数量大于 0 时其余四格必填（`DesignTableDomainRules.TrainingDummyCellsAreFilled`）。
 
 ## 表 2：TrackDefinition / RaceRules（按赛道，目前只有 RaceMap）
 

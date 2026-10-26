@@ -50,6 +50,8 @@
 - 持续时间换 tick — `BuddahTickMath.DurationToTicks`(TickMath.cs:80-83) — 向上取整，粒度 1/60 s。
 - `ResetActiveSkillModifiers` — Events.cs:27-40 — 只重置 root / accel / scale / invert，不重置 pushGrace / suppress / roomBypass。
 
+2026-10-26 玩法深化（PredictionProtocol v2）新增四条命令，`Movement/ModifierRule`（presentationOnly，只记录）各加一行：Freeze（RefreshMaxDuration，技能重置时清）、EndModifier（瞬时命令，把 Acceleration / Scale 的期限提前到当前 tick，不延长）、Burst（新枚举值 `StackPolicy.Restart`：后到的命令同时覆盖期限与幅度，技能重置时清）、MaxSpeedMultiplier（反噬惩罚 ×0.85，期限取较大、倍率后写覆盖，技能重置与复活都不清）。`Global/__enums__` 的 `ModifierCommandType` 同时改成与 C# `BuddahPredictedModifierCommandType` 相同的编号（Acceleration=1 … RoomBypass=7，Freeze=8 … MaxSpeedMultiplier=11）；原来从 0 起编，而 value 列也被当作成员名接受，`1` 会被当成 RootThenAcceleration。
+
 ## 表 4：LaunchHandoff（起跑交接）
 
 - `launchInheritTime` — legacy `BuddahMovement.cs:33` — 0.2 / 0.2（prefab:622）— `BeginLaunchHandoff` → `BuddahPredictionHandoffBridge.TryBeginLaunchHandoff` → `RequestAuthoritativeLaunchHandoffFromOwner` → `TryApplyServerAuthoritativeLaunchHandoff`(Events.cs:226) — InheritSeconds:float — 预测路径数值来自已禁用的 legacy 组件。
@@ -115,6 +117,7 @@
 - 控制方案声明了 Gamepad / Touch / Joystick / XR 但无绑定；D 键 group 写成 ";Keyboard&Mouse;XR"，疑似误配。
 - 消费方 `BuddahPredictionOwnerInputBridge.Initialize/ReadSteering`(OwnerInputBridge.cs:24,191-197)，受 `LocalInputBlock.IsBlocked` 阻断。
 - 建议表 InputBindings（Action、Key、Scheme），外加 SteeringInputMode（数字/模拟）、SteeringDeadzone；改键需先去掉硬编码 KeyCode。
+- 2026-10-26（玩法深化 A2）：`Global/InputBinding` 加 doc 列 `status`，补齐 SkillSlot1/2/3（Q/E/R 与 1/2/3 同时绑定，`SkillExecutor.OnSkillKeyPressed`）和 HandPush 的鼠标左/右键（主键位，`BuddahHandControl.TryResolvePushHand`）；W/↑ 推掌标为“废弃内容，后续可能再调整”；←/→ 只在没有鼠标时做回退，主瞄准是光标投到地面的方向，转速上限 `Push.basic.rotationSpeedDegPerSec`。
 
 ## 表 11：GlobalSimulation / GlobalSettings
 

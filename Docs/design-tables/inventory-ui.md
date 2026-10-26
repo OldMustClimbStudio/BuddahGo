@@ -2,6 +2,8 @@
 
 筛查日期 2026-10-12，基线 dev 9ff6338。本文件只做盘点，不含实现。总览与跨域结论见 [README.md](README.md)。
 
+> 2026-10-26 玩法深化 A6 之后：玩家搓招退役，`SkillSlotUI.tokens` 的 W / ↑ 按键图在 Start 时隐藏，已退役（字段保留，prefab 值不再有读者）；`successHoldSeconds`、`fallbackCastLockSeconds`、`previewTimeoutSeconds` 三个字段从代码删除，`UI/UiTiming` 对应三行同时删除，SkillSlotUI 只剩 `rotateSpeed`、`bindRetryInterval` 两行。下文“技能槽 HUD `SkillSlotUI`”段、“技能槽按键 token 序列与图”条目，以及与 token、`fallbackCastLockSeconds` 有关的问题都按 2026-10-12 基线记录，不再适用。
+
 范围：`Assets/Scripts/UI/**`（InGameUI、InGameUI/Legacy、MenusUI）、`Assets/UI/**`、`Assets/UIMenus/**`、`Assets/UI Toolkit/**`、`Assets/Fonts`、UI 与开场引用的 `Assets/Animation`，`Assets/Scripts/Editor/**`、`Assets/Editor/**`，`Assets/Tests/**`（只记录钉死可调值的测试）。`Match/UI/**` 的中文文案在 [inventory-match-flow.md](inventory-match-flow.md) 字符串表一节。
 
 ## 结论先行

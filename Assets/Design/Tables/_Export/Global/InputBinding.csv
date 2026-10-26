@@ -1,15 +1,23 @@
-##var,map,action,bindingPath,scheme,codeOverride
-##type,string#key,string#key,string#key,string,string
-##group,,,,,doc
-##comment,,,,,代码绕过绑定的位置
-,Player,Movement,<Keyboard>/a,;Keyboard&Mouse,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
-,Player,Movement,<Keyboard>/d,;Keyboard&Mouse;XR,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
-,Player,Movement,<Keyboard>/space,,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
-,Player,HandRotation,<Keyboard>/leftArrow,,BuddahHandControl.cs:412-418
-,Player,HandRotation,<Keyboard>/rightArrow,,BuddahHandControl.cs:412-418
-,Player,HandPush,<Keyboard>/w,,"BuddahHandControl.cs:443,452; ComboSkillInput.cs:121-126"
-,Player,HandPush,<Keyboard>/upArrow,,"BuddahHandControl.cs:443,452; ComboSkillInput.cs:121-126"
-,Menu,MenuSelect,<Mouse>/leftButton,,
-,Menu,MenuCancel,<Keyboard>/escape,,
-,Menu,MenuInspect,<Mouse>/rightButton,,
-,Menu,MenuInspect,<Keyboard>/f,,
+##var,map,action,bindingPath,scheme,status,codeOverride
+##type,string#key,string#key,string#key,string,string,string
+##group,,,,,doc,doc
+##comment,,,,,主键位 / 回退 / 废弃（废弃内容，后续可能再调整）,代码绕过绑定的位置
+,Player,Movement,<Keyboard>/a,;Keyboard&Mouse,主键位,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
+,Player,Movement,<Keyboard>/d,;Keyboard&Mouse;XR,主键位,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
+,Player,Movement,<Keyboard>/space,,已绑定，代码不读,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
+,Player,HandRotation,<Keyboard>/leftArrow,,回退,无鼠标时的回退；主瞄准是光标投到地面的方向，转速上限 Push.basic.rotationSpeedDegPerSec（BuddahHandControl）
+,Player,HandRotation,<Keyboard>/rightArrow,,回退,无鼠标时的回退；主瞄准是光标投到地面的方向，转速上限 Push.basic.rotationSpeedDegPerSec（BuddahHandControl）
+,Player,HandPush,<Keyboard>/w,,废弃内容，后续可能再调整,W=左手（BuddahHandControl.TryResolvePushHand）；ComboSkillInput 的 AI 搓招 token 仍是 W / Up
+,Player,HandPush,<Keyboard>/upArrow,,废弃内容，后续可能再调整,↑=右手（BuddahHandControl.TryResolvePushHand）；ComboSkillInput 的 AI 搓招 token 仍是 W / Up
+,Player,HandPush,<Mouse>/leftButton,,主键位,左手推掌（BuddahHandControl.TryResolvePushHand）
+,Player,HandPush,<Mouse>/rightButton,,主键位,右手推掌（BuddahHandControl.TryResolvePushHand）
+,Player,SkillSlot1,<Keyboard>/q,,主键位,技能槽 0（SkillExecutor.OnSkillKeyPressed）
+,Player,SkillSlot1,<Keyboard>/1,,主键位（同时绑定）,技能槽 0（SkillExecutor.OnSkillKeyPressed）
+,Player,SkillSlot2,<Keyboard>/e,,主键位,技能槽 1（SkillExecutor.OnSkillKeyPressed）
+,Player,SkillSlot2,<Keyboard>/2,,主键位（同时绑定）,技能槽 1（SkillExecutor.OnSkillKeyPressed）
+,Player,SkillSlot3,<Keyboard>/r,,主键位,技能槽 2（SkillExecutor.OnSkillKeyPressed）
+,Player,SkillSlot3,<Keyboard>/3,,主键位（同时绑定）,技能槽 2（SkillExecutor.OnSkillKeyPressed）
+,Menu,MenuSelect,<Mouse>/leftButton,,主键位,
+,Menu,MenuCancel,<Keyboard>/escape,,主键位,
+,Menu,MenuInspect,<Mouse>/rightButton,,主键位,
+,Menu,MenuInspect,<Keyboard>/f,,主键位,

@@ -50,7 +50,7 @@ Assets/Resources/Config/ProjectConfigDatabase.json    导出产物（提交，�
 Assets/Scripts/Editor/DesignTables/                   导入器、校验器、CLI 入口（BuddahGo.Editor 程序集）
 Assets/Design/Tables/scope.json                       导出范围（export / presentationOnly）
 Assets/Design/Tables/export-map.json                  sheet → 记录类 → 数据库列表（gen_records.py 生成）
-Tools/design-tables/                                  基线生成脚本（从工程实际值反向生成工作簿，仅建基线时用）
+Tools/design-tables/                                  基线生成脚本（build_tables 自 2026-10-26 阶段 B 起过时）、tablemodel / gen_records / add_metas
 ```
 
 `.gitattributes` 已追加 `*.xlsx filter=lfs diff=lfs merge=lfs -text`；`.gitignore` 已追加 `~$*.xlsx` 与 `*.xlsx#`。
@@ -112,25 +112,25 @@ AI 表（`DrivingTier`、`SkillDifficulty`、`SkillTuning`）的表头也是 cam
 文案字段在数据表里只放 key（`string#ref=UIText/Text.key`），文本本体在 `UIText.xlsx/Text`（key、zh、en、comment）。现有 `SkillDefinitionRecord.displayName/description` 直接存中文，迁移时改为 key 还是保留中文列见待同步。
 
 ### 4.5 全局标量
-继续用 `GlobalRule(ruleKey, ruleValue, ruleSetId, description)`，但只放真正跨域的开关（目前 `target_frame_rate`）；搓招窗口与缓冲在 `Skill/ComboInput`，施法前摇逐技能在 `Skill.castConfirmDelaySeconds`（含反噬行）。Excel 侧在 `Global.xlsx/GlobalRule` 增加一列 `valueType`（`##group=doc`，不导出）供校验器按类型检查 `ruleValue`，并增加 `consumer`（doc）列记录读取方，杜绝再出现「定义了无人读」的键。
+继续用 `GlobalRule(ruleKey, ruleValue, ruleSetId, description)`，但只放真正跨域的开关（目前 `target_frame_rate`）；搓招窗口与缓冲在 `Skill/ComboInput`，施法前摇逐技能在 `Skill.castConfirmDelaySeconds`（反噬的统一确认窗口也用它）。Excel 侧在 `Global.xlsx/GlobalRule` 增加一列 `valueType`（`##group=doc`，不导出）供校验器按类型检查 `ruleValue`，并增加 `consumer`（doc）列记录读取方，杜绝再出现「定义了无人读」的键。
 
 ### 4.6 上下文列
 `ruleSetId / modeTag / mapTag` 是现有仓库的查询维度。目前只用 `default`。保留列但允许留空（空=default），避免策划每行都填。
 
 ## 5. 工作簿与 Sheet 明细
 
-v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 列出全部 62 张 sheet 的记录类、实际值来源与备注；每张 sheet 的 `##comment` 行写明字段含义与来源行号。各域 sheet 清单：
+v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 列出全部 65 张 sheet（2026-10-26 阶段 B 新增 Yuanqi 三张）的记录类、实际值来源与备注；每张 sheet 的 `##comment` 行写明字段含义与来源行号。各域 sheet 清单：
 
 | 工作簿 | 导出 sheet | 只校验（presentationOnly） |
 |---|---|---|
-| Skill | Skill（身份 + 冷却/锁定/前摇 + 执念 + 主效果时长）、SkillEffectAcceleration、SkillEffectSlowTrap、SkillEffectBlackCurtain、SkillEffectGiant、Push（basic / charged / charged_anti）、SkillSelectionRule、DefaultLoadout、ComboInput、ComboBinding、Obsession | SkillPresentation、VfxRegistry、FeelEvent、BlackCurtainPresentation、SkillConstant（代码 / prefab 常量） |
+| Skill | Skill（身份 + 冷却/前摇 + 执念 + 主效果时长）、SkillEffectAcceleration、SkillEffectSlowTrap、SkillEffectBlackCurtain、SkillEffectGiant、Push（basic / charged）、SkillSelectionRule、DefaultLoadout、ComboInput、ComboBinding（AI 搓招，A7 退役）、Obsession（含同招加价与反噬惩罚）、Yuanqi（缘起身份与收尾规则）、YuanqiEffectFrostLock、YuanqiEffectGiantCharge | SkillPresentation、VfxRegistry、FeelEvent、BlackCurtainPresentation、SkillConstant（代码 / prefab 常量） |
 | Movement | Movement（运动 + 受击宽限 + 起跑交接）、Respawn | ModifierRule、Camera、RacerVisual、SplineTracking |
 | AI | DrivingTier、DrivingTuning、SkillDifficulty、Personality（含三槽权重）、PersonalitySituationBias、SkillOpportunity、SkillTuning、Roster | DrivingConstant |
 | Match | ModeRule、Track（含圈数与圈规则）、TrackWrongWay、TrackSpawn、TrackCheckpoint、TrackResultAnchor、Lobby、SelectionStage、SelectionOption、Intro（唯一的 handoffLeadSeconds） | ResultVoteRule、ResultPresentation、IntroLayout、IntroSlotStyle |
 | UI | Text、MenuOption | SkillIcon、HudObsession、UiTiming、MiniMap |
 | Global | GlobalRule | StructuralConstant、GlobalPhysics、PhysicsMaterial、Tag、Layer、Scene、InputBinding、Timeline、`__enums__`、`__meta__` |
 
-手写记录类只剩 SkillSelectionRuleRecord、DefaultLoadoutRecord、GlobalRuleRecord；其余（含 SkillRecord）由 `gen_records.py` 从表头生成，`__meta__` 的 recordClass 列记录来源。技能家族表的普通与反噬各一行，空格表示该行的技能类没有这个字段；ReverseTurn 与 ProjectileHands 没有家族表（主时长在 Skill，弹道参数在 Push，其余是代码常量，见 SkillConstant）。
+手写记录类只剩 SkillSelectionRuleRecord、DefaultLoadoutRecord、GlobalRuleRecord；其余（含 SkillRecord）由 `gen_records.py` 从表头生成，`__meta__` 的 recordClass 列记录来源。技能家族表每个技能一行（2026-10-26 阶段 B 起反噬变体退役，`_anti` 行与反噬专用列已删）；ReverseTurn 与 ProjectileHands 没有家族表（主时长在 Skill，弹道参数在 Push，其余是代码常量，见 SkillConstant）。缘起同构：`Yuanqi` 宽表一对一行，有参数的对各一张 `YuanqiEffect<对>` 家族表（主键 `yuanqiId#ref=Yuanqi.yuanqiId`），没有参数的对（#1 金身巨掌）不建家族表。
 
 ## 6. 直通车管线（已实现，`Assets/Scripts/Editor/DesignTables/`）
 
@@ -154,7 +154,7 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 | 菜单 | `Import Tag/balance|info|text|track|skill|movement|ai|match|ui|global` | 只推送带该 tag 的 sheet（忽略哈希） |
 | CLI | `Unity.exe -batchmode -nographics -projectPath . -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit [-designForce] [-designTags skill,ai]` | 退出码 0/1；不带参数时按哈希增量导入；`ValidateOnly` 只校验；`ProbeAutoImport` 验证"保存 → 资源导入回调 → 自动导表"这条路 |
 | 记录类生成 | `python Tools/design-tables/gen_records.py .` | 表头或 `scope.json`（范围、tags）改动后运行，再让 Unity 重新编译 |
-| 基线重建 | `python Tools/design-tables/build_tables.py . <out>` | 从工程实际值反向生成工作簿，仅建基线用 |
+| 基线重建 | `python Tools/design-tables/build_tables.py . <out>` | 从工程实际值反向生成工作簿，仅建基线用。**2026-10-26 起已过时，勿用**：仍按退役结构（`_anti` 行、`antiSkillId`、`castLockSeconds`）生成，缺阶段 B 的缘起表与新列；`_anti` 资产已删，脚本启动即中止 |
 
 ### 6.1 分层导入规则
 1. 校验总是覆盖全部 sheet（跨表外键需要完整数据），开销很小。
@@ -172,19 +172,22 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 
 | 表 | 消费方 |
 |---|---|
-| Skill | SkillConfigRepository（冷却 / 锁定 / 执念 / 反噬 id / 显示名与描述经 UI/Text），施法时读取；SkillExecutor 按实际执行行读 castConfirmDelaySeconds（含反噬行）；effectDurationSeconds 由 SkillDatabase 写入各技能 SO 的主时长字段（`SkillDatabase.EffectDurationField`） |
-| SkillEffectAcceleration / SlowTrap / BlackCurtain / Giant | SkillDatabase 按同名字段覆盖普通 / 反噬技能 SO |
+| Skill | SkillConfigRepository（冷却 / 执念 / 显示名与描述经 UI/Text），施法时读取；SkillExecutor 读 castConfirmDelaySeconds（反噬的确认窗口同一列）；effectDurationSeconds 由 SkillDatabase 写入各技能 SO 的主时长字段（`SkillDatabase.EffectDurationField`），也是缘起状态板的生效窗口（`SkillExecutor.ResolveEffectDurationSeconds`） |
+| SkillEffectAcceleration / SlowTrap / BlackCurtain / Giant | SkillDatabase 按同名字段覆盖技能 SO |
 
 写入技能 SO 的值（主时长、家族表、Push charged 行）在每局 Play 第一次查技能时写入（`SkillDatabase.EnsureDesignTablesApplied`），不依赖 SO 的 `OnEnable`：编辑器进入 Play 时域重载调用 `OnEnable` 的那一刻 `Application.isPlaying` 仍为 false。编辑器内写入前快照、退出 Play 时恢复，资产文件保持序列化原值；导表写出后 `ProjectConfigRuntime.Invalidate()` 丢弃仓库缓存。
-| Push | basic 行 → BuddahHandControl（`PushBasicMap` 显式映射）；charged / charged_anti 行 → Skill_PushProjectileHands(_Anti)（`SkillDatabase.PushChargedMap / PushChargedAntiMap`） |
-| ComboInput / ComboBinding / Obsession | ComboSkillInput（窗口与缓冲 + 绑定）/ ObsessionFigure |
+| Push | basic 行 → BuddahHandControl（`PushBasicMap` 显式映射；rotationSpeedDegPerSec 是鼠标转手速度上限）；charged 行 → Skill_PushProjectileHands（`SkillDatabase.PushChargedMap`） |
+| ComboInput / ComboBinding | ComboSkillInput（窗口与缓冲 + 绑定）；玩家搓招已退役，只剩 AI 逐键搓招在读，A7 后删除 |
+| Obsession | ObsessionFigure 同名覆盖（含 repeatWindowSeconds / repeatGainMultiplier 同招加价与 backfireLockSeconds / backfireMaxSpeedMultiplier / backfireEndKeepRatio 反噬惩罚） |
+| Yuanqi | SkillDatabase 按 yuanqiId 找 `Skill Database.asset` 里的 Yuanqi_* SO，显式映射 skillA / skillB / consumeA / consumeB / mode / retriggerPolicy / isEnabled（`SkillDatabase.YuanqiRowMap`）；文案经 `SkillDatabase.GetYuanqiDisplayName / GetYuanqiDescription`；YuanqiRegistry 与 YuanqiCatalog 只读 SO（已被表覆盖） |
+| YuanqiEffectFrostLock / YuanqiEffectGiantCharge | SkillDatabase 按同名字段覆盖对应的 Yuanqi_FrostLock / Yuanqi_GiantCharge SO（`SkillDatabase.YuanqiFamilyActionType` 校验类名） |
 | SkillSelectionRule / DefaultLoadout / GlobalRule | 原有仓库；target_frame_rate 由 FrameRateLock 读取 |
 | Movement | BuddahPredictedMotorConfig（同名覆盖，含 Rigidbody 质量阻尼、实体胶囊半径/高度/中心、受击宽限、交接地面探测）；BuddahMovement 起跑时序与 RaceBodyIntroStateController 速度采样间隔用显式映射 |
 | Respawn | BuddahRespawn |
 | DrivingTier / DrivingTuning | AIDifficultyProfiles.Resolve（档位覆盖按名忽略大小写、速度 clamp、ThrustVectorPlanner 恢复阈值） |
 | SkillDifficulty / Personality / PersonalitySituationBias / SkillOpportunity / SkillTuning | AISkillCatalog.ApplyDesignTables（三槽权重填入 Weights[AISkillKind]；SkillTuning 单行按名覆盖 AISkillTuning；SkillOpportunity 每个技能只读自己的列，单元格即取值、0 有效，blackcurtain 有独立的 minValiditySeconds；impairedDrivingReactionTicks 由 AIRacerDriver 读取） |
 | Roster | MatchSpawnManager 按槽位取人格与名字 |
-| ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、PropertiesSelectionManager、ResultDecisionManager、RaceFinishManager；requiresReady 由 RoomStateManager 每局开始时读取；aiCount 与 defaultDifficulty 由 SoloSetupPanel 读取 |
+| ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、PropertiesSelectionManager、ResultDecisionManager、RaceFinishManager；requiresReady 由 RoomStateManager 每局开始时读取；aiCount 与 defaultDifficulty 由 SoloSetupPanel 读取；Practice 行的 trainingDummyCount / SpacingMeters / StartOffsetMeters / LateralOffsetMeters / ResetDelaySeconds 由 MatchSpawnManager 在 Awake 读取（`TrainingDummyModeRuleMap`） |
 | Track / TrackWrongWay / TrackSpawn / TrackCheckpoint / TrackResultAnchor | 当前赛道 = `sceneName` 与组件所在场景同名的行，其次活动场景（场景物体在 FishNet 切换活动场景前就 Awake），没有行时组件保留场景 / prefab 值，不回退到第一行（`DesignTableOverlay.CurrentTrack / ForCurrentTrack`）。Track：RaceFinishManager 圈数、LapProgress 圈规则（显式映射）、MiniMapController 边界、RaceResultAreaManager 偏移、TrackSplineRef 弧长表分辨率；TrackWrongWay：RaceCompletionTracker；MatchSpawnManager、Checkpoint、EndFieldSpawnPoint 在 Awake 把场景物体移到表中世界坐标 |
 | Lobby | SteamLobbyManager 默认值与默认可见性、SessionLauncher 超时、RoomStateManager 玩家名截断长度 |
 | SelectionStage / SelectionOption | PropertiesSelectionManager（阶段名、选择模式、选项名/描述/图标 key/解锁；map / skin 占位行已屏蔽，代码兜底） |
@@ -206,13 +209,15 @@ v0.3 起以生成的工作簿为准：`Global/Global.xlsx` 的 `__meta__` sheet 
 | 级别 | 规则 |
 |---|---|
 | Error | 表头缺 `##var`/`##type`；字段名与记录类不匹配；主键重复或为空；类型转换失败；枚举名不在 `__enums__`；外键目标不存在；range 越界；`list` 分隔符后出现空元素 |
-| Error | ProjectConfigValidator 现有规则（antiSkillId 存在、selection rule 引用技能存在等） |
+| Error | ProjectConfigValidator 现有规则（skillId 唯一、selection rule / 默认配装引用技能存在等） |
+| Error | DesignTableDomainRules 跨表规则：检查点数量、人格数、AI 按键时长、缘起两招不同且无序唯一、Sustained 不消耗、缘起的 consume / mode / retriggerPolicy / isEnabled 必填、Obsession 五个同招加价与反噬惩罚列必填、生成木桩的 ModeRule 行四个摆放列必填 |
+| Warning | 三个技能两两都有启用的缘起（设计上避免）；默认配装用了不在 Selectable 池的技能 |
 | Warning | 列在记录类中存在但 Excel 缺失（使用默认值）；`doc` 列被运行时读取；GlobalRule 键无 consumer；SO 与表漂移（过渡期） |
 | Info | 被忽略的 sheet 与列清单 |
 
 ## 8. 已同步的决定
 
-2026-10-13 v2：按 structure-audit 第三节重组（decisions 16–21）。重组脚本 `Tools/design-tables/migrate_v2.py` 按域就地改写工作簿；`build_tables.py` 先生成 v1 模型再套同一套 `v2_layout.py` 变换，重建的基线与提交的工作簿结构一致。
+2026-10-13 v2：按 structure-audit 第三节重组（decisions 16–21）。重组脚本 `Tools/design-tables/migrate_v2.py` 按域就地改写工作簿；`build_tables.py` 先生成 v1 模型再套同一套 `v2_layout.py` 变换，当时重建的基线与提交的工作簿结构一致（2026-10-26 机制更新阶段 B 之后不再一致：生成器没有跟进，见 6 节的基线重建行）。
 
 2026-10-13 用户决定：表值以 Unity 内实际生效值为基线；能入表的都入表；曲线入表。原第 8 节 21 项全部按此关闭：结构类 3、5、7 按本稿执行（曲线为关键帧列表；上下文三列保留允许留空；校验报告提交）；入表类 8–19 全部入表，其中工程向列标 `adv`、结构常量标 `doc`、timeline 只读；唯一真相 20=slowtrap、21=12/10。字体子集重烘纳入导出器范围，待实现。
 

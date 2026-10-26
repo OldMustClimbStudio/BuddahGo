@@ -54,6 +54,21 @@
   "list": "obsessions",
   "tags": "skill,balance"
  },
+ "Skill/Yuanqi": {
+  "record": "YuanqiRecord",
+  "list": "yuanqis",
+  "tags": "skill,info"
+ },
+ "Skill/YuanqiEffectFrostLock": {
+  "record": "YuanqiEffectFrostLockRecord",
+  "list": "yuanqiEffectFrostLocks",
+  "tags": "skill,balance"
+ },
+ "Skill/YuanqiEffectGiantCharge": {
+  "record": "YuanqiEffectGiantChargeRecord",
+  "list": "yuanqiEffectGiantCharges",
+  "tags": "skill,balance"
+ },
  "Movement/Movement": {
   "record": "MovementRecord",
   "list": "movements",

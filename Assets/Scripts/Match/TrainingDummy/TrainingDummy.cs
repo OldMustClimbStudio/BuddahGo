@@ -13,7 +13,9 @@ namespace BuddahGo.Match
     // - parks the body through the motor's steering override (throttle 0, no steering) while normal physics,
     //   impulses, body collisions and skill effects (slow, invert, root, freeze, scale) still act on it;
     // - once the body is displaced from its home pose, teleports it home `resetDelaySeconds` after the last
-    //   disturbance (resting contact with another body does not count) and clears its server-side skill state.
+    //   disturbance — a consumed impulse, an active skill effect, or contact with a moving body (README A1: 3 s
+    //   without skills or collisions). Its own coasting does not count, so a dummy flung far away still comes home
+    //   instead of sliding until friction stops it. Resting contact with a parked body does not count either.
     //   Falls off the track use the regular BuddahRespawn path.
     [DisallowMultipleComponent]
     public sealed class TrainingDummy : MonoBehaviour, ISteeringOverride
@@ -21,9 +23,7 @@ namespace BuddahGo.Match
         private const string ResetReason = "training-dummy-reset";
 
         [SerializeField, Min(0f)] private float resetDelaySeconds = 3f;
-        [Tooltip("Planar speed above which the dummy still counts as disturbed (m/s).")]
-        [SerializeField, Min(0f)] private float disturbedPlanarSpeed = 0.5f;
-        [Tooltip("Relative speed of a body contact above which it counts as a disturbance (m/s). Resting against another body (a parked dummy, an idle racer) does not, so dummies pushed together still reset.")]
+        [Tooltip("A body contact counts as a disturbance when the relative speed, or the other body's own planar speed, is above this (m/s). Resting against a parked body (another dummy, an idle racer) does not, so dummies pushed together still reset; a racer shoving the dummy along does.")]
         [SerializeField, Min(0f)] private float disturbedContactSpeed = 0.5f;
         [Tooltip("Planar distance from the home position that counts as displaced (m). Height is ignored, so settling onto the ground never triggers a reset.")]
         [SerializeField, Min(0f)] private float displacedDistance = 1f;
@@ -91,7 +91,7 @@ namespace BuddahGo.Match
 
             float now = Time.time;
             PollConsumedImpulse(now);
-            if (IsMovingOrAffected())
+            if (IsAffectedBySkill())
                 _clock.MarkDisturbed(now);
 
             if (!ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject))
@@ -105,14 +105,17 @@ namespace BuddahGo.Match
         private void OnCollisionStay(Collision collision) => MarkBodyContact(collision);
 
         // Another dynamic body (racer, giant, push box) hitting or shoving the dummy; static track geometry is ignored.
-        // Resting contact (no relative motion) is not a disturbance: two displaced dummies left touching each other
-        // would otherwise refresh each other's clock on every step and never reset. Active shoving that moves the
-        // dummy is still caught by the planar-speed check, and hits by the consumed-impulse poll.
+        // Resting contact (no relative motion, the other body parked) is not a disturbance: two displaced dummies left
+        // touching each other would otherwise refresh each other's clock on every step and never reset. A racer shoving
+        // the dummy along at matched speed still counts through its own speed; hits come from the consumed-impulse poll.
         private void MarkBodyContact(Collision collision)
         {
             if (!_hasHome || collision == null || collision.rigidbody == null || collision.rigidbody == _body || !IsServerActive)
                 return;
-            if (!TrainingDummyResetClock.IsDisturbingContact(collision.relativeVelocity.magnitude, disturbedContactSpeed))
+            Vector3 otherVelocity = collision.rigidbody.velocity;
+            otherVelocity.y = 0f;
+            if (!TrainingDummyResetClock.IsDisturbingContact(collision.relativeVelocity.magnitude, disturbedContactSpeed)
+                && !TrainingDummyResetClock.IsDisturbingContact(otherVelocity.magnitude, disturbedContactSpeed))
                 return;
             _clock.MarkDisturbed(Time.time);
         }
@@ -130,17 +133,7 @@ namespace BuddahGo.Match
             _clock.MarkDisturbed(now);
         }
 
-        private bool IsMovingOrAffected()
-        {
-            if (_body != null)
-            {
-                Vector3 velocity = _body.velocity;
-                velocity.y = 0f;
-                if (velocity.sqrMagnitude > disturbedPlanarSpeed * disturbedPlanarSpeed)
-                    return true;
-            }
-            return TryCaptureEffects(out TrainingDummyEffects effects) && effects.AnyActive;
-        }
+        private bool IsAffectedBySkill() => TryCaptureEffects(out TrainingDummyEffects effects) && effects.AnyActive;
 
         private bool IsDisplaced()
         {

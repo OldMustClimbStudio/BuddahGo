@@ -288,9 +288,11 @@ namespace SteamMultiplayer.Network.Match
         }
 
         // Where the human actually starts: the intro launch slot (Practice: Layout_1P Slot 0), else the first spawn point.
+        // The intro manager is a scene NetworkObject that FishNet keeps inactive until it is spawned, which is usually
+        // after this runs, so the lookup must include inactive objects (its layouts are plain serialized transforms).
         private Vector3 ResolveHumanStartPosition()
         {
-            IntroSequenceManager intro = FindFirstObjectByType<IntroSequenceManager>();
+            IntroSequenceManager intro = FindFirstObjectByType<IntroSequenceManager>(FindObjectsInactive.Include);
             if (intro != null && intro.TryGetLaunchPosition(Mathf.Max(1, _spawnedPlayers.Count), 0, out Vector3 launch))
                 return launch;
             Transform spawnPoint = GetSpawnPoint(0);

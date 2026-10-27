@@ -27,7 +27,7 @@ Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach 
 | `Assets/Plugins/UnitySSReflectionURP/` (phase 2) | scripts compile into `Assembly-CSharp-firstpass` | build |
 | `Assets/Rendering/Shaders/` (sky, `BuddahGo/Lit`) and `Assets/Editor/Rendering/` | used only by RaceMap's materials; editor tools | build |
 | `SG_MapEdge` shader graph: Preserve Specular Lighting off, emission no longer multiplied by `_EdgeVisible` (play-test fix) | only RaceMap's edge ribbons use it (the air-wall prefab `反转法线空气墙` also does, but no scene places it) | HDR captures, High Fidelity and Balanced |
-| Buddha clips in `Assets/Animation/BuddahAnim/` (`Buddah_Idle`, four 推 clips): root bone `fotou` at y 0.002 instead of 0.2515 (play-test fix) | every racer, player and AI, in every scene; only `Buddah.prefab` uses the controller | autopilot Solo lap |
+| Buddha collider refitted to the animated model (play-test fix): `Movement/Movement` `colliderCenter` y +0.998, prefab capsule and `RollbackHurtbox` with it, prefab `fotou` 0.2515, `Movement/Respawn` `heightOffset` 3 -> 2.002 | every racer, player and AI, in every scene; the body origin rests 0.998 m lower inside an unchanged world-space capsule | autopilot Solo lap, design-table tests |
 
 Renderer index 1 in both pipeline assets is reserved for the Deferred keep-alive renderer; no camera may select it
 (`BlackCurtainViewController`'s renderer switching is off in RaceMap).
@@ -489,7 +489,7 @@ and Balanced or Performant in a player build.
 
 The user play-tested the PR and sent four items: the edge line of 一念光明 faintly visible while the skill is off, no
 bake for now, their saved layout change, and Buddha floating over the track after it. Commits 1008e82 (the user's own
-change), 965392f, 27dad27, 5986813 and the docs commit after them.
+change), 965392f, 5986813, e1a6eb4, e56b0a4 and the docs commits; 27dad27 was reverted by 21a7bd8.
 
 ### The user's layout change (1008e82)
 
@@ -534,44 +534,52 @@ skill's look at full visibility is unchanged within 2 levels. Across the fade, t
 at 5, 10, 25, 50 and 75% (HDR). Skill dispatch, networking, `TrackEdgeVisibility` and `BlackCurtainViewController` are
 untouched. An 8-bit capture would show a slower fade-in after the fix; that is the capture's clipping, not the game.
 
-### Buddha floating over the track (27dad27, 5986813)
+### Buddha floating over the track (5986813, e1a6eb4, e56b0a4)
 
 Images: [fix_buddha_ground/side_closeups_before_after.jpg](fix_buddha_ground/side_closeups_before_after.jpg) (side
-camera 24 m away, 0.9 m above the lane: start grid at the end of the intro, 1 s after GO, 30% and 60% of the lap) and
-[fix_buddha_ground/gameplay_before_after.jpg](fix_buddha_ground/gameplay_before_after.jpg) (gameplay camera). Both
-come from an autopilot Solo lap started from MainMenu (`A1DrivingTools.Run`, the real intro, GO handoff and physics),
-with a sampler that baked the skinned mesh every 0.25 s and measured its lowest vertex against the lane collider below
-it:
+camera 24 m from the base, 0.9 m above the lane: start grid at the end of the intro, 1 s after GO, 30% and 60% of the
+lap) and [fix_buddha_ground/gameplay_before_after.jpg](fix_buddha_ground/gameplay_before_after.jpg) (gameplay camera).
+Both come from autopilot Solo laps started from MainMenu (`A1DrivingTools.Run`: the real intro, GO handoff and
+physics), with a sampler that baked the skinned mesh every 0.25 s and measured its lowest vertex against the lane
+collider below it:
 
-| Phase | Mesh base above the lane, before | After |
-|---|---|---|
-| Spawned, resting on the lane | 1.01 m | 0.01 m |
-| Intro (kinematic, start grid) | 2.76 m | 0.007 m (range -0.07 to +0.02) |
-| Racing, after GO | 1.01 m, plus a 1.5 m drop in the first 0.5 s after GO | 0.010 m (range -0.07 to +0.02), no drop |
+| Phase | Mesh base above the lane, before | After | Body origin to mesh base, before / after |
+|---|---|---|---|
+| Intro (kinematic, start grid) | 2.76 m | 0.009 m (range -0.07 to +0.02) | 0.289 / 0.289 m |
+| Racing, after GO | 1.01 m, plus a 1.5 m drop in the first 0.5 s after GO | 0.009 m (range -0.07 to +0.02), no drop | 0.289 / 0.289 m |
 
-The ±7 cm is the idle animation's own sway. The capsule rested on the lane (gap 0.000) whenever physics was in charge,
-before and after.
+The ±7 cm is the idle animation's own sway. The last column is the point of the fix: the model sits exactly where it
+did relative to the body origin, so everything placed relative to the origin or to `VisualRoot` (the palm push spawn
+`pushHeightOffset`, skill effects, trails, the overhead marker, the camera target) keeps its relation to the model.
 
 **Two causes.**
 
-1. **Animation clips (pre-existing, every scene).** All five Buddha clips pin the armature root `fotou` at local y
-   0.2515, while `Buddah.prefab`, prefab mode and the capsule collider (fitted to the prefab pose, base 2 cm above the
-   capsule bottom) use 0.002. Under `VisualRoot`'s x4 scale the model sat about 1.0 m above its collider in play mode.
-   Fix: the clips use 0.002, so play mode matches prefab mode. Visual only; physics and prediction are unchanged.
-   Trade-off: offsets taken from the body root were tuned by eye against the raised model and now sit about 1 m higher
-   relative to it: the palm push spawn (`pushHeightOffset` 1.0 above the root), and the `VisualRoot` children outside the
-   armature (for example `技能Particle` and `LookAt`). Worth a look in the next play-test.
+1. **Collider fitted to a pose the game never shows (pre-existing, every scene).** All five Buddha clips hold the
+   armature root `fotou` at local y 0.2515; `Buddah.prefab` had 0.002, and the capsule collider was fitted to that
+   prefab pose (base 2 cm above the capsule bottom). Under `VisualRoot`'s x4 scale the animated model played
+   (0.2515 - 0.002) x 4 = 0.998 m above its collider, so the capsule stood on the lane and the model floated. The
+   effects and the push spawn were tuned in play mode, against the animated model.
+   Fix (e1a6eb4): the collider moves up to the model instead of the model moving down. `Movement/Movement`
+   `colliderCenter` y 2.950664 -> 3.948738 and the prefab capsule with it; `RollbackHurtbox` moves by the same 0.998;
+   the prefab's `fotou` shows the clips' 0.2515, so prefab mode matches play mode; `Movement/Respawn` `heightOffset`
+   3 -> 2.002 so a respawned capsule starts at the same height as before. The capsule fills the same space in the world
+   as before and the centre of mass is implicit (computed from the colliders), so physics and prediction behave the
+   same on server and clients; only the body origin sits 0.998 m lower inside the capsule (now 0.298 m above its
+   bottom). The giant skill scales the body about its origin, so its growth now pushes the capsule up by 0.30 x (scale - 1)
+   instead of 1.30 x (scale - 1).
+   A first attempt (27dad27, reverted by 21a7bd8) lowered `fotou` in the clips instead; it put the model on the
+   collider but left the push spawn and the effects about 1 m above where they were relative to the model.
 2. **Intro layout (from the layout change).** The intro launch points and intro splines (`IntroSequenceRoot/Layout_2P..6P`)
-   and `SpawnPoints` were authored at y 3.30. On the old track that left the capsule 0.62 m inside the lane during the
-   intro, and the launch ground snap moved it up at GO. On the lowered track it is 1.75 m above, beyond the snap's 1.5 m,
-   so racers floated through the whole intro and dropped after GO. Fix: the layouts and spawn points sit at Buddha's
-   rest height (lane 0.2499 + capsule clearance 1.2959 = 1.5459); the snap now has nothing to correct. `MapPathLine`
-   moved down by the same 2.37 m as the track, which keeps the respawn point (spline + 3 m) and the AI wall probe at
-   their old distance above the lane. The intro cameras did not move.
+   and `SpawnPoints` were authored at y 3.30. On the lowered track that is far above the rest height, beyond the launch
+   ground snap's 1.5 m, so racers floated through the intro and dropped after GO. Fix (5986813, e56b0a4): the layouts and
+   spawn points sit at Buddha's rest height, lane 0.2499 + capsule clearance 0.2979 = 0.5478, so the intro, the GO
+   handoff and physics agree. `MapPathLine` moved down by the same 2.37 m as the track, which keeps the AI wall probe and
+   (with the new `heightOffset`) the respawned capsule at their old height above the lane. The intro cameras did not
+   move.
 
-Tests: the RaceMap scene, spline-tracker, launch-handoff and intro fixtures (84 tests) pass. A full EditMode run in the
-open editor finished, but the MCP job tracker lost it when a play-mode test reloaded the domain, so there is no full
-count for this commit set.
+Tests: the RaceMap scene, spline-tracker, launch-handoff, intro and design-table fixtures (99 tests) pass. A full
+EditMode run in the open editor finished, but the MCP job tracker lost it when a play-mode test reloaded the domain, so
+there is no full count for this commit set.
 
 ### No bake for now (user decision, 2026-10-27)
 
@@ -586,7 +594,6 @@ the lane instead of 1.5 m, and the reflection probe and sky reflection still sho
 
 - **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).
 - **Capture tool** renders without HDR and still assumes the old track height (see How to compare).
-- **Root-relative offsets after the clip fix** (palm push spawn, `VisualRoot` effects): check in the next play-test.
 
 - **Not verified by playing a match.** The WhiteBalance and curtain fixes, SSR under a real black curtain (including
   its fade phases), the trails, FishNet making RaceMap the active scene, and the sunset in motion were checked in code,

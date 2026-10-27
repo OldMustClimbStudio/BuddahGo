@@ -7,7 +7,7 @@ Inputs (local, git-ignored PNGs under Docs/rendering/racemap/):
   hdrdev_hf_*, hdrpr_hf_*, hdrfix_hf_*, hdrpr_bal_*, hdrfix_bal_*  edge-line states (hidden / off / on / vNNN),
       rendered with an HDR camera buffer like the game (dev = a scratch copy of dev 5f91e51's RaceMap.unity,
       pr = the branch before the SG_MapEdge fix, fix = after it)
-  float_before/, float_after/  side close-ups and gameplay-camera frames from an autopilot Solo lap
+  float_before/, float_v2/  side close-ups and gameplay-camera frames from an autopilot Solo lap
 Outputs: Docs/rendering/racemap/fix_edge_line/*.jpg and Docs/rendering/racemap/fix_buddha_ground/*.jpg.
 Needs Pillow.
 """
@@ -96,15 +96,15 @@ def buddha_ground():
                ("4_stretch_p30", "lap 30% (straight)"), ("5_stretch_p60", "lap 60%")]
     cells, titles = [], []
     for tag, name in moments:
-        for label in ("before", "after"):
-            cells.append(Image.open(BASE / ("float_" + label) / (tag + "_side.png")).convert("RGB"))
-            titles.append(f"{label} | {name} | side camera 24 m away, 0.9 m above the lane")
+        for label, folder in (("before", "float_before"), ("after", "float_v2")):
+            cells.append(Image.open(BASE / folder / (tag + "_side.png")).convert("RGB"))
+            titles.append(f"{label} | {name} | side camera 24 m from the base, 0.9 m above the lane")
     grid(cells, 2, 960, 540, titles).save(out / "side_closeups_before_after.jpg", quality=88, optimize=True)
 
     cells, titles = [], []
-    for tag, name in (("3_go_plus4", "4 s after GO"), ("5_stretch_p60", "lap 60%")):
-        for label in ("before", "after"):
-            cells.append(Image.open(BASE / ("float_" + label) / (tag + "_game.png")).convert("RGB"))
+    for tag, name in (("1_intro", "start grid, intro"), ("3_go_plus4", "4 s after GO"), ("5_stretch_p60", "lap 60%")):
+        for label, folder in (("before", "float_before"), ("after", "float_v2")):
+            cells.append(Image.open(BASE / folder / (tag + "_game.png")).convert("RGB"))
             titles.append(f"{label} | {name} | gameplay camera")
     grid(cells, 2, 960, 540, titles).save(out / "gameplay_before_after.jpg", quality=88, optimize=True)
     print("wrote", out.relative_to(ROOT))

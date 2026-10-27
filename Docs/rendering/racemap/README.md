@@ -12,6 +12,7 @@ stays local; only the note and images are in the repository).
 | 2 | Screen-space reflections and the shadow-distance policy | done, approved, committed |
 | 3 | Hand-written `BuddahGo/Lit` for RaceMap's marble and sand | done, committed (on 2026-10-26 the user asked for phases 3 and 4 to run to the end without an approval stop) |
 | 4 | Final review of the whole branch, fixes, build and docs | done, committed |
+| Play-test fixes | The user's layout change (track lowered 2.37 m), the 一念光明 edge line showing while the skill is off, Buddha floating over the track, no bake for now (2026-10-27) | done, committed; see [Play-test fixes](#play-test-fixes-2026-10-27) |
 
 ## Changes outside RaceMap
 
@@ -25,6 +26,8 @@ Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach 
 | `URP-KeepDeferredVariants-Renderer` in both renderer lists (phase 2) | builds keep the deferred shader variants: more variants, longer shader compile, never drawn | full player builds, stripping report below |
 | `Assets/Plugins/UnitySSReflectionURP/` (phase 2) | scripts compile into `Assembly-CSharp-firstpass` | build |
 | `Assets/Rendering/Shaders/` (sky, `BuddahGo/Lit`) and `Assets/Editor/Rendering/` | used only by RaceMap's materials; editor tools | build |
+| `SG_MapEdge` shader graph: Preserve Specular Lighting off, emission no longer multiplied by `_EdgeVisible` (play-test fix) | only RaceMap's edge ribbons use it (the air-wall prefab `反转法线空气墙` also does, but no scene places it) | HDR captures, High Fidelity and Balanced |
+| Buddha clips in `Assets/Animation/BuddahAnim/` (`Buddah_Idle`, four 推 clips): root bone `fotou` at y 0.002 instead of 0.2515 (play-test fix) | every racer, player and AI, in every scene; only `Buddah.prefab` uses the controller | autopilot Solo lap |
 
 Renderer index 1 in both pipeline assets is reserved for the Deferred keep-alive renderer; no camera may select it
 (`BlackCurtainViewController`'s renderer switching is off in RaceMap).
@@ -39,6 +42,14 @@ Renderer index 1 in both pipeline assets is reserved for the Deferred keep-alive
   results camera CM_End over the end field (added after the phase-0 capture, so it has no "before"). A proxy of the
   player model (baked from `Buddah.prefab` in an isolated prefab context, never instantiated with its network
   components) stands on the track; nothing is saved to the scene.
+- **Two caveats found on 2026-10-27, not yet fixed in the tool.** (1) It renders without HDR: URP 14 takes the camera
+  buffer format from the target texture (`UniversalRenderPipeline.CreateRenderTextureDescriptor`), and the tool's
+  target is 8-bit, so values above 1 (sun glints, emission, the sun disk) clip before blending and tonemapping. The game
+  renders to the screen with HDR on (High Fidelity and Balanced). An HDR and an 8-bit capture of the same frame differ
+  on 24-32% of the pixels of views 01-04 (mean 13-16 levels where they differ), so every phase image in this note shows
+  highlights and transparent effects slightly differently from the game. The play-test captures render into a
+  `DefaultHDR` target and blit to sRGB. (2) `TrackHeight` is still 2.62; since the user's layout change the lane top
+  is at 0.25, and the proxy root should stand 1.296 m above the lane (the capsule's clearance), not on it.
 - `python -I Tools/rendering/build_racemap_compare.py <before> <after> <out>` writes labelled JPEG side-by-sides.
 - `RaceMapRenderCost.Measure(viewIndex, frames)` renders one viewpoint at 1920x1080 and waits for the GPU every
   frame. Compare runs taken in the same session on the same machine; the absolute number is editor-side.
@@ -474,7 +485,108 @@ was made for comparison.
 **Not verified.** A match played in a player build (SSR, the black curtain, trails and the Feel shakers on screen),
 and Balanced or Performant in a player build.
 
+## Play-test fixes (2026-10-27)
+
+The user play-tested the PR and sent four items: the edge line of 一念光明 faintly visible while the skill is off, no
+bake for now, their saved layout change, and Buddha floating over the track after it. Commits 1008e82 (the user's own
+change), 965392f, 27dad27, 5986813 and the docs commit after them.
+
+### The user's layout change (1008e82)
+
+`Map` (lane, curbs, edge ribbons, air walls) moved from y 1.37 to -1, so the lane top is at 0.25 instead of 2.62. The
+sand (render plane y 0, collider top -2.33), `SpawnPoints`, the intro layouts, `MapPathLine`, the checkpoints, the
+light probes and the intro cameras stayed where they were. The edge-ribbon instance `赛道重制_3_20` was renamed
+`发光线条`; it holds the outer and inner effect ribbons (`特效外圈` / `特效内圈`) that 一念光明 lights up.
+
+### 发光线条 visible while the skill is off (965392f)
+
+Images: [fix_edge_line/skill_off_dev_before_after.jpg](fix_edge_line/skill_off_dev_before_after.jpg) (1:1 crops of
+views 01-04 with the skill off: dev, this branch before the fix, after the fix, each above the line's contribution x4,
+i.e. the frame minus the same frame with the ribbon renderers disabled),
+[fix_edge_line/skill_active_unchanged.jpg](fix_edge_line/skill_active_unchanged.jpg) (25% fade and full visibility,
+before and after) and [fix_edge_line/balanced_before_after.jpg](fix_edge_line/balanced_before_after.jpg).
+
+**Cause.** The ribbons are always rendered; `BlackCurtainViewController` / `TrackEdgeVisibility` only drive
+`_EdgeVisible` (0 hidden, 1 visible) through property blocks. `SG_MapEdge` is a transparent *Lit* graph with Alpha
+blending and **Preserve Specular Lighting** on. URP 14 then blends `One, OneMinusSrcAlpha` and multiplies only the
+diffuse term by alpha (`_ALPHAPREMULTIPLY_ON`, `BRDF.hlsl`), so specular, reflection-probe reflections and
+`MixFog` (applied after lighting, `PBRForwardPass.hlsl`) are added at full strength when alpha is 0. A breakdown with
+the fog switched off in memory: the Exp2 fog accounts for most of it in the intro and corner views, sun glints from the
+low sunset sun for the rest; sky-reflection intensity hardly matters.
+
+**New in this PR?** The mechanism is not: the graph and the toggle scripts are unchanged since 8c2d457. Its strength
+is. Measured with HDR captures (skill off minus ribbons disabled, views 01-04, High Fidelity):
+
+| State | Mean change where it shows | Peak | Pixels changed by more than 10 levels |
+|---|---|---|---|
+| dev 5f91e51 (its scene file opened in this project as a scratch copy) | 5-6 levels | 13-33 | 0.00-0.13% |
+| This branch before the fix | 9-17 levels | 57-126 | 0.44-1.05% |
+| After the fix | none (≤ 2, render noise) | 2 | 0% |
+
+The dev numbers use dev's lights, fog (off), sky material, post volumes and Map height, but this branch's baked GI and
+reflection cubemaps, which share their assets. Balanced shows the same leak and the same result after the fix.
+
+**Fix.** Preserve Specular Lighting is off (`SrcAlpha, OneMinusSrcAlpha`, no premultiply), so everything the shader
+outputs, specular and fog included, is scaled by alpha. Emission no longer multiplies by `_EdgeVisible` itself: the
+alpha blend now applies it, so emission still ramps linearly with visibility as before (diffuse ramps as visibility²
+both before and after). Hidden now equals "ribbons disabled" within 2 levels on High Fidelity and Balanced, and the
+skill's look at full visibility is unchanged within 2 levels. Across the fade, the ribbon pixels match within 0-2 levels
+at 5, 10, 25, 50 and 75% (HDR). Skill dispatch, networking, `TrackEdgeVisibility` and `BlackCurtainViewController` are
+untouched. An 8-bit capture would show a slower fade-in after the fix; that is the capture's clipping, not the game.
+
+### Buddha floating over the track (27dad27, 5986813)
+
+Images: [fix_buddha_ground/side_closeups_before_after.jpg](fix_buddha_ground/side_closeups_before_after.jpg) (side
+camera 24 m away, 0.9 m above the lane: start grid at the end of the intro, 1 s after GO, 30% and 60% of the lap) and
+[fix_buddha_ground/gameplay_before_after.jpg](fix_buddha_ground/gameplay_before_after.jpg) (gameplay camera). Both
+come from an autopilot Solo lap started from MainMenu (`A1DrivingTools.Run`, the real intro, GO handoff and physics),
+with a sampler that baked the skinned mesh every 0.25 s and measured its lowest vertex against the lane collider below
+it:
+
+| Phase | Mesh base above the lane, before | After |
+|---|---|---|
+| Spawned, resting on the lane | 1.01 m | 0.01 m |
+| Intro (kinematic, start grid) | 2.76 m | 0.007 m (range -0.07 to +0.02) |
+| Racing, after GO | 1.01 m, plus a 1.5 m drop in the first 0.5 s after GO | 0.010 m (range -0.07 to +0.02), no drop |
+
+The ±7 cm is the idle animation's own sway. The capsule rested on the lane (gap 0.000) whenever physics was in charge,
+before and after.
+
+**Two causes.**
+
+1. **Animation clips (pre-existing, every scene).** All five Buddha clips pin the armature root `fotou` at local y
+   0.2515, while `Buddah.prefab`, prefab mode and the capsule collider (fitted to the prefab pose, base 2 cm above the
+   capsule bottom) use 0.002. Under `VisualRoot`'s x4 scale the model sat about 1.0 m above its collider in play mode.
+   Fix: the clips use 0.002, so play mode matches prefab mode. Visual only; physics and prediction are unchanged.
+   Trade-off: offsets taken from the body root were tuned by eye against the raised model and now sit about 1 m higher
+   relative to it: the palm push spawn (`pushHeightOffset` 1.0 above the root), and the `VisualRoot` children outside the
+   armature (for example `技能Particle` and `LookAt`). Worth a look in the next play-test.
+2. **Intro layout (from the layout change).** The intro launch points and intro splines (`IntroSequenceRoot/Layout_2P..6P`)
+   and `SpawnPoints` were authored at y 3.30. On the old track that left the capsule 0.62 m inside the lane during the
+   intro, and the launch ground snap moved it up at GO. On the lowered track it is 1.75 m above, beyond the snap's 1.5 m,
+   so racers floated through the whole intro and dropped after GO. Fix: the layouts and spawn points sit at Buddha's
+   rest height (lane 0.2499 + capsule clearance 1.2959 = 1.5459); the snap now has nothing to correct. `MapPathLine`
+   moved down by the same 2.37 m as the track, which keeps the respawn point (spline + 3 m) and the AI wall probe at
+   their old distance above the lane. The intro cameras did not move.
+
+Tests: the RaceMap scene, spline-tracker, launch-handoff and intro fixtures (84 tests) pass. A full EditMode run in the
+open editor finished, but the MCP job tracker lost it when a play-mode test reloaded the domain, so there is no full
+count for this commit set.
+
+### No bake for now (user decision, 2026-10-27)
+
+The realtime shadows are accepted as they are. A full lightmap bake is wanted once the whole map is finished. Known
+blocker: on the development machine the GPU lightmapper skips jobs with "out of memory" while the editor holds most of
+the commit charge (about 48 of 51-52 GB on 2026-10-24 and 2026-10-27). Close other memory-heavy programs or use the CPU
+lightmapper for that bake. The current bake predates the layout change: the lane-centre probes are now 3.87 m above
+the lane instead of 1.5 m, and the reflection probe and sky reflection still show the old track height. Run
+`Generate RaceMap Light Probes` before that bake (re-tuning checklist, step 3).
+
 ## Known limits and open items (current state)
+
+- **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).
+- **Capture tool** renders without HDR and still assumes the old track height (see How to compare).
+- **Root-relative offsets after the clip fix** (palm push spawn, `VisualRoot` effects): check in the next play-test.
 
 - **Not verified by playing a match.** The WhiteBalance and curtain fixes, SSR under a real black curtain (including
   its fade phases), the trails, FishNet making RaceMap the active scene, and the sunset in motion were checked in code,
@@ -487,8 +599,9 @@ and Balanced or Performant in a player build.
   (smoothness about 0.06, 4% reflectance) with a darker base (about 0.19). A lighter lane is a material (art) decision; phase 3
   kept the colours. Values (tint, smoothness, tiling) are edited on the `RaceMap_*` copies; the textures come from the
   Substance graphs in `Assets/Sources/地图/MapSubstances/`.
-- **The track's own shadow.** The raised track (its top 2.62 m above the sand) casts a band about 15 m wide onto the sand
-  on the side away from the sun, which reads as a second edge. Inside the corners it shows the slab outline's straight
+- **The track's own shadow.** The raised track (its top 2.62 m above the sand plane until the user lowered it to 0.25 m
+  on 2026-10-27) cast a band about 15 m wide onto the sand on the side away from the sun, which read as a second edge;
+  with the lowered track the band is much narrower (not re-measured). Inside the corners it shows the slab outline's straight
   segments as blocky shapes. This is geometry, traced to the lane mesh's side walls.
 - **Sun disk under ACES.** The disk renders pale gold, not saturated orange. ACES desaturates bright values, so no disk
   colour reaches deep orange without a lower exposure.
@@ -532,6 +645,7 @@ and Balanced or Performant in a player build.
 | `Assets/Editor/Rendering/RaceMapLightProbeLayout.cs` | Track-following light probe layout |
 | `Assets/Editor/Rendering/RaceMapRenderCost.cs` | Before/after frame-time measurement with the pipeline's MSAA |
 | `Tools/rendering/build_racemap_compare.py` | Labelled JPEG side-by-sides |
+| `Tools/rendering/build_fix_evidence.py` | The play-test fix images from the local HDR captures (inputs listed in its docstring) |
 | `Assets/Rendering/Shaders/SunsetSky.shader` | RaceMap's sunset sky (phase 1b) |
 | `Assets/Plugins/UnitySSReflectionURP/` | Screen-space reflections (third party, MIT, phase 2) |
 | `Assets/Rendering/Shaders/BuddahGoLit.shader` (+ 3 `.hlsl`) | The project's hand-written Lit (phase 3) |

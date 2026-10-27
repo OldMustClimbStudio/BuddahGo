@@ -1350,6 +1350,7 @@ GameObject:
   - component: {fileID: 330585548}
   - component: {fileID: 330585549}
   - component: {fileID: 330585550}
+  - component: {fileID: 330585551}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1455,7 +1456,7 @@ MonoBehaviour:
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 1
-  m_Antialiasing: 2
+  m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
   m_Dithering: 1
@@ -1594,6 +1595,24 @@ MonoBehaviour:
   disableOutdoorVolumeDuringBlackCurtain: 1
   blackCurtainActiveVolume: {fileID: 1629277967}
   blackCurtainActiveVolumeObjectName: Volumn_Dark
+--- !u!114 &330585551
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9cd630bc738af746be94e28d2cf0e5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  levels:
+  - qualityLevel: Balanced
+    mode: 3
+  - qualityLevel: Performant
+    mode: 1
+  fallback: 1
 --- !u!1 &334364704
 GameObject:
   m_ObjectHideFlags: 0

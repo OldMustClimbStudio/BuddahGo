@@ -28,6 +28,7 @@ Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach 
 | `Assets/Rendering/Shaders/` (sky, `BuddahGo/Lit`) and `Assets/Editor/Rendering/` | used only by RaceMap's materials; editor tools | build |
 | `SG_MapEdge` shader graph: Preserve Specular Lighting off, emission no longer multiplied by `_EdgeVisible` (play-test fix) | only RaceMap's edge ribbons use it (the air-wall prefab `反转法线空气墙` also does, but no scene places it) | HDR captures, High Fidelity and Balanced |
 | Buddha collider refitted to the animated model (play-test fix): `Movement/Movement` `colliderCenter` y +0.998, prefab capsule and `RollbackHurtbox` with it, prefab `fotou` 0.2515, `Movement/Respawn` `heightOffset` 3 -> 2.002 | every racer, player and AI, in every scene; the body origin rests 0.998 m lower inside an unchanged world-space capsule | autopilot Solo lap, design-table tests |
+| RaceMap gameplay camera: post AA from `CameraAntialiasingPolicy` (none with MSAA, TAA on Balanced, FXAA on Performant) instead of SMAA | RaceMap only; no pipeline or renderer asset changed | shimmer sweeps, race clips, cost runs |
 
 Renderer index 1 in both pipeline assets is reserved for the Deferred keep-alive renderer; no camera may select it
 (`BlackCurtainViewController`'s renderer switching is off in RaceMap).
@@ -590,7 +591,72 @@ lightmapper for that bake. The current bake predates the layout change: the lane
 the lane instead of 1.5 m, and the reflection probe and sky reflection still show the old track height. Run
 `Generate RaceMap Light Probes` before that bake (re-tuning checklist, step 3).
 
+## Anti-aliasing noise in game (2026-10-27)
+
+The user reported that the in-game anti-aliasing looked noisy ("很多噪点"). Images:
+[aa_fix/flicker_heatmaps.jpg](aa_fix/flicker_heatmaps.jpg) (view 01, sand ripples: frame above its flicker map, i.e.
+the largest change between consecutive frames of a slow sub-pixel pan, x6; dev, before and after on both quality levels)
+and [aa_fix/motion_frames.jpg](aa_fix/motion_frames.jpg) (four consecutive frames at race speed). Animated versions
+are local only (`.webp` is not under Git LFS): `Logs/rendering/aa_clips/`, rebuilt by
+`python -I Tools/rendering/build_aa_evidence.py` from the local captures.
+
+**How it was measured.** `RaceMapTemporalNoise` (`Assets/Editor/Rendering/`) renders the gameplay viewpoints in play
+mode, on real frames so TAA's jitter and history work as in the game, into an HDR target like the game. The camera slides
+1/16 pixel per frame (shimmer) or 6 pixels per frame (race speed), with one factor changed per run;
+`Tools/rendering/temporal_noise.py` scores the share of pixels that change by more than 8 levels between frames. It also
+records clips of the real gameplay camera during an autopilot Solo lap (`BeginClip`).
+
+**Attribution** (pixels flickering by more than 8 levels per frame, views 01 / 02 / 03, 1/16 px pan):
+
+| Configuration | dev 5f91e51 | This branch |
+|---|---|---|
+| High Fidelity as shipped (8x MSAA + SMAA High) | 0.12 / 0.10 / 0.11% | 1.41 / 1.16 / 1.08% |
+| High Fidelity, SMAA off | 0.03 / 0.03 / 0.02% | 0.11 / 0.10 / 0.12% |
+| Balanced as shipped (SMAA High, no MSAA) | 0.09 / 0.09 / 0.07% | 1.20 / 0.97 / 0.90% |
+| Performant as shipped (SMAA High) | not measured | 1.19 / 0.97 / 0.90% |
+
+Removing SSR, SSAO, fog, shadows or `BuddahGo/Lit` (back to dev's materials) changed nothing (1.40-1.48% with SMAA).
+Without normal maps the sand loses its ripples and the flicker drops, which locates it: SMAA crawls on the sand ripples.
+SMAA at Medium and Low only reduces it (0.94% and 0.69% on Balanced, view 01). The camera's SMAA setting predates this
+PR; the sunset made it visible. The grazing 10 deg sun turns the sand's normal-mapped ripples into dense, regular,
+high-contrast stripes (the image is about twice as contrasty as dev's), every ripple boundary passes SMAA's edge
+threshold, and the shapes SMAA reconstructs along them change as the stripes move under the pixel grid.
+
+**Reference checked (Raphael2048/AntiAliasing, 2021, Unity 2018.4 built-in pipeline, no licence file).** It implements MSAA,
+NVIDIA FXAA 3.11, a hand-written FXAA, NVIDIA SMAA, a hand-written SMAA and a simple TAA, all as `OnRenderImage` effects on
+the final image. What was taken from it:
+- SMAA on the display image. URP runs SMAA as the first post step on HDR colour; the reference runs it on the final
+  image. A prototype ran URP's own SMAA shader after tonemapping. It crawled just as much (Balanced 1.26 / 1.01 / 0.90%,
+  High Fidelity with MSAA 1.37 / 1.14 / 1.07%), so the HDR position is not the cause and the prototype was removed.
+- Its TAA (Halton jitter, closest-depth motion vectors, YCoCg box clip toward the centre, history reset off screen) is
+  what URP 14's built-in TAA already does, plus variance clamping and optional sharpening. The one idea URP lacks is
+  leaning on the current frame as motion grows; nothing showed ghosting in these tests, so it was not needed.
+- NVIDIA FXAA 3.11's quality preset is usually sharper than URP's simplified FXAA, but the file says "all rights reserved"
+  with no redistribution grant, so it was not copied. The author's own code has no licence and was only read.
+
+**Fix.** `CameraAntialiasingPolicy` (`Assets/Scripts/Rendering/`) on RaceMap's gameplay camera picks the post AA from
+the quality level: none when the pipeline runs MSAA (High Fidelity: 8x MSAA alone; URP also refuses TAA with MSAA and
+warns every second), TAA on Balanced, FXAA on Performant. The camera's stored mode is None. `Apply(mode)` lets a
+graphics-settings layer override it. Results (same measure):
+
+| Quality level | Before | After | Sharpness (edge mean, view 01) | Frame time, 1080p (median, views 01 / 02) |
+|---|---|---|---|---|
+| High Fidelity | SMAA: 1.41 / 1.16 / 1.08% | 8x MSAA alone: 0.11 / 0.10 / 0.12% | 15.6 -> 16.8 | 5.11 / 5.03 -> 4.73 / 4.89 ms |
+| Balanced | SMAA: 1.20 / 0.97 / 0.90% | TAA: 0.10-0.28% over two runs | 13.5 -> 12.8 | 3.46 / 3.56 -> 3.45 / 3.60 ms |
+| Performant | SMAA: 1.19 / 0.97 / 0.90% | FXAA: 0.11 / 0.10 / 0.10% | 13.9 -> 12.2 | 2.08 / 2.16 -> 1.73 / 1.78 ms |
+
+Alternatives measured on Balanced: FXAA 0.09-0.10% (softest, 11.9, 0.3 ms cheaper), TAA with URP's sharpening (CAS
+0.5) 0.14-0.22% (13.0, +0.2 ms), no AA 0.10-0.12% (jagged geometry edges). They are candidates for the graphics settings.
+Frame times are editor-side, HDR target, RTX 4070 Laptop, one session, configurations interleaved.
+
+**Not verified.** TAA on moving racers, trails and particles during a full match with skills (the autopilot lap has no
+skills; static geometry showed no ghosting); Balanced and Performant in a player build; other scenes (MainMenu and
+PropertySelection already use no post AA).
+
 ## Known limits and open items (current state)
+
+- **Anti-aliasing**: TAA (Balanced) not checked on skill particles and trails in a full match; NVIDIA FXAA 3.11 would
+  need a licence decision before use.
 
 - **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).
 - **Capture tool** renders without HDR and still assumes the old track height (see How to compare).
@@ -653,6 +719,9 @@ the lane instead of 1.5 m, and the reflection probe and sky reflection still sho
 | `Assets/Editor/Rendering/RaceMapRenderCost.cs` | Before/after frame-time measurement with the pipeline's MSAA |
 | `Tools/rendering/build_racemap_compare.py` | Labelled JPEG side-by-sides |
 | `Tools/rendering/build_fix_evidence.py` | The play-test fix images from the local HDR captures (inputs listed in its docstring) |
+| `Assets/Editor/Rendering/RaceMapTemporalNoise.cs` | Shimmer sweeps (sub-pixel or race-speed camera motion, one factor per run), clips of the gameplay camera, HDR cost runs |
+| `Tools/rendering/temporal_noise.py`, `Tools/rendering/build_aa_evidence.py` | Flicker scores and the anti-aliasing evidence images |
+| `Assets/Scripts/Rendering/CameraAntialiasingPolicy.cs` | Post AA per quality level on RaceMap's gameplay camera |
 | `Assets/Rendering/Shaders/SunsetSky.shader` | RaceMap's sunset sky (phase 1b) |
 | `Assets/Plugins/UnitySSReflectionURP/` | Screen-space reflections (third party, MIT, phase 2) |
 | `Assets/Rendering/Shaders/BuddahGoLit.shader` (+ 3 `.hlsl`) | The project's hand-written Lit (phase 3) |

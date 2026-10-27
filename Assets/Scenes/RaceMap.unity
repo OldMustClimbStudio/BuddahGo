@@ -1851,7 +1851,7 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 7042edc071732894991cabdea3f62fb5,
         type: 3}
       propertyPath: m_Name
-      value: "\u8D5B\u9053\u91CD\u5236_3_20"
+      value: "\u53D1\u5149\u7EBF\u6761"
       objectReference: {fileID: 0}
     - target: {fileID: 1132853449163818374, guid: 7042edc071732894991cabdea3f62fb5,
         type: 3}
@@ -6979,6 +6979,10 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 9018607757140732664, guid: b3daf86579f2d46419a926f54d2c5d7c,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
     - targetCorrespondingSourceObject: {fileID: 1984241586079959366, guid: b3daf86579f2d46419a926f54d2c5d7c,
         type: 3}
       insertIndex: -1
@@ -7081,7 +7085,7 @@ Transform:
   m_GameObject: {fileID: 1071609846}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -153, y: 1.3699176, z: -293}
+  m_LocalPosition: {x: -153, y: -1, z: -293}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

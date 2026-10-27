@@ -434,7 +434,7 @@ MonoBehaviour:
     maxAngularVelocity: 50
     colliderRadius: 3.886929
     colliderHeight: 8.493212
-    colliderCenter: {x: -0.051696, y: 2.950664, z: -0.150903}
+    colliderCenter: {x: -0.051696, y: 3.948738, z: -0.150903}
     pushGraceSeconds: 0.25
     pushExtraMaxSpeed: 6
     launchInheritSeconds: 0.2
@@ -446,7 +446,7 @@ MonoBehaviour:
   - profileId: default
     contactSeconds: 2
     cooldownSeconds: 1.5
-    heightOffset: 3
+    heightOffset: 2.002
     clearanceRadius: 0.75
     liftStep: 1.5
     maxLift: 6

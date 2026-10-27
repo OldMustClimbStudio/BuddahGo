@@ -541,7 +541,7 @@
             "colliderHeight": 8.49321174621582,
             "colliderCenter": {
                 "x": -0.05169599875807762,
-                "y": 2.9506640434265138,
+                "y": 3.9487380981445314,
                 "z": -0.15090300142765046
             },
             "pushGraceSeconds": 0.25,
@@ -558,7 +558,7 @@
             "profileId": "default",
             "contactSeconds": 2.0,
             "cooldownSeconds": 1.5,
-            "heightOffset": 3.0,
+            "heightOffset": 2.002000093460083,
             "clearanceRadius": 0.75,
             "liftStep": 1.5,
             "maxLift": 6.0,

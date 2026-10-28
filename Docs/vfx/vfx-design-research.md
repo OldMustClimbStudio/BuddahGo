@@ -448,3 +448,32 @@ Buff 期间（15 s）需要一个低成本、低噪音的**持续层**（施法�
 | **留白 / 闪帧** | 终结技过场的暖白逆光、宣纸灰白背景 | 只在 2–4 帧或过场里出现 |
 
 整体不发黑的原因：(1) 实体永远发光，黑永远不是实体；(2) 黑只在边缘和运动里出现，而且被金火星打破；(3) 面积最大的墨最透明，面积最小的光最亮；(4) 场景偏暗，金天然最亮。第 (4) 条是和本项目最大的差别：赛道是亮沙地 + 蓝天，半透明黑墨压在亮沙上会变成灰污（第一版已经证明），所以外层墨在本项目要比仪玄更紧、更短、带金边。
+
+## 9. 第二轮参考：五条"画出来的形"路线（2026-10-28 晚）
+
+仪玄式分层在浏览器里做了一个原型（claude.ai 私有 artifact，不进仓库），用户看后说"这个本身就很难看，到底有什么办法才能搞个好的""还是帮我找找不同的 reference"。第二轮参考板是一页本地 HTML（缩略图来自 Bing，不进仓库），这里留可点开的来源与结论。
+
+### 9.1 结论：缺的是画出来的形，不是分层
+
+五条路线里没有一条靠程序化噪声加软粒子做出来，它们全是画出来的形：手绘笔触定格、画好的掌印符图、带描边的法相、按形状建的网格。本项目的两版实现和浏览器原型难看的共同原因，是所有形状贴图都是脚本生成的噪声。分层、阶段、配表、控制器这些结构可以保留；要先拿到画出来的形（买、AI 出图后清理成硬边 mask、或手绘），再按分层装进去。
+
+### 9.2 五条路线
+
+| 路线 | 代表 | 主体 | 外层 / 墨 | 需要的素材 | 亮沙地上 | 来源 |
+|---|---|---|---|---|---|---|
+| A 法相 | 燕云十六声「护法掌」「金身」：出掌时身后浮现半透明金色佛身，几秒内消散 | 加色显形的佛身 / 佛掌图 | 可有可无 | 一张立绘级的佛手 / 佛身图 | 好 | [Fextralife wiki](https://static0.fextralifeimages.com/file/wherewindsmeet/0/04/Guardian-palm-mystic-art-wwm-wiki-guide-min.png)、[allthings.how 解锁与空中版](https://allthings.how/guardian-palm-in-where-winds-meet-unlock-tiers-and-aerial-slam/)、[Sportskeeda：功夫致敬](https://widgets.sportskeeda.com/esports/all-kung-fu-hustle-references-where-winds-meet) |
+| B 金刚相 | 永劫无间 · 天海：金线描边、内部发光的巨型法相 | 描边 + 自发光的网格 | 少 | 描边 shader + 现有佛手网格 | 好 | [YouTube 封面](https://i.ytimg.com/vi/6n39dqb8psw/maxresdefault.jpg)、[4Gamers 造型图](https://img.4gamers.com.tw/ckfinder-th/image2/auto/2021-09/tianhai-vajra-naraka-bladepoint-210915-192523.jpg) |
+| C 掌印符图 | manpye「Buddha Palm FX」（Unity）：画得很精的金色掌印符图从空中落下，配少量火星与一朵花 | 一张掌印图 | 无 | 一张精画的掌印图 | 好 | [ArtStation 封面](https://cdna.artstation.com/p/assets/covers/images/066/700/022/large/manpye-manpye-bdp-thumnail.jpg?1693534830) |
+| D 手绘定格 | Hades（手绘笔触 RGB + Alpha 序列帧）、罪恶装备 Strive、龙珠斗士 Z（逐帧画的形，硬边三四阶明度） | 画出来的形 | 就是它 | 每个元素一套 6–16 帧序列 | 好，硬边不糊 | [80.lv Hades 特效幕后](https://80.lv/articles/a-behind-the-scenes-look-at-the-effects-in-hades)、[ArtStation · Beak Driver VFX](https://cdnb.artstation.com/p/assets/covers/images/073/741/423/large/de-andre-martin-de-andre-martin-beakdriverthumbnail.jpg?1710360153)、[Dustloop · DBFZ Cell Kamehameha](https://www.dustloop.com/wiki/images/6/66/DBFZ_Cell_Kamehameha.png) |
+| E HoYo 式 | 原神 · 钟离元素爆发、绝区零 · 仪玄（第 8 节） | 金色几何网格 + 自发光 | 外层软墨 + 火星 | 网格 + 画好的碎片 / 墨图 | 一般：软墨在亮沙上偏灰（原型已验证） | [TheGamer 钟离爆发](https://static1.thegamerimages.com/wordpress/wp-content/uploads/2023/12/zhongli-burst-in-genshin-impact-1.jpg) |
+
+### 9.3 素材来源（可买的占位）
+
+- Vefects「Anime Stylized VFX」「Stylized VFX」有 URP 版，含斩击、烟、冲击的手绘风序列帧与可换色 shader（[Gumroad](https://vefects.gumroad.com/l/AnimeStylizedVFX-Unity)；注意 Flipbook VFX 那一包只支持内置管线）。
+- 「Stylized Critical Slash FX」：136 个斩击网格 + URP 的 Shader Graph 材质（[itch.io](https://criticalvfx.itch.io/stylized-critical-slash-fx/purchase)），可当劲风 / 拖尾的形。
+- 「Unity VFX: Stylized Ground Slash」Udemy 课：Blender 建斩击网格 → 手绘高光与火星贴图 → Unity 组装，是 D 路线的完整流程（[Udemy](https://www.udemy.com/course/unity-vfx-stylized-ground-slash/)）。
+- AI 出图：自己的 prompt 生成的掌印、佛手、笔触图可以用，清理成硬边 mask 后进项目；实施会话此前为避开授权问题改用程序化生成，这是误判。
+
+### 9.4 推荐
+
+C + A 合体：主角是一张画好的金色掌印符图（硬边、带掌纹与经文，像印章），出掌时以法相方式在空中显形并飞出；劲风和拖尾用 D 的手绘笔触序列帧（先用买来的包占位，再换自己画的）。软烟墨、噪声滚动、matcap 全部不要。待用户选定后改写 README 第 2 节与 push-projectile-hands.md。

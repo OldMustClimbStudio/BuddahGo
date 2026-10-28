@@ -225,6 +225,72 @@ namespace BuddahGo.Tests
             Assert.That(originalFeatures.All(f => f != null), Is.True, "releasing a clone leaves the assets alone");
         }
 
+        [Test]
+        public void ComparingAPresetKeepsTheActiveRenderPipeline()
+        {
+            // Creating or destroying any pipeline asset disposes the active render pipeline, so the comparison must only
+            // read. A camera render makes sure a pipeline exists (there is none without a graphics device).
+            var rt = new RenderTexture(16, 16, 24);
+            var go = new GameObject("PipelineProbeCamera");
+            try
+            {
+                var camera = go.AddComponent<Camera>();
+                camera.targetTexture = rt;
+                camera.Render();
+                camera.targetTexture = null;
+                var active = RenderPipelineManager.currentPipeline;
+                if (active == null)
+                    Assert.Pass("no render pipeline without a graphics device");
+                var catalog = TableCatalog();
+                string level = QualitySettings.names[QualitySettings.GetQualityLevel()];
+                var model = new GraphicsSettingsModel(catalog);
+                model.SetPreset(catalog.Presets.First(p => p.QualityLevel == level).Id);
+                Assert.That(GraphicsPipelineMapper.DiffersFrom(UniversalRenderPipeline.asset, model.Resolve()), Is.False);
+                model.Set("render_scale", "p77");
+                Assert.That(GraphicsPipelineMapper.DiffersFrom(UniversalRenderPipeline.asset, model.Resolve()), Is.True);
+                Assert.That(active.disposed, Is.False, "the comparison disposed the active pipeline");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                rt.Release();
+            }
+        }
+
+        [Test]
+        public void ApplyingAgainKeepsAMatchingClone()
+        {
+            var catalog = TableCatalog();
+            int startLevel = QualitySettings.GetQualityLevel();
+            var before = QualityLevelValues();
+            int frameRate = Application.targetFrameRate;
+            var vfx = VfxQuality.Current;
+            var applier = new GraphicsSettingsApplier();
+            try
+            {
+                var model = new GraphicsSettingsModel(catalog);
+                model.SetPreset("high");
+                model.Set("render_scale", "p77");
+                applier.Apply(model);
+                var clone = QualitySettings.renderPipeline;
+                model.Set("texture_quality", "half");
+                applier.Apply(model);
+                Assert.That(QualitySettings.renderPipeline, Is.SameAs(clone), "an option outside the pipeline must not rebuild it");
+                model.Set("render_scale", "p85");
+                applier.Apply(model);
+                Assert.That(QualitySettings.renderPipeline, Is.Not.SameAs(clone));
+                Assert.That(((UniversalRenderPipelineAsset)QualitySettings.renderPipeline).renderScale, Is.EqualTo(0.85f).Within(1e-4f));
+            }
+            finally
+            {
+                applier.RestoreOriginals();
+                Application.targetFrameRate = frameRate;
+                VfxQuality.Set(vfx);
+            }
+            Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(startLevel));
+            Assert.That(QualityLevelValues(), Is.EqualTo(before));
+        }
+
         // Per quality level: pipeline, texture limit, anisotropic filtering and VSync.
         static List<string> QualityLevelValues()
         {

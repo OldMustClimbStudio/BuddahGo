@@ -146,11 +146,21 @@ namespace BuddahGo.Rendering.Settings
             RenderPipelineAsset target = original.Pipeline;
             if (GraphicsPipelineMapper.DiffersFrom(asset, levels))
             {
-                var clone = GraphicsPipelineMapper.CreateDetachedClone(asset);
-                m_Clones.Add(clone);
-                GraphicsPipelineMapper.ApplyToPipeline(clone, levels);
-                GraphicsPipelineMapper.ApplyToFeatures(clone, levels);
-                target = clone;
+                // Assigning another pipeline asset rebuilds the renderer, so the clone this level already runs is kept
+                // when it holds the same values (another option changed, or Apply ran again).
+                var current = QualitySettings.renderPipeline as UniversalRenderPipelineAsset;
+                if (current != null && m_Clones.Contains(current) && !GraphicsPipelineMapper.DiffersFrom(current, levels))
+                {
+                    target = current;
+                }
+                else
+                {
+                    var clone = GraphicsPipelineMapper.CreateDetachedClone(asset);
+                    m_Clones.Add(clone);
+                    GraphicsPipelineMapper.ApplyToPipeline(clone, levels);
+                    GraphicsPipelineMapper.ApplyToFeatures(clone, levels);
+                    target = clone;
+                }
             }
             if (QualitySettings.renderPipeline != target)
             {

@@ -42,20 +42,127 @@ namespace BuddahGo.Rendering.Settings
 
         // ---------------------------------------------------------------- pipeline asset
 
-        /// <summary>True when applying <paramref name="levels"/> would change anything on <paramref name="asset"/> or its features.</summary>
+        // The pipeline-asset fields the options write. Comparisons read them straight from the asset: creating or
+        // destroying any RenderPipelineAsset, even a throwaway copy, disposes the active render pipeline
+        // (RenderPipelineAsset.OnDisable cleans it up), which a comparison must not do.
+        struct PipelineValues
+        {
+            public float RenderScale;
+            public UpscalingFilterSelection Upscaling;
+            public int Msaa;
+            public bool MainLightShadows;
+            public float ShadowDistance;
+            public int Cascades;
+            public object Soft;
+            public object ShadowResolution;
+            public object Split2, Split3, Split4;
+        }
+
+        static PipelineValues Read(UniversalRenderPipelineAsset asset) => new PipelineValues
+        {
+            RenderScale = asset.renderScale,
+            Upscaling = asset.upscalingFilter,
+            Msaa = asset.msaaSampleCount,
+            MainLightShadows = (bool)(MainLightShadowsField?.GetValue(asset) ?? true),
+            ShadowDistance = asset.shadowDistance,
+            Cascades = asset.shadowCascadeCount,
+            Soft = SoftShadowsField?.GetValue(asset),
+            ShadowResolution = ShadowResolutionField?.GetValue(asset),
+            Split2 = Cascade2Field?.GetValue(asset),
+            Split3 = Cascade3Field?.GetValue(asset),
+            Split4 = Cascade4Field?.GetValue(asset),
+        };
+
+        // The asset's values with the levels laid over them, clamped as URP's setters would.
+        static PipelineValues Resolve(UniversalRenderPipelineAsset asset, IReadOnlyDictionary<string, GraphicsOptionLevelRecord> levels)
+        {
+            var values = Read(asset);
+            if (levels.TryGetValue(RenderScale, out var scale))
+                values.RenderScale = Mathf.Clamp(scale.renderScale, 0.1f, 2f);
+            if (levels.TryGetValue(Upscaler, out var upscaler) && Enum.TryParse(upscaler.upscalingFilter, true, out UpscalingFilterSelection filter))
+                values.Upscaling = filter;
+            if (levels.TryGetValue(AntiAliasing, out var aa) && aa.msaaSamples >= 1)
+                values.Msaa = aa.msaaSamples;
+            if (levels.TryGetValue(ShadowQuality, out var shadows))
+                ResolveShadows(ref values, shadows);
+            return values;
+        }
+
+        static void ResolveShadows(ref PipelineValues values, GraphicsOptionLevelRecord level)
+        {
+            values.MainLightShadows = level.shadowsEnabled;
+            if (!level.shadowsEnabled)
+                return;
+            values.ShadowDistance = Mathf.Max(0f, level.shadowDistance);
+            values.Cascades = Mathf.Clamp(level.shadowCascadeCount, 1, 4);
+            values.Soft = level.softShadows;
+            if (ShadowResolutionField != null && level.shadowResolution > 0)
+                values.ShadowResolution = Enum.ToObject(ShadowResolutionField.FieldType, level.shadowResolution);
+            // Splits are authored in metres; URP stores them as fractions of the shadow distance.
+            var splits = level.shadowCascadeSplitsMeters ?? new List<float>();
+            float distance = Mathf.Max(0.01f, level.shadowDistance);
+            float Fraction(int i) => i < splits.Count ? Mathf.Clamp01(splits[i] / distance) : 0f;
+            if (values.Cascades == 2 && splits.Count >= 1)
+                values.Split2 = Fraction(0);
+            else if (values.Cascades == 3 && splits.Count >= 2)
+                values.Split3 = new Vector2(Fraction(0), Fraction(1));
+            else if (values.Cascades == 4 && splits.Count >= 3)
+                values.Split4 = new Vector3(Fraction(0), Fraction(1), Fraction(2));
+        }
+
+        static void Write(UniversalRenderPipelineAsset asset, PipelineValues values)
+        {
+            asset.renderScale = values.RenderScale;
+            asset.upscalingFilter = values.Upscaling;
+            asset.msaaSampleCount = values.Msaa;
+            MainLightShadowsField?.SetValue(asset, values.MainLightShadows);
+            if (!values.MainLightShadows)
+                return;
+            asset.shadowDistance = values.ShadowDistance;
+            asset.shadowCascadeCount = values.Cascades;
+            SetIfRead(SoftShadowsField, asset, values.Soft);
+            SetIfRead(ShadowResolutionField, asset, values.ShadowResolution);
+            SetIfRead(Cascade2Field, asset, values.Split2);
+            SetIfRead(Cascade3Field, asset, values.Split3);
+            SetIfRead(Cascade4Field, asset, values.Split4);
+        }
+
+        static void SetIfRead(FieldInfo field, object target, object value)
+        {
+            if (field != null && value != null)
+                field.SetValue(target, value);
+        }
+
+        static bool Same(PipelineValues a, PipelineValues b)
+        {
+            if (!Mathf.Approximately(a.RenderScale, b.RenderScale) || a.Upscaling != b.Upscaling || a.Msaa != b.Msaa
+                || a.MainLightShadows != b.MainLightShadows)
+                return false;
+            if (!a.MainLightShadows)
+                return true;
+            return Mathf.Approximately(a.ShadowDistance, b.ShadowDistance) && a.Cascades == b.Cascades
+                && Equals(a.Soft, b.Soft) && Equals(a.ShadowResolution, b.ShadowResolution) && SplitsMatch(a, b);
+        }
+
+        static bool SplitsMatch(PipelineValues a, PipelineValues b)
+        {
+            switch (a.Cascades)
+            {
+                case 2: return a.Split2 == null || b.Split2 == null || Mathf.Abs((float)a.Split2 - (float)b.Split2) < 1e-3f;
+                case 3: return a.Split3 == null || b.Split3 == null || ((Vector2)a.Split3 - (Vector2)b.Split3).sqrMagnitude < 1e-6f;
+                case 4: return a.Split4 == null || b.Split4 == null || ((Vector3)a.Split4 - (Vector3)b.Split4).sqrMagnitude < 1e-6f;
+                default: return true;
+            }
+        }
+
+        /// <summary>
+        /// True when applying <paramref name="levels"/> would change anything on <paramref name="asset"/> or its features.
+        /// Reads only; it never creates or destroys an asset, so the active render pipeline survives the comparison.
+        /// </summary>
         public static bool DiffersFrom(UniversalRenderPipelineAsset asset, IReadOnlyDictionary<string, GraphicsOptionLevelRecord> levels)
         {
-            var probe = UnityEngine.Object.Instantiate(asset);
-            try
-            {
-                ApplyToPipeline(probe, levels);
-                if (!SamePipeline(asset, probe))
-                    return true;
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(probe);
-            }
+            if (!Same(Read(asset), Resolve(asset, levels)))
+                return true;
             foreach (var data in RendererData(asset))
             {
                 if (data == null)
@@ -69,61 +176,7 @@ namespace BuddahGo.Rendering.Settings
 
         public static void ApplyToPipeline(UniversalRenderPipelineAsset asset, IReadOnlyDictionary<string, GraphicsOptionLevelRecord> levels)
         {
-            if (levels.TryGetValue(RenderScale, out var scale))
-                asset.renderScale = Mathf.Clamp(scale.renderScale, 0.1f, 2f);
-            if (levels.TryGetValue(Upscaler, out var upscaler) && Enum.TryParse(upscaler.upscalingFilter, true, out UpscalingFilterSelection filter))
-                asset.upscalingFilter = filter;
-            if (levels.TryGetValue(AntiAliasing, out var aa) && aa.msaaSamples >= 1)
-                asset.msaaSampleCount = aa.msaaSamples;
-            if (levels.TryGetValue(ShadowQuality, out var shadows))
-                ApplyShadows(asset, shadows);
-        }
-
-        static void ApplyShadows(UniversalRenderPipelineAsset asset, GraphicsOptionLevelRecord level)
-        {
-            MainLightShadowsField?.SetValue(asset, level.shadowsEnabled);
-            if (!level.shadowsEnabled)
-                return;
-            asset.shadowDistance = level.shadowDistance;
-            asset.shadowCascadeCount = Mathf.Clamp(level.shadowCascadeCount, 1, 4);
-            SoftShadowsField?.SetValue(asset, level.softShadows);
-            if (ShadowResolutionField != null && level.shadowResolution > 0)
-                ShadowResolutionField.SetValue(asset, Enum.ToObject(ShadowResolutionField.FieldType, level.shadowResolution));
-            // Splits are authored in metres; URP stores them as fractions of the shadow distance.
-            var splits = level.shadowCascadeSplitsMeters ?? new List<float>();
-            float distance = Mathf.Max(0.01f, level.shadowDistance);
-            float Fraction(int i) => i < splits.Count ? Mathf.Clamp01(splits[i] / distance) : 0f;
-            if (asset.shadowCascadeCount == 2 && splits.Count >= 1)
-                Cascade2Field?.SetValue(asset, Fraction(0));
-            else if (asset.shadowCascadeCount == 3 && splits.Count >= 2)
-                Cascade3Field?.SetValue(asset, new Vector2(Fraction(0), Fraction(1)));
-            else if (asset.shadowCascadeCount == 4 && splits.Count >= 3)
-                Cascade4Field?.SetValue(asset, new Vector3(Fraction(0), Fraction(1), Fraction(2)));
-        }
-
-        static bool SamePipeline(UniversalRenderPipelineAsset a, UniversalRenderPipelineAsset b)
-        {
-            return Mathf.Approximately(a.renderScale, b.renderScale)
-                && a.upscalingFilter == b.upscalingFilter
-                && a.msaaSampleCount == b.msaaSampleCount
-                && Equals(MainLightShadowsField?.GetValue(a), MainLightShadowsField?.GetValue(b))
-                && (!(bool)(MainLightShadowsField?.GetValue(a) ?? true)
-                    || (Mathf.Approximately(a.shadowDistance, b.shadowDistance)
-                        && a.shadowCascadeCount == b.shadowCascadeCount
-                        && Equals(SoftShadowsField?.GetValue(a), SoftShadowsField?.GetValue(b))
-                        && Equals(ShadowResolutionField?.GetValue(a), ShadowResolutionField?.GetValue(b))
-                        && CascadesMatch(a, b)));
-        }
-
-        static bool CascadesMatch(UniversalRenderPipelineAsset a, UniversalRenderPipelineAsset b)
-        {
-            switch (a.shadowCascadeCount)
-            {
-                case 2: return Mathf.Abs((float)Cascade2Field.GetValue(a) - (float)Cascade2Field.GetValue(b)) < 1e-3f;
-                case 3: return ((Vector2)Cascade3Field.GetValue(a) - (Vector2)Cascade3Field.GetValue(b)).sqrMagnitude < 1e-6f;
-                case 4: return ((Vector3)Cascade4Field.GetValue(a) - (Vector3)Cascade4Field.GetValue(b)).sqrMagnitude < 1e-6f;
-                default: return true;
-            }
+            Write(asset, Resolve(asset, levels));
         }
 
         // ---------------------------------------------------------------- renderer data and features

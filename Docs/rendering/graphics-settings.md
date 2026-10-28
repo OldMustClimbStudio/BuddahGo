@@ -3,6 +3,8 @@
 Client-side graphics settings for BuddahGo: a preset plus per-option overrides, with tiers per option, defined in the
 design tables and applied at runtime. Status (2026-10-27): the spec, the runtime model, persistence, the URP mapping
 and the API are done; there is no settings menu yet. The menu binds to `GraphicsSettingsService` (see Binding).
+**Before working on graphics settings, the settings menu or effect tiers, read [Not implemented yet](#not-implemented-yet):**
+planned options and the Ultra preset exist only as masked placeholder rows in `Graphics.xlsx`.
 
 ## What the project uses (inventory)
 
@@ -114,9 +116,39 @@ GraphicsSettingsService.Changed += Refresh;             // model changed; Applie
 Still to do on the UI side: the menu itself (owned by the UI work, not by `feat/ingame-ui-updates`, which has no
 settings screen); window mode and resolution (`Screen.fullScreenMode`, `Screen.resolutions`); an Apply button, because
 MSAA and quality-level changes can hitch; greying out `upscaler` at 100% and `sharpening` without TAA; checking that
-the new Chinese labels exist in the static font subset `Assets/Fonts/SoloCJK`. On 2026-10-27, 23 characters of the
-`settings.graphics.*` labels were missing from it (义双各境屏帧异抗染渲滤率环蔽质贴辨遮锐锯阴限齿); regenerate the subset and
-rebake its TMP atlas as its README describes before the menu shows them.
+the new Chinese labels exist in the static font subset `Assets/Fonts/SoloCJK`. On 2026-10-27, 36 characters of the
+`settings.graphics.*` labels, placeholders included, were missing from it
+(义全原双口各垂境屏帧异式恢抗撤染框模渲滤率环窗蔽质贴辨边遮销锐锯阴限预齿); regenerate the subset and rebake its TMP
+atlas as its README describes before the menu shows them.
+
+## Not implemented yet
+
+What exists only as a placeholder or is not verified (2026-10-27). Keep this list current: remove an entry when it
+lands, add one when something is deferred.
+
+**How placeholders are stored.** A row with `##` in column A of `Graphics.xlsx` is masked, the project-wide convention
+(see `Match/SelectionStage`): the importer skips it, the CSV mirror omits it, so the runtime and a menu never see it.
+Every Graphics sheet has a `pending` doc column that says what is missing or undecided, also on implemented rows that
+still have an open point. To implement a placeholder: add the typed value columns it needs, unmask the rows, then follow
+[Adding an option](#adding-an-option).
+
+| Item | State | Placeholder | What it needs |
+|---|---|---|---|
+| Settings menu | not implemented | API `GraphicsSettingsService`; labels `settings.graphics.title`, `settings.graphics.action.apply` / `revert` / `reset_to_preset` in `UI/Text` | a screen that binds as in [Binding](#binding-for-the-settings-menu), an Apply button, the font subset |
+| Window mode | not implemented | masked `window_mode` option and levels fullscreen / borderless / windowed | a `FullScreenMode` column, applying `Screen.fullScreenMode` |
+| Resolution | not implemented | masked `resolution` option with one level, `native` | levels built at runtime from `Screen.resolutions`, `Screen.SetResolution` |
+| VSync | **user decision** | masked `vsync` option, levels off / on | a rule for monitors that are not a multiple of 60 Hz; today `FrameRateLock` keeps it off for the network tick |
+| Ultra preset | **user decision** | masked `ultra` preset (High Fidelity base) | a default level for every option (`defaultFor` gains `ultra`) |
+| VFX tiers | hook only | `vfx_quality` is applied; `VfxQuality.Current` / `Changed` have no reader | **user** specifies what each tier changes; effects then read the tier |
+| First-run preset | not implemented | `pending` on the `high` preset | hardware detection; today the preset of the starting quality level is used |
+| Font subset | missing glyphs | — | regenerate `Assets/Fonts/SoloCJK` for the 36 characters listed under Binding |
+| NVIDIA FXAA 3.11 | **user decision** | `pending` on `anti_aliasing` | licence check before using it in place of URP's FXAA |
+
+Not verified yet:
+- TAA (medium preset) on skill particles and trails in a full match.
+- FSR 1.0 in a player build (URP may strip the variants it needs).
+- The per-level restore after the code review in real play mode (covered by `RestorePutsBackEveryQualityLevelItChanged`),
+  and the restore after a recompile during play mode.
 
 ## Adding an option
 
@@ -136,9 +168,9 @@ rebake its TMP atlas as its README describes before the menu shows them.
 ## Open decisions
 
 - **VSync.** Most games offer it; here `FrameRateLock` keeps it off so the frame rate stays a multiple of the network
-  tick. A VSync option would need a rule for monitors that are not a multiple of 60 Hz.
-- **Ultra preset** above High Fidelity (for example SSR at 100%, MSAA 8x + sharpening): possible with the clone approach,
-  not added.
+  tick. A VSync option would need a rule for monitors that are not a multiple of 60 Hz (masked placeholder row exists).
+- **Ultra preset** above High Fidelity (for example full-resolution SSR and a longer shadow distance): possible with the
+  clone approach; a masked placeholder row exists.
 - **VFX tiers**: what Low / Medium / High change, and whether to add a "reduce other players' effects" option
   (Genshin Impact's precedent).
 - **First-run preset**: currently the quality level the game starts with; hardware detection is not implemented.

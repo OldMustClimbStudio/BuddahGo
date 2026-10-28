@@ -1,7 +1,7 @@
-##var,presetId,sortOrder,labelKey,qualityLevel,isDefault
-##type,string#key,int,string#ref=UI/Text.key,string,bool
-##group,,,,,
-##comment,"预设 id，snake_case；选中预设且没有单项覆盖时界面显示该预设，有覆盖时显示""自定义""",界面排序,显示名文案 key,Unity 画质等级名（Project Settings > Quality），预设以它的管线资产为底，再套各选项的档位,首次启动（没有存档）时使用的预设；只能有一行为 true
-,low,0,settings.graphics.preset.low,Performant,false
-,medium,1,settings.graphics.preset.medium,Balanced,false
-,high,2,settings.graphics.preset.high,High Fidelity,true
+##var,presetId,sortOrder,labelKey,qualityLevel,isDefault,pending
+##type,string#key,int,string#ref=UI/Text.key,string,bool,string
+##group,,,,,,doc
+##comment,"预设 id，snake_case；选中预设且没有单项覆盖时界面显示该预设，有覆盖时显示""自定义""",界面排序,显示名文案 key,Unity 画质等级名（Project Settings > Quality），预设以它的管线资产为底，再套各选项的档位,首次启动（没有存档）时使用的预设；只能有一行为 true,待实现 / 待验证 / 待决定的事项，只记录。以 ## 屏蔽的行是占位：导入器跳过，运行时和菜单都看不到，实现后取消屏蔽
+,low,0,settings.graphics.preset.low,Performant,false,
+,medium,1,settings.graphics.preset.medium,Balanced,false,
+,high,2,settings.graphics.preset.high,High Fidelity,true,首次启动按硬件自动选预设：未实现（目前用启动时画质等级对应的预设，玩家包默认是 High Fidelity）

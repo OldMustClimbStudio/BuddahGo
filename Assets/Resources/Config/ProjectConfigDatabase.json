@@ -2736,6 +2736,58 @@
         {
             "key": "settings.graphics.level.frame_rate_cap.fps240",
             "zh": "240"
+        },
+        {
+            "key": "settings.graphics.title",
+            "zh": "画面"
+        },
+        {
+            "key": "settings.graphics.action.apply",
+            "zh": "应用"
+        },
+        {
+            "key": "settings.graphics.action.revert",
+            "zh": "撤销"
+        },
+        {
+            "key": "settings.graphics.action.reset_to_preset",
+            "zh": "恢复预设"
+        },
+        {
+            "key": "settings.graphics.preset.ultra",
+            "zh": "超高"
+        },
+        {
+            "key": "settings.graphics.option.window_mode",
+            "zh": "窗口模式"
+        },
+        {
+            "key": "settings.graphics.option.resolution",
+            "zh": "分辨率"
+        },
+        {
+            "key": "settings.graphics.option.vsync",
+            "zh": "垂直同步"
+        },
+        {
+            "key": "settings.graphics.level.window_mode.fullscreen",
+            "zh": "全屏"
+        },
+        {
+            "key": "settings.graphics.level.window_mode.borderless",
+            "zh": "无边框窗口"
+        },
+        {
+            "key": "settings.graphics.level.window_mode.windowed",
+            "zh": "窗口"
+        },
+        {
+            "key": "settings.graphics.level.resolution.native",
+            "zh": "原生"
+        },
+        {
+            "key": "settings.graphics.level.on",
+            "zh": "开"
         }
     ],
     "menuOptions": [

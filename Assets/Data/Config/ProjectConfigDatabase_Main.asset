@@ -1732,6 +1732,32 @@ MonoBehaviour:
     zh: 120
   - key: settings.graphics.level.frame_rate_cap.fps240
     zh: 240
+  - key: settings.graphics.title
+    zh: "\u753B\u9762"
+  - key: settings.graphics.action.apply
+    zh: "\u5E94\u7528"
+  - key: settings.graphics.action.revert
+    zh: "\u64A4\u9500"
+  - key: settings.graphics.action.reset_to_preset
+    zh: "\u6062\u590D\u9884\u8BBE"
+  - key: settings.graphics.preset.ultra
+    zh: "\u8D85\u9AD8"
+  - key: settings.graphics.option.window_mode
+    zh: "\u7A97\u53E3\u6A21\u5F0F"
+  - key: settings.graphics.option.resolution
+    zh: "\u5206\u8FA8\u7387"
+  - key: settings.graphics.option.vsync
+    zh: "\u5782\u76F4\u540C\u6B65"
+  - key: settings.graphics.level.window_mode.fullscreen
+    zh: "\u5168\u5C4F"
+  - key: settings.graphics.level.window_mode.borderless
+    zh: "\u65E0\u8FB9\u6846\u7A97\u53E3"
+  - key: settings.graphics.level.window_mode.windowed
+    zh: "\u7A97\u53E3"
+  - key: settings.graphics.level.resolution.native
+    zh: "\u539F\u751F"
+  - key: settings.graphics.level.on
+    zh: "\u5F00"
   menuOptions:
   - optionGroup: max_players
     index: 0

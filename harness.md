@@ -14,6 +14,7 @@ Unity 2022.3.55f1c1 · FishNet · FishyFacepunch · Steam.
 - Executing the architecture optimization plan: [Docs/optimization/HANDOFF.md](Docs/optimization/HANDOFF.md).
 - Domain terms and decisions: [CONTEXT.md](CONTEXT.md), [Docs/adr/](Docs/adr/).
 - Changing balance values, rules or text, or wiring a component to the design tables: [Docs/design-tables/README.md](Docs/design-tables/README.md). Edit the xlsx under `Assets/Design/Tables/`, never the generated asset, JSON or CSV mirror.
+- Graphics settings, a settings menu, effect quality tiers, VSync, window mode or resolution: [Docs/rendering/graphics-settings.md](Docs/rendering/graphics-settings.md). Its "Not implemented yet" list says what exists only as placeholders (rows masked with `##` in `Graphics.xlsx`) and what waits for the user.
 - Changing RaceMap lighting, URP pipeline or renderer assets, or the project's shaders: [Docs/rendering/racemap/README.md](Docs/rendering/racemap/README.md) (re-tuning checklist; renderer index 1 is reserved for the Deferred keep-alive renderer).
 - Implementing or validating Solo Match: [Docs/single-player/HANDOFF.md](Docs/single-player/HANDOFF.md). Solo tasks exclude online tests (including Steam two-client smoke and Solo/Online alternation); use the independent Solo benchmark requirements in [phases.md](Docs/single-player/phases.md) (the dedicated protocol and tools are integrated; runtime qualification remains open) and Solo evidence. Preserve existing online test assets for separately requested online work.
 

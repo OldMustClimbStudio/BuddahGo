@@ -411,3 +411,7 @@ Buff 期间（15 s）需要一个低成本、低噪音的**持续层**（施法�
 
 **代码参考（用户提供，只参考不搬）**：[lywedo/Unity-Effect](https://github.com/lywedo/Unity-Effect)（URP、Unity 2021.3、MIT，2023-11 后未更新）。有用的部分：`Assets/Effects/Fluid/FlowMap`、`DirectionalFlow` 的手写流动贴图 shader 与编辑器 flow map 生成小工具（可借到掌主体的"能量流动"层）；`Assets/Effects/Fluid/Fluid2D/ChineseInkPainting` 用 compute shader 做的水墨扩散（方向 B 最直接的技术参考）；`Assets/VFXs/` 下约五十个 VFX Graph 小样（花瓣、火焰、丝带、流星、星河、闪光、蝴蝶、云、水花、藤蔓、鱼群），其中带 `Sketch` 日期编号的那批连同 `Common/` 资源看起来是 Keijiro 公开草稿的转载。整体是 VFX Graph 路线且版本偏旧，本项目已定 Shuriken + 手写 shader 为主，只借技法与观感。
 
+**第一次画面评审后补的参考（2026-10-28）**：
+
+- 用户给的观感参考：[keijiro/SplatVFX](https://github.com/keijiro/SplatVFX)（VFX Graph 上的 3D Gaussian Splatting）、[keijiro/DkvfxSketches](https://github.com/keijiro/DkvfxSketches)（Depthkit 体积视频的粒子草稿）。共同点是上千个软小点聚成一个有体积的形，再整体流动、溶解；本项目据此把主体改成"不透明剪影网格 + 致密粒子皮"（README 第 2 节）。
+- 水墨实现的 GitHub 调研与结论（画布级湿墨模拟、整屏水彩后期、游戏里的实心墨形三类）见 [push-projectile-hands.md 第 12.3 节](push-projectile-hands.md#123-水墨可行性调研github2026-10-28)：可用的只有"实心形 + 手绘贴图"。

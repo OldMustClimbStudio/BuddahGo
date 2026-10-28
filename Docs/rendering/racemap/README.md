@@ -22,8 +22,7 @@ Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach 
 |---|---|---|
 | `Buddah.prefab` `model` renderer casts two-sided shadows (phase 1) | the player's shadow in every scene | RaceMap captures |
 | `URP-HighFidelity` / `URP-Balanced`: shadow distance 220 m / 150 m (phase 2) | MainMenu and PropertySelection use the same assets | MainMenu identical, PropertySelection 1-px edge jitter |
-| `URP-HighFidelity-Renderer` / `URP-Balanced-Renderer`: SSR feature (phase 2) | **unused since 2026-10-28**: RaceMap's profile has SSR off (planar reflections replace it), no other volume has an SSR component, no graphics option or F9 entry turns it on; only the editor probe's `ssr:on` token does. The SSR shader adds 13 variants to a build | menu scenes have no SSR component |
-| `URP-KeepDeferredVariants-Renderer` in both renderer lists (phase 2) | **unused since 2026-10-28** (it exists only so SSR's GBuffer pass survives a build). It keeps every lit shader's GBuffer pass plus URP's StencilDeferred in each build: 1200 of the 7607 shader variants in the bf35537 player build (16%), about 0.26 s CPU each on a cold shader cache (roughly 2% of the build's shader compile CPU), nothing on a warm cache; never drawn. Keep or remove is an open user decision, see Known limits | full player builds, stripping report below, build log of bf35537 |
+| SSR (phase 2) **removed on 2026-10-28** (PR #64 review M6, the user's decision): the `ScreenSpaceReflectionURP` feature on `URP-HighFidelity-Renderer` / `URP-Balanced-Renderer`, the SSR override in `RaceMap_Environment_Profile` and `URP-KeepDeferredVariants-Renderer` (the Deferred renderer that kept SSR's GBuffer pass in builds) | planar reflections had replaced SSR, nothing shipped could turn it on. URP's stripping report (`Temp/shader-stripping.json`, release player build): 7609 -> 6402 variants (-1207): every GBuffer pass (875), URP's StencilDeferred (319), the SSR shader (13). The plugin stays for a later return, see "Adding SSR back" in its notes | stripping reports of two editor builds, EditMode tests, player build |
 | `Assets/Plugins/UnitySSReflectionURP/` (phase 2) | scripts compile into `Assembly-CSharp-firstpass` | build |
 | `Assets/Rendering/Shaders/` (sky, `BuddahGo/Lit`) and `Assets/Editor/Rendering/` | used only by RaceMap's materials; editor tools | build |
 | `SG_MapEdge` shader graph: Preserve Specular Lighting off, emission no longer multiplied by `_EdgeVisible` (play-test fix) | only RaceMap's edge ribbons use it (the air-wall prefab `反转法线空气墙` also does, but no scene places it) | HDR captures, High Fidelity and Balanced |
@@ -34,10 +33,9 @@ Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach 
 | Graphics settings now also set VSync (on by default), window mode (borderless) and resolution (native) | every scene; window and resolution only in a player whose command line does not set them | EditMode tests |
 | Graphics settings layer (`Assets/Scripts/Rendering/Settings/`, spec in `Graphics.xlsx`; temporary F9 panel): loads the saved choice after the first scene loads and applies it | every scene; with no saved choice or a preset without overrides it changes nothing, otherwise it uses runtime clones of the URP assets and restores `QualitySettings` when play mode ends ([../graphics-settings.md](../graphics-settings.md)) | EditMode tests, play-mode check |
 
-Renderer index 1 in both pipeline assets is reserved for the Deferred keep-alive renderer; no camera may select it
+Each pipeline asset lists its default renderer at index 0 and `URP-PlanarReflection-Renderer` at index 1, which only
+`PlanarReflection`'s mirror cameras select, by name. No other camera selects a renderer by index
 (`BlackCurtainViewController`'s renderer switching is off in RaceMap).
-The planar-reflection renderer follows it (index 2 on Balanced and High Fidelity, 1 on Performant); `PlanarReflection`
-finds it by name, so its index may change.
 
 
 ## How to compare
@@ -256,6 +254,10 @@ The low sun also removed the large sun glint that the 35 deg afternoon sun put o
 results shot: the reflection now falls outside the frame.
 
 ## Phase 2: screen-space reflections and shadow distance
+
+> SSR was replaced by planar reflections on 2026-10-28 and removed from the renderers, the RaceMap profile and the
+> renderer lists the same day (see "Changes outside RaceMap"). This section records how it was set up; the plugin's
+> notes say how to add it back.
 
 Images: [phase2_compare/all.jpg](phase2_compare/all.jpg) (phase 1b left, phase 2 right). Evidence in
 [phase2_evidence/](phase2_evidence/): `ssr_off_on.jpg`, `ssr_msaa8_off_on.jpg` (the shipped 8x MSAA path, captured
@@ -725,13 +727,8 @@ the F9 panel's clicks also reaching gameplay input.
 - **Anti-aliasing**: TAA (Balanced) not checked on skill particles and trails in a full match; NVIDIA FXAA 3.11 would
   need a licence decision before use; an MSAA resolve after tonemapping (or a weighted resolve) would sharpen High
   Fidelity's edges without FXAA's softness, URP 14 has none.
-- **Reflections (user decision pending, PR #64 review M6)**: SSR is no longer used by any scene and nothing shipped
-  can turn it on. Options: (a) remove the Deferred keep-alive renderer from both renderer lists, the SSR feature from the
-  High Fidelity and Balanced renderers and the SSR override from `RaceMap_Environment_Profile`, keeping
-  `Assets/Plugins/UnitySSReflectionURP/` and phase 2's notes for a later return (saves the 1200 variants, frees renderer
-  index 1; `PlanarReflection` finds its renderer by name); (b) keep both as they are for a future map with glossy
-  surfaces that are not flat, at the cost in the table above; (c) not recommended: remove only the keep-alive renderer,
-  which leaves SSR silently empty in builds while the editor still shows it.
+- **Reflections**: SSR and the Deferred keep-alive renderer were removed on 2026-10-28 (the user's decision on review
+  M6); a future map with glossy surfaces that are not flat would need SSR back, see the plugin's notes.
 - **Graphics settings**: spec, model and API only; no menu yet (see [../graphics-settings.md](../graphics-settings.md)).
 
 - **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).
@@ -816,8 +813,8 @@ the F9 panel's clicks also reaching gameplay input.
 3. Track spline or walls changed: run `Generate RaceMap Light Probes`, then rebake.
 4. Post profiles: keep WhiteBalance and Bloom in `RaceMap_Environment_Profile` (Feel shakers), keep `Volume_Dark`'s
    tonemapping and grade in step with it, 0.1 EV darker (black curtain).
-5. SSR stays before BlackCurtain in the High Fidelity renderer's feature list, and both SSR pipeline assets keep
-   `URP-KeepDeferredVariants-Renderer` in their renderer lists (without it SSR is stripped from builds).
-6. Fog, post profiles, SSR volume settings, probe intensity: runtime values, no rebake.
+5. Reflections are planar (`PlanarReflection` on the lane and the end-field floor): if the track's floor moves, the
+   plane follows the receivers' bounds; a floor that is not flat needs SSR back (plugin notes).
+6. Fog, post profiles, probe intensity: runtime values, no rebake.
 7. Capture `phaseN_after` after a bake or a play-mode round trip (see the editor trap), build the side-by-sides, and
    compare with the previous phase.

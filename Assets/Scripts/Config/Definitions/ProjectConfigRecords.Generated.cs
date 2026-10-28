@@ -865,7 +865,7 @@ public class GraphicsOptionLevelRecord
     /// <summary>int</summary>
     [Tooltip("anti_aliasing：MSAA 采样数 1 / 2 / 4 / 8")] public int msaaSamples = 0;
     /// <summary>string</summary>
-    [Tooltip("anti_aliasing：后处理抗锯齿 None / FXAA / TAA（MSAA 档位必须 None）")] public string postAntialiasing = string.Empty;
+    [Tooltip("anti_aliasing：后处理抗锯齿 None / FXAA / TAA（MSAA 档位不能用 TAA）")] public string postAntialiasing = string.Empty;
     /// <summary>float#range=0,1</summary>
     [Tooltip("sharpening：TAA 对比度自适应锐化强度")] public float taaSharpening = 0f;
     /// <summary>bool</summary>
@@ -880,12 +880,8 @@ public class GraphicsOptionLevelRecord
     [Tooltip("shadow_quality：主光阴影图分辨率 256-4096")] public int shadowResolution = 0;
     /// <summary>bool</summary>
     [Tooltip("shadow_quality：软阴影")] public bool softShadows = false;
-    /// <summary>bool</summary>
-    [Tooltip("reflections：屏幕空间反射开关")] public bool ssrEnabled = false;
-    /// <summary>string</summary>
-    [Tooltip("reflections：Full / ThreeQuarters / Half / Quarter")] public string ssrResolution = string.Empty;
-    /// <summary>bool</summary>
-    [Tooltip("reflections：颜色 mip（粗糙反射的模糊，低分辨率时需要）")] public bool ssrMipmaps = false;
+    /// <summary>float#range=0,1</summary>
+    [Tooltip("reflections：平面反射贴图相对画面的分辨率比例，0 = 关（用反射探针）")] public float planarScale = 0f;
     /// <summary>bool</summary>
     [Tooltip("ambient_occlusion：SSAO 开关")] public bool ssaoEnabled = false;
     /// <summary>bool</summary>
@@ -902,4 +898,8 @@ public class GraphicsOptionLevelRecord
     [Tooltip("frame_rate_cap：帧率上限，60 的整数倍")] public int frameRate = 0;
     /// <summary>string</summary>
     [Tooltip("vfx_quality：Low / Medium / High")] public string vfxTier = string.Empty;
+    /// <summary>string</summary>
+    [Tooltip("window_mode：ExclusiveFullScreen / FullScreenWindow / MaximizedWindow / Windowed")] public string fullScreenMode = string.Empty;
+    /// <summary>int#range=0,2</summary>
+    [Tooltip("vsync：0 关，1 每次刷新一帧")] public int vSyncCount = 0;
 }

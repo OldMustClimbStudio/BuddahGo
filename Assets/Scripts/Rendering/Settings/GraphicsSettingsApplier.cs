@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -8,10 +9,12 @@ namespace BuddahGo.Rendering.Settings
 {
     // Applies resolved graphics levels at runtime without writing any asset:
     // - the preset's quality level (QualitySettings.SetQualityLevel);
-    // - pipeline and renderer-feature levels on runtime clones of that level's URP asset, assigned through
+    // - pipeline and SSAO levels on runtime clones of that level's URP asset, assigned through
     //   QualitySettings.renderPipeline only when they differ from the asset (the default preset uses the real assets);
+    // - the planar reflections' resolution through PlanarReflection.SettingsScale;
     // - post AA and TAA sharpening through CameraAntialiasingPolicy, texture mip limit and anisotropic filtering through
-    //   QualitySettings, the frame-rate cap (VSync stays off, see FrameRateLock) and the VFX tier.
+    //   QualitySettings, VSync or the frame-rate cap, and the VFX tier;
+    // - window mode and resolution in a player, unless its command line sets the window (benchmark tools do).
     // Pipeline, texture limit, anisotropic filtering and VSync belong to the current quality level, so what each level held
     // is recorded before the first write to it. In the editor those writes would outlive play mode; they are put back
     // when the application quits (which includes leaving play mode), or after play mode if a recompile dropped that hook.
@@ -48,13 +51,12 @@ namespace BuddahGo.Rendering.Settings
         int m_OriginalQualityLevel = -1;
         bool m_RestoreHooked;
 
-        /// <summary>Whether a level can take effect with the given preset (SSR and SSAO need the feature in that level's renderer).</summary>
+        /// <summary>Whether a level can take effect with the given preset (SSAO needs the feature in that level's renderer).</summary>
         public static bool IsLevelAvailable(GraphicsSettingsCatalog.Preset preset, string optionId, GraphicsOptionLevelRecord level)
         {
             if (level == null)
                 return false;
-            bool needsFeature = (optionId == GraphicsPipelineMapper.Reflections && level.ssrEnabled)
-                || (optionId == GraphicsPipelineMapper.AmbientOcclusion && level.ssaoEnabled);
+            bool needsFeature = optionId == GraphicsPipelineMapper.AmbientOcclusion && level.ssaoEnabled;
             if (!needsFeature)
                 return true;
             int quality = QualityIndex(preset);
@@ -85,19 +87,44 @@ namespace BuddahGo.Rendering.Settings
             if (levels.TryGetValue(GraphicsPipelineMapper.AntiAliasing, out var aa))
                 CameraAntialiasingPolicy.SettingsMode = ParsePostAntialiasing(aa.postAntialiasing);
             CameraAntialiasingPolicy.SettingsSharpening = levels.TryGetValue(GraphicsPipelineMapper.Sharpening, out var sharpen) ? sharpen.taaSharpening : (float?)null;
+            PlanarReflection.SettingsScale = levels.TryGetValue(GraphicsPipelineMapper.Reflections, out var reflections) ? Mathf.Clamp01(reflections.planarScale) : (float?)null;
 
             if (levels.TryGetValue(GraphicsPipelineMapper.TextureQuality, out var textures))
                 QualitySettings.globalTextureMipmapLimit = Mathf.Clamp(textures.textureMipmapLimit, 0, 3);
             if (levels.TryGetValue(GraphicsPipelineMapper.AnisotropicFiltering, out var aniso) && Enum.TryParse(aniso.anisotropicFiltering, true, out AnisotropicFiltering filtering))
                 QualitySettings.anisotropicFiltering = filtering;
 
-            // SetQualityLevel re-applies the level's VSync; prediction smoothing needs VSync off and a tick-multiple cap.
-            QualitySettings.vSyncCount = 0;
-            if (levels.TryGetValue(GraphicsPipelineMapper.FrameRateCap, out var frameRate) && frameRate.frameRate > 0)
+            // SetQualityLevel re-applies the level's own VSync, so it is always written. With VSync the display's refresh
+            // paces frames and the cap is ignored; without it the cap stays a multiple of the network tick (FrameRateLock).
+            int vSync = levels.TryGetValue(GraphicsPipelineMapper.VSync, out var vSyncLevel) ? Mathf.Clamp(vSyncLevel.vSyncCount, 0, 2) : 0;
+            QualitySettings.vSyncCount = vSync;
+            if (vSync == 0 && levels.TryGetValue(GraphicsPipelineMapper.FrameRateCap, out var frameRate) && frameRate.frameRate > 0)
                 Application.targetFrameRate = frameRate.frameRate;
+            ApplyDisplay(levels);
 
             if (levels.TryGetValue(GraphicsPipelineMapper.VfxQuality, out var vfx) && Enum.TryParse(vfx.vfxTier, true, out VfxQualityTier tier))
                 VfxQuality.Set(tier);
+        }
+
+        static readonly string[] s_WindowArguments = { "-screen-width", "-screen-height", "-screen-fullscreen", "-window-mode", "-popupwindow" };
+
+        /// <summary>Whether a player's command line sets the window itself; the settings then leave it alone.</summary>
+        public static bool SetsWindowFromCommandLine(string[] arguments) =>
+            arguments != null && arguments.Any(a => s_WindowArguments.Contains(a, StringComparer.OrdinalIgnoreCase));
+
+        // Window mode at the display's native resolution (the only resolution level so far). The editor's game view and
+        // a window the command line asked for are not touched.
+        static void ApplyDisplay(IReadOnlyDictionary<string, GraphicsOptionLevelRecord> levels)
+        {
+            if (Application.isEditor || SetsWindowFromCommandLine(Environment.GetCommandLineArgs()))
+                return;
+            if (!levels.TryGetValue(GraphicsPipelineMapper.WindowMode, out var window) || !Enum.TryParse(window.fullScreenMode, true, out FullScreenMode mode))
+                return;
+            var display = Screen.mainWindowDisplayInfo;
+            int width = display.width > 0 ? display.width : Screen.currentResolution.width;
+            int height = display.height > 0 ? display.height : Screen.currentResolution.height;
+            if (Screen.fullScreenMode != mode || Screen.width != width || Screen.height != height)
+                Screen.SetResolution(width, height, mode);
         }
 
         LevelOriginal RecordLevel(int quality)
@@ -151,6 +178,7 @@ namespace BuddahGo.Rendering.Settings
             m_OriginalQualityLevel = -1;
             CameraAntialiasingPolicy.SettingsMode = null;
             CameraAntialiasingPolicy.SettingsSharpening = null;
+            PlanarReflection.SettingsScale = null;
             foreach (var clone in m_Clones)
                 GraphicsPipelineMapper.DestroyDetachedClone(clone);
             m_Clones.Clear();

@@ -67,6 +67,7 @@ namespace BuddahGo.Tests
             {
                 "render_scale", "upscaler", "anti_aliasing", "sharpening", "shadow_quality", "texture_quality",
                 "anisotropic_filtering", "reflections", "ambient_occlusion", "vfx_quality", "frame_rate_cap",
+                "vsync", "window_mode", "resolution",
             }));
             var texts = new HashSet<string>(Database().localizedTexts.Select(t => t.key));
             foreach (var option in catalog.Options)
@@ -184,7 +185,6 @@ namespace BuddahGo.Tests
             model.Set("render_scale", "p67");
             model.Set("anti_aliasing", "taa");
             model.Set("shadow_quality", "medium");
-            model.Set("reflections", "off");
             model.Set("ambient_occlusion", "off");
             var levels = model.Resolve();
 
@@ -208,7 +208,6 @@ namespace BuddahGo.Tests
                 Assert.That(clone.cascade2Split, Is.EqualTo(0.2f).Within(1e-4f));
                 Assert.That(clone.mainLightShadowmapResolution, Is.EqualTo(1024));
                 var cloneFeatures = GraphicsPipelineMapper.RendererData(clone).Where(d => d != null).SelectMany(d => d.rendererFeatures).Where(f => f != null).ToList();
-                Assert.That(cloneFeatures.Where(f => f.GetType().Name == "ScreenSpaceReflectionURP").All(f => !f.isActive), Is.True);
                 Assert.That(cloneFeatures.Where(f => f.GetType().Name == "ScreenSpaceAmbientOcclusion").All(f => !f.isActive), Is.True);
                 Assert.That(cloneFeatures.Intersect(originalFeatures), Is.Empty, "features are copies");
 
@@ -267,7 +266,7 @@ namespace BuddahGo.Tests
                 Assert.That(QualitySettings.names[QualitySettings.GetQualityLevel()], Is.EqualTo("Performant"));
                 Assert.That(QualitySettings.anisotropicFiltering, Is.EqualTo(AnisotropicFiltering.ForceEnable));
                 Assert.That(QualitySettings.globalTextureMipmapLimit, Is.EqualTo(1));
-                Assert.That(QualitySettings.vSyncCount, Is.EqualTo(0));
+                Assert.That(QualitySettings.vSyncCount, Is.EqualTo(1), "VSync is on by default");
                 custom = QualitySettings.renderPipeline as UniversalRenderPipelineAsset;
                 Assert.That(custom, Is.Not.Null.And.Not.EqualTo(performant), "a custom choice renders with a clone");
                 Assert.That(custom.renderScale, Is.EqualTo(0.77f).Within(1e-4f));
@@ -292,6 +291,49 @@ namespace BuddahGo.Tests
         }
 
         [Test]
+        public void VSyncLevelSetsVSyncAndTheCapOnlyAppliesWithoutIt()
+        {
+            var catalog = TableCatalog();
+            int startLevel = QualitySettings.GetQualityLevel();
+            var before = QualityLevelValues();
+            int frameRate = Application.targetFrameRate;
+            var vfx = VfxQuality.Current;
+            var applier = new GraphicsSettingsApplier();
+            try
+            {
+                var model = new GraphicsSettingsModel(catalog);
+                model.SetPreset("high");
+                Application.targetFrameRate = 30;
+                applier.Apply(model);
+                Assert.That(QualitySettings.vSyncCount, Is.EqualTo(1));
+                Assert.That(Application.targetFrameRate, Is.EqualTo(30), "with VSync the cap is left alone");
+
+                model.Set("vsync", "off");
+                model.Set("frame_rate_cap", "fps60");
+                applier.Apply(model);
+                Assert.That(QualitySettings.vSyncCount, Is.EqualTo(0));
+                Assert.That(Application.targetFrameRate, Is.EqualTo(60));
+            }
+            finally
+            {
+                applier.RestoreOriginals();
+                Application.targetFrameRate = frameRate;
+                VfxQuality.Set(vfx);
+            }
+            Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(startLevel));
+            Assert.That(QualityLevelValues(), Is.EqualTo(before));
+        }
+
+        [Test]
+        public void ACommandLineWindowKeepsTheSettingsOffTheWindow()
+        {
+            Assert.That(GraphicsSettingsApplier.SetsWindowFromCommandLine(new[] { "BuddahGo.exe", "-screen-width", "1280", "-screen-height", "720" }), Is.True);
+            Assert.That(GraphicsSettingsApplier.SetsWindowFromCommandLine(new[] { "BuddahGo.exe", "-Window-Mode", "borderless" }), Is.True);
+            Assert.That(GraphicsSettingsApplier.SetsWindowFromCommandLine(new[] { "BuddahGo.exe", "-logFile", "x.log" }), Is.False);
+            Assert.That(GraphicsSettingsApplier.SetsWindowFromCommandLine(null), Is.False);
+        }
+
+        [Test]
         public void RevertWithoutASavedChoiceReturnsToTheStartupChoice()
         {
             var store = new MemoryStore();
@@ -313,23 +355,53 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void ReflectionsAndOcclusionAreUnavailableWithoutTheirFeature()
+        public void OcclusionNeedsItsFeatureAndReflectionsAreAlwaysAvailable()
         {
             var catalog = TableCatalog();
             var low = catalog.FindPreset("low");
             var high = catalog.FindPreset("high");
-            var ssrHigh = catalog.FindOption("reflections").Find("high").Values;
+            var reflectionsHigh = catalog.FindOption("reflections").Find("high").Values;
             var aoHigh = catalog.FindOption("ambient_occlusion").Find("high").Values;
-            var ssrOff = catalog.FindOption("reflections").Find("off").Values;
-            Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "reflections", ssrHigh), Is.False, "Performant's renderer has no SSR");
+            var aoOff = catalog.FindOption("ambient_occlusion").Find("off").Values;
             Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "ambient_occlusion", aoHigh), Is.False, "Performant's renderer has no SSAO");
-            Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "reflections", ssrOff), Is.True);
-            Assert.That(GraphicsSettingsApplier.IsLevelAvailable(high, "reflections", ssrHigh), Is.True);
+            Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "ambient_occlusion", aoOff), Is.True);
             Assert.That(GraphicsSettingsApplier.IsLevelAvailable(high, "ambient_occlusion", aoHigh), Is.True);
+            Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "reflections", reflectionsHigh), Is.True, "planar reflections need no renderer feature");
         }
 
         [Test]
-        public void PolicyNeverPutsPostAntialiasingOnTopOfMsaa()
+        public void ReflectionLevelsSetThePlanarReflectionScale()
+        {
+            var catalog = TableCatalog();
+            Assert.That(catalog.FindOption("reflections").Levels.Select(l => l.Values.planarScale), Is.EqualTo(new[] { 0f, 0.5f, 1f }));
+            int startLevel = QualitySettings.GetQualityLevel();
+            var before = QualityLevelValues();
+            int frameRate = Application.targetFrameRate;
+            var vfx = VfxQuality.Current;
+            var applier = new GraphicsSettingsApplier();
+            try
+            {
+                var model = new GraphicsSettingsModel(catalog);
+                model.SetPreset("medium");
+                applier.Apply(model);
+                Assert.That(PlanarReflection.SettingsScale, Is.EqualTo(0.5f));
+                model.Set("reflections", "off");
+                applier.Apply(model);
+                Assert.That(PlanarReflection.SettingsScale, Is.EqualTo(0f));
+            }
+            finally
+            {
+                applier.RestoreOriginals();
+                Application.targetFrameRate = frameRate;
+                VfxQuality.Set(vfx);
+            }
+            Assert.That(PlanarReflection.SettingsScale, Is.Null, "restore hands the scale back to the components");
+            Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(startLevel));
+            Assert.That(QualityLevelValues(), Is.EqualTo(before));
+        }
+
+        [Test]
+        public void PolicyNeverPutsTaaOnTopOfMsaaButAllowsFxaa()
         {
             var go = new GameObject("PolicyTestCamera");
             try
@@ -340,6 +412,9 @@ namespace BuddahGo.Tests
                 CameraAntialiasingPolicy.SettingsMode = AntialiasingMode.TemporalAntiAliasing;
                 bool msaa = UniversalRenderPipeline.asset != null && UniversalRenderPipeline.asset.msaaSampleCount > 1;
                 Assert.That(policy.Resolve(), Is.EqualTo(msaa ? AntialiasingMode.None : AntialiasingMode.TemporalAntiAliasing));
+                CameraAntialiasingPolicy.SettingsMode = AntialiasingMode.FastApproximateAntialiasing;
+                Assert.That(policy.Resolve(), Is.EqualTo(AntialiasingMode.FastApproximateAntialiasing), "FXAA may run on top of MSAA");
+                CameraAntialiasingPolicy.SettingsMode = AntialiasingMode.TemporalAntiAliasing;
                 go.GetComponent<Camera>().allowMSAA = false;
                 Assert.That(policy.Resolve(), Is.EqualTo(AntialiasingMode.TemporalAntiAliasing), "a camera without MSAA takes the settings mode");
                 Assert.That(GraphicsSettingsApplier.ParsePostAntialiasing("FXAA"), Is.EqualTo(AntialiasingMode.FastApproximateAntialiasing));

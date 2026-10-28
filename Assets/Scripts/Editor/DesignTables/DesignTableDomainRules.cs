@@ -188,7 +188,7 @@ namespace BuddahGo.DesignTables
                         string post = Value("postAntialiasing");
                         Check("msaaSamples", OneOf(msaa.ToString(), "1", "2", "4", "8"), "msaaSamples must be 1, 2, 4 or 8");
                         Check("postAntialiasing", OneOf(post, "None", "FXAA", "TAA"), "postAntialiasing must be None, FXAA or TAA (SMAA crawls on RaceMap's sand)");
-                        Check("postAntialiasing", msaa <= 1 || post == "None", "post AA must be None on an MSAA level (URP disables TAA with MSAA)");
+                        Check("postAntialiasing", msaa <= 1 || post != "TAA", "TAA cannot run on an MSAA level (URP disables TAA with MSAA)");
                         break;
                     case "shadow_quality":
                         if (!ValueConverter.TryBool(Value("shadowsEnabled"), out bool on) || !on) break;
@@ -209,8 +209,8 @@ namespace BuddahGo.DesignTables
                         Check("shadowResolution", OneOf(Value("shadowResolution"), "256", "512", "1024", "2048", "4096"), "shadowResolution must be 256-4096 (power of two)");
                         break;
                     case "reflections":
-                        if (ValueConverter.TryBool(Value("ssrEnabled"), out bool ssr) && ssr)
-                            Check("ssrResolution", OneOf(Value("ssrResolution"), "Full", "ThreeQuarters", "Half", "Quarter"), "ssrResolution must be Full, ThreeQuarters, Half or Quarter");
+                        float planar = ValueConverter.ToFloat(Value("planarScale"));
+                        Check("planarScale", planar >= 0f && planar <= 1f, "planarScale must be 0 (off) to 1");
                         break;
                     case "ambient_occlusion":
                         if (ValueConverter.TryBool(Value("ssaoEnabled"), out bool ao) && ao)
@@ -223,6 +223,12 @@ namespace BuddahGo.DesignTables
                         int fps = ValueConverter.ToInt(Value("frameRate"));
                         Check("frameRate", fps > 0 && fps % 60 == 0, "frameRate must be a multiple of the 60 Hz network tick (FrameRateLock)");
                         Check("frameRate", globalFps <= 0 || string.IsNullOrEmpty(Value("defaultFor")) || fps == globalFps, "a preset's default frameRate (" + fps + ") must equal Global/GlobalRule target_frame_rate (" + globalFps + ")");
+                        break;
+                    case "window_mode":
+                        Check("fullScreenMode", OneOf(Value("fullScreenMode"), "ExclusiveFullScreen", "FullScreenWindow", "MaximizedWindow", "Windowed"), "fullScreenMode must be ExclusiveFullScreen, FullScreenWindow, MaximizedWindow or Windowed");
+                        break;
+                    case "vsync":
+                        Check("vSyncCount", OneOf(Value("vSyncCount"), "0", "1", "2"), "vSyncCount must be 0, 1 or 2");
                         break;
                     case "vfx_quality":
                         Check("vfxTier", OneOf(Value("vfxTier"), "Low", "Medium", "High"), "vfxTier must be Low, Medium or High");

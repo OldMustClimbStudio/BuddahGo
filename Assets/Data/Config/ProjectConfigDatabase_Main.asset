@@ -1675,7 +1675,7 @@ MonoBehaviour:
   - key: settings.graphics.option.anisotropic_filtering
     zh: "\u5404\u5411\u5F02\u6027\u8FC7\u6EE4"
   - key: settings.graphics.option.reflections
-    zh: "\u5C4F\u5E55\u7A7A\u95F4\u53CD\u5C04"
+    zh: "\u53CD\u5C04"
   - key: settings.graphics.option.ambient_occlusion
     zh: "\u73AF\u5883\u5149\u906E\u853D"
   - key: settings.graphics.option.vfx_quality
@@ -1758,6 +1758,8 @@ MonoBehaviour:
     zh: "\u539F\u751F"
   - key: settings.graphics.level.on
     zh: "\u5F00"
+  - key: settings.graphics.level.anti_aliasing.msaa8_fxaa
+    zh: MSAA 8x + FXAA
   menuOptions:
   - optionGroup: max_players
     index: 0
@@ -1861,6 +1863,21 @@ MonoBehaviour:
     groupId: performance
     labelKey: settings.graphics.option.frame_rate_cap
     restartRequired: 0
+  - optionId: window_mode
+    sortOrder: 2
+    groupId: display
+    labelKey: settings.graphics.option.window_mode
+    restartRequired: 0
+  - optionId: resolution
+    sortOrder: 3
+    groupId: display
+    labelKey: settings.graphics.option.resolution
+    restartRequired: 0
+  - optionId: vsync
+    sortOrder: 1
+    groupId: performance
+    labelKey: settings.graphics.option.vsync
+    restartRequired: 0
   graphicsOptionLevels:
   - optionId: render_scale
     levelId: p50
@@ -1878,9 +1895,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -1889,6 +1904,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: render_scale
     levelId: p59
     sortOrder: 1
@@ -1905,9 +1922,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -1916,6 +1931,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: render_scale
     levelId: p67
     sortOrder: 2
@@ -1932,9 +1949,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -1943,6 +1958,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: render_scale
     levelId: p77
     sortOrder: 3
@@ -1959,9 +1976,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -1970,6 +1985,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: render_scale
     levelId: p85
     sortOrder: 4
@@ -1986,9 +2003,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -1997,6 +2012,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: render_scale
     levelId: p100
     sortOrder: 5
@@ -2016,9 +2033,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2027,6 +2042,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: upscaler
     levelId: bilinear
     sortOrder: 0
@@ -2046,9 +2063,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2057,6 +2072,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: upscaler
     levelId: fsr
     sortOrder: 1
@@ -2073,9 +2090,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2084,6 +2099,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: anti_aliasing
     levelId: off
     sortOrder: 0
@@ -2100,9 +2117,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2111,6 +2126,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: anti_aliasing
     levelId: fxaa
     sortOrder: 1
@@ -2128,9 +2145,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2139,6 +2154,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: anti_aliasing
     levelId: taa
     sortOrder: 2
@@ -2156,9 +2173,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2167,6 +2182,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: anti_aliasing
     levelId: msaa2
     sortOrder: 3
@@ -2183,9 +2200,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2194,6 +2209,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: anti_aliasing
     levelId: msaa4
     sortOrder: 4
@@ -2210,9 +2227,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2221,12 +2236,13 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: anti_aliasing
     levelId: msaa8
     sortOrder: 5
     labelKey: settings.graphics.level.anti_aliasing.msaa8
-    defaultFor:
-    - high
+    defaultFor: []
     renderScale: 0
     upscalingFilter: 
     msaaSamples: 8
@@ -2238,9 +2254,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2249,6 +2263,36 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
+  - optionId: anti_aliasing
+    levelId: msaa8_fxaa
+    sortOrder: 6
+    labelKey: settings.graphics.level.anti_aliasing.msaa8_fxaa
+    defaultFor:
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 8
+    postAntialiasing: FXAA
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: sharpening
     levelId: off
     sortOrder: 0
@@ -2268,9 +2312,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2279,6 +2321,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: sharpening
     levelId: low
     sortOrder: 1
@@ -2295,9 +2339,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2306,6 +2348,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: sharpening
     levelId: high
     sortOrder: 2
@@ -2322,9 +2366,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2333,6 +2375,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: shadow_quality
     levelId: off
     sortOrder: 0
@@ -2350,9 +2394,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2361,6 +2403,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: shadow_quality
     levelId: low
     sortOrder: 1
@@ -2377,9 +2421,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 1024
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2388,6 +2430,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: shadow_quality
     levelId: medium
     sortOrder: 2
@@ -2406,9 +2450,7 @@ MonoBehaviour:
     - 30
     shadowResolution: 1024
     softShadows: 1
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2417,6 +2459,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: shadow_quality
     levelId: high
     sortOrder: 3
@@ -2437,9 +2481,7 @@ MonoBehaviour:
     - 70
     shadowResolution: 4096
     softShadows: 1
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2448,6 +2490,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: texture_quality
     levelId: quarter
     sortOrder: 0
@@ -2464,9 +2508,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2475,6 +2517,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: texture_quality
     levelId: half
     sortOrder: 1
@@ -2491,9 +2535,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2502,6 +2544,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: texture_quality
     levelId: full
     sortOrder: 2
@@ -2521,9 +2565,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2532,6 +2574,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: anisotropic_filtering
     levelId: off
     sortOrder: 0
@@ -2549,9 +2593,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2560,6 +2602,8 @@ MonoBehaviour:
     anisotropicFiltering: Disable
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: anisotropic_filtering
     levelId: per_texture
     sortOrder: 1
@@ -2577,9 +2621,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2588,6 +2630,8 @@ MonoBehaviour:
     anisotropicFiltering: Enable
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: anisotropic_filtering
     levelId: forced
     sortOrder: 2
@@ -2605,9 +2649,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2616,6 +2658,8 @@ MonoBehaviour:
     anisotropicFiltering: ForceEnable
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: reflections
     levelId: off
     sortOrder: 0
@@ -2633,9 +2677,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2644,6 +2686,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: reflections
     levelId: medium
     sortOrder: 1
@@ -2661,9 +2705,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 1
-    ssrResolution: Half
-    ssrMipmaps: 1
+    planarScale: 0.5
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2672,6 +2714,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: reflections
     levelId: high
     sortOrder: 2
@@ -2689,9 +2733,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 1
-    ssrResolution: ThreeQuarters
-    ssrMipmaps: 0
+    planarScale: 1
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2700,6 +2742,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: ambient_occlusion
     levelId: off
     sortOrder: 0
@@ -2717,9 +2761,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2728,6 +2770,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: ambient_occlusion
     levelId: low
     sortOrder: 1
@@ -2745,9 +2789,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 1
     ssaoDownsample: 1
     ssaoNormals: 0
@@ -2756,6 +2798,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: ambient_occlusion
     levelId: high
     sortOrder: 2
@@ -2773,9 +2817,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 1
     ssaoDownsample: 0
     ssaoNormals: 1
@@ -2784,6 +2826,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: vfx_quality
     levelId: low
     sortOrder: 0
@@ -2801,9 +2845,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2812,6 +2854,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: Low
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: vfx_quality
     levelId: medium
     sortOrder: 1
@@ -2829,9 +2873,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2840,6 +2882,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: Medium
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: vfx_quality
     levelId: high
     sortOrder: 2
@@ -2857,9 +2901,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2868,6 +2910,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 0
     vfxTier: High
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: frame_rate_cap
     levelId: fps60
     sortOrder: 0
@@ -2884,9 +2928,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2895,6 +2937,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 60
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: frame_rate_cap
     levelId: fps120
     sortOrder: 1
@@ -2914,9 +2958,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2925,6 +2967,8 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 120
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
   - optionId: frame_rate_cap
     levelId: fps240
     sortOrder: 2
@@ -2941,9 +2985,7 @@ MonoBehaviour:
     shadowCascadeSplitsMeters: []
     shadowResolution: 0
     softShadows: 0
-    ssrEnabled: 0
-    ssrResolution: 
-    ssrMipmaps: 0
+    planarScale: 0
     ssaoEnabled: 0
     ssaoDownsample: 0
     ssaoNormals: 0
@@ -2952,3 +2994,176 @@ MonoBehaviour:
     anisotropicFiltering: 
     frameRate: 240
     vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
+  - optionId: window_mode
+    levelId: fullscreen
+    sortOrder: 0
+    labelKey: settings.graphics.level.window_mode.fullscreen
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: ExclusiveFullScreen
+    vSyncCount: 0
+  - optionId: window_mode
+    levelId: borderless
+    sortOrder: 1
+    labelKey: settings.graphics.level.window_mode.borderless
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: FullScreenWindow
+    vSyncCount: 0
+  - optionId: window_mode
+    levelId: windowed
+    sortOrder: 2
+    labelKey: settings.graphics.level.window_mode.windowed
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: Windowed
+    vSyncCount: 0
+  - optionId: resolution
+    levelId: native
+    sortOrder: 0
+    labelKey: settings.graphics.level.resolution.native
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
+  - optionId: vsync
+    levelId: off
+    sortOrder: 0
+    labelKey: settings.graphics.level.off
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
+  - optionId: vsync
+    levelId: on
+    sortOrder: 1
+    labelKey: settings.graphics.level.on
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 1

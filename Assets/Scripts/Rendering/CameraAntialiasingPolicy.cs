@@ -8,9 +8,12 @@ namespace BuddahGo.Rendering
     // RaceMap's sunset turns the sand's normal-mapped ripples into dense, high-contrast stripes. SMAA treats every ripple
     // boundary as an edge and its blends crawl as the stripes move (1.0-1.4% of pixels flickering by more than 8 levels
     // per frame, about 12x dev), wherever it runs: SMAA on the tonemapped image crawled the same. So:
-    // - a pipeline that already runs MSAA gets no post AA: MSAA covers geometry edges, SMAA only adds the crawl, and URP
-    //   turns TAA off with a warning every second when MSAA is on;
-    // - a pipeline without MSAA gets the mode listed for its quality level, else the fallback.
+    // - SMAA and TAA never run on top of MSAA: SMAA only adds the crawl, and URP turns TAA off with a warning every second
+    //   when MSAA is on. FXAA may: MSAA averages edge samples before tonemapping, so bright-sand-against-dark edges and the
+    //   ripple bands' shading stay stepped; FXAA after tonemapping halves the visible flicker (0.13-0.15% -> 0.05-0.06% of
+    //   pixels changing by more than 8 levels in a sub-pixel pan, measured with real 8x MSAA on 2026-10-28) at some
+    //   softness. High Fidelity has no table entry, so it gets the fallback, FXAA, on top of its 8x MSAA;
+    // - otherwise the mode listed for the quality level, else the fallback.
     // The graphics settings (GraphicsSettingsApplier) set SettingsMode and SettingsSharpening for every camera with this
     // component; Apply overrides one camera. The per-level table is the default when no settings are applied.
     [DisallowMultipleComponent]
@@ -74,7 +77,7 @@ namespace BuddahGo.Rendering
             return Sanitize(fallback);
         }
 
-        /// <summary>Forces a post AA mode (still never SMAA/TAA on top of MSAA); null returns to the per-level table.</summary>
+        /// <summary>Forces a post AA mode (still never SMAA or TAA on top of MSAA); null returns to the per-level table.</summary>
         public void Apply(AntialiasingMode? mode)
         {
             _override = mode;
@@ -84,7 +87,8 @@ namespace BuddahGo.Rendering
 
         private AntialiasingMode Sanitize(AntialiasingMode mode)
         {
-            return PipelineRunsMsaa() ? AntialiasingMode.None : mode;
+            bool needsSingleSample = mode == AntialiasingMode.TemporalAntiAliasing || mode == AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            return needsSingleSample && PipelineRunsMsaa() ? AntialiasingMode.None : mode;
         }
 
         private bool PipelineRunsMsaa()

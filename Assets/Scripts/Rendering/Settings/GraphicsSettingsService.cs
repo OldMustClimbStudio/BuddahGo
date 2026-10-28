@@ -34,6 +34,8 @@ namespace BuddahGo.Rendering.Settings
         static void Bootstrap()
         {
             Initialize(GraphicsSettingsCatalog.FromDatabase(DesignTableOverlay.Db), new PlayerPrefsGraphicsSettingsStore(), new GraphicsSettingsApplier(), apply: true);
+            if (IsReady)
+                GraphicsSettingsDebugPanel.Install();
         }
 
         /// <summary>

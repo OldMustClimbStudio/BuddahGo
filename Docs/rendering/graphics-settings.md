@@ -1,10 +1,11 @@
 # Graphics settings
 
 Client-side graphics settings for BuddahGo: a preset plus per-option overrides, with tiers per option, defined in the
-design tables and applied at runtime. Status (2026-10-27): the spec, the runtime model, persistence, the URP mapping
-and the API are done; there is no settings menu yet. The menu binds to `GraphicsSettingsService` (see Binding).
+design tables and applied at runtime. Status (2026-10-28): the spec, the runtime model, persistence, the URP mapping,
+VSync, window mode and resolution, and the API are done; there is no settings menu yet, only a temporary F9 panel. The
+menu binds to `GraphicsSettingsService` (see Binding).
 **Before working on graphics settings, the settings menu or effect tiers, read [Not implemented yet](#not-implemented-yet):**
-planned options and the Ultra preset exist only as masked placeholder rows in `Graphics.xlsx`.
+the Ultra preset exists only as a masked placeholder row in `Graphics.xlsx`, and several points wait for the user.
 
 ## What the project uses (inventory)
 
@@ -13,13 +14,14 @@ planned options and the Ultra preset exist only as masked placeholder rows in `G
 | Quality level | `ProjectSettings/QualitySettings.asset`, one URP asset each | the three levels | the preset |
 | Render scale, upscaling filter | URP asset | 100% / 100% / 100%, Auto | `render_scale`, `upscaler` |
 | MSAA | URP asset | 1 / 1 / 8 | `anti_aliasing` |
-| Post AA (FXAA, SMAA, TAA), TAA sharpening | camera, set by `CameraAntialiasingPolicy` | FXAA / TAA / none (SMAA removed, it crawls on the sand) | `anti_aliasing`, `sharpening` |
+| Post AA (FXAA, SMAA, TAA), TAA sharpening | camera, set by `CameraAntialiasingPolicy` | FXAA / TAA / FXAA on top of MSAA (SMAA removed, it crawls on the sand) | `anti_aliasing`, `sharpening` |
 | Main-light shadows: on, distance, cascades, map size, soft | URP asset | off / 150 m, 2, 1024, soft / 220 m, 4, 4096, soft | `shadow_quality` |
 | SSAO | renderer feature | none / downsampled, depth, Low / full, normals, High | `ambient_occlusion` |
-| Screen-space reflections | renderer feature + RaceMap volume | none / 50%, mips / 75%, no mips | `reflections` |
+| Reflections on flat floors | `PlanarReflection` on RaceMap's lane and end-field floor (SSR before 2026-10-28) | probe / 50% / 100% | `reflections` |
 | Texture mip limit | `QualitySettings.globalTextureMipmapLimit` | 0 / 0 / 0 | `texture_quality` |
 | Anisotropic filtering | `QualitySettings.anisotropicFiltering` | off / per texture / forced | `anisotropic_filtering` |
-| Frame-rate cap, VSync | `FrameRateLock` (Global/GlobalRule `target_frame_rate` 120), `QualitySettings.vSyncCount` | 120, VSync off | `frame_rate_cap` (VSync stays off) |
+| VSync, frame-rate cap | `QualitySettings.vSyncCount`; `FrameRateLock` (Global/GlobalRule `target_frame_rate` 120) | VSync on; the cap applies with VSync off | `vsync`, `frame_rate_cap` |
+| Window mode, resolution | `Screen.SetResolution` (player only) | borderless, native | `window_mode`, `resolution` |
 | VFX | particles, VFX Graph, Feel | not tiered yet | `vfx_quality` (stub) |
 | HDR, colour-grading LUT size, additional-light mode, LOD bias, skin weights | URP asset / QualitySettings | per level | fixed by the preset |
 | ACES tonemapping, grade, fog colour, sky, bloom (skill flashes) | volumes, lighting settings | — | not exposed (art direction) |
@@ -34,10 +36,11 @@ source. Conventions taken over:
 - Tiers named Off / Low / Medium / High, sample counts for MSAA, percentages for render scale. Render-scale steps follow
   AMD FSR's factors (59 / 67 / 77%) and avoid 95-105%, which URP snaps to 100%.
 - One anti-aliasing list that mixes methods, so illegal combinations cannot be chosen (URP turns TAA off with MSAA).
-- Dependencies are enforced by availability, not explained: SSR and SSAO levels are unavailable when the preset's
-  renderer has no such feature.
+- Dependencies are enforced by availability, not explained: SSAO levels are unavailable when the preset's renderer has
+  no SSAO feature.
 - Almost nothing needs a restart; MSAA and quality-level changes can hitch for a frame, so apply from a menu.
-- Fixed-tick racers break when the frame rate is not a multiple of the tick; BuddahGo's cap stays a multiple of 60.
+- Fixed-tick racers break when the frame rate is not a multiple of the tick; BuddahGo's cap stays a multiple of 60. With
+  VSync on (the default since the 2026-10-27 play test showed tearing) the display's refresh paces frames instead.
 
 ## The spec (design tables)
 
@@ -54,22 +57,25 @@ Workbook `Assets/Design/Tables/Graphics/Graphics.xlsx` (records generated, datab
 |---|---|---|---|---|
 | `render_scale` (display) | p50, p59, p67, p77, p85, p100 | p100 / p100 / p100 | renderScale | |
 | `upscaler` (display) | bilinear, fsr | bilinear ×3 | upscalingFilter Auto / FSR | `bilinear` is URP's Auto (the assets' value): linear, but point sampling when the screen is an exact multiple of the render size (p50 on even resolutions). FSR at 100% only sharpens; needs SM 4.5 |
-| `anti_aliasing` (quality) | off, fxaa, taa, msaa2, msaa4, msaa8 | fxaa / taa / msaa8 | msaaSamples, postAntialiasing | post AA is never applied on top of MSAA |
+| `anti_aliasing` (quality) | off, fxaa, taa, msaa2, msaa4, msaa8, msaa8_fxaa | fxaa / taa / msaa8_fxaa | msaaSamples, postAntialiasing | TAA never runs with MSAA; FXAA may (it halves the shimmer MSAA leaves, see the RaceMap notes) |
 | `sharpening` (quality) | off, low, high | off ×3 | taaSharpening 0 / 0.4 / 0.8 | only with TAA |
 | `shadow_quality` (quality) | off, low, medium, high | off / medium / high | on, distance, cascades, splits (m), map size, soft | low = 100 m, 1 cascade, 1024, hard |
 | `texture_quality` (quality) | quarter, half, full | full ×3 | textureMipmapLimit 2 / 1 / 0 | |
 | `anisotropic_filtering` (quality) | off, per_texture, forced | off / per_texture / forced | Disable / Enable / ForceEnable | |
-| `reflections` (effects) | off, medium, high | off / medium / high | ssrEnabled, ssrResolution, ssrMipmaps | not available on low (no SSR feature) |
+| `reflections` (effects) | off, medium, high | off / medium / high | planarScale 0 / 0.5 / 1 | planar reflections on floors with a `PlanarReflection` component; off leaves the reflection probe |
 | `ambient_occlusion` (effects) | off, low, high | off / low / high | ssaoEnabled, downsample, normals, samples | not available on low (no SSAO feature) |
 | `vfx_quality` (effects) | low, medium, high | low / medium / high | vfxTier | stub, see VFX hook |
-| `frame_rate_cap` (performance) | fps60, fps120, fps240 | fps120 ×3 | frameRate | multiple of the 60 Hz tick; the default must equal Global/GlobalRule `target_frame_rate` |
+| `vsync` (performance) | off, on | on ×3 | vSyncCount 0 / 1 | on: frame rate follows the display, the cap is ignored |
+| `frame_rate_cap` (performance) | fps60, fps120, fps240 | fps120 ×3 | frameRate | only with VSync off; multiple of the 60 Hz tick; the default must equal Global/GlobalRule `target_frame_rate` |
+| `window_mode` (display) | fullscreen, borderless, windowed | borderless ×3 | fullScreenMode | player only; skipped when the command line sets the window (`-screen-width`, `-screen-height`, `-screen-fullscreen`, `-window-mode`, `-popupwindow`) |
+| `resolution` (display) | native | native ×3 | — | the display's resolution; same skip rule |
 
-No option needs a restart. Every preset's defaults equal the values its quality level has today, so choosing a preset
-without overrides renders exactly as before (tested: `EachPresetDefaultReproducesItsQualityLevel`). The import rule
-`GraphicsSettingsAreComplete` (`DesignTableDomainRules`) rejects a preset without exactly one default per option, post AA
-on an MSAA level, a frame rate that is not a multiple of 60, a default frame rate other than GlobalRule
+No option needs a restart. Every preset's pipeline defaults equal its quality level's asset, so choosing a preset
+without overrides uses the real assets (tested: `EachPresetDefaultReproducesItsQualityLevel`). The import rule
+`GraphicsSettingsAreComplete` (`DesignTableDomainRules`) rejects a preset without exactly one default per option, TAA on
+an MSAA level, a frame rate that is not a multiple of 60, a default frame rate other than GlobalRule
 `target_frame_rate` (FrameRateLock's value, which the settings replace at startup), cascade splits that do not match the
-cascade count, do not increase or reach the shadow distance, and unknown enum-like values.
+cascade count, do not increase or reach the shadow distance, a planar scale outside 0-1, and unknown enum-like values.
 
 ## Runtime (`Assets/Scripts/Rendering/Settings/`)
 
@@ -78,9 +84,11 @@ cascade count, do not increase or reach the shadow distance, and unknown enum-li
 | `GraphicsSettingsCatalog` | Options, levels, presets and their label keys from the tables; an empty catalog means the layer does nothing |
 | `GraphicsSettingsModel` | Preset plus overrides; Get / Set / SetPreset / ResetToPreset; "Custom" while any override exists; JSON state |
 | `PlayerPrefsGraphicsSettingsStore` | Saves the JSON under `BuddahGo.GraphicsSettings.v1` on this machine |
-| `GraphicsSettingsApplier` | Applies the choice: quality level, a runtime clone of that level's URP asset (and its renderer data and features) only when a value differs, camera AA and sharpening through `CameraAntialiasingPolicy`, texture limit, anisotropic filtering, frame-rate cap with VSync off, VFX tier |
-| `GraphicsPipelineMapper` | Option levels -> URP asset fields and SSR / SSAO feature settings (internal URP 14 setters and the SSAO settings through their serialized fields; the SSR feature by type name, it lives in `Assembly-CSharp-firstpass`) |
+| `GraphicsSettingsApplier` | Applies the choice: quality level, a runtime clone of that level's URP asset (and its renderer data and features) only when a value differs, camera AA and sharpening through `CameraAntialiasingPolicy`, planar reflection scale, texture limit, anisotropic filtering, VSync or the frame-rate cap, window mode and resolution (player only), VFX tier |
+| `GraphicsPipelineMapper` | Option levels -> URP asset fields and SSAO feature settings (internal URP 14 setters and the SSAO settings through their serialized fields) |
 | `GraphicsSettingsService` | Static entry point for the menu; loads and applies the saved choice after the first scene loads |
+| `GraphicsSettingsDebugPanel` | Temporary: F9 in any scene opens an IMGUI panel listing presets and options; each change applies and saves. Remove or limit to development builds when the menu ships |
+| `BuddahGo.Rendering.PlanarReflection` | On a flat floor's renderer: renders the mirrored scene for each game camera and binds it to the `BuddahGo/Lit` material (`_PLANAR_REFLECTION`); `SettingsScale` comes from `reflections` |
 | `BuddahGo.Rendering.VfxQuality` | VFX tier hook: `Current`, `Changed` |
 
 **Assets are never written.** Values change only on runtime clones (`HideFlags.DontSave`, made and destroyed by
@@ -114,7 +122,7 @@ GraphicsSettingsService.Changed += Refresh;             // model changed; Applie
 ```
 
 Still to do on the UI side: the menu itself (owned by the UI work, not by `feat/ingame-ui-updates`, which has no
-settings screen); window mode and resolution (`Screen.fullScreenMode`, `Screen.resolutions`); an Apply button, because
+settings screen); a resolution list from `Screen.resolutions` (the table has only `native`); an Apply button, because
 MSAA and quality-level changes can hitch; greying out `upscaler` at 100% and `sharpening` without TAA; checking that
 the new Chinese labels exist in the static font subset `Assets/Fonts/SoloCJK`. On 2026-10-27, 36 characters of the
 `settings.graphics.*` labels, placeholders included, were missing from it
@@ -123,8 +131,9 @@ atlas as its README describes before the menu shows them.
 
 ## Not implemented yet
 
-What exists only as a placeholder or is not verified (2026-10-27). Keep this list current: remove an entry when it
-lands, add one when something is deferred.
+What exists only as a placeholder or is not verified (2026-10-28). Keep this list current: remove an entry when it
+lands, add one when something is deferred. Window mode, resolution (native) and VSync were placeholders on 2026-10-27
+and are implemented since 2026-10-28.
 
 **How placeholders are stored.** A row with `##` in column A of `Graphics.xlsx` is masked, the project-wide convention
 (see `Match/SelectionStage`): the importer skips it, the CSV mirror omits it, so the runtime and a menu never see it.
@@ -134,10 +143,9 @@ still have an open point. To implement a placeholder: add the typed value column
 
 | Item | State | Placeholder | What it needs |
 |---|---|---|---|
-| Settings menu | not implemented | API `GraphicsSettingsService`; labels `settings.graphics.title`, `settings.graphics.action.apply` / `revert` / `reset_to_preset` in `UI/Text` | a screen that binds as in [Binding](#binding-for-the-settings-menu), an Apply button, the font subset |
-| Window mode | not implemented | masked `window_mode` option and levels fullscreen / borderless / windowed | a `FullScreenMode` column, applying `Screen.fullScreenMode` |
-| Resolution | not implemented | masked `resolution` option with one level, `native` | levels built at runtime from `Screen.resolutions`, `Screen.SetResolution` |
-| VSync | **user decision** | masked `vsync` option, levels off / on | a rule for monitors that are not a multiple of 60 Hz; today `FrameRateLock` keeps it off for the network tick |
+| Settings menu | not implemented; F9 debug panel stands in | API `GraphicsSettingsService`; labels `settings.graphics.title`, `settings.graphics.action.apply` / `revert` / `reset_to_preset` in `UI/Text` | a screen that binds as in [Binding](#binding-for-the-settings-menu), an Apply button, the font subset; then remove `GraphicsSettingsDebugPanel` |
+| Resolution list | only `native` | `resolution` option with one level | levels built at runtime from `Screen.resolutions` |
+| VSync online | on by default, decided 2026-10-28 | `pending` on `vsync` | check online prediction smoothing at refresh rates that are not a multiple of 60 Hz (`FrameRateLock`'s concern); Solo interpolates by time |
 | Ultra preset | **user decision** | masked `ultra` preset (High Fidelity base) | a default level for every option (`defaultFor` gains `ultra`) |
 | VFX tiers | hook only | `vfx_quality` is applied; `VfxQuality.Current` / `Changed` have no reader | **user** specifies what each tier changes; effects then read the tier |
 | First-run preset | not implemented | `pending` on the `high` preset | hardware detection; today the preset of the starting quality level is used |
@@ -149,6 +157,8 @@ Not verified yet:
 - FSR 1.0 in a player build (URP may strip the variants it needs).
 - The per-level restore after the code review in real play mode (covered by `RestorePutsBackEveryQualityLevelItChanged`),
   and the restore after a recompile during play mode.
+- Planar reflections on the end-field floor during the results ceremony, and of skill effects in a full match.
+- Window mode and resolution in a player (EditMode tests cover only the command-line skip).
 
 ## Adding an option
 
@@ -167,10 +177,8 @@ Not verified yet:
 
 ## Open decisions
 
-- **VSync.** Most games offer it; here `FrameRateLock` keeps it off so the frame rate stays a multiple of the network
-  tick. A VSync option would need a rule for monitors that are not a multiple of 60 Hz (masked placeholder row exists).
-- **Ultra preset** above High Fidelity (for example full-resolution SSR and a longer shadow distance): possible with the
-  clone approach; a masked placeholder row exists.
+- **Ultra preset** above High Fidelity (for example a longer shadow distance and a render scale above 100%): possible
+  with the clone approach; a masked placeholder row exists.
 - **VFX tiers**: what Low / Medium / High change, and whether to add a "reduce other players' effects" option
   (Genshin Impact's precedent).
 - **First-run preset**: currently the quality level the game starts with; hardware detection is not implemented.

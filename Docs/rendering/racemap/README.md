@@ -22,17 +22,22 @@ Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach 
 |---|---|---|
 | `Buddah.prefab` `model` renderer casts two-sided shadows (phase 1) | the player's shadow in every scene | RaceMap captures |
 | `URP-HighFidelity` / `URP-Balanced`: shadow distance 220 m / 150 m (phase 2) | MainMenu and PropertySelection use the same assets | MainMenu identical, PropertySelection 1-px edge jitter |
-| `URP-HighFidelity-Renderer` / `URP-Balanced-Renderer`: SSR feature (phase 2) | none unless a volume enables SSR; only RaceMap's profile does | menu scenes have no SSR component |
+| `URP-HighFidelity-Renderer` / `URP-Balanced-Renderer`: SSR feature (phase 2) | none unless a volume enables SSR; RaceMap's profile turned it off on 2026-10-28 (planar reflections replace it), so no scene uses it now | menu scenes have no SSR component |
 | `URP-KeepDeferredVariants-Renderer` in both renderer lists (phase 2) | builds keep the deferred shader variants: more variants, longer shader compile, never drawn | full player builds, stripping report below |
 | `Assets/Plugins/UnitySSReflectionURP/` (phase 2) | scripts compile into `Assembly-CSharp-firstpass` | build |
 | `Assets/Rendering/Shaders/` (sky, `BuddahGo/Lit`) and `Assets/Editor/Rendering/` | used only by RaceMap's materials; editor tools | build |
 | `SG_MapEdge` shader graph: Preserve Specular Lighting off, emission no longer multiplied by `_EdgeVisible` (play-test fix) | only RaceMap's edge ribbons use it (the air-wall prefab `反转法线空气墙` also does, but no scene places it) | HDR captures, High Fidelity and Balanced |
 | Buddha collider refitted to the animated model (play-test fix): `Movement/Movement` `colliderCenter` y +0.998, prefab capsule and `RollbackHurtbox` with it, prefab `fotou` 0.2515, `Movement/Respawn` `heightOffset` 3 -> 2.002 | every racer, player and AI, in every scene; the body origin rests 0.998 m lower inside an unchanged world-space capsule | autopilot Solo lap, design-table tests |
-| RaceMap gameplay camera: post AA from `CameraAntialiasingPolicy` (none with MSAA, TAA on Balanced, FXAA on Performant) instead of SMAA | RaceMap only; no pipeline or renderer asset changed | shimmer sweeps, race clips, cost runs |
-| Graphics settings layer (`Assets/Scripts/Rendering/Settings/`, spec in `Graphics.xlsx`): loads the saved choice after the first scene loads and applies it | every scene; with no saved choice or a preset without overrides it changes nothing, otherwise it uses runtime clones of the URP assets and restores `QualitySettings` when play mode ends ([../graphics-settings.md](../graphics-settings.md)) | EditMode tests, play-mode check |
+| RaceMap gameplay camera: post AA from `CameraAntialiasingPolicy` (FXAA on top of 8x MSAA on High Fidelity since 2026-10-28, TAA on Balanced, FXAA on Performant) instead of SMAA | RaceMap only; no pipeline or renderer asset changed | shimmer sweeps with real MSAA, race clips, cost runs |
+| `URP-PlanarReflection-Renderer` (no features) appended to all three pipeline assets (index 1 on Performant, 2 on Balanced and High Fidelity) | only `PlanarReflection` cameras select it, by name; the renderer lists grow by one | editor, player build |
+| `BuddahGo/Lit`: `_PLANAR_REFLECTION` material keyword and `PlanarReflection` component | only `RaceMap_Lane` enables it (lane top and end-field floor) | freeze-frame comparisons, cost runs |
+| Graphics settings now also set VSync (on by default), window mode (borderless) and resolution (native) | every scene; window and resolution only in a player whose command line does not set them | EditMode tests |
+| Graphics settings layer (`Assets/Scripts/Rendering/Settings/`, spec in `Graphics.xlsx`; temporary F9 panel): loads the saved choice after the first scene loads and applies it | every scene; with no saved choice or a preset without overrides it changes nothing, otherwise it uses runtime clones of the URP assets and restores `QualitySettings` when play mode ends ([../graphics-settings.md](../graphics-settings.md)) | EditMode tests, play-mode check |
 
 Renderer index 1 in both pipeline assets is reserved for the Deferred keep-alive renderer; no camera may select it
 (`BlackCurtainViewController`'s renderer switching is off in RaceMap).
+The planar-reflection renderer follows it (index 2 on Balanced and High Fidelity, 1 on Performant); `PlanarReflection`
+finds it by name, so its index may change.
 
 
 ## How to compare
@@ -654,10 +659,70 @@ Frame times are editor-side, HDR target, RTX 4070 Laptop, one session, configura
 skills; static geometry showed no ghosting); Balanced and Performant in a player build; other scenes (MainMenu and
 PropertySelection already use no post AA).
 
+**Correction (2026-10-28).** The High Fidelity numbers above were measured without MSAA: URP takes a camera's MSAA
+sample count from its target texture, and the probe's target had one sample. "8x MSAA alone" was really no AA, and the
+frame times lacked MSAA's cost. Re-measured with the target carrying the pipeline's samples (the probe now does this),
+see the next section. The SMAA attribution and the Balanced and Performant rows are unaffected.
+
+## Play-test round 2 (2026-10-28): tearing, blurry reflections, edges in motion
+
+The user tried the PR build and reported: anti-aliasing not good enough, edges looking pixelated at high speed; the
+reflections "very, very blurry, broken up like faults"; tearing, VSync not working. Evidence:
+[quality_fix/reflections_ssr_vs_planar.jpg](quality_fix/reflections_ssr_vs_planar.jpg) and
+[quality_fix/aa_edges_msaa_fxaa_taa.jpg](quality_fix/aa_edges_msaa_fxaa_taa.jpg).
+
+**What the build showed.** The player's saved window state (registry `HKCU\Software\OMCStudio\BuddahGo`) was a
+1280x720 window, left there by earlier benchmark builds that share the company and product name, on a 2560x1440 143 Hz
+monitor. `FrameRateLock` forces VSync off and caps at 120 fps, which tears on any display. At 720p, SSR at 75% traced at
+960x540 and its reflections turned blocky; at native resolution they still speckle and break off at every SSR setting
+(full resolution, colour mipmaps, 128 steps, thickness 0.5; `FreezeCompare` of one frozen race frame).
+
+**Changes.**
+- **Reflections: planar instead of SSR.** The lane top (y 0.25) and the end-field floor (y 1.8) are planes, so a mirror
+  render is exact. `PlanarReflection` (`Assets/Scripts/Rendering/`) sits on both receivers; for each base game camera
+  that sees them from above, a mirrored camera (oblique near plane at the receiver's top, which it reads from the
+  renderer's bounds so it follows map moves; no shadows, no post-processing, renderer `URP-PlanarReflection-Renderer`)
+  renders into a mip-mapped HDR texture, and `BuddahGo/Lit` with `_PLANAR_REFLECTION` samples it in screen space in place
+  of the probe, blurred by roughness through the mips and bent slightly by the normal map. Only up-facing pixels at the
+  plane's height take it; the lane's side walls keep the probe. SSR is off in `RaceMap_Environment_Profile`. The graphics
+  setting `reflections` now chooses the planar texture's scale: off (probe), 50%, 100%.
+- **Edges: FXAA on top of 8x MSAA on High Fidelity.** Measured with real MSAA (1/16 px pan, views 02 / 03), 8x MSAA does
+  not lower shimmer here: 0.13 / 0.15% of pixels flicker by more than 8 levels, against 0.09 / 0.11% with no AA. MSAA
+  resolves samples before tonemapping, so bright-sand-against-dark edges and the ripple bands stay stepped, and it does
+  nothing for shading inside surfaces. FXAA after it: 0.05 / 0.06%, sharpness 15.1 -> 12.2 (softer). TAA without MSAA:
+  0.10 / 0.13%, 12.7, and it smears in fast motion. `CameraAntialiasingPolicy` now allows FXAA on MSAA (TAA and SMAA
+  still not); High Fidelity's default is MSAA 8x + FXAA, and `msaa8` alone stays a choice.
+- **Tearing: VSync on.** The graphics settings set VSync per choice (default on) and the frame cap only applies with
+  VSync off; window mode (borderless) and resolution (native) are applied in a player unless its command line sets the
+  window, so the benchmark tools keep their 1280x720 windows. See [../graphics-settings.md](../graphics-settings.md).
+- **Comparing in a build.** F9 opens a temporary graphics panel (`GraphicsSettingsDebugPanel`) until the settings menu
+  exists.
+
+**Cost** (1080p, High Fidelity with 8x MSAA, view 02, median of 4 x 40 renders, editor):
+
+| Configuration | Frame time |
+|---|---|
+| Reflection probe only | 6.07 ms |
+| Planar 100% | 6.73 ms |
+| Planar 50% | 6.76 ms |
+| Old SSR (75%, no mips) | 7.06 ms |
+| Planar 100% + FXAA on MSAA (new default) | 6.92 ms |
+
+Planar costs about 0.65 ms and is 0.3 ms cheaper than the SSR it replaces; 50% saves nothing on this GPU (the mirrored
+draw, not its fill rate, dominates). With real MSAA High Fidelity costs about 1 ms more than the earlier table said.
+
+**Not verified.** The end-field floor's reflection during the results ceremony and the intro shots; reflections of skill
+effects, trails and the black curtain in a full match; VSync's effect on online prediction smoothing at refresh rates that
+are not a multiple of 60 Hz (`FrameRateLock`'s original concern; Solo's presentation timeline interpolates by time);
+the F9 panel's clicks also reaching gameplay input.
+
 ## Known limits and open items (current state)
 
 - **Anti-aliasing**: TAA (Balanced) not checked on skill particles and trails in a full match; NVIDIA FXAA 3.11 would
-  need a licence decision before use.
+  need a licence decision before use; an MSAA resolve after tonemapping (or a weighted resolve) would sharpen High
+  Fidelity's edges without FXAA's softness, URP 14 has none.
+- **Reflections**: SSR is no longer used by any scene; the SSR feature on the High Fidelity and Balanced renderers and the
+  Deferred keep-alive renderer (kept only for SSR's GBuffer pass in builds) could be removed if nothing else needs SSR.
 - **Graphics settings**: spec, model and API only; no menu yet (see [../graphics-settings.md](../graphics-settings.md)).
 
 - **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).

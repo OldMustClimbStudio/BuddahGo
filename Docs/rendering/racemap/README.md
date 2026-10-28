@@ -580,7 +580,11 @@ did relative to the body origin, so everything placed relative to the origin or 
    and `SpawnPoints` were authored at y 3.30. On the lowered track that is far above the rest height, beyond the launch
    ground snap's 1.5 m, so racers floated through the intro and dropped after GO. Fix (5986813, e56b0a4): the layouts and
    spawn points sit at Buddha's rest height, lane 0.2499 + capsule clearance 0.2979 = 0.5478, so the intro, the GO
-   handoff and physics agree. `MapPathLine` moved down by the same 2.37 m as the track, which keeps the AI wall probe and
+   handoff and physics agree. At runtime `MatchSpawnManager` moves the spawn points to `Match/TrackSpawn`, which still
+   said y 3.3 until the PR #64 review (M2) caught it; the table now says 0.5478 (5e20255), and
+   `SixRacerFoundationTests.TrackSpawnTableKeepsTheSceneSpawnAndLaunchHeight` keeps table, scene spawns and launch points
+   together. `Match/TrackResultAnchor` (the results ceremony) moved by the collider's 0.998 instead, 4.4 -> 3.401926, so
+   racers land on the end field from the same height relative to the capsule as on dev (review N8). `MapPathLine` moved down by the same 2.37 m as the track, which keeps the AI wall probe and
    (with the new `heightOffset`) the respawned capsule at their old height above the lane. The intro cameras did not
    move.
 

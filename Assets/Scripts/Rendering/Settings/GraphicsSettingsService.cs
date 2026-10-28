@@ -76,7 +76,7 @@ namespace BuddahGo.Rendering.Settings
         public static bool SetPreset(string presetId) => s_Model != null && s_Model.SetPreset(presetId);
         public static void ResetToPreset() => s_Model?.ResetToPreset();
 
-        /// <summary>Whether a level can take effect on the current preset (SSR and SSAO need the feature in its renderer).</summary>
+        /// <summary>Whether a level can take effect on the current preset (SSAO needs the feature in its renderer).</summary>
         public static bool IsAvailable(string optionId, string levelId)
         {
             var option = s_Model?.Catalog.FindOption(optionId);

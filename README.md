@@ -13,7 +13,7 @@
 
 ## 策划配表
 
-平衡数值、规则与文案由 `Assets/Design/Tables/` 下的六本 Excel 工作簿维护（Skill、Movement、AI、Match、UI、Global）。在 Excel 里改数保存，Unity 自动校验并写入 `ProjectConfigDatabase`；校验失败不写产物，错误定位到单元格，报告在 `Assets/Design/Tables/_Reports/validation.md`。手动入口在菜单 `Tools/Design Tables`（`Import Changed`、`Import Tag/…`、`Validate Only`），批处理入口：
+平衡数值、规则、文案与画质设置规格由 `Assets/Design/Tables/` 下的七本 Excel 工作簿维护（Skill、Movement、AI、Match、UI、Global、Graphics）。在 Excel 里改数保存，Unity 自动校验并写入 `ProjectConfigDatabase`；校验失败不写产物，错误定位到单元格，报告在 `Assets/Design/Tables/_Reports/validation.md`。手动入口在菜单 `Tools/Design Tables`（`Import Changed`、`Import Tag/…`、`Validate Only`），批处理入口：
 
 ```bash
 Unity.exe -batchmode -nographics -projectPath <项目路径> -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit

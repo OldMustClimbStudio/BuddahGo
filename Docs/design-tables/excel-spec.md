@@ -44,7 +44,7 @@ Assets/Design/Tables/                      源表与镜像（提交；xlsx 走 L
   UI/UI.xlsx                               文案、图标、HUD、菜单（UI/文案）
   Global/Global.xlsx                       全局规则、结构常量、物理、标签层、场景、输入、timeline、__enums__、__meta__（主程/主策）
   Graphics/Graphics.xlsx                   画质设置：预设、选项、档位（渲染；2026-10-27 新增，见 Docs/rendering/graphics-settings.md；
-                                           未实现的选项和预设是 ## 屏蔽的占位行，pending 列写明待办）
+                                           未实现的预设（目前只有 ultra）是 ## 屏蔽的占位行，pending 列写明待办）
   _Export/<Domain>/<Sheet>.csv             文本镜像，供 diff 与 review；由工具生成，禁止手改
   _Reports/validation.md                   最近一次校验报告（导出器实现后生成）
 Assets/Data/Config/ProjectConfigDatabase_Main.asset   导出产物（提交）

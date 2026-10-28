@@ -17,7 +17,7 @@
 | 术语表 / 架构决策 | [../CONTEXT.md](../CONTEXT.md) · [adr/](adr/) |
 | 开场交接切换的本地卡顿修复（执行入口） | [handoff-continuity/HANDOFF.md](handoff-continuity/HANDOFF.md) |
 | 策划配表系统：Excel 工作簿、导入器、分层导入、规范与筛查清单 | [design-tables/README.md](design-tables/README.md) |
-| RaceMap 渲染：日落光照、手写天空、SSR、阴影距离、`BuddahGo/Lit`、复调清单与编辑器陷阱 | [rendering/racemap/README.md](rendering/racemap/README.md) |
+| RaceMap 渲染：日落光照、手写天空、平面反射（原 SSR）、阴影距离、`BuddahGo/Lit`、复调清单与编辑器陷阱 | [rendering/racemap/README.md](rendering/racemap/README.md) |
 | 渲染 shader 开源库调研与效果对比样板间（样板间工程仅在本地） | [rendering/shader-repo-survey.md](rendering/shader-repo-survey.md) · [rendering/showcase/README.md](rendering/showcase/README.md) |
 | 画质设置：选项与档位规格（配表 `Graphics.xlsx`）、运行时模型与接口、菜单接入点、未实现与占位清单 | [rendering/graphics-settings.md](rendering/graphics-settings.md) |
 

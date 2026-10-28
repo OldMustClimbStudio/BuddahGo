@@ -17,6 +17,8 @@
   `URP-HighFidelity` and `URP-Balanced` therefore list `Assets/Settings/URP-KeepDeferredVariants-Renderer.asset`
   (Deferred, no features) after their default renderer. No camera selects it. Removing it silently disables SSR in
   builds while the editor still shows it.
-- Used by: `URP-HighFidelity-Renderer` (75%) and `URP-Balanced-Renderer` (50%), the RaceMap post profile (volume
-  component), and the local rendering showcase (not in the repository). Setup and tuning notes:
-  `Docs/rendering/racemap/README.md`.
+- Used by: nothing in the shipped content since 2026-10-28. The feature is still on `URP-HighFidelity-Renderer` (75%)
+  and `URP-Balanced-Renderer` (50%), but RaceMap's post profile has the volume component switched off (planar
+  reflections replaced SSR there) and no graphics setting turns it on; the local rendering showcase (not in the
+  repository) still uses it. Whether to remove the feature and the keep-alive renderer is open (PR #64 review M6). Setup,
+  tuning notes and the cost of keeping it: `Docs/rendering/racemap/README.md`.

@@ -22,8 +22,8 @@ Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach 
 |---|---|---|
 | `Buddah.prefab` `model` renderer casts two-sided shadows (phase 1) | the player's shadow in every scene | RaceMap captures |
 | `URP-HighFidelity` / `URP-Balanced`: shadow distance 220 m / 150 m (phase 2) | MainMenu and PropertySelection use the same assets | MainMenu identical, PropertySelection 1-px edge jitter |
-| `URP-HighFidelity-Renderer` / `URP-Balanced-Renderer`: SSR feature (phase 2) | none unless a volume enables SSR; RaceMap's profile turned it off on 2026-10-28 (planar reflections replace it), so no scene uses it now | menu scenes have no SSR component |
-| `URP-KeepDeferredVariants-Renderer` in both renderer lists (phase 2) | builds keep the deferred shader variants: more variants, longer shader compile, never drawn | full player builds, stripping report below |
+| `URP-HighFidelity-Renderer` / `URP-Balanced-Renderer`: SSR feature (phase 2) | **unused since 2026-10-28**: RaceMap's profile has SSR off (planar reflections replace it), no other volume has an SSR component, no graphics option or F9 entry turns it on; only the editor probe's `ssr:on` token does. The SSR shader adds 13 variants to a build | menu scenes have no SSR component |
+| `URP-KeepDeferredVariants-Renderer` in both renderer lists (phase 2) | **unused since 2026-10-28** (it exists only so SSR's GBuffer pass survives a build). It keeps every lit shader's GBuffer pass plus URP's StencilDeferred in each build: 1200 of the 7607 shader variants in the bf35537 player build (16%), about 0.26 s CPU each on a cold shader cache (roughly 2% of the build's shader compile CPU), nothing on a warm cache; never drawn. Keep or remove is an open user decision, see Known limits | full player builds, stripping report below, build log of bf35537 |
 | `Assets/Plugins/UnitySSReflectionURP/` (phase 2) | scripts compile into `Assembly-CSharp-firstpass` | build |
 | `Assets/Rendering/Shaders/` (sky, `BuddahGo/Lit`) and `Assets/Editor/Rendering/` | used only by RaceMap's materials; editor tools | build |
 | `SG_MapEdge` shader graph: Preserve Specular Lighting off, emission no longer multiplied by `_EdgeVisible` (play-test fix) | only RaceMap's edge ribbons use it (the air-wall prefab `反转法线空气墙` also does, but no scene places it) | HDR captures, High Fidelity and Balanced |
@@ -725,8 +725,13 @@ the F9 panel's clicks also reaching gameplay input.
 - **Anti-aliasing**: TAA (Balanced) not checked on skill particles and trails in a full match; NVIDIA FXAA 3.11 would
   need a licence decision before use; an MSAA resolve after tonemapping (or a weighted resolve) would sharpen High
   Fidelity's edges without FXAA's softness, URP 14 has none.
-- **Reflections**: SSR is no longer used by any scene; the SSR feature on the High Fidelity and Balanced renderers and the
-  Deferred keep-alive renderer (kept only for SSR's GBuffer pass in builds) could be removed if nothing else needs SSR.
+- **Reflections (user decision pending, PR #64 review M6)**: SSR is no longer used by any scene and nothing shipped
+  can turn it on. Options: (a) remove the Deferred keep-alive renderer from both renderer lists, the SSR feature from the
+  High Fidelity and Balanced renderers and the SSR override from `RaceMap_Environment_Profile`, keeping
+  `Assets/Plugins/UnitySSReflectionURP/` and phase 2's notes for a later return (saves the 1200 variants, frees renderer
+  index 1; `PlanarReflection` finds its renderer by name); (b) keep both as they are for a future map with glossy
+  surfaces that are not flat, at the cost in the table above; (c) not recommended: remove only the keep-alive renderer,
+  which leaves SSR silently empty in builds while the editor still shows it.
 - **Graphics settings**: spec, model and API only; no menu yet (see [../graphics-settings.md](../graphics-settings.md)).
 
 - **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).

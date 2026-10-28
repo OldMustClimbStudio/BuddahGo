@@ -11,7 +11,9 @@ namespace SteamMultiplayer.UI
     /// garden Buddha presses 皮肤. A click presses the button itself (same handlers, same behaviour)
     /// and works only on the main-menu shot while that button is shown and nothing else is going on.
     /// Each object is picked by a proxy box that is enabled only while its click is available, so it
-    /// never blocks other clickables (hall doors, bell rope, ema) in the other views.
+    /// never blocks other clickables (hall doors, bell rope, ema) in the other views. The box fills the
+    /// gaps between the parts; a pick also needs the pointer over one of the parts' own bounds, so the
+    /// air inside the box (between the eaves, beside the deck) is not part of the button.
     /// </summary>
     [DisallowMultipleComponent]
     public class MenuClickShortcuts : MonoBehaviour
@@ -24,6 +26,8 @@ namespace SteamMultiplayer.UI
             public Button button;
             [Tooltip("Outline root (the hover outline target uses the same root).")]
             public Transform root;
+            [Tooltip("More objects that belong to it (the rest of the hall); they glow and pick together with the root.")]
+            public Transform[] parts;
             [Tooltip("Box over the whole object, enabled only while the click is available.")]
             public Collider proxy;
         }
@@ -38,6 +42,7 @@ namespace SteamMultiplayer.UI
 
         private Shortcut _pressed;
         private Vector2 _pressedAt;
+        private readonly List<Renderer> _renderers = new List<Renderer>();
 
         public IReadOnlyList<Shortcut> Shortcuts => shortcuts;
 
@@ -89,16 +94,49 @@ namespace SteamMultiplayer.UI
             }
         }
 
-        /// <summary>The shortcut whose proxy is the first thing under the pointer.</summary>
+        /// <summary>
+        /// The object under root is what the ray points at, given the scene's first hit along it: its proxy is
+        /// that hit and the ray crosses one of its parts (used by the hover outline, so glow and click agree).
+        /// </summary>
+        public bool IsUnder(Transform root, Ray ray, RaycastHit firstHit)
+        {
+            foreach (Shortcut s in shortcuts)
+                if (s.root == root) return Picks(s, ray, firstHit);
+            return false;
+        }
+
+        /// <summary>The shortcut picked under the pointer.</summary>
         private Shortcut Under(Vector2 screen)
         {
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return null;
+            // Physics runs in Script mode without auto-sync.
             Physics.SyncTransforms();
-            if (!Physics.Raycast(targetCamera.ScreenPointToRay(screen), out RaycastHit hit, 300f, ~0, QueryTriggerInteraction.Ignore))
-                return null;
+            Ray ray = targetCamera.ScreenPointToRay(screen);
+            if (!Physics.Raycast(ray, out RaycastHit hit, 300f, ~0, QueryTriggerInteraction.Ignore)) return null;
             foreach (Shortcut s in shortcuts)
-                if (s.proxy != null && hit.collider == s.proxy && Available(s)) return s;
+                if (Available(s) && Picks(s, ray, hit)) return s;
             return null;
+        }
+
+        private bool Picks(Shortcut s, Ray ray, RaycastHit firstHit) =>
+            s.proxy != null && firstHit.collider == s.proxy && (Crosses(s.root, ray) || CrossesAny(s.parts, ray));
+
+        private bool CrossesAny(Transform[] roots, Ray ray)
+        {
+            if (roots == null) return false;
+            foreach (Transform t in roots)
+                if (Crosses(t, ray)) return true;
+            return false;
+        }
+
+        /// <summary>The ray crosses the bounds of a shown renderer under root (read each time: the skin model changes).</summary>
+        private bool Crosses(Transform root, Ray ray)
+        {
+            if (root == null) return false;
+            root.GetComponentsInChildren(false, _renderers);
+            foreach (Renderer r in _renderers)
+                if (r.enabled && r.name != "HoverOutline" && r.bounds.IntersectRay(ray)) return true;
+            return false;
         }
     }
 }

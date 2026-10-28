@@ -29,6 +29,8 @@ namespace SteamMultiplayer.UI
         [SerializeField, Range(0f, 0.3f)] private float framePadding = 0.05f;
         [Tooltip("Seconds for the glide (each way).")]
         [SerializeField, Min(0.1f)] private float moveDuration = 1.4f;
+        [Tooltip("A press that moves further than this before release is a drag, not a click.")]
+        [SerializeField, Min(0f)] private float clickSlopPixels = 6f;
 
         [Header("Depth of field (focused view only)")]
         [Tooltip("Lens focal length at full focus (mm). Blur grows with its square; lower is softer.")]
@@ -53,6 +55,9 @@ namespace SteamMultiplayer.UI
         private float _lobbyFov;
         private Volume _dofVolume;
         private DepthOfField _dof;
+        private Collider[] _tableColliders;
+        private bool _pressed;
+        private Vector2 _pressedAt;
 
         /// <summary>The table can be clicked now (lobby view up, not focused or moving).</summary>
         public bool CanFocus => _inLobby && _state == State.Idle;
@@ -112,8 +117,10 @@ namespace SteamMultiplayer.UI
             if (_move != null) StopCoroutine(_move);
             _move = null;
             SetDof(0f);
-            SetFocusedUi(false);
             _state = State.Idle;
+            // Only the back button goes; the lobby buttons stay hidden, since the room view hid them for the
+            // way out and shows them again on the next entry.
+            if (backButton != null) backButton.gameObject.SetActive(false);
         }
 
         private void Update()
@@ -121,15 +128,27 @@ namespace SteamMultiplayer.UI
             Mouse mouse = Mouse.current;
             if (CanFocus)
             {
-                if (mouse != null && mouse.leftButton.wasPressedThisFrame && !OverUi() && IsUnderPointer(mouse.position.ReadValue()))
-                    Focus();
+                if (mouse != null && ClickedTable(mouse)) Focus();
             }
-            else if (_state == State.Focused)
+            else
             {
+                _pressed = false;
+                if (_state != State.Focused) return;
                 bool esc = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
                 bool right = mouse != null && mouse.rightButton.wasPressedThisFrame;
                 if (esc || right) Unfocus();
             }
+        }
+
+        /// <summary>A click on the table: pressed and released on it without dragging, like the other menu objects.</summary>
+        private bool ClickedTable(Mouse mouse)
+        {
+            Vector2 at = mouse.position.ReadValue();
+            if (mouse.leftButton.wasPressedThisFrame) { _pressed = IsUnderPointer(at); _pressedAt = at; }
+            if (_pressed && (at - _pressedAt).magnitude > clickSlopPixels) _pressed = false;
+            if (!_pressed || !mouse.leftButton.wasReleasedThisFrame) return false;
+            _pressed = false;
+            return IsUnderPointer(at);
         }
 
         public void Focus()
@@ -258,11 +277,24 @@ namespace SteamMultiplayer.UI
             return centre - forward * distance;
         }
 
+        /// <summary>
+        /// The table is under the pointer and nothing stands in front of it (no UI, no player preview), picked the
+        /// same way as its hover outline: its own colliders, or its bounds when it has none.
+        /// </summary>
         private bool IsUnderPointer(Vector2 pointer)
         {
-            if (table == null || targetCamera == null) return false;
+            if (table == null || targetCamera == null || OverUi()) return false;
+            // Physics runs in Script mode without auto-sync.
+            Physics.SyncTransforms();
             Ray ray = targetCamera.ScreenPointToRay(pointer);
-            return table.bounds.IntersectRay(ray);
+            if (_tableColliders == null) _tableColliders = table.GetComponents<Collider>();
+            float distance = float.MaxValue;
+            foreach (Collider c in _tableColliders)
+                if (c.enabled && c.Raycast(ray, out RaycastHit h, 300f) && h.distance < distance) distance = h.distance;
+            if (_tableColliders.Length == 0 && table.bounds.IntersectRay(ray, out float d)) distance = d;
+            if (distance == float.MaxValue) return false;
+            return !Physics.Raycast(ray, out RaycastHit first, 300f, ~0, QueryTriggerInteraction.Ignore)
+                   || distance <= first.distance + 0.05f;
         }
 
         private static bool OverUi() => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();

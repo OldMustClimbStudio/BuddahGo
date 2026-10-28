@@ -467,8 +467,8 @@ public static class MenuEnvironmentImporter
         {
             Transform[] parts = HondenParts();
             foreach (Transform t in parts) ClearBatching(t);
-            if (GameObject.Find(HondenClickProxyName) is GameObject hallProxy)
-                FitWorldBox(hallProxy.GetComponent<BoxCollider>(), RenderBounds(parts));
+            if (GameObject.Find(HondenClickProxyName) is GameObject hallProxy && TryRenderBounds(parts, out Bounds hallBounds))
+                FitWorldBox(hallProxy.GetComponent<BoxCollider>(), hallBounds);
         }
 
         // Sand table: hover outline shares its mesh, so no static batching.
@@ -480,8 +480,9 @@ public static class MenuEnvironmentImporter
             GameObjectUtility.SetStaticEditorFlags(anchor, 0);
             if (anchor.transform.Find("SkinTurntable") is Transform table && table.Find(MenuSkinName) is Transform skin)
                 FitMenuBuddhaSkin(anchor.transform, table, skin);
-            if (anchor.transform.Find(SkinClickProxyName) is Transform skinProxy && anchor.transform.Find("SkinTurntable") is Transform turntable)
-                FitWorldBox(skinProxy.GetComponent<BoxCollider>(), RenderBounds(new[] { turntable }));
+            if (anchor.transform.Find(SkinClickProxyName) is Transform skinProxy && anchor.transform.Find("SkinTurntable") is Transform turntable
+                && TryRenderBounds(new[] { turntable }, out Bounds skinBounds))
+                FitWorldBox(skinProxy.GetComponent<BoxCollider>(), skinBounds);
             if (anchor.transform.Find("FX_SkinHalo") is Transform halo) PlaceSkinHalo(halo, anchor.transform);
             if (GameObject.Find(SkinPoseName) is GameObject marker)
             {
@@ -1379,17 +1380,18 @@ public static class MenuEnvironmentImporter
     private static Transform[] HondenParts() =>
         HondenShortcutParts.Select(n => GameObject.Find(n)).Where(g => g != null).Select(g => g.transform).ToArray();
 
-    private static Bounds RenderBounds(IEnumerable<Transform> roots)
+    /// <summary>World bounds of the renderers under the roots; false when there are none (no box at the origin).</summary>
+    private static bool TryRenderBounds(IEnumerable<Transform> roots, out Bounds bounds)
     {
-        Bounds b = default;
+        bounds = default;
         bool any = false;
         foreach (Transform root in roots)
             foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
             {
                 if (r.name == "HoverOutline") continue;
-                if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+                if (!any) { bounds = r.bounds; any = true; } else bounds.Encapsulate(r.bounds);
             }
-        return b;
+        return any;
     }
 
     /// <summary>Box collider (on an unrotated child) covering the given world-space bounds.</summary>
@@ -1426,25 +1428,25 @@ public static class MenuEnvironmentImporter
         var list = new List<SteamMultiplayer.UI.MenuClickShortcuts.Shortcut>();
 
         Transform[] hall = HondenParts();
-        if (hall.Length > 0 && GameObject.Find("TEMP_StartButton") is GameObject start)
+        if (hall.Length > 0 && GameObject.Find("TEMP_StartButton") is GameObject start && TryRenderBounds(hall, out Bounds hallBounds))
         {
             foreach (Transform t in hall) ClearBatching(t);   // the hover outline shares their meshes
-            BoxCollider proxy = CreateClickProxy(HondenClickProxyName, hall[0].parent, RenderBounds(hall));
+            BoxCollider proxy = CreateClickProxy(HondenClickProxyName, hall[0].parent, hallBounds);
             list.Add(new SteamMultiplayer.UI.MenuClickShortcuts.Shortcut
-                { label = "主殿 → Start", button = start.GetComponent<UnityEngine.UI.Button>(), root = hall[0], proxy = proxy });
+                { label = "主殿 → Start", button = start.GetComponent<UnityEngine.UI.Button>(), root = hall[0], parts = hall.Skip(1).ToArray(), proxy = proxy });
         }
-        else Debug.LogWarning("[MenuEnvironment] Hall shortcut: hall parts or Start button missing.");
+        else Debug.LogWarning("[MenuEnvironment] Hall shortcut: hall parts, their renderers or the Start button missing.");
 
         GameObject anchor = GameObject.Find(SkinAnchorName);
         Transform turntable = anchor != null ? anchor.transform.Find("SkinTurntable") : null;
-        if (turntable != null && GameObject.Find("TEMP_SkinButton") is GameObject skin)
+        if (turntable != null && GameObject.Find("TEMP_SkinButton") is GameObject skin && TryRenderBounds(new[] { turntable }, out Bounds skinBounds))
         {
             // Beside the turntable, not on it, so the skin view's own picking of the model is unaffected.
-            BoxCollider proxy = CreateClickProxy(SkinClickProxyName, anchor.transform, RenderBounds(new[] { turntable }));
+            BoxCollider proxy = CreateClickProxy(SkinClickProxyName, anchor.transform, skinBounds);
             list.Add(new SteamMultiplayer.UI.MenuClickShortcuts.Shortcut
-                { label = "佛像 → 皮肤", button = skin.GetComponent<UnityEngine.UI.Button>(), root = turntable, proxy = proxy });
+                { label = "佛像 → 皮肤", button = skin.GetComponent<UnityEngine.UI.Button>(), root = turntable, parts = new Transform[0], proxy = proxy });
         }
-        else Debug.LogWarning("[MenuEnvironment] Buddha shortcut: skin turntable or 皮肤 button missing.");
+        else Debug.LogWarning("[MenuEnvironment] Buddha shortcut: skin turntable, its model or the 皮肤 button missing.");
 
         var shortcuts = cam.gameObject.AddComponent<SteamMultiplayer.UI.MenuClickShortcuts>();
         shortcuts.Configure(cam, cam.GetComponent<SteamMultiplayer.UI.MenuCameraProtoSwitcher>(), cam.GetComponent<SteamMultiplayer.UI.MenuCameraDirector>(),
@@ -1452,14 +1454,14 @@ public static class MenuEnvironmentImporter
         EditorUtility.SetDirty(shortcuts);
     }
 
-    /// <summary>Outline targets for the main-menu shortcuts: the hall's other parts and each proxy glow and pick with the root.</summary>
+    /// <summary>Outline targets for the main-menu shortcuts: each shortcut's parts and proxy glow and pick with the root.</summary>
     private static IEnumerable<SteamMultiplayer.UI.MenuHoverHighlighter.Target> ShortcutTargets(SteamMultiplayer.UI.MenuClickShortcuts shortcuts)
     {
         foreach (SteamMultiplayer.UI.MenuClickShortcuts.Shortcut s in shortcuts.Shortcuts)
         {
             if (s.root == null) continue;
             var extras = new List<Transform>();
-            if (s.root.name == HondenShortcutParts[0]) extras.AddRange(HondenParts().Skip(1));
+            if (s.parts != null) extras.AddRange(s.parts);
             if (s.proxy != null) extras.Add(s.proxy.transform);
             yield return new SteamMultiplayer.UI.MenuHoverHighlighter.Target
                 { root = s.root, kind = SteamMultiplayer.UI.MenuHoverHighlighter.TargetKind.MenuShortcut, radial = 0.2f, extras = extras.ToArray() };

@@ -56,6 +56,11 @@ namespace SteamMultiplayer.UI
         }
 
         private readonly List<Runtime> _runtime = new List<Runtime>();
+        // One outline per source renderer, shared by every target that covers it (the garden Buddha is both the
+        // skin model and a main-menu shortcut; the ema on the wall are both single ema and part of the wall).
+        private readonly Dictionary<Renderer, Renderer> _outlineOf = new Dictionary<Renderer, Renderer>();
+        // Per outline, the brightest target using it this frame: its fade and radial are drawn.
+        private readonly Dictionary<Renderer, Runtime> _brightest = new Dictionary<Renderer, Runtime>();
         private MaterialPropertyBlock _block;
 
         public void Configure(Camera cam, MenuEmaInspector insp, MenuSkinView view, MenuCameraDirector dir, Material material, List<Target> list)
@@ -111,6 +116,11 @@ namespace SteamMultiplayer.UI
                     Debug.LogWarning($"[MenuHoverHighlighter] {src.name} is static-batched; no outline. Clear its Batching Static flag.", src);
                     continue;
                 }
+                if (_outlineOf.TryGetValue(src, out Renderer shared))
+                {
+                    if (!rt.outlines.Contains(shared)) rt.outlines.Add(shared);
+                    continue;
+                }
 
                 var go = new GameObject("HoverOutline");
                 go.transform.SetParent(src.transform, false);
@@ -139,6 +149,7 @@ namespace SteamMultiplayer.UI
                 _block.SetFloat(FadeId, 0f);
                 outline.SetPropertyBlock(_block);
                 rt.outlines.Add(outline);
+                _outlineOf.Add(src, outline);
             }
             return rt;
         }
@@ -147,19 +158,25 @@ namespace SteamMultiplayer.UI
         {
             Runtime hovered = FindHovered();
             float dt = Time.unscaledDeltaTime;
+            _brightest.Clear();
             foreach (Runtime rt in _runtime)
             {
                 float goal = rt == hovered ? 1f : 0f;
                 rt.fade = Mathf.MoveTowards(rt.fade, goal, fadeSpeed * dt);
-                bool visible = rt.fade > 0.001f;
                 foreach (Renderer o in rt.outlines)
-                {
-                    if (o.enabled != visible) o.enabled = visible;
-                    if (!visible) continue;
-                    o.GetPropertyBlock(_block);
-                    _block.SetFloat(FadeId, rt.fade);
-                    o.SetPropertyBlock(_block);
-                }
+                    if (!_brightest.TryGetValue(o, out Runtime other) || rt.fade > other.fade) _brightest[o] = rt;
+            }
+            foreach (KeyValuePair<Renderer, Runtime> pair in _brightest)
+            {
+                Renderer o = pair.Key;
+                Runtime rt = pair.Value;
+                bool visible = rt.fade > 0.001f;
+                if (o.enabled != visible) o.enabled = visible;
+                if (!visible) continue;
+                o.GetPropertyBlock(_block);
+                _block.SetFloat(FadeId, rt.fade);
+                _block.SetFloat(RadialId, rt.target.radial);
+                o.SetPropertyBlock(_block);
             }
         }
 
@@ -187,9 +204,9 @@ namespace SteamMultiplayer.UI
                 {
                     case TargetKind.BellRope: d = RopeDistance(rt, ray, mouse.position.ReadValue()); break;
                     // the wall and everything on it is one button: hovered when the first hit is any part of it
-                    case TargetKind.EmaWall:
-                    // main-menu shortcuts: same, through their proxy box
-                    case TargetKind.MenuShortcut: d = any && rt.colliders.Contains(hit.collider) ? hit.distance : float.MaxValue; break;
+                    case TargetKind.EmaWall: d = any && rt.colliders.Contains(hit.collider) ? hit.distance : float.MaxValue; break;
+                    // main-menu shortcuts: picked exactly as their click picks them
+                    case TargetKind.MenuShortcut: d = any && shortcuts.IsUnder(rt.target.root, ray, hit) ? hit.distance : float.MaxValue; break;
                     default: d = HitDistance(rt, ray); break;
                 }
                 if (d < bestDistance && d <= blocker + 0.05f) { best = rt; bestDistance = d; }

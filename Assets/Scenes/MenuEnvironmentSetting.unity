@@ -12534,10 +12534,30 @@ MonoBehaviour:
   - label: "\u4E3B\u6BBF \u2192 Start"
     button: {fileID: 1399977223}
     root: {fileID: 2131413331}
+    parts:
+    - {fileID: 367101315}
+    - {fileID: 1422021273}
+    - {fileID: 670675791}
+    - {fileID: 146556852}
+    - {fileID: 526108462}
+    - {fileID: 1038257409}
+    - {fileID: 2058397690}
+    - {fileID: 74187632}
+    - {fileID: 319604819}
+    - {fileID: 712772677}
+    - {fileID: 1797181765}
+    - {fileID: 1028008007}
+    - {fileID: 1632309314}
+    - {fileID: 1111567671}
+    - {fileID: 1458466476}
+    - {fileID: 592134218}
+    - {fileID: 1829948032}
+    - {fileID: 1664021155}
     proxy: {fileID: 226591834}
   - label: "\u4F5B\u50CF \u2192 \u76AE\u80A4"
     button: {fileID: 1503565471}
     root: {fileID: 1784755732}
+    parts: []
     proxy: {fileID: 511916943}
   clickSlopPixels: 6
 --- !u!1 &607202531

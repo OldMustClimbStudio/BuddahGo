@@ -5,7 +5,7 @@
 - 缘起：#1 金身巨掌、#2 禅足冰封、#4 金足破阵，见 [缘起技能设计](../gameplay/yuanqi.md)。
 - Practice（0 AI）生成 3 个训练木桩：同一 Racer prefab，无 owner，不是参赛者（不进排名、结算和 `RacerDirectory`）；起跑线后约 53/68/83 米，沿赛道间隔 15 米，左中右排开，原地停车，最后一次受击 3 秒后回到原位。数量与位置在 `Match/ModeRule` 的 Practice 行（`trainingDummy*` 列）。没有对手时的命中、减速、反转和冲量现在可以对木桩验证。
 - 验证：`MechanicsPracticeHarness`（菜单 `Tools/Mechanics/Run Practice Verification`）2026-10-26 在编辑器训练模式 13/13 通过；这是受控夹具，不是自然比赛，见 [训练模式验证记录](../gameplay/practice-verification.md)。`AITuningHarness` 的 A1/A2 无技能跑圈会先移除木桩。
-- AI 未适配（玩法深化 §7.1 的 A7，不是本文的 A1–A4）：AI 仍经 `ComboSkillInput` 逐键搓招，要改的地方见 [AI 技能](ai-skills.md) 顶部。单人赛 AI、联机和用户试玩都没有验证。
+- A7 AI 适配已完成（2026-10-28，ac3d5fe）：AI 不再经 `ComboSkillInput` 逐键搓招，`AISkillCaster` 决定后下一 tick 直接调用 `SkillExecutor.CastSlotServer`（和真人同一施法门）；缘起决策 `AIYuanqiPlanner`（#1、#2、#4）、统一反噬风险（`backfireCost` + 每难度一个 `stopProbability`）；`ComboSkillInput`、`Skill/ComboInput`、`Skill/ComboBinding` 删除。无窗口 EditMode 577/577，单人赛 harness：2026-10-28 Normal 一场：5 个 AI 施法 10–17 次、反噬 7 次、缘起 8 次、自然结算、0 运行错误，见 AI 技能文档末尾。细节见 [AI 技能](ai-skills.md) 顶部的 A7 结果表。
 
 本文以下记录里的“0 AI Practice 无法验证对手效果”、六技能“普通/反噬”变体和施法锁，都是机制更新之前的规则，按原记录保留。
 

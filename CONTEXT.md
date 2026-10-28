@@ -70,7 +70,7 @@ _Avoid_: bot, target AI, NPC
 ### AI Behaviour
 
 **Difficulty**:
-The Easy, Normal or Hard setting of a Solo Match. Each tier is an AI profile that sets the AI Racers' target speed, whether they may brake (Hard never brakes), how much they avoid walls, their reaction delay and planning precision, their per-car randomness and their Fumble chance; together these give each tier its own race pace. Each tier also sets how AI Racers use skills: how much backfire risk they accept, their decision and reaction time, their aim tolerance and their key mistakes.
+The Easy, Normal or Hard setting of a Solo Match. Each tier is an AI profile that sets the AI Racers' target speed, whether they may brake (Hard never brakes), how much they avoid walls, their reaction delay and planning precision, their per-car randomness and their Fumble chance; together these give each tier its own race pace. Each tier also sets how AI Racers use skills: how much backfire risk they accept (one stop threshold per tier since the unified backfire), their decision and reaction time and their aim tolerance. AI Racers request casts through the same server entry as a Human Player's key press; combo key mistakes went away with combos (A7, 2026-10-28).
 _Avoid_: AI level, skill level
 
 **Steering Plan**:

@@ -15,7 +15,7 @@ _Avoid_: 道具库存、弹药
 _Avoid_: 搓招键、快捷栏
 
 **搓招（Combo Input）**：
-在规定时间窗内按顺序完成的 W/↑ 手部输入组合，用来触发对应技能槽。真人玩家已改用技能键，不再搓招；`ComboSkillInput` 只留给 AI 逐键注入（`AISkillCaster` → `InjectServerKey`，注入的每个键同时也是一次推掌），A7 AI 适配后删除。
+已退役（A7）。曾指在规定时间窗内按顺序完成的 W/↑ 手部输入组合，用来触发对应技能槽。现在真人用技能键，AI 直接调用 `SkillExecutor.CastSlotServer`（和 owner RPC 同一个施法门）；`ComboSkillInput` 和配表 `Skill/ComboInput`、`Skill/ComboBinding` 已删除，W/↑ 只剩废弃的推掌绑定。本词条只为读旧文档保留。
 _Avoid_: 瞬间施法、仅播放前摇、用它描述真人施法
 
 **施法串行（Cast Serialization）**：
@@ -89,11 +89,11 @@ _Avoid_: 每个 AI 自己扫描、每帧重算
 _Avoid_: 施放条件、触发器
 
 **风险权重（Risk Weight）**：
-难度决定的系数，乘以"当前反噬概率 × 该技能反噬严重度"后从价值中扣除；简单为 0。统一反噬后各技能的反噬代价已经相同，AI 仍按旧的每技能严重度（`AISkillTuning.BacklashSeverity`，配表 `AI/SkillOpportunity` 的 `backlashSeverity` 列）计算，A7 AI 适配时再改。
+难度决定的系数，乘以"当前反噬概率 × 统一反噬代价"后从价值中扣除（`AISkillDecision.Utility`：`riskWeight × P(反噬) × AI/SkillTuning.backfireCost`）；简单为 0。统一反噬后各技能的代价相同，所以每个难度只有一个停手阈值（`AI/SkillDifficulty.stopProbability`，P ≥ 阈值直接不放，对所有技能一样）；不再有按技能的反噬严重度。`backfireCost` 默认 1 是建议（实现采用）。
 _Avoid_: 谨慎度、反噬惩罚
 
 **动作承诺（Commitment）**：
-AI 选定技能后，从逐键搓招到施法结果期间不再更换技能的状态。请求被拒绝、时机过期、技能效果重置（复活）、完赛或离开比赛阶段、开场交接期间都会取消它；被定身只阻止新的决策，不取消已有承诺；禁锢会取消 AI 待确认的普通施法（`CastStage.Cancelled`，退还本槽冷却），承诺随之取消，禁锢还会清掉已注入的搓招键。已判定反噬的待确认施法不随承诺取消，也不被禁锢打断（禁锢一条已定；普通取消不丢反噬是建议（实现采用），见 [Docs/gameplay/README.md](Docs/gameplay/README.md) §6.2）。
+AI 选定技能后，到施法结果为止不再更换技能的状态：选定（Decided）→ 下一 tick 像真人按键一样请求 `SkillExecutor.CastSlotServer` 并等待结果（WaitingConfirm）→ 结束（Resolved）；没有按键步骤。请求被拒绝、请求前时机过期、技能效果重置（复活）、完赛或离开比赛阶段、开场交接期间都会取消它；已被接受的待确认施法不因时机过期撤回（真人也不能撤回，取消也不退冷却）；被定身只阻止新的决策，不取消已有承诺；禁锢会取消 AI 待确认的普通施法（`CastStage.Cancelled`，退还本槽冷却），承诺随之取消。已判定反噬的待确认施法不随承诺取消，也不被禁锢打断（禁锢一条已定；普通取消不丢反噬是建议（实现采用），见 [Docs/gameplay/README.md](Docs/gameplay/README.md) §6.2）。
 _Avoid_: 施法队列、锁定目标
 
 **感知受损（Vision Impaired）**：

@@ -112,18 +112,18 @@ AI 表（`DrivingTier`、`SkillDifficulty`、`SkillTuning`）的表头也是 cam
 文案字段在数据表里只放 key（`string#ref=UI/Text.key`），文本本体在 `UI/UI.xlsx` 的 `Text`（key、zh、en、comment、context；en 与后两列是 doc）。技能与缘起都按 key 引用：`Skill.displayNameKey / descriptionKey`、`Yuanqi.displayNameKey / descriptionKey`（决定 7）。
 
 ### 4.5 全局标量
-继续用 `GlobalRule(ruleKey, ruleValue, ruleSetId, description)`，但只放真正跨域的开关（目前 `target_frame_rate`）；搓招窗口与缓冲在 `Skill/ComboInput`，施法前摇逐技能在 `Skill.castConfirmDelaySeconds`（反噬的统一确认窗口也用它）。Excel 侧在 `Global.xlsx/GlobalRule` 增加一列 `valueType`（`##group=doc`，不导出）供校验器按类型检查 `ruleValue`，并增加 `consumer`（doc）列记录读取方，杜绝再出现「定义了无人读」的键。
+继续用 `GlobalRule(ruleKey, ruleValue, ruleSetId, description)`，但只放真正跨域的开关（目前 `target_frame_rate`）；搓招窗口与缓冲原在 `Skill/ComboInput`（已删除（A7），搓招全部退役），施法前摇逐技能在 `Skill.castConfirmDelaySeconds`（反噬的统一确认窗口也用它）。Excel 侧在 `Global.xlsx/GlobalRule` 增加一列 `valueType`（`##group=doc`，不导出）供校验器按类型检查 `ruleValue`，并增加 `consumer`（doc）列记录读取方，杜绝再出现「定义了无人读」的键。
 
 ### 4.6 上下文列
 `ruleSetId / modeTag / mapTag` 是现有仓库的查询维度。目前只用 `default`。保留列但允许留空（空=default），避免策划每行都填。
 
 ## 5. 工作簿与 Sheet 明细
 
-v0.3 起以生成的工作簿为准。六本工作簿共 65 张 sheet：导出 37、只校验 26、保留 2（`__enums__`、`__meta__`），2026-10-26 阶段 B 新增 Yuanqi 三张；`Global/Global.xlsx` 的 `__meta__` 列出除它自己以外每一张的记录类、实际值来源与备注；每张 sheet 的 `##comment` 行写明字段含义、读取方与来源。各域 sheet 清单：
+v0.3 起以生成的工作簿为准。六本工作簿共 63 张 sheet：导出 35、只校验 26、保留 2（`__enums__`、`__meta__`），2026-10-26 阶段 B 新增 Yuanqi 三张，A7 删 ComboInput / ComboBinding 两张；`Global/Global.xlsx` 的 `__meta__` 列出除它自己以外每一张的记录类、实际值来源与备注；每张 sheet 的 `##comment` 行写明字段含义、读取方与来源。各域 sheet 清单：
 
 | 工作簿 | 导出 sheet | 只校验（presentationOnly） |
 |---|---|---|
-| Skill | Skill（身份 + 冷却/前摇 + 执念 + 主效果时长）、SkillEffectAcceleration、SkillEffectSlowTrap、SkillEffectBlackCurtain、SkillEffectGiant、Push（basic / charged）、SkillSelectionRule、DefaultLoadout、ComboInput、ComboBinding（AI 搓招，A7 退役）、Obsession（含同招加价与反噬惩罚）、Yuanqi（缘起身份与收尾规则）、YuanqiEffectFrostLock、YuanqiEffectGiantCharge | SkillPresentation、VfxRegistry、FeelEvent、BlackCurtainPresentation、SkillConstant（代码 / prefab 常量） |
+| Skill | Skill（身份 + 冷却/前摇 + 执念 + 主效果时长）、SkillEffectAcceleration、SkillEffectSlowTrap、SkillEffectBlackCurtain、SkillEffectGiant、Push（basic / charged）、SkillSelectionRule、DefaultLoadout、Obsession（含同招加价与反噬惩罚）、Yuanqi（缘起身份与收尾规则）、YuanqiEffectFrostLock、YuanqiEffectGiantCharge | SkillPresentation、VfxRegistry、FeelEvent、BlackCurtainPresentation、SkillConstant（代码 / prefab 常量） |
 | Movement | Movement（运动 + 受击宽限 + 起跑交接）、Respawn | ModifierRule、Camera、RacerVisual、SplineTracking |
 | AI | DrivingTier、DrivingTuning、SkillDifficulty、Personality（含三槽权重）、PersonalitySituationBias、SkillOpportunity、SkillTuning、Roster | DrivingConstant |
 | Match | ModeRule、Track（含圈数与圈规则）、TrackWrongWay、TrackSpawn、TrackCheckpoint、TrackResultAnchor、Lobby、SelectionStage、SelectionOption、Intro（唯一的 handoffLeadSeconds） | ResultVoteRule、ResultPresentation、IntroLayout、IntroSlotStyle |
@@ -175,7 +175,7 @@ v0.3 起以生成的工作簿为准。六本工作簿共 65 张 sheet：导出 3
 | Skill | 经 SkillConfigRepository 读取，施法时取值：冷却（`SkillDatabase.GetCooldownSeconds`，反噬照常进本行冷却）、执念（`SkillDatabase.GetObsessionGain`，同招加价在其上复利）、显示名与描述经 UI/Text；SkillExecutor 读 castConfirmDelaySeconds（反噬的确认窗口同一列）；effectDurationSeconds 由 SkillDatabase 写入各技能 SO 的主时长字段（`SkillDatabase.EffectDurationField`），也是缘起状态板的生效窗口（`SkillExecutor.ResolveEffectDurationSeconds`） |
 | SkillEffectAcceleration / SlowTrap / BlackCurtain / Giant | SkillDatabase 按同名字段覆盖技能 SO |
 | Push | basic 行 → BuddahHandControl（`PushBasicMap` 显式映射）；rotationSpeedDegPerSec 是鼠标转手速度上限（光标目标先平滑再限速），方向键回退与 AI 瞄准估算（`HandRotationSpeed`）也用它；charged 行 → Skill_PushProjectileHands（`SkillDatabase.PushChargedMap`） |
-| ComboInput / ComboBinding | ComboSkillInput（窗口与缓冲 + 绑定）；玩家搓招已退役，只剩 AI 逐键搓招（`InjectServerKey`）在读，A7 后删除 |
+| ComboInput / ComboBinding | 已删除（A7）：`ComboSkillInput` 退役，AI 直接调 `SkillExecutor.CastSlotServer`，两张表、`__enums__.ComboToken` 与 CSV 镜像一并删除 |
 | Obsession | ObsessionFigure.Awake 同名覆盖（含 repeatWindowSeconds / repeatGainMultiplier 同招加价与 backfireLockSeconds / backfireMaxSpeedMultiplier / backfireEndKeepRatio 反噬惩罚）；SkillExecutor 从 ObsessionFigure 取这些值 |
 | Yuanqi | SkillDatabase 按 yuanqiId 找 `Skill Database.asset` 的 `yuanqis` 列表里的 Yuanqi_* SO（没有资产的行跳过），显式映射 skillA / skillB / consumeA / consumeB / mode / retriggerPolicy / isEnabled（`SkillDatabase.YuanqiRowMap`）；名称经 `SkillDatabase.GetYuanqiDisplayName`（HUD 缘起提示、选技能界面的缘起列表）；描述有 `GetYuanqiDescription`，没有界面显示它；YuanqiRegistry 与 YuanqiCatalog 只读 SO（已被表覆盖） |
 | YuanqiEffectFrostLock / YuanqiEffectGiantCharge | SkillDatabase 按同名字段覆盖对应的 Yuanqi_FrostLock / Yuanqi_GiantCharge SO；类名不符（`SkillDatabase.YuanqiFamilyActionType`）时该行跳过并报 Warning |
@@ -210,7 +210,7 @@ v0.3 起以生成的工作簿为准。六本工作簿共 65 张 sheet：导出 3
 |---|---|
 | Error | 表头缺 `##var`/`##type`；字段名与记录类不匹配；主键重复或为空；类型转换失败；枚举名不在 `__enums__`；外键目标不存在；range 越界；`list` 分隔符后出现空元素 |
 | Error | ProjectConfigValidator 结构规则（skillId 非空且唯一、selection rule / 默认配装引用的技能存在、GlobalRule 等） |
-| Error | DesignTableDomainRules 跨表规则：检查点数量、人格数、AI 按键时长（`SkillTuning.keyMaxSeconds` 小于 `ComboInput.inputWindowSeconds`）、缘起两招不同且无序唯一、Sustained 不消耗（写名字或枚举值 `1` 都算 Sustained）、缘起的 skillA / skillB / consumeA / consumeB / mode / retriggerPolicy / isEnabled 必填、Obsession 五个同招加价与反噬惩罚列必填、`trainingDummyCount` 大于 0 的 ModeRule 行其余四个木桩列（间距、起点距离、横向距离、复位秒数）必填 |
+| Error | DesignTableDomainRules 跨表规则：检查点数量、人格数、缘起两招不同且无序唯一、Sustained 不消耗（写名字或枚举值 `1` 都算 Sustained）、缘起的 skillA / skillB / consumeA / consumeB / mode / retriggerPolicy / isEnabled 必填、Obsession 五个同招加价与反噬惩罚列必填、`trainingDummyCount` 大于 0 的 ModeRule 行其余四个木桩列（间距、起点距离、横向距离、复位秒数）必填 |
 | Warning | 三个技能两两都有启用的缘起（设计上避免）；默认配装用了不在 Selectable 池的技能 |
 | Warning（资产级） | 缘起家族行指向的 SO 类不符：SkillDatabase 跳过该行，`SkillConfigCrossValidator` 报告，EditMode `EveryYuanqiRowHasAnAssetOfItsFamily` 失败；表规则看不到资产 |
 | Warning | 列在记录类中存在但 Excel 缺失（使用默认值）；`doc` 列被运行时读取；GlobalRule 键无 consumer；SO 与表漂移（过渡期） |

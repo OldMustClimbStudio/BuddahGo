@@ -11,7 +11,7 @@
 | 表现 | `UI/`、预测表现与相机 bridge、`Buddah/RacerSkillPresentationState.cs` | 读取游戏状态和表现事件，更新 UI、VFX、相机 |
 | 会话与比赛契约 | `Match/`、`Match/Contracts/`、`Match/UI/` | `SessionLauncher` 启停会话；`MatchRules`、`MatchServices`、`RacerDirectory` 为每局静态入口，由 `SessionLauncher.ResetMatchGlobals` 统一清理；参赛者身份见[下文](#参赛者身份与权限) |
 | 训练木桩 | `Match/TrainingDummy/`，由 `Network/Match/MatchSpawnManager` 生成 | `TrainingDummy` 原地停车与复位（仅服务器），`TrainingDummyReadout` 显示头顶读数 |
-| AI 对手 | `AI/`；诊断 harness 在 `AI/Diagnostics/`，仅 Editor/Development 编译 | `AIRacerDriver` 通过 `ISteeringOverride` 驾驭；`AISkillCaster` 向 `ComboSkillInput` 注入按键，识别出的槽位进入共享的 `SkillExecutor.CastSlotServer`（A7 AI 适配之前的唯一 AI 施法路径）；`AISkillWorld` 提供每局共享快照 |
+| AI 对手 | `AI/`；诊断 harness 在 `AI/Diagnostics/`，仅 Editor/Development 编译 | `AIRacerDriver` 通过 `ISteeringOverride` 驾驭；`AISkillCaster` 直接调用共享的 `SkillExecutor.CastSlotServer`（和 owner RPC 同一个施法门，A7），掌形瞄准经 `BuddahHandControl.InjectServerRotation` / `InjectServerPush`；`AIYuanqiPlanner` 做缘起起手 / 跟进决策（建议（实现采用））；`AISkillWorld` 提供每局共享快照 |
 
 ## 关键边界
 
@@ -26,14 +26,14 @@
 ```text
 真人 owner：Q/E/R 或 1/2/3（InputSystem_Actions.Player.SkillSlot1–3）
   → SkillExecutor.RequestCast → CastSlotServerRpc（RequireOwnership）
-服务器 AI：AISkillCaster → ComboSkillInput.InjectServerKey → OnSkillSlotTriggered
+服务器 AI：AISkillCaster.Decide（AISkillCommitment：决定后下一 tick 请求）→ AISkillCaster.Request
   → 两条路进入同一个 SkillExecutor.CastSlotServer
   → 施法门 → 在请求这一刻掷反噬骰 → QueueCast：本槽进冷却，播放确认前摇
   → 前摇结束：正常 → ExecuteServer、执念入账、CastObserversRpc、写技能状态板（可能触发缘起）
               反噬 → 技能不执行，开始统一反噬惩罚
 ```
 
-- 玩家搓招已退役：`SkillExecutor` 只为服务器 AI 订阅 `ComboSkillInput.OnSkillSlotTriggered`，owner 端的 `ComboSkillInput` 不再监听按键。`HandPush` 同时绑 W/↑ 和鼠标左/右键，只用来推掌；W/↑ 是暂留的废弃键位，见[玩法深化 §3](gameplay/README.md#3-操作)。手部朝向取光标在地面上的投影（`BuddahHandControl`，纯数学在 `Buddah/Input/HandAimMath.cs`），yaw 仍经 `BuddahHandControl.TrySendYawToServer` 同步。
+- 搓招已退役（A7）：`ComboSkillInput` 已删除，真人用技能键，AI 直接调用 `CastSlotServer`，两者经过同一个施法门。`HandPush` 同时绑 W/↑ 和鼠标左/右键，只用来推掌；W/↑ 是暂留的废弃键位，见[玩法深化 §3](gameplay/README.md#3-操作)。手部朝向取光标在地面上的投影（`BuddahHandControl`，纯数学在 `Buddah/Input/HandAimMath.cs`），yaw 仍经 `BuddahHandControl.TrySendYawToServer` 同步。
 - 施法门 `SkillCastRules.EvaluateGate` 由 `TryResolveCast`（每次请求）和 `IsSlotReadyServer`（AI 就绪判断）共用，依次检查：已有待确认的施法、反噬锁、冻结、本槽冷却。没有全局施法锁。同一时刻最多一个待确认的施法，前摇期间的请求直接 `Rejected`；不同技能可以同时生效。
 - 冷却和确认前摇按所请求技能取值（前摇为 `Skill.castConfirmDelaySeconds`，没有配表行时 1 秒）。反噬同样花掉本槽冷却。
 - 同招加价（`SkillRepeatSurcharge`）：同一技能在自己冷却结束后 `repeatWindowSeconds` 内重放，本次执念增量乘以 `repeatGainMultiplier` 的层数次方。层数在请求时算出，只在正常执行时提交；反噬时全部清零。

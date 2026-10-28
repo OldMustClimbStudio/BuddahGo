@@ -1,6 +1,6 @@
 # 玩法深化：缘起、执念与操作改版
 
-日期 2026-10-25。状态（`feat/mechanics-update` 0dbc551，PR #63）：阶段 A 的 A1–A6、阶段 B 和阶段 C 第一级已完成，2026-10-26 训练模式自动验证 13/13 通过（[训练模式验证记录](practice-verification.md)）；A7 AI 适配、阶段 C 第二、三级（单人赛、联机）和用户试玩还没做。2026-10-25/26 用户答复了第 8 节的大部分待定项，结论已改成“已定”。
+日期 2026-10-25。状态（`feat/mechanics-update` ac3d5fe，PR #63）：阶段 A 的 A1–A7、阶段 B 和阶段 C 第一、二级已完成：2026-10-26 训练模式自动验证 13/13 通过（[训练模式验证记录](practice-verification.md)），2026-10-28 A7 AI 适配完成并在单人赛 harness 里跑过（见 §7.1 A7 的验证一行）；阶段 C 第三级（联机）和用户试玩还没做。2026-10-25/26 用户答复了第 8 节的大部分待定项，结论已改成“已定”。
 
 标记：“已定”是用户在讨论中确认的规则；“建议”是待用户确认的提案；“建议（实现采用）”是用户没有裁定、代码已按它实现的做法；“待确认”是还要问用户的地方。技能数值按配表现值（`Assets/Design/Tables/_Export`）；修改顺序是先改机制、再对接配表，见第 7 节。代码层面的构筑见 [缘起架构设计](yuanqi-architecture.md)。
 
@@ -170,7 +170,7 @@
 | 新增参数 | 阶段 A 新增的参数（如同招加价的 5 秒、×1.15）先写成组件或 SO 上的序列化字段，带默认值；阶段 B 再接进配表，默认值就是表里的初值 | 已定 |
 | 配表结构 | 阶段 A 不改 xlsx 的表头和 sheet；退役的行和列先留在表里，代码不再读取，阶段 B 再删。这样阶段 A 中途导表和校验不会坏 | 已定 |
 
-每一步写清：改哪里、新增、退役、网络与预测、训练模式怎么验证、完成标准。A1–A6 按实现写（0dbc551），A7 还是计划（代码位置按 0dbc551）。验证结果引用 [训练模式验证记录](practice-verification.md) 的场景编号 S0–S12。
+每一步写清：改哪里、新增、退役、网络与预测、训练模式怎么验证、完成标准。A1–A6 按实现写（0dbc551），A7 按实现写（ac3d5fe）。验证结果引用 [训练模式验证记录](practice-verification.md) 的场景编号 S0–S12。
 
 ### 7.1 阶段 A：机制
 
@@ -184,7 +184,7 @@
 | A4 | 执念与反噬：统一反噬、同招加价 | A3 | 已完成（S4、S5、S6） |
 | A5 | 缘起：技能状态板、开局登记、缘起模块、技能兼容接口 | A3；木桩来自 A1 | 已完成：#1、#2、#4（S8、S9、S10） |
 | A6 | HUD | A2–A5 | 已完成，最小可用版（S11） |
-| A7 | AI 适配，并最终退役搓招 | A2–A5；在单人赛验证 | 未做 |
+| A7 | AI 适配，并最终退役搓招 | A2–A5；在单人赛验证 | 已完成（ac3d5fe，单人赛 harness 验证见下） |
 
 #### A1 训练木桩
 
@@ -212,12 +212,12 @@
 
 | 项 | 内容 |
 |---|---|
-| 改哪里 | 技能键：`SkillExecutor` 的 owner 绑定 `InputSystem_Actions.Player.SkillSlot1–3`，`OnSkillKeyPressed → RequestCast`；玩家不再经过 `ComboSkillInput.OnSkillSlotTriggered`（只有服务器 AI 还订阅它）。瞄准与推掌：`BuddahHandControl`，光标射线投到过 racer 高度的水平面取方向，`HandAimMath` 先平滑、再按 `rotationSpeedDegPerSec` 限速；`HandPush` 加鼠标左/右键。`PlayerBuddahInputSource` 没有改 |
+| 改哪里 | 技能键：`SkillExecutor` 的 owner 绑定 `InputSystem_Actions.Player.SkillSlot1–3`，`OnSkillKeyPressed → RequestCast`；玩家不再经过 `ComboSkillInput.OnSkillSlotTriggered`（当时只剩服务器 AI 订阅它，A7 已连组件一起删除）。瞄准与推掌：`BuddahHandControl`，光标射线投到过 racer 高度的水平面取方向，`HandAimMath` 先平滑、再按 `rotationSpeedDegPerSec` 限速；`HandPush` 加鼠标左/右键。`PlayerBuddahInputSource` 没有改 |
 | 新增 | `InputSystem_Actions` 的 `SkillSlot1–3`（Q/E/R 与 1/2/3，`.inputactions` 和生成的 `.cs`）和 `HandPush` 的 `<Mouse>/leftButton`、`<Mouse>/rightButton`；`BuddahHandControl` 的 `useMouseAim`、`mouseAimSmoothingSeconds`（0.06 秒）、`mouseAimDeadRadius`（1.5 米，随体型放大）、`mouseAimPlaneHeightOffset`，这几个值是建议（实现采用），试玩再调；转手上限沿用 `Push.basic.rotationSpeedDegPerSec` 180°/s |
-| 退役 | 玩家侧的搓招：`ComboSkillInput` 的 owner 不再启用输入、不再监听 `HandPush`；HUD 搓招进度（槽位的 W/↑ token 运行时隐藏）。`ComboSkillInput` 本身保留：AI 还在用它逐键搓招（`AISkillCaster` / `AISkillCommitment` 经 `InjectServerKey`），等 A7 改完 AI 再删 |
+| 退役 | 玩家侧的搓招：`ComboSkillInput` 的 owner 不再启用输入、不再监听 `HandPush`；HUD 搓招进度（槽位的 W/↑ token 运行时隐藏）。`ComboSkillInput` 当时保留给 AI 逐键搓招，A7 已连同两张搓招表一起删除 |
 | 网络与预测 | 手部 yaw 仍经 `BuddahHandControl.TrySendYawToServer` 同步，网络结构不变；施法请求仍走 `RequestCast → CastSlotServerRpc` |
 | 训练模式验证 | 结果见 S1、S2：Q / 2 / R 放出槽 0、1、2，W 和 `W↑W` 都不施法；手部朝向到达光标目标 ±3°，最大转速 180°/s；左键只推左手、右键只推右手。“鼠标转手不抽搐”和“对木桩的神掌命中率比方向键明显提高”要用户试玩确认 |
-| 完成标准 | 玩家侧不再经过搓招就能施法；单人赛里的 AI 仍能照常施法（AI 仍走搓招注入，单人赛还没验证） |
+| 完成标准 | 玩家侧不再经过搓招就能施法；单人赛里的 AI 仍能照常施法（A7 起 AI 直接调用 `CastSlotServer`） |
 
 #### A3 施法节奏：去掉全局锁、施法串行
 
@@ -274,21 +274,22 @@
 
 **表现层（已定，2026-10-26）。** 这一轮只做接口、不做新特效：每个新状态和事件在各端都能读到，美术以后从接口挂特效。接口有 `SkillExecutor.YuanqiObserved`（缘起触发，载荷含中心、半径、秒数、方向、目标 id）、`SkillExecutor.YuanqiImpactObserved`（#4 每次撞击）、`RacerSkillPresentationState.FrozenChanged / BurstChanged`、`ObsessionFigure.BackfireStateChanged`、`BuddahHandControl.TryGetAimGroundPoint`（准星地面点，不画准星）。不需要美术的“动作层”直接实现：冻结时该 racer 的 Animator 停住、双手不转；#4 突进时施法者相机有一次短 FOV 抖动（8 度，待试玩调）。细节见 [缘起架构设计 §4.7](yuanqi-architecture.md)。
 
-#### A7 AI 适配（未做）
+#### A7 AI 适配
+
+完成于 2026-10-28（ac3d5fe）。AI 和真人走同一条施法路径，搓招从代码和配表里退役。AI 侧的决策设计、风险模型和缘起决策的细节在 [AI 技能](../single-player/ai-skills.md)（顶部 A7 结果表、“8. 缘起决策”）和 [人格设计](../single-player/ai-personalities.md)。
 
 | 项 | 内容 |
 |---|---|
-| 现状 | AI 仍按 `ComboSkillInput` 逐键搓招，施法进的是和真人同一个闸门，所以已经受新规则约束：可以叠放技能、施法更频繁，反噬走统一惩罚。还没跟上的地方：`AISkillCaster` 收到任何 `Rejected` 都取消承诺；`AISkillTuning.BacklashSeverity` 还按六种反噬分别估代价；`AISkillWorld` 看不到反噬的 ×0.85 和突进；AI 不做缘起决策，配装里有成对技能时只会偶然触发；诊断 `AISkillEffectHarness` 的反噬用例还按旧的反噬效果写 |
-| 改哪里 | `AISkillCaster` 不再按 `ComboSkillInput` 的按键序列逐键搓招（`AISkillCommitment`、`InjectServerKey`），直接调用 `SkillExecutor.CastSlotServer`；瞄准仍经 `BuddahHandControl.InjectServerRotation`，精度按真人用鼠标的水平重调 |
-| 新增 | 缘起决策：本配装有哪些缘起（`YuanqiCatalog.ForLoadout`，读同一份 `SkillDatabase.GetYuanqis()`）；先放会被消耗的那招，在它结束前至少 1 秒请求另一招；两招的执念合计要按反噬概率估算风险 |
-| 退役 | `ComboSkillInput` 和 `Skill/ComboBinding`、`Skill/ComboInput` 的读取方；`AISkillCommitment` 的按键步骤 |
-| 文档 | `Docs/single-player/ai-skills.md` 和 `ai-personalities.md` 顶部已列出作废的前提（“任何两个技能不会同时生效”“逐键搓招”）；A7 时改写正文，补上缘起决策 |
-| 验证 | 在单人赛验证（训练模式没有 AI）：五个 AI 能施法、能打出缘起、反噬次数合理 |
-| 完成标准 | 代码里不再有搓招；AI 和真人走同一条施法路径 |
+| 改哪里 | `AISkillCaster` 不再注入搓招键：`Decide` 选定槽位后 `AISkillCommitment` 记为 Decided，下一 tick 像真人按键一样调用 `SkillExecutor.CastSlotServer(slot)`（和 owner RPC 同一个入口，施法串行、同招加价、统一反噬都在 `SkillExecutor` 里），然后等 Executed / Cancelled / Rejected。瞄准仍经 `BuddahHandControl.InjectServerRotation`，掌形发射改为直接 `InjectServerPush`；容差 ±20° / ±12° / ±6° 没有重调（见第 8 节） |
+| 新增 | 缘起决策 `AIYuanqiPlanner`（`Assets/Scripts/AI/`，纯逻辑）：按本配装登记的对（`YuanqiRegistry.Registered`，与服务器同一份 `SkillDatabase.GetYuanqis()` + `YuanqiCatalog.ForLoadout`）决定先后（会被消耗的那招先放；两招都消耗或都不消耗时主效果长的先放）、跟进（另一招生效中、剩余 ≥ 前摇 + 1 tick；先放那招会被消耗时只在剩余 ≤ 前摇 + 0.6 s 时跟进，否则立刻）和起手（另一招的冷却来得及、第二招的反噬概率 `P(当前执念 + 第一招增量)` 低于停手阈值才给加成）。只用已实现的三对，没设计的对不补。统一反噬风险：`u = v × 缘起倍率 − riskWeight × P(反噬) × backfireCost`，每个难度一个停手阈值 `stopProbability`；`AISkillWorld.Classify` 把反噬的 ×0.85 记为减速受损、突进记为加速。参数：`AI/SkillTuning` 的 `backfireCost` 1、`yuanqiSetupMultiplier` 1.2、`yuanqiFollowUpScore` 0.8、`yuanqiFollowUpMultiplier` 1.5、`yuanqiFollowUpTempoSeconds` 0.3、`yuanqiLateWindowSeconds` 0.6，`AI/SkillDifficulty.stopProbability` 1.01 / 0.7 / 0.45，`AI/Personality.yuanqiAffinity` 1；JSON 兜底 `SkillPersonalities.json` 同步。这些数值是建议（实现采用） |
+| 退役 | `ComboSkillInput`（类、prefab 组件、`SkillExecutor` 的订阅与 `ClearCombo`）、`Skill/ComboInput`、`Skill/ComboBinding`、`__enums__` 的 `ComboToken`、`AISkillCommitment` 的按键步骤、AI 表的搓招列（`keyMistakeProbability`、`keyMinSeconds`、`keyMaxSeconds`、`maxComboRetries`）、按技能的 `backlashSeverity` 与 `mildStopProbability` / `severeSeverityThreshold`（`severeStopProbability` 改名 `stopProbability`）、校验规则 `KeyMaxBelowComboWindow`。`AISkillEffectHarness` 和 `Tools/ai/analyze_skill_matrix.py` 的反噬用例改成统一反噬 |
+| 网络与预测 | 没有新的同步；`SkillExecutor` 只多了只读的 `ResolveCastBlockServer`（AI 记录被哪道门拒绝） |
+| 验证 | 无窗口 EditMode `BuddahGo.Tests` 577/577（A7 前 559）；无窗口导表 0 错误；单人赛（5 个 AI，`AISkillRaceHarness`，编辑器 Play）：2026-10-28 Normal 难度一场（`Logs/a7/solo-1`，不入库）：自然结算（`natural-race-results`），0 运行错误；五个 AI 各执行 10–17 次施法（1.8–3.1 次/分钟），63 次请求全部被接受，没有一次在前一招待确认时再请求（施法串行成立），没有 Rejected；7 次反噬（keeper 1、hunter 1、brawler 2、trickster 0、opportunist 3）之后下一次执行都在 ≥ 11.1 s 后，惩罚 10 s 内三个槽的候选全部是 `cooldown-or-lock`；缘起触发 8 次：keeper #2 禅足冰封 ×4，brawler #1 金身巨掌 ×4，#4 金足破阵 0 次（keeper 这场没放过金身）；两个 AI 自然完赛（316.6 s、327.2 s），三个在完赛倒计时截止时在第 3 圈，真人不操作、停在起点。要用户试玩判断的：黑幕的频率（trickster 10 次、opportunist 7 次，每约 20 s 一次全屏黑幕）、#2 禁锢对车群的影响、圈速（带技能的 Normal AI 单圈 101–139 s，之前无技能基准 92.8–94.4 s） |
+| 完成标准 | 代码和配表里不再有搓招；AI 和真人走同一条施法路径；AI 能在单人赛里施法、打出缘起并吃到反噬惩罚（都已验证）。节奏、停手阈值和缘起参数的手感要用户试玩 |
 
 ### 7.2 阶段 B：配表对接
 
-阶段 A 稳定后做，已完成（16121ed），A7 的表改动随 A7 做。每项都按 [design-tables README](../design-tables/README.md) 的流程：改 xlsx 表头（`##var`、`##type`、`##comment`）→ `python Tools/design-tables/gen_records.py .` 重新生成记录类和 `export-map.json` → 组件里接 `DesignTableOverlay.Apply` / `ApplyMapped` → 补跨表校验规则 → 导入 → 更新 `Docs/design-tables` 对应的 inventory 文档 → 跑 `DesignTableTests`、`DesignTableRuntimeTests`。阶段 A 的序列化字段默认值就是表里的初值；接上后表是数值来源，组件和 SO 上的值只在没有表时兜底（design-tables 决定 14：覆盖而非重构）。退役的字段和 sheet 从表里删掉，不留无效列。
+阶段 A 稳定后做，已完成（16121ed），A7 的表改动已随 A7 做（ac3d5fe）。每项都按 [design-tables README](../design-tables/README.md) 的流程：改 xlsx 表头（`##var`、`##type`、`##comment`）→ `python Tools/design-tables/gen_records.py .` 重新生成记录类和 `export-map.json` → 组件里接 `DesignTableOverlay.Apply` / `ApplyMapped` → 补跨表校验规则 → 导入 → 更新 `Docs/design-tables` 对应的 inventory 文档 → 跑 `DesignTableTests`、`DesignTableRuntimeTests`。阶段 A 的序列化字段默认值就是表里的初值；接上后表是数值来源，组件和 SO 上的值只在没有表时兜底（design-tables 决定 14：覆盖而非重构）。退役的字段和 sheet 从表里删掉，不留无效列。
 
 | 来自 | 配表与映射 | 状态 |
 |---|---|---|
@@ -299,7 +300,7 @@
 | A5 缘起 | 新增 `Skill/Yuanqi`（缘起 id、两招、`consumeA / consumeB`、`mode`、`retriggerPolicy`、`isEnabled`、文案 key）和家族表 `YuanqiEffectFrostLock`（N、R、是否冻木桩）、`YuanqiEffectGiantCharge`（突进限速、回落秒数、M）；`__enums__` 加 `YuanqiId`、`YuanqiMode`、`YuanqiRetrigger`；`UI/Text` 加 `yuanqi.<id>.name / .desc`。#1 没有参数，不建家族表。表结构见 [缘起架构设计 §3](yuanqi-architecture.md) | 已完成 |
 | 预测修饰 | `ModifierCommandType` 加 `Freeze`、`EndModifier`、`Burst`、`MaxSpeedMultiplier`，`ModifierRule` 加四行，`StackPolicy` 加 `Restart`；`StructuralConstant.prediction_protocol_version` = 2 | 已完成 |
 | A6 HUD | `UI/UiTiming` 删掉 `SkillSlotUI` 的 `successHoldSeconds`、`fallbackCastLockSeconds`、`previewTimeoutSeconds` | 已完成 |
-| A7 AI | 删除 `Skill/ComboBinding`、`Skill/ComboInput`；AI 人格表里和搓招有关的列（如每键失误率）删除，补缘起决策参数 | 未做（随 A7） |
+| A7 AI | 删除 `Skill/ComboBinding`、`Skill/ComboInput` 和 `__enums__` 的 `ComboToken`；AI 表删掉搓招列（`SkillDifficulty.keyMistakeProbability`，`SkillTuning.keyMinSeconds / keyMaxSeconds / maxComboRetries`）和按技能的 `SkillOpportunity.backlashSeverity`、`SkillTuning.severeSeverityThreshold`、`SkillDifficulty.mildStopProbability`（`severeStopProbability` 改名 `stopProbability`）；补 `SkillTuning.backfireCost` 与五个 `yuanqi*` 列、`Personality.yuanqiAffinity`。导入 0 错误 | 已完成（ac3d5fe） |
 
 完成标准：表是数值来源，阶段 A 的序列化默认值只作兜底；导入后 `_Reports/validation.md` 没有错误（2026-10-26 import 模式 0 错误，3 条警告是 dev 就有的 `HudObsession` 场景对象路径）；两组配表测试通过（在 EditMode 559/559 里）。
 
@@ -310,7 +311,7 @@
 | 级别 | 能验证 | 验证不了 | 状态 |
 |---|---|---|---|
 | 训练模式（0 个 AI，有木桩） | 单键释放、鼠标瞄准、施法串行、执念、反噬、同招加价；状态板、缘起触发与消耗、两种先后顺序；一念光明和逆姻缘的窗口；借助木桩验证命中、减速、反转和冲量 | AI 的缘起决策；远端客户端的预测表现（训练模式是本机 host）；黑幕落在别人屏幕上的效果 | 自动验证 13/13 通过（2026-10-26，[训练模式验证记录](practice-verification.md)）；那里列出了没覆盖的点 |
-| 单人赛（5 个 AI） | AI 施法和缘起决策；AI 受到缘起后的表现；控制叠加是否过分 | 远端客户端的预测表现 | 未做（等 A7） |
+| 单人赛（5 个 AI） | AI 施法和缘起决策；AI 受到缘起后的表现；控制叠加是否过分 | 远端客户端的预测表现 | harness 自动验证通过（2026-10-28，2026-10-28 Normal 一场：5 个 AI 施法 10–17 次、反噬 7 次、缘起 8 次、自然结算、0 运行错误，见 AI 技能文档末尾）；“控制叠加是否过分”和手感要用户试玩 |
 | 联机（两端） | 远端客户端的预测和 reconcile（冻结、突进、反噬限速）；观察者事件；缘起画面在各端是否一致；黑幕在对方屏幕上的效果 | — | 未做 |
 
 每一级分开记录：施法请求、接受、执行、命中、效果恢复。训练模式的自动验证是受控夹具（反射改参数、传送、虚拟输入），不是自然比赛；用户亲自试玩之前，手感、数值和画面一律记为“未验证”。
@@ -325,6 +326,9 @@
 - [ ] SoloCJK 字体子集重烘：“冻”“起”等字缺失，“冻结”和缘起名现在显示英文或 id（A6）
 - [ ] 缘起特效（#2 结冰与冰块、#4 突进与撞击、#1 巨掌）：表现接口已留，美术未做
 - [ ] 占位值和新参数的试玩调整：#2 的 N、R，#4 的突进与 M，转手平滑，突进 FOV，反噬结束的 ×0.8（全部在配表或组件字段上）
+- [ ] AI 瞄准容差（`AI/SkillDifficulty.aimToleranceDegrees` ±20° / ±12° / ±6°）要不要按真人改用鼠标后的命中水平重调：A7 没有改，要用户试玩数据（建议先保持）
+- [ ] AI 的统一反噬代价和缘起决策参数（`AI/SkillTuning.backfireCost` 1、`yuanqiSetupMultiplier` 1.2、`yuanqiFollowUpScore` 0.8、`yuanqiFollowUpMultiplier` 1.5、`yuanqiFollowUpTempoSeconds` 0.3、`yuanqiLateWindowSeconds` 0.6，`SkillDifficulty.stopProbability` 1.01 / 0.7 / 0.45，`Personality.yuanqiAffinity` 1）都是建议（实现采用），按单人赛试玩再定
+- [ ] AI 已接受的施法在机会过期时不撤回（真人也撤不回，撤回不退冷却）是建议（实现采用），用户没裁定
 - [ ] 是否入表（design-tables 决定 4，需用户确认）：鼠标瞄准平滑 `BuddahHandControl.mouseAimSmoothingSeconds` 0.06 秒和死区 `mouseAimDeadRadius` 1.5 米目前只是代码序列化默认值，按 7.2 的完成标准（代码里不再有阶段 A 的默认值作为数值来源）应进 `Skill/Push` basic 行（建议作 adv 列）；木桩复位阈值（`TrainingDummy.disturbedContactSpeed` 0.5 m/s 等）和表现、HUD 布局参数按范围线可以留在代码
 
 已答复：

@@ -4,6 +4,8 @@
 筛查日期 2026-10-12，基线 dev 9ff6338。本文件只做盘点，不含实现。总览与跨域结论见 [README.md](README.md)。路径相对 `Assets/Scripts/` 或仓库根。
 
 > 2026-10-26 玩法深化之后（代码 0dbc551）：AI 适配（玩法 README A7）没有做，AI 的表与读取方都没改，下文仍按基线成立，但这几处的前提变了：AI 仍经 `ComboSkillInput.InjectServerKey` 逐键搓招，所以 `Skill/ComboInput`、`Skill/ComboBinding` 只剩 AI 在读，按键时长约束（`keyMaxSeconds` 小于 `inputWindowSeconds`）也只对 AI 有意义；`BacklashSeverity` 按技能区分反噬代价，统一反噬之后已过时（反噬对每个技能都一样）；去掉全局施法锁后 AI 可能叠放技能、放得更频繁；AI 不做缘起决策，但会偶然触发；手部瞄准估算读 `BuddahHandControl.HandRotationSpeed`（= `Push.basic.rotationSpeedDegPerSec`，也是鼠标转手上限）。A7 完成后按玩法 README 7.2 删 `ComboBinding / ComboInput` 与搓招相关列、补缘起决策参数。
+>
+> A7 已做（AI 适配）：`ComboSkillInput` 删除，AI 直接调 `SkillExecutor.CastSlotServer`；`Skill/ComboInput`、`Skill/ComboBinding`、`__enums__.ComboToken` 已删除（下文第 7 节的按键步骤与表 6 的 `KeyMinSeconds / KeyMaxSeconds / MaxComboRetries`、表 3 的 `KeyMistakeProbability / MildStopProbability`、表 5 的 `BacklashSeverity` 与 `SevereSeverityThreshold` 都已退役，`ScaleShrunkThreshold` 随"缩小"判断一起删）。表 3 的 `severeStopProbability` 改名 `stopProbability`（统一反噬后所有技能同一停手阈值，Easy 1.01 / Normal 0.7 / Hard 0.45）；表 6（`AI/SkillTuning`）新增 `backfireCost`（风险项 = riskWeight × 反噬概率 × backfireCost，默认 1）和缘起决策参数 `yuanqiSetupMultiplier` 1.2、`yuanqiFollowUpScore` 0.8、`yuanqiFollowUpMultiplier` 1.5、`yuanqiFollowUpTempoSeconds` 0.3、`yuanqiLateWindowSeconds` 0.6；表 4（`AI/Personality`）新增 `yuanqiAffinity`（五个人格都是 1，0 = 不做缘起决策）。这些默认值都是建议（实现采用），读取方见各列 `##comment`（`AISkillDecision.Utility` / `AIYuanqiPlanner` / `AISkillCaster.Decide`）。
 ## 结论先行
 
 - 共有两份真正被运行时读取的配置源：

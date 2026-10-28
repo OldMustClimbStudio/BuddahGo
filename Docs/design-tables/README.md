@@ -4,7 +4,7 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 
 状态（2026-10-13）：筛查、规范、基线工作簿、导入器、消费方接通、分层导入与 tag 过滤全部完成，并已按 [structure-audit.md](structure-audit.md) 的 v2 结构重组（一概念一表：Skill 宽表 + 强类型家族表 + Push、Movement / Respawn 合一、圈规则并入 Track、AI 单行调参表、权重进三槽）；PR [OldMustClimbStudio/BuddahGo#62](https://github.com/OldMustClimbStudio/BuddahGo/pull/62)。
 
-2026-10-26 玩法深化阶段 B（[Docs/gameplay/README.md](../gameplay/README.md) §7.2，分支 feat/mechanics-update，PR #63）：反噬改为统一惩罚，`Skill` 表删掉 `castLockSeconds`、`antiSkillId` 两列和 6 行 `_anti`，家族表、`Push`、`SkillPresentation`、`SkillConstant`、`SkillSelectionRule`、`FeelEvent` 里的反噬行和反噬专用列一并删除，`UI/UiTiming` 删掉 SkillSlotUI 的三行（含 `fallbackCastLockSeconds`）；`Obsession` 加同招加价与反噬惩罚五列；新增缘起表 `Skill/Yuanqi`、`YuanqiEffectFrostLock`、`YuanqiEffectGiantCharge`；训练木桩配置在 `Match/ModeRule` 的 Practice 行；`Movement/ModifierRule` 加 Freeze / EndModifier / Burst / MaxSpeedMultiplier 四行，`__enums__` 的 `ModifierCommandType` 改为与 C# 同号；`Global/InputBinding` 记录 Q/E/R + 1/2/3 技能键与鼠标推掌；`StructuralConstant.prediction_protocol_version` 为 2。阶段 A 的序列化默认值从此只作无表行时的兜底。工作簿现有 65 张 sheet：导出 37、只校验 26、保留 2（`__enums__`、`__meta__`）。
+2026-10-26 玩法深化阶段 B（[Docs/gameplay/README.md](../gameplay/README.md) §7.2，分支 feat/mechanics-update，PR #63）：反噬改为统一惩罚，`Skill` 表删掉 `castLockSeconds`、`antiSkillId` 两列和 6 行 `_anti`，家族表、`Push`、`SkillPresentation`、`SkillConstant`、`SkillSelectionRule`、`FeelEvent` 里的反噬行和反噬专用列一并删除，`UI/UiTiming` 删掉 SkillSlotUI 的三行（含 `fallbackCastLockSeconds`）；`Obsession` 加同招加价与反噬惩罚五列；新增缘起表 `Skill/Yuanqi`、`YuanqiEffectFrostLock`、`YuanqiEffectGiantCharge`；训练木桩配置在 `Match/ModeRule` 的 Practice 行；`Movement/ModifierRule` 加 Freeze / EndModifier / Burst / MaxSpeedMultiplier 四行，`__enums__` 的 `ModifierCommandType` 改为与 C# 同号；`Global/InputBinding` 记录 Q/E/R + 1/2/3 技能键与鼠标推掌；`StructuralConstant.prediction_protocol_version` 为 2。阶段 A 的序列化默认值从此只作无表行时的兜底。工作簿现有 63 张 sheet：导出 35、只校验 26、保留 2（`__enums__`、`__meta__`）；A7 删掉 `Skill/ComboInput`、`Skill/ComboBinding` 两张。
 
 ## 快速上手
 
@@ -120,7 +120,7 @@ Library/DesignTables/import-state.txt 每台机器的工作簿哈希（不提交
 ## 未完成与注意事项
 
 - 只记录、不接运行时：SkillConstant / DrivingConstant（代码与 prefab 常量）、ModifierRule 叠加策略、Respawn 的 teleport 标志列、Movement 的三个起跑常量列、ResultVoteRule 法定规则、IntroLayout、SkillIcon 的资源引用。
-- 代码待办（结构审计 A8 / C1）：ObsessionFigure 改为读全局单例而非每角色一份；四个 manager 的时长字段只读 ModeRule 后删除自己的序列化字段。结构审计 A7（HUD 按键 token 由表生成）随玩家搓招退役不再需要：token 图已隐藏，`Skill/ComboInput`、`Skill/ComboBinding` 只剩 AI 逐键搓招（`ComboSkillInput.InjectServerKey`）在读，按玩法 README 7.2 在 A7（AI 适配，未做）之后删除。
+- 代码待办（结构审计 A8 / C1）：ObsessionFigure 改为读全局单例而非每角色一份；四个 manager 的时长字段只读 ModeRule 后删除自己的序列化字段。结构审计 A7（HUD 按键 token 由表生成）随玩家搓招退役不再需要：token 图已隐藏；`Skill/ComboInput`、`Skill/ComboBinding` 已删除（玩法 A7，AI 适配：`ComboSkillInput` 删除，AI 直接调 `SkillExecutor.CastSlotServer`），`__enums__` 的 `ComboToken` 一并删除；`AI/SkillTuning` 的搓招列（`keyMinSeconds`、`keyMaxSeconds`、`maxComboRetries`）、`severeSeverityThreshold`、`scaleShrunkThreshold`，`AI/SkillDifficulty` 的 `keyMistakeProbability`、`mildStopProbability`，`AI/SkillOpportunity.backlashSeverity` 删除；`severeStopProbability` 改名 `stopProbability`；新增 `SkillTuning.backfireCost` 与五个 `yuanqi*` 缘起决策参数、`Personality.yuanqiAffinity`（默认值都是建议（实现采用））。
 - 逆转技能 HUD 贴图文件名 `逆姻缘.png` 与中文一致（2026-10-13 定为「逆姻缘」）；`giant_anti` 行已在阶段 B 删除（16121ed），`skill.giant_anti.*` 文案 key 保留。
 - `UI/Text` 里 `ui.<class>.<slug>` 形式的自动 key 需要策划定稿命名后，再替换代码里的 UI 字面量。
 - 技能 SO、Buddah.prefab 与 `Tools/ai/difficulty-*.json` 上已被表接管的重复字段尚未删除；`AIDifficultyAssetTool` 待退役。阶段 B 接上的 `ObsessionFigure` 五个同招加价与反噬惩罚字段、`Yuanqi_*` SO 字段和 `MatchSpawnManager` 的五个木桩字段同样保留，只作无表行时的兜底。

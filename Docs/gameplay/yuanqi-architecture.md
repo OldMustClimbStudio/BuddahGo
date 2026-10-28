@@ -21,7 +21,7 @@
 ### 1.1 技能分发链路
 
 ```text
-玩家按键（Q/E/R、1/2/3）                       AI：注入搓招键（ComboSkillInput.InjectServerKey，A7 前）
+玩家按键（Q/E/R、1/2/3）                       AI：AISkillCaster 直接调 CastSlotServer（A7）
   → SkillExecutor.RequestCast → CastSlotServerRpc   → OnSkillSlotTriggered → OnSlotTriggeredByCombo
   → CastSlotServer ◄──────────────────────────────────┘
   → TryResolveCast（结算区闸门、槽位、SkillCastRules.EvaluateGate：待确认施法 → 反噬锁 → 冻结 → 槽冷却）
@@ -217,7 +217,7 @@ public interface IHandsImpulseScale { bool ImpulseFollowsScale { get; set; } }  
 
 - 运动：`ApplyFreezeToOwner(seconds)`、`EndAccelerationForOwner()`、`EndScaleForOwner()`、`ApplyBurstToOwner(extraMaxSpeed, seconds)`、`ApplyMaxSpeedMultiplierToOwner(multiplier, seconds)`，与现有 `ApplyRootThenAccelerationToOwner` 同构（服务器桥接 + owner TargetRpc，TargetRpc 追加在类末尾），实现放在 `OwnerMovementEffectApplier`。
 - 动作锁：请求和 AI 的就绪判断共用 `SkillCastRules.EvaluateGate`（`TryResolveCast` 与 `IsSlotReadyServer`），依次检查待确认施法、反噬锁、冻结（`BuddahPredictedMotor.IsFrozen`）、本槽冷却。冻结和反噬锁是同一个检查点，没有两套锁。
-- `ApplyFreezeToOwner` 在下发修饰前先打断前摇（`InterruptCastForFreezeServer`）：正在前摇的普通施法被取消，该槽冷却退还（`_nextReadyTime[slot] = now`，已定，Q10）；执念在执行时才入账，所以不用退；服务器 AI 的搓招键清空，手部待处理的输入作废（`BuddahHandControl.CancelPendingServerInput`）。已判定的反噬不被打断（`SkillCastRules.DropsPendingCast`，已定，2026-10-26）：冷却照常花掉，前摇结束时开始惩罚。
+- `ApplyFreezeToOwner` 在下发修饰前先打断前摇（`InterruptCastForFreezeServer`）：正在前摇的普通施法被取消，该槽冷却退还（`_nextReadyTime[slot] = now`，已定，Q10）；执念在执行时才入账，所以不用退；手部待处理的输入作废（`BuddahHandControl.CancelPendingServerInput`；A7 之前这里还清空服务器 AI 的搓招键）。已判定的反噬不被打断（`SkillCastRules.DropsPendingCast`，已定，2026-10-26）：冷却照常花掉，前摇结束时开始惩罚。
 - `ExecuteQueuedCastAfterDelay` 里一行 `BeginSkillStateServer(...)`（见 2.4）。
 - 复位路径里加 `ResetYuanqiStateServer(reason)`（`board.Clear` + `registry.ResetServer`，见 1.4）。
 - 缘起与表现用的通用入口：`ResolveEffectDurationSeconds`、`ResolveActiveSlot`、`PlaySkillConsumedObservers`、`PlayYuanqiObservers`、`PlayYuanqiImpactObservers`，事件 `LocalYuanqiTriggered`、`YuanqiObserved`、`YuanqiImpactObserved`，属性 `StateBoard`、`YuanqiRegistry`（服务器；客户端和木桩上为 null）、`PresentationState`。
@@ -514,7 +514,7 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 | A4 反噬 | 反噬不再有效果，也就不登记状态板；统一惩罚的“10 秒锁技能”和禁锢的动作锁是同一个检查点（`SkillCastRules.EvaluateGate`） | 已做 |
 | A5 缘起 | 本文第 2、4、5 节 | 已做 |
 | A6 HUD | 冻结倒计时、缘起触发提示、选技能界面的“本配装有哪些缘起”（本地用 `SkillLoadout` + `SkillDatabase.GetYuanqis()` 经 `YuanqiCatalog.ForLoadout` 算） | 已做 |
-| A7 AI | `AISkillCaster` 直接调 `CastSlotServer` 之后，缘起决策读同一份 `SkillDatabase.GetYuanqis()`；被冻住的 AI 不需要特殊处理（无扭矩、无施法） | 未做：AI 现在不做缘起决策，配装里有成对技能时会偶然触发 |
+| A7 AI | `AISkillCaster` 直接调 `CastSlotServer`；缘起决策 `AIYuanqiPlanner` 读 `YuanqiRegistry.Registered`（服务器按配装登记的同一份 `SkillDatabase.GetYuanqis()` + `YuanqiCatalog.ForLoadout`）；被冻住的 AI 不需要特殊处理（无扭矩、无施法） | 已完成（ac3d5fe，2026-10-28）：先后、跟进、起手规则见 [AI 技能](../single-player/ai-skills.md) 的“8. 缘起决策” |
 
 ## 7. 问题与答复
 

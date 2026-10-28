@@ -14,4 +14,4 @@ Now one penalty applies to every skill. The backfire is still rolled from obsess
 - A backfired cast ends with `CastStage.Executed` and `CastEvent.IsBacklash = true`; the field keeps its old name.
 - The values are table columns of `Skill/Obsession`: `backfireLockSeconds` 10, `backfireMaxSpeedMultiplier` 0.85 and `backfireEndKeepRatio` 0.8 (a provisional value).
 - The user's "反作用" idea (buffs on the caster may flip during a backfire) is 待确认 and not implemented.
-- AI Racers are not adapted yet (A7): their decisions still weigh a per-skill `BacklashSeverity`, which no longer matches the single penalty.
+- AI Racers were adapted on 2026-10-28 (A7): the per-skill `BacklashSeverity` and the severe/mild stop thresholds are gone; the risk term is `riskWeight × P(backfire) × AI/SkillTuning.backfireCost` with one `stopProbability` per difficulty, and a backfire penalty on an opponent reads as a slow in the AI snapshot. Those values are 建议（实现采用）.

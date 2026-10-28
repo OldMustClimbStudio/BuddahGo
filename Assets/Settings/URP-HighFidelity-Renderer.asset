@@ -95,12 +95,11 @@ MonoBehaviour:
     hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
   m_RendererFeatures:
   - {fileID: -1878332245247344467}
-  - {fileID: 6273551018846059516}
   - {fileID: 2908940596134238237}
   - {fileID: -9210105595247032745}
   - {fileID: 4890571802736398748}
   - {fileID: 6441396156721643919}
-  m_RendererFeatureMap: adc0de57c6d2eee5fcfb9bb6692110571d584b590fa25e2857867623c2212f809c11a5aa24cdde438fc1f532ad6f6459
+  m_RendererFeatureMap: adc0de57c6d2eee51d584b590fa25e2857867623c2212f809c11a5aa24cdde438fc1f532ad6f6459
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -206,24 +205,6 @@ MonoBehaviour:
       restoreCamera: 1
       offset: {x: 0, y: 0, z: 0, w: 0}
       cameraFieldOfView: 60
---- !u!114 &6273551018846059516
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5d60edcaf080f1745a268da7adf3bd03, type: 3}
-  m_Name: ScreenSpaceReflection
-  m_EditorClassIdentifier: 
-  m_Active: 1
-  material: {fileID: 2100000, guid: 3023044652f9eb940b765b89a445c572, type: 2}
-  renderingDebugger: 0
-  resolution: 3
-  mipmapsMode: 0
-  sceneView: 0
 --- !u!114 &6441396156721643919
 MonoBehaviour:
   m_ObjectHideFlags: 0

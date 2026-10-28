@@ -14,11 +14,23 @@
     that have a GBuffer pass.
 - Build requirement (from the upstream documentation): in the Forward path the feature redraws opaque objects with URP
   Lit's `GBuffer` pass, and URP strips that pass from every build unless a pipeline asset lists a Deferred renderer.
-  `URP-HighFidelity` and `URP-Balanced` therefore list `Assets/Settings/URP-KeepDeferredVariants-Renderer.asset`
-  (Deferred, no features) after their default renderer. No camera selects it. Removing it silently disables SSR in
-  builds while the editor still shows it.
-- Used by: nothing in the shipped content since 2026-10-28. The feature is still on `URP-HighFidelity-Renderer` (75%)
-  and `URP-Balanced-Renderer` (50%), but RaceMap's post profile has the volume component switched off (planar
-  reflections replaced SSR there) and no graphics setting turns it on; the local rendering showcase (not in the
-  repository) still uses it. Whether to remove the feature and the keep-alive renderer is open (PR #64 review M6). Setup,
-  tuning notes and the cost of keeping it: `Docs/rendering/racemap/README.md`.
+- Used by: nothing in the project since 2026-10-28, only the local rendering showcase (not in the repository). RaceMap
+  used it from phase 2 until planar reflections replaced it; on the user's decision (PR #64 review M6) the feature, the
+  RaceMap volume override and `URP-KeepDeferredVariants-Renderer` were removed, which took 1207 shader variants out of
+  each build (every GBuffer pass, StencilDeferred and this shader). The scripts stay, compiled into
+  `Assembly-CSharp-firstpass`; nothing in a build references the shader or the material.
+
+## Adding SSR back
+
+1. Create a Universal Renderer asset with Rendering Path Deferred and no features, and append it to the renderer list
+   of every pipeline asset whose renderer will run SSR. No camera may select it; it only keeps the GBuffer passes in
+   builds (about 1200 variants at the time of removal). Without it SSR shows in the editor but is empty in a build.
+2. Add the `ScreenSpaceReflectionURP` feature to those renderers with this folder's `ScreenSpaceReflection.mat`, before
+   `BlackCurtain` in the High Fidelity renderer (the curtain must darken the reflections). Phase 2 used 75% resolution
+   without colour mipmaps on High Fidelity and 50% with Trilinear mipmaps on Balanced.
+3. Add a `Screen Space Reflection` override to the scene's post profile with State Enabled; phase 2's values were
+   Approximation, quality High, constant thickness 0.75, minimum smoothness 0.4, smoothness fade 0.6, edge fade 0.1.
+4. Turn off `PlanarReflection` on the same surfaces, or the two reflections add up.
+5. The graphics settings' `reflections` option only drives planar reflections now; an SSR option needs level columns
+   and mapping again (the SSR mapping before ceea858 in `GraphicsPipelineMapper`).
+Setup and tuning notes: `Docs/rendering/racemap/README.md`, phase 2.

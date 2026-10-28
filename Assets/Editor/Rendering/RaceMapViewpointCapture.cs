@@ -83,8 +83,8 @@ namespace BuddahGo.Rendering.Editor
 
         /// <summary>
         /// Same as <see cref="Capture(string)"/> with an explicit MSAA sample count for the capture target. 1 keeps the
-        /// images comparable with the phase-0 captures; 8 matches the High Fidelity pipeline (some passes, e.g. SSR's
-        /// forward GBuffer, take a different path with MSAA).
+        /// images comparable with the phase-0 captures; 8 matches the High Fidelity pipeline (URP takes a camera's sample
+        /// count from its target texture).
         /// </summary>
         public static string Capture(string label, int msaaSamples)
         {

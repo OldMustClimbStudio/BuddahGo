@@ -9,7 +9,7 @@
 // BuddahGoLitShaderGUI (Assets/Editor/Rendering) carries a URP Lit material's keywords over when its shader is switched
 // in the inspector and keeps the alpha-clip queue in step. Scripts that set the toggle floats call
 // MaterialEditor.ApplyMaterialPropertyDrawers afterwards.
-// The GBuffer pass is required: screen-space reflections redraw opaque objects with it in the Forward path.
+// The GBuffer pass mirrors URP Lit. Nothing uses it now (no Deferred renderer, no SSR), so URP strips it from builds.
 Shader "BuddahGo/Lit"
 {
     Properties
@@ -175,8 +175,8 @@ Shader "BuddahGo/Lit"
         }
 
         // ------------------------------------------------------------------------------------------------
-        // Deferred GBuffer. Also what ScreenSpaceReflectionURP redraws in the Forward path to read smoothness and
-        // normals; URP strips it from builds unless a pipeline lists a Deferred renderer (see Assets/Settings).
+        // Deferred GBuffer, as in URP Lit. ScreenSpaceReflectionURP would redraw opaque objects with it in the Forward
+        // path; URP strips it from builds unless a pipeline lists a Deferred renderer, which none does now.
         Pass
         {
             Name "GBuffer"

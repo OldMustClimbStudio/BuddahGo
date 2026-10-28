@@ -415,3 +415,36 @@ Buff 期间（15 s）需要一个低成本、低噪音的**持续层**（施法�
 
 - 用户给的观感参考：[keijiro/SplatVFX](https://github.com/keijiro/SplatVFX)（VFX Graph 上的 3D Gaussian Splatting）、[keijiro/DkvfxSketches](https://github.com/keijiro/DkvfxSketches)（Depthkit 体积视频的粒子草稿）。共同点是上千个软小点聚成一个有体积的形，再整体流动、溶解；本项目据此把主体改成"不透明剪影网格 + 致密粒子皮"（README 第 2 节）。
 - 水墨实现的 GitHub 调研与结论（画布级湿墨模拟、整屏水彩后期、游戏里的实心墨形三类）见 [push-projectile-hands.md 第 12.3 节](push-projectile-hands.md#123-水墨可行性调研github2026-10-28)：可用的只有"实心形 + 手绘贴图"。
+
+## 8. 参考板：《绝区零》仪玄的"实体 + 外层水墨"（2026-10-28 晚，用户指定）
+
+用户看过第二版材质后的判断："水墨感来自于一些外层的特效，但是不应该是实体。如果一般用实体的话，可以参考绝区零里面仪玄这个角色的特效风格。"本节按截图与官方资料把仪玄的做法拆开，供 [README.md 第 2 节](README.md#2-视觉方向已定) 与 [push-projectile-hands.md 第 13 节](push-projectile-hands.md#13-2026-10-28-第二次评审实体与外层水墨分家) 引用。
+
+### 8.1 角色与技能事实
+
+- 仪玄：《绝区零》2.0（2025-06-06）S 级代理人，阵营云岿山，属性"玄墨"（以太的变体，伤害数字为金色），特性命破。技能名全是墨与云：普攻「墨影凝云」（展开大太极阵）、强化特殊技「墨痕化形」、终结技「符法千重」（张开羽翼、引导万千符箓）、「青溟震击」（张开翅膀发动爆炸）、术法「青溟鸟」、音擎「青溟笼舍」。来源：[B 站绝区零 WIKI · 仪玄](https://wiki.biligame.com/zzz/%E4%BB%AA%E7%8E%84)、[HoYoWiki · Yixuan](https://wiki.hoyolab.com/pc/zzz/entry/752?lang=en-us)、[Fandom · Yixuan](https://zenless-zone-zero.fandom.com/wiki/Yixuan)（技能页 [Ink-Veil Cloud Coalescence](https://zenless-zone-zero.fandom.com/wiki/Basic_Attack:_Ink%E2%80%90Veil_Cloud_Coalescence)、[Ink Manifestation](https://zenless-zone-zero.fandom.com/wiki/EX_Special_Attack:_Ink_Manifestation)）。
+- 没有找到官方或技术美术的特效拆解文章；GamesRadar 的 2.0 访谈只用一句"黑压金（black-on-gold）"形容她的攻击（[The big ZZZ 2.0 interview](https://www.gamesradar.com/games/action-rpg/the-big-zenless-zone-zero-2-0-interview-buffing-old-characters-standing-up-to-miyabi-the-missing-idol-faction-and-the-undeniable-yixuan/)）。以下分层是看图归纳，不是官方说法。
+
+### 8.2 看过的画面（链接可点，缩略图不进仓库）
+
+| 画面 | 来源 | 看到什么 |
+|---|---|---|
+| 强化特殊技出手帧 | [GosuGamers 攻略截图](https://static.gosugamers.net/67/ad/09/b136cfc0f21b9be2f4f1c5e138b22eaef3cca1fe6c60bc28103cd6dcaa.jpg) | 手前一团金色光束 + 金色火星，光束**外侧**裹着一圈黑墨烟，烟在动、半透明；最亮处接近暖白 |
+| 攻击瞬间（侧后）| [DBLTAP 截图](https://images2.minutemediacdn.com/image/upload/c_crop,w_1920,h_1080,x_0,y_0/c_fill,w_720,ar_16:9,f_auto,q_auto,g_auto/images/voltaxMediaLibrary/mmsport/dbltap_en_international_web/01jwtkzr71z00rp7snm3.jpg) | 命中点是一团爆开的金色光，身后拖一只**黑墨翅膀**：墨是软烟状的拖尾体，里面嵌着金色火星和金丝；墨在人物后方、压在暗背景上 |
+| 终结技翅膀 | [HoYoWiki 视频封面](https://i.ytimg.com/vi/-m-ZPZDJdLM/maxresdefault.jpg) | 整对翅膀是自发光的金，外缘散成金色碎羽和粒子，几乎没有黑；黑只在翅膀后方的烟和画面暗角 |
+| 终结技过场 | [YouTube · Yixuan's Ultimate Technique 封面](https://i.ytimg.com/vi/EYmvDv81r5A/maxresdefault.jpg) | 黑色胶片边框 + 洋红 / 暖白的逆光，人物肩甲是明亮的黄金 |
+| 「墨痕化形」官方立绘 | [PixieWall 转载](https://www.pixiewall.com/content/wallpapers/full/54/pixiewall-yixuan-zenless-zone-zero-ink-materialization-4k-s1265w.jpg) | 掌中一枚**发光的金球**（实体），黑墨从球的外圈甩出、流到袖口；背景是宣纸灰白 + 大块黑墨 + 金粉，三色分区不混 |
+| 「墨迹行云」皮肤翅膀 | [PixieWall 转载](https://www.pixiewall.com/content/wallpapers/full/54/pixiewall-yixuan-trails-of-ink-zenless-zone-zero-wings-4k-q7i84n.jpg) | 黑墨翅膀 + 金色羽缘，墨翅是干笔飞白的大笔触，金是笔触边缘的丝状高光；背景留白 |
+| 青溟鸟 / 日常 | [PixieWall 转载](https://www.pixiewall.com/content/wallpapers/full/54/pixiewall-yixuan-zenless-zone-zero-auric-ink-mage-5k-8nq58h.jpg)、[YouTube · Gameplay & Skill Showcase 封面](https://i.ytimg.com/vi/0MD_LRLm6kQ/maxresdefault.jpg) | 角色本体是白 + 明黄 + 黑三色；青溟鸟是黑墨剪影带金边，飞行时拖黑墨尾 |
+
+### 8.3 分层归纳
+
+| 层 | 仪玄的做法 | 质感 / 明度 |
+|---|---|---|
+| **实体（主体）** | 金色的**光**：光球、光束、翅膀都是自发光的能量体，不是金属，也不是深色剪影 | 画面里最亮；最热处暖白 ≈ `#FFF3C4`，主体金 ≈ `#F2C14E`，边缘琥珀 ≈ `#C8842A`；软边、带细碎金粒和流动的丝状高光；面积小 |
+| **金粒 / 金丝** | 火星、碎羽、流线，从实体往外甩，也嵌在墨里 | 中亮，Add；面积中等；是实体与墨之间的过渡层 |
+| **外层墨** | 黑墨烟、墨翅、墨尾：半透明、运动中的 smoke / 笔触，只在实体**外圈、后方、拖尾**；永远不静止、不贴在实体表面 | 黑 ≈ `#15151A`，核心不透明、边缘羽化；里面必带金火星；面积最大但压在暗背景上 |
+| **玄 / 云** | 深青灰的烟云与画面暗角 | ≈ `#2A2F3A`，最低频的底 |
+| **留白 / 闪帧** | 终结技过场的暖白逆光、宣纸灰白背景 | 只在 2–4 帧或过场里出现 |
+
+整体不发黑的原因：(1) 实体永远发光，黑永远不是实体；(2) 黑只在边缘和运动里出现，而且被金火星打破；(3) 面积最大的墨最透明，面积最小的光最亮；(4) 场景偏暗，金天然最亮。第 (4) 条是和本项目最大的差别：赛道是亮沙地 + 蓝天，半透明黑墨压在亮沙上会变成灰污（第一版已经证明），所以外层墨在本项目要比仪玄更紧、更短、带金边。

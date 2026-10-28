@@ -29,6 +29,7 @@ Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach 
 | `SG_MapEdge` shader graph: Preserve Specular Lighting off, emission no longer multiplied by `_EdgeVisible` (play-test fix) | only RaceMap's edge ribbons use it (the air-wall prefab `反转法线空气墙` also does, but no scene places it) | HDR captures, High Fidelity and Balanced |
 | Buddha collider refitted to the animated model (play-test fix): `Movement/Movement` `colliderCenter` y +0.998, prefab capsule and `RollbackHurtbox` with it, prefab `fotou` 0.2515, `Movement/Respawn` `heightOffset` 3 -> 2.002 | every racer, player and AI, in every scene; the body origin rests 0.998 m lower inside an unchanged world-space capsule | autopilot Solo lap, design-table tests |
 | RaceMap gameplay camera: post AA from `CameraAntialiasingPolicy` (none with MSAA, TAA on Balanced, FXAA on Performant) instead of SMAA | RaceMap only; no pipeline or renderer asset changed | shimmer sweeps, race clips, cost runs |
+| Graphics settings layer (`Assets/Scripts/Rendering/Settings/`, spec in `Graphics.xlsx`): loads the saved choice after the first scene loads and applies it | every scene; with no saved choice or a preset without overrides it changes nothing, otherwise it uses runtime clones of the URP assets and restores `QualitySettings` when play mode ends ([../graphics-settings.md](../graphics-settings.md)) | EditMode tests, play-mode check |
 
 Renderer index 1 in both pipeline assets is reserved for the Deferred keep-alive renderer; no camera may select it
 (`BlackCurtainViewController`'s renderer switching is off in RaceMap).
@@ -657,6 +658,7 @@ PropertySelection already use no post AA).
 
 - **Anti-aliasing**: TAA (Balanced) not checked on skill particles and trails in a full match; NVIDIA FXAA 3.11 would
   need a licence decision before use.
+- **Graphics settings**: spec, model and API only; no menu yet (see [../graphics-settings.md](../graphics-settings.md)).
 
 - **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).
 - **Capture tool** renders without HDR and still assumes the old track height (see How to compare).

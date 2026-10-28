@@ -5,13 +5,14 @@ namespace BuddahGo.Rendering
 {
     // Chooses the gameplay camera's post-process anti-aliasing from the active pipeline asset (quality level).
     //
-    // URP 14 runs SMAA as the first post step, on the HDR scene colour before tonemapping. On RaceMap's sunset sand the
-    // lit ripples are far brighter than 1, so SMAA's colour edge detection flags nearly every ripple and its blends crawl
-    // under motion (measured 1.0-1.4% of pixels flickering by more than 8 levels per frame, about 12x dev). So:
+    // RaceMap's sunset turns the sand's normal-mapped ripples into dense, high-contrast stripes. SMAA treats every ripple
+    // boundary as an edge and its blends crawl as the stripes move (1.0-1.4% of pixels flickering by more than 8 levels
+    // per frame, about 12x dev), wherever it runs: SMAA on the tonemapped image crawled the same. So:
     // - a pipeline that already runs MSAA gets no post AA: MSAA covers geometry edges, SMAA only adds the crawl, and URP
     //   turns TAA off with a warning every second when MSAA is on;
     // - a pipeline without MSAA gets the mode listed for its quality level, else the fallback.
-    // A graphics-settings layer can call Apply with its own choice; the per-level table is the default.
+    // The graphics settings (GraphicsSettingsApplier) set SettingsMode and SettingsSharpening for every camera with this
+    // component; Apply overrides one camera. The per-level table is the default when no settings are applied.
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Camera))]
     public sealed class CameraAntialiasingPolicy : MonoBehaviour
@@ -34,9 +35,29 @@ namespace BuddahGo.Rendering
         [Tooltip("Post AA for a level without an entry, when its pipeline runs without MSAA.")]
         [SerializeField] private AntialiasingMode fallback = AntialiasingMode.FastApproximateAntialiasing;
 
+        private static AntialiasingMode? s_SettingsMode;
+        private static float? s_SettingsSharpening;
+        private static int s_SettingsVersion;
+
+        /// <summary>Post AA chosen in the graphics settings for all policy cameras; null returns to the per-level table.</summary>
+        public static AntialiasingMode? SettingsMode
+        {
+            get => s_SettingsMode;
+            set { s_SettingsMode = value; s_SettingsVersion++; }
+        }
+
+        /// <summary>TAA contrast-adaptive sharpening (0-1) from the graphics settings; null keeps the camera's own value.</summary>
+        public static float? SettingsSharpening
+        {
+            get => s_SettingsSharpening;
+            set { s_SettingsSharpening = value; s_SettingsVersion++; }
+        }
+
         private Camera _camera;
         private UniversalAdditionalCameraData _data;
         private int _appliedLevel = -1;
+        private int _appliedVersion = -1;
+        private float _ownSharpening = -1f;
         private AntialiasingMode? _override;
 
         /// <summary>Post AA the policy picks for the current quality level and pipeline.</summary>
@@ -44,6 +65,8 @@ namespace BuddahGo.Rendering
         {
             if (_override.HasValue)
                 return Sanitize(_override.Value);
+            if (s_SettingsMode.HasValue)
+                return Sanitize(s_SettingsMode.Value);
             string level = QualitySettings.names[QualitySettings.GetQualityLevel()];
             for (int i = 0; i < levels.Length; i++)
                 if (levels[i].qualityLevel == level)
@@ -67,6 +90,8 @@ namespace BuddahGo.Rendering
         private bool PipelineRunsMsaa()
         {
             var asset = UniversalRenderPipeline.asset;
+            if (_camera == null)
+                _camera = GetComponent<Camera>();
             return asset != null && asset.msaaSampleCount > 1 && _camera != null && _camera.allowMSAA;
         }
 
@@ -80,7 +105,7 @@ namespace BuddahGo.Rendering
 
         private void LateUpdate()
         {
-            if (_appliedLevel != QualitySettings.GetQualityLevel())
+            if (_appliedLevel != QualitySettings.GetQualityLevel() || _appliedVersion != s_SettingsVersion)
                 Refresh();
         }
 
@@ -89,9 +114,14 @@ namespace BuddahGo.Rendering
             if (_data == null)
                 return;
             _appliedLevel = QualitySettings.GetQualityLevel();
+            _appliedVersion = s_SettingsVersion;
             var mode = Resolve();
             if (_data.antialiasing != mode)
                 _data.antialiasing = mode;
+            ref var taa = ref _data.taaSettings;
+            if (_ownSharpening < 0f)
+                _ownSharpening = taa.contrastAdaptiveSharpening;
+            taa.contrastAdaptiveSharpening = s_SettingsSharpening ?? _ownSharpening;
         }
     }
 }

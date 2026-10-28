@@ -7,7 +7,7 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 ## 快速上手
 
 ### 策划：改一个数值
-1. 用 Excel 打开 `Assets/Design/Tables/<域>/<域>.xlsx`（Unity 菜单 `Tools/Design Tables/Open Tables Folder`）。六本：`Skill`（技能）、`Movement`（运动与规则）、`AI`、`Match`（比赛流程与赛道）、`UI`（文案、图标、菜单）、`Global`（全局规则、枚举、元信息）。
+1. 用 Excel 打开 `Assets/Design/Tables/<域>/<域>.xlsx`（Unity 菜单 `Tools/Design Tables/Open Tables Folder`）。七本：`Skill`（技能）、`Movement`（运动与规则）、`AI`、`Match`（比赛流程与赛道）、`UI`（文案、图标、菜单）、`Global`（全局规则、枚举、元信息）、`Graphics`（画质设置的预设、选项与档位，见 [rendering/graphics-settings.md](../rendering/graphics-settings.md)）。
 2. 只改第 5 行起的数据行。前四行是表头：`##var` 字段名、`##type` 类型与校验、`##group`（`adv` 高级列、`doc` 只记录不导出）、`##comment` 说明与来源。A 列以 `##` 开头的数据行会被整行忽略，可用来临时屏蔽。
 3. 保存。Unity 在半秒内自动导入（可在菜单 `Auto Import On Save` 关闭，改用 `Import Changed`）。
 4. 看 Console：出错会定位到「工作簿/sheet!单元格」，并且不写任何产物，游戏仍用上一次的数据。报告在 `Assets/Design/Tables/_Reports/validation.md`（菜单 `Open Report`）。

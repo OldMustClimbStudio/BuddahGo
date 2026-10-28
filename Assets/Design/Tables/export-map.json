@@ -168,5 +168,20 @@
   "record": "GlobalRuleRecord",
   "list": "globalRules",
   "tags": "global,balance"
+ },
+ "Graphics/GraphicsPreset": {
+  "record": "GraphicsPresetRecord",
+  "list": "graphicsPresets",
+  "tags": "graphics,info"
+ },
+ "Graphics/GraphicsOption": {
+  "record": "GraphicsOptionRecord",
+  "list": "graphicsOptions",
+  "tags": "graphics,info"
+ },
+ "Graphics/GraphicsOptionLevel": {
+  "record": "GraphicsOptionLevelRecord",
+  "list": "graphicsOptionLevels",
+  "tags": "graphics,info"
  }
 }

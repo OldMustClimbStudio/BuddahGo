@@ -1,0 +1,18 @@
+##var,optionId,sortOrder,groupId,labelKey,restartRequired,dependsOn,consumer,pending
+##type,string#key,int,string,string#ref=UI/Text.key,bool,string,string,string
+##group,,,,,,doc,doc,doc
+##comment,选项 id，snake_case；代码按 id 应用对应的档位列,界面排序（组内）,分组：display / quality / effects / performance,显示名文案 key,改后是否需要重启游戏才生效（目前全部即时生效）,依赖与互斥说明，只记录,应用到哪里，只记录,待实现 / 待验证 / 待决定的事项，只记录。以 ## 屏蔽的行是占位：导入器跳过，运行时和菜单都看不到，实现后取消屏蔽
+,render_scale,0,display,settings.graphics.option.render_scale,false,低于 100% 时 upscaler 生效,管线资产副本 renderScale,
+,upscaler,1,display,settings.graphics.option.upscaler,false,FSR 在 100% 时只做锐化（RCAS），需要 Shader Model 4.5，否则 URP 退回 Auto；URP 会把 95%-105% 吸附为 100%，档位避开这段,管线资产副本 upscalingFilter,FSR 1.0 在打包后的游戏里未验证（URP 可能剥离它需要的变体）
+,anti_aliasing,0,quality,settings.graphics.option.anti_aliasing,false,MSAA 档位不能叠加 TAA（URP 在 MSAA 开启时不运行 TAA），可以叠加 FXAA,管线资产副本 msaaSampleCount + CameraAntialiasingPolicy,TAA（中预设）对技能粒子、拖尾的效果未在完整对局里验证；想换画质更好的 NVIDIA FXAA 3.11 需先确认许可证
+,sharpening,1,quality,settings.graphics.option.sharpening,false,只在 anti_aliasing = taa 时起作用,相机 TAA contrastAdaptiveSharpening,
+,shadow_quality,2,quality,settings.graphics.option.shadow_quality,false,,管线资产副本：主光阴影开关、距离、级联、阴影图分辨率、软阴影,
+,texture_quality,3,quality,settings.graphics.option.texture_quality,false,,QualitySettings.globalTextureMipmapLimit,
+,anisotropic_filtering,4,quality,settings.graphics.option.anisotropic_filtering,false,,QualitySettings.anisotropicFiltering,
+,reflections,0,effects,settings.graphics.option.reflections,false,只影响带 PlanarReflection 组件的平面（RaceMap 的赛道顶面和终点平台）；关闭时用反射探针,PlanarReflection.SettingsScale（平面反射的分辨率比例）,
+,ambient_occlusion,1,effects,settings.graphics.option.ambient_occlusion,false,渲染器没有 SSAO 功能时（低预设）不可选,渲染器数据副本的 SSAO 功能,
+,vfx_quality,2,effects,settings.graphics.option.vfx_quality,false,特效规格尚未定义，目前只广播档位,BuddahGo.Rendering.VfxQuality,只有接口：VfxQuality 广播档位，还没有特效读取它；每档具体改什么，等用户规范化特效规格后设计
+,frame_rate_cap,0,performance,settings.graphics.option.frame_rate_cap,false,必须是网络 tick（60 Hz）的整数倍；只在垂直同步关闭时生效,Application.targetFrameRate,
+,window_mode,2,display,settings.graphics.option.window_mode,false,命令行带 -screen-width / -screen-height / -screen-fullscreen / -window-mode / -popupwindow 时不应用（基准测试工具用）,Screen.SetResolution（FullScreenMode）,
+,resolution,3,display,settings.graphics.option.resolution,false,同 window_mode；窗口模式下是窗口尺寸,Screen.SetResolution,"只有""原生""一档；菜单要的其它分辨率档位应在运行时按 Screen.resolutions 生成，尚未实现"
+,vsync,1,performance,settings.graphics.option.vsync,false,开启时帧率跟显示器刷新率走，frame_rate_cap 不生效,QualitySettings.vSyncCount,2026-10-27 用户试玩看到撕裂，决定默认开启。联机预测平滑在非 60 整数倍的刷新率（如 144 Hz）下是否有 FrameRateLock 担心的规律性抖动，未验证；单机的画面时间线按时间插值，不受影响

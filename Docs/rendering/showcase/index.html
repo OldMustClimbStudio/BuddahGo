@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BuddahGo rendering showcase</title>
+<style>
+  :root { --bg:#141414; --fg:#e8e8e8; --muted:#9a9a9a; --card:#1e1e1e; --accent:#d9a441; }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--fg); font:15px/1.45 system-ui, sans-serif; }
+  h1 { font-weight:600; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 24px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(560px, 1fr)); gap:20px; }
+  figure { margin:0; background:var(--card); border-radius:8px; overflow:hidden; }
+  img { display:block; width:100%; height:auto; }
+  figcaption { padding:12px 16px 16px; }
+  h3 { margin:0 0 6px; font-size:16px; color:var(--accent); font-family:ui-monospace, monospace; }
+  .caption { margin:0 0 8px; }
+  .meta, .note { margin:0 0 4px; color:var(--muted); font-size:13px; }
+  a { color:#8ab4f8; }
+  @media (max-width: 640px) { body { padding:16px; } .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<h1>BuddahGo rendering showcase</h1>
+<p class="sub">One image per effect from a fixed camera in <code>Assets/Showcase/Showcase.unity</code>, part of the local-only showcase project that is not in the repository. Re-rendering (<em>Showcase &gt; Render All</em>) and rebuilding this page (<code>build_gallery.py</code>) need that local copy. See <a href="README.md">README.md</a> for integration notes.</p>
+<p class="sub"><a href="contact_sheet.jpg">Contact sheet (all images on one JPEG)</a></p>
+<div class="grid">
+      <figure>
+        <a href="01_baseline_urp_lit.jpg"><img src="01_baseline_urp_lit.jpg" alt="01_baseline_urp_lit" loading="lazy"></a>
+        <figcaption>
+          <h3>01_baseline_urp_lit</h3>
+          <p class="caption">Stock URP Lit through the project's own pipeline asset: trilight ambient, no fog, SampleSceneProfile post.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@14.0">Unity URP 14 Lit</a><br><strong>License:</strong> Unity Companion</p>
+          <p class="note">Reference: the project's pipeline and stock Lit as of 2026-10-24, before the RaceMap SSR and shadow changes.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="02_lighting_pass.jpg"><img src="02_lighting_pass.jpg" alt="02_lighting_pass" loading="lazy"></a>
+        <figcaption>
+          <h3>02_lighting_pass</h3>
+          <p class="caption">No shader code: skybox ambient instead of trilight, brighter sun with ACES tonemapping, distance fog, re-rendered reflection probe.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@14.0">Unity URP (Volume + RenderSettings only)</a><br><strong>License:</strong> Unity Companion</p>
+          <p class="note">Zero shader cost: ACES tonemap and exposure run in the existing uber post pass; exp2 fog is a vertex term. Requires a GI rebake when ambient changes.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="03_volumetric_light.jpg"><img src="03_volumetric_light.jpg" alt="03_volumetric_light" loading="lazy"></a>
+        <figcaption>
+          <h3>03_volumetric_light</h3>
+          <p class="caption">CristianQiu volumetric fog, looking back along the pillars toward the sun: the air itself is lit, and the pillars cut shadowed shafts through it.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/CristianQiu/Unity-URP-Volumetric-Light">CristianQiu/Unity-URP-Volumetric-Light</a><br><strong>License:</strong> MIT</p>
+          <p class="note">Half-res raymarch + depth-aware blur/upsample, about 1-2 ms at 1080p on a desktop GPU with the main light only. 2022.3+ and Unity 6; Forward/Forward+/Deferred.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="04_ssr_off.jpg"><img src="04_ssr_off.jpg" alt="04_ssr_off" loading="lazy"></a>
+        <figcaption>
+          <h3>04_ssr_off</h3>
+          <p class="caption">Low angle, screen-space reflections OFF: the marble only reflects the baked probe.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/jiaozi158/UnitySSReflectionURP">jiaozi158/UnitySSReflectionURP</a><br><strong>License:</strong> MIT</p>
+          <p class="note">Screen-space ray march on the depth buffer; cost scales with max steps (about 1-3 ms full-res). Only reflects what is on screen; Unity 2022.2+/URP 14 and up.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="04_ssr_on.jpg"><img src="04_ssr_on.jpg" alt="04_ssr_on" loading="lazy"></a>
+        <figcaption>
+          <h3>04_ssr_on</h3>
+          <p class="caption">jiaozi158 SSR: the marble reflects the pillars, spheres and head that are on screen, sharp near and blurred far.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/jiaozi158/UnitySSReflectionURP">jiaozi158/UnitySSReflectionURP</a><br><strong>License:</strong> MIT</p>
+          <p class="note">Screen-space ray march on the depth buffer; cost scales with max steps (about 1-3 ms full-res). Only reflects what is on screen; Unity 2022.2+/URP 14 and up.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="05_planar_reflection.jpg"><img src="05_planar_reflection.jpg" alt="05_planar_reflection" loading="lazy"></a>
+        <figcaption>
+          <h3>05_planar_reflection</h3>
+          <p class="caption">NiloCat planar reflection: a mirror of the whole floor plane, also shows objects SSR cannot (off-screen, under-side), no roughness blur.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/ColinLeung-NiloCat/UnityURP-MobileScreenSpacePlanarReflection">ColinLeung-NiloCat/UnityURP-MobileScreenSpacePlanarReflection</a><br><strong>License:</strong> MIT</p>
+          <p class="note">Compute-shader planar projection into a 512-1080 px texture, under 1 ms on desktop; one horizontal plane only, no roughness blur. Written for URP 10; needed a URP 14 texture-binding patch (see README).</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="06_ssgi_off.jpg"><img src="06_ssgi_off.jpg" alt="06_ssgi_off" loading="lazy"></a>
+        <figcaption>
+          <h3>06_ssgi_off</h3>
+          <p class="caption">Corner without screen-space GI: ambient comes from the sky only, the red wall bounces nothing onto the white floor.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/jiaozi158/UnitySSGIURP">jiaozi158/UnitySSGIURP</a><br><strong>License:</strong> MIT</p>
+          <p class="note">Screen-space diffuse ray march + temporal denoise, the heaviest effect here (several ms at 1080p, worse at full res). Needs Unity 2022.3.35+; early release with open issues.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="06_ssgi_on.jpg"><img src="06_ssgi_on.jpg" alt="06_ssgi_on" loading="lazy"></a>
+        <figcaption>
+          <h3>06_ssgi_on</h3>
+          <p class="caption">jiaozi158 SSGI: dynamic red bleed on the white floor and head computed from the screen every frame.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/jiaozi158/UnitySSGIURP">jiaozi158/UnitySSGIURP</a><br><strong>License:</strong> MIT</p>
+          <p class="note">Screen-space diffuse ray march + temporal denoise, the heaviest effect here (several ms at 1080p, worse at full res). Needs Unity 2022.3.35+; early release with open issues.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="07_fog_volume.jpg"><img src="07_fog_volume.jpg" alt="07_fog_volume" loading="lazy"></a>
+        <figcaption>
+          <h3>07_fog_volume</h3>
+          <p class="caption">sinnwrig fog volume: a local raymarched fog box hugging the floor, lit by the sun, unlike the global distance fog.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/sinnwrig/URP-Fog-Volumes">sinnwrig/URP-Fog-Volumes</a><br><strong>License:</strong> MIT</p>
+          <p class="note">Per-volume raymarch at half/quarter res with depth-aware upsample; cost depends on volume screen coverage and sample count. Artistic, not physically based; temporal mode needs play mode.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="08_pbr_stock_lit.jpg"><img src="08_pbr_stock_lit.jpg" alt="08_pbr_stock_lit" loading="lazy"></a>
+        <figcaption>
+          <h3>08_pbr_stock_lit</h3>
+          <p class="caption">Sphere rows (roughness 0 to 1, dielectric front, gold back) with stock URP Lit: SSAO darkens diffuse and specular equally, the metal crease keeps its mirror reflection in the corner.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/Cyanilux/URP_ShaderCodeTemplates">Showcase/Lit (project code; references Cyanilux CC0 templates and URP Lit)</a><br><strong>License:</strong> CC0 / project</p>
+          <p class="note">Same cost as URP Lit plus a few ALU for specular occlusion and multi-bounce AO. Shares URP's ShadowCaster/DepthOnly/DepthNormals/Meta passes.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="08_pbr_showcase_lit.jpg"><img src="08_pbr_showcase_lit.jpg" alt="08_pbr_showcase_lit" loading="lazy"></a>
+        <figcaption>
+          <h3>08_pbr_showcase_lit</h3>
+          <p class="caption">Same shot with the hand-written Showcase/Lit: identical direct lighting, but AO now occludes reflections (Lagarde specular occlusion) and bounces albedo colour (multi-bounce AO) in the crease and under the spheres.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/Cyanilux/URP_ShaderCodeTemplates">Showcase/Lit (project code; references Cyanilux CC0 templates and URP Lit)</a><br><strong>License:</strong> CC0 / project</p>
+          <p class="note">Same cost as URP Lit plus a few ALU for specular occlusion and multi-bounce AO. Shares URP's ShadowCaster/DepthOnly/DepthNormals/Meta passes.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="09_skin_default_graph.jpg"><img src="09_skin_default_graph.jpg" alt="09_skin_default_graph" loading="lazy"></a>
+        <figcaption>
+          <h3>09_skin_default_graph</h3>
+          <p class="caption">Head close-up with the current DefaultSkin Shader Graph: plain Lit, the light-to-shadow terminator on the granite is a hard Lambert edge.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/wingstone/PreintegratedSubsurfaceScattering">Showcase/SkinSSS (project code; Penner pre-integrated SSS)</a><br><strong>License:</strong> project (technique reference only)</p>
+          <p class="note">One 2D LUT fetch per channel plus derivative-based curvature; cheaper than screen-space SSS, no blur pass. LUT baked by an editor script.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="09_skin_sss.jpg"><img src="09_skin_sss.jpg" alt="09_skin_sss" loading="lazy"></a>
+        <figcaption>
+          <h3>09_skin_sss</h3>
+          <p class="caption">Same shot with hand-written pre-integrated subsurface scattering: a curvature LUT softens and warms the terminator, as light would travel inside translucent stone.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/wingstone/PreintegratedSubsurfaceScattering">Showcase/SkinSSS (project code; Penner pre-integrated SSS)</a><br><strong>License:</strong> project (technique reference only)</p>
+          <p class="note">One 2D LUT fetch per channel plus derivative-based curvature; cheaper than screen-space SSS, no blur pass. LUT baked by an editor script.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="10_water_shadergraph.jpg"><img src="10_water_shadergraph.jpg" alt="10_water_shadergraph" loading="lazy"></a>
+        <figcaption>
+          <h3>10_water_shadergraph</h3>
+          <p class="caption">Pool with the project's Water Shader Graph (Oasis material).</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/ZloyKorovanovich/Oceana-URP">Showcase/Water (project code) vs Water.shadergraph</a><br><strong>License:</strong> project (Oceana read for reference only, Apache-2.0)</p>
+          <p class="note">Two normal fetches, one depth and one opaque-texture fetch; needs Depth + Opaque texture (already on). Single pass, no planar camera.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="10_water_hlsl.jpg"><img src="10_water_hlsl.jpg" alt="10_water_hlsl" loading="lazy"></a>
+        <figcaption>
+          <h3>10_water_hlsl</h3>
+          <p class="caption">Hand-written HLSL water: depth-based colour, two scrolling normal layers, Fresnel reflection, shoreline foam.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/ZloyKorovanovich/Oceana-URP">Showcase/Water (project code) vs Water.shadergraph</a><br><strong>License:</strong> project (Oceana read for reference only, Apache-2.0)</p>
+          <p class="note">Two normal fetches, one depth and one opaque-texture fetch; needs Depth + Opaque texture (already on). Single pass, no planar camera.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="11_stylized_counterexample.jpg"><img src="11_stylized_counterexample.jpg" alt="11_stylized_counterexample" loading="lazy"></a>
+        <figcaption>
+          <h3>11_stylized_counterexample</h3>
+          <p class="caption">Counter-example (GPL, demo only): Soung2279 BreathHalo on the prop; a flat, pulsing rim glow that ignores the scene's light.</p>
+          <p class="meta"><strong>Source:</strong> <a href="https://github.com/Soung2279/Unity-Shaders-Collection">Soung2279/Unity-Shaders-Collection (BreathHalo)</a><br><strong>License:</strong> GPL-3.0 - DEMO ONLY, REMOVE BEFORE SHIP</p>
+          <p class="note">Unlit additive pulse, negligible cost. Kept only to show the stylized direction next to the realistic one; GPL code must not ship in a closed build.</p>
+        </figcaption>
+      </figure>
+      <figure>
+        <a href="13_all_realistic_on.jpg"><img src="13_all_realistic_on.jpg" alt="13_all_realistic_on" loading="lazy"></a>
+        <figcaption>
+          <h3>13_all_realistic_on</h3>
+          <p class="caption">Everything realistic together: lighting pass + volumetric light + SSR + SSGI + fog volume + Showcase_Lit + SSS + HLSL water.</p>
+          <p class="meta"><strong>Source:</strong> All realistic effects together<br><strong>License:</strong> see above</p>
+          <p class="note">Sum of 03 + 04 + 06 + 07 + project shaders; SSGI dominates.</p>
+        </figcaption>
+      </figure>
+</div>
+</body>
+</html>

@@ -10,8 +10,6 @@
       "Push",
       "SkillSelectionRule",
       "DefaultLoadout",
-      "ComboInput",
-      "ComboBinding",
       "Obsession",
       "Yuanqi",
       "YuanqiEffectFrostLock",
@@ -137,14 +135,6 @@
       "info"
     ],
     "Skill/DefaultLoadout": [
-      "skill",
-      "info"
-    ],
-    "Skill/ComboInput": [
-      "skill",
-      "balance"
-    ],
-    "Skill/ComboBinding": [
       "skill",
       "info"
     ],

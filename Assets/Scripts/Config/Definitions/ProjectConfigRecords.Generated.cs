@@ -124,30 +124,6 @@ public class PushRecord
     [Tooltip("charged：projectileColliderSize；basic 的 hitbox 尺寸见 SkillConstant")] public Vector3 colliderSize = Vector3.zero;
 }
 
-/// <summary>Skill.xlsx / ComboInput</summary>
-[Serializable]
-public class ComboInputRecord
-{
-    /// <summary>string#key (key)</summary>
-    public string profileId = string.Empty;
-    /// <summary>float#range=0.05,2</summary>
-    [Tooltip("连续按键最大间隔，超时清空缓冲（ComboSkillInput.stepWindowSeconds）")] public float inputWindowSeconds = 0f;
-    /// <summary>int#range=1,16</summary>
-    [Tooltip("搓招输入缓冲长度（ComboSkillInput.maxBuffer）")] public int maxBuffer = 0;
-}
-
-/// <summary>Skill.xlsx / ComboBinding</summary>
-[Serializable]
-public class ComboBindingRecord
-{
-    /// <summary>int#key (key)</summary>
-    [Tooltip("技能槽 0-2")] public int slotIndex = 0;
-    /// <summary>string</summary>
-    public string name = string.Empty;
-    /// <summary>list,enum:ComboToken#sep=,</summary>
-    [Tooltip("按键序列 W / Up")] public List<string> sequence = new List<string>();
-}
-
 /// <summary>Skill.xlsx / Obsession</summary>
 [Serializable]
 public class ObsessionRecord
@@ -408,18 +384,14 @@ public class SkillDifficultyRecord
     public string difficulty = string.Empty;
     /// <summary>float</summary>
     public float riskWeight = 0f;
-    /// <summary>float</summary>
-    public float severeStopProbability = 0f;
-    /// <summary>float</summary>
-    public float mildStopProbability = 0f;
+    /// <summary>float#range=0,1.01</summary>
+    [Tooltip("停手阈值：当前反噬概率 ≥ 此值就不放任何技能（统一反噬后所有技能同一阈值；1.01 = 从不停手）（AISkillDecision）。Easy 1.01 / Normal 0.7 / Hard 0.45 沿用原 severeStopProbability；建议（实现采用）默认值")] public float stopProbability = 0f;
     /// <summary>float</summary>
     public float decisionSeconds = 0f;
     /// <summary>float</summary>
     public float reactionMinSeconds = 0f;
     /// <summary>float</summary>
     public float reactionMaxSeconds = 0f;
-    /// <summary>float</summary>
-    public float keyMistakeProbability = 0f;
     /// <summary>float</summary>
     public float aimToleranceDegrees = 0f;
     /// <summary>float</summary>
@@ -468,6 +440,8 @@ public class PersonalityRecord
     public float impairedTargetMultiplier = 0f;
     /// <summary>int#range=0,6</summary>
     public int handsShots = 0;
+    /// <summary>float#range=0,1.5</summary>
+    [Tooltip("缘起倾向：起手 / 跟进的价值倍率再乘它，0 = 不做缘起决策（AISkillCaster.Decide）。建议（实现采用）默认值 1")] public float yuanqiAffinity = 0f;
 }
 
 /// <summary>AI.xlsx / PersonalitySituationBias</summary>
@@ -488,8 +462,6 @@ public class SkillOpportunityRecord
 {
     /// <summary>string#key#ref=Skill/Skill.skillId (key)</summary>
     public string skillId = string.Empty;
-    /// <summary>float#range=0,1</summary>
-    public float backlashSeverity = 0f;
     /// <summary>bool</summary>
     [Tooltip("全局效果可见时不叠加")] public bool blockWhenGlobalVisible = false;
     /// <summary>float</summary>
@@ -540,10 +512,6 @@ public class SkillTuningRecord
     [Tooltip("SkillPersonalities.json Tuning")] public float straightCurvature = 0f;
     /// <summary>float</summary>
     [Tooltip("校验范围 Straight-1；SkillPersonalities.json Tuning")] public float cornerCurvature = 0f;
-    /// <summary>float#range=0.05,0.3</summary>
-    [Tooltip("SkillPersonalities.json Tuning")] public float keyMinSeconds = 0f;
-    /// <summary>float</summary>
-    [Tooltip("校验范围 Min-0.34 (< combo_input_window)；SkillPersonalities.json Tuning")] public float keyMaxSeconds = 0f;
     /// <summary>float#range=0.1,5</summary>
     [Tooltip("SkillPersonalities.json Tuning")] public float aimHorizonSeconds = 0f;
     /// <summary>float#range=0.01,1</summary>
@@ -570,16 +538,24 @@ public class SkillTuningRecord
     public float targetBonusPackCentrePerNeighbour = 0f;
     /// <summary>int</summary>
     [Tooltip("AISkillDecision.cs:59")] public int packMinNeighbours = 0;
-    /// <summary>float</summary>
-    [Tooltip("AISkillDecision.cs:146")] public float severeSeverityThreshold = 0f;
+    /// <summary>float#range=0,3</summary>
+    [Tooltip("统一反噬的代价系数：风险项 = riskWeight × 反噬概率 × backfireCost（AISkillDecision.Utility）；反噬对每个技能一样，不再按技能分严重度。建议（实现采用）默认值 1")] public float backfireCost = 0f;
     /// <summary>float</summary>
     [Tooltip("AISkillDecision.cs:158")] public float maxWindowSeconds = 0f;
     /// <summary>float</summary>
     [Tooltip("AISkillDecision.cs:158")] public float minRelativeSpeed = 0f;
     /// <summary>float</summary>
     [Tooltip("AISkillCaster.cs:159")] public float maxElapsedSeconds = 0f;
-    /// <summary>int</summary>
-    [Tooltip("AISkillCommitment.cs:38")] public int maxComboRetries = 0;
+    /// <summary>float#range=0,3</summary>
+    [Tooltip("缘起起手：本槽是某对的先手、另一招冷却来得及时，价值乘它（再乘人格 yuanqiAffinity）（AISkillCaster.Decide / AIYuanqiPlanner.IsSetup）。建议（实现采用）默认值 1.2")] public float yuanqiSetupMultiplier = 0f;
+    /// <summary>float#range=0,1</summary>
+    [Tooltip("缘起跟进：另一招生效中时本槽的机会分下限 max(自身, 此值)（AISkillCaster.Decide / AIYuanqiPlanner.TryGetFollowUp）。建议（实现采用）默认值 0.8")] public float yuanqiFollowUpScore = 0f;
+    /// <summary>float#range=0,3</summary>
+    [Tooltip("缘起跟进：价值乘它（再乘人格 yuanqiAffinity）（AISkillCaster.Decide）。建议（实现采用）默认值 1.5")] public float yuanqiFollowUpMultiplier = 0f;
+    /// <summary>float#range=0.05,4</summary>
+    [Tooltip("缘起跟进时的节奏抽样秒数（代替人格 tempoSeconds，耐心按 0，否则等不到窗口）（AISkillCaster.Decide）。建议（实现采用）默认值 0.3")] public float yuanqiFollowUpTempoSeconds = 0f;
+    /// <summary>float#range=0,5</summary>
+    [Tooltip("缘起跟进：先放的那招会被消耗时晚打——只有它剩余 ≤ 前摇 + 此值才成为跟进候选；不消耗时立刻成为候选（AIYuanqiPlanner.TryGetFollowUp）。建议（实现采用）默认值 0.6")] public float yuanqiLateWindowSeconds = 0f;
 }
 
 /// <summary>AI.xlsx / Roster</summary>

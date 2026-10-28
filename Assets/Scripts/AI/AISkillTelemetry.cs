@@ -7,7 +7,7 @@ using UnityEngine;
 namespace BuddahGo.AI
 {
     // Counters, decision observations and per-frame work accounting for one AI skill caster. Pure bookkeeping:
-    // nothing here decides, injects or casts. Harnesses read it and the verbose log mirrors the observations.
+    // nothing here decides or casts. Harnesses read it and the verbose log mirrors the observations.
     public sealed class AISkillTelemetry
     {
         [Serializable]
@@ -27,12 +27,11 @@ namespace BuddahGo.AI
         public int Executed { get; internal set; }
         public int Backlashes { get; internal set; }
         public int Cancelled { get; internal set; }
-        public int Keys { get; internal set; }
         public int BuffShots { get; internal set; }
 
         // AI.Skill work of every caster in the current rendered frame; FishNet may run several ticks per frame.
         public static long WorkTicksThisFrame => _workFrame == Time.frameCount ? _workTicksThisFrame : 0;
-        // Portion of WorkTicksThisFrame spent inside AI.Skill.Input (key injection, server pushes, spawns).
+        // Portion of WorkTicksThisFrame spent inside AI.Skill.Input (cast requests, server pushes, spawns).
         public static long InputTicksThisFrame => _workFrame == Time.frameCount ? _inputTicksThisFrame : 0;
         private static long _workTicksThisFrame, _inputTicksThisFrame;
         private static int _workFrame = -1;
@@ -55,6 +54,7 @@ namespace BuddahGo.AI
             _inputTicksThisFrame += inputTicks;
         }
 
+        // Kinds: candidate, decision, yuanqi (reason setup / follow-up), cast, cancel, aim-push.
         internal void Emit(string kind, string reason, int slot, AISkillSituation situation, int fallbackTarget,
             AISkillOpportunity opportunity = default, float utility = 0f, bool backlash = false)
         {

@@ -12,7 +12,6 @@ namespace BuddahGo.DesignTables
         {
             CheckpointCountMatchesTrack(set, issues);
             RosterMatchesPersonalities(set, issues);
-            KeyMaxBelowComboWindow(set, issues);
             DefaultLoadoutUsesSelectableSkills(set, issues);
             YuanqiRowsAreFilled(set, issues);
             YuanqiPairsAreValid(set, issues);
@@ -174,30 +173,6 @@ namespace BuddahGo.DesignTables
             if (roster == null || personalities == null) return;
             if (roster.Rows.Count != personalities.Rows.Count)
                 issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "AI.xlsx/Roster", Message = "Roster has " + roster.Rows.Count + " slots but Personality has " + personalities.Rows.Count + " rows; AISkillCatalog requires them to match RacerId.MaxAI (5)" });
-        }
-
-        private static void KeyMaxBelowComboWindow(DesignTableSet set, List<Issue> issues)
-        {
-            // The AI's key-hold maximum must stay inside the player's combo input window.
-            float keyMax = -1f, window = -1f;
-            DesignSheet tuning = set.Find("AI", "SkillTuning");
-            if (tuning != null && tuning.FindColumn("keyMaxSeconds") != null && tuning.Rows.Count > 0)
-                keyMax = ValueConverter.ToFloat(tuning.Cell(tuning.Rows[0], tuning.FindColumn("keyMaxSeconds")));
-            else
-            {
-                DesignSheet global = set.Find("AI", "SkillGlobal");
-                if (global != null)
-                {
-                    ColumnSpec k = global.FindColumn("key"), v = global.FindColumn("value");
-                    foreach (DataRow row in global.Rows)
-                        if (global.Cell(row, k).Trim() == "KeyMaxSeconds") keyMax = ValueConverter.ToFloat(global.Cell(row, v));
-                }
-            }
-            DesignSheet combo = set.Find("Skill", "ComboInput");
-            if (combo != null && combo.FindColumn("inputWindowSeconds") != null && combo.Rows.Count > 0)
-                window = ValueConverter.ToFloat(combo.Cell(combo.Rows[0], combo.FindColumn("inputWindowSeconds")));
-            if (keyMax >= 0f && window >= 0f && keyMax >= window)
-                issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "AI.xlsx/SkillTuning", Message = "keyMaxSeconds " + keyMax + " must be below Skill/ComboInput.inputWindowSeconds " + window });
         }
 
         private static void DefaultLoadoutUsesSelectableSkills(DesignTableSet set, List<Issue> issues)

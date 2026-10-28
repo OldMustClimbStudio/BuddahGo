@@ -7,8 +7,8 @@
 ,Player,Movement,<Keyboard>/space,,已绑定，代码不读,PlayerBuddahInputSource.cs:45-48 硬编码 A/D
 ,Player,HandRotation,<Keyboard>/leftArrow,,回退,无鼠标时的回退；主瞄准是光标投到地面的方向，转速上限 Push.basic.rotationSpeedDegPerSec（BuddahHandControl）
 ,Player,HandRotation,<Keyboard>/rightArrow,,回退,无鼠标时的回退；主瞄准是光标投到地面的方向，转速上限 Push.basic.rotationSpeedDegPerSec（BuddahHandControl）
-,Player,HandPush,<Keyboard>/w,,废弃内容，后续可能再调整,W=左手（BuddahHandControl.TryResolvePushHand）；ComboSkillInput 的 AI 搓招 token 仍是 W / Up
-,Player,HandPush,<Keyboard>/upArrow,,废弃内容，后续可能再调整,↑=右手（BuddahHandControl.TryResolvePushHand）；ComboSkillInput 的 AI 搓招 token 仍是 W / Up
+,Player,HandPush,<Keyboard>/w,,废弃内容，后续可能再调整,W=左手（BuddahHandControl.TryResolvePushHand）；搓招已全部退役（A7），W / ↑ 只剩推掌
+,Player,HandPush,<Keyboard>/upArrow,,废弃内容，后续可能再调整,↑=右手（BuddahHandControl.TryResolvePushHand）；搓招已全部退役（A7），W / ↑ 只剩推掌
 ,Player,HandPush,<Mouse>/leftButton,,主键位,左手推掌（BuddahHandControl.TryResolvePushHand）
 ,Player,HandPush,<Mouse>/rightButton,,主键位,右手推掌（BuddahHandControl.TryResolvePushHand）
 ,Player,SkillSlot1,<Keyboard>/q,,主键位,技能槽 0（SkillExecutor.OnSkillKeyPressed）

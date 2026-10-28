@@ -12,7 +12,8 @@ namespace BuddahGo.AI
         public float Scale, PreviousSpeed, ImpairedSecondsLeft, InvertSecondsLeft;
         public float StraightFraction, StraightSeconds, CornerFraction, CornerSeconds;
         public float LastCastSeconds;
-        public bool IsImpaired(float speedDrop) => Rooted || Inverted || Slowed || Scale < .99f
+        // Scale is informational only: after the unified backfire nothing shrinks a racer (A7).
+        public bool IsImpaired(float speedDrop) => Rooted || Inverted || Slowed
             || (PreviousSpeed > 5f && Speed < PreviousSpeed * (1f - speedDrop));
     }
 
@@ -138,19 +139,20 @@ namespace BuddahGo.AI
             return best;
         }
 
+        // Unified backfire (A7, 建议（实现采用）): one stop threshold and one cost for every skill, since the penalty
+        // (10 s lock, ×0.85 max speed, ×0.8 obsession) does not depend on which skill backfired. valueMultiplier is the
+        // 缘起 setup / follow-up bonus (AISkillCaster.Decide); it scales the value, never the risk.
         public static float Utility(AISkillKind kind, AISkillOpportunity opportunity, AISkillSituation situation,
             AISkillPersonality personality, AISkillDifficulty difficulty, AISkillTuning tuning, float backlashProbability,
-            float requiredSeconds, float opportunityAge, float noise = 1f)
+            float requiredSeconds, float opportunityAge, float noise = 1f, float valueMultiplier = 1f)
         {
             if (opportunity.Score <= 0f || opportunity.ValidSeconds - opportunityAge < requiredSeconds) return float.NegativeInfinity;
-            float severity = tuning.BacklashSeverity[(int)kind];
-            if (backlashProbability >= (severity >= tuning.SevereSeverityThreshold ? difficulty.SevereStopProbability : difficulty.MildStopProbability))
-                return float.NegativeInfinity;
+            if (backlashProbability >= difficulty.StopProbability) return float.NegativeInfinity;
             float value = personality.Weights[(int)kind] * opportunity.Score * personality.SituationBias[(int)situation] * noise;
             if ((kind == AISkillKind.Acceleration || kind == AISkillKind.Hands) && opportunity.ImpairedTarget
                 && opportunity.StateSeconds - opportunityAge >= requiredSeconds)
                 value *= personality.ImpairedTargetMultiplier;
-            return value - difficulty.RiskWeight * backlashProbability * severity;
+            return value * valueMultiplier - difficulty.RiskWeight * backlashProbability * tuning.BackfireCost;
         }
 
         public static float CastProbability(float utility, float patience, float elapsed, float tempo)

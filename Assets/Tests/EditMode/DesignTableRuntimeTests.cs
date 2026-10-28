@@ -106,7 +106,6 @@ namespace BuddahGo.Tests
             AssertMap(T("AIDifficultyProfile"), typeof(DrivingTierRecord), Fields(typeof(DrivingTierRecord), "difficulty", "rolloutTail"));
             AssertMap(T("AISkillDifficulty"), typeof(SkillDifficultyRecord), Fields(typeof(SkillDifficultyRecord)));
             AssertMap(T("AISkillTuning"), typeof(SkillTuningRecord), Fields(typeof(SkillTuningRecord), "profileId"));
-            AssertMap(T("ComboSkillInput"), typeof(ComboInputRecord), "inputWindowSeconds=stepWindowSeconds", "maxBuffer");
             AssertMap(T("MatchSpawnManager"), typeof(ModeRuleRecord), SteamMultiplayer.Network.Match.MatchSpawnManager.TrainingDummyModeRuleMap);
             AssertMap(typeof(YuanqiAction), typeof(YuanqiRecord), SkillDatabase.YuanqiRowMap);
 
@@ -144,7 +143,6 @@ namespace BuddahGo.Tests
                 Assert.IsTrue(skills.TryGetObsessionGain(row.skillId, out float gain), row.skillId);
                 Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", row.skillId, "obsessionGain"), gain, row.skillId + ".obsessionGain");
             }
-            Assert.AreEqual(Cell(set, "Skill", "ComboInput", "profileId", "default", "inputWindowSeconds"), DesignTableOverlay.Single(main.comboInputs, null).inputWindowSeconds);
 
             // Skill SOs: apply onto copies so the assets on disk stay untouched.
             SkillDatabase source = AssetDatabase.LoadAssetAtPath<SkillDatabase>(SkillDatabaseAsset);

@@ -138,7 +138,6 @@ public class SkillExecutor : NetworkBehaviour
     private const string BackfireAnimatorTriggerName = "IsAnti";
 
     [Header("Refs")]
-    [SerializeField] private ComboSkillInput comboInput;
     [SerializeField] private SkillLoadout loadout;
     [SerializeField] private SkillDatabase database;
     [SerializeField] private SkillFeelRouter feelRouter;
@@ -175,7 +174,8 @@ public class SkillExecutor : NetworkBehaviour
     /// <summary>Every peer: this racer's freeze / burst presentation state (null before the network starts).</summary>
     public RacerSkillPresentationState PresentationState => _presentationState;
 
-    // Owner-only skill keys (Q/E/R and 1/2/3). Player combos are retired; AI still casts through ComboSkillInput.
+    // Owner-only skill keys (Q/E/R and 1/2/3). Combos are retired for everyone (A7): server AI calls CastSlotServer
+    // directly, the same authority pipeline the owner RPC reaches.
     private InputSystem_Actions _skillKeyInput;
     private bool _skillKeysBound;
 
@@ -221,17 +221,12 @@ public class SkillExecutor : NetworkBehaviour
     {
         base.OnStartServer();
         ResolveObsessionFigure();
-        if (comboInput == null) comboInput = GetComponent<ComboSkillInput>();
         if (loadout == null) loadout = GetComponent<SkillLoadout>();
-        // The only AI cast route until A7: AISkillCaster injects combo keys, the recognizer raises the slot here.
-        if (RacerAuthority.IsServerAI(this) && comboInput != null)
-            comboInput.OnSkillSlotTriggered += OnSlotTriggeredByCombo;
         SetUpYuanqiServer();
     }
 
     public override void OnStopServer()
     {
-        if (comboInput != null) comboInput.OnSkillSlotTriggered -= OnSlotTriggeredByCombo;
         DropPendingCastServer(SkillPendingCancelSource.Teardown);
         TearDownYuanqiServer();
         base.OnStopServer();
@@ -363,13 +358,6 @@ public class SkillExecutor : NetworkBehaviour
         RequestCast(slotIndex);
     }
 
-    // Server AI only. Player combos are retired: a human's recognizer is no longer subscribed.
-    private void OnSlotTriggeredByCombo(int slotIndex, string comboName)
-    {
-        if (RacerAuthority.IsServerAI(this)) { CastSlotServer(slotIndex); return; }
-        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor] Combo '{comboName}' (slot {slotIndex}) ignored: player combos are retired.");
-    }
-
     public void RequestCast(int slotIndex)
     {
         if (!IsOwner || IsRaceGameplayBlocked()) return;
@@ -416,7 +404,6 @@ public class SkillExecutor : NetworkBehaviour
     {
         ResetYuanqiStateServer("server-controlled reset");
         CancelPendingCastServer();
-        comboInput?.ClearCombo();
         GetComponent<BuddahHandControl>()?.ResetSkillInputAndEffects();
         GetComponent<SkillPerceptionState>()?.Clear();
         if (resetMovementModifiers)
@@ -503,6 +490,17 @@ public class SkillExecutor : NetworkBehaviour
     public bool IsSlotReadyServer(int slotIndex) => IsServerInitialized
         && slotIndex >= 0 && slotIndex < SkillLoadout.SlotCount
         && EvaluateCastGate(slotIndex, Time.time) == SkillCastBlock.None;
+
+    /// <summary>
+    /// Server: which gate would block a cast of this slot right now (None = it would be accepted). The same gate
+    /// TryResolveCast applies, exposed so the AI can log why a request was refused; it changes no state. An invalid
+    /// slot or a non-server peer reports Pending (never Cooldown, which would suggest a readiness time).
+    /// </summary>
+    internal SkillCastBlock ResolveCastBlockServer(int slotIndex)
+    {
+        if (!IsServerInitialized || slotIndex < 0 || slotIndex >= SkillLoadout.SlotCount) return SkillCastBlock.Pending;
+        return EvaluateCastGate(slotIndex, Time.time);
+    }
 
     /// <summary>
     /// Server: cancels the confirming cast (emits Cancelled; the spent cooldown is not refunded). A confirming backfire
@@ -949,7 +947,6 @@ public class SkillExecutor : NetworkBehaviour
         bool interrupted = DropPendingCastServer(SkillPendingCancelSource.Freeze);
         if (interrupted && interruptedSlot >= 0 && interruptedSlot < _nextReadyTime.Length)
             _nextReadyTime[interruptedSlot] = Time.time;
-        if (RacerAuthority.IsServerAI(this)) comboInput?.ClearCombo();
         GetComponent<BuddahHandControl>()?.CancelPendingServerInput();
     }
 

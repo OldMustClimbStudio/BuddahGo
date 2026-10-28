@@ -68,14 +68,7 @@ namespace BuddahGo.AI
                 var modifiers = e.Motor.CurrentSkillModifiers;
                 float speed = new Vector2(e.Body.velocity.x, e.Body.velocity.z).magnitude;
                 var route = _line.SampleDistance(e.Progress.distanceOnTrack);
-                bool accelerating = modifiers.AccelUntilTick > tick && modifiers.AccelExtraForwardForce > 0f
-                    || modifiers.PostRootAccelUntilTick > tick && modifiers.RootUntilTick <= tick && modifiers.PostRootAccelExtraForwardForce > 0f;
-                bool slowed = modifiers.AccelUntilTick > tick && (modifiers.AccelExtraForwardForce < 0f || modifiers.AccelExtraMaxSpeed < 0f);
-                float impaired = Mathf.Max(Remaining(modifiers.RootUntilTick, tick, delta), Remaining(modifiers.InvertTurnUntilTick, tick, delta));
-                // A freeze reports IsRooted; without its own deadline a frozen racer would read as rooted with 0 s left.
-                impaired = Mathf.Max(impaired, Remaining(modifiers.FreezeUntilTick, tick, delta));
-                if (slowed) impaired = Mathf.Max(impaired, Remaining(modifiers.AccelUntilTick, tick, delta));
-                if (stats.ScaleMultiplier < .99f) impaired = Mathf.Max(impaired, Remaining(modifiers.ScaleUntilTick, tick, delta));
+                Classify(in modifiers, tick, delta, out bool accelerating, out bool slowed, out float impaired);
                 // A speed drop is only a short observed window; never infer another racer's intent.
                 if (e.PreviousSpeed > _tuning.SpeedDropMinSpeed && speed < e.PreviousSpeed * (1f - _tuning.SpeedDropFraction)) impaired = Mathf.Max(impaired, _tuning.SpeedDropImpairSeconds);
                 var racer = new AISkillRacerSnapshot
@@ -153,6 +146,25 @@ namespace BuddahGo.AI
                     Lap = racer.GetComponent<LapProgress>(), Completion = racer.GetComponent<RaceCompletionTracker>(),
                     Perception = racer.GetComponent<SkillPerceptionState>() };
             }
+        }
+
+        // What the modifier deadlines say about a racer at this tick (pure, EditMode-tested). Accelerating: 神足通,
+        // the post-root boost or a 缘起 burst. Slowed: a negative acceleration slot or the unified backfire's max-speed
+        // penalty (×0.85). Impaired seconds: the longest of root, invert, freeze, slow and the backfire penalty. A small
+        // body scale is not an impairment: nothing shrinks a racer after the unified backfire (A7).
+        public static void Classify(in BuddahPredictedModifierState m, uint tick, float delta, out bool accelerating, out bool slowed, out float impairedSeconds)
+        {
+            accelerating = m.AccelUntilTick > tick && m.AccelExtraForwardForce > 0f
+                || m.PostRootAccelUntilTick > tick && m.RootUntilTick <= tick && m.PostRootAccelExtraForwardForce > 0f
+                || m.BurstUntilTick > tick;
+            bool slowSlot = m.AccelUntilTick > tick && (m.AccelExtraForwardForce < 0f || m.AccelExtraMaxSpeed < 0f);
+            bool penalty = m.MaxSpeedPenaltyUntilTick > tick;
+            slowed = slowSlot || penalty;
+            impairedSeconds = Mathf.Max(Remaining(m.RootUntilTick, tick, delta), Remaining(m.InvertTurnUntilTick, tick, delta));
+            // A freeze reports IsRooted; without its own deadline a frozen racer would read as rooted with 0 s left.
+            impairedSeconds = Mathf.Max(impairedSeconds, Remaining(m.FreezeUntilTick, tick, delta));
+            if (slowSlot) impairedSeconds = Mathf.Max(impairedSeconds, Remaining(m.AccelUntilTick, tick, delta));
+            if (penalty) impairedSeconds = Mathf.Max(impairedSeconds, Remaining(m.MaxSpeedPenaltyUntilTick, tick, delta));
         }
 
         private static float Remaining(uint until, uint tick, float delta) => until > tick ? (until - tick) * delta : 0f;

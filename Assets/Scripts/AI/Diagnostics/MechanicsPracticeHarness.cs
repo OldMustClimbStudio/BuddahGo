@@ -712,35 +712,18 @@ namespace BuddahGo.AI
                 "no cast request", CastsSince(from, "none"));
             Info("W still pushes the left hand (deprecated binding kept)", GetF(_hands, "_nextPushServerTimeLeft") > leftBefore ? "yes" : "no");
 
-            var combo = _human.GetComponent<ComboSkillInput>();
-            if (combo != null && combo.TryGetSequenceForSlot(0, out ComboSkillInput.Token[] sequence) && sequence != null && sequence.Length > 0)
+            // The former slot-0 combo (W ↑ W, 0.08 s apart). ComboSkillInput is deleted (A7): there is no recognizer
+            // any more, so the three pushes must leave the executor silent.
+            ClearCooldowns();
+            from = _casts.Count;
+            foreach (Key key in new[] { Key.W, Key.UpArrow, Key.W })
             {
-                int recognized = 0;
-                Action<int, string> onCombo = (slot, name) => recognized++;
-                combo.OnSkillSlotTriggered += onCombo;
-                ClearCooldowns();
-                from = _casts.Count;
-                try
-                {
-                    foreach (ComboSkillInput.Token token in sequence)
-                    {
-                        yield return Tap(token == ComboSkillInput.Token.W ? Key.W : Key.UpArrow);
-                        yield return Wait(0.08f);
-                    }
-                    yield return Wait(1.5f);
-                }
-                finally
-                {
-                    combo.OnSkillSlotTriggered -= onCombo;
-                }
-                Check("slot-0 combo sequence does not cast", !_casts.Skip(from).Any(c => c.Stage == CastStage.Requested),
-                    "no cast request", CastsSince(from, "none") + " (sequence " + string.Join(" ", sequence) + ")");
-                Info("combo recognizer raised OnSkillSlotTriggered", recognized.ToString(CultureInfo.InvariantCulture), "the executor ignores it for a Human Player");
+                yield return Tap(key);
+                yield return Wait(0.08f);
             }
-            else
-            {
-                Info("slot-0 combo sequence", "none configured");
-            }
+            yield return Wait(1.5f);
+            Check("W ↑ W (the former slot-0 combo) does not cast", !_casts.Skip(from).Any(c => c.Stage == CastStage.Requested),
+                "no cast request", CastsSince(from, "none"));
             EndInputScope();
         }
 

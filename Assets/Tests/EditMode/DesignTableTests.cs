@@ -53,11 +53,11 @@ namespace BuddahGo.Tests
             Assert.AreEqual("UI", cross.RefWorkbook);
             Assert.AreEqual("Text", cross.RefSheet);
 
-            TypeSpec list = TypeSpec.Parse("list,enum:ComboToken#sep=,");
+            TypeSpec list = TypeSpec.Parse("list,enum:SkillId#sep=,");
             Assert.AreEqual(ColumnBaseType.List, list.BaseType);
             Assert.AreEqual(",", list.ListSeparator);
             Assert.AreEqual(ColumnBaseType.Enum, list.Element.BaseType);
-            Assert.AreEqual("ComboToken", list.Element.EnumName);
+            Assert.AreEqual("SkillId", list.Element.EnumName);
 
             TypeSpec range = TypeSpec.Parse("float#range=0,1.5");
             Assert.IsTrue(range.HasRange);
@@ -303,16 +303,27 @@ namespace BuddahGo.Tests
                 Assert.AreEqual(Cell(set, "Skill", "SkillEffectGiant", "skillId", "giant", "scaleMultiplier"), db.skillEffectGiants.Find(r => r.skillId == "giant").scaleMultiplier);
                 CollectionAssert.AreEquivalent(new[] { "basic", "charged" }, db.pushes.ConvertAll(p => p.pushId), "charged_anti retired");
                 Assert.AreEqual(Cell(set, "Skill", "Push", "pushId", "charged", "speed"), db.pushes.Find(r => r.pushId == "charged").speed);
-                Assert.AreEqual((int)Cell(set, "Skill", "ComboInput", "profileId", "default", "maxBuffer"), db.comboInputs[0].maxBuffer);
+                Assert.IsNull(set.Find("Skill", "ComboInput"), "Skill/ComboInput retired with ComboSkillInput (A7)");
+                Assert.IsNull(set.Find("Skill", "ComboBinding"), "Skill/ComboBinding retired with ComboSkillInput (A7)");
+                Assert.IsNull(typeof(ProjectConfigDatabase).GetField("comboInputs"), "comboInputs list retired with its sheet");
+                Assert.IsNull(typeof(ProjectConfigDatabase).GetField("comboBindings"), "comboBindings list retired with its sheet");
                 Assert.AreEqual(3, db.drivingTiers.Count);
                 Assert.AreEqual(Cell(set, "AI", "DrivingTier", "difficulty", "Hard", "maxThrustAngleDegrees"), db.drivingTiers.Find(r => r.difficulty == "Hard").maxThrustAngleDegrees, "camelCase headers");
                 Assert.AreEqual(Cell(set, "AI", "DrivingTuning", "profileId", "default", "targetSpeedMax"), db.drivingTunings[0].targetSpeedMax, "DrivingGlobal read keys became DrivingTuning");
                 Assert.AreEqual(5, db.personalities.Count);
                 Assert.AreEqual(Cell(set, "AI", "Personality", "personalityId", "keeper", "slot0Weight"), db.personalities.Find(p => p.personalityId == "keeper").slot0Weight, "weights live on the loadout slots");
-                Assert.AreEqual(Cell(set, "AI", "SkillTuning", "profileId", "default", "keyMaxSeconds"), db.skillTunings[0].keyMaxSeconds, "SkillGlobal became a one-row SkillTuning");
+                Assert.AreEqual(Cell(set, "AI", "SkillTuning", "profileId", "default", "backfireCost"), db.skillTunings[0].backfireCost, "SkillGlobal became a one-row SkillTuning; backfireCost is the unified backfire cost (A7)");
+                Assert.AreEqual(Cell(set, "AI", "SkillTuning", "profileId", "default", "yuanqiFollowUpScore"), db.skillTunings[0].yuanqiFollowUpScore, "缘起 decision parameters live on SkillTuning (A7)");
+                Assert.IsNull(typeof(SkillTuningRecord).GetField("keyMaxSeconds"), "SkillTuning.keyMaxSeconds retired with the combo keys (A7)");
+                Assert.IsNull(typeof(SkillTuningRecord).GetField("maxComboRetries"), "SkillTuning.maxComboRetries retired with the combo keys (A7)");
                 Assert.AreEqual((int)Cell(set, "AI", "SkillDifficulty", "difficulty", "Normal", "impairedDrivingReactionTicks"), db.skillDifficulties.Find(d => d.difficulty == "Normal").impairedDrivingReactionTicks, "driving impairment split from skill impairment");
-                Assert.AreEqual(3, db.comboBindings.Count);
-                Assert.AreEqual(4, db.comboBindings[2].sequence.Count);
+                foreach (string difficulty in new[] { "Easy", "Normal", "Hard" })
+                    Assert.AreEqual(Cell(set, "AI", "SkillDifficulty", "difficulty", difficulty, "stopProbability"), db.skillDifficulties.Find(d => d.difficulty == difficulty).stopProbability, difficulty + ": one stop threshold under the unified backfire (A7)");
+                Assert.IsNull(typeof(SkillDifficultyRecord).GetField("keyMistakeProbability"), "SkillDifficulty.keyMistakeProbability retired with the combo keys (A7)");
+                Assert.IsNull(typeof(SkillDifficultyRecord).GetField("mildStopProbability"), "SkillDifficulty.mildStopProbability retired with the per-skill backlash severity (A7)");
+                Assert.IsNull(typeof(SkillOpportunityRecord).GetField("backlashSeverity"), "SkillOpportunity.backlashSeverity retired with the unified backfire (A7)");
+                foreach (PersonalityRecord personality in db.personalities)
+                    Assert.AreEqual(Cell(set, "AI", "Personality", "personalityId", personality.personalityId, "yuanqiAffinity"), personality.yuanqiAffinity, personality.personalityId + ".yuanqiAffinity");
                 Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "maxValue"), db.obsessions[0].maxValue);
                 Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "repeatWindowSeconds"), db.obsessions[0].repeatWindowSeconds);
                 Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "repeatGainMultiplier"), db.obsessions[0].repeatGainMultiplier);
@@ -340,7 +351,7 @@ namespace BuddahGo.Tests
                 Assert.AreEqual(1, db.trackWrongWays.Count);
                 Assert.Greater(db.localizedTexts.Count, 200);
                 Assert.IsTrue(db.globalRules.Exists(r => r.ruleKey == "target_frame_rate"));
-                Assert.IsFalse(db.globalRules.Exists(r => r.ruleKey == "combo_input_window_seconds"), "combo keys moved to Skill/ComboInput");
+                Assert.IsFalse(db.globalRules.Exists(r => r.ruleKey == "combo_input_window_seconds"), "combo keys retired with ComboSkillInput (A7); none may return to GlobalRule");
             }
             finally
             {

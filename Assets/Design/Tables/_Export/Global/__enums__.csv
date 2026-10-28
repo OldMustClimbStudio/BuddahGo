@@ -10,8 +10,6 @@
 ,SkillUnlockState,unlocked,0,,
 ,SkillUnlockState,locked,1,,
 ,SkillUnlockState,hidden,2,,
-,ComboToken,W,0,,
-,ComboToken,Up,1,,
 ,SkillTargetScope,Self,0,,
 ,SkillTargetScope,AllOthers,1,,
 ,StackPolicy,RefreshMaxDuration,0,,

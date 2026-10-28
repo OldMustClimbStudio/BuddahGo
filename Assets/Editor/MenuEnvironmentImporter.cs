@@ -225,8 +225,10 @@ public static class MenuEnvironmentImporter
         SetupSkillLoadout(root);
         SetupRoomView();
         SetupLobby();
+        SetupSandTableFocus();
         SetupEmaWallShortcut();
         CreateSkinHalo();
+        SetupMenuClickShortcuts();
         SetupHoverHighlighter();
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -460,12 +462,26 @@ public static class MenuEnvironmentImporter
                 FitEmaWallProxy(proxy.GetComponent<BoxCollider>(), wall);
         }
 
+        // Main hall (main-menu shortcut to Start): outlined, so no static batching; the click box follows the building.
+        if (HondenShortcutParts.Any(changed.Contains))
+        {
+            Transform[] parts = HondenParts();
+            foreach (Transform t in parts) ClearBatching(t);
+            if (GameObject.Find(HondenClickProxyName) is GameObject hallProxy)
+                FitWorldBox(hallProxy.GetComponent<BoxCollider>(), RenderBounds(parts));
+        }
+
+        // Sand table: hover outline shares its mesh, so no static batching.
+        if (changed.Contains(SandTableName) && GameObject.Find(SandTableName) is GameObject sandTable) ClearBatching(sandTable.transform);
+
         // Skin: the menu Buddha stands on the anchor, the halo lies on the plinth's sand, the skin shot frames it.
         if ((changed.Contains(SkinAnchorName) || changed.Contains(SkinPlinthName)) && GameObject.Find(SkinAnchorName) is GameObject anchor)
         {
             GameObjectUtility.SetStaticEditorFlags(anchor, 0);
             if (anchor.transform.Find("SkinTurntable") is Transform table && table.Find(MenuSkinName) is Transform skin)
                 FitMenuBuddhaSkin(anchor.transform, table, skin);
+            if (anchor.transform.Find(SkinClickProxyName) is Transform skinProxy && anchor.transform.Find("SkinTurntable") is Transform turntable)
+                FitWorldBox(skinProxy.GetComponent<BoxCollider>(), RenderBounds(new[] { turntable }));
             if (anchor.transform.Find("FX_SkinHalo") is Transform halo) PlaceSkinHalo(halo, anchor.transform);
             if (GameObject.Find(SkinPoseName) is GameObject marker)
             {
@@ -899,7 +915,7 @@ public static class MenuEnvironmentImporter
 
         var director = go.AddComponent<SteamMultiplayer.UI.MenuCameraDirector>();
         director.Configure(cam, look, room, roomFov, null, null, null);
-        CreateTemporaryStartButton(director);
+        CreateTemporaryMenuCanvas();
     }
 
     // Main menu (title / idle) shot: the garden Buddha (skin) as the foreground, the main hall centred
@@ -911,8 +927,9 @@ public static class MenuEnvironmentImporter
     };
 
     /// <summary>
-    /// Proto camera panel (top left): title-screen candidates plus the skill-select view.
-    /// The game starts on the first title candidate.
+    /// Proto panel (top left): title-screen candidates plus the skill-select view, then the Start button
+    /// (camera move to the hall door); the skin view adds its "皮肤" button below. The game starts on the
+    /// first title candidate. The whole panel hides away from the main menu and in the skin view.
     /// </summary>
     private static void SetupProtoCameraSwitcher()
     {
@@ -935,12 +952,15 @@ public static class MenuEnvironmentImporter
         if (skill != null) shots.Add(new SteamMultiplayer.UI.MenuCameraProtoSwitcher.Shot { label = "技能选择", pose = skill, fieldOfView = cam.fieldOfView, useFocusTargets = true });
 
         // Panel with one button per shot.
-        var panel = new GameObject("TEMP_CameraProtoPanel", typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.VerticalLayoutGroup));
+        var panel = new GameObject("TEMP_CameraProtoPanel", typeof(RectTransform), typeof(UnityEngine.UI.Image),
+            typeof(UnityEngine.UI.VerticalLayoutGroup), typeof(UnityEngine.UI.ContentSizeFitter));
         var panelRect = panel.GetComponent<RectTransform>();
         panelRect.SetParent(canvas.transform, false);
         panelRect.anchorMin = panelRect.anchorMax = panelRect.pivot = new Vector2(0f, 1f);
         panelRect.anchoredPosition = new Vector2(32f, -32f);
-        panelRect.sizeDelta = new Vector2(240f, 56f + shots.Count * 58f);
+        panelRect.sizeDelta = new Vector2(240f, 0f);
+        // Height follows the buttons, so later setup steps can add their own.
+        panel.GetComponent<UnityEngine.UI.ContentSizeFitter>().verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
         panel.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.35f);
         var layout = panel.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
         layout.padding = new RectOffset(12, 12, 12, 12);
@@ -948,17 +968,12 @@ public static class MenuEnvironmentImporter
         layout.childControlWidth = layout.childControlHeight = true;
         layout.childForceExpandHeight = false;
 
-        CreateLabel(panelRect, "镜头 Proto", 26f, 30f);
+        CreateLabel(panelRect, "Proto", 26f, 30f);
         foreach (var shot in shots)
-        {
-            var b = new GameObject("Btn_" + shot.label, typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button), typeof(UnityEngine.UI.LayoutElement));
-            var rect = b.GetComponent<RectTransform>();
-            rect.SetParent(panelRect, false);
-            b.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 50f;
-            b.GetComponent<UnityEngine.UI.Image>().color = new Color(0.12f, 0.08f, 0.06f, 0.72f);
-            shot.button = b.GetComponent<UnityEngine.UI.Button>();
-            CreateLabel(rect, shot.label, 24f, 0f);
-        }
+            shot.button = CreateProtoButton(panelRect, "Btn_" + shot.label, shot.label);
+        if (cam.GetComponent<SteamMultiplayer.UI.MenuCameraDirector>() is SteamMultiplayer.UI.MenuCameraDirector director)
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(
+                CreateProtoButton(panelRect, "TEMP_StartButton", "Start").onClick, director.PlayToRoom);
 
         // Full-screen fade used by the cut transition (kept above the panel, below nothing else).
         var fadeGo = new GameObject("TEMP_CameraFade", typeof(RectTransform), typeof(UnityEngine.UI.Image));
@@ -975,6 +990,18 @@ public static class MenuEnvironmentImporter
             cam.GetComponent<SteamMultiplayer.UI.MenuEmaInspector>(), shots, 0, fade,
             GameObject.Find("Focus_EmaWall")?.transform, GameObject.Find("Focus_Hokora")?.transform);
         EditorUtility.SetDirty(switcher);
+    }
+
+    /// <summary>One button of the proto panel (its layout group sizes and stacks it).</summary>
+    private static UnityEngine.UI.Button CreateProtoButton(RectTransform panel, string name, string text)
+    {
+        var b = new GameObject(name, typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button), typeof(UnityEngine.UI.LayoutElement));
+        var rect = b.GetComponent<RectTransform>();
+        rect.SetParent(panel, false);
+        b.GetComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 50f;
+        b.GetComponent<UnityEngine.UI.Image>().color = new Color(0.12f, 0.08f, 0.06f, 0.72f);
+        CreateLabel(rect, text, 24f, 0f);
+        return b.GetComponent<UnityEngine.UI.Button>();
     }
 
     // Proto labels use Unity's built-in dynamic font, which falls back to the OS CJK fonts; the shipped
@@ -1314,10 +1341,15 @@ public static class MenuEnvironmentImporter
     // would be drawn transformed twice (huge glowing shells across the screen), so no batching here.
     private static void ClearEmaWallBatching()
     {
-        foreach (Transform part in EmaWallParts())
-            foreach (Transform t in part.GetComponentsInChildren<Transform>(true))
-                GameObjectUtility.SetStaticEditorFlags(t.gameObject,
-                    GameObjectUtility.GetStaticEditorFlags(t.gameObject) & ~StaticEditorFlags.BatchingStatic);
+        foreach (Transform part in EmaWallParts()) ClearBatching(part);
+    }
+
+    /// <summary>Keeps every other static flag; only static batching goes (hover outlines share the mesh).</summary>
+    private static void ClearBatching(Transform root)
+    {
+        foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            GameObjectUtility.SetStaticEditorFlags(t.gameObject,
+                GameObjectUtility.GetStaticEditorFlags(t.gameObject) & ~StaticEditorFlags.BatchingStatic);
     }
 
     /// <summary>One box over the wall and what hangs on it (the boards alone leave gaps between them).</summary>
@@ -1327,6 +1359,111 @@ public static class MenuEnvironmentImporter
         Bounds local = wall.GetComponent<MeshFilter>().sharedMesh.bounds;
         proxy.center = local.center;
         proxy.size = local.size + Vector3.one * 0.1f;
+    }
+
+    // Main-menu shortcuts: the hall building presses Start, the garden Buddha presses 皮肤.
+    // The hall outline covers the building itself (walls, doors, roof, deck, verandas, shimenawa), not
+    // the stone terrace, stairs, ema wall or hokora: about 230k vertices, drawn only while hovered.
+    private static readonly string[] HondenShortcutParts =
+    {
+        "Arch_Honden_Wall_Front", "Arch_Honden_Wall_Back", "Arch_Honden_Wall_West", "Arch_Honden_Wall_East",
+        "Arch_Honden_Door_L", "Arch_Honden_Door_R", "SM_Arch_Roof_Shrine_B__Honden_Main", "SM_Arch_Roof_Shrine_B_Trim__Honden_Main",
+        "Arch_Honden_Deck", "SM_Arch_Boardwalk_A_Base__Honden_FrontVeranda", "SM_Arch_Boardwalk_A_Railing__Honden_Front_L",
+        "SM_Arch_Boardwalk_A_Railing__Honden_Front_R", "SM_Arch_Boardwalk_A_Full__Honden_SideVeranda_W",
+        "SM_Arch_Boardwalk_A_Full__Honden_SideVeranda_E", "Prop_Shimenawa",
+        "SM_Prop_Shide_A__Honden_01", "SM_Prop_Shide_A__Honden_02", "SM_Prop_Shide_A__Honden_03", "SM_Prop_Shide_A__Honden_04",
+    };
+    private const string HondenClickProxyName = "HondenClickProxy";
+    private const string SkinClickProxyName = "SkinClickProxy";
+
+    private static Transform[] HondenParts() =>
+        HondenShortcutParts.Select(n => GameObject.Find(n)).Where(g => g != null).Select(g => g.transform).ToArray();
+
+    private static Bounds RenderBounds(IEnumerable<Transform> roots)
+    {
+        Bounds b = default;
+        bool any = false;
+        foreach (Transform root in roots)
+            foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r.name == "HoverOutline") continue;
+                if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+            }
+        return b;
+    }
+
+    /// <summary>Box collider (on an unrotated child) covering the given world-space bounds.</summary>
+    private static void FitWorldBox(BoxCollider box, Bounds world)
+    {
+        if (box == null) return;
+        Transform t = box.transform;
+        t.rotation = Quaternion.identity;
+        t.position = world.center;
+        Vector3 s = t.lossyScale;
+        box.center = Vector3.zero;
+        box.size = new Vector3(world.size.x / s.x, world.size.y / s.y, world.size.z / s.z) + Vector3.one * 0.1f;
+    }
+
+    private static BoxCollider CreateClickProxy(string name, Transform parent, Bounds world)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        GameObjectUtility.SetStaticEditorFlags(go, 0);
+        var box = go.AddComponent<BoxCollider>();
+        box.enabled = false;   // MenuClickShortcuts enables it only while the click is available
+        FitWorldBox(box, world);
+        return box;
+    }
+
+    /// <summary>
+    /// Main menu: clicking the hall presses Start (glide to the door), clicking the garden Buddha presses
+    /// 皮肤 (skin close-up). Both press the button itself; see <see cref="SteamMultiplayer.UI.MenuClickShortcuts"/>.
+    /// </summary>
+    private static void SetupMenuClickShortcuts()
+    {
+        Camera cam = Camera.main;
+        if (cam == null) return;
+        var list = new List<SteamMultiplayer.UI.MenuClickShortcuts.Shortcut>();
+
+        Transform[] hall = HondenParts();
+        if (hall.Length > 0 && GameObject.Find("TEMP_StartButton") is GameObject start)
+        {
+            foreach (Transform t in hall) ClearBatching(t);   // the hover outline shares their meshes
+            BoxCollider proxy = CreateClickProxy(HondenClickProxyName, hall[0].parent, RenderBounds(hall));
+            list.Add(new SteamMultiplayer.UI.MenuClickShortcuts.Shortcut
+                { label = "主殿 → Start", button = start.GetComponent<UnityEngine.UI.Button>(), root = hall[0], proxy = proxy });
+        }
+        else Debug.LogWarning("[MenuEnvironment] Hall shortcut: hall parts or Start button missing.");
+
+        GameObject anchor = GameObject.Find(SkinAnchorName);
+        Transform turntable = anchor != null ? anchor.transform.Find("SkinTurntable") : null;
+        if (turntable != null && GameObject.Find("TEMP_SkinButton") is GameObject skin)
+        {
+            // Beside the turntable, not on it, so the skin view's own picking of the model is unaffected.
+            BoxCollider proxy = CreateClickProxy(SkinClickProxyName, anchor.transform, RenderBounds(new[] { turntable }));
+            list.Add(new SteamMultiplayer.UI.MenuClickShortcuts.Shortcut
+                { label = "佛像 → 皮肤", button = skin.GetComponent<UnityEngine.UI.Button>(), root = turntable, proxy = proxy });
+        }
+        else Debug.LogWarning("[MenuEnvironment] Buddha shortcut: skin turntable or 皮肤 button missing.");
+
+        var shortcuts = cam.gameObject.AddComponent<SteamMultiplayer.UI.MenuClickShortcuts>();
+        shortcuts.Configure(cam, cam.GetComponent<SteamMultiplayer.UI.MenuCameraProtoSwitcher>(), cam.GetComponent<SteamMultiplayer.UI.MenuCameraDirector>(),
+            cam.GetComponent<SteamMultiplayer.UI.MenuSkinView>(), cam.GetComponent<SteamMultiplayer.UI.MenuEmaInspector>(), list);
+        EditorUtility.SetDirty(shortcuts);
+    }
+
+    /// <summary>Outline targets for the main-menu shortcuts: the hall's other parts and each proxy glow and pick with the root.</summary>
+    private static IEnumerable<SteamMultiplayer.UI.MenuHoverHighlighter.Target> ShortcutTargets(SteamMultiplayer.UI.MenuClickShortcuts shortcuts)
+    {
+        foreach (SteamMultiplayer.UI.MenuClickShortcuts.Shortcut s in shortcuts.Shortcuts)
+        {
+            if (s.root == null) continue;
+            var extras = new List<Transform>();
+            if (s.root.name == HondenShortcutParts[0]) extras.AddRange(HondenParts().Skip(1));
+            if (s.proxy != null) extras.Add(s.proxy.transform);
+            yield return new SteamMultiplayer.UI.MenuHoverHighlighter.Target
+                { root = s.root, kind = SteamMultiplayer.UI.MenuHoverHighlighter.TargetKind.MenuShortcut, radial = 0.2f, extras = extras.ToArray() };
+        }
     }
 
     private const string HoverShaderName = "BuddahGo/HoverOutline";
@@ -1364,10 +1501,17 @@ public static class MenuEnvironmentImporter
         if (wallParts.Length > 0)
             targets.Add(new SteamMultiplayer.UI.MenuHoverHighlighter.Target { root = wallParts[0], kind = SteamMultiplayer.UI.MenuHoverHighlighter.TargetKind.EmaWall,
                 radial = 0.3f, extras = wallParts.Skip(1).ToArray() });
+        if (cam.GetComponent<SteamMultiplayer.UI.MenuClickShortcuts>() is SteamMultiplayer.UI.MenuClickShortcuts clickShortcuts)
+            targets.AddRange(ShortcutTargets(clickShortcuts));
+        if (GameObject.Find(SandTableName) is GameObject sandTable)
+            targets.Add(new SteamMultiplayer.UI.MenuHoverHighlighter.Target { root = sandTable.transform, kind = SteamMultiplayer.UI.MenuHoverHighlighter.TargetKind.SandTable,
+                radial = 0.3f, rootOnly = true });
 
         var highlighter = cam.gameObject.AddComponent<SteamMultiplayer.UI.MenuHoverHighlighter>();
         highlighter.Configure(cam, inspector, cam.GetComponent<SteamMultiplayer.UI.MenuSkinView>(), cam.GetComponent<SteamMultiplayer.UI.MenuCameraDirector>(), mat, targets);
         highlighter.SetShotGate(cam.GetComponent<SteamMultiplayer.UI.MenuCameraProtoSwitcher>());
+        highlighter.SetSandTable(cam.GetComponent<SteamMultiplayer.UI.MenuSandTableFocus>());
+        highlighter.SetShortcuts(cam.GetComponent<SteamMultiplayer.UI.MenuClickShortcuts>());
         EditorUtility.SetDirty(highlighter);
         Debug.Log($"[MenuEnvironment] Hover outline on {targets.Count} objects.");
     }
@@ -1382,17 +1526,17 @@ public static class MenuEnvironmentImporter
         Camera cam = Camera.main;
         GameObject canvas = GameObject.Find("TEMP_MenuCanvas");
         GameObject anchor = GameObject.Find(SkinAnchorName);
-        if (turntable == null || cam == null || canvas == null || anchor == null) return;
+        GameObject panel = GameObject.Find("TEMP_CameraProtoPanel");
+        if (turntable == null || cam == null || canvas == null || anchor == null || panel == null) return;
 
         SkinCameraPose(anchor.transform, out Vector3 camPos, out Quaternion camRot);
         Transform poses = GameObject.Find("95_Camera")?.transform;
         Transform pose = CreatePoseMarker(SkinPoseName, poses, camPos, camRot);
 
-        var enter = CreateTempButton(canvas.transform, "TEMP_SkinButton", "皮肤", new Vector2(-64f, 168f));
+        var enter = CreateProtoButton(panel.GetComponent<RectTransform>(), "TEMP_SkinButton", "皮肤");
         var back = CreateTempButton(canvas.transform, "TEMP_SkinBackButton", "返回", new Vector2(-64f, 64f));
-        var hide = new List<GameObject>();
-        if (GameObject.Find("TEMP_StartButton") is GameObject start) hide.Add(start);
-        if (GameObject.Find("TEMP_CameraProtoPanel") is GameObject panel) hide.Add(panel);
+        // Start and 皮肤 sit in the proto panel, so hiding the panel hides them too.
+        var hide = new List<GameObject> { panel };
 
         var view = cam.gameObject.AddComponent<SteamMultiplayer.UI.MenuSkinView>();
         view.Configure(cam, cam.GetComponent<SteamMultiplayer.UI.MenuCameraMouseLook>(), cam.GetComponent<SteamMultiplayer.UI.MenuEmaInspector>(),
@@ -1538,7 +1682,8 @@ public static class MenuEnvironmentImporter
         EditorUtility.SetDirty(roomView);
         SetupBellRope(cam, director, roomView);
 
-        var hide = new[] { "TEMP_StartButton", "TEMP_SkinButton", "TEMP_CameraProtoPanel" }
+        // Start and 皮肤 sit in the proto panel.
+        var hide = new[] { "TEMP_CameraProtoPanel" }
             .Select(n => GameObject.Find(n)).Where(g => g != null).ToArray();
         var disable = new Behaviour[] { cam.GetComponent<SteamMultiplayer.UI.MenuEmaInspector>() }.Where(b => b != null).ToArray();
         director.Configure(cam, cam.GetComponent<SteamMultiplayer.UI.MenuCameraMouseLook>(), GameObject.Find(RoomPoseName).transform,
@@ -1553,6 +1698,8 @@ public static class MenuEnvironmentImporter
     private const string RaceMapTexturePath = "Assets/UI/UI资源/地图UI-PNG/地图 1.png";
     // Sand bed of the table (inside the rim) and its height above the table origin.
     private const float SandBedWidth = 1.52f, SandBedDepth = 1.29f, SandBedTop = 0.457f;
+    // The race map lies flat on the sand; its top edge points to world -Z.
+    private static readonly Quaternion SandMapRotation = Quaternion.Euler(90f, 180f, 0f);
 
     /// <summary>
     /// Room lobby: the race map on the sand table, six player spots (empties from Blender; the host takes
@@ -1587,6 +1734,49 @@ public static class MenuEnvironmentImporter
         lobby.Configure(slots.ToArray(), prefab, join, leave, count, cam.GetComponent<SteamMultiplayer.UI.MenuRoomView>());
         EditorUtility.SetDirty(lobby);
         foreach (Transform slot in slots) CreateLobbyPreview(slot, prefab);
+    }
+
+    private const string SandTablePoseName = "CamPose_SandTable_沙盘";
+    // Sand table shot: camera distance from the sand bed centre, its elevation angle, and field of view.
+    private const float SandTableCameraDistance = 3.0f, SandTableCameraElevation = 55f, SandTableFieldOfView = 45f;
+
+    /// <summary>
+    /// Click the sand table in the lobby view: glide to a view over it (沙盘; the marker sets the angle,
+    /// the distance is fitted to the table at runtime) with a soft depth of field;
+    /// "返回", Esc or right-click glide back. The lobby buttons hide while focused.
+    /// </summary>
+    private static void SetupSandTableFocus()
+    {
+        Camera cam = Camera.main;
+        GameObject canvas = GameObject.Find("TEMP_MenuCanvas");
+        GameObject table = GameObject.Find(SandTableName);
+        GameObject insidePanel = GameObject.Find("TEMP_RoomInsidePanel");
+        var roomView = cam != null ? cam.GetComponent<SteamMultiplayer.UI.MenuRoomView>() : null;
+        if (canvas == null || table == null || roomView == null) { Debug.LogWarning("[MenuEnvironment] Sand table focus pieces missing."); return; }
+
+        ClearBatching(table.transform);   // the hover outline shares the table mesh
+        SandTableCameraPose(table.transform, out Vector3 camPos, out Quaternion camRot);
+        Transform pose = CreatePoseMarker(SandTablePoseName, GameObject.Find("95_Camera")?.transform, camPos, camRot);
+        var back = CreateTempButton(canvas.transform, "TEMP_SandTableBackButton", "返回", new Vector2(-64f, 64f));
+        var hide = insidePanel != null ? new[] { insidePanel } : new GameObject[0];
+
+        var focus = cam.gameObject.AddComponent<SteamMultiplayer.UI.MenuSandTableFocus>();
+        focus.Configure(cam, roomView, table.GetComponent<Renderer>(), pose, SandTableFieldOfView, back, hide);
+        EditorUtility.SetDirty(focus);
+    }
+
+    /// <summary>
+    /// Sand table shot: square to the table edge from which the race map reads upright (closer than
+    /// from a corner, where the diagonal runs along the view), looking down at the sand bed centre.
+    /// </summary>
+    private static void SandTableCameraPose(Transform table, out Vector3 position, out Quaternion rotation)
+    {
+        Vector3 target = table.position + Vector3.up * SandBedTop;
+        Vector3 side = -(SandMapRotation * Vector3.up);   // the map's top points away from the camera
+        side.y = 0f; side.Normalize();
+        float elevation = SandTableCameraElevation * Mathf.Deg2Rad;
+        position = target + side * (SandTableCameraDistance * Mathf.Cos(elevation)) + Vector3.up * (SandTableCameraDistance * Mathf.Sin(elevation));
+        rotation = Quaternion.LookRotation(target - position, Vector3.up);
     }
 
     private const float LobbyPlayerHeight = 1.0f;
@@ -1676,7 +1866,7 @@ public static class MenuEnvironmentImporter
             UnityEngine.Object.DestroyImmediate(quad.GetComponent<Collider>());
             quad.transform.SetParent(table, false);
             // Lying on the sand, the top of the map towards the back of the hall.
-            quad.transform.SetPositionAndRotation(table.position + Vector3.up * (SandBedTop + layer.lift), Quaternion.Euler(90f, 180f, 0f));
+            quad.transform.SetPositionAndRotation(table.position + Vector3.up * (SandBedTop + layer.lift), SandMapRotation);
             Vector3 ps = table.lossyScale;
             quad.transform.localScale = new Vector3(depth * aspect / ps.x, depth / ps.y, 1f / ps.z);
             var renderer = quad.GetComponent<MeshRenderer>();
@@ -1804,8 +1994,8 @@ public static class MenuEnvironmentImporter
     private static float RoomPoseFieldOfView() =>
         File.Exists(RoomPosePath) ? JsonUtility.FromJson<CameraPose>(File.ReadAllText(RoomPosePath)).fieldOfView : RoomFieldOfView;
 
-    /// <summary>Temporary bottom-right "Start" button that triggers the camera move to the room view.</summary>
-    private static void CreateTemporaryStartButton(SteamMultiplayer.UI.MenuCameraDirector director)
+    /// <summary>Temporary overlay canvas for the menu buttons (Start lives in the proto panel) and the event system.</summary>
+    private static void CreateTemporaryMenuCanvas()
     {
         var canvasGo = new GameObject("TEMP_MenuCanvas", typeof(RectTransform), typeof(Canvas),
             typeof(UnityEngine.UI.CanvasScaler), typeof(UnityEngine.UI.GraphicRaycaster));
@@ -1815,32 +2005,6 @@ public static class MenuEnvironmentImporter
         scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.matchWidthOrHeight = 0.5f;
-
-        var buttonGo = new GameObject("TEMP_StartButton", typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
-        var rect = buttonGo.GetComponent<RectTransform>();
-        rect.SetParent(canvasGo.transform, false);
-        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 0f);
-        rect.anchoredPosition = new Vector2(-64f, 64f);
-        rect.sizeDelta = new Vector2(260f, 84f);
-        var image = buttonGo.GetComponent<UnityEngine.UI.Image>();
-        image.color = new Color(0.12f, 0.08f, 0.06f, 0.78f);
-        var button = buttonGo.GetComponent<UnityEngine.UI.Button>();
-        UnityEngine.UI.ColorBlock colors = button.colors;
-        colors.highlightedColor = new Color(1f, 0.85f, 0.6f);
-        colors.pressedColor = new Color(0.8f, 0.6f, 0.4f);
-        button.colors = colors;
-        UnityEditor.Events.UnityEventTools.AddPersistentListener(button.onClick, director.PlayToRoom);
-
-        var labelGo = new GameObject("Label", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI));
-        var labelRect = labelGo.GetComponent<RectTransform>();
-        labelRect.SetParent(rect, false);
-        labelRect.anchorMin = Vector2.zero; labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
-        var label = labelGo.GetComponent<TMPro.TextMeshProUGUI>();
-        label.text = "Start";
-        label.fontSize = 40f;
-        label.alignment = TMPro.TextAlignmentOptions.Center;
-        label.color = new Color(1f, 0.92f, 0.78f);
 
         if (UnityEngine.Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
             new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem),

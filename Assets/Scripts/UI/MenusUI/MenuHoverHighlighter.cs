@@ -9,12 +9,13 @@ namespace SteamMultiplayer.UI
     /// Glowing outline on the menu-environment object under the mouse, shown only while that object
     /// can actually be clicked or dragged: skill ema outside the skin view (only the inspected one while
     /// inspecting) on the skill-select shot, the whole ema wall on the main menu (it leads to skill
-    /// select), the skin model inside the skin view and the bell rope in the door view.
+    /// select), the skin model inside the skin view, the bell rope in the door view, the sand table
+    /// in the hall lobby, and the main hall and garden Buddha on the main menu (they press Start / 皮肤).
     /// </summary>
     [DisallowMultipleComponent]
     public class MenuHoverHighlighter : MonoBehaviour
     {
-        public enum TargetKind { SkillEma, SkinModel, BellRope, EmaWall }
+        public enum TargetKind { SkillEma, SkinModel, BellRope, EmaWall, SandTable, MenuShortcut }
 
         [System.Serializable]
         public class Target
@@ -25,6 +26,8 @@ namespace SteamMultiplayer.UI
             [Range(0f, 1f)] public float radial;
             [Tooltip("More objects that glow and pick together with the root (the ema hanging on the wall).")]
             public Transform[] extras;
+            [Tooltip("Only the root's own renderer glows, not its children (the map drawn on the sand table).")]
+            public bool rootOnly;
         }
 
         [SerializeField] private Camera targetCamera;
@@ -33,6 +36,8 @@ namespace SteamMultiplayer.UI
         [SerializeField] private MenuCameraDirector director;
         [Tooltip("Main menu: the ema wall glows as one button; skill select: single ema glow.")]
         [SerializeField] private MenuCameraProtoSwitcher shotGate;
+        [SerializeField] private MenuSandTableFocus sandTable;
+        [SerializeField] private MenuClickShortcuts shortcuts;
         [SerializeField] private Material outlineMaterial;
         [SerializeField] private List<Target> targets = new List<Target>();
         [SerializeField, Min(0.1f)] private float fadeSpeed = 10f;
@@ -60,6 +65,10 @@ namespace SteamMultiplayer.UI
 
         public void SetShotGate(MenuCameraProtoSwitcher switcher) => shotGate = switcher;
 
+        public void SetSandTable(MenuSandTableFocus focus) => sandTable = focus;
+
+        public void SetShortcuts(MenuClickShortcuts clickShortcuts) => shortcuts = clickShortcuts;
+
         // Start, not Awake: generated meshes (the bell rope) exist only after their own OnEnable.
         private void Start()
         {
@@ -79,6 +88,12 @@ namespace SteamMultiplayer.UI
             foreach (Transform part in parts)
             {
                 if (part == null) continue;
+                if (t.rootOnly && part == t.root)
+                {
+                    rt.colliders.AddRange(part.GetComponents<Collider>());
+                    renderers.AddRange(part.GetComponents<Renderer>());
+                    continue;
+                }
                 rt.colliders.AddRange(part.GetComponentsInChildren<Collider>(true));
                 renderers.AddRange(part.GetComponentsInChildren<Renderer>(true));
             }
@@ -90,6 +105,12 @@ namespace SteamMultiplayer.UI
                 else if (src is MeshRenderer && src.TryGetComponent(out MeshFilter mf)) mesh = mf.sharedMesh;
                 if (mesh == null) continue;
                 rt.sources.Add(src);
+                // A static-batched renderer's mesh is the combined batch: its outline would glow on other objects.
+                if (src.isPartOfStaticBatch)
+                {
+                    Debug.LogWarning($"[MenuHoverHighlighter] {src.name} is static-batched; no outline. Clear its Batching Static flag.", src);
+                    continue;
+                }
 
                 var go = new GameObject("HoverOutline");
                 go.transform.SetParent(src.transform, false);
@@ -166,7 +187,9 @@ namespace SteamMultiplayer.UI
                 {
                     case TargetKind.BellRope: d = RopeDistance(rt, ray, mouse.position.ReadValue()); break;
                     // the wall and everything on it is one button: hovered when the first hit is any part of it
-                    case TargetKind.EmaWall: d = any && rt.colliders.Contains(hit.collider) ? hit.distance : float.MaxValue; break;
+                    case TargetKind.EmaWall:
+                    // main-menu shortcuts: same, through their proxy box
+                    case TargetKind.MenuShortcut: d = any && rt.colliders.Contains(hit.collider) ? hit.distance : float.MaxValue; break;
                     default: d = HitDistance(rt, ray); break;
                 }
                 if (d < bestDistance && d <= blocker + 0.05f) { best = rt; bestDistance = d; }
@@ -190,6 +213,10 @@ namespace SteamMultiplayer.UI
                     return skinView != null && skinView.IsInteractive;
                 case TargetKind.BellRope:
                     return t.root.GetComponentInChildren<MenuBellRope>() is MenuBellRope rope && rope.IsInteractive;
+                case TargetKind.SandTable:
+                    return sandTable != null && sandTable.CanFocus;
+                case TargetKind.MenuShortcut:
+                    return shortcuts != null && shortcuts.IsActive(t.root);
                 default:
                     return false;
             }

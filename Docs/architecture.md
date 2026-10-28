@@ -39,7 +39,7 @@
 - 同招加价（`SkillRepeatSurcharge`）：同一技能在自己冷却结束后 `repeatWindowSeconds` 内重放，本次执念增量乘以 `repeatGainMultiplier` 的层数次方。层数在请求时算出，只在正常执行时提交；反噬时全部清零。
 - 统一反噬（`ExecuteBackfireServer`）：不调用 `ExecuteServer`，不加执念。`ObsessionFigure.BeginBackfireServer` 在 `backfireLockSeconds` 内锁住全部技能并冻结执念，结束时执念乘以 `backfireEndKeepRatio`；同时 `ApplyMaxSpeedMultiplierToOwner` 施加 `backfireMaxSpeedMultiplier` 的极速预测修饰。施法以 `CastStage.Executed` 加 `IsBacklash` 结束。惩罚不是技能效果，复活和技能重置都不解除它。已判定反噬的施法不会被普通取消、复活或冻结打断（`SkillCastRules.DropsPendingCast`），只有 AI 离开比赛（`ResolveConfirmOutcome`）和执行器停止会丢掉它。上面这些参数都是 `ObsessionFigure` 的字段，数值来自 `Skill/Obsession` 表。
 - 冻结（`SkillExecutor.ApplyFreezeToOwner`）会取消正在确认的普通施法并返还本槽冷却。冻结期间施法门关闭，不能推掌，手部不转。
-- 反噬对所有技能统一处理，没有按技能的反噬变体（`*_anti`），`SkillAction` 也没有 `antiSkillId`；决策见 [ADR 0006](adr/0006-unified-backfire-replaces-per-skill-anti-variants.md)。
+- 反噬对所有技能统一处理，没有按技能的反噬变体（`*_anti`），`SkillAction` 也没有 `antiSkillId`；决策见 [ADR 0007](adr/0007-unified-backfire-replaces-per-skill-anti-variants.md)。
 
 ### 缘起
 
@@ -49,7 +49,7 @@
 - 登记：`YuanqiRegistry.RegisterForLoadout` 用 `YuanqiCatalog.ForLoadout` 从 `SkillDatabase.yuanqis` 挑出两招都在本配装里的对，为这个 racer 各实例化一份；`SkillLoadout.ServerSlotsChanged` 时重新登记。配装之外的组合不检测。
 - 写板：每次正常执行之后（在 `CastObserversRpc` 之后；反噬不写），`SkillExecutor` 按 `SkillAction.GetActiveWindow` 写一条记录，附上 `SkillAction.CreateRuntimeHandle` 返回的 `ISkillRuntimeHandle`。记录随 `TimeManager.OnTick` 过期。
 - 触发：注册表监听状态板的 `Activated` 事件，不每帧轮询。另一招也在生效、且这次重叠还没触发过，就调用该对的 `OnTriggerServer`，再按配表的消耗标记消耗技能；持续型的对在任一招结束时收到 `OnEndServer`。
-- 依赖方向：`SkillExecutor` 不认识任何一对。每一对是一个 `YuanqiAction` 子类（`Yuanqi/Pairs/Yuanqi_*.cs`）加一个资产（`Assets/Skills_Assets/Yuanqi/`），列在 `SkillDatabase.yuanqis`，由 `Skill/Yuanqi` 表的一行配置（有参数时另有 `Skill/YuanqiEffect<对>` 家族表），见 [ADR 0005](adr/0005-yuanqi-pairs-are-third-party-modules-registered-per-loadout.md)。每一对只通过 `ISkillRuntimeHandle`（以及 `IScaleRuntimeHandle`、`IHandsImpulseScale`）动技能，通过 `SkillExecutor.ApplyXToOwner` 动运动，通过 `BuddahPredictionRouter.RouteImpulse` 发冲量，画面只走观察者 RPC。
+- 依赖方向：`SkillExecutor` 不认识任何一对。每一对是一个 `YuanqiAction` 子类（`Yuanqi/Pairs/Yuanqi_*.cs`）加一个资产（`Assets/Skills_Assets/Yuanqi/`），列在 `SkillDatabase.yuanqis`，由 `Skill/Yuanqi` 表的一行配置（有参数时另有 `Skill/YuanqiEffect<对>` 家族表），见 [ADR 0006](adr/0006-yuanqi-pairs-are-third-party-modules-registered-per-loadout.md)。每一对只通过 `ISkillRuntimeHandle`（以及 `IScaleRuntimeHandle`、`IHandsImpulseScale`）动技能，通过 `SkillExecutor.ApplyXToOwner` 动运动，通过 `BuddahPredictionRouter.RouteImpulse` 发冲量，画面只走观察者 RPC。
 - 表现：`SkillExecutor` 的 `YuanqiObserversRpc`、`SkillConsumedObserversRpc` 和 `YuanqiImpactObserversRpc` 在每个端分别触发 `YuanqiObserved`、`SkillAction.ExecuteConsumedObservers` 和 `YuanqiImpactObserved`；施法者的 owner 端另有 `LocalYuanqiTriggered`，HUD 用它弹提示。
 - 清理：服务器侧的每条重置路径都调用 `ResetYuanqiStateServer`，清空状态板和进行中的缘起：服务器控制 racer 的重置、真人的 `ResetActiveSkillEffectsServer`、真人复活 teleport 在服务器被消费时，以及停服。
 

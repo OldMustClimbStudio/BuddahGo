@@ -146,6 +146,7 @@ namespace BuddahGo.Rendering.Editor
                 sweep.Current = job;
                 sweep.Frame = 0;
                 sweep.Restore = Apply(job.Tokens, sweep.Camera);
+                MatchPipelineMsaa(sweep.Camera, sweep.Hdr);
                 RaceMapViewpointCapture.PlaceCamera(sweep.Camera, job.View);
                 PlaceProxy(sweep.Proxy, job.View);
                 sweep.BasePosition = sweep.Camera.transform.position;
@@ -232,7 +233,7 @@ namespace BuddahGo.Rendering.Editor
             public Camera Camera;
             public RenderTexture Hdr, Ldr;
             public RectInt Crop;
-            public int Frames, Requested, Pending;
+            public int Frames, Requested, Pending, Height;
             public string Dir;
             public readonly List<byte[]> Data = new List<byte[]>();
         }
@@ -245,7 +246,7 @@ namespace BuddahGo.Rendering.Editor
         /// its frame rate. Frames are written to Docs/rendering/racemap/&lt;label&gt;/fNNN.png when the clip ends. Poll
         /// <see cref="ClipStatus"/>.
         /// </summary>
-        public static string BeginClip(string label, int frames, int x, int y, int w, int h)
+        public static string BeginClip(string label, int frames, int x, int y, int w, int h, int width = Width, int height = Height)
         {
             if (!Application.isPlaying || Camera.main == null)
                 return "FAILED: needs play mode and a MainCamera";
@@ -259,13 +260,15 @@ namespace BuddahGo.Rendering.Editor
                 Frames = frames,
                 Dir = dir,
                 Crop = new RectInt(x, y, w, h),
-                Hdr = new RenderTexture(new RenderTextureDescriptor(Width, Height, RenderTextureFormat.DefaultHDR, 24)) { name = "ClipHdr" },
-                Ldr = new RenderTexture(new RenderTextureDescriptor(Width, Height, RenderTextureFormat.ARGB32, 0) { sRGB = true }) { name = "ClipLdr" },
+                Height = height,
+                Hdr = new RenderTexture(new RenderTextureDescriptor(width, height, RenderTextureFormat.DefaultHDR, 24)) { name = "ClipHdr" },
+                Ldr = new RenderTexture(new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGB32, 0) { sRGB = true }) { name = "ClipLdr" },
             };
             s_Clip.Camera.targetTexture = s_Clip.Hdr;
+            MatchPipelineMsaa(s_Clip.Camera, s_Clip.Hdr);
             RenderPipelineManager.endCameraRendering += OnEndClipCamera;
             EditorApplication.update += TickClip;
-            return "recording " + frames + " frames into " + dir;
+            return "recording " + frames + " frames (" + width + "x" + height + ", MSAA " + s_Clip.Hdr.antiAliasing + ") into " + dir;
         }
 
         public static string ClipStatus() => s_Clip == null ? (s_LastClip ?? "idle") : "recording " + s_Clip.Data.Count + "/" + s_Clip.Frames;
@@ -282,7 +285,7 @@ namespace BuddahGo.Rendering.Editor
             cmd.Blit(clip.Hdr, clip.Ldr);
             clip.Pending++;
             // GPU rows run bottom-up here, so the top-left crop is converted.
-            int gpuY = Height - clip.Crop.y - clip.Crop.height;
+            int gpuY = clip.Height - clip.Crop.y - clip.Crop.height;
             cmd.RequestAsyncReadback(clip.Ldr, 0, clip.Crop.x, clip.Crop.width, gpuY, clip.Crop.height, 0, 1, TextureFormat.RGBA32, request =>
             {
                 if (s_Clip != clip)
@@ -360,6 +363,7 @@ namespace BuddahGo.Rendering.Editor
                         var restore = Apply(entry.Length > 1 ? entry[1].Split(',').Where(t => t.Length > 0).ToArray() : Array.Empty<string>(), camera);
                         try
                         {
+                            MatchPipelineMsaa(camera, rt);
                             RaceMapViewpointCapture.PlaceCamera(camera, view);
                             PlaceProxy(proxy, view);
                             for (int i = 0; i < 5; i++) camera.Render();
@@ -388,6 +392,81 @@ namespace BuddahGo.Rendering.Editor
                 var sorted = kv.Value.OrderBy(v => v).ToList();
                 return kv.Key + ": median " + sorted[sorted.Count / 2].ToString("F2") + " ms, p90 " + sorted[(int)(sorted.Count * 0.9)].ToString("F2") + " ms";
             }));
+        }
+
+        /// <summary>
+        /// Play mode, during a race: pauses the game and renders the gameplay camera's current frame once per configuration
+        /// (same tokens as <see cref="Begin"/>, entries "name=token,token;...") at <paramref name="width"/> x
+        /// <paramref name="height"/> with the pipeline's MSAA, writing Docs/rendering/racemap/&lt;label&gt;/&lt;name&gt;.png.
+        /// The game stays paused; unpause or stop play mode afterwards.
+        /// </summary>
+        public static string FreezeCompare(string label, string configs, int width, int height)
+        {
+            var camera = Camera.main;
+            if (!Application.isPlaying || camera == null)
+                return "FAILED: needs play mode and a MainCamera";
+            EditorApplication.isPaused = true;
+            var dir = Path.Combine(RaceMapViewpointCapture.OutputRoot, label);
+            Directory.CreateDirectory(dir);
+            var hdr = new RenderTexture(new RenderTextureDescriptor(width, height, RenderTextureFormat.DefaultHDR, 24)) { name = "FreezeHdr" };
+            var ldr = new RenderTexture(new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGB32, 0) { sRGB = true }) { name = "FreezeLdr" };
+            var previousTarget = camera.targetTexture;
+            var written = new List<string>();
+            try
+            {
+                foreach (var entry in configs.Split(';').Where(e => e.Length > 0))
+                {
+                    var parts = entry.Split('=');
+                    var restore = Apply(parts.Length > 1 ? parts[1].Split(',').Where(t => t.Length > 0).ToArray() : Array.Empty<string>(), camera);
+                    try
+                    {
+                        camera.targetTexture = hdr;
+                        MatchPipelineMsaa(camera, hdr);
+                        for (int i = 0; i < 3; i++)
+                            camera.Render();
+                        Graphics.Blit(hdr, ldr);
+                        var request = AsyncGPUReadback.Request(ldr, 0, TextureFormat.RGBA32);
+                        request.WaitForCompletion();
+                        var rows = request.GetData<byte>().ToArray();
+                        int stride = width * 4;
+                        var flipped = new byte[rows.Length];
+                        for (int row = 0; row < height; row++)
+                            Buffer.BlockCopy(rows, row * stride, flipped, (height - 1 - row) * stride, stride);
+                        using (var src = new NativeArray<byte>(flipped, Allocator.Temp))
+                        using (var png = ImageConversion.EncodeNativeArrayToPNG(src, GraphicsFormat.R8G8B8A8_UNorm, (uint)width, (uint)height))
+                            File.WriteAllBytes(Path.Combine(dir, parts[0] + ".png"), png.ToArray());
+                        written.Add(parts[0]);
+                    }
+                    finally
+                    {
+                        restore.Undo();
+                    }
+                }
+            }
+            finally
+            {
+                camera.targetTexture = previousTarget;
+                hdr.Release();
+                ldr.Release();
+            }
+            return "wrote " + string.Join(", ", written) + " to " + dir;
+        }
+
+        /// <summary>
+        /// URP takes a camera's MSAA sample count from its target texture, not from the pipeline asset, so a probe target
+        /// must carry the asset's count or it measures a frame without MSAA (as the game's screen target has it).
+        /// </summary>
+        static void MatchPipelineMsaa(Camera camera, RenderTexture target)
+        {
+            var asset = UniversalRenderPipeline.asset;
+            int samples = camera.allowMSAA && asset != null ? Mathf.Max(1, asset.msaaSampleCount) : 1;
+            if (target.antiAliasing == samples)
+                return;
+            camera.targetTexture = null;
+            target.Release();
+            target.antiAliasing = samples;
+            target.Create();
+            camera.targetTexture = target;
         }
 
         static Camera CreateProbeCamera(Camera gameplay)
@@ -559,7 +638,57 @@ namespace BuddahGo.Rendering.Editor
                         var profile = ScriptableObject.CreateInstance<VolumeProfile>();
                         profile.hideFlags = HideFlags.DontSave;
                         var ssr = profile.Add<ScreenSpaceReflection>(true);
-                        ssr.state.Override(ScreenSpaceReflection.State.Disabled);
+                        ssr.state.Override(value == "on" ? ScreenSpaceReflection.State.Enabled : ScreenSpaceReflection.State.Disabled);
+                        volume.sharedProfile = profile;
+                        restore.Add(() => { Object.DestroyImmediate(go); Object.DestroyImmediate(profile); });
+                        break;
+                    }
+                    case "planar":
+                    {
+                        var previous = BuddahGo.Rendering.PlanarReflection.SettingsScale;
+                        BuddahGo.Rendering.PlanarReflection.SettingsScale = float.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+                        restore.Add(() => BuddahGo.Rendering.PlanarReflection.SettingsScale = previous);
+                        break;
+                    }
+                    case "ssrres":
+                    case "ssrmip":
+                    {
+                        // The renderer feature belongs to the pipeline asset; every change is undone after the render.
+                        foreach (var feature in ActiveRendererFeatures().OfType<ScreenSpaceReflectionURP>())
+                        {
+                            var resolution = feature.resolution;
+                            var mips = feature.mipmapsMode;
+                            if (key == "ssrres")
+                                feature.resolution = (ScreenSpaceReflectionURP.Resolution)Enum.Parse(typeof(ScreenSpaceReflectionURP.Resolution), value);
+                            else
+                                feature.mipmapsMode = value == "on" ? ScreenSpaceReflectionURP.MipmapsMode.Trilinear : ScreenSpaceReflectionURP.MipmapsMode.None;
+                            feature.Create();
+                            restore.Add(() => { feature.resolution = resolution; feature.mipmapsMode = mips; feature.Create(); });
+                        }
+                        break;
+                    }
+                    case "ssrthick":
+                    case "ssrsteps":
+                    case "ssrsmooth":
+                    {
+                        // A high-priority volume overriding one SSR parameter on top of the scene's profile.
+                        var go = new GameObject("TemporalNoiseVolume") { hideFlags = HideFlags.DontSave };
+                        var volume = go.AddComponent<Volume>();
+                        volume.isGlobal = true;
+                        volume.priority = 1000f;
+                        var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+                        profile.hideFlags = HideFlags.DontSave;
+                        var ssr = profile.Add<ScreenSpaceReflection>(false);
+                        float number = float.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+                        if (key == "ssrthick")
+                            ssr.thickness.Override(number);
+                        else if (key == "ssrsmooth")
+                            ssr.minSmoothness.Override(number);
+                        else
+                        {
+                            ssr.quality.Override(ScreenSpaceReflection.Quality.Custom);
+                            ssr.maxStep.Override((int)number);
+                        }
                         volume.sharedProfile = profile;
                         restore.Add(() => { Object.DestroyImmediate(go); Object.DestroyImmediate(profile); });
                         break;

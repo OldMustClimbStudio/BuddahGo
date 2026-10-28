@@ -1,6 +1,6 @@
 # Scene rendering: current state and shader reference survey
 
-Date: 2026-10-24 · Branch: `refactor/vfx-optimization` · Unity 2022.3.55f1c1 · URP 14 · Forward, High Fidelity quality
+Date: 2026-10-24 · Branch: `refactor/vfx-optimization` (renamed `feat/racemap-rendering` on 2026-10-28) · Unity 2022.3.55f1c1 · URP 14 · Forward, High Fidelity quality
 
 Scope: first step of the scene-rendering unification work. No rendering change was made; this note records what the
 project rendered with on 2026-10-24 and which open-source URP shader repositories are worth reading when moving to hand-written
@@ -8,7 +8,7 @@ HLSL. Repo facts (stars, dates, licenses) are a snapshot taken on 2026-10-24.
 
 **Status (2026-10-26).** Section 1 describes the project before the RaceMap rendering work. Of the suggested order in
 section 4, steps 1 and 2 are done for RaceMap and step 3 in part: lighting and environment with a hand-written sunset
-sky, `BuddahGo/Lit` for the marble and sand, and jiaozi158's SSR in production. Volumetric light, SSGI, fog volumes and
+sky, `BuddahGo/Lit` for the marble and sand, and jiaozi158's SSR in production (until 2026-10-28, when planar reflections replaced it and it was removed). Volumetric light, SSGI, fog volumes and
 planar reflection were only evaluated in the local showcase ([showcase/README.md](showcase/README.md)). Steps 4 and 5
 are open. Details: [racemap/README.md](racemap/README.md).
 

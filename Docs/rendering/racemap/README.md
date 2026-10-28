@@ -1,6 +1,8 @@
 # RaceMap rendering: production changes
 
-Branch `refactor/vfx-optimization` · Unity 2022.3.55f1c1 · URP 14.0.11 · started 2026-10-25.
+Branch `feat/racemap-rendering` (named `refactor/vfx-optimization` until 2026-10-28) · PR
+[OldMustClimbStudio/BuddahGo#65](https://github.com/OldMustClimbStudio/BuddahGo/pull/65) (continues #64, closed by the
+rename) · Unity 2022.3.55f1c1 · URP 14.0.11 · started 2026-10-25.
 This note tracks the phased move of the showcase look into the shipped map `Assets/Scenes/RaceMap.unity`.
 The showcase that preceded it is documented in [../showcase/README.md](../showcase/README.md) (its Unity project
 stays local; only the note and images are in the repository).
@@ -734,8 +736,8 @@ the F9 panel's clicks also reaching gameplay input.
 - **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).
 - **Capture tool** renders without HDR and still assumes the old track height (see How to compare).
 
-- **Not verified by playing a match.** The WhiteBalance and curtain fixes, SSR under a real black curtain (including
-  its fade phases), the trails, FishNet making RaceMap the active scene, and the sunset in motion were checked in code,
+- **Not verified by playing a match.** The WhiteBalance and curtain fixes, planar reflections under a real black
+  curtain (including its fade phases) and of skill effects, the trails, FishNet making RaceMap the active scene, and the sunset in motion were checked in code,
   data, editor captures and player builds only.
 - **Player shadow on the lane.** At a 10 deg sun the player's shadow is a long, thin streak across the lane, curb and
   sand. Phase 3's shadowed reflections raised it from 1.28 to 1.59 against the lane; a contact shadow would add more.
@@ -754,14 +756,13 @@ the F9 panel's clicks also reaching gameplay input.
 - **Lens flare ghost.** The Oasis flare's ring ghost still crosses the player in the intro at 0.25 intensity. Removing
   it means editing or replacing the flare asset (shared with Oasis).
 - **Horizon seam at the frame sides.** One fog colour matches the sun-side horizon; toward the edges of the intro frame,
-  where the horizon is rosier, a faint seam remains, and SSR reflects it at grazing angles.
-- **Intro reflections.** At the intro's grazing angle SSR shows some stipple under the player and on the lane's glossy
-  side walls. Without colour mipmaps the reflection edges are slightly stair-stepped at 75% resolution.
+  where the horizon is rosier, a faint seam remains, and the lane's planar reflection mirrors it.
 - **Aliasing.** Specular glitter on the lane and end-field floor and moiré in the far sand come from high-frequency
-  normal maps; the captures have no MSAA. TAA would help both and would make PBR-accumulation SSR possible.
+  normal maps. 8x MSAA does not reach them (it resolves before tonemapping); FXAA on top halves the shimmer at some
+  softness, TAA would cover them but smears at race speed (see Play-test round 2).
 - **Colour grading mode.** All pipeline assets grade in low dynamic range (ACES first, then the grading LUT). HDR
   grading suits ACES better but is a shared-asset change for every scene; not changed.
-- **Balanced and Performant renderers.** Balanced has SSAO and now SSR; Performant has no renderer features and no
+- **Balanced and Performant renderers.** Balanced has SSAO; Performant has no renderer features and no
   main-light shadows. RenderBuddah, BlackCurtain, RenderMapEdge and RenderTrails exist only on High Fidelity, so those
   effects are missing on the lower levels. Players
   still render (every renderer draws all layers). This predates these phases; Standalone defaults to High Fidelity and
@@ -783,6 +784,28 @@ the F9 panel's clicks also reaching gameplay input.
 - `Assets/Scenes/RaceMap/` still holds about 900 stale `Lightmap-*` files and `ReflectionProbe-2.exr` from older bakes;
   only `Lightmap-0..2` and `ReflectionProbe-0/1` are referenced. Not cleaned up.
 
+## Editor and tooling traps
+
+Traps that cost time during this work; each applies to any RaceMap or pipeline change.
+- **Capture and probe targets decide HDR and MSAA.** URP takes a camera's colour format and MSAA sample count from its
+  target texture, not the pipeline asset: an 8-bit target renders LDR, a one-sample target renders without MSAA.
+  `RaceMapTemporalNoise` matches the pipeline's samples; `RaceMapViewpointCapture` still renders LDR (How to compare).
+- **Creating or destroying any `RenderPipelineAsset` disposes the active render pipeline** (its `OnDisable` cleans the
+  pipeline up), even a throwaway copy that is never assigned. Compare pipeline values by reading fields.
+- **URP's stripping report** (`Temp/shader-stripping.json`, `m_ExportShaderVariants` is on in the global settings) is
+  only readable after a build from an open editor: a batchmode build deletes `Temp` when it exits. Two editor builds
+  give a before/after; the build log's per-pass "After scriptable stripping" lines are the fallback.
+- **Do not text-edit an open scene.** The next asset refresh opens a modal "scene modified externally" dialog that
+  blocks every editor automation until someone presses Ignore (keeps the editor's copy) or Reload.
+- **Opening RaceMap marks it dirty** with an empty added-component override on the `UIprefap` instance (`addedObject:
+  {fileID: 0}`); a save writes or drops it. Check what a dirty scene holds with `EditorSceneManager.SaveScene(scene,
+  tmpPath, saveAsCopy: true)` and a diff before discarding, and keep that override out of commits.
+- **Do not write a runtime `.cs` file while a lap records in play mode**: the editor recompiles and the recording harness
+  dies. `A1DrivingTools.Run()` from an idle MainMenu drives a real autopilot Solo lap for checking intro, GO and visuals.
+- **A player keeps its last window in the registry** (`HKCU\Software\OMCStudio\BuddahGo`), shared by every build with
+  that company and product name; benchmark builds left a 1280x720 window there. The graphics settings now apply
+  borderless native unless the command line sets the window.
+
 ## Tools and shaders added
 
 | Path | Purpose |
@@ -796,7 +819,9 @@ the F9 panel's clicks also reaching gameplay input.
 | `Tools/rendering/temporal_noise.py`, `Tools/rendering/build_aa_evidence.py` | Flicker scores and the anti-aliasing evidence images |
 | `Assets/Scripts/Rendering/CameraAntialiasingPolicy.cs` | Post AA per quality level on RaceMap's gameplay camera |
 | `Assets/Rendering/Shaders/SunsetSky.shader` | RaceMap's sunset sky (phase 1b) |
-| `Assets/Plugins/UnitySSReflectionURP/` | Screen-space reflections (third party, MIT, phase 2) |
+| `Assets/Plugins/UnitySSReflectionURP/` | Screen-space reflections (third party, MIT, phase 2); unused since 2026-10-28, kept with notes on adding it back |
+| `Assets/Scripts/Rendering/PlanarReflection.cs`, `Assets/Settings/URP-PlanarReflection-Renderer.asset` | Planar reflections for flat floors and the feature-less renderer their mirror cameras use |
+| `Assets/Scripts/Rendering/Settings/` | Graphics settings, including the temporary F9 panel ([../graphics-settings.md](../graphics-settings.md)) |
 | `Assets/Rendering/Shaders/BuddahGoLit.shader` (+ 3 `.hlsl`) | The project's hand-written Lit (phase 3) |
 
 ## Re-tuning checklist

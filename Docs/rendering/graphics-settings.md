@@ -93,6 +93,9 @@ cascade count, do not increase or reach the shadow distance, a planar scale outs
 
 **Assets are never written.** Values change only on runtime clones (`HideFlags.DontSave`, made and destroyed by
 `GraphicsPipelineMapper.CreateDetachedClone` / `DestroyDetachedClone`), assigned through `QualitySettings.renderPipeline`.
+Comparisons (`DiffersFrom`) only read fields, because creating or destroying any pipeline asset disposes the active
+render pipeline; a clone that already holds the wanted values is kept, so Apply rebuilds the renderer only when a
+pipeline value changes.
 Pipeline, texture limit, anisotropic filtering and VSync belong to the current quality level, so the applier records what
 each level held before its first write. In the editor those writes would outlive play mode: they are put back on
 `Application.quitting`, which fires when play mode ends, and the start quality level is selected again. A recompile

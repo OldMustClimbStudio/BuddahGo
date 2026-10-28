@@ -48,7 +48,7 @@ git lfs pull
 | `Assets/Design/Tables/` | 策划配表源表（xlsx，LFS）、CSV 镜像、导出范围 `scope.json` |
 | `Assets/Rendering/Shaders/` | 项目手写 URP shader：RaceMap 日落天空、`BuddahGo/Lit` |
 | `Assets/Editor/Rendering/` | RaceMap 固定机位截图、光照探针布局、渲染开销测量；`BuddahGo/Lit` 材质面板 |
-| `Assets/Plugins/UnitySSReflectionURP/` | 屏幕空间反射（第三方 MIT，含 `[BuddahGo]` 补丁，见其 `BuddahGo_NOTES.md`） |
+| `Assets/Plugins/UnitySSReflectionURP/` | 屏幕空间反射（第三方 MIT，含 `[BuddahGo]` 补丁）；2026-10-28 起没有场景使用，保留备用，加回步骤见其 `BuddahGo_NOTES.md` |
 | `Assets/Tests/EditMode/` | EditMode 测试（`BuddahGo.Tests`） |
 | `Tools/` | 配表基线与记录类生成脚本（`Tools/design-tables/`）、AI 难度配置与验收脚本（`Tools/ai/`）、单机 benchmark、交接校验、性能与资源审计脚本、渲染对比图脚本（`Tools/rendering/`） |
 

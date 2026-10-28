@@ -1,10 +1,23 @@
 # PR #64 代码审查（RaceMap 场景渲染里程碑）
 
-- PR：[OldMustClimbStudio/BuddahGo#64](https://github.com/OldMustClimbStudio/BuddahGo/pull/64)，`refactor/vfx-optimization` → `dev`
+- PR：[OldMustClimbStudio/BuddahGo#64](https://github.com/OldMustClimbStudio/BuddahGo/pull/64)，`refactor/vfx-optimization` → `dev`。2026-10-28 分支改名为 `feat/racemap-rendering`，#64 因此被 GitHub 关闭，由 [#65](https://github.com/OldMustClimbStudio/BuddahGo/pull/65) 接替，内容相同
 - 审查的提交：`bf35537`（本地与 `origin` 一致），对比 merge-base `5f91e51`（`origin/dev`），共 220 个文件
 - 日期：2026-10-28
 - 方法：只做静态审查，没有启动 Unity 或 MCP，没有运行构建或测试。6 个维度各有一名审查者，每个维度再由一名独立复核者逐条尝试推翻。被推翻的条目已删除，重复条目已合并。需要编辑器或构建才能确认的条目标为“未经编辑器验证”。
 - 置信度：**高**＝复核者在代码里确认过；**中**＝代码路径成立，但影响取决于运行时；**低**＝有可能，需要编辑器、构建或联机试玩才能确认。
+
+## 处理状态（2026-10-28，合并前）
+
+| 条目 | 状态 | 提交 |
+|---|---|---|
+| M1 应用设置重建渲染管线 | 已修复：比较只读字段，不再创建或销毁管线资产；数值相同的副本直接沿用（编辑器实测修复前会释放当前管线） | `3f3bc29` |
+| M2 出生点 y 3.3 | 已修复：`Match.xlsx` 改为 0.5478，新增测试保证配表、场景出生点和出发点一致；README 已改 | `5e20255`、`20f857b` |
+| N8 结算台锚点 | 已修复：随碰撞体下移 0.998，4.4 → 3.401926 | `5e20255` |
+| M6 SSR 与 Deferred 保活 renderer | 用户决定移除：SSR feature、RaceMap 的 SSR 组件和保活 renderer 已删，插件目录保留并写了加回步骤；变体 7609 → 6402 | `60fddd0`、`287c593`、`e572ccd` |
+| N10、N13–N15 过时文档与注释 | 已修正 | `b3bd205` |
+| N11 PR 描述 | 已修正（PR 描述，无提交） | — |
+| N12 分支名与标题类型 | 分支改名为 `feat/racemap-rendering`，与 `feat:` 一致；`revert:` 前缀在 PR 描述里说明，历史未改写 | — |
+| M3–M5、M7–M11，N1–N7、N9 | 未处理，保持开放 | — |
 
 ## 结论
 

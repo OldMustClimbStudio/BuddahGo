@@ -1,6 +1,6 @@
 # Rendering showcase
 
-Date: 2026-10-24 · Branch `refactor/vfx-optimization` · Unity 2022.3.55f1c1 · URP 14.0.11 · DirectX 11, RTX 4070 Laptop
+Date: 2026-10-24 · Branch `refactor/vfx-optimization` (renamed `feat/racemap-rendering` on 2026-10-28) · Unity 2022.3.55f1c1 · URP 14.0.11 · DirectX 11, RTX 4070 Laptop
 
 One image per rendering effect from a fixed camera, so the art direction can be compared visually before any of it
 goes into `RaceMap`. Open [index.html](index.html) for the gallery with captions, repository links, licenses and
@@ -11,7 +11,9 @@ cost notes, or [contact_sheet.jpg](contact_sheet.jpg) for everything on one imag
 ([../racemap/README.md](../racemap/README.md)): jiaozi158's screen-space reflections, now in
 `Assets/Plugins/UnitySSReflectionURP/` with the `[BuddahGo]` patches, and `Showcase/Lit`, promoted to
 `BuddahGo/Lit` in `Assets/Rendering/Shaders/` (with URP Lit's full input layout, keyword set and a GBuffer pass added).
-RaceMap also got a sunset sky of its own instead of the Oasis skybox shown here.
+RaceMap also got a sunset sky of its own instead of the Oasis skybox shown here. On 2026-10-28 planar reflections
+(`PlanarReflection`, written for RaceMap, not from the showcase) replaced SSR on the lane and SSR left the renderers;
+the plugin stays in `Assets/Plugins/UnitySSReflectionURP/`, which this showcase still uses.
 
 ## Repository and local files
 

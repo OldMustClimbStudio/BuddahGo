@@ -250,7 +250,7 @@ CapsuleCollider:
   m_Radius: 3.8911228
   m_Height: 8.469625
   m_Direction: 1
-  m_Center: {x: -0.012732506, y: 2.989993, z: -0.08281994}
+  m_Center: {x: -0.012732506, y: 3.9880674, z: -0.08281994}
 --- !u!1 &1422021556352875860
 GameObject:
   m_ObjectHideFlags: 0
@@ -565,7 +565,7 @@ CapsuleCollider:
   m_Radius: 3.8869286
   m_Height: 8.493212
   m_Direction: 1
-  m_Center: {x: -0.051695585, y: 2.9506645, z: -0.15090275}
+  m_Center: {x: -0.051695585, y: 3.9487389, z: -0.15090275}
 --- !u!54 &8984405970169020143
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -920,7 +920,7 @@ MonoBehaviour:
   respawnFloorTag: RespawnFloor
   continuousContactRespawnSeconds: 2
   postRespawnCooldownSeconds: 1.5
-  respawnHeightOffset: 3
+  respawnHeightOffset: 2.002
   respawnClearanceCheckRadius: 0.75
   additionalRespawnLiftStep: 1.5
   maxAdditionalRespawnLift: 6
@@ -1818,7 +1818,7 @@ Transform:
   m_GameObject: {fileID: 5787684079244812312}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071069, y: -0, z: -0, w: 0.7071067}
-  m_LocalPosition: {x: 0, y: 0.002, z: 0}
+  m_LocalPosition: {x: 0, y: 0.2515186, z: 0}
   m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -2092,7 +2092,7 @@ SkinnedMeshRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7542277232001397698}
   m_Enabled: 1
-  m_CastShadows: 1
+  m_CastShadows: 2
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0

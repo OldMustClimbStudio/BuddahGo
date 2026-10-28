@@ -47,6 +47,11 @@
     ],
     "Global": [
       "GlobalRule"
+    ],
+    "Graphics": [
+      "GraphicsPreset",
+      "GraphicsOption",
+      "GraphicsOptionLevel"
     ]
   },
   "presentationOnly": {
@@ -247,6 +252,18 @@
     "Global/GlobalRule": [
       "global",
       "balance"
+    ],
+    "Graphics/GraphicsPreset": [
+      "graphics",
+      "info"
+    ],
+    "Graphics/GraphicsOption": [
+      "graphics",
+      "info"
+    ],
+    "Graphics/GraphicsOptionLevel": [
+      "graphics",
+      "info"
     ]
   },
   "_tags_comment": "Import filters: tag names are free-form; a sheet is re-mapped when any of its tags matches the filter. Conventional tags: balance / info / text / track plus the domain name."

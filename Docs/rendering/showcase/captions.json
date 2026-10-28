@@ -1,0 +1,19 @@
+[
+  {"id": "01_baseline_urp_lit", "caption": "Stock URP Lit through the project's own pipeline asset: trilight ambient, no fog, SampleSceneProfile post."},
+  {"id": "02_lighting_pass", "caption": "No shader code: skybox ambient instead of trilight, brighter sun with ACES tonemapping, distance fog, re-rendered reflection probe."},
+  {"id": "03_volumetric_light", "caption": "CristianQiu volumetric fog, looking back along the pillars toward the sun: the air itself is lit, and the pillars cut shadowed shafts through it."},
+  {"id": "04_ssr_off", "caption": "Low angle, screen-space reflections OFF: the marble only reflects the baked probe."},
+  {"id": "04_ssr_on", "caption": "jiaozi158 SSR: the marble reflects the pillars, spheres and head that are on screen, sharp near and blurred far."},
+  {"id": "05_planar_reflection", "caption": "NiloCat planar reflection: a mirror of the whole floor plane, also shows objects SSR cannot (off-screen, under-side), no roughness blur."},
+  {"id": "06_ssgi_off", "caption": "Corner without screen-space GI: ambient comes from the sky only, the red wall bounces nothing onto the white floor."},
+  {"id": "06_ssgi_on", "caption": "jiaozi158 SSGI: dynamic red bleed on the white floor and head computed from the screen every frame."},
+  {"id": "07_fog_volume", "caption": "sinnwrig fog volume: a local raymarched fog box hugging the floor, lit by the sun, unlike the global distance fog."},
+  {"id": "08_pbr_stock_lit", "caption": "Sphere rows (roughness 0 to 1, dielectric front, gold back) with stock URP Lit: SSAO darkens diffuse and specular equally, the metal crease keeps its mirror reflection in the corner."},
+  {"id": "08_pbr_showcase_lit", "caption": "Same shot with the hand-written Showcase/Lit: identical direct lighting, but AO now occludes reflections (Lagarde specular occlusion) and bounces albedo colour (multi-bounce AO) in the crease and under the spheres."},
+  {"id": "09_skin_default_graph", "caption": "Head close-up with the current DefaultSkin Shader Graph: plain Lit, the light-to-shadow terminator on the granite is a hard Lambert edge."},
+  {"id": "09_skin_sss", "caption": "Same shot with hand-written pre-integrated subsurface scattering: a curvature LUT softens and warms the terminator, as light would travel inside translucent stone."},
+  {"id": "10_water_shadergraph", "caption": "Pool with the project's Water Shader Graph (Oasis material)."},
+  {"id": "10_water_hlsl", "caption": "Hand-written HLSL water: depth-based colour, two scrolling normal layers, Fresnel reflection, shoreline foam."},
+  {"id": "11_stylized_counterexample", "caption": "Counter-example (GPL, demo only): Soung2279 BreathHalo on the prop; a flat, pulsing rim glow that ignores the scene's light."},
+  {"id": "13_all_realistic_on", "caption": "Everything realistic together: lighting pass + volumetric light + SSR + SSGI + fog volume + Showcase_Lit + SSS + HLSL water."}
+]

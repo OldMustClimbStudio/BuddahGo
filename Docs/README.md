@@ -17,10 +17,13 @@
 | 术语表（比赛与 AI；技能与风险）/ 架构决策 | [../CONTEXT.md](../CONTEXT.md) · [../GLOSSARY.md](../GLOSSARY.md) · [adr/](adr/) |
 | 开场交接切换的本地卡顿修复（执行入口） | [handoff-continuity/HANDOFF.md](handoff-continuity/HANDOFF.md) |
 | 策划配表系统：Excel 工作簿、导入器、分层导入、规范与筛查清单 | [design-tables/README.md](design-tables/README.md) |
-| 玩法深化：缘起、执念与反噬、单键施法与鼠标瞄准、训练木桩（阶段 A/B 已实现；A7 AI 适配、联机验证和用户试玩未做） | [gameplay/README.md](gameplay/README.md) |
+| 玩法深化：缘起、执念与反噬、单键施法与鼠标瞄准、训练木桩（阶段 A/B 和 A7 AI 适配已实现；联机验证和用户试玩未做） | [gameplay/README.md](gameplay/README.md) |
 | 缘起技能设计：每一对缘起的内容 | [gameplay/yuanqi.md](gameplay/yuanqi.md) |
 | 缘起架构设计：模块边界、配表扩展、禅足冰封的构筑（已实现） | [gameplay/yuanqi-architecture.md](gameplay/yuanqi-architecture.md) |
 | 训练模式验证记录：13 个场景的实测值与重跑方法（2026-10-26，只覆盖本机 host） | [gameplay/practice-verification.md](gameplay/practice-verification.md) |
+| RaceMap 渲染：日落光照、手写天空、平面反射（原 SSR）、阴影距离、`BuddahGo/Lit`、复调清单与编辑器陷阱 | [rendering/racemap/README.md](rendering/racemap/README.md) |
+| 渲染 shader 开源库调研与效果对比样板间（样板间工程仅在本地） | [rendering/shader-repo-survey.md](rendering/shader-repo-survey.md) · [rendering/showcase/README.md](rendering/showcase/README.md) |
+| 画质设置：选项与档位规格（配表 `Graphics.xlsx`）、运行时模型与接口、菜单接入点、未实现与占位清单 | [rendering/graphics-settings.md](rendering/graphics-settings.md) |
 
 执行入口见 [harness.md](../harness.md)，提交、PR 和验证规则见 [CONTRIBUTING.md](../CONTRIBUTING.md)。
 旧阶段合同、详细设计原稿和复盘过程可从 Git 历史查阅，例如 `git log -- Docs/prediction-refactor-plan/`。

@@ -69,4 +69,10 @@ public partial class ProjectConfigDatabase
     public List<LocalizedTextRecord> localizedTexts = new List<LocalizedTextRecord>();
     [Header("UI / MenuOption")]
     public List<MenuOptionRecord> menuOptions = new List<MenuOptionRecord>();
+    [Header("Graphics / GraphicsPreset")]
+    public List<GraphicsPresetRecord> graphicsPresets = new List<GraphicsPresetRecord>();
+    [Header("Graphics / GraphicsOption")]
+    public List<GraphicsOptionRecord> graphicsOptions = new List<GraphicsOptionRecord>();
+    [Header("Graphics / GraphicsOptionLevel")]
+    public List<GraphicsOptionLevelRecord> graphicsOptionLevels = new List<GraphicsOptionLevelRecord>();
 }

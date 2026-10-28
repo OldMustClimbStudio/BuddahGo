@@ -839,3 +839,95 @@ public class MenuOptionRecord
     /// <summary>bool</summary>
     public bool isDefault = false;
 }
+
+/// <summary>Graphics.xlsx / GraphicsPreset</summary>
+[Serializable]
+public class GraphicsPresetRecord
+{
+    /// <summary>string#key (key)</summary>
+    [Tooltip("预设 id，snake_case；选中预设且没有单项覆盖时界面显示该预设，有覆盖时显示\"自定义\"")] public string presetId = string.Empty;
+    /// <summary>int</summary>
+    [Tooltip("界面排序")] public int sortOrder = 0;
+    /// <summary>string#ref=UI/Text.key</summary>
+    [Tooltip("显示名文案 key")] public string labelKey = string.Empty;
+    /// <summary>string</summary>
+    [Tooltip("Unity 画质等级名（Project Settings > Quality），预设以它的管线资产为底，再套各选项的档位")] public string qualityLevel = string.Empty;
+    /// <summary>bool</summary>
+    [Tooltip("首次启动（没有存档）时使用的预设；只能有一行为 true")] public bool isDefault = false;
+}
+
+/// <summary>Graphics.xlsx / GraphicsOption</summary>
+[Serializable]
+public class GraphicsOptionRecord
+{
+    /// <summary>string#key (key)</summary>
+    [Tooltip("选项 id，snake_case；代码按 id 应用对应的档位列")] public string optionId = string.Empty;
+    /// <summary>int</summary>
+    [Tooltip("界面排序（组内）")] public int sortOrder = 0;
+    /// <summary>string</summary>
+    [Tooltip("分组：display / quality / effects / performance")] public string groupId = string.Empty;
+    /// <summary>string#ref=UI/Text.key</summary>
+    [Tooltip("显示名文案 key")] public string labelKey = string.Empty;
+    /// <summary>bool</summary>
+    [Tooltip("改后是否需要重启游戏才生效（目前全部即时生效）")] public bool restartRequired = false;
+}
+
+/// <summary>Graphics.xlsx / GraphicsOptionLevel</summary>
+[Serializable]
+public class GraphicsOptionLevelRecord
+{
+    /// <summary>string#key#ref=GraphicsOption.optionId (key)</summary>
+    [Tooltip("所属选项；每个选项只读自己的那几列，其余列留空")] public string optionId = string.Empty;
+    /// <summary>string#key (key)</summary>
+    [Tooltip("档位 id，snake_case")] public string levelId = string.Empty;
+    /// <summary>int</summary>
+    [Tooltip("档位排序，从低到高")] public int sortOrder = 0;
+    /// <summary>string#ref=UI/Text.key</summary>
+    [Tooltip("显示名文案 key")] public string labelKey = string.Empty;
+    /// <summary>list,string#sep=|</summary>
+    [Tooltip("以该档位为默认的预设 id（GraphicsPreset.presetId），每个预设在每个选项里恰好一行")] public List<string> defaultFor = new List<string>();
+    /// <summary>float#range=0.5,1</summary>
+    [Tooltip("render_scale：渲染分辨率倍率")] public float renderScale = 0f;
+    /// <summary>string</summary>
+    [Tooltip("upscaler：Auto / Linear / Point / FSR")] public string upscalingFilter = string.Empty;
+    /// <summary>int</summary>
+    [Tooltip("anti_aliasing：MSAA 采样数 1 / 2 / 4 / 8")] public int msaaSamples = 0;
+    /// <summary>string</summary>
+    [Tooltip("anti_aliasing：后处理抗锯齿 None / FXAA / TAA（MSAA 档位不能用 TAA）")] public string postAntialiasing = string.Empty;
+    /// <summary>float#range=0,1</summary>
+    [Tooltip("sharpening：TAA 对比度自适应锐化强度")] public float taaSharpening = 0f;
+    /// <summary>bool</summary>
+    [Tooltip("shadow_quality：主光实时阴影开关")] public bool shadowsEnabled = false;
+    /// <summary>float#range=0,500</summary>
+    [Tooltip("shadow_quality：阴影距离 m")] public float shadowDistance = 0f;
+    /// <summary>int#range=1,4</summary>
+    [Tooltip("shadow_quality：级联数 1-4")] public int shadowCascadeCount = 0;
+    /// <summary>list,float#sep=|</summary>
+    [Tooltip("shadow_quality：级联分界 m，个数 = 级联数 - 1")] public List<float> shadowCascadeSplitsMeters = new List<float>();
+    /// <summary>int</summary>
+    [Tooltip("shadow_quality：主光阴影图分辨率 256-4096")] public int shadowResolution = 0;
+    /// <summary>bool</summary>
+    [Tooltip("shadow_quality：软阴影")] public bool softShadows = false;
+    /// <summary>float#range=0,1</summary>
+    [Tooltip("reflections：平面反射贴图相对画面的分辨率比例，0 = 关（用反射探针）")] public float planarScale = 0f;
+    /// <summary>bool</summary>
+    [Tooltip("ambient_occlusion：SSAO 开关")] public bool ssaoEnabled = false;
+    /// <summary>bool</summary>
+    [Tooltip("ambient_occlusion：半分辨率")] public bool ssaoDownsample = false;
+    /// <summary>bool</summary>
+    [Tooltip("ambient_occlusion：用法线（DepthNormals）而不是只用深度")] public bool ssaoNormals = false;
+    /// <summary>string</summary>
+    [Tooltip("ambient_occlusion：采样数 Low / Medium / High")] public string ssaoSamples = string.Empty;
+    /// <summary>int#range=0,3</summary>
+    [Tooltip("texture_quality：跳过的 mip 级数，0 = 完整")] public int textureMipmapLimit = 0;
+    /// <summary>string</summary>
+    [Tooltip("anisotropic_filtering：Disable / Enable / ForceEnable")] public string anisotropicFiltering = string.Empty;
+    /// <summary>int</summary>
+    [Tooltip("frame_rate_cap：帧率上限，60 的整数倍")] public int frameRate = 0;
+    /// <summary>string</summary>
+    [Tooltip("vfx_quality：Low / Medium / High")] public string vfxTier = string.Empty;
+    /// <summary>string</summary>
+    [Tooltip("window_mode：ExclusiveFullScreen / FullScreenWindow / MaximizedWindow / Windowed")] public string fullScreenMode = string.Empty;
+    /// <summary>int#range=0,2</summary>
+    [Tooltip("vsync：0 关，1 每次刷新一帧")] public int vSyncCount = 0;
+}

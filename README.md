@@ -14,7 +14,7 @@
 
 ## 策划配表
 
-平衡数值、规则与文案由 `Assets/Design/Tables/` 下的六本 Excel 工作簿维护（Skill、Movement、AI、Match、UI、Global）。在 Excel 里改数保存，Unity 自动校验并写入 `ProjectConfigDatabase`；校验失败不写产物，错误定位到单元格，报告在 `Assets/Design/Tables/_Reports/validation.md`。手动入口在菜单 `Tools/Design Tables`（`Import Changed`、`Import Tag/…`、`Validate Only`），批处理入口：
+平衡数值、规则、文案与画质设置规格由 `Assets/Design/Tables/` 下的七本 Excel 工作簿维护（Skill、Movement、AI、Match、UI、Global、Graphics）。在 Excel 里改数保存，Unity 自动校验并写入 `ProjectConfigDatabase`；校验失败不写产物，错误定位到单元格，报告在 `Assets/Design/Tables/_Reports/validation.md`。手动入口在菜单 `Tools/Design Tables`（`Import Changed`、`Import Tag/…`、`Validate Only`），批处理入口：
 
 ```bash
 Unity.exe -batchmode -nographics -projectPath <项目路径> -executeMethod BuddahGo.DesignTables.DesignTableCli.ImportAndValidate -quit
@@ -47,8 +47,11 @@ git lfs pull
 | `Assets/Scripts/Config/` | `ProjectConfigDatabase` 记录与仓库、`DesignTableOverlay`（运行时把配表记录覆盖到组件字段） |
 | `Assets/Scripts/Editor/DesignTables/` | Excel 配表导入器：xlsx 读取、表头校验、映射、增量导入、菜单与 CLI |
 | `Assets/Design/Tables/` | 策划配表源表（xlsx，LFS）、CSV 镜像、导出范围 `scope.json` |
+| `Assets/Rendering/Shaders/` | 项目手写 URP shader：RaceMap 日落天空、`BuddahGo/Lit` |
+| `Assets/Editor/Rendering/` | RaceMap 固定机位截图、光照探针布局、渲染开销测量；`BuddahGo/Lit` 材质面板 |
+| `Assets/Plugins/UnitySSReflectionURP/` | 屏幕空间反射（第三方 MIT，含 `[BuddahGo]` 补丁）；2026-10-28 起没有场景使用，保留备用，加回步骤见其 `BuddahGo_NOTES.md` |
 | `Assets/Tests/EditMode/` | EditMode 测试（`BuddahGo.Tests`） |
-| `Tools/` | 配表基线与记录类生成脚本（`Tools/design-tables/`）、AI 难度配置与验收脚本（`Tools/ai/`）、单机 benchmark、交接校验、性能与资源审计脚本 |
+| `Tools/` | 配表基线与记录类生成脚本（`Tools/design-tables/`）、AI 难度配置与验收脚本（`Tools/ai/`）、单机 benchmark、交接校验、性能与资源审计脚本、渲染对比图脚本（`Tools/rendering/`） |
 
 ## 测试
 

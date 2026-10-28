@@ -51,6 +51,7 @@ Shader "BuddahGo/Lit"
         _MultiBounceAO("Multi-Bounce Diffuse AO", Range(0.0, 1.0)) = 1.0
         _HorizonOcclusion("Horizon Occlusion", Range(0.0, 1.0)) = 1.0
         _ShadowedReflections("Shadowed Reflections", Range(0.0, 1.0)) = 0.0
+        [Toggle(_PLANAR_REFLECTION)] _PlanarReflection("Planar Reflection (needs a PlanarReflection component)", Float) = 0.0
 
         [Header(Advanced)]
         [ToggleOff(_SPECULARHIGHLIGHTS_OFF)] _SpecularHighlights("Specular Highlights", Float) = 1.0
@@ -110,6 +111,7 @@ Shader "BuddahGo/Lit"
             #pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
             #pragma shader_feature_local_fragment _SPECULAR_SETUP
+            #pragma shader_feature_local_fragment _PLANAR_REFLECTION
 
             // Universal Pipeline keywords (as URP 14.0.11 Lit)
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN

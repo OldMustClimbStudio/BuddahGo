@@ -13,9 +13,33 @@
 //     attenuation: realtime, plus baked shadowmask in Shadowmask or Subtractive scenes). Not physical (the sky is
 //     still visible from a shadowed floor), but it lets a cast shadow read on a polished floor, whose brightness is
 //     mostly reflected sky. It is a gameplay-readability control for the RaceMap lane.
+//   * _PLANAR_REFLECTION: on a flat receiver of a PlanarReflection component, the environment reflection is the mirrored
+//     camera's image of the scene above the plane, sampled in screen space and blurred by roughness through its mips.
+//     Only pixels lying on that plane take it (up-facing vertex normal, height at the plane); walls keep the probe.
 // Both occlusion terms take URP's indirect occlusion, min(material AO, SSAO), the value stock Lit applies flat.
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+#if defined(_PLANAR_REFLECTION)
+// Per receiver, from PlanarReflection.cs through a property block: x on (0/1), y plane height, z blur mips per unit of
+// perceptual roughness, w screen-space offset per unit of normal-map tilt.
+TEXTURE2D(_PlanarReflectionTexture);
+SAMPLER(sampler_PlanarReflectionTexture);
+float4 _PlanarReflectionParams;
+
+half3 PlanarReflectionOrProbe(half3 probe, BRDFData brdfData, float3 positionWS, half3 normalWS, half3 vertexNormalWS,
+                              float2 normalizedScreenSpaceUV)
+{
+    half onPlane = saturate((vertexNormalWS.y - 0.95h) * 20.0h) * saturate(1.0h - abs(positionWS.y - _PlanarReflectionParams.y) * 10.0h);
+    half weight = (half)_PlanarReflectionParams.x * onPlane;
+    UNITY_BRANCH if (weight <= 0.0h)
+        return probe;
+    float2 uv = normalizedScreenSpaceUV + (normalWS.xz - vertexNormalWS.xz) * _PlanarReflectionParams.w;
+    half lod = brdfData.perceptualRoughness * (half)_PlanarReflectionParams.z;
+    half3 mirrored = SAMPLE_TEXTURE2D_LOD(_PlanarReflectionTexture, sampler_PlanarReflectionTexture, uv, lod).rgb;
+    return lerp(probe, mirrored, weight);
+}
+#endif
 
 half3 BuddahGoGlobalIllumination(BRDFData brdfData, half3 bakedGI, half occlusion, float3 positionWS,
                                  half3 normalWS, half3 vertexNormalWS, half3 viewDirectionWS,
@@ -31,6 +55,9 @@ half3 BuddahGoGlobalIllumination(BRDFData brdfData, half3 bakedGI, half occlusio
 
     // Indirect specular: reflection probes or the sky. Stock Lit multiplies by occlusion flat.
     half3 indirectSpecular = GlossyEnvironmentReflection(reflectVector, positionWS, brdfData.perceptualRoughness, 1.0h, normalizedScreenSpaceUV);
+#if defined(_PLANAR_REFLECTION)
+    indirectSpecular = PlanarReflectionOrProbe(indirectSpecular, brdfData, positionWS, normalWS, vertexNormalWS, normalizedScreenSpaceUV);
+#endif
     // Lagarde specular occlusion from the core library (the exponent tightens the cone as roughness falls).
     half specularOcclusion = lerp(occlusion, GetSpecularOcclusionFromAmbientOcclusion(NoV, occlusion, brdfData.roughness), _SpecularOcclusion);
     half horizon = saturate(1.0h + dot(reflectVector, vertexNormalWS));

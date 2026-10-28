@@ -1644,6 +1644,94 @@ MonoBehaviour:
     zh: hostText
   - key: ui.static.lobbyidtext
     zh: LobbyIdText
+  - key: settings.graphics.group.display
+    zh: "\u663E\u793A"
+  - key: settings.graphics.group.quality
+    zh: "\u753B\u8D28"
+  - key: settings.graphics.group.effects
+    zh: "\u7279\u6548"
+  - key: settings.graphics.group.performance
+    zh: "\u6027\u80FD"
+  - key: settings.graphics.preset.low
+    zh: "\u4F4E"
+  - key: settings.graphics.preset.medium
+    zh: "\u4E2D"
+  - key: settings.graphics.preset.high
+    zh: "\u9AD8"
+  - key: settings.graphics.preset.custom
+    zh: "\u81EA\u5B9A\u4E49"
+  - key: settings.graphics.option.render_scale
+    zh: "\u6E32\u67D3\u5206\u8FA8\u7387"
+  - key: settings.graphics.option.upscaler
+    zh: "\u653E\u5927\u7B97\u6CD5"
+  - key: settings.graphics.option.anti_aliasing
+    zh: "\u6297\u952F\u9F7F"
+  - key: settings.graphics.option.sharpening
+    zh: "\u9510\u5316"
+  - key: settings.graphics.option.shadow_quality
+    zh: "\u9634\u5F71\u8D28\u91CF"
+  - key: settings.graphics.option.texture_quality
+    zh: "\u8D34\u56FE\u8D28\u91CF"
+  - key: settings.graphics.option.anisotropic_filtering
+    zh: "\u5404\u5411\u5F02\u6027\u8FC7\u6EE4"
+  - key: settings.graphics.option.reflections
+    zh: "\u5C4F\u5E55\u7A7A\u95F4\u53CD\u5C04"
+  - key: settings.graphics.option.ambient_occlusion
+    zh: "\u73AF\u5883\u5149\u906E\u853D"
+  - key: settings.graphics.option.vfx_quality
+    zh: "\u7279\u6548\u8D28\u91CF"
+  - key: settings.graphics.option.frame_rate_cap
+    zh: "\u5E27\u7387\u4E0A\u9650"
+  - key: settings.graphics.level.off
+    zh: "\u5173"
+  - key: settings.graphics.level.low
+    zh: "\u4F4E"
+  - key: settings.graphics.level.medium
+    zh: "\u4E2D"
+  - key: settings.graphics.level.high
+    zh: "\u9AD8"
+  - key: settings.graphics.level.render_scale.p50
+    zh: 50%
+  - key: settings.graphics.level.render_scale.p59
+    zh: 59%
+  - key: settings.graphics.level.render_scale.p67
+    zh: 67%
+  - key: settings.graphics.level.render_scale.p77
+    zh: 77%
+  - key: settings.graphics.level.render_scale.p85
+    zh: 85%
+  - key: settings.graphics.level.render_scale.p100
+    zh: 100%
+  - key: settings.graphics.level.upscaler.bilinear
+    zh: "\u53CC\u7EBF\u6027"
+  - key: settings.graphics.level.upscaler.fsr
+    zh: AMD FSR 1.0
+  - key: settings.graphics.level.anti_aliasing.fxaa
+    zh: FXAA
+  - key: settings.graphics.level.anti_aliasing.taa
+    zh: TAA
+  - key: settings.graphics.level.anti_aliasing.msaa2
+    zh: MSAA 2x
+  - key: settings.graphics.level.anti_aliasing.msaa4
+    zh: MSAA 4x
+  - key: settings.graphics.level.anti_aliasing.msaa8
+    zh: MSAA 8x
+  - key: settings.graphics.level.texture_quality.quarter
+    zh: 1/4
+  - key: settings.graphics.level.texture_quality.half
+    zh: 1/2
+  - key: settings.graphics.level.texture_quality.full
+    zh: "\u5B8C\u6574"
+  - key: settings.graphics.level.anisotropic_filtering.per_texture
+    zh: "\u6309\u8D34\u56FE"
+  - key: settings.graphics.level.anisotropic_filtering.forced
+    zh: "\u5F3A\u5236\u5F00\u542F"
+  - key: settings.graphics.level.frame_rate_cap.fps60
+    zh: 60
+  - key: settings.graphics.level.frame_rate_cap.fps120
+    zh: 120
+  - key: settings.graphics.level.frame_rate_cap.fps240
+    zh: 240
   menuOptions:
   - optionGroup: max_players
     index: 0
@@ -1675,3 +1763,1166 @@ MonoBehaviour:
     value: Private
     labelKey: menu.option.visibility.private
     isDefault: 0
+  graphicsPresets:
+  - presetId: low
+    sortOrder: 0
+    labelKey: settings.graphics.preset.low
+    qualityLevel: Performant
+    isDefault: 0
+  - presetId: medium
+    sortOrder: 1
+    labelKey: settings.graphics.preset.medium
+    qualityLevel: Balanced
+    isDefault: 0
+  - presetId: high
+    sortOrder: 2
+    labelKey: settings.graphics.preset.high
+    qualityLevel: High Fidelity
+    isDefault: 1
+  graphicsOptions:
+  - optionId: render_scale
+    sortOrder: 0
+    groupId: display
+    labelKey: settings.graphics.option.render_scale
+    restartRequired: 0
+  - optionId: upscaler
+    sortOrder: 1
+    groupId: display
+    labelKey: settings.graphics.option.upscaler
+    restartRequired: 0
+  - optionId: anti_aliasing
+    sortOrder: 0
+    groupId: quality
+    labelKey: settings.graphics.option.anti_aliasing
+    restartRequired: 0
+  - optionId: sharpening
+    sortOrder: 1
+    groupId: quality
+    labelKey: settings.graphics.option.sharpening
+    restartRequired: 0
+  - optionId: shadow_quality
+    sortOrder: 2
+    groupId: quality
+    labelKey: settings.graphics.option.shadow_quality
+    restartRequired: 0
+  - optionId: texture_quality
+    sortOrder: 3
+    groupId: quality
+    labelKey: settings.graphics.option.texture_quality
+    restartRequired: 0
+  - optionId: anisotropic_filtering
+    sortOrder: 4
+    groupId: quality
+    labelKey: settings.graphics.option.anisotropic_filtering
+    restartRequired: 0
+  - optionId: reflections
+    sortOrder: 0
+    groupId: effects
+    labelKey: settings.graphics.option.reflections
+    restartRequired: 0
+  - optionId: ambient_occlusion
+    sortOrder: 1
+    groupId: effects
+    labelKey: settings.graphics.option.ambient_occlusion
+    restartRequired: 0
+  - optionId: vfx_quality
+    sortOrder: 2
+    groupId: effects
+    labelKey: settings.graphics.option.vfx_quality
+    restartRequired: 0
+  - optionId: frame_rate_cap
+    sortOrder: 0
+    groupId: performance
+    labelKey: settings.graphics.option.frame_rate_cap
+    restartRequired: 0
+  graphicsOptionLevels:
+  - optionId: render_scale
+    levelId: p50
+    sortOrder: 0
+    labelKey: settings.graphics.level.render_scale.p50
+    defaultFor: []
+    renderScale: 0.5
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: render_scale
+    levelId: p59
+    sortOrder: 1
+    labelKey: settings.graphics.level.render_scale.p59
+    defaultFor: []
+    renderScale: 0.59
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: render_scale
+    levelId: p67
+    sortOrder: 2
+    labelKey: settings.graphics.level.render_scale.p67
+    defaultFor: []
+    renderScale: 0.67
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: render_scale
+    levelId: p77
+    sortOrder: 3
+    labelKey: settings.graphics.level.render_scale.p77
+    defaultFor: []
+    renderScale: 0.77
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: render_scale
+    levelId: p85
+    sortOrder: 4
+    labelKey: settings.graphics.level.render_scale.p85
+    defaultFor: []
+    renderScale: 0.85
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: render_scale
+    levelId: p100
+    sortOrder: 5
+    labelKey: settings.graphics.level.render_scale.p100
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 1
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: upscaler
+    levelId: bilinear
+    sortOrder: 0
+    labelKey: settings.graphics.level.upscaler.bilinear
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: Auto
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: upscaler
+    levelId: fsr
+    sortOrder: 1
+    labelKey: settings.graphics.level.upscaler.fsr
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: FSR
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: anti_aliasing
+    levelId: off
+    sortOrder: 0
+    labelKey: settings.graphics.level.off
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 1
+    postAntialiasing: None
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: anti_aliasing
+    levelId: fxaa
+    sortOrder: 1
+    labelKey: settings.graphics.level.anti_aliasing.fxaa
+    defaultFor:
+    - low
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 1
+    postAntialiasing: FXAA
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: anti_aliasing
+    levelId: taa
+    sortOrder: 2
+    labelKey: settings.graphics.level.anti_aliasing.taa
+    defaultFor:
+    - medium
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 1
+    postAntialiasing: TAA
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: anti_aliasing
+    levelId: msaa2
+    sortOrder: 3
+    labelKey: settings.graphics.level.anti_aliasing.msaa2
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 2
+    postAntialiasing: None
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: anti_aliasing
+    levelId: msaa4
+    sortOrder: 4
+    labelKey: settings.graphics.level.anti_aliasing.msaa4
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 4
+    postAntialiasing: None
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: anti_aliasing
+    levelId: msaa8
+    sortOrder: 5
+    labelKey: settings.graphics.level.anti_aliasing.msaa8
+    defaultFor:
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 8
+    postAntialiasing: None
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: sharpening
+    levelId: off
+    sortOrder: 0
+    labelKey: settings.graphics.level.off
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: sharpening
+    levelId: low
+    sortOrder: 1
+    labelKey: settings.graphics.level.low
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0.4
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: sharpening
+    levelId: high
+    sortOrder: 2
+    labelKey: settings.graphics.level.high
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0.8
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: shadow_quality
+    levelId: off
+    sortOrder: 0
+    labelKey: settings.graphics.level.off
+    defaultFor:
+    - low
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: shadow_quality
+    levelId: low
+    sortOrder: 1
+    labelKey: settings.graphics.level.low
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 1
+    shadowDistance: 100
+    shadowCascadeCount: 1
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 1024
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: shadow_quality
+    levelId: medium
+    sortOrder: 2
+    labelKey: settings.graphics.level.medium
+    defaultFor:
+    - medium
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 1
+    shadowDistance: 150
+    shadowCascadeCount: 2
+    shadowCascadeSplitsMeters:
+    - 30
+    shadowResolution: 1024
+    softShadows: 1
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: shadow_quality
+    levelId: high
+    sortOrder: 3
+    labelKey: settings.graphics.level.high
+    defaultFor:
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 1
+    shadowDistance: 220
+    shadowCascadeCount: 4
+    shadowCascadeSplitsMeters:
+    - 10
+    - 30
+    - 70
+    shadowResolution: 4096
+    softShadows: 1
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: texture_quality
+    levelId: quarter
+    sortOrder: 0
+    labelKey: settings.graphics.level.texture_quality.quarter
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 2
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: texture_quality
+    levelId: half
+    sortOrder: 1
+    labelKey: settings.graphics.level.texture_quality.half
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 1
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: texture_quality
+    levelId: full
+    sortOrder: 2
+    labelKey: settings.graphics.level.texture_quality.full
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: anisotropic_filtering
+    levelId: off
+    sortOrder: 0
+    labelKey: settings.graphics.level.off
+    defaultFor:
+    - low
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: Disable
+    frameRate: 0
+    vfxTier: 
+  - optionId: anisotropic_filtering
+    levelId: per_texture
+    sortOrder: 1
+    labelKey: settings.graphics.level.anisotropic_filtering.per_texture
+    defaultFor:
+    - medium
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: Enable
+    frameRate: 0
+    vfxTier: 
+  - optionId: anisotropic_filtering
+    levelId: forced
+    sortOrder: 2
+    labelKey: settings.graphics.level.anisotropic_filtering.forced
+    defaultFor:
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: ForceEnable
+    frameRate: 0
+    vfxTier: 
+  - optionId: reflections
+    levelId: off
+    sortOrder: 0
+    labelKey: settings.graphics.level.off
+    defaultFor:
+    - low
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: reflections
+    levelId: medium
+    sortOrder: 1
+    labelKey: settings.graphics.level.medium
+    defaultFor:
+    - medium
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 1
+    ssrResolution: Half
+    ssrMipmaps: 1
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: reflections
+    levelId: high
+    sortOrder: 2
+    labelKey: settings.graphics.level.high
+    defaultFor:
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 1
+    ssrResolution: ThreeQuarters
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: ambient_occlusion
+    levelId: off
+    sortOrder: 0
+    labelKey: settings.graphics.level.off
+    defaultFor:
+    - low
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: ambient_occlusion
+    levelId: low
+    sortOrder: 1
+    labelKey: settings.graphics.level.low
+    defaultFor:
+    - medium
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 1
+    ssaoDownsample: 1
+    ssaoNormals: 0
+    ssaoSamples: Low
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: ambient_occlusion
+    levelId: high
+    sortOrder: 2
+    labelKey: settings.graphics.level.high
+    defaultFor:
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 1
+    ssaoDownsample: 0
+    ssaoNormals: 1
+    ssaoSamples: High
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+  - optionId: vfx_quality
+    levelId: low
+    sortOrder: 0
+    labelKey: settings.graphics.level.low
+    defaultFor:
+    - low
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: Low
+  - optionId: vfx_quality
+    levelId: medium
+    sortOrder: 1
+    labelKey: settings.graphics.level.medium
+    defaultFor:
+    - medium
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: Medium
+  - optionId: vfx_quality
+    levelId: high
+    sortOrder: 2
+    labelKey: settings.graphics.level.high
+    defaultFor:
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: High
+  - optionId: frame_rate_cap
+    levelId: fps60
+    sortOrder: 0
+    labelKey: settings.graphics.level.frame_rate_cap.fps60
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 60
+    vfxTier: 
+  - optionId: frame_rate_cap
+    levelId: fps120
+    sortOrder: 1
+    labelKey: settings.graphics.level.frame_rate_cap.fps120
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 120
+    vfxTier: 
+  - optionId: frame_rate_cap
+    levelId: fps240
+    sortOrder: 2
+    labelKey: settings.graphics.level.frame_rate_cap.fps240
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    ssrEnabled: 0
+    ssrResolution: 
+    ssrMipmaps: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 240
+    vfxTier: 

@@ -13,6 +13,7 @@ namespace BuddahGo.DesignTables
             KeyMaxBelowComboWindow(set, issues);
             SkillRowsAreConsistent(set, issues);
             DefaultLoadoutUsesSelectableSkills(set, issues);
+            GraphicsSettingsAreComplete(set, issues);
         }
 
         private static void CheckpointCountMatchesTrack(DesignTableSet set, List<Issue> issues)
@@ -115,6 +116,117 @@ namespace BuddahGo.DesignTables
                     string v = loadout.Cell(row, c).Trim();
                     if (!string.IsNullOrEmpty(v) && !selectable.Contains(v))
                         issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = loadout.Location(row, c), Message = "'" + v + "' is not in the Selectable pool" });
+                }
+            }
+        }
+
+        private static void GraphicsSettingsAreComplete(DesignTableSet set, List<Issue> issues)
+        {
+            // Graphics/*: every preset needs exactly one default level per option, and level values must be ones the
+            // runtime (GraphicsPipelineMapper / GraphicsSettingsApplier) understands.
+            DesignSheet presets = set.Find("Graphics", "GraphicsPreset");
+            DesignSheet options = set.Find("Graphics", "GraphicsOption");
+            DesignSheet levels = set.Find("Graphics", "GraphicsOptionLevel");
+            if (presets == null || options == null || levels == null) return;
+            ColumnSpec presetId = presets.FindColumn("presetId"), isDefault = presets.FindColumn("isDefault");
+            ColumnSpec optionId = options.FindColumn("optionId");
+            ColumnSpec lOption = levels.FindColumn("optionId"), lDefault = levels.FindColumn("defaultFor");
+            if (presetId == null || optionId == null || lOption == null || lDefault == null) return;
+
+            int defaults = 0;
+            if (isDefault != null)
+                foreach (DataRow row in presets.Rows)
+                    if (ValueConverter.TryBool(presets.Cell(row, isDefault), out bool d) && d) defaults++;
+            if (defaults != 1)
+                issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "Graphics.xlsx/GraphicsPreset", Message = "exactly one preset must have isDefault = true (found " + defaults + ")" });
+
+            foreach (DataRow optionRow in options.Rows)
+            {
+                string option = options.Cell(optionRow, optionId).Trim();
+                foreach (DataRow presetRow in presets.Rows)
+                {
+                    string preset = presets.Cell(presetRow, presetId).Trim();
+                    int count = 0;
+                    foreach (DataRow levelRow in levels.Rows)
+                    {
+                        if (levels.Cell(levelRow, lOption).Trim() != option) continue;
+                        foreach (string p in levels.Cell(levelRow, lDefault).Split('|'))
+                            if (p.Trim() == preset) count++;
+                    }
+                    if (count != 1)
+                        issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "Graphics.xlsx/GraphicsOptionLevel", Message = "preset '" + preset + "' has " + count + " default levels for option '" + option + "' (needs exactly 1)" });
+                }
+            }
+
+            // FrameRateLock reads Global/GlobalRule target_frame_rate; the settings layer replaces it at startup with the
+            // preset's default frame_rate_cap level, so the two must agree.
+            int globalFps = 0;
+            DesignSheet rules = set.Find("Global", "GlobalRule");
+            ColumnSpec ruleKey = rules?.FindColumn("ruleKey"), ruleValue = rules?.FindColumn("ruleValue");
+            if (ruleKey != null && ruleValue != null)
+                foreach (DataRow row in rules.Rows)
+                    if (rules.Cell(row, ruleKey).Trim() == "target_frame_rate") globalFps = ValueConverter.ToInt(rules.Cell(row, ruleValue));
+
+            foreach (DataRow row in levels.Rows)
+            {
+                string option = levels.Cell(row, lOption).Trim();
+                string Value(string var) { ColumnSpec c = levels.FindColumn(var); return c == null ? string.Empty : levels.Cell(row, c).Trim(); }
+                void Check(string var, bool ok, string message)
+                {
+                    if (ok) return;
+                    ColumnSpec c = levels.FindColumn(var);
+                    issues.Add(new Issue { Severity = IssueSeverity.Error, Location = c == null ? levels.Workbook + ".xlsx/" + levels.Name + " (no " + var + " column)" : levels.Location(row, c), Message = message });
+                }
+                bool OneOf(string value, params string[] allowed) => System.Array.IndexOf(allowed, value) >= 0;
+                switch (option)
+                {
+                    case "upscaler":
+                        Check("upscalingFilter", OneOf(Value("upscalingFilter"), "Auto", "Linear", "Point", "FSR"), "upscalingFilter must be Auto, Linear, Point or FSR");
+                        break;
+                    case "anti_aliasing":
+                        int msaa = ValueConverter.ToInt(Value("msaaSamples"));
+                        string post = Value("postAntialiasing");
+                        Check("msaaSamples", OneOf(msaa.ToString(), "1", "2", "4", "8"), "msaaSamples must be 1, 2, 4 or 8");
+                        Check("postAntialiasing", OneOf(post, "None", "FXAA", "TAA"), "postAntialiasing must be None, FXAA or TAA (SMAA crawls on RaceMap's sand)");
+                        Check("postAntialiasing", msaa <= 1 || post == "None", "post AA must be None on an MSAA level (URP disables TAA with MSAA)");
+                        break;
+                    case "shadow_quality":
+                        if (!ValueConverter.TryBool(Value("shadowsEnabled"), out bool on) || !on) break;
+                        int cascades = ValueConverter.ToInt(Value("shadowCascadeCount"));
+                        string splits = Value("shadowCascadeSplitsMeters");
+                        int splitCount = string.IsNullOrEmpty(splits) ? 0 : splits.Split('|').Length;
+                        Check("shadowCascadeSplitsMeters", splitCount == cascades - 1, "needs " + (cascades - 1) + " cascade splits for " + cascades + " cascades");
+                        float distance = ValueConverter.ToFloat(Value("shadowDistance")), previous = 0f;
+                        bool ascending = true;
+                        if (splitCount > 0)
+                            foreach (string split in splits.Split('|'))
+                            {
+                                float metres = ValueConverter.ToFloat(split.Trim());
+                                ascending &= metres > previous && metres < distance;
+                                previous = metres;
+                            }
+                        Check("shadowCascadeSplitsMeters", ascending, "cascade splits must increase and stay below shadowDistance (" + distance + " m)");
+                        Check("shadowResolution", OneOf(Value("shadowResolution"), "256", "512", "1024", "2048", "4096"), "shadowResolution must be 256-4096 (power of two)");
+                        break;
+                    case "reflections":
+                        if (ValueConverter.TryBool(Value("ssrEnabled"), out bool ssr) && ssr)
+                            Check("ssrResolution", OneOf(Value("ssrResolution"), "Full", "ThreeQuarters", "Half", "Quarter"), "ssrResolution must be Full, ThreeQuarters, Half or Quarter");
+                        break;
+                    case "ambient_occlusion":
+                        if (ValueConverter.TryBool(Value("ssaoEnabled"), out bool ao) && ao)
+                            Check("ssaoSamples", OneOf(Value("ssaoSamples"), "Low", "Medium", "High"), "ssaoSamples must be Low, Medium or High");
+                        break;
+                    case "anisotropic_filtering":
+                        Check("anisotropicFiltering", OneOf(Value("anisotropicFiltering"), "Disable", "Enable", "ForceEnable"), "anisotropicFiltering must be Disable, Enable or ForceEnable");
+                        break;
+                    case "frame_rate_cap":
+                        int fps = ValueConverter.ToInt(Value("frameRate"));
+                        Check("frameRate", fps > 0 && fps % 60 == 0, "frameRate must be a multiple of the 60 Hz network tick (FrameRateLock)");
+                        Check("frameRate", globalFps <= 0 || string.IsNullOrEmpty(Value("defaultFor")) || fps == globalFps, "a preset's default frameRate (" + fps + ") must equal Global/GlobalRule target_frame_rate (" + globalFps + ")");
+                        break;
+                    case "vfx_quality":
+                        Check("vfxTier", OneOf(Value("vfxTier"), "Low", "Medium", "High"), "vfxTier must be Low, Medium or High");
+                        break;
                 }
             }
         }

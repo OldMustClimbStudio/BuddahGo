@@ -63,3 +63,6 @@
 ,Global,InputBinding,(新增) InputBindingRecord,Assets/Scripts/InputSystem/InputSystem_Actions.inputactions,改键需先去掉硬编码 KeyCode
 ,Global,Timeline,(只读) 由 timeline 资产导出,Assets/Animation/CG/*.playable,只读显示；改时长请改 timeline
 ,Global,__enums__,枚举定义（不导出，校验用）,代码枚举 + 本规范新增枚举,
+,Graphics,GraphicsPreset,(生成) GraphicsPresetRecord,Assets/Settings/URP-*.asset; ProjectSettings/QualitySettings.asset; CameraAntialiasingPolicy,2026-10-27 画质设置规格；默认档位复现各画质等级当时的实际值
+,Graphics,GraphicsOption,(生成) GraphicsOptionRecord,Assets/Settings/URP-*.asset; ProjectSettings/QualitySettings.asset; CameraAntialiasingPolicy,2026-10-27 画质设置规格；默认档位复现各画质等级当时的实际值
+,Graphics,GraphicsOptionLevel,(生成) GraphicsOptionLevelRecord,Assets/Settings/URP-*.asset; ProjectSettings/QualitySettings.asset; CameraAntialiasingPolicy,2026-10-27 画质设置规格；默认档位复现各画质等级当时的实际值

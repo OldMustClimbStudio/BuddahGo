@@ -67,6 +67,27 @@ namespace BuddahGo.Tests
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
         }
         [Test]
+        public void TrackSpawnTableKeepsTheSceneSpawnAndLaunchHeight()
+        {
+            // MatchSpawnManager moves the scene's spawn points to Match/TrackSpawn at runtime, so a layout change in the
+            // scene only takes effect if the table follows it. Racers start, ride the intro and launch at one height.
+            var db=AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>("Assets/Data/Config/ProjectConfigDatabase_Main.asset");
+            var rows=db.trackSpawns.Where(r=>r.trackId=="racemap").OrderBy(r=>r.order).ToList();
+            Assert.That(rows.Count,Is.EqualTo(6));
+            EditorSceneManager.OpenScene("Assets/Scenes/RaceMap.unity");
+            try
+            {
+                var points=new SerializedObject(UnityEngine.Object.FindFirstObjectByType<MatchSpawnManager>()).FindProperty("_spawnPoints");
+                foreach(var row in rows)
+                    Assert.That(row.position.y,Is.EqualTo(((Component)points.GetArrayElementAtIndex(row.order).objectReferenceValue).transform.position.y).Within(.01f),"spawn "+row.order);
+                var intro=UnityEngine.Object.FindFirstObjectByType<IntroSequenceManager>();
+                var slots=new SerializedObject(intro).FindProperty("layouts").GetArrayElementAtIndex(5).FindPropertyRelative("slots");
+                for(int i=0;i<slots.arraySize;i++)
+                    Assert.That(((IntroSlot)slots.GetArrayElementAtIndex(i).objectReferenceValue).GetLaunchPosition().y,Is.EqualTo(rows[0].position.y).Within(.01f),"launch "+i);
+            }
+            finally { EditorSceneManager.NewScene(NewSceneSetup.EmptyScene); }
+        }
+        [Test]
         public void SerializedRacerContainsIdentityAndDisabledNormalDriver()
         {
             var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Character/Prefab/Buddah.prefab");

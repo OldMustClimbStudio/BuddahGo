@@ -987,27 +987,27 @@ MonoBehaviour:
   trackSpawns:
   - trackId: racemap
     order: 0
-    position: {x: -346.81, y: 3.3, z: -68.83}
+    position: {x: -346.81, y: 0.5478, z: -68.83}
     rotationY: -109.701
   - trackId: racemap
     order: 1
-    position: {x: -327.23, y: 3.3, z: -72.67}
+    position: {x: -327.23, y: 0.5478, z: -72.67}
     rotationY: -108.437
   - trackId: racemap
     order: 2
-    position: {x: -308.77, y: 3.3, z: -56.99}
+    position: {x: -308.77, y: 0.5478, z: -56.99}
     rotationY: -113.06
   - trackId: racemap
     order: 3
-    position: {x: -335.51245, y: 3.3, z: -64.78464}
+    position: {x: -335.51245, y: 0.5478, z: -64.78464}
     rotationY: -109.701
   - trackId: racemap
     order: 4
-    position: {x: -315.93246, y: 3.3, z: -68.62462}
+    position: {x: -315.93246, y: 0.5478, z: -68.62462}
     rotationY: -108.437
   - trackId: racemap
     order: 5
-    position: {x: -297.4724, y: 3.3, z: -52.944626}
+    position: {x: -297.4724, y: 0.5478, z: -52.944626}
     rotationY: -113.06
   trackCheckpoints:
   - trackId: racemap
@@ -1028,27 +1028,27 @@ MonoBehaviour:
   trackResultAnchors:
   - trackId: racemap
     rank: 1
-    position: {x: 1493.2, y: 4.4, z: -683.8}
+    position: {x: 1493.2, y: 3.401926, z: -683.8}
     rotationY: 180
   - trackId: racemap
     rank: 2
-    position: {x: 1494.4, y: 4.4, z: -774.2}
+    position: {x: 1494.4, y: 3.401926, z: -774.2}
     rotationY: 2.08
   - trackId: racemap
     rank: 3
-    position: {x: 1539.8, y: 4.4, z: -775.4}
+    position: {x: 1539.8, y: 3.401926, z: -775.4}
     rotationY: -17.806
   - trackId: racemap
     rank: 4
-    position: {x: 1451.2, y: 4.4, z: -775.4}
+    position: {x: 1451.2, y: 3.401926, z: -775.4}
     rotationY: 28.34
   - trackId: racemap
     rank: 5
-    position: {x: 1462.3, y: 4.4, z: -799.1}
+    position: {x: 1462.3, y: 3.401926, z: -799.1}
     rotationY: 16.363
   - trackId: racemap
     rank: 6
-    position: {x: 1519.2, y: 4.4, z: -803.9}
+    position: {x: 1519.2, y: 3.401926, z: -803.9}
     rotationY: -16.928
   lobbies:
   - profileId: default

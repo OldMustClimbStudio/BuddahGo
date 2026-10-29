@@ -420,6 +420,8 @@ Buff 期间（15 s）需要一个低成本、低噪音的**持续层**（施法�
 
 用户看过第二版材质后的判断："水墨感来自于一些外层的特效，但是不应该是实体。如果一般用实体的话，可以参考绝区零里面仪玄这个角色的特效风格。"本节按截图与官方资料把仪玄的做法拆开，供 [README.md 第 2 节](README.md#2-视觉方向已定) 与 [push-projectile-hands.md 第 13 节](push-projectile-hands.md#13-2026-10-28-第二次评审实体与外层水墨分家) 引用。
 
+> **2026-10-29 补充：** 仪玄三类配色（本体、技能各阶段、UI）的取色数据、配方与如来神掌逐层建议色值见 [yixuan-palette.md](yixuan-palette.md)；8.3 节的估色以那份文档的实测值为准（更正表在其第 7 节）。
+
 ### 8.1 角色与技能事实
 
 - 仪玄：《绝区零》2.0（2025-06-06）S 级代理人，阵营云岿山，属性"玄墨"（以太的变体，伤害数字为金色），特性命破。技能名全是墨与云：普攻「墨影凝云」（展开大太极阵）、强化特殊技「墨痕化形」、终结技「符法千重」（张开羽翼、引导万千符箓）、「青溟震击」（张开翅膀发动爆炸）、术法「青溟鸟」、音擎「青溟笼舍」。来源：[B 站绝区零 WIKI · 仪玄](https://wiki.biligame.com/zzz/%E4%BB%AA%E7%8E%84)、[HoYoWiki · Yixuan](https://wiki.hoyolab.com/pc/zzz/entry/752?lang=en-us)、[Fandom · Yixuan](https://zenless-zone-zero.fandom.com/wiki/Yixuan)（技能页 [Ink-Veil Cloud Coalescence](https://zenless-zone-zero.fandom.com/wiki/Basic_Attack:_Ink%E2%80%90Veil_Cloud_Coalescence)、[Ink Manifestation](https://zenless-zone-zero.fandom.com/wiki/EX_Special_Attack:_Ink_Manifestation)）。

@@ -477,3 +477,45 @@ Buff 期间（15 s）需要一个低成本、低噪音的**持续层**（施法�
 ### 9.4 推荐
 
 C + A 合体：主角是一张画好的金色掌印符图（硬边、带掌纹与经文，像印章），出掌时以法相方式在空中显形并飞出；劲风和拖尾用 D 的手绘笔触序列帧（先用买来的包占位，再换自己画的）。软烟墨、噪声滚动、matcap 全部不要。待用户选定后改写 README 第 2 节与 push-projectile-hands.md。
+
+## 10. 拆解：Piloto Studio「Realistic Ying Yang VFX」（2026-10-28 晚，用户指定为唯一美术基准）
+
+用户 2026-10-28 晚："重新设计整个大体。我现在已经下载了 Realistic Ying Yang VFX，你直接观看里面所有的特效实现方式，完全参考对方的美术风格，跟那个来。"包在 Asset Store 缓存里（`Piloto Studio/Particle SystemsMagic/Realistic Ying Yang VFX.unitypackage`，134.8 MB，1.0，2026-05-22，Single Entity 授权，[商店页](https://assetstore.unity.com/packages/vfx/particles/spells/realistic-ying-yang-vfx-368008)，Unity 2022.3.62 制作，内置 / URP / HDRP 兼容）。本节是把包解开后对 458 个文件的统计与归纳，不是官方说法；没有导入工程。
+
+### 10.1 包里有什么
+
+| 类 | 数量 | 说明 |
+|---|---|---|
+| 主特效 prefab | 23 | Beam、Big Explotion、Buff、Buff up、Burst Shockwave、Flash AoE、Floor Shockwave、Frontal、Frontal Pulses、Nova Shockwave、Orb、Pulses、Rain、Rune、Rune Fall、Screen Space FX、Shield、Smoke、Vertical Explotion、Vertical Rune、pulse 等 |
+| Extras prefab（ARPG_White 系列） | 22 | 白色通用版：Casting_Hand_attach、Projectile_Orb_small、Projectile_Muzzle_Flash、Projectile_Hit_Impact / Hit_Cone、Slash C / Circle / Stab、Charged_Slam、Lunge、Embers、Ground_Burst 等 |
+| 粒子系统 | 561（主 prefab 内） | 每个 prefab 9–52 个，中位数约 26；Billboard 332、Mesh 146、Stretch 63、VBillboard 7、空根 13 |
+| 材质 | 约 190 | 阴阳专用 27 个、墨专用 21 个，其余来自 Shared / Fire / Ice / Dark / Blood 等共用库；几乎全部用同一个 `UberFXSG` Shader Graph，少数用 `Piloto Warp`（屏幕扭曲）与 `Piloto PBR Simple` |
+| 贴图 | 约 200 | 2048² 为主：渲染 / 手绘的烟雾序列帧（8×8）、液体涂抹、墨滴、阴阳符三版、竹影四版、竹叶、光晕、流线、各类噪声与渐变 |
+| 网格 | 30 | RadialUV 圆盘、ConeTapered、Cone_LongAOE、CaracolSphere、SimpleSphere_VFX_UV、RingRotation、Slash 半圆 / 整圆、Vertical_strike_cilinder 等 |
+| 脚本 | 4 | `ParticleHandler`（cast / loop / end 三段流程）、`ScaleUpdater`、`MainCameraAutoParent`、`ParticleShowcase`；`DistortionGrabber.cs` 配合 Warp |
+| 文档 | 2 | `PILOTO README.pdf`、`Piloto Doc Readme - CN.pdf` |
+
+### 10.2 画面：黑白、湿墨、高反差
+
+商店九张截图与贴图本身一致：
+
+- **只有黑白两色**，唯一的彩色是竹叶的绿（面积不到 2%）。黑是**有光泽的湿墨**：大块黑色液体池、墨浪、墨滴，边缘有白色描边和液体高光；白是**光**：中心的爆闪、软雾、光束、火星。所有画面都是"黑墨 + 白光"的对比，灰只出现在烟和过渡里。
+- 主体从不是实心网格：阴阳符是一张画好的 2048² 符图（`yingyang_1/2/3`：白底、墨边晕染、软边）贴在面片上；投射物 Orb = 黑色扭曲球壳（mesh shockwave）+ 白色软雾 + 阴阳符面片 + 光环 + 黑烟序列帧尾 + 竹叶。
+- 地面大量使用**黑墨池**：`yy_Shockwave_3_Distorted_still`（扭曲、静止的墨池，1.5–5 s）、`Ink_Shockwave_1_Distorted`（向外扩的墨浪），池边白描边。墨池是黑的，但背景是深灰网格地面，黑不会读成"洞"。
+- 氛围层：白色 `FuzzAlpha_Soft` / `FuzzAdd_Soft` 软雾（所有效果都有，最常用的材质）、8×8 真实烟雾序列帧（`Smoke_screen_cloud_sharp`，黑或白）、墨片 `Ink_flakes`（序列帧）、液体涂抹 `Liquid_smudge`、白色火星 `Flecks_Shiny`（拉伸）、`Flare` / `LightFlash` 爆闪（0.15–0.3 s）、`Ring_Halo_faded` 光环、`DS_Aoe_Crystal_Warp` 屏幕扭曲（0.2 s）。
+- 竹：`bamboo_tree_1–4` 墨竹剪影贴图（黑）从地面升起，`bamboo_leaf` 绿叶散落——这是包里唯一的"题材"元素，和我们的禅院题材天然相通。
+
+### 10.3 实现方式
+
+- **一个 shader 做所有粒子**：`UberFXSG` 的参数是 Main Texture（通道可选、可平移）、Alpha Override（第二张贴图做形状遮罩，可平移）、Detail Noise（一张噪声按通道分别做乘、加、溶解、扭曲、顶点偏移）、**Color Ramping（Lows / Middles / Highs 三色 + 两个中点，把灰度贴图重映射成"黑 - 中 - 白"）**、Fresnel、软粒子、UV 偏移、Alpha Clip。每个材质 = 一张形状图 + 一张遮罩图 + 一张噪声 + 三色映射；黑白风格就是把三色设成黑 / 深灰 / 白或白 / 灰 / 黑。
+- 混合：Alpha 为主（黑墨、烟、符图都是 Alpha），Add 只给光（Fuzz、Flare、Flecks、Halo）。黑色元素 188 个、白色 276 个、其他 97 个（大多是灰或竹叶绿）。
+- 运动：几乎不靠 Velocity 模块，靠**网格 + UV 平移**（`_v_speed = -1.2` 的流线贴图在 RadialUV / Cone 网格上滚动 = 墨浪向外扩）、Size over Lifetime、Color over Lifetime、序列帧（U 标记的系统）。粒子数极少：绝大多数系统 burst 1–3 个，火星类 25–85 个，`Flecks_Clipped` 一次 500 个是上限。
+- 时序：每个 prefab 是"空根 + 若干子系统，各自 duration / startDelay 不同"叠出来的，没有代码时序；`ParticleHandler` 只负责 cast → loop → end 三段切换。寿命：爆闪 0.15–0.3 s，墨浪 0.7–1.5 s，墨池 1.5–5 s，符图 1–12 s，雾 0.25–5 s。
+- 尺寸单位：按 1 单位 ≈ 1 米做的（Orb 符图 1.65、墨池 2–8、Flash AoE 的 Flare 18）。本项目角色 8 单位高、掌 60 × 90，所有尺寸要乘 8–10 倍，或者整个 prefab 根缩放。
+- 包自带的局限：软粒子与 Warp 需要深度 / 不透明纹理（本项目 Balanced / Performant 管线没开，见 palm 文档第 1 节）；每个效果 14–52 个粒子系统，远超 README 第 8 节"每次施放 ≤ 4 个"的预算。
+
+### 10.4 对本项目的意义
+
+- 黑白湿墨 + 白光就是用户要的"水墨感"的具体做法：墨是**有光泽的液体形**（扭曲网格 + 涂抹贴图 + 白描边），不是前几版的平涂黑块或半透明灰烟；光是白色软雾加爆闪，不是金色 matcap。
+- 形状全部来自画好的贴图和网格，与第 9 节的结论一致；这个包把素材也一并提供了，可以直接用（Single Entity 授权，用贴图、材质、网格、shader 都可以，不限于它的 prefab）。
+- 背景差异仍在：包是在深灰地面上演示的，黑墨池在亮沙地上会更重；对策是把墨池留给蓄力与命中、缩小面积，让飞行主体以白光为主。

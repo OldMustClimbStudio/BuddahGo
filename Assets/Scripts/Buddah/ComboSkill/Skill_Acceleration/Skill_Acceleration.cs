@@ -9,12 +9,9 @@ public class Skill_Acceleration : SkillAction
     [Min(0.1f)] public float durationSeconds = 10f;
     [Tooltip("VFX lifetime. 0 = follow durationSeconds.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
-    [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
-    [SerializeField] public string vfxId = "accel_release"; // Configure matching VFX id in SkillVfxReplicator.
-    [SerializeField] public Vector3 vfxLocalOffset = Vector3.back * 2f;
-    [SerializeField] public Vector3 vfxLocalEuler = new Vector3(0f, 180f, 0f);
+    [SerializeField] public string vfxId = "accel_release"; // Release slot in SkillVfxDatabase (Docs/vfx/slots.md).
     [Header("Feel (Optional)")]
-    [SerializeField] private string observersFeelEventId = "acceleration_shared";
+    [SerializeField] private string observersFeelEventId = string.Empty;
     [SerializeField] private string observersFeelStopEventId = string.Empty;
     [Header("Camera")]
     [SerializeField] private float localCasterBuffFovBoost = 6f;
@@ -33,7 +30,7 @@ public class Skill_Acceleration : SkillAction
         {
             var vfx = caster.GetComponent<SkillVfxReplicator>();
             if (vfx != null)
-                vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
+                vfx.PlayVfxAll(vfxId, actualVfxDuration);
         }
 
         GameLog.Verbose($"[Skill_Acceleration][Server] Apply +{extraForwardForce} force, +{extraMaxSpeed} maxSpeed for {durationSeconds}s, vfx={actualVfxDuration}s");
@@ -44,7 +41,6 @@ public class Skill_Acceleration : SkillAction
         GameLog.Verbose($"[Skill_Acceleration][Observers] '{skillId}' triggered (slot {slotIndex})");
         float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, durationSeconds);
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, actualVfxDuration);
-        caster.ShowAccelerationTrailLocal(durationSeconds);
 
         // Authored Feel bindings take precedence over the timed VFX fallback.
     }

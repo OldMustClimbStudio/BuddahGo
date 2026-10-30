@@ -18,10 +18,7 @@ public class Skill_SlowTrap_Anti : SkillAction
     [Header("VFX")]
     [Tooltip("VFX lifetime. 0 = follow (rootDurationSeconds + accelerationDurationSeconds).")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
-    [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
     [SerializeField] public string vfxId = string.Empty;
-    [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
-    [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
@@ -38,7 +35,7 @@ public class Skill_SlowTrap_Anti : SkillAction
 
         var vfx = caster.GetComponent<SkillVfxReplicator>();
         if (vfx != null && !string.IsNullOrWhiteSpace(vfxId))
-            vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
+            vfx.PlayVfxAll(vfxId, actualVfxDuration);
 
         GameLog.Verbose($"[Skill_SlowTrap_Anti][Server] Root self {rootDurationSeconds}s, then accel +{extraForwardForce}/+{extraMaxSpeed} for {accelerationDurationSeconds}s, vfx={actualVfxDuration}s");
     }

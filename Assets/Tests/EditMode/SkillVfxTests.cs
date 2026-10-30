@@ -13,8 +13,6 @@ namespace BuddahGo.Tests
     // naming and the per-cast budget.
     public class SkillVfxTests
     {
-        const string PalmPrefab = "Assets/VFX/如来神掌/VFX_Palm.prefab";
-        const string AntiPrefab = "Assets/VFX/如来神掌/VFX_Palm_Anti.prefab";
         const string BufPrefab = "Assets/VFX/如来神掌/Buff/VFX_Palm_Buff.prefab";
         const string MainAsset = "Assets/Data/Config/ProjectConfigDatabase_Main.asset";
         static readonly Vector3 Reference = new Vector3(60f, 90f, 20f);
@@ -73,8 +71,8 @@ namespace BuddahGo.Tests
             Assert.That(SkillVfxRules.UniformScale(new Vector3(60f, 50f, 20f), Reference), Is.EqualTo(50f / 90f).Within(1e-5f));
         }
 
-        [TestCase(PalmPrefab, "palm", new[] { SkillVfxPhase.Chg, SkillVfxPhase.Imp, SkillVfxPhase.Prj, SkillVfxPhase.Dis })]
-        [TestCase(AntiPrefab, "palm_anti", new[] { SkillVfxPhase.Chg, SkillVfxPhase.Imp, SkillVfxPhase.Prj, SkillVfxPhase.Dis })]
+        // Only the buff state layer is still a first-pass prefab; VFX_Palm / VFX_Palm_Anti were retired
+        // (Docs/vfx/retired.md) for the palm_release slots and the palm_bullet ink hands.
         [TestCase(BufPrefab, "palm_buff", new[] { SkillVfxPhase.Buf })]
         public void PrefabCoversItsLayerSheetPhasesWithNamedLayers(string path, string vfxId, SkillVfxPhase[] phases)
         {
@@ -102,9 +100,8 @@ namespace BuddahGo.Tests
             }
         }
 
-        // README section 8 budget, per cast; the anti volley spawns five copies of its prefab.
-        [TestCase(PalmPrefab, 1)]
-        [TestCase(AntiPrefab, 5)]
+        // README section 8 budget, per cast.
+        [TestCase(BufPrefab, 1)]
         public void PrefabStaysWithinTheCastBudget(string path, int copies)
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -202,7 +199,8 @@ namespace BuddahGo.Tests
                 if (shader != null)
                     shaders.Add(shader.name);
             }
-            foreach (string name in new[] { "FX/Additive_Glow", "FX/Alpha_Smoke", "FX/Decal", "FX/Mesh_Energy" })
+            // The two hand-written shaders VFX_Palm_Buff still uses; FX/Decal and FX/Mesh_Energy were retired.
+            foreach (string name in new[] { "FX/Additive_Glow", "FX/Alpha_Smoke" })
                 Assert.That(shaders, Does.Contain(name));
         }
 

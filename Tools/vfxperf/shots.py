@@ -22,7 +22,7 @@ def shoot(outdir, t, cams):
     os.makedirs(outdir, exist_ok=True)
     if is_playing():
         umcp.call("manage_editor", {"action": "stop"}); wait_not_playing()
-    print(code("return BuddahGo.VFX.EditorTools.%s.Setup(%sf);" % (os.environ.get("CLS","YixuanProtoBuilder"), t))[:160])
+    print(code("return BuddahGo.VFX.EditorTools.%s.Setup(%sf);" % (os.environ.get("CLS","PalmFrontalProto"), t))[:160])
     r, _ = umcp.call("manage_editor", {"action": "play"}); print(umcp.text_of(r)[:80])
     frozen = False
     for _ in range(60):
@@ -32,7 +32,7 @@ def shoot(outdir, t, cams):
     print("frozen" if frozen else "NOT FROZEN after 60 s")
     for cam in cams:
         p = os.path.join(outdir, "t%s_%s.png" % (t, cam)).replace("\\", "/")
-        print(code('return BuddahGo.VFX.EditorTools.%s.Capture("Cam_%s", "%s");' % (os.environ.get("CLS","YixuanProtoBuilder"), cam, p))[:160])
+        print(code('return BuddahGo.VFX.EditorTools.%s.Capture("Cam_%s", "%s");' % (os.environ.get("CLS","PalmFrontalProto"), cam, p))[:160])
     umcp.call("manage_editor", {"action": "stop"})
     wait_not_playing()
     time.sleep(2)

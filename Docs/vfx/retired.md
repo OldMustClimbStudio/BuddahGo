@@ -10,6 +10,8 @@
 
 第 4 节列的是正在使用、看起来像旧东西但**不能删**的，避免误删。
 
+**2026-10-30 已执行一次删除**（提交 `chore(vfx): retire legacy effects and unused first-pass infrastructure`，紧接 a6d81701 之后）：第 1、2 节和墨手线一节里标 **待删** 的文件都已从工程移除，第 3 节里的文件级代码项也已删；逐项记录、随删改动和这次**没删**的例外见第 6 节。下面各表保留原状作历史记录，状态列不再逐行改。
+
 ## 0. 之前的特效播放方式（记录，换成插槽之前）
 
 - **通用前摇**：`SkillExecutor.PlayQueuedCastFeedbackObserversRpc` 在施法确认延迟开始时对所有客户端播 Feel 事件 `Skill_Reflection_Shared`（反噬时播 `Anti_Reflection_Shared`，并触发动画 `IsAnti`）。`SkillFeelRouter` 把事件交给 `FeelVFX` 下的 `技能Reflection_Shared` / `反噬Reflection_Shared` 播放器，播放器里的 `MMF_VisualEffect`（模式 Play，声明时长 2 秒）对角色身上的 `VisualRoot/技能Particle` / `反噬Particle` 调用 `Play()`。这两个物体是 VFX Graph（`技能Particle.vfx` / `反噬Particle.vfx`），局部缩放 0.25（`VisualRoot` 4 倍，所以世界缩放 1），`VFXPropertyBinder` 把属性 `Transform` 绑到 `VisualRoot/model`（局部 (0, 0.002, 0)，缩放 100），排序 1。施法者自己另外播 `*_Reflection_Local`（Bloom、白平衡、镜头震动），这部分保留。
@@ -105,3 +107,50 @@ GUID 搜不到引用，但可能被代码按名字加载（`Shader.Find`、`Reso
 | `InkFluid3D.compute` 单核 `Jacobi` 每次迭代重绑三张纹理 | 已删 | `JacobiA` / `JacobiB`（及粗网格 `JacobiCA` / `JacobiCB`）固定绑定交替 | 同文件 |
 | `FX_InkVolume` 每一步算 SDF 梯度（6 次采样）并在入射点再算一次 | 已删 | 表面带附近逐步算、其余步复用入射法线（全程冻结试过：剪影轮廓项失效、形体变平，墨手会话改回带附近逐步算） | `FX_InkVolume.shader` |
 | `FX_InkFluid3D` 固定 `_Steps` 步、整盒子步进 | 已删 | 光线裁到有墨的 AABB（`_Bounds`），步数按长度 | `FX_InkFluid3D.shader` |
+
+## 6. 2026-10-30 删除记录
+
+提交：`chore(vfx): retire legacy effects and unused first-pass infrastructure`（分支 `refactor/vfx-refactor`，a6d81701 的下一个提交；hash 以 `git log` 为准）。
+删前用全仓库 GUID 引用图（`Assets/` 下全部文本资产 + `ProjectSettings`，不含 `Assets/Piloto Studio/`）加代码符号搜索逐项核过：下面每一项在删除时都是 0 外部引用，或引用只来自同批删除的文件和本节列出的承载物。
+共删 158 个文件（145 个已跟踪 `git rm`，13 个未跟踪直接删，均连 `.meta`）。
+
+### 6.1 删除的资产
+
+| 内容 | 为什么退 | 被什么取代 | 随删改动 |
+|---|---|---|---|
+| `VisualEffectGraph/技能Particle.vfx`、`反噬Particle.vfx` | 通用前摇改用包里的 Ying Yang Rune Fall | `cast` / `cast_anti` 插槽 | `Assets/Editor/VfxImportRecovery.cs` 的 GUID 表只留 UberFXSG |
+| `FeelPrefab/技能Reflection_Shared.prefab`、`反噬Reflection_Shared.prefab` | 去掉 `MMF_VisualEffect` 后是空播放器 | `cast` / `cast_anti` 插槽 | `Buddah.prefab` 删掉 `FeelVFX` 下两个嵌套实例和 `SkillFeelRouter` 的 `Skill_Reflection_Shared` / `Anti_Reflection_Shared`；`SkillExecutor.PlayQueuedCastFeedbackObserversRpc` 不再播这两个事件（Local 反馈不变） |
+| `FeelPrefab/Acceleration_Shared.prefab`、`Acceleration_Local.prefab` | 无引用，路由条目本来就是空的 | `accel_release` 插槽 | `SkillFeelRouter` 删 `acceleration_shared`；`Skill_Acceleration.observersFeelEventId` 默认值改空（资产里本来就是空） |
+| `神足通/Acceleration粒子效果.prefab`、`AccelerationTrail.prefab` | 神足通改播插槽 | `accel_release` | `SkillVfxDatabase` 删 `accel_back_vfx`；`DefaultPrefabObjects.asset` 删该 prefab；VfxRegistry 删 `accel_back_vfx` 行 |
+| `禅定缓流/slowtrap_vfxZone.prefab`、`Decceleration_VFX.prefab`、`VisualEffectGraph/Decceleration_VFX.vfx`、`directorTimeline.playable`、`SG_DeccelerationVFXParticle` / `SG_MagicCircle_Appear`（`禅定缓流/` 与 `ShaderGraph/禅定缓流/` 两份）、`阵法-完整.png` | 禅定缓流改播插槽 | `slow_release` | `SkillVfxDatabase` 删 `slowtrap_vfx`；RaceMap `VfxStartupWarmup.vfxPrefabs` 清空（预热改走表的 warmup 列）；`PreloadShader.shadervariants` 删两个 graph；VfxRegistry 删 `slowtrap_vfx` 行 |
+| `如来神掌/如来神掌.prefab`、`如来神掌.vfx`、`如来神掌VFXGraph.prefab`、`射击特效.prefab`、`HandProjectile.prefab`、`pca_HandProjectile*.pcache` × 3 | 重做前的 VFX Graph 掌 | `palm_release` 开火动画 + `palm_bullet` 墨手 | `VfxImportRecovery` 删 "Charged palm" |
+| `如来神掌/VFX_Palm.prefab`、`VFX_Palm_Anti.prefab`、`Mesh_FX_Palm.asset`、`Proto/`（`VFX_Palm_ProtoA` / `ProtoB` / `YY` / `YY_Buf` / `Yixuan/VFX_Palm_ProtoYX`、`Mesh_FX_Palm_UV`、四个 `Mat_Proto_*`、空的 `Frontal/`） | 实现会话前几轮的手部网格方案，用户全部否决 | `palm_release` / `palm_release_anti`、`palm_bullet` / `palm_bullet_anti` | `SkillVfxTests` 删 `PalmPrefab` / `AntiPrefab` 常量和四个 `TestCase`，预算用例改测 `VFX_Palm_Buff` |
+| `如来神掌/Materials/` 里 48 个 `Mat_FX_Palm_*` / `Mat_FX_PalmProtoA_*` / `Mat_FX_PalmProtoB_*` / `Mat_FX_PalmAnti_*`（含墨手线退役的 `InkFluid`、`InkParticle`、`Wisp`、`Plume`、`SurfaceSmoke`、`InkFog`、`InkGlass`） | 只被上一行的 prefab 引用 | 同上 | 留下 `Mat_FX_Palm_BufEnso`、`Mat_FX_Palm_Halo`（`VFX_Palm_Buff`）、`Mat_FX_Palm_InkFluid3D`、`Mat_FX_Palm_InkVolume`（`VFX_Palm_Bullet`） |
+| `Shared/Textures/T_FX_Brush_Stroke`、`T_FX_InkDot_Mask`、`T_FX_PalmPrint_Mask`、`T_FX_PalmPrint_Broken_Mask`、`T_FX_Petal_Mask` | 只被删掉的材质引用 | 包贴图 | 留下 `T_FX_Enso_Mask`、`T_FX_Noise_Packed`、`T_FX_Sutra_Glyph`（Buff 材质在用） |
+| `Rendering/Shaders/FX/FX_Decal`、`FX_Mesh_Energy`、`FX_InkFog`、`FX_InkGlass`、`FX_SmokeSprite`、`FX_InkFluidSheet`、`FX_InkParticle`、`InkFluid.compute`、`InkParticles.compute` | README 第 2 节已定不再自写 shader；墨手线的 2D 面片和 compute 粒子被三维流体取代 | 包的 `UberFXSG`；`FX_InkVolume` + `FX_InkFluid3D` + `InkFluid3D.compute` | `PreloadShader.shadervariants` 删 `FX_Decal`、`FX_Mesh_Energy`；`SkillVfxTests.FxShadersArePreloaded` 只查 `FX/Additive_Glow`、`FX/Alpha_Smoke` |
+| `Shared/VFX_Template.prefab` | `PalmVfxBuilder` 的模板思路被插槽 prefab 取代 | `SkillReleaseProto` 生成的插槽 prefab | — |
+| `Shared/YixuanPalette/`（11 个 `YX_*.mat`、`YixuanBloomTrial.asset`、`Backup_VFX_Slow_Release_BeforeYixuan.prefab`） | 用户撤回，自己手调 | 数值在 [yixuan-palette.md](yixuan-palette.md) 第 13 节 | — |
+| `Assets/VFX/Sandbox/`（`VFX_Sandbox.unity`、`Mat_Sandbox_Floor.mat`） | 测试场景改用 `Assets/Scenes/VFXtests.unity`（不入库） | VFXtests | — |
+| 命名统一后空出的 `通用前摇/Proto`、`神足通/Proto`、`禅定缓流/Proto`、`转向反转/Proto`、`一念光明/Proto`、`巨大化/Proto`（含空子目录） | 插槽 prefab 已移到 `<技能>/<插槽>/` | — | — |
+
+### 6.2 删除的代码
+
+| 内容 | 为什么退 | 被什么取代 | 随删改动 |
+|---|---|---|---|
+| `PlayerAccelerationTrail.cs` | 角色身上已无拖尾 | `accel_release` 插槽；瞬移清拖尾由 `SkillVfxPhaseController.TeleportJump` | `SkillExecutor` 删 `accelerationTrailController`、`ShowAccelerationTrail(Local)`、`ResolveAccelerationTrailController`；`OwnerMovementEffectApplier`、`Skill_Acceleration.ExecuteObservers` 删调用；`BuddahRespawn`、`BuddahPredictedMotor.Events` 的 `NotifyTeleportTrailRebases` 只剩 `PlayerBlackCurtainTrail` |
+| `TimedVfxInstance.cs`、`SkillVfxAttachmentSettings.cs`、`SkillVfxFollowTarget.cs`、`SkillVfxTag` | 库里全是插槽 prefab，挂接 + 计时的播放路径无人走 | `SkillVfxReplicator.PlaySlot` | `SkillVfxReplicator` 删非插槽分支、`FindExisting`、`ConfigureAttachment`、`PlayAll*`、`SetAllRenderersEnabled`、`EnableRenderersAfterFrames`、`revealDelayFrames`；`PlayVfxAll` 改为 `(vfxId, duration)`；`PrewarmAllVfx` 只实例化（渲染器关、控制器不配置）不播放；`Skill_Acceleration(_Anti)`、`Skill_SlowTrap(_Anti)`、`Skill_ReverseTurn(_Anti)` 删 `vfxLocalOffset` / `vfxLocalEuler` / `vfxStopPlayingBeforeEndSeconds`（SO 资产里的旧值下次保存时由 Unity 丢弃） |
+| `InkFluidSheet.cs`、`InkParticles.cs` | 墨手线 2D 面片与 compute 粒子被三维流体取代 | `InkFluidVolume` | `PalmInkTimeline` 删 `sheets` 字段、`Collect` 与 `Apply` 里的面片段 |
+| `SkillVfxSandbox.cs`、`Assets/Editor/VFX/SkillVfxSandboxBuilder.cs` | 调试场随 `VFX_Sandbox.unity` 退役 | VFXtests + `SkillVfxPreviewDriver` | — |
+| `Assets/Editor/VFX/FxMeshSimplifier`、`FxTextureGenerator`、`PalmMeshBaker`、`PalmVfxBuilder`、`PalmVfxPreview`、`PalmVfxRegistration`、`PalmYingYangProto`、`Proto/YixuanProtoBuilder` | 生成或预览前几轮方向的资产；`PalmVfxRegistration` 会把库改回旧 prefab | `PalmFrontalProto`、`SkillReleaseProto`、`VfxPackVendor`、`PalmMeshTripo` | `Tools/vfxperf/shots.py` 的默认 `CLS` 改为 `PalmFrontalProto` |
+| VfxRegistry 行 `accel_anti_vfx`、`reverse_turn_trap_vfx`、`reverse_turn_trap_anti_vfx` | 库里没有条目，代码也不播 | 各技能的 `*_release` / `*_hit` 插槽 | 连同上面两行共删 5 行；`followTargetPosition` / `inheritTargetRotation` / `inheritTargetScale` 三列是 `doc` 列，这轮没动 |
+
+### 6.3 这次没删（有引用或待用户决定）
+
+| 内容 | 为什么留 | 谁在用 / 怎么办 |
+|---|---|---|
+| `PlayerBlackCurtainTrail.cs` | `一念光明/Release/VFX_Curtain_Release.prefab` 的 `BlackCurtainTrail` 上还挂着（用户特意放的） | 换成层控制拖尾后再删，连同 `BuddahRespawn` / `BuddahPredictedMotor.Events` 里的 rebase |
+| `Mat_FX_Palm_BufEnso.mat`、`Mat_FX_Palm_Halo.mat`、`FX_Additive_Glow.shader`、`FX_Alpha_Smoke.shader`、`FXCommon.hlsl`、`FXInk.hlsl`、`T_FX_Enso_Mask` / `T_FX_Noise_Packed` / `T_FX_Sutra_Glyph` | `如来神掌/Buff/VFX_Palm_Buff.prefab`（`palm_buff`，等替换）在用；`FXCommon.hlsl` 还被 `FX_InkVolume` 包含 | 如来神掌 Buf 插槽做好后一起退 |
+| `禅定缓流/阵法-完整黑底.png` | `Assets/Plugins/Piloto Studio/Materials/Fire/Character_Fire_Aura_add.mat`、`Character_Fire_Aura_Alpha.mat`（已跟踪的旧包）引用 | 那两个材质无人用；是否连旧包目录一起清由用户定 |
+| 第 5 节的 `SG_Transparent`、`地图/SG_Trail`、`VisualEffectGraph/角色Glow.shadergraph`、`ShaderGraph/一念光明/`、`一念光明/Shader Graphs_SG_BlackCurtain.mat` | 0 引用，但不是这轮重做留下的 | 用户决定 |
+| `Assets/VFX/Shared/预选/` 四个 prefab | 用户自建，仍引用包目录 | 用户决定 |
+| 第 3 节里只在文件内部的代码项：`ChargedHandProjectileRuntime` 的 VFX Graph 进度链与线性减速、`BuddahHandControl.FireChargedProjectileImmediate` / `FireProjectileBurstImmediate` 与 `_projectileChargedVisualPrefabServer` 一组、`ProjectileBurstParameters.spawnVisuals` 等、`launchEffectPrefab` | 是活文件里的死代码，不是独立文件；这次只做文件级退役 | 下一轮单独做 |

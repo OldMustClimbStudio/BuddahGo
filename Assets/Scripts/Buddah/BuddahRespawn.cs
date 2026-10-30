@@ -268,9 +268,9 @@ public class BuddahRespawn : MonoBehaviour
 
     private void NotifyTeleportTrailRebases()
     {
+        // Slot effects clear their own trails on teleport (SkillVfxPhaseController.TeleportJump); only the curtain
+        // trail component on the character's one remaining legacy object is rebased here.
         foreach (var t in GetComponentsInChildren<PlayerBlackCurtainTrail>(true))
-            t?.NotifyTeleportRebase();
-        foreach (var t in GetComponentsInChildren<PlayerAccelerationTrail>(true))
             t?.NotifyTeleportRebase();
     }
 

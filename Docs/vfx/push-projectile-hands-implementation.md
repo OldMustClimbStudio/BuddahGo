@@ -2,6 +2,8 @@
 
 设计见 [push-projectile-hands.md](push-projectile-hands.md) 与 [README.md](README.md)；本文只记实现了什么、和设计的偏离、实施中的新发现与未决项。2026-10-28 起，分支 `refactor/vfx-refactor`。同日第一次画面评审（设计文档第 12 节，提交 `20f37d88`）后按修正决定重做了材质与贴图，本文已按重做后的状态改写；第一版（半透明墨 + Fresnel + 程序化贴图）只在第 2 节末尾留了一行记录。
 
+> **2026-10-30 过时说明**：第 1 节表里的 shader 族（`FX/Mesh_Energy`、`FX/Decal`、`FX/Skin`）、粒子皮、`VFX_Palm` / `VFX_Palm_Anti`、`Mesh_FX_Palm`、`VFX_Template`、程序化贴图、预览台 `PalmVfxPreview` 和特效调试场 `VFX_Sandbox` 都已删除（[retired.md](retired.md) 第 6 节）；现役的是插槽管线（`VFX_Palm_Release` 开火动画 + `VFX_Palm_Bullet` 墨手，见 [slots.md](slots.md) 与 [palm-mesh-tripo.md](palm-mesh-tripo.md)）。还在用的只有阶段控制器、VFX 表、技能接入和 `VFX_Palm_Buff`（及其 `FX/Additive_Glow`、`FX/Alpha_Smoke` 材质）。本文其余部分按历史记录保留。
+
 ## 1. 实现了什么
 
 | 部分 | 位置 | 说明 |

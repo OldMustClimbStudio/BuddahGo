@@ -53,9 +53,7 @@ public class SkillExecutor : NetworkBehaviour
 
     private const float CastConfirmDelaySeconds = 1f;
     private const float AntiCastConfirmDelaySeconds = 1f;
-    private const string SkillReflectionSharedFeelEventId = "Skill_Reflection_Shared";
     private const string SkillReflectionLocalFeelEventId = "Skill_Reflection_Local";
-    private const string AntiReflectionSharedFeelEventId = "Anti_Reflection_Shared";
     private const string AntiReflectionLocalFeelEventId = "Anti_Reflection_Local";
     private const string AntiAnimatorTriggerName = "IsAnti";
     private const string CastVfxId = "cast";
@@ -67,7 +65,6 @@ public class SkillExecutor : NetworkBehaviour
     [SerializeField] private SkillDatabase database;
     [SerializeField] private SkillFeelRouter feelRouter;
     [SerializeField] private Animator characterAnimator;
-    [SerializeField] private PlayerAccelerationTrail accelerationTrailController;
     [SerializeField] private PlayerCamera playerCamera;
     [SerializeField] private BuddahPredictionBootstrap predictionBootstrap;
     [SerializeField] private BuddahPredictionSkillMovementBridge predictionSkillMovementBridge;
@@ -196,7 +193,6 @@ public class SkillExecutor : NetworkBehaviour
     {
         if (IsServerInitialized && RacerAuthority.IsServerAI(this)) ResetServerAISkillState(resetMovementModifiers);
         ResolveCharacterAnimator();
-        ResolveAccelerationTrailController();
         ResolvePlayerCamera();
 
         if (_cameraFovPulseRoutine != null)
@@ -223,7 +219,6 @@ public class SkillExecutor : NetworkBehaviour
         if (scaleEffect != null)
             scaleEffect.CancelAndRestore();
 
-        accelerationTrailController?.ClearTrail();
         playerCamera?.ResetRuntimeEffects();
 
         if (characterAnimator != null)
@@ -414,17 +409,10 @@ public class SkillExecutor : NetworkBehaviour
     private void PlayQueuedCastFeedbackObserversRpc(string executedSkillId, bool isAnti)
     {
         if (isAnti)
-        {
             TriggerAntiAnimationLocal();
-            PlayFeelLocal(AntiReflectionSharedFeelEventId);
-        }
-        else
-        {
-            PlayFeelLocal(SkillReflectionSharedFeelEventId);
-        }
 
         // Shared wind-up slot over the cast confirmation delay, on every client (replaces the character's
-        // 技能Particle / 反噬Particle; Docs/vfx/README.md section 4).
+        // 技能Particle / 反噬Particle and the 技能 / 反噬Reflection_Shared Feel players; Docs/vfx/README.md section 4).
         var vfx = GetComponent<SkillVfxReplicator>();
         if (vfx != null)
             vfx.PlaySlotLocal(isAnti ? CastAntiVfxId : CastVfxId, ResolveCastConfirmDelay(executedSkillId, isAnti));
@@ -611,32 +599,6 @@ public class SkillExecutor : NetworkBehaviour
             return;
 
         characterAnimator = ResolveInHierarchy<Animator>(false);
-    }
-
-    internal void ShowAccelerationTrail(float durationSeconds)
-    {
-        ResolveAccelerationTrailController();
-
-        if (accelerationTrailController == null)
-            return;
-
-        accelerationTrailController.ShowForDuration(durationSeconds);
-    }
-
-    public void ShowAccelerationTrailLocal(float durationSeconds)
-    {
-        if (durationSeconds <= 0f)
-            return;
-
-        ShowAccelerationTrail(durationSeconds);
-    }
-
-    private void ResolveAccelerationTrailController()
-    {
-        if (accelerationTrailController != null)
-            return;
-
-        accelerationTrailController = ResolveInHierarchy<PlayerAccelerationTrail>(false);
     }
 
     private bool IsRaceGameplayBlocked()

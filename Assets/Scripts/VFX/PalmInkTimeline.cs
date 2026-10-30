@@ -9,7 +9,7 @@ namespace BuddahGo.VFX
     // Over `duration` seconds: the fog gathers out of noise during the first `gatherSeconds` (volume _FxDissolve 1 -> 0,
     // _FxAlpha 0 -> 1, smoke emission 0 -> 1), holds, then dissipates over the last `dissipateSeconds` along
     // `dissipateCurve` (volume _FxDissolve 0 -> 1, smoke emission off and the fluid's density fades). Drives the Volume
-    // renderer through a MaterialPropertyBlock, every InkFluidSheet child, and the particle children's emission.
+    // renderer through a MaterialPropertyBlock, the InkFluidVolume children, and the particle children's emission.
     // Plays on enable at runtime; in the editor, tick Preview to loop it.
     // Section 20: the launch motion belongs to the skill (Docs/vfx/push-projectile-hands.md, "飞行速度"): in the race
     // ChargedHandProjectileRuntime moves this object along Skill_PushProjectileHands' speed shape and calls
@@ -75,7 +75,6 @@ namespace BuddahGo.VFX
         float[] baseRates;
         ParticleSystem[] particles;
         // cached by Collect(): Apply runs every frame on every flying palm, so no per-frame hierarchy searches
-        InkFluidSheet[] sheets;
         InkFluidVolume[] fluids;
         MeshRenderer volumeRenderer;
         InkVolumeColor volumeColor;
@@ -200,7 +199,6 @@ namespace BuddahGo.VFX
             particles = GetComponentsInChildren<ParticleSystem>(true);
             baseRates = new float[particles.Length];
             for (int i = 0; i < particles.Length; i++) baseRates[i] = particles[i].emission.rateOverTime.constant;
-            sheets = GetComponentsInChildren<InkFluidSheet>(true);
             fluids = GetComponentsInChildren<InkFluidVolume>(true);
             Transform vol = transform.Find("Volume");
             volumeRenderer = vol != null ? vol.GetComponent<MeshRenderer>() : null;
@@ -252,14 +250,6 @@ namespace BuddahGo.VFX
                 }
             }
 
-            foreach (var sheet in sheets)
-            {
-                if (sheet == null) continue;
-                sheet.emissionScale = present;
-                sheet.fadeOut = dissipate;
-                sheet.pull = smokePull * (1f - gather) - smokePull * dissipate;
-                sheet.bandScale = Mathf.Lerp(gatherBandScale, 1f, gather);
-            }
             foreach (var fluid3d in fluids)
             {
                 if (fluid3d == null) continue;

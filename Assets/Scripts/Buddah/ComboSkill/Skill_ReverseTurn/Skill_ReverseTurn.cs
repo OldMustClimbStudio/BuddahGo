@@ -10,11 +10,8 @@ public class Skill_ReverseTurn : SkillAction
     [Header("VFX (Optional)")]
     [Tooltip("VFX lifetime. 0 = follow invertDurationSeconds.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
-    [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
     [Tooltip("Release slot played on the caster. Empty = none.")]
     [SerializeField] public string vfxId = "reverse_release";
-    [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
-    [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
     [Tooltip("Hit slot played on every player whose turning is reversed (Docs/vfx/README.md section 4). Empty = none.")]
     [SerializeField] public string hitVfxId = "reverse_hit";
     [Header("Feel (Optional)")]
@@ -51,7 +48,7 @@ public class Skill_ReverseTurn : SkillAction
                     continue;
                 var targetVfx = target.GetComponent<SkillVfxReplicator>();
                 if (targetVfx != null)
-                    targetVfx.PlayVfxAll(hitVfxId, actualVfxDuration, Vector3.zero, Vector3.zero, 0f);
+                    targetVfx.PlayVfxAll(hitVfxId, actualVfxDuration);
             }
         }
 

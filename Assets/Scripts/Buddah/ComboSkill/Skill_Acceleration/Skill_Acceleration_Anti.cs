@@ -21,10 +21,7 @@ public class Skill_Acceleration_Anti : SkillAction
     [Header("VFX")]
     [Tooltip("VFX lifetime. 0 = follow durationSeconds.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
-    [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
-    [SerializeField] public string vfxId = string.Empty; // Configure matching VFX id in SkillVfxReplicator.
-    [SerializeField] public Vector3 vfxLocalOffset = Vector3.back * 2f;
-    [SerializeField] public Vector3 vfxLocalEuler = new Vector3(0f, 180f, 0f);
+    [SerializeField] public string vfxId = string.Empty; // Slot in SkillVfxDatabase (Docs/vfx/slots.md).
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = "acceleration_anti_observers";
     [SerializeField] private string observersFeelStopEventId = string.Empty;

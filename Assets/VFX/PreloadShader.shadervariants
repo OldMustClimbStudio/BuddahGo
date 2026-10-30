@@ -8,25 +8,7 @@ ShaderVariantCollection:
   m_PrefabAsset: {fileID: 0}
   m_Name: PreloadShader
   m_Shaders:
-  - first: {fileID: -6465566751694194690, guid: 936fe457858b9df4da01a1b860db675a,
-      type: 3}
-    second:
-      variants: []
-  - first: {fileID: -6465566751694194690, guid: 02b7ed9947ba0cf44a0044602b479a38,
-      type: 3}
-    second:
-      variants: []
   - first: {fileID: 4800000, guid: 15afb558f0138ed40ab0fe10c509edce, type: 3}
-    second:
-      variants:
-      - keywords: 
-        passType: 13
-  - first: {fileID: 4800000, guid: c81c63bffd0bbb6439124f66a13a9e0d, type: 3}
-    second:
-      variants:
-      - keywords: 
-        passType: 13
-  - first: {fileID: 4800000, guid: 538c0f591d1757a46a011e70e5d71065, type: 3}
     second:
       variants:
       - keywords: 

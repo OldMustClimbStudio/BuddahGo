@@ -14,11 +14,8 @@ public class Skill_ReverseTurn_Anti : SkillAction
     [Header("VFX (Optional)")]
     [Tooltip("VFX lifetime. 0 = follow invertDurationSeconds.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
-    [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
     [Tooltip("Slot played on the caster while reversed. Reuses the hit slot: the caster is the one being reversed. Empty = none.")]
     [SerializeField] public string vfxId = "reverse_hit";
-    [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
-    [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = string.Empty;
     [SerializeField] private string observersFeelStopEventId = string.Empty;

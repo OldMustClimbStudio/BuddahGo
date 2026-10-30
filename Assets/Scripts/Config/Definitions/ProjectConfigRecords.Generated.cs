@@ -196,6 +196,38 @@ public class ObsessionRecord
     [Tooltip("达到即取上限")] public float backfireKeepPMaxAtOrAboveX = 0f;
 }
 
+/// <summary>Skill.xlsx / VfxRegistry</summary>
+[Serializable]
+public class VfxRegistryRecord
+{
+    /// <summary>string#key (key)</summary>
+    public string vfxId = string.Empty;
+    /// <summary>string#path</summary>
+    [Tooltip("相对工程路径；EditMode 测试校验与 SkillVfxDatabase 的 prefab 一致")] public string prefabPath = string.Empty;
+    /// <summary>bool</summary>
+    [Tooltip("启动预热：VfxStartupWarmup 预热表里 warmup=true 且 SkillVfxDatabase 有 prefab 的条目")] public bool warmup = false;
+    /// <summary>string</summary>
+    [Tooltip("反噬特效配对的正常特效 vfxId；正常特效留空")] public string antiOf = string.Empty;
+    /// <summary>float</summary>
+    [Tooltip("蓄力层窗口占蓄力时长（玩法值）的比例")] public float chgRatio = 0f;
+    /// <summary>int</summary>
+    [Tooltip("释放闪光帧数（按 60 帧/秒换算）")] public int impFrames = 0;
+    /// <summary>float</summary>
+    [Tooltip("到期消散时长 s")] public float disSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("残留时长 s（≤ 1.5，纯视觉）")] public float linSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("buff 状态层淡入 / 淡出各 s")] public float bufFadeSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("拖尾时长 s：拖尾长度 = 速度 × 该值")] public float trailSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("整体视觉尺寸倍率（主体先按碰撞盒贴合）")] public float scaleMultiplier = 0f;
+    /// <summary>float</summary>
+    [Tooltip("发射点光寿命 s（≤ 0.5）")] public float lightSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("点光强度倍率")] public float lightIntensity = 0f;
+}
+
 /// <summary>Movement.xlsx / Movement</summary>
 [Serializable]
 public class MovementRecord

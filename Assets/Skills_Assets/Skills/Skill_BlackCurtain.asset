@@ -33,5 +33,6 @@ MonoBehaviour:
   centerProperty: _Center
   centerWorldOffset: {x: 0, y: 1, z: 0}
   vfxDurationSeconds: 0
+  releaseVfxId: curtain_release
   observersFeelEventId: blackcurtain_observers
   observersFeelStopEventId: 

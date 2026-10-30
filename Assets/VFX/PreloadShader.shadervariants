@@ -16,3 +16,25 @@ ShaderVariantCollection:
       type: 3}
     second:
       variants: []
+  - first: {fileID: 4800000, guid: 15afb558f0138ed40ab0fe10c509edce, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 13
+  - first: {fileID: 4800000, guid: c81c63bffd0bbb6439124f66a13a9e0d, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 13
+  - first: {fileID: 4800000, guid: 538c0f591d1757a46a011e70e5d71065, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 13
+  - first: {fileID: 4800000, guid: 14c8cae8bae81584da89a6fb8ac43771, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 13
+      - keywords: _FX_POLAR
+        passType: 13

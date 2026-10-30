@@ -19,3 +19,43 @@ MonoBehaviour:
   - vfxId: slowtrap_vfx
     prefab: {fileID: 6079683255119547140, guid: ef7dfc3a2f7f32a4790c8d434ca2a9a6,
       type: 3}
+  - vfxId: palm_release
+    prefab: {fileID: 1474376453995566975, guid: 3a01fd3e2417058498c8dd2cf0b5bd92,
+      type: 3}
+  - vfxId: palm_bullet
+    prefab: {fileID: 1599072494565337324, guid: cbd00e975f9e45646ad263f4ac1a1927,
+      type: 3}
+  - vfxId: palm_release_anti
+    prefab: {fileID: 3179052147401843045, guid: 82fd56bb86a83054d8e407b55e06c06d,
+      type: 3}
+  - vfxId: palm_bullet_anti
+    prefab: {fileID: 4125180051822797731, guid: b8ce627e07e1ce943b5a6a908d099cdd,
+      type: 3}
+  - vfxId: palm_buff
+    prefab: {fileID: 5920519480383508686, guid: 6b908c260bc73274390b4196c871ea41,
+      type: 3}
+  - vfxId: accel_release
+    prefab: {fileID: 5866660271918181848, guid: aade18b8924700b458278886721b0a0a,
+      type: 3}
+  - vfxId: slow_release
+    prefab: {fileID: 204045398427870555, guid: 5b787d04ec2b732418d1a29626e9ddcd, type: 3}
+  - vfxId: reverse_hit
+    prefab: {fileID: 94229325363015346, guid: 3b5332558e2c6e64ca50afb31b257407, type: 3}
+  - vfxId: curtain_hit
+    prefab: {fileID: 1044684278903760305, guid: ce13c604423e6b84cb317b4949d168e4,
+      type: 3}
+  - vfxId: cast
+    prefab: {fileID: 7196851093506529667, guid: b34a38874e91c334582b08c58792bead,
+      type: 3}
+  - vfxId: cast_anti
+    prefab: {fileID: 7548682124623136150, guid: e59f78f8c3727dd428124eb3879f601d,
+      type: 3}
+  - vfxId: giant_release
+    prefab: {fileID: 4819799266435655722, guid: 6457cc3464fbe9348b546649feb6eabd,
+      type: 3}
+  - vfxId: reverse_release
+    prefab: {fileID: 7854573932855863037, guid: 751e81ee65f71a24c8cfc026cb3a0af6,
+      type: 3}
+  - vfxId: curtain_release
+    prefab: {fileID: 5507449700525784496, guid: 0d663275c24733d468001c903060fa06,
+      type: 3}

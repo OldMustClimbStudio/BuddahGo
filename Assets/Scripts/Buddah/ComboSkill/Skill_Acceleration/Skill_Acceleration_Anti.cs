@@ -22,7 +22,7 @@ public class Skill_Acceleration_Anti : SkillAction
     [Tooltip("VFX lifetime. 0 = follow durationSeconds.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
     [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
-    [SerializeField] public string vfxId = "accel_anti_vfx"; // Configure matching VFX id in SkillVfxReplicator.
+    [SerializeField] public string vfxId = string.Empty; // Configure matching VFX id in SkillVfxReplicator.
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.back * 2f;
     [SerializeField] public Vector3 vfxLocalEuler = new Vector3(0f, 180f, 0f);
     [Header("Feel (Optional)")]
@@ -46,5 +46,10 @@ public class Skill_Acceleration_Anti : SkillAction
         GameLog.Verbose($"[Skill_Acceleration_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
         float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, durationSeconds);
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, actualVfxDuration);
+    }
+
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, vfxId, vfxDurationSeconds, durationSeconds, "Skill.effectDurationSeconds → durationSeconds");
     }
 }

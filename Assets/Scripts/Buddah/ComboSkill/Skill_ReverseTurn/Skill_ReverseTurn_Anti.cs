@@ -15,7 +15,8 @@ public class Skill_ReverseTurn_Anti : SkillAction
     [Tooltip("VFX lifetime. 0 = follow invertDurationSeconds.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
     [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
-    [SerializeField] public string vfxId = "reverse_turn_trap_anti_vfx";
+    [Tooltip("Slot played on the caster while reversed. Reuses the hit slot: the caster is the one being reversed. Empty = none.")]
+    [SerializeField] public string vfxId = "reverse_hit";
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
     [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
     [Header("Feel (Optional)")]
@@ -37,6 +38,12 @@ public class Skill_ReverseTurn_Anti : SkillAction
     {
         GameLog.Verbose($"[Skill_ReverseTurnTrap_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
         float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, invertDurationSeconds);
+        PlaySlotOnCaster(caster, vfxId, actualVfxDuration);
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, actualVfxDuration);
+    }
+
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, vfxId, vfxDurationSeconds, invertDurationSeconds, "Skill.effectDurationSeconds → invertDurationSeconds");
     }
 }

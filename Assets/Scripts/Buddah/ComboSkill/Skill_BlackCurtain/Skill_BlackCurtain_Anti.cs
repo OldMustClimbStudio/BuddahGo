@@ -26,6 +26,9 @@ public class Skill_BlackCurtain_Anti : SkillAction
     [Header("Duration Override")]
     [Tooltip("Optional duration override used by the observer feel timing. 0 = follow screen effect total duration.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
+    [Header("VFX")]
+    [Tooltip("Reaction (red) slot played on the caster, on every client. Empty = none (only the shared cast_anti wind-up).")]
+    [SerializeField] public string releaseVfxId = string.Empty;
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = "blackcurtain_anti_observers";
     [SerializeField] private string observersFeelStopEventId = string.Empty;
@@ -43,6 +46,8 @@ public class Skill_BlackCurtain_Anti : SkillAction
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
     {
+        PlaySlotOnCaster(caster, releaseVfxId, ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds));
+
         var settings = new BlackCurtainPresentation.Settings
         {
             fullscreenMaterial = fullscreenMaterial,
@@ -68,4 +73,10 @@ public class Skill_BlackCurtain_Anti : SkillAction
         GameLog.Verbose($"[Skill_BlackCurtain_Anti][Observers] Local caster affected by '{skillId}' (slot {slotIndex})");
     }
 
+
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, releaseVfxId, vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds,
+            "SkillEffectBlackCurtain.expandDurationSeconds + Skill.effectDurationSeconds → holdDurationSeconds + fadeOutDurationSeconds");
+    }
 }

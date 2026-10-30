@@ -1,6 +1,6 @@
 # Design tables validation
 
-- time: 2026-10-13 21:58:44
+- time: 2026-10-30 11:26:51
 - mode: validate only
 - changed workbooks: (none)
 - sheets re-mapped: 0, kept: 0, records: 0

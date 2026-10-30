@@ -1,0 +1,239 @@
+// InkFluid: a 2D "Stable Fluids" (Jos Stam 1999) solver on a square grid, the ink-in-water smoke for the 如来神掌 hand
+// (Docs/vfx/palm-mesh-tripo.md section 14). Driven by InkFluidSheet. Grid is _Size.x by _Size.y cells (square cells). Per step: Source (ink + velocity where the hand's
+// SDF silhouette is), AdvectVelocity (semi-Lagrangian, plus the sheet shift when the hand moves), Forces (buoyancy +
+// vorticity confinement, which is where the filaments come from), Divergence, Jacobi x N (pressure), Gradient
+// (projection), AdvectDensity. All textures are N x N; velocity is RG, the rest R.
+#pragma kernel Source
+#pragma kernel AdvectVelocity
+#pragma kernel Curl
+#pragma kernel Forces
+#pragma kernel Divergence
+#pragma kernel Jacobi
+#pragma kernel Gradient
+#pragma kernel AdvectDensity
+#pragma kernel Clear
+
+Texture2D<float2> _VelocityIn;
+RWTexture2D<float2> _VelocityOut;
+Texture2D<float> _DensityIn;
+RWTexture2D<float> _DensityOut;
+Texture2D<float> _PressureIn;
+RWTexture2D<float> _PressureOut;
+Texture2D<float> _DivergenceIn;
+RWTexture2D<float> _DivergenceOut;
+Texture2D<float> _CurlIn;
+RWTexture2D<float> _CurlOut;
+Texture3D<float> _Sdf;
+SamplerState sampler_linear_clamp;
+
+int2 _Size;
+float _Dt;
+float _Time;
+float2 _Shift;              // cells the field moves this step (opposite to the hand's motion in sheet space)
+float _VelDissipation;
+float _DensityDissipation;
+float _Buoyancy;
+float _Vorticity;
+float _Drift;               // random ambient momentum per unit density (cells / s^2)
+float _Pull;                // > 0 pulls ink toward the hand surface (gather), < 0 pushes it away (scatter); cells / s^2
+float _Diffusion;           // 0..1 blend toward the 4-neighbour mean per step (smoke spreads and thins)
+float _InjectRate;
+float _InjectTarget;        // density the source drives cells toward (sparse = low)
+float _EdgeOnly;            // 0 = whole silhouette, 1 = only its rim (smoke leaves the surface)
+float _Sparsity;            // fraction of rim cells emitting at any moment (random, drifting)
+float _SparsityScale;       // size of the random emission patches (cells)
+float2 _EmitOffset;         // accumulated sheet shift (cells): keeps the emission patches fixed in the world
+float _SurfaceMode;         // 1 = emit where the mesh surface crosses the sheet plane (SDF ~ 0), 0 = silhouette march
+float _SurfaceBand;         // thickness of that emission band (hand units)
+float _InjectVelocity;      // upward velocity given to fresh ink (cells per second)
+float _Swirl;               // random sideways velocity at the source (cells per second)
+float2 _HandVelocity;       // hand velocity in sheet space (cells per second), dragged into the ink
+float _DragInject;
+
+// Sheet -> hand space for the silhouette: a cell's hand-space position and the hand-space direction of the sheet normal.
+float4x4 _SheetToHand;      // maps (u, v, 0, 1) in -0.5..0.5 sheet units to hand object space
+float3 _HandNormalDir;      // sheet normal in hand space (unit)
+float _HalfDepth;           // half the march length along the normal (hand units)
+float3 _VolumeOrigin;
+float3 _VolumeSize;
+float _SdfRange;
+float _SourceInside;        // SDF value counted as inside (hand units, e.g. -0.5)
+
+float2 CellToUV(int2 id) { return (float2(id) + 0.5) / float2(_Size); }
+
+float SampleSdf(float3 p)
+{
+    float3 uv = (p - _VolumeOrigin) / _VolumeSize;
+    if (any(uv < 0.0) || any(uv > 1.0)) return _SdfRange;
+    return (_Sdf.SampleLevel(sampler_linear_clamp, uv, 0) - 0.5) * _SdfRange;
+}
+
+float Hash(float2 p) { return frac(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453); }
+
+// smooth value noise (0..1) so emission patches are round blobs, not squares
+float ValueNoise(float2 p)
+{
+    float2 i = floor(p), f = frac(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = Hash(i), b = Hash(i + float2(1, 0)), c = Hash(i + float2(0, 1)), d = Hash(i + float2(1, 1));
+    return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
+}
+
+[numthreads(8, 8, 1)]
+void Clear(uint3 id : SV_DispatchThreadID)
+{
+    _VelocityOut[id.xy] = 0.0;
+    _DensityOut[id.xy] = 0.0;
+    _PressureOut[id.xy] = 0.0;
+}
+
+// Ink and velocity where the hand's silhouette is (marched through the SDF along the sheet normal).
+[numthreads(8, 8, 1)]
+void Source(uint3 id : SV_DispatchThreadID)
+{
+    float2 uv = CellToUV(id.xy);
+    float3 centre = mul(_SheetToHand, float4(uv.x - 0.5, uv.y - 0.5, 0.0, 1.0)).xyz;
+    float coverage = 0.0;
+    if (_SurfaceMode > 0.5)
+    {
+        // surface: the hand's mesh where it crosses this sheet's plane, a band _SurfaceBand thick just outside it
+        float sd = SampleSdf(centre);
+        coverage = saturate(1.0 - abs(sd - _SourceInside) / max(_SurfaceBand, 0.1));
+    }
+    else
+    {
+        const int steps = 12;
+        for (int i = 0; i < steps; i++)
+        {
+            float s = (i + 0.5) / steps * 2.0 - 1.0;
+            float3 p = centre + _HandNormalDir * (s * _HalfDepth);
+            coverage += SampleSdf(p) < _SourceInside ? 1.0 : 0.0;
+        }
+        coverage /= steps;
+        float solid = saturate(coverage * 3.0); // thin parts count fully
+        // rim: where the march only partly hits the hand; blended with the full silhouette by _EdgeOnly
+        float rim = saturate(coverage * 6.0) * saturate(1.0 - coverage * 1.5);
+        coverage = lerp(solid, rim, _EdgeOnly);
+    }
+    // sparse, drifting emission patches so the smoke leaves as separate strands
+    float2 cellP = (float2(id.xy) + _EmitOffset) / max(_SparsityScale, 1.0) + floor(_Time * 4.0) * 0.731;
+    float n = ValueNoise(cellP);
+    float gate = smoothstep(1.0 - _Sparsity - 0.08, 1.0 - _Sparsity + 0.08, n);
+    coverage *= lerp(1.0, gate, _EdgeOnly);
+
+    float d = _DensityIn[id.xy];
+    float2 v = _VelocityIn[id.xy];
+    if (coverage > 0.0)
+    {
+        // drive toward the target density (never pull existing ink down): quick to reach it, so a fast-moving hand
+        // still leaves a full-strength trail, and at rest the ink stays as sparse as the target
+        d = max(d, lerp(d, _InjectTarget, saturate(coverage * _InjectRate * _Dt)));
+        // fresh ink gets a random direction (_Swirl) plus an optional rise (_InjectVelocity) and a share of the hand's motion
+        float2 cellR = floor((float2(id.xy) + _EmitOffset) * 0.5) + floor(_Time * 6.0) * 0.731;
+        float ang = Hash(cellR + 3.1) * 6.2832;
+        float2 inject = float2(cos(ang), sin(ang)) * _Swirl + float2(0.0, _InjectVelocity) + _HandVelocity * _DragInject;
+        v = lerp(v, inject, saturate(coverage * _InjectRate * _Dt));
+    }
+    _DensityOut[id.xy] = d;
+    _VelocityOut[id.xy] = v;
+}
+
+[numthreads(8, 8, 1)]
+void AdvectVelocity(uint3 id : SV_DispatchThreadID)
+{
+    float2 v = _VelocityIn[id.xy];
+    float2 back = float2(id.xy) + 0.5 - v * _Dt + _Shift;
+    float2 uv = back / float2(_Size);
+    float2 sampled = _VelocityIn.SampleLevel(sampler_linear_clamp, uv, 0);
+    // outside the sheet there is no fluid
+    float inside = all(uv > 0.0) && all(uv < 1.0) ? 1.0 : 0.0;
+    _VelocityOut[id.xy] = sampled * inside * _VelDissipation;
+}
+
+[numthreads(8, 8, 1)]
+void Curl(uint3 id : SV_DispatchThreadID)
+{
+    int2 c = int2(id.xy);
+    int2 l = int2(max(c.x - 1, 0), c.y), r = int2(min(c.x + 1, _Size.x - 1), c.y);
+    int2 b = int2(c.x, max(c.y - 1, 0)), t = int2(c.x, min(c.y + 1, _Size.y - 1));
+    float curl = (_VelocityIn[r].y - _VelocityIn[l].y) - (_VelocityIn[t].x - _VelocityIn[b].x);
+    _CurlOut[id.xy] = curl * 0.5;
+}
+
+// Buoyancy (ink rises) and vorticity confinement (small swirls are pushed back up: this is what keeps the filaments).
+[numthreads(8, 8, 1)]
+void Forces(uint3 id : SV_DispatchThreadID)
+{
+    int2 c = int2(id.xy);
+    int2 l = int2(max(c.x - 1, 0), c.y), r = int2(min(c.x + 1, _Size.x - 1), c.y);
+    int2 b = int2(c.x, max(c.y - 1, 0)), t = int2(c.x, min(c.y + 1, _Size.y - 1));
+    float2 grad = float2(abs(_CurlIn[r]) - abs(_CurlIn[l]), abs(_CurlIn[t]) - abs(_CurlIn[b])) * 0.5;
+    float len = length(grad) + 1e-5;
+    float2 n = grad / len;
+    float w = _CurlIn[c];
+    float2 confinement = _Vorticity * float2(n.y, -n.x) * w;
+    float2 v = _VelocityIn[c];
+    // buoyancy (may be 0 for drifting smoke) and a slow random drift field so resting smoke keeps wandering
+    float2 driftP = (float2(c) + _EmitOffset) * 0.02;
+    float2 drift = float2(Hash(floor(driftP) + floor(_Time * 0.5) * 0.19), Hash(floor(driftP) + 7.3 + floor(_Time * 0.5) * 0.19)) - 0.5;
+    float2 pull = 0.0;
+    if (abs(_Pull) > 1e-4)
+    {
+        float2 uv = CellToUV(c);
+        float e = 2.0 / float(_Size.x);
+        float3 pr = mul(_SheetToHand, float4(uv.x - 0.5 + e, uv.y - 0.5, 0.0, 1.0)).xyz;
+        float3 pl = mul(_SheetToHand, float4(uv.x - 0.5 - e, uv.y - 0.5, 0.0, 1.0)).xyz;
+        float3 pu = mul(_SheetToHand, float4(uv.x - 0.5, uv.y - 0.5 + e, 0.0, 1.0)).xyz;
+        float3 pd = mul(_SheetToHand, float4(uv.x - 0.5, uv.y - 0.5 - e, 0.0, 1.0)).xyz;
+        float2 g = float2(SampleSdf(pr) - SampleSdf(pl), SampleSdf(pu) - SampleSdf(pd));
+        pull = -normalize(g + 1e-5) * _Pull;   // toward the surface for _Pull > 0
+    }
+    v += (confinement + float2(0.0, _Buoyancy * _DensityIn[c]) + drift * _Drift * _DensityIn[c] + pull * _DensityIn[c]) * _Dt;
+    _VelocityOut[id.xy] = v;
+}
+
+[numthreads(8, 8, 1)]
+void Divergence(uint3 id : SV_DispatchThreadID)
+{
+    int2 c = int2(id.xy);
+    int2 l = int2(max(c.x - 1, 0), c.y), r = int2(min(c.x + 1, _Size.x - 1), c.y);
+    int2 b = int2(c.x, max(c.y - 1, 0)), t = int2(c.x, min(c.y + 1, _Size.y - 1));
+    float div = 0.5 * ((_VelocityIn[r].x - _VelocityIn[l].x) + (_VelocityIn[t].y - _VelocityIn[b].y));
+    _DivergenceOut[id.xy] = div;
+    _PressureOut[id.xy] = 0.0;
+}
+
+[numthreads(8, 8, 1)]
+void Jacobi(uint3 id : SV_DispatchThreadID)
+{
+    int2 c = int2(id.xy);
+    int2 l = int2(max(c.x - 1, 0), c.y), r = int2(min(c.x + 1, _Size.x - 1), c.y);
+    int2 b = int2(c.x, max(c.y - 1, 0)), t = int2(c.x, min(c.y + 1, _Size.y - 1));
+    float p = (_PressureIn[l] + _PressureIn[r] + _PressureIn[b] + _PressureIn[t] - _DivergenceIn[c]) * 0.25;
+    _PressureOut[id.xy] = p;
+}
+
+[numthreads(8, 8, 1)]
+void Gradient(uint3 id : SV_DispatchThreadID)
+{
+    int2 c = int2(id.xy);
+    int2 l = int2(max(c.x - 1, 0), c.y), r = int2(min(c.x + 1, _Size.x - 1), c.y);
+    int2 b = int2(c.x, max(c.y - 1, 0)), t = int2(c.x, min(c.y + 1, _Size.y - 1));
+    float2 gradP = 0.5 * float2(_PressureIn[r] - _PressureIn[l], _PressureIn[t] - _PressureIn[b]);
+    _VelocityOut[id.xy] = _VelocityIn[c] - gradP;
+}
+
+[numthreads(8, 8, 1)]
+void AdvectDensity(uint3 id : SV_DispatchThreadID)
+{
+    float2 v = _VelocityIn[id.xy];
+    float2 back = float2(id.xy) + 0.5 - v * _Dt + _Shift;
+    float2 uv = back / float2(_Size);
+    float sampled = _DensityIn.SampleLevel(sampler_linear_clamp, uv, 0);
+    float2 px = 1.0 / float2(_Size);
+    float mean = 0.25 * (_DensityIn.SampleLevel(sampler_linear_clamp, uv + float2(px.x, 0), 0) + _DensityIn.SampleLevel(sampler_linear_clamp, uv - float2(px.x, 0), 0)
+                       + _DensityIn.SampleLevel(sampler_linear_clamp, uv + float2(0, px.y), 0) + _DensityIn.SampleLevel(sampler_linear_clamp, uv - float2(0, px.y), 0));
+    sampled = lerp(sampled, mean, _Diffusion);
+    float inside = all(uv > 0.0) && all(uv < 1.0) ? 1.0 : 0.0;
+    _DensityOut[id.xy] = sampled * inside * _DensityDissipation;
+}

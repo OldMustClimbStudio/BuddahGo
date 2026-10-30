@@ -21,6 +21,7 @@ internal struct ProjectileBurstParameters
     internal GameObject visualPrefabOverride;
     internal string progressPropertyOverride;
     internal string replicatedSkillId;
+    internal AnimationCurve speedCurve;   // flight shape (ChargedProjectileFlight); null = linear fall
 }
 
 internal static class ProjectileBurstPlanner

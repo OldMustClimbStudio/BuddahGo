@@ -23,7 +23,7 @@ MonoBehaviour:
   durationSeconds: 10
   vfxDurationSeconds: 0
   vfxStopPlayingBeforeEndSeconds: 1
-  vfxId: accel_back_vfx
+  vfxId: accel_release
   vfxLocalOffset: {x: 0, y: 0, z: -2}
   vfxLocalEuler: {x: 0, y: 180, z: 0}
   observersFeelEventId: 

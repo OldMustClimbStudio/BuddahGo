@@ -22,5 +22,6 @@ MonoBehaviour:
   durationSeconds: 6
   shrinkDurationSeconds: 0.25
   restoreDurationSeconds: 0.25
+  releaseVfxId: 
   observersFeelEventId: 
   observersFeelStopEventId: 

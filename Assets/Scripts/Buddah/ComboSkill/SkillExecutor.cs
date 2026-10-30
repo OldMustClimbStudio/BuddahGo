@@ -1,4 +1,5 @@
 using FishNet.Connection;
+using FishNet.Managing.Timing;
 using BuddahGo.Match;
 using FishNet.Object;
 using NewBuddah.PredictionV2.Bootstrap;
@@ -57,6 +58,8 @@ public class SkillExecutor : NetworkBehaviour
     private const string AntiReflectionSharedFeelEventId = "Anti_Reflection_Shared";
     private const string AntiReflectionLocalFeelEventId = "Anti_Reflection_Local";
     private const string AntiAnimatorTriggerName = "IsAnti";
+    private const string CastVfxId = "cast";
+    private const string CastAntiVfxId = "cast_anti";
 
     [Header("Refs")]
     [SerializeField] private ComboSkillInput comboInput;
@@ -420,6 +423,12 @@ public class SkillExecutor : NetworkBehaviour
             PlayFeelLocal(SkillReflectionSharedFeelEventId);
         }
 
+        // Shared wind-up slot over the cast confirmation delay, on every client (replaces the character's
+        // 技能Particle / 反噬Particle; Docs/vfx/README.md section 4).
+        var vfx = GetComponent<SkillVfxReplicator>();
+        if (vfx != null)
+            vfx.PlaySlotLocal(isAnti ? CastAntiVfxId : CastVfxId, ResolveCastConfirmDelay(executedSkillId, isAnti));
+
         if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][PreCastFeedback] '{executedSkillId}' anti={isAnti}, IsOwner={IsOwner}");
 
         if (!IsOwner)
@@ -719,19 +728,23 @@ public class SkillExecutor : NetworkBehaviour
         playerCamera = ResolveInHierarchy<PlayerCamera>(false);
     }
 
+    // spawnTick / casterPositionAtSpawn: the server tick its hitboxes were spawned at and where the caster was then;
+    // the visual copies run on the same clock and follow the caster from the same point.
     public void PlayChargedBurstVisualsServer(string skillId, Vector3[] starts, Vector3 direction,
-        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize)
+        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
+        PreciseTick spawnTick, Vector3 casterPositionAtSpawn)
     {
         if (!IsServerInitialized)
             return;
         PlayChargedBurstVisualsObserversRpc(skillId, starts, direction, speed, buildUpSeconds,
-            lifetimeSeconds, localEuler, visualSize);
+            lifetimeSeconds, localEuler, visualSize, spawnTick, casterPositionAtSpawn);
     }
 
     // Appended after the existing RPC declarations to preserve their relative order.
     [ObserversRpc]
     private void PlayChargedBurstVisualsObserversRpc(string skillId, Vector3[] starts, Vector3 direction,
-        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize)
+        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
+        PreciseTick serverSpawnTick, Vector3 casterPositionAtSpawn)
     {
         if (database == null || !database.TryGet(skillId, out SkillAction action)
             || !(action is Skill_PushProjectileHands_Anti skill) || starts == null)
@@ -741,8 +754,9 @@ public class SkillExecutor : NetworkBehaviour
         if (handControl == null)
             return;
         handControl.SpawnChargedBurstVisualsAtPositions(starts, direction, speed, buildUpSeconds,
-            lifetimeSeconds, localEuler, visualSize, skill.ChargedProjectileVfxPrefab,
-            skill.ChargedProjectileProgressProperty);
+            lifetimeSeconds, localEuler, visualSize, handControl.ResolveSkillVfxPrefab(skill.VfxId),
+            "Progress", skill.projectileColliderSize, serverSpawnTick,
+            handControl.ResolveSkillVfxPrefab(skill.HandVfxId), skill.projectileSpeedCurve, casterPositionAtSpawn);
     }
 
 }

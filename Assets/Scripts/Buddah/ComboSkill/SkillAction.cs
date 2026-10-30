@@ -28,6 +28,49 @@ public abstract class SkillAction : ScriptableObject
         return configuredSeconds > 0f ? configuredSeconds : fallbackSeconds;
     }
 
+    // Plays a slot effect (Docs/vfx/README.md section 4) on the caster on this client. Skills call it from
+    // ExecuteObservers, so every client plays it without another RPC. Empty id = none.
+    protected static void PlaySlotOnCaster(SkillExecutor caster, string vfxId, float durationSeconds)
+    {
+        if (caster == null || string.IsNullOrWhiteSpace(vfxId))
+            return;
+        var vfx = caster.GetComponent<SkillVfxReplicator>();
+        if (vfx != null)
+            vfx.PlaySlotLocal(vfxId, durationSeconds);
+    }
+
+    // One effect this skill plays and the length it passes (Docs/vfx/README.md section 4, "时长同步"). Skills build
+    // their playback and this list from the same properties, so the editor's timing window shows what the race plays.
+    // In play mode the lengths already carry the design tables (SkillDatabase applies them to the SOs).
+    public struct VfxSlotTiming
+    {
+        public string vfxId;
+        public float seconds;
+        // Where the length comes from, in table / field words.
+        public string source;
+        // Absolute vfxDurationSeconds on the SO: the effect no longer follows the table's gameplay length.
+        public bool overridden;
+    }
+
+    // Effects this skill plays with their lengths at the current values. Empty ids are left out.
+    public virtual void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+    }
+
+    protected static void AddVfxSlot(System.Collections.Generic.List<VfxSlotTiming> into, string vfxId,
+        float configuredSeconds, float gameplaySeconds, string source)
+    {
+        if (string.IsNullOrWhiteSpace(vfxId))
+            return;
+        into.Add(new VfxSlotTiming
+        {
+            vfxId = vfxId,
+            seconds = ResolveVfxDuration(configuredSeconds, gameplaySeconds),
+            source = source,
+            overridden = configuredSeconds > 0f,
+        });
+    }
+
     protected void PlayObserverFeel(SkillExecutor caster, string startEventId, string stopEventId, float durationSeconds)
     {
         caster.PlayFeelLocalTimed(startEventId, stopEventId, durationSeconds, $"{skillId}_observers");

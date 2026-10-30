@@ -11,9 +11,12 @@ public class Skill_ReverseTurn : SkillAction
     [Tooltip("VFX lifetime. 0 = follow invertDurationSeconds.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
     [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
-    [SerializeField] public string vfxId = "reverse_turn_trap_vfx";
+    [Tooltip("Release slot played on the caster. Empty = none.")]
+    [SerializeField] public string vfxId = "reverse_release";
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
     [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
+    [Tooltip("Hit slot played on every player whose turning is reversed (Docs/vfx/README.md section 4). Empty = none.")]
+    [SerializeField] public string hitVfxId = "reverse_hit";
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = string.Empty;
     [SerializeField] private string observersFeelStopEventId = string.Empty;
@@ -39,6 +42,18 @@ public class Skill_ReverseTurn : SkillAction
         }
 
         float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, invertDurationSeconds);
+        if (!string.IsNullOrWhiteSpace(hitVfxId))
+        {
+            for (int i = 0; i < allExecutors.Length; i++)
+            {
+                SkillExecutor target = allExecutors[i];
+                if (target == null || target == caster || !target.IsServerInitialized)
+                    continue;
+                var targetVfx = target.GetComponent<SkillVfxReplicator>();
+                if (targetVfx != null)
+                    targetVfx.PlayVfxAll(hitVfxId, actualVfxDuration, Vector3.zero, Vector3.zero, 0f);
+            }
+        }
 
         GameLog.Verbose($"[Skill_ReverseTurnTrap][Server] InvertTurnAllOthers duration={invertDurationSeconds}s, targets={appliedCount}, vfx={actualVfxDuration}s");
     }
@@ -47,6 +62,14 @@ public class Skill_ReverseTurn : SkillAction
     {
         GameLog.Verbose($"[Skill_ReverseTurnTrap][Observers] '{skillId}' triggered (slot {slotIndex})");
         float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, invertDurationSeconds);
+        PlaySlotOnCaster(caster, vfxId, actualVfxDuration);
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, actualVfxDuration);
+    }
+
+    // The release on the caster and the hit on every reversed player share the reversal length.
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, vfxId, vfxDurationSeconds, invertDurationSeconds, "Skill.effectDurationSeconds → invertDurationSeconds");
+        AddVfxSlot(into, hitVfxId, vfxDurationSeconds, invertDurationSeconds, "Skill.effectDurationSeconds → invertDurationSeconds (on each reversed player)");
     }
 }

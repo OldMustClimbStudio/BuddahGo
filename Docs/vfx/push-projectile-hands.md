@@ -145,7 +145,7 @@
 1. 导入包：`Realistic Ying Yang VFX.unitypackage` 整包导入到 `Assets/Piloto Studio/`（保持 GUID；包内文件不改）；确认 `UberFXSG`、`Piloto Warp` 在 URP 14 / Unity 2022.3.55 下编译（包用 2022.3.62 制作）；记录 Balanced / Performant 下软粒子与扭曲的退化表现。
 2. 本项目材质：把第 4、5 节用到的包材质各复制一份到 `Assets/VFX/Shared/Materials/`，命名 `Mat_FX_Palm_<元素>`，只改三色映射（黑白）、贴图槽（符图）与平移速度；不新写 shader。
 3. 三张自己的贴图：`T_FX_PalmSymbol`（照 `yingyang_1`：白掌形、墨边晕染、软边，2048²，可由现有掌印 mask 做白底 + 外扩墨晕 + 噪声侵蚀得到，或 AI 出图后清理）、`T_FX_PalmSymbol_Broken`（黑底白边、裂口）、`T_FX_PalmSeal`（印章式硬边）；经文环沿用 `T_FX_Sutra_Glyph`。程序化贴图生成器 `FxTextureGenerator` 退役（保留文件，不再生成形状）。
-4. 模板：从包的 `Ying Yang Orb`（飞行）、`Ying Yang Frontal`（出掌）、`Ying Yang Buff`（状态）各复制需要的子系统，根缩放 8，装进 `VFX_Template.prefab` 的阶段空槽；`VFX_Palm`、`VFX_Palm_Anti`、`VFX_Palm_Buf` 从它派生，元素按第 4、5 节命名（`FX_Palm_Prj_C_Mesh_01` 等）。
+4. 模板：从包的 `Ying Yang Orb`（飞行）、`Ying Yang Frontal`（出掌）、`Ying Yang Buff`（状态）各复制需要的子系统，根缩放 8，装进 `VFX_Template.prefab` 的阶段空槽；`VFX_Palm`、`VFX_Palm_Anti`、`VFX_Palm_Buff` 从它派生，元素按第 4、5 节命名（`FX_Palm_Prj_C_Mesh_01` 等）。
 5. 阶段控制器不变：每个子系统一个 `SkillVfxLayer`，按阶段启停；符图的入场 / 溶解用 `MaterialPropertyBlock` 写 `UberFXSG` 的溶解相关参数（实施时核对参数名）；尺寸按碰撞盒等比贴合，`trail_seconds` 换算黑烟尾的发射率。
 6. 拼装小样两轮（README 第 9 节）：第一轮包原样进赛道，第二轮换符图；放回共享目录 `material-stills/`。
 7. 登记：`UberFXSG`、`Piloto Warp` 进 `Assets/VFX/PreloadShader.shadervariants`，prefab 进预热列表；Feel 事件 id 不变。
@@ -319,3 +319,105 @@ Q1、Q3–Q9 按推荐；Q2 用户另有判断，按 12.3 收窄。
 - Balanced / Performant 管线没有深度 / 不透明纹理：软粒子与扭曲在这两档退化成什么样，设计上已不依赖它们。
 - 亮沙地上黑墨池的面积与时长上限（设计值：角色直径 × 3，≤ 蓄力时长 + 0.5 s），第一轮拼装小样就要验。
 - Single Entity 授权：包在本项目内随游戏发布没有问题；不要把包内文件提交到公开仓库之外的地方分发。
+
+## 15. 飞行速度与判定（2026-10-30）
+
+用户："速度曲线由技能方直接继承，而不是特效方。特效方的函数主要用于预览和拉动尾烟，移动逻辑要搬到技能里。" 墨手资产会话在 `PalmInkTimeline` 上调出了出掌的速度手感（射程 1070、4 秒时间轴、一条速度曲线，[palm-mesh-tripo.md](palm-mesh-tripo.md) 20.4–20.5 节），这里把它变成技能的玩法数据。
+
+| 部分 | 归属 | 内容 |
+|---|---|---|
+| 峰值速度 | 配表 `Skill.xlsx` / Push，`charged` 行 `speed` | 890（单位/秒）。之前是 600 的起速、线性减到 20% |
+| 飞行时长、蓄力时长 | 配表同一行 `lifetimeSeconds` 3、`windupSeconds` 1 | 不变；蓄力期间投射物跟着施法者、不前进 |
+| 速度形状 | `Skill_PushProjectileHands.projectileSpeedCurve` | 横轴是归一化飞行时间（0 出手，1 到期），纵轴是峰值的比例。默认值就是墨手时间轴去掉 1 秒聚拢后的那段：0.28 秒冲到峰值，1.6 秒时降到 30%，到期归零 |
+| 射程 | 推出来的 | 峰值 × 飞行时长 × 曲线面积（0.40）≈ 1070。改射程就改表里的 `speed` 或 `lifetimeSeconds` |
+| 移动 | `ChargedHandProjectileRuntime` + `ChargedProjectileFlight` | 位置 = 曲线积分（按 128 段预先算好），不是每帧速度 × dt 累加，所以服务器判定盒和每个客户端的墨手在同一飞行时刻处在同一位置，与帧率无关 |
+| 判定 | 服务器上的 `ChargedHandProjectile_Server`（`BoxCollider`，尺寸 = 表里 `colliderSize` 60×90×20 × 巨大化倍数） | 出手时启用，跟墨手走同一条路 |
+| 子弹（墨手） | `VFX_Palm_Bullet`（vfx_id `palm_bullet`，`Skill_PushProjectileHands.handVfxId`） | 出掌时 `ChargedHandProjectileRuntime` 调 `PalmInkTimeline.ConfigureForProjectile(蓄力, 飞行)`：关掉时间轴自己的位移，聚拢 = 蓄力时长，总长 = 蓄力 + 飞行，最后 1.5 秒消散。烟按根对象的实际速度分泌。放到 `Buddah` 层，和其他插槽一样由 `RenderSkillVfx` 画 |
+| 预览 | `PalmInkTimeline` 的 Drive Motion | 读技能（`flightSource`，空则读 `Skills/Skill_PushProjectileHands.asset`）的蓄力、飞行时长、峰值和曲线，按同一个积分走；时间轴面板显示 `peakSpeed` 和 `range` |
+
+开火动画和子弹一起播（用户 2026-10-30："一个是开火动画，一个是子弹，相辅相成"）：`palm_release` 仍是 `VFX_Palm_Release`，在施法者身上蓄力和出手；`palm_bullet` 是飞出去的墨手。客户端对同一次出手生成两个视觉副本，同一出发点、同一曲线。
+
+命中不打断墨手（用户 2026-10-30）：命中后照常飞完、按时间轴消散，不提前进消散段。
+
+**反噬（2026-10-30，用户："anti 的墨手版本"，三项按推荐定）**：
+
+- 子弹：弹幕 5 发（配表 `projectileCount`）每发一只红墨手 `palm_bullet_anti` = `VFX_Palm_Bullet_Anti`，墨手的 prefab 变体，只改颜色（手：墨 `#000000`、薄雾血红 `#950000`、不发光；尾烟：墨、暗血红 `#6F0000`）。红是雾不是光，按 [anti-palette.md](anti-palette.md) 第 1 节。
+- 开火动画：`palm_release_anti` = `VFX_Palm_Release_Anti`，FrontalBurst 的 prefab 变体，层设为 `burstShared`，一轮只播一个，在整排中心。颜色映射：金 `#B5945A` / 浅金 `#E5C687` → 血红 `#950000`；暗金 `#80683E` → 墨冲击波用暗血红 `#6F0000`、烟用血红；亮金环 `#E6C687` → 中灰 `#3C3C3C`；火星 `#FFF9B8` → 黑火星 `#080416`；三层大面积加色光晕（`FuzzAdd_Soft`）置黑 = 关掉；竹叶 → 墨 / 暗血红；橙 `#FA7030` 主系统 → 血红；黑色层、三色映射层（本来就是灰黑）和红色碎屑不变。
+- 飞行：和正向同一条曲线（`Skill_PushProjectileHands_Anti.projectileSpeedCurve`），蓄力 0.3 秒、飞 2 秒。Push 表 `charged_anti` 的 `speed` 600 → 900：改曲线前是 600 起速线性减到 20%，射程 720；900 × 2 × 0.40 ≈ 721，射程不变。
+- 服务器判定盒同样按曲线飞（`ProjectileBurstParameters.speedCurve`），客户端副本同样按服务器时钟走、从同一个施法者起点跟随。
+
+退休：时间轴自带的 `travelDistance` / `speedCurve` 已删；几处无人调用的投射物代码见 [retired.md](retired.md)。
+
+实测（2026-10-30，单机比赛，逐帧记录）：开火动画和子弹同时生成、都在 `Buddah` 层；时间轴位移关闭、聚拢 1 秒、总长 4 秒；一次出掌走约 1070。第一版子弹比服务器判定盒晚 2 帧（0.04 秒）生成、各自从自己生成时计时，峰值速度时落后判定盒最多 36 单位；联网时会随延迟变大（50–150 ms 约 45–130 单位），判定盒厚度只有 20。
+
+**按服务器时钟走**（用户 2026-10-30 同意）：服务器生成判定盒时取一次 `PreciseTick`，同一个值给判定盒、也放进视觉 RPC（`SpawnChargedProjectileVisualObserversRpc`，反噬弹幕的 `PlayChargedBurstVisualsObserversRpc` 同样）。`ChargedHandProjectileRuntime` 的每个副本每帧用 `TimeManager.TimePassed(spawnTick)` 算"出生多久"，蓄力、出手、飞行位置、到期都按它算；墨手时间轴的 `time` 每帧也对齐到它。没有网络（编辑器预览）时退回 `Time.time`。
+
+为什么不用 `Time.time` 加一次性偏移（第一版做法）：卡顿时 `Time.time` 每帧最多只走 `maximumDeltaTime`（0.33 秒），网络 tick 走真实时间。反噬一次生成 5 只墨手会卡一下，第一版里子弹因此和判定盒差了约 0.3 秒（峰值速度下约 270 单位）。两边都按 tick 走以后，卡顿不再拉开差距。RPC 里同时带上服务器生成那一刻施法者的位置：蓄力期间每个副本都从同一个起点跟随施法者的位移，晚生成的副本不会因为施法者这段时间开出去的距离而落后。
+
+复测（2026-10-30，单机比赛逐帧记录）：正向一只，子弹和判定盒的差距除生成那一帧（1.2）外全程 0；反噬一轮 5 只，除生成那一帧（20.8，墨还没聚出来，看不见）外全程 0；开火动画一轮只有一个在播（层 `burstShared`）。
+
+**联机性能（2026-10-30 晚已处理，见 15.1）**：每只墨手是一个 80×80×192 格的三维流体（123 万格，8 张 3D RenderTexture，约 40 MB 显存，生成时分配），高速时每帧最多 6 个子步 × 约 19 次 dispatch。实测（本机编辑器，单机比赛）：
+
+| | 帧时间中位 | p95 | 最大 | 显存 |
+|---|---|---|---|---|
+| 无掌 | 12.2 ms | 15.1 ms | 17.4 ms | 2990 MB |
+| 1 掌在飞 | 12.9 ms | 15.9 ms | 18.4 ms | +40 MB |
+| 4 掌同时在飞 | 14.8 ms | 27.5 ms | 40.4 ms | +160 MB |
+
+Buf 8 秒、冷却 1 秒、每掌飞 4 秒，一名玩家最多约 4 掌同时在飞，六人同屏每个客户端最坏约 24 只。网络流量不是问题（每掌一个 RPC，多 5 字节），瓶颈在每个客户端的 GPU 和显存。降本要改墨手这条线自己的模拟（分辨率、同屏模拟上限、RenderTexture 复用或共享域），交给专门的会话。
+
+测试：`ChargedProjectileFlightTests`（默认曲线按 889.77 峰值飞 3 秒的射程 = 1070 ±1%；位移单调；SO 带曲线、SO 的速度等于表）。
+
+### 15.1 联机性能：墨手流体降本（2026-10-30，性能会话）
+
+上表的问题按四条线处理，文件只有墨手自己的：`InkFluidVolume.cs`、`InkFluid3D.compute`、`FX_InkFluid3D.shader`、`FX_InkVolume.shader`、`PalmInkTimeline.cs`、`VFX_Palm_Bullet.prefab`。视觉规则不变：流线、残留、从网格表面发出、无上升动量；分辨率 80×80×192、格 2、颜色、注入参数都没改。
+
+| 线 | 之前 | 现在 |
+|---|---|---|
+| 显存 | 每掌 8 张 3D RenderTexture（34 字节/格，41 MB），生成时分配 | 每掌只留状态（速度 + 密度，10 字节/格，12.3 MB）；另外 6 张中间纹理（含半分辨率压力 3 张，约 30 MB）是**全体共用的一套静态 scratch**：实例顺序 step，同一时刻只有一个在用。状态纹理走池子（`TakeState` / `ReturnState`，最多留 `simulationBudget` 套），后来的掌复用先前归还的，不再中途分配；启动预热（`VfxStartupWarmup`，`palm_bullet` 行 `warmup=true`）顺手把第一套放进池子 |
+| 每帧 dispatch | 高速时 4–6 个子步 × 19 次（峰值速度下每帧 76 次），而且帧越慢子步越多（`ceil(dt / maxStep)`），正反馈 | 每帧 1 个 step（帧长超过 `maxStep` = 1/25 s 才 2 个，永不更多）。快手的连续拖尾改在 `Source` 核里做：手沿本帧路径摆 `_SweepCount`（≤ 8，按 `maxCellsPerStep` 算）个位姿，发射壳取并集，一次注入。整格重心的平移不再是两次平流 pass，而是 `Source` 读旧场时直接按 `_Shift` 整格偏移取样（先平移再注入，顺序和 20.4 节一样） |
+| 压力求解 | 12 次全分辨率 Jacobi（约占模拟 GPU 时间 70%） | `coarsePressure`：散度先 `Restrict` 到半分辨率（1/8 格数），在粗网格上做 `pressureIterations`（12）次 Jacobi，`Prolong` 回全分辨率，再做 `pressureFineIterations`（2）次全分辨率。两套 Jacobi 各用两个固定绑定的核（A/B）交替，每次迭代只剩一个 Dispatch。关掉 `coarsePressure` 就回到原解法。**用户复检（同日晚）看得出粗解的"可压"团感，prefab 上已关掉**：压力部分回到 12 次全分辨率，每只模拟中的墨手约 0.28 → 0.55 ms（预算 8 约 4.4 ms）；开关留着，预算不够再谈 |
+| 渲染 | 盒子 160×160×384 每像素固定 64 步，空盒子也走满 | `AdvectDensity` 顺手用组内归约 + 原子操作记下有墨的格子 AABB（`_Bounds`），shader 把光线裁到这个 AABB（空的直接 discard），步数按裁后长度算（`_MinStepCells` 1.5 格/步，上限 `_Steps` 64）。实测渲染已不是开销 |
+| 同屏上限 | 无 | `simulationBudget`（prefab 上 8，所有实例共用）：每帧按到主相机的距离排序，最近的 N 只模拟并显示烟（20% 距离滞回，防边界抖动），其余归还纹理、不画烟（本体照画）。进入预算时从空盒子重新开始 |
+| CPU | `PalmInkTimeline.Apply` 每帧 3 次 `GetComponentsInChildren` + `transform.Find`；每个实例每 step 约 50 次 uniform 设置 | 子物体缓存在 `Collect()`；全体相同的调参常量只在变化时重发（`SharedParams`），scratch 绑定每帧一次 |
+
+实测（同一台机器、编辑器、单机比赛，`Tools/vfxperf/palmperf24.py`：0–2 s 基线，2 s 起每 0.1 s 出一掌到 24 只齐飞，7 s 起每秒 6 掌维持约 24 只在空中；24 掌全部从本地玩家出手，所以聚拢和起飞都在相机跟前，比真实六人局更狠）：
+
+| 配置 | 基线 中位 / p95 | 24 掌齐飞 中位 / p95 | 稳态 6 掌/s 中位 / p95 | 显存增量 |
+|---|---|---|---|---|
+| 改前 | 12.3 / 15.4 | **147 / 160** | 125 / 168 | **+956 MB** |
+| 改后，24 只全模拟（格 2） | 13.4 / 17.0 | 27.8 / 78 | 41 / 84 | +270 MB |
+| 改后，`simulationBudget` 8（**默认**） | 13.0 / 16.4 | 27.0 / 54（另一次 22.7 / 60） | 32 / 63 | +94 MB |
+| 改后，格 3（56×56×128）全模拟 | 14.6 / 18.2 | 23.4 / 47 | 29.7 / 40 | +73 MB |
+| 对照：预算 8，本体 `Volume` 渲染器关掉 | 13.2 / 16.0 | 17.7 / 19.9 | 18.1 / 23.1 | |
+| 对照：流体全关（预算 0） | 13.3 / 16.6 | 21.0 / 62 | 26.2 / 44 | |
+
+读法：
+
+- 流体本身：全模拟 24 只比流体全关多约 7 ms，即**每只模拟中的墨手约 0.28 ms**（格 3 约 0.1 ms）；改前每只约 5.5 ms。显存每只 40 MB → 12 MB，加一次性 30 MB，预算 8 封顶约 130 MB。
+- 剩下的大头不在流体：24 只时本体 `Volume` 的体积光线步进（`FX_InkVolume`）加上生成，占 5–14 ms；本体关掉后 24 掌齐飞 p95 19.9。它贵在**离相机近的手**（出掌后第 1 秒聚拢、起飞都在相机前，盒子铺满屏幕），这个测试里每秒 6 只这样的手；真实六人局每个客户端同时只有自己的 1 只在跟前，别人的在远处或屏外。`FX_InkVolume` 这次只做了两件安全的事：SDF 法线只在表面带附近（|sdf − centre| < 2.5 × bandWidth）逐步算、其余步复用入射点法线（墨手会话改的：全程冻结会让剪影轮廓项和掌/背面密度失效，形体变平）；步长随相机距离放大（`_LodNear` 150 / `_LodFar` 700 / `_LodStepScale` 3）。实测两者对近手几乎无效，远手有效但在这个测试里被近手淹没。
+- 生成帧没有单独的尖峰（出掌帧和邻帧差不多），p95 高是持续负载。
+- **验收（24 掌 p95 ≤ 16.7 ms）在这个编辑器测试里没有达到**：基线 p95 已是 16–17，24 只本体渲染就超了。要继续压只能动本体层：近手降半分辨率渲染（`RenderSkillVfx` 那个 pass 降采样）、聚拢阶段减步数、或把本体的 `_Steps` 120 / `_StepMin` 0.8 放宽（本体 40 步 + 2.4 步长实测稳态 27.7 ms，差别不大，所以问题是像素数不是步数）。这几项改的是用户正在调的本体外观，留给用户决定。
+- 预算 N 怎么选：N 只是流体，每只 0.28 ms（粗压力关掉后 0.55 ms）；8 只约 2.2（4.4）ms。远处的掌烟被省掉时几乎看不出来（它们本来就小）。
+- 反噬齐射（`VFX_Palm_Bullet_Anti`）一帧生成 5 只流体：池子最多留 `simulationBudget` 套，第一次齐射若池子不够会在一帧里分配最多 5 × 12 MB，之后复用；5 只也占 5 个预算名额。24 掌预算测试下次应把反噬齐射算进去（`palmperf24.py` 还没有）。投射物副本现在按网络 tick 时钟走。
+
+视觉副作用（都很小，用户在 Unity 里确认）：
+
+- 峰值速度下每格注入略多（之前 4 个子步各注入 dt/4，现在一次注入满 dt，`speedFactor` 的线性上升仍保留），拖尾略浓一点点；每帧扩散只做 1 次（之前高速 4 次），高速段流线略锐。
+- 粗压力求解只去大尺度散度，小尺度残余散度略多：烟团略"可压"。用户看得出，已关掉（成本 ×2.5，见上）。
+- 超出预算的掌没有烟，重新进入预算时烟从手上重新冒出。
+
+格 3 的截图（[push-projectile-hands/fluid-cell3-t1.5.jpg](push-projectile-hands/fluid-cell3-t1.5.jpg)，对比格 2 的 [fluid-cell2-t1.5.jpg](push-projectile-hands/fluid-cell2-t1.5.jpg)；改完全部后的默认配置见 [fluid-final-t1.5.jpg](push-projectile-hands/fluid-final-t1.5.jpg)）流线仍然成缕，略粗；默认保持格 2，六人局若还不够再把 prefab 的 `cellSize` 3 / `resolution` 56×56×128（成本 ÷3）。
+
+另外三个技能的释放特效（同一方法，`vfxperf.py <skillId> 6 0.2`，6 次连放 = 六人同时放）：
+
+| 技能（6 次连放） | 基线 中位 / p95 | 全部在场 中位 / p95 | 之后 3 s | 显存 |
+|---|---|---|---|---|
+| 神足通 `acceleration`（3 s） | 13.5 / 16.2 | 13.4 / 16.0 | 13.1 / 15.6 | 0 |
+| 禅定缓流 `slowtrap`（6 s 区域） | 13.1 / 16.8 | 15.2 / 20.9 | 15.0 / 19.2 | 0 |
+| 转向反转 `reverseturn`（10 s） | 13.4 / 16.0 | 13.8 / 16.9 | 14.3 / 17.7 | 0 |
+
+神足通和转向反转的释放层基本免费；禅定缓流 6 个区域同屏约 +2 ms 中位 / +4 ms p95，是三者里唯一值得在六人局里盯一眼的（出数时都是从本地玩家脚下放的，6 个区域叠在一起，比分散的真实情况重）。如来神掌仍是大头，而且主要是本体层，见上。
+
+退役的做法记在 [retired.md](retired.md) 第 4 节。
+

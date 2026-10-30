@@ -1,4 +1,5 @@
-﻿using FishNet.Object;
+﻿using BuddahGo.VFX;
+using FishNet.Object;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,6 +8,8 @@ using UnityEngine.Playables;
 public class SkillVfxReplicator : NetworkBehaviour
 {
     [SerializeField] private SkillVfxDatabase vfxDatabase;
+
+    public SkillVfxDatabase Database => vfxDatabase;
 
     [Header("Prewarm")]
     [SerializeField] private bool prewarmOnStart = true;
@@ -19,6 +22,10 @@ public class SkillVfxReplicator : NetworkBehaviour
 
     private static readonly HashSet<int> PrewarmedPrefabIds = new();
     private bool prewarmStarted;
+    // Slot effects (Docs/vfx/README.md section 4) currently playing on this player, one per vfxId.
+    private readonly Dictionary<string, SkillVfxPhaseController> _slots = new();
+    // Slot effects outlast their window by this much so the last particles and trails fade out.
+    private const float SlotTailSeconds = 1.5f;
 
     public override void OnStartClient()
     {
@@ -77,6 +84,12 @@ public class SkillVfxReplicator : NetworkBehaviour
             return;
         }
 
+        if (prefab.GetComponent<SkillVfxPhaseController>() != null)
+        {
+            PlaySlot(vfxId, prefab, durationSeconds);
+            return;
+        }
+
         var existing = FindExisting(vfxId);
         if (existing != null)
         {
@@ -105,6 +118,47 @@ public class SkillVfxReplicator : NetworkBehaviour
         vfxObj.SetActive(true);
         PlayAllEffects(vfxObj);
         StartCoroutine(EnableRenderersAfterFrames(vfxObj, revealDelayFrames));
+    }
+
+    // Local only (no RPC): plays a slot effect on this player on this client, e.g. what a local view controller
+    // decides per observer (一念光明's trail). Ignores ids whose prefab is not a slot.
+    public void PlaySlotLocal(string vfxId, float durationSeconds)
+    {
+        if (vfxDatabase == null || !vfxDatabase.TryGetPrefab(vfxId, out var prefab) || prefab == null)
+            return;
+        if (prefab.GetComponent<SkillVfxPhaseController>() != null)
+            PlaySlot(vfxId, prefab, durationSeconds);
+    }
+
+    // Ends a local slot effect early: its layers stop and it fades out over its dissipation.
+    public void StopSlotLocal(string vfxId)
+    {
+        if (_slots.TryGetValue(vfxId, out SkillVfxPhaseController slot) && slot != null)
+            slot.BeginDissipation();
+        _slots.Remove(vfxId);
+    }
+
+    // A slot prefab places its own layers on this player (caster anchors), so it is not parented or offset here:
+    // the root stands at the player, the controller gets this player as the caster and runs the release window.
+    // Every client plays it locally; it never touches gameplay.
+    private void PlaySlot(string vfxId, GameObject prefab, float durationSeconds)
+    {
+        if (_slots.TryGetValue(vfxId, out SkillVfxPhaseController previous) && previous != null)
+            Destroy(previous.gameObject);
+
+        GameObject instance = Instantiate(prefab, transform.position, transform.rotation);
+        DisableNetworkComponentsForLocalVfx(vfxId, instance);
+        var controller = instance.GetComponent<SkillVfxPhaseController>();
+        var executor = GetComponent<SkillExecutor>();
+        controller.Configure(new SkillVfxPhaseController.Context
+        {
+            caster = transform,
+            isLocalCaster = IsOwner,
+            playLocalFeel = executor != null ? executor.PlayFeelLocal : (System.Action<string>)null,
+        });
+        controller.BeginPhase(SkillVfxPhase.Imp, Mathf.Max(0f, durationSeconds));
+        controller.DestroyWhenFinished(SlotTailSeconds);
+        _slots[vfxId] = controller;
     }
 
     private IEnumerator PrewarmAllVfx()

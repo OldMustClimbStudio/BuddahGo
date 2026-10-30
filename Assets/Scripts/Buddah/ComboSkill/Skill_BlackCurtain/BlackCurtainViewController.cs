@@ -267,13 +267,21 @@ public class BlackCurtainViewController : MonoBehaviour
         ResetState();
     }
 
+    // Every player's route stays visible in the dark as a trail: the 一念光明 slot effect played on each player on
+    // this client (Docs/vfx/README.md section 4; it replaced the PlayerBlackCurtainTrail on the character).
+    private const string CurtainTrailVfxId = "curtain_hit";
+
     private static void SetTrailsVisible(bool visible, float activeDuration)
     {
-        PlayerBlackCurtainTrail[] trails = FindObjectsByType<PlayerBlackCurtainTrail>(FindObjectsSortMode.None);
-        for (int i = 0; i < trails.Length; i++)
+        SkillVfxReplicator[] players = FindObjectsByType<SkillVfxReplicator>(FindObjectsSortMode.None);
+        for (int i = 0; i < players.Length; i++)
         {
-            if (trails[i] != null)
-                trails[i].SetBlackCurtainVisible(visible, activeDuration);
+            if (players[i] == null)
+                continue;
+            if (visible)
+                players[i].PlaySlotLocal(CurtainTrailVfxId, activeDuration);
+            else
+                players[i].StopSlotLocal(CurtainTrailVfxId);
         }
     }
 

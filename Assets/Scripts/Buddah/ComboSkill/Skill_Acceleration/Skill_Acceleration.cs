@@ -10,7 +10,7 @@ public class Skill_Acceleration : SkillAction
     [Tooltip("VFX lifetime. 0 = follow durationSeconds.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
     [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
-    [SerializeField] public string vfxId = "accel_back_vfx"; // Configure matching VFX id in SkillVfxReplicator.
+    [SerializeField] public string vfxId = "accel_release"; // Configure matching VFX id in SkillVfxReplicator.
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.back * 2f;
     [SerializeField] public Vector3 vfxLocalEuler = new Vector3(0f, 180f, 0f);
     [Header("Feel (Optional)")]
@@ -60,5 +60,12 @@ public class Skill_Acceleration : SkillAction
             return;
 
         caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, durationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve);
+    }
+
+    // Played only while observersFeelEventId is empty (see ExecuteServer).
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        if (string.IsNullOrWhiteSpace(observersFeelEventId))
+            AddVfxSlot(into, vfxId, vfxDurationSeconds, durationSeconds, "Skill.effectDurationSeconds → durationSeconds");
     }
 }

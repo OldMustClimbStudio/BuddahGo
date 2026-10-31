@@ -131,8 +131,7 @@ public class ObsessionFigure : NetworkBehaviour
     {
         if (IsServerInitialized)
         {
-            if (_backfireEndTick.Value != 0u && !IsBackfireActive)
-                EndBackfireServer();
+            SettleBackfireServer();
 
             float gapPercent = GetCompletionGapToLeaderPercent();
             float extraRecovery = catchupRecoveryA * gapPercent * gapPercent;
@@ -249,6 +248,20 @@ public class ObsessionFigure : NetworkBehaviour
         RefreshBackfireState();
         if (NetDebug.EnableVerboseLog)
             GameLog.Verbose($"[ObsessionFigure][Server] Backfire penalty on '{name}' for {BackfireLockSeconds:0.##}s at obsession {_current.Value:0.#}.");
+    }
+
+    /// <summary>
+    /// Server: ends a penalty whose end tick has been reached (x backfireEndKeepRatio) right now instead of waiting for
+    /// Update. The cast gate calls it before reading IsBackfireActive and Current, so a request processed in the frame
+    /// the penalty ends rolls against the kept value (README 6.2: obsession at unlock = value at backfire x 0.8).
+    /// Idempotent; does nothing on clients or while the penalty runs.
+    /// </summary>
+    public void SettleBackfireServer()
+    {
+        if (!IsServerInitialized || TimeManager == null)
+            return;
+        if (ObsessionBackfireRules.IsEndDue(_backfireEndTick.Value, TimeManager.Tick))
+            EndBackfireServer();
     }
 
     private void EndBackfireServer()

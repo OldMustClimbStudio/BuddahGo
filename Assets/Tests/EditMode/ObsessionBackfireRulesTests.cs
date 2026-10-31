@@ -82,6 +82,28 @@ namespace BuddahGo.Tests
         }
 
         [Test]
+        public void EndIsDueFromTheEndTickOnlyWhileTheEndTickIsSet()
+        {
+            Assert.That(ObsessionBackfireRules.IsEndDue(600u, 599u), Is.False, "still running");
+            Assert.That(ObsessionBackfireRules.IsEndDue(600u, 600u), Is.True, "the end tick itself is due");
+            Assert.That(ObsessionBackfireRules.IsEndDue(600u, 900u), Is.True, "a late check is still due");
+            Assert.That(ObsessionBackfireRules.IsEndDue(0u, 900u), Is.False, "0 = no penalty to end");
+        }
+
+        // The cast gate settles a due end before it opens (SkillExecutor.EvaluateCastGate → SettleBackfireServer): the
+        // first request at the end tick sees the gate open exactly when the end is due, and rolls against the kept value.
+        [Test]
+        public void ARequestAtTheEndTickRollsAgainstTheKeptValue()
+        {
+            const double delta = 0.02;
+            uint end = ObsessionBackfireRules.EndTick(100u, 10f, delta);
+            Assert.That(ObsessionBackfireRules.SecondsLeft(end, end, delta), Is.EqualTo(0f), "the gate opens at the end tick");
+            Assert.That(ObsessionBackfireRules.IsEndDue(end, end), Is.True, "so the end must be settled at the same tick");
+            float settled = ObsessionBackfireRules.Scale(700f, 0.8f, Min, Max);
+            Assert.That(P(settled), Is.LessThan(P(700f)) & Is.EqualTo(P(560f)).Within(1e-4f));
+        }
+
+        [Test]
         public void ReenteringKeepsTheLaterEnd()
         {
             Assert.That(ObsessionBackfireRules.ExtendEndTick(600u, 400u), Is.EqualTo(600u));

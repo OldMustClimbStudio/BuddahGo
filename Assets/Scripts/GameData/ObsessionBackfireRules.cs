@@ -48,6 +48,9 @@ internal static class ObsessionBackfireRules
     internal static uint ExtendEndTick(uint currentEndTick, uint candidateEndTick)
         => currentEndTick > candidateEndTick ? currentEndTick : candidateEndTick;
 
+    /// <summary>The penalty has reached its end tick but has not been ended yet (end tick still set).</summary>
+    internal static bool IsEndDue(uint endTick, uint nowTick) => endTick != 0u && nowTick >= endTick;
+
     internal static float SecondsLeft(uint endTick, uint nowTick, double tickDelta)
     {
         if (endTick == 0u || nowTick >= endTick)

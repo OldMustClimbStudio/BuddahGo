@@ -534,6 +534,9 @@ public class SkillExecutor : NetworkBehaviour
     {
         ResolveObsessionFigure();
         ResolveMotor();
+        // A penalty that ended this frame gets its x0.8 before the gate opens, so the backfire roll that follows in
+        // CastSlotServer never sees the pre-penalty obsession.
+        _obs?.SettleBackfireServer();
         return SkillCastRules.EvaluateGate(
             HasPendingCast,
             _obs != null && _obs.IsBackfireActive,

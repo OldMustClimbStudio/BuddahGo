@@ -15,15 +15,6 @@ using UnityEngine.UI;
 /// </summary>
 public class SkillSlotUI : MonoBehaviour
 {
-    // Retired player combo tokens (the W/UP images of the slot prefabs). Player combos are gone (single-key casts);
-    // the list is kept only so the images can be hidden.
-    [Serializable]
-    public class TokenUI
-    {
-        public Graphic black;
-        public Graphic white;
-    }
-
     [Header("Primary Visuals")]
     [SerializeField] private Image idleImage;
     [SerializeField] private Image activeImage;
@@ -36,9 +27,6 @@ public class SkillSlotUI : MonoBehaviour
     [Header("Slot Binding")]
     [SerializeField] private int slotIndexOverride = -1;
     [SerializeField] private float bindRetryInterval = 0.5f;
-
-    [Header("Retired Combo Tokens (hidden at runtime)")]
-    [SerializeField] private List<TokenUI> tokens = new();
 
     [Header("Runtime Labels (positions relative to the icon, in the icon parent's space)")]
     [SerializeField] private Vector2 keyLabelOffset = new Vector2(-67f, -45.5f);
@@ -85,7 +73,6 @@ public class SkillSlotUI : MonoBehaviour
         CacheIdleRotation();
         CacheIconColors();
         ResolveSlotIndex();
-        HideRetiredTokens();
         EnsureRuntimeLabels();
         ApplyReadyState();
         BindRuntimeSources(forceRefresh: true);
@@ -316,17 +303,6 @@ public class SkillSlotUI : MonoBehaviour
         return string.IsNullOrEmpty(label) ? SkillSlotHudFormat.DefaultKeyLabel(slotIndex) : label;
     }
 
-    private void HideRetiredTokens()
-    {
-        for (int i = 0; i < tokens.Count; i++)
-        {
-            if (tokens[i] == null)
-                continue;
-            SetGraphicVisible(tokens[i].black, false);
-            SetGraphicVisible(tokens[i].white, false);
-        }
-    }
-
     private void CacheIconColors()
     {
         if (idleImage != null) _idleBaseColor = idleImage.color;
@@ -416,15 +392,6 @@ public class SkillSlotUI : MonoBehaviour
         _localExecutor.LocalSkillUiTriggered -= HandleSkillTriggered;
         _localExecutor = null;
         _localMotor = null;
-    }
-
-    private static void SetGraphicVisible(Graphic graphic, bool visible)
-    {
-        if (graphic == null)
-            return;
-
-        graphic.enabled = visible;
-        graphic.gameObject.SetActive(visible);
     }
 
     private static void ApplyMappedSprite(Image image, Sprite sprite)

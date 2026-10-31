@@ -1,6 +1,5 @@
 using BuddahGo.VFX;
 using NUnit.Framework;
-using UnityEditor;
 using UnityEngine;
 
 namespace BuddahGo.Tests
@@ -18,58 +17,60 @@ namespace BuddahGo.Tests
         [TestCase(37f, 1.6f)]
         public void CasterRelativeLayerStaysOnTheCasterAtAnyAngleAndScale(float yaw, float casterScale)
         {
-            var caster = new GameObject("Caster");
-            var root = new GameObject("Effect");
-            var layerGo = new GameObject("FX_Test_Imp_C_Smoke_01");
-            try
+            using (var rig = new SkillVfxTestRig())
             {
-                caster.transform.SetPositionAndRotation(new Vector3(100f, 5f, -40f), Quaternion.Euler(0f, yaw, 0f));
-                caster.transform.localScale = Vector3.one * casterScale;
-                Vector3 forward = caster.transform.forward;
-                root.transform.SetPositionAndRotation(
-                    caster.transform.position + (Vector3.up * 30f + forward * 7f) * casterScale,
+                Transform caster = rig.New("Caster").transform;
+                caster.SetPositionAndRotation(new Vector3(100f, 5f, -40f), Quaternion.Euler(0f, yaw, 0f));
+                caster.localScale = Vector3.one * casterScale;
+                Vector3 forward = caster.forward;
+
+                SkillVfxPhaseController controller = rig.Slot();
+                controller.transform.SetPositionAndRotation(
+                    caster.position + (Vector3.up * 30f + forward * 7f) * casterScale,
                     Quaternion.LookRotation(forward, Vector3.up));
+                Transform scaled = rig.New("Scaled", controller.transform).transform;
+                SkillVfxTestRig.SetScaledRoot(controller, scaled);
 
-                var controller = root.AddComponent<SkillVfxPhaseController>();
-                var scaled = new GameObject("Scaled").transform;
-                scaled.SetParent(root.transform, false);
-                var so = new SerializedObject(controller);
-                so.FindProperty("scaledRoot").objectReferenceValue = scaled;
-                so.ApplyModifiedPropertiesWithoutUndo();
-
-                layerGo.transform.SetParent(scaled, false);
-                layerGo.transform.localPosition = new Vector3(0f, -27f, 0f);
-                var layer = layerGo.AddComponent<SkillVfxLayer>();
-                layer.phase = SkillVfxPhase.Imp;
-                layer.anchor = SkillVfxAnchor.CasterRelative;
-                layer.casterOffset = new Vector3(0f, 2.93f, 7f);
-                layer.casterEuler = new Vector3(0f, 0f, 0f);
-                layer.startUnit = SkillVfxWindowUnit.Seconds;
-                layer.start = 0f;
-                layer.endUnit = SkillVfxWindowUnit.Seconds;
-                layer.end = 10f;
+                SkillVfxLayer layer = rig.Layer(scaled, SkillVfxAnchor.CasterRelative, new Vector3(0f, 2.93f, 7f));
+                layer.transform.localPosition = new Vector3(0f, -27f, 0f);
+                SkillVfxTestRig.Window(layer, SkillVfxWindowUnit.Seconds, 0f, 10f);
 
                 controller.Configure(new SkillVfxPhaseController.Context
                 {
                     colliderSize = new Vector3(60f, 50f, 20f),
-                    caster = caster.transform,
+                    caster = caster,
                 });
                 controller.BeginPhase(SkillVfxPhase.Imp);
-                typeof(SkillVfxPhaseController)
-                    .GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                    .Invoke(controller, null);
+                controller.LateUpdate();
 
-                Vector3 expected = caster.transform.TransformPoint(layer.casterOffset);
-                Assert.That(Vector3.Distance(layerGo.transform.position, expected), Is.LessThan(1e-3f));
-                Assert.That(Vector3.Angle(layerGo.transform.forward, forward), Is.LessThan(0.01f));
-                Assert.That(layerGo.transform.lossyScale.y, Is.EqualTo(casterScale).Within(1e-4f));
+                Vector3 expected = caster.TransformPoint(layer.casterOffset);
+                Assert.That(Vector3.Distance(layer.transform.position, expected), Is.LessThan(1e-3f));
+                Assert.That(Vector3.Angle(layer.transform.forward, forward), Is.LessThan(0.01f));
+                Assert.That(layer.transform.lossyScale.y, Is.EqualTo(casterScale).Within(1e-4f));
             }
-            finally
-            {
-                Object.DestroyImmediate(layerGo);
-                Object.DestroyImmediate(root);
-                Object.DestroyImmediate(caster);
-            }
+        }
+
+        // The caster's frame is the launch direction flattened to yaw: a palm launched up a slope or straight up does
+        // not tilt the release effect off the caster's body.
+        [Test]
+        public void CasterRelativeFrameIgnoresTheLaunchPitch()
+        {
+            var caster = new Vector3(10f, 2f, -5f);
+            var offset = new Vector3(1f, 3f, 7f);
+            SkillVfxRules.CasterRelativePose(caster, 2f, Quaternion.Euler(0f, 60f, 0f), offset, new Vector3(0f, 0f, 90f),
+                out Vector3 flat, out Quaternion flatRotation);
+            SkillVfxRules.CasterRelativePose(caster, 2f, Quaternion.Euler(-35f, 60f, 0f), offset, new Vector3(0f, 0f, 90f),
+                out Vector3 pitched, out Quaternion pitchedRotation);
+
+            Assert.That(Vector3.Distance(flat, caster + Quaternion.Euler(0f, 60f, 0f) * (offset * 2f)), Is.LessThan(1e-4f));
+            Assert.That(Quaternion.Angle(flatRotation, Quaternion.Euler(0f, 60f, 0f) * Quaternion.Euler(0f, 0f, 90f)), Is.LessThan(0.01f));
+            Assert.That(Vector3.Distance(pitched, flat), Is.LessThan(1e-4f));
+            Assert.That(Quaternion.Angle(pitchedRotation, flatRotation), Is.LessThan(0.01f));
+
+            // Straight up has no yaw: the offset stays in world axes.
+            SkillVfxRules.CasterRelativePose(caster, 1f, Quaternion.Euler(-90f, 0f, 0f), offset, Vector3.zero,
+                out Vector3 up, out _);
+            Assert.That(Vector3.Distance(up, caster + offset), Is.LessThan(1e-4f));
         }
 
         // CasterAttached anchor (buff / trail / zone placeholders): the layer keeps to the caster while the window runs,
@@ -77,48 +78,29 @@ namespace BuddahGo.Tests
         [Test]
         public void CasterAttachedLayerFollowsTheCasterAndStartsChildTrails()
         {
-            var caster = new GameObject("Caster");
-            var root = new GameObject("Effect");
-            var layerGo = new GameObject("FX_Test_Imp_C_Flash_01");
-            try
+            using (var rig = new SkillVfxTestRig())
             {
-                var controller = root.AddComponent<SkillVfxPhaseController>();
-                layerGo.transform.SetParent(root.transform, false);
-                var layer = layerGo.AddComponent<SkillVfxLayer>();
-                layer.phase = SkillVfxPhase.Imp;
-                layer.anchor = SkillVfxAnchor.CasterAttached;
-                layer.casterOffset = new Vector3(0f, 3f, -2f);
-                layer.startUnit = SkillVfxWindowUnit.Seconds;
-                layer.start = 0f;
-                layer.endUnit = SkillVfxWindowUnit.Seconds;
-                layer.end = 10f;
-                var trailGo = new GameObject("Trail");
-                trailGo.transform.SetParent(layerGo.transform, false);
-                var trail = trailGo.AddComponent<TrailRenderer>();
+                Transform caster = rig.New("Caster").transform;
+                SkillVfxPhaseController controller = rig.Slot();
+                SkillVfxLayer layer = rig.Layer(controller.transform, SkillVfxAnchor.CasterAttached, new Vector3(0f, 3f, -2f));
+                SkillVfxTestRig.Window(layer, SkillVfxWindowUnit.Seconds, 0f, 10f);
+                var trail = rig.New("Trail", layer.transform).AddComponent<TrailRenderer>();
                 trail.enabled = false;
                 trail.time = 0.5f;
 
-                controller.Configure(new SkillVfxPhaseController.Context { caster = caster.transform });
+                controller.Configure(new SkillVfxPhaseController.Context { caster = caster });
                 controller.BeginPhase(SkillVfxPhase.Imp);
-                var lateUpdate = typeof(SkillVfxPhaseController)
-                    .GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                lateUpdate.Invoke(controller, null);
+                controller.LateUpdate();
                 Assert.That(trail.enabled && trail.emitting, Is.True);
                 Assert.That(trail.time, Is.EqualTo(0.5f));
 
-                caster.transform.SetPositionAndRotation(new Vector3(50f, 0f, 80f), Quaternion.Euler(0f, 120f, 0f));
-                caster.transform.localScale = Vector3.one * 2f;
-                lateUpdate.Invoke(controller, null);
-                Vector3 expected = caster.transform.TransformPoint(layer.casterOffset);
-                Assert.That(Vector3.Distance(layerGo.transform.position, expected), Is.LessThan(1e-3f));
-                Assert.That(Vector3.Angle(layerGo.transform.forward, caster.transform.forward), Is.LessThan(0.01f));
-                Assert.That(layerGo.transform.lossyScale.y, Is.EqualTo(2f).Within(1e-4f));
-            }
-            finally
-            {
-                Object.DestroyImmediate(layerGo);
-                Object.DestroyImmediate(root);
-                Object.DestroyImmediate(caster);
+                caster.SetPositionAndRotation(new Vector3(50f, 0f, 80f), Quaternion.Euler(0f, 120f, 0f));
+                caster.localScale = Vector3.one * 2f;
+                controller.LateUpdate();
+                Vector3 expected = caster.TransformPoint(layer.casterOffset);
+                Assert.That(Vector3.Distance(layer.transform.position, expected), Is.LessThan(1e-3f));
+                Assert.That(Vector3.Angle(layer.transform.forward, caster.forward), Is.LessThan(0.01f));
+                Assert.That(layer.transform.lossyScale.y, Is.EqualTo(2f).Within(1e-4f));
             }
         }
 
@@ -127,50 +109,35 @@ namespace BuddahGo.Tests
         [Test]
         public void CasterFollowLayerFollowsThePositionButNotTheFacing()
         {
-            var caster = new GameObject("Caster");
-            var root = new GameObject("Effect");
-            var layerGo = new GameObject("FX_Test_Imp_C_Flash_01");
-            try
+            using (var rig = new SkillVfxTestRig())
             {
-                caster.transform.rotation = Quaternion.Euler(0f, 30f, 0f);
-                root.transform.rotation = caster.transform.rotation;
-                var controller = root.AddComponent<SkillVfxPhaseController>();
-                layerGo.transform.SetParent(root.transform, false);
-                var layer = layerGo.AddComponent<SkillVfxLayer>();
-                layer.phase = SkillVfxPhase.Imp;
-                layer.anchor = SkillVfxAnchor.CasterFollow;
-                layer.casterOffset = new Vector3(0f, 3f, -2f);
-                layer.end = -1f;
+                Transform caster = rig.New("Caster").transform;
+                caster.rotation = Quaternion.Euler(0f, 30f, 0f);
+                SkillVfxPhaseController controller = rig.Slot();
+                controller.transform.rotation = caster.rotation;
+                SkillVfxLayer layer = rig.Layer(controller.transform, SkillVfxAnchor.CasterFollow, new Vector3(0f, 3f, -2f));
 
-                controller.Configure(new SkillVfxPhaseController.Context { caster = caster.transform });
+                controller.Configure(new SkillVfxPhaseController.Context { caster = caster });
                 controller.BeginPhase(SkillVfxPhase.Imp, 5f);
-                var lateUpdate = typeof(SkillVfxPhaseController)
-                    .GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                lateUpdate.Invoke(controller, null);
+                controller.LateUpdate();
 
-                Quaternion started = root.transform.rotation;
-                caster.transform.SetPositionAndRotation(new Vector3(50f, 0f, 80f), Quaternion.Euler(0f, 150f, 0f));
-                caster.transform.localScale = Vector3.one * 2f;
-                lateUpdate.Invoke(controller, null);
-                Vector3 expected = caster.transform.position + started * (layer.casterOffset * 2f);
-                Assert.That(Vector3.Distance(layerGo.transform.position, expected), Is.LessThan(1e-3f));
-                Assert.That(Quaternion.Angle(layerGo.transform.rotation, started), Is.LessThan(0.01f));
-                Assert.That(layerGo.transform.lossyScale.y, Is.EqualTo(2f).Within(1e-4f));
+                Quaternion started = controller.transform.rotation;
+                caster.SetPositionAndRotation(new Vector3(50f, 0f, 80f), Quaternion.Euler(0f, 150f, 0f));
+                caster.localScale = Vector3.one * 2f;
+                controller.LateUpdate();
+                Vector3 expected = caster.position + started * (layer.casterOffset * 2f);
+                Assert.That(Vector3.Distance(layer.transform.position, expected), Is.LessThan(1e-3f));
+                Assert.That(Quaternion.Angle(layer.transform.rotation, started), Is.LessThan(0.01f));
+                Assert.That(layer.transform.lossyScale.y, Is.EqualTo(2f).Within(1e-4f));
 
                 // After the window: still on the caster, still not turned.
                 controller.EndPhase(SkillVfxPhase.Imp);
-                lateUpdate.Invoke(controller, null);
-                caster.transform.SetPositionAndRotation(new Vector3(-30f, 0f, 200f), Quaternion.Euler(0f, 270f, 0f));
-                lateUpdate.Invoke(controller, null);
-                expected = caster.transform.position + started * (layer.casterOffset * 2f);
-                Assert.That(Vector3.Distance(layerGo.transform.position, expected), Is.LessThan(1e-3f));
-                Assert.That(Quaternion.Angle(layerGo.transform.rotation, started), Is.LessThan(0.01f));
-            }
-            finally
-            {
-                Object.DestroyImmediate(layerGo);
-                Object.DestroyImmediate(root);
-                Object.DestroyImmediate(caster);
+                controller.LateUpdate();
+                caster.SetPositionAndRotation(new Vector3(-30f, 0f, 200f), Quaternion.Euler(0f, 270f, 0f));
+                controller.LateUpdate();
+                expected = caster.position + started * (layer.casterOffset * 2f);
+                Assert.That(Vector3.Distance(layer.transform.position, expected), Is.LessThan(1e-3f));
+                Assert.That(Quaternion.Angle(layer.transform.rotation, started), Is.LessThan(0.01f));
             }
         }
 
@@ -179,36 +146,46 @@ namespace BuddahGo.Tests
         [Test]
         public void CasterAttachedLayerKeepsFollowingAfterItsWindow()
         {
-            var caster = new GameObject("Caster");
-            var root = new GameObject("Effect");
-            var layerGo = new GameObject("FX_Test_Imp_C_Smoke_01");
-            try
+            using (var rig = new SkillVfxTestRig())
             {
-                var controller = root.AddComponent<SkillVfxPhaseController>();
-                layerGo.transform.SetParent(root.transform, false);
-                var layer = layerGo.AddComponent<SkillVfxLayer>();
-                layer.phase = SkillVfxPhase.Imp;
-                layer.anchor = SkillVfxAnchor.CasterAttached;
-                layer.casterOffset = new Vector3(0f, 3f, 0f);
-                layer.end = -1f;
+                Transform caster = rig.New("Caster").transform;
+                SkillVfxPhaseController controller = rig.Slot();
+                SkillVfxLayer layer = rig.Layer(controller.transform, SkillVfxAnchor.CasterAttached, new Vector3(0f, 3f, 0f));
 
-                controller.Configure(new SkillVfxPhaseController.Context { caster = caster.transform });
+                controller.Configure(new SkillVfxPhaseController.Context { caster = caster });
                 controller.BeginPhase(SkillVfxPhase.Imp, 5f);
-                var lateUpdate = typeof(SkillVfxPhaseController)
-                    .GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                lateUpdate.Invoke(controller, null);
+                controller.LateUpdate();
                 controller.EndPhase(SkillVfxPhase.Imp);
-                lateUpdate.Invoke(controller, null);
+                controller.LateUpdate();
 
-                caster.transform.position = new Vector3(-30f, 0f, 200f);
-                lateUpdate.Invoke(controller, null);
-                Assert.That(Vector3.Distance(layerGo.transform.position, caster.transform.TransformPoint(layer.casterOffset)), Is.LessThan(1e-3f));
+                caster.position = new Vector3(-30f, 0f, 200f);
+                controller.LateUpdate();
+                Assert.That(Vector3.Distance(layer.transform.position, caster.TransformPoint(layer.casterOffset)), Is.LessThan(1e-3f));
             }
-            finally
+        }
+
+        // Anti volley (palm doc): a burstShared layer (the one launch flash of the volley) shows on burst 0 only,
+        // moved to the burst centre; the other copies hide it.
+        [TestCase(0, true)]
+        [TestCase(2, false)]
+        public void BurstSharedLayerShowsOnceAtTheBurstCentre(int burstIndex, bool shown)
+        {
+            using (var rig = new SkillVfxTestRig())
             {
-                Object.DestroyImmediate(layerGo);
-                Object.DestroyImmediate(root);
-                Object.DestroyImmediate(caster);
+                SkillVfxPhaseController controller = rig.Slot();
+                SkillVfxLayer layer = rig.Layer(controller.transform);
+                layer.burstShared = true;
+                layer.transform.position = new Vector3(10f, 0f, 0f);
+
+                controller.Configure(new SkillVfxPhaseController.Context
+                {
+                    burstIndex = burstIndex,
+                    burstCenterOffsetWorld = new Vector3(0f, 0f, 5f),
+                });
+
+                Assert.That(layer.gameObject.activeSelf, Is.EqualTo(shown));
+                if (shown)
+                    Assert.That(Vector3.Distance(layer.transform.position, new Vector3(10f, 0f, 5f)), Is.LessThan(1e-4f));
             }
         }
     }

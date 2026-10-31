@@ -191,7 +191,8 @@ namespace BuddahGo.VFX
             _destroyAt = -1f;
         }
 
-        public void DestroyWhenFinished(float extraSeconds)
+        // Returns the seconds until the effect is destroyed.
+        public float DestroyWhenFinished(float extraSeconds)
         {
             float end = Time.time;
             float tailScale = 1f;
@@ -214,9 +215,11 @@ namespace BuddahGo.VFX
                 }
             }
             _destroyAt = end + Mathf.Max(Mathf.Max(0f, extraSeconds) * tailScale, naturalTail) + MaxTailFade();
+            return _destroyAt - Time.time;
         }
 
-        private void LateUpdate()
+        // Internal so the EditMode tests can run a frame.
+        internal void LateUpdate()
         {
             if (!_configured)
                 return;

@@ -236,22 +236,32 @@ namespace BuddahGo.VFX
             int frame = Time.frameCount;
             if (Application.isPlaying && s_scheduledFrame == frame) return;
             s_scheduledFrame = frame;
-            int budget = int.MaxValue;
-            foreach (var v in s_active) budget = Mathf.Min(budget, Mathf.Max(v.simulationBudget, 0));
-            s_poolKeep = Mathf.Clamp(budget, 1, 32);
-            if (s_active.Count <= budget) { foreach (var v in s_active) v.wanted = true; return; }
             Camera cam = Camera.main;
-            Vector3 eye = cam != null ? cam.transform.position : Vector3.zero;
+            s_poolKeep = Mathf.Clamp(PickSimulating(s_active, cam != null, cam != null ? cam.transform.position : Vector3.zero), 1, 32);
+        }
+
+        // Sets InBudget on each volume and returns the budget (the smallest simulationBudget among them). Without an
+        // eye (no main camera) the oldest volumes keep simulating.
+        internal static int PickSimulating(List<InkFluidVolume> volumes, bool hasEye, Vector3 eye)
+        {
+            int budget = int.MaxValue;
+            foreach (var v in volumes) budget = Mathf.Min(budget, Mathf.Max(v.simulationBudget, 0));
+            if (volumes.Count <= budget) { foreach (var v in volumes) v.wanted = true; return budget; }
             s_rank.Clear();
-            foreach (var v in s_active)
+            foreach (var v in volumes)
             {
                 Vector3 p = v.hand != null ? v.hand.position : v.transform.position;
-                v.score = cam != null ? (p - eye).sqrMagnitude * (v.state != null ? 0.64f : 1f) : v.spawnOrder;
+                v.score = hasEye ? RankScore((p - eye).sqrMagnitude, v.state != null) : v.spawnOrder;
                 s_rank.Add(v);
             }
             s_rank.Sort(s_byScore);
             for (int i = 0; i < s_rank.Count; i++) s_rank[i].wanted = i < budget;
+            return budget;
         }
+
+        // Lower ranks first. A volume already simulating counts as 20% nearer (0.8 squared), so it keeps its grids
+        // until a newcomer is clearly closer.
+        internal static float RankScore(float sqrDistance, bool simulating) => sqrDistance * (simulating ? 0.64f : 1f);
 
         // ---------- instance ----------
 
@@ -276,6 +286,7 @@ namespace BuddahGo.VFX
 
         public RenderTexture DensityTexture => state?.den;
         public bool IsSimulating => state != null;
+        internal bool InBudget => wanted;
         public float SpeedFactor => speedFactor;
         public Vector3 BoxMin => anchorCentre - BoxSize * 0.5f;
         public Vector3 BoxSize => new Vector3(resolution.x, resolution.y, resolution.z) * Mathf.Max(cellSize, 0.01f);
@@ -683,7 +694,9 @@ namespace BuddahGo.VFX
         // Take a state set (from the pool when one is free) and start from empty.
         // No GPU (batch mode with -nographics, a headless server): the compute kernels do not exist and FindKernel would
         // log errors, so the fluid stays off and callers see no state. The volume body still draws where there is a GPU.
-        static bool ComputeUsable => SystemInfo.supportsComputeShaders && SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null;
+        static bool ComputeUsable => !ForceNoCompute && SystemInfo.supportsComputeShaders && SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null;
+        // EditMode tests: behave as on a machine without compute shaders.
+        internal static bool ForceNoCompute;
 
         void Allocate()
         {

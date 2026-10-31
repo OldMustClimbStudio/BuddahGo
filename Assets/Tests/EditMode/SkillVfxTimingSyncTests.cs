@@ -53,6 +53,40 @@ namespace BuddahGo.Tests
             Assert.AreEqual(slow.effectDurationSeconds, lengths["slowtrap/slow_release"], 1e-4f, "slowtrap's effect must follow the zone length");
         }
 
+        // A skill reports the length it plays: the gameplay length by default; an absolute vfxDurationSeconds on the SO
+        // wins and is flagged (the timing window shows "SO 写死了 vfxDurationSeconds，不跟配表"). Empty ids are left out.
+        [Test]
+        public void VfxDurationOnTheSoOverridesTheGameplayLengthAndIsFlagged()
+        {
+            var skill = ScriptableObject.CreateInstance<Skill_ReverseTurn>();
+            try
+            {
+                skill.invertDurationSeconds = 3f;
+                skill.vfxDurationSeconds = 0f;
+                var slots = new List<SkillAction.VfxSlotTiming>();
+                skill.CollectVfxSlots(slots);
+                Assert.That(slots.Count, Is.EqualTo(2));
+                foreach (SkillAction.VfxSlotTiming timing in slots)
+                {
+                    Assert.That(timing.seconds, Is.EqualTo(3f), timing.vfxId);
+                    Assert.That(timing.overridden, Is.False, timing.vfxId);
+                }
+
+                skill.vfxDurationSeconds = 5f;
+                skill.hitVfxId = " ";
+                slots.Clear();
+                skill.CollectVfxSlots(slots);
+                Assert.That(slots.Count, Is.EqualTo(1));
+                Assert.That(slots[0].vfxId, Is.EqualTo(skill.vfxId));
+                Assert.That(slots[0].seconds, Is.EqualTo(5f));
+                Assert.That(slots[0].overridden, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(skill);
+            }
+        }
+
         // skillId → each effect the skill plays, with the table applied onto copies of the SOs (as in play mode).
         static List<KeyValuePair<string, SkillAction.VfxSlotTiming>> CollectAtTableValues()
         {

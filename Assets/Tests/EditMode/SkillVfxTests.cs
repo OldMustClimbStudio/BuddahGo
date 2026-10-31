@@ -141,30 +141,102 @@ namespace BuddahGo.Tests
                 }
             }
 
+            // Prefab and controller id of every row: EveryVfxIdFollowsTheNamingRuleAndLoadsItsPrefab.
             foreach (string id in new[] { "palm_release", "palm_release_anti", "palm_buff" })
             {
                 VfxRegistryRecord row = rows.Single(r => r.vfxId == id);
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(row.prefabPath);
-                Assert.That(prefab, Is.Not.Null, row.prefabPath);
-                Assert.That(prefab.GetComponent<SkillVfxPhaseController>().VfxId, Is.EqualTo(id));
                 Assert.That(row.linSeconds, Is.LessThanOrEqualTo(1.5f), "README section 8: residue <= 1.5 s");
                 Assert.That(row.lightSeconds, Is.LessThanOrEqualTo(0.5f), "README section 8: launch light <= 0.5 s");
                 Assert.That(row.impFrames, Is.InRange(2, 4), "flash 2-4 frames");
             }
         }
 
-        // Every table row that has a prefab in SkillVfxDatabase points at that same prefab; the skills only name ids.
+        // README section 6 (2026-10-30): vfx_id = <skill>_<slot>[_anti] (the shared wind-up only cast / cast_anti), the
+        // prefab is Assets/VFX/<技能中文名>/<Slot>/VFX_<Skill>_<Slot>[_Anti].prefab, and the slot controller carries the
+        // same id. The VFX table and SkillVfxDatabase list the same ids and the same prefabs.
+        [Test]
+        public void EveryVfxIdFollowsTheNamingRuleAndLoadsItsPrefab()
+        {
+            var database = AssetDatabase.LoadAssetAtPath<SkillVfxDatabase>("Assets/Skills_Assets/SkillVfxDatabase.asset");
+            List<VfxRegistryRecord> rows = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset).vfxRegistries;
+            Assert.That(rows.Select(r => r.vfxId), Is.EquivalentTo(database.entries.Select(e => e.vfxId)),
+                "VFX table and SkillVfxDatabase ids");
+
+            foreach (VfxRegistryRecord row in rows)
+            {
+                System.Text.RegularExpressions.Match match = VfxIdRule.Match(row.vfxId);
+                Assert.That(match.Success, Is.True, "vfx_id '" + row.vfxId + "' is not <skill>_<slot>[_anti]");
+                bool cast = match.Groups[1].Success;
+                (string folder, string name) skill = SkillFolders[cast ? "cast" : match.Groups[2].Value];
+                string slot = cast ? "Cast" : char.ToUpperInvariant(match.Groups[3].Value[0]) + match.Groups[3].Value.Substring(1);
+                string expectedPath = "Assets/VFX/" + skill.folder + "/" + slot + "/VFX_" + skill.name + "_" + slot
+                    + (match.Groups[4].Success ? "_Anti" : "") + ".prefab";
+                Assert.That(row.prefabPath, Is.EqualTo(expectedPath), row.vfxId);
+
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(row.prefabPath);
+                Assert.That(prefab, Is.Not.Null, row.prefabPath);
+                Assert.That(database.TryGetPrefab(row.vfxId, out GameObject listed) ? listed : null, Is.SameAs(prefab), row.vfxId);
+                var controller = prefab.GetComponent<SkillVfxPhaseController>();
+                // Bullets are projectiles that may carry a slot controller; every other slot is one.
+                if (match.Groups[3].Value != "bullet")
+                    Assert.That(controller, Is.Not.Null, row.vfxId + " is not a slot prefab");
+                if (controller != null)
+                    Assert.That(controller.VfxId, Is.EqualTo(row.vfxId), row.prefabPath);
+            }
+        }
+
+        static readonly Regex VfxIdRule = new Regex(@"^(?:(cast)|(palm|accel|slow|reverse|curtain|giant)_(release|bullet|hit|buff))(_anti)?$");
+
+        static readonly Dictionary<string, (string folder, string name)> SkillFolders = new Dictionary<string, (string, string)>
+        {
+            ["cast"] = ("通用前摇", "Common"),
+            ["palm"] = ("如来神掌", "Palm"),
+            ["accel"] = ("神足通", "Accel"),
+            ["slow"] = ("禅定缓流", "Slow"),
+            ["reverse"] = ("转向反转", "Reverse"),
+            ["curtain"] = ("一念光明", "Curtain"),
+            ["giant"] = ("巨大化", "Giant"),
+        };
+
+        // README section 5: an empty (0) cell of the VFX table falls back to the default look instead of collapsing the
+        // effect; residue, light and buff fade pass through as written (0 there means none).
+        [Test]
+        public void EmptyTableCellsFallBackToTheDefaults()
+        {
+            SkillVfxVisualValues defaults = SkillVfxVisualValues.Defaults;
+            SkillVfxVisualValues empty = SkillVfxTable.FromRecord(new VfxRegistryRecord { vfxId = "empty" });
+            Assert.That(empty.chgRatio, Is.EqualTo(defaults.chgRatio));
+            Assert.That(empty.impFrames, Is.EqualTo(defaults.impFrames));
+            Assert.That(empty.disSeconds, Is.EqualTo(defaults.disSeconds));
+            Assert.That(empty.trailSeconds, Is.EqualTo(defaults.trailSeconds));
+            Assert.That(empty.scaleMultiplier, Is.EqualTo(defaults.scaleMultiplier));
+            Assert.That(empty.linSeconds, Is.EqualTo(0f));
+            Assert.That(empty.lightSeconds, Is.EqualTo(0f));
+            Assert.That(empty.bufFadeSeconds, Is.EqualTo(0f));
+
+            SkillVfxVisualValues written = SkillVfxTable.FromRecord(new VfxRegistryRecord
+            {
+                vfxId = "written", chgRatio = 0.6f, impFrames = 3, disSeconds = 0.8f, trailSeconds = 0.5f,
+                scaleMultiplier = 1.2f, linSeconds = 1f, lightSeconds = 0.2f, lightIntensity = 2f, bufFadeSeconds = 0.25f,
+            });
+            Assert.That(written.chgRatio, Is.EqualTo(0.6f));
+            Assert.That(written.impFrames, Is.EqualTo(3));
+            Assert.That(written.disSeconds, Is.EqualTo(0.8f));
+            Assert.That(written.trailSeconds, Is.EqualTo(0.5f));
+            Assert.That(written.scaleMultiplier, Is.EqualTo(1.2f));
+            Assert.That(written.linSeconds, Is.EqualTo(1f));
+            Assert.That(written.lightSeconds, Is.EqualTo(0.2f));
+            Assert.That(written.lightIntensity, Is.EqualTo(2f));
+            Assert.That(written.bufFadeSeconds, Is.EqualTo(0.25f));
+        }
+
+        // The palm skills name ids SkillVfxDatabase has (the table / database pairing itself is
+        // EveryVfxIdFollowsTheNamingRuleAndLoadsItsPrefab); the anti release pairs with the normal one.
         [Test]
         public void SkillsDatabaseAndTableAgreeOnTheVfxIds()
         {
             var database = AssetDatabase.LoadAssetAtPath<SkillVfxDatabase>("Assets/Skills_Assets/SkillVfxDatabase.asset");
             var rows = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset).vfxRegistries;
-            foreach (SkillVfxDatabase.Entry entry in database.entries)
-            {
-                VfxRegistryRecord row = rows.SingleOrDefault(r => r.vfxId == entry.vfxId);
-                Assert.That(row, Is.Not.Null, "database id " + entry.vfxId + " has no VFX table row");
-                Assert.That(AssetDatabase.GetAssetPath(entry.prefab), Is.EqualTo(row.prefabPath), entry.vfxId);
-            }
 
             var palm = new SerializedObject(AssetDatabase.LoadAssetAtPath<Skill_PushProjectileHands>("Assets/Skills_Assets/Skills/Skill_PushProjectileHands.asset"));
             var anti = AssetDatabase.LoadAssetAtPath<Skill_PushProjectileHands_Anti>("Assets/Skills_Assets/Skills/Skill_PushProjectileHands_Anti.asset");

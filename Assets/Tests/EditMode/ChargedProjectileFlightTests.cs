@@ -35,6 +35,35 @@ namespace BuddahGo.Tests
             Assert.Greater(ChargedProjectileFlight.DistanceFraction(cumulative, 0.4f), previous * 0.5f);
         }
 
+        // Range = peak x flight seconds x the shape's area: a flat shape covers peak x seconds, a linear ramp half of it.
+        [Test]
+        public void RangeIsPeakSpeedTimesFlightTimeTimesTheShapesArea()
+        {
+            Assert.AreEqual(300f, ChargedProjectileFlight.Range(AnimationCurve.Constant(0f, 1f, 1f), 100f, 3f), 1e-3f);
+            Assert.AreEqual(100f, ChargedProjectileFlight.Range(AnimationCurve.Linear(0f, 0f, 1f, 1f), 100f, 2f), 1e-3f);
+            Assert.AreEqual(0f, ChargedProjectileFlight.Range(null, 100f, 3f));
+        }
+
+        // A shape tuned below zero only stops the palm; it never flies back toward the caster.
+        [Test]
+        public void ANegativeShapeNeverMovesThePalmBackwards()
+        {
+            var dip = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(0.5f, -1f), new Keyframe(1f, 1f));
+            float[] cumulative = ChargedProjectileFlight.Cumulative(dip);
+            for (int i = 1; i < cumulative.Length; i++)
+                Assert.GreaterOrEqual(cumulative[i], cumulative[i - 1], "sample " + i);
+            Assert.Greater(cumulative[cumulative.Length - 1], 0f);
+        }
+
+        // Before launch the palm is at the start; after the flight it stays at the full range.
+        [Test]
+        public void TimeOutsideTheFlightIsClamped()
+        {
+            float[] cumulative = ChargedProjectileFlight.Cumulative(ChargedProjectileFlight.DefaultSpeedCurve());
+            Assert.AreEqual(0f, ChargedProjectileFlight.DistanceFraction(cumulative, -0.5f));
+            Assert.AreEqual(cumulative[cumulative.Length - 1], ChargedProjectileFlight.DistanceFraction(cumulative, 1.5f), 1e-6f);
+        }
+
         [Test]
         public void PalmSkillCarriesTheShapeAndTheTableSpeed()
         {

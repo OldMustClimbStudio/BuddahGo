@@ -1,6 +1,5 @@
 using BuddahGo.VFX;
 using NUnit.Framework;
-using UnityEditor;
 using UnityEngine;
 
 namespace BuddahGo.Tests
@@ -18,6 +17,51 @@ namespace BuddahGo.Tests
             Assert.That(SkillVfxRules.TimeScale(0f, 1000f, 0f, 1f), Is.EqualTo(SkillVfxRules.MaxTimeScale));
         }
 
+        // README 3.4: a PhaseFraction window moves with the gameplay length, a Seconds window does not, and a negative
+        // end runs to the end of the phase.
+        [Test]
+        public void LayerWindowMovesWithThePhaseOnlyInPhaseFraction()
+        {
+            using (var rig = new SkillVfxTestRig())
+            {
+                SkillVfxPhaseController controller = rig.Slot();
+                SkillVfxLayer layer = rig.Layer(controller.transform);
+
+                SkillVfxTestRig.Window(layer, SkillVfxWindowUnit.PhaseFraction, 0.25f, 0.75f);
+                AssertWindow(controller, layer, 8f, 2f, 6f);
+                AssertWindow(controller, layer, 4f, 1f, 3f);
+
+                SkillVfxTestRig.Window(layer, SkillVfxWindowUnit.Seconds, 0.5f, 2f);
+                AssertWindow(controller, layer, 8f, 0.5f, 2f);
+                AssertWindow(controller, layer, 4f, 0.5f, 2f);
+
+                layer.end = -1f;
+                AssertWindow(controller, layer, 8f, 0.5f, 8f);
+            }
+        }
+
+        // k is 1 wherever the content must not be rescaled: Fixed layers, a phase with no reference length and a
+        // window that does not move with the phase.
+        [TestCase(SkillVfxTimeScaling.Stretch, SkillVfxPhase.Imp, SkillVfxWindowUnit.PhaseFraction, 2f)]
+        [TestCase(SkillVfxTimeScaling.Rhythm, SkillVfxPhase.Imp, SkillVfxWindowUnit.PhaseFraction, 2f)]
+        [TestCase(SkillVfxTimeScaling.Fixed, SkillVfxPhase.Imp, SkillVfxWindowUnit.PhaseFraction, 1f)]
+        [TestCase(SkillVfxTimeScaling.Stretch, SkillVfxPhase.Dis, SkillVfxWindowUnit.PhaseFraction, 1f)]
+        [TestCase(SkillVfxTimeScaling.Stretch, SkillVfxPhase.Imp, SkillVfxWindowUnit.Seconds, 1f)]
+        public void LayerTimeScaleOnlyRescalesMovingWindowsWithAReference(SkillVfxTimeScaling scaling, SkillVfxPhase phase,
+            SkillVfxWindowUnit unit, float expected)
+        {
+            using (var rig = new SkillVfxTestRig())
+            {
+                SkillVfxPhaseController controller = rig.Slot(10f);
+                SkillVfxLayer layer = rig.Layer(controller.transform);
+                layer.phase = phase;
+                layer.timeScaling = scaling;
+                SkillVfxTestRig.Window(layer, unit, 0f, unit == SkillVfxWindowUnit.Seconds ? 5f : -1f);
+
+                Assert.That(controller.LayerTimeScale(layer, 20f), Is.EqualTo(expected).Within(1e-5f));
+            }
+        }
+
         // Tuned at Imp 10 s, played at 20 s: k = 2 for a whole-phase window.
         [TestCase(SkillVfxTimeScaling.Fixed, SkillVfxWindowUnit.PhaseFraction, 1f, 1f, 1f, 2f)]
         [TestCase(SkillVfxTimeScaling.Stretch, SkillVfxWindowUnit.PhaseFraction, 0.5f, 1f, 1f, 2f)]
@@ -27,54 +71,29 @@ namespace BuddahGo.Tests
         public void LayerContentFollowsTheGameplayLength(SkillVfxTimeScaling scaling, SkillVfxWindowUnit unit,
             float simulationSpeed, float startDelay, float burstTime, float duration)
         {
-            var root = new GameObject("Effect");
-            var layerGo = new GameObject("FX_Test_Imp_C_Smoke_01");
-            try
+            using (var rig = new SkillVfxTestRig())
             {
-                var controller = root.AddComponent<SkillVfxPhaseController>();
-                var so = new SerializedObject(controller);
-                SerializedProperty references = so.FindProperty("referenceSeconds");
-                references.arraySize = 1;
-                references.GetArrayElementAtIndex(0).FindPropertyRelative("phase").enumValueIndex = (int)SkillVfxPhase.Imp;
-                references.GetArrayElementAtIndex(0).FindPropertyRelative("seconds").floatValue = 10f;
-                so.ApplyModifiedPropertiesWithoutUndo();
-
-                layerGo.transform.SetParent(root.transform, false);
-                var layer = layerGo.AddComponent<SkillVfxLayer>();
-                layer.phase = SkillVfxPhase.Imp;
+                SkillVfxPhaseController controller = rig.Slot(10f);
+                SkillVfxLayer layer = rig.Layer(controller.transform);
                 layer.timeScaling = scaling;
-                layer.startUnit = unit;
-                layer.start = 0f;
-                layer.endUnit = unit;
-                layer.end = unit == SkillVfxWindowUnit.Seconds ? 10f : -1f;
+                SkillVfxTestRig.Window(layer, unit, 0f, unit == SkillVfxWindowUnit.Seconds ? 10f : -1f);
 
-                var psGo = new GameObject("Smoke");
-                psGo.transform.SetParent(layerGo.transform, false);
-                var ps = psGo.AddComponent<ParticleSystem>();
-                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                ParticleSystem ps = rig.Particles(layer, "Smoke", 5f);
                 ParticleSystem.MainModule main = ps.main;
                 main.duration = 2f;
                 main.startDelay = 1f;
-                main.simulationSpeed = 1f;
                 ParticleSystem.EmissionModule emission = ps.emission;
                 emission.SetBursts(new[] { new ParticleSystem.Burst(1f, 5) });
 
                 controller.Configure(new SkillVfxPhaseController.Context());
                 controller.BeginPhase(SkillVfxPhase.Imp, 20f);
-                typeof(SkillVfxPhaseController)
-                    .GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                    .Invoke(controller, null);
+                controller.LateUpdate();
 
                 main = ps.main;
                 Assert.That(main.simulationSpeed, Is.EqualTo(simulationSpeed).Within(1e-4f), "simulation speed");
                 Assert.That(main.startDelay.constant, Is.EqualTo(startDelay).Within(1e-4f), "start delay");
                 Assert.That(ps.emission.GetBurst(0).time, Is.EqualTo(burstTime).Within(1e-4f), "burst time");
                 Assert.That(main.duration, Is.EqualTo(duration).Within(1e-4f), "emission length");
-            }
-            finally
-            {
-                Object.DestroyImmediate(layerGo);
-                Object.DestroyImmediate(root);
             }
         }
 
@@ -85,46 +104,18 @@ namespace BuddahGo.Tests
         [TestCase(false, 12f + 1.5f * 2f)]
         public void ParticlesDieNaturallyKeepsTheSlotUntilTheLastParticleDies(bool dieNaturally, float expectedSeconds)
         {
-            var root = new GameObject("Effect");
-            var layerGo = new GameObject("FX_Test_Imp_C_Flash_01");
-            try
+            using (var rig = new SkillVfxTestRig())
             {
-                var controller = root.AddComponent<SkillVfxPhaseController>();
-                var so = new SerializedObject(controller);
-                SerializedProperty references = so.FindProperty("referenceSeconds");
-                references.arraySize = 1;
-                references.GetArrayElementAtIndex(0).FindPropertyRelative("phase").enumValueIndex = (int)SkillVfxPhase.Imp;
-                references.GetArrayElementAtIndex(0).FindPropertyRelative("seconds").floatValue = 6f;
-                so.ApplyModifiedPropertiesWithoutUndo();
-
-                layerGo.transform.SetParent(root.transform, false);
-                var layer = layerGo.AddComponent<SkillVfxLayer>();
-                layer.phase = SkillVfxPhase.Imp;
+                SkillVfxPhaseController controller = rig.Slot(6f);
+                SkillVfxLayer layer = rig.Layer(controller.transform);
                 layer.timeScaling = SkillVfxTimeScaling.Stretch;
                 layer.particlesDieNaturally = dieNaturally;
-
-                var psGo = new GameObject("Ground");
-                psGo.transform.SetParent(layerGo.transform, false);
-                var ps = psGo.AddComponent<ParticleSystem>();
-                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                ParticleSystem.MainModule main = ps.main;
+                ParticleSystem.MainModule main = rig.Particles(layer, "Ground", 5f).main;
                 main.startLifetime = new ParticleSystem.MinMaxCurve(2f, 5f);
-                main.simulationSpeed = 1f;
 
                 controller.Configure(new SkillVfxPhaseController.Context());
-                float before = Time.time;
                 controller.BeginPhase(SkillVfxPhase.Imp, 12f);
-                controller.DestroyWhenFinished(1.5f);
-
-                float destroyAt = (float)typeof(SkillVfxPhaseController)
-                    .GetField("_destroyAt", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                    .GetValue(controller);
-                Assert.That(destroyAt - before, Is.EqualTo(expectedSeconds).Within(0.05f));
-            }
-            finally
-            {
-                Object.DestroyImmediate(layerGo);
-                Object.DestroyImmediate(root);
+                Assert.That(controller.DestroyWhenFinished(1.5f), Is.EqualTo(expectedSeconds).Within(0.05f));
             }
         }
 
@@ -135,43 +126,60 @@ namespace BuddahGo.Tests
         [TestCase(false, 12f + 12f * 2f)]
         public void EndWithWindowCapsTheLongLivedSystemsTail(bool listed, float expectedSeconds)
         {
-            var root = new GameObject("Effect");
-            var layerGo = new GameObject("FX_Test_Imp_C_Smoke_01");
-            try
+            using (var rig = new SkillVfxTestRig())
             {
-                var controller = root.AddComponent<SkillVfxPhaseController>();
-                var so = new SerializedObject(controller);
-                SerializedProperty references = so.FindProperty("referenceSeconds");
-                references.arraySize = 1;
-                references.GetArrayElementAtIndex(0).FindPropertyRelative("phase").enumValueIndex = (int)SkillVfxPhase.Imp;
-                references.GetArrayElementAtIndex(0).FindPropertyRelative("seconds").floatValue = 6f;
-                so.ApplyModifiedPropertiesWithoutUndo();
-
-                layerGo.transform.SetParent(root.transform, false);
-                var layer = layerGo.AddComponent<SkillVfxLayer>();
-                layer.phase = SkillVfxPhase.Imp;
+                SkillVfxPhaseController controller = rig.Slot(6f);
+                SkillVfxLayer layer = rig.Layer(controller.transform);
                 layer.timeScaling = SkillVfxTimeScaling.Stretch;
                 layer.particlesDieNaturally = true;
 
-                AddParticles(layerGo, "Smoke", 5f);
-                ParticleSystem symbol = AddParticles(layerGo, "Symbol", 12f);
+                rig.Particles(layer, "Smoke", 5f);
+                ParticleSystem symbol = rig.Particles(layer, "Symbol", 12f);
                 layer.endWithWindow = listed ? new[] { symbol } : new ParticleSystem[0];
                 layer.endWithWindowSeconds = 6f;
 
                 controller.Configure(new SkillVfxPhaseController.Context());
-                float before = Time.time;
                 controller.BeginPhase(SkillVfxPhase.Imp, 12f);
-                controller.DestroyWhenFinished(1.5f);
-
-                float destroyAt = (float)typeof(SkillVfxPhaseController)
-                    .GetField("_destroyAt", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                    .GetValue(controller);
-                Assert.That(destroyAt - before, Is.EqualTo(expectedSeconds).Within(0.05f));
+                Assert.That(controller.DestroyWhenFinished(1.5f), Is.EqualTo(expectedSeconds).Within(0.05f));
             }
-            finally
+        }
+
+        // A Seconds window may outlast the gameplay length (a 3 s hit with an 8 s ground mark): the slot lives until
+        // the window ends, then the tail.
+        [TestCase(8f, 8f + 1.5f)]
+        [TestCase(2f, 3f + 1.5f)]
+        public void SlotLivesUntilItsLongestWindowEnds(float windowEnd, float expectedSeconds)
+        {
+            using (var rig = new SkillVfxTestRig())
             {
-                Object.DestroyImmediate(layerGo);
-                Object.DestroyImmediate(root);
+                SkillVfxPhaseController controller = rig.Slot();
+                SkillVfxLayer layer = rig.Layer(controller.transform);
+                SkillVfxTestRig.Window(layer, SkillVfxWindowUnit.Seconds, 0f, windowEnd);
+
+                controller.Configure(new SkillVfxPhaseController.Context());
+                controller.BeginPhase(SkillVfxPhase.Imp, 3f);
+                Assert.That(controller.DestroyWhenFinished(1.5f), Is.EqualTo(expectedSeconds).Within(0.05f));
+            }
+        }
+
+        // Expiry (README 4): dissipation lasts the VFX table's dis_seconds (0.4 s default) or the longest Dis layer,
+        // whichever is longer, plus the longest tail fade of a phase cut short.
+        [TestCase(0.9f, 0.9f + 0.3f)]
+        [TestCase(0.2f, 0.4f + 0.3f)]
+        public void DissipationWaitsForTheLongestDisLayerAndTheTailFade(float disLayerSeconds, float expectedSeconds)
+        {
+            using (var rig = new SkillVfxTestRig())
+            {
+                SkillVfxPhaseController controller = rig.Slot();
+                SkillVfxLayer body = rig.Layer(controller.transform);
+                body.tailFadeSeconds = 0.3f;
+                SkillVfxLayer dissolve = rig.Layer(controller.transform);
+                dissolve.phase = SkillVfxPhase.Dis;
+                SkillVfxTestRig.Window(dissolve, SkillVfxWindowUnit.Seconds, 0f, disLayerSeconds);
+
+                controller.Configure(new SkillVfxPhaseController.Context());
+                controller.BeginPhase(SkillVfxPhase.Imp, 5f);
+                Assert.That(controller.BeginDissipation(), Is.EqualTo(expectedSeconds).Within(1e-4f));
             }
         }
 
@@ -190,16 +198,12 @@ namespace BuddahGo.Tests
             Assert.That(SkillVfxRules.EndingAge(gradient, age), Is.EqualTo(expected).Within(0.002f));
         }
 
-        static ParticleSystem AddParticles(GameObject parent, string name, float lifetime)
+        static void AssertWindow(SkillVfxPhaseController controller, SkillVfxLayer layer, float phaseSeconds,
+            float expectedStart, float expectedEnd)
         {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent.transform, false);
-            var ps = go.AddComponent<ParticleSystem>();
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            ParticleSystem.MainModule main = ps.main;
-            main.startLifetime = lifetime;
-            main.simulationSpeed = 1f;
-            return ps;
+            controller.LayerWindow(layer, phaseSeconds, out float start, out float end);
+            Assert.That(start, Is.EqualTo(expectedStart).Within(1e-5f), "start at a " + phaseSeconds + " s phase");
+            Assert.That(end, Is.EqualTo(expectedEnd).Within(1e-5f), "end at a " + phaseSeconds + " s phase");
         }
     }
 }

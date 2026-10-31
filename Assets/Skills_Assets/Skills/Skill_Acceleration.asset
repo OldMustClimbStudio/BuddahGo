@@ -15,7 +15,6 @@ MonoBehaviour:
   skillId: acceleration
   displayName: "\u795E\u8DB3\u901A"
   cooldownSeconds: 12
-  castLockSeconds: 10
   obsessionGain: 300
   extraForwardForce: 50
   extraMaxSpeed: 40

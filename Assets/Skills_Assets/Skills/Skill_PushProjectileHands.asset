@@ -15,7 +15,6 @@ MonoBehaviour:
   skillId: push_projectile_hands
   displayName: "\u5982\u6765\u795E\u638C"
   cooldownSeconds: 18
-  castLockSeconds: 15
   obsessionGain: 300
   buffDurationSeconds: 15
   buildUpSeconds: 1

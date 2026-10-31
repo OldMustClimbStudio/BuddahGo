@@ -15,7 +15,6 @@ MonoBehaviour:
   skillId: giant
   displayName: "\u6CD5\u76F8\u91D1\u8EAB"
   cooldownSeconds: 8
-  castLockSeconds: 6
   obsessionGain: 200
   scaleMultiplier: 4
   durationSeconds: 6

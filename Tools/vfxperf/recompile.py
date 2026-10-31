@@ -1,10 +1,8 @@
 """recompile.py: AssetDatabase.Refresh() then wait until the editor is done compiling / reloading."""
-import sys, os, time, json
+import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shots, umcp
-def res(t):
-    try: return json.loads(t)["data"]["result"]
-    except Exception: return t[-300:]
+res = lambda t: shots.res(t, 300)
 if shots.is_playing():
     umcp.call("manage_editor", {"action": "stop"}); shots.wait_not_playing(); time.sleep(2)
 print(res(shots.code('UnityEditor.AssetDatabase.Refresh(); return "refreshed compiling=" + UnityEditor.EditorApplication.isCompiling;')))

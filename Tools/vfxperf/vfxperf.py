@@ -5,7 +5,7 @@ and resources do not matter); recording ends 9 s after the last cast. For push_p
 (cooldown reset by reflection) after each cast, like palmperf24.py. Writes vfxperf-<label>.out (t, unscaled frame ms,
 live ink palms, simulating fluids, graphics-driver MB, fluid MB) and prints median / p95 / max per band.
 Docs: Docs/vfx/README.md (性能测量)."""
-import sys, os, time, json
+import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shots
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -15,29 +15,12 @@ interval = float(sys.argv[3]) if len(sys.argv) > 3 else 0.2
 label = sys.argv[4] if len(sys.argv) > 4 else skill
 knobs = sys.argv[5] if len(sys.argv) > 5 else ""
 stop_at = 2.0 + count * interval + 9.0
-def res(t):
-    try: return json.loads(t)["data"]["result"]
-    except Exception: return t[-600:]
-def in_race():
-    return shots.is_playing() and '"result":"RaceMap"' in shots.code('return UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;')
-if not in_race():
-    exec(open(os.path.join(HERE, "racestart.py"), encoding="utf-8").read())
+res = shots.res
+shots.ensure_race()
 
-SETUP = r'''
-SkillExecutor local = null;
-foreach (var e in UnityEngine.Object.FindObjectsByType<SkillExecutor>(UnityEngine.FindObjectsSortMode.None)) if (e.IsOwner) local = e;
-if (local == null) return "no local";
-var db = UnityEditor.AssetDatabase.LoadAssetAtPath<SkillDatabase>("Assets/Skills_Assets/Skill Database.asset");
+SETUP = shots.LOCAL_RACER + shots.FLUID_STATS + r'''
 SkillAction a; if (!db.TryGet("__SKILL__", out a)) return "no skill __SKILL__";
-var hand = local.GetComponent<BuddahHandControl>();
-var bf = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
-var push = typeof(BuddahHandControl).GetMethod("TryPushServer", bf);
-var cdL = typeof(BuddahHandControl).GetField("_nextPushServerTimeLeft", bf);
-var cdR = typeof(BuddahHandControl).GetField("_nextPushServerTimeRight", bf);
 bool isPalm = "__SKILL__" == "push_projectile_hands";
-var fluidType = typeof(BuddahGo.VFX.PalmInkTimeline).Assembly.GetType("BuddahGo.VFX.InkFluidVolume");
-var simProp = fluidType != null ? fluidType.GetProperty("SimulatingCount") : null;
-var bytesProp = fluidType != null ? fluidType.GetProperty("GpuBytes") : null;
 int count = __COUNT__; float interval = __INTERVAL__f; float stopAt = __STOP__f;
 var sb = new System.Text.StringBuilder();
 System.AppDomain.CurrentDomain.SetData("vfxperf", sb);
@@ -55,25 +38,18 @@ cb = () => {
     casts++;
   }
   __KNOBS__
-  int ink = UnityEngine.Object.FindObjectsByType<BuddahGo.VFX.PalmInkTimeline>(UnityEngine.FindObjectsSortMode.None).Length;
-  int sim = simProp != null ? (int)simProp.GetValue(null) : -1;
-  long fb = bytesProp != null ? (long)bytesProp.GetValue(null) : -1;
-  long gfx = UnityEngine.Profiling.Profiler.GetAllocatedMemoryForGraphicsDriver();
-  sb.Append(t.ToString("F3") + " " + (UnityEngine.Time.unscaledDeltaTime * 1000f).ToString("F1") + " " + ink + " " + sim + " " + (gfx / 1048576) + " " + (fb / 1048576) + "\n");
+  __SAMPLE__
 };
 UnityEditor.EditorApplication.update += cb;
 return "recording " + "__SKILL__" + " x" + count + "; vsync=" + UnityEngine.QualitySettings.vSyncCount;'''
 SETUP = SETUP.replace("__SKILL__", skill).replace("__COUNT__", str(count)).replace("__INTERVAL__", str(interval)).replace("__STOP__", str(stop_at))
-SETUP = SETUP.replace("__KNOBS__", ("foreach (var f in UnityEngine.Object.FindObjectsByType<BuddahGo.VFX.InkFluidVolume>(UnityEngine.FindObjectsSortMode.None)) { " + knobs + " }") if knobs else "")
+SETUP = SETUP.replace("__KNOBS__", shots.fluid_knobs(knobs)).replace("__SAMPLE__", shots.SAMPLE_FRAME)
 READ = r'''var sb = System.AppDomain.CurrentDomain.GetData("vfxperf"); return sb == null ? "none" : sb.ToString();'''
 print(res(shots.code(SETUP)))
 time.sleep(stop_at + 2)
 out = str(res(shots.code(READ)))
 open(os.path.join(HERE, "vfxperf-%s.out" % label), "w", encoding="utf-8").write(out)
-rows = []
-for l in out.splitlines():
-    p = l.split()
-    if len(p) == 6: rows.append((float(p[0]), float(p[1]), int(p[2]), int(p[3]), int(p[4]), int(p[5])))
+rows = shots.frame_rows(out)
 def band(lo, hi, lab):
     r = [x for x in rows if lo <= x[0] < hi]
     if not r: print(lab, "no frames"); return

@@ -1,12 +1,10 @@
-import sys, os, time, json
+import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shots, umcp
 code = shots.code
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "ingame").replace("\\", "/")
 os.makedirs(OUT, exist_ok=True)
-def res(t):
-    try: return json.loads(t)["data"]["result"]
-    except Exception: return t[-400:]
+res = lambda t: shots.res(t, 400)
 if shots.is_playing():
     umcp.call("manage_editor", {"action": "stop"}); shots.wait_not_playing()
 print(res(code(r'''

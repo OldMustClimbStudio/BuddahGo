@@ -1,5 +1,6 @@
 ##var,skillId,expandDurationSeconds,fadeOutDurationSeconds,maxOpacity
 ##type,enum:SkillId#key#ref=Skill.skillId,float,float,"float#range=0,1"
 ##group,,,,
-##comment,每个技能一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_BlackCurtain SO（DesignTableOverlay.Apply）,展开 s（Skill_BlackCurtain.expandDurationSeconds）,淡出 s（Skill_BlackCurtain.fadeOutDurationSeconds）,最大不透明度（Skill_BlackCurtain.maxOpacity）
+##comment,普通与反噬各一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_BlackCurtain / Skill_BlackCurtain_Anti SO（DesignTableOverlay.Apply）；空格 = 该行的技能类没有这个字段,展开 s（Skill_BlackCurtain.expandDurationSeconds）,淡出 s（Skill_BlackCurtain.fadeOutDurationSeconds）,最大不透明度（Skill_BlackCurtain.maxOpacity）
 ,blackcurtain,1,2,1
+,blackcurtain_anti,1,2,1

@@ -8,4 +8,6 @@
 ,Skill_Reflection_Local,技能Reflection_Local.prefab:技能Reflection_Local,SkillExecutor.cs:134
 ,Skill_Reflection_Shared,技能Reflection_Shared.prefab:技能Reflection_Shared,SkillExecutor.cs:133
 ,acceleration_local,,"OwnerMovementEffectApplier.cs:29,56（router 未注册）"
+,acceleration_anti_observers,,Skill_Acceleration_Anti 默认（router 未注册）
 ,blackcurtain_observers,,Skill_BlackCurtain.asset（router 未注册）
+,blackcurtain_anti_observers,,Skill_BlackCurtain_Anti.asset（router 未注册）

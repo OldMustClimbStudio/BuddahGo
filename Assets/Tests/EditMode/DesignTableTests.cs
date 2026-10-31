@@ -103,20 +103,21 @@ namespace BuddahGo.Tests
             Assert.IsTrue(set.ExportTargets.ContainsKey("UI/Text"));
             Assert.IsFalse(set.ExportTargets.ContainsKey("Skill/SkillPresentation"), "presentation sheets are not exported");
 
-            // Phase B (mechanics update): 缘起 sheets and enums, unified backfire (no *_anti rows, no cast lock / anti id columns).
+            // Phase B (mechanics update): 缘起 sheets and enums, no cast lock column. The per-skill *_anti variants were
+            // retired in phase B and restored on 2026-10-31 (unified penalty plus the skill's own variant): their rows and
+            // antiSkillId are back as they were on dev.
             foreach (string sheet in new[] { "Yuanqi", "YuanqiEffectFrostLock", "YuanqiEffectGiantCharge" })
                 Assert.IsTrue(set.ExportTargets.ContainsKey("Skill/" + sheet), "Skill/" + sheet + " is exported");
             foreach (string enumName in new[] { "YuanqiId", "YuanqiMode", "YuanqiRetrigger" })
                 Assert.IsTrue(set.Enums.ContainsKey(enumName), enumName + " registry");
             foreach (string command in new[] { "Freeze", "EndModifier", "Burst", "MaxSpeedMultiplier" })
                 Assert.IsTrue(set.Enums["ModifierCommandType"].Contains(command), "ModifierCommandType." + command);
-            Assert.IsNull(set.Find("Skill", "Skill").FindColumn("antiSkillId"), "antiSkillId retired");
+            Assert.IsNotNull(set.Find("Skill", "Skill").FindColumn("antiSkillId"), "antiSkillId restored with the variants");
             Assert.IsNull(set.Find("Skill", "Skill").FindColumn("castLockSeconds"), "castLockSeconds retired");
             foreach (string[] sheet in new[] { new[] { "Skill", "skillId" }, new[] { "SkillEffectAcceleration", "skillId" }, new[] { "SkillEffectSlowTrap", "skillId" },
                          new[] { "SkillEffectBlackCurtain", "skillId" }, new[] { "SkillEffectGiant", "skillId" }, new[] { "SkillPresentation", "skillId" },
                          new[] { "SkillSelectionRule", "skillId" }, new[] { "SkillConstant", "ownerId" }, new[] { "Push", "pushId" } })
-                foreach (string id in Keys(set, "Skill", sheet[0], sheet[1]))
-                    Assert.IsFalse(id.EndsWith("_anti"), "retired anti row '" + id + "' in Skill/" + sheet[0]);
+                Assert.IsTrue(new List<string>(Keys(set, "Skill", sheet[0], sheet[1])).Exists(id => id.EndsWith("_anti")), "restored anti row in Skill/" + sheet[0]);
             foreach (string column in new[] { "repeatWindowSeconds", "repeatGainMultiplier", "backfireLockSeconds", "backfireMaxSpeedMultiplier", "backfireEndKeepRatio" })
                 Assert.IsNotNull(set.Find("Skill", "Obsession").FindColumn(column), "Obsession." + column);
             Assert.IsNotNull(set.Find("Match", "ModeRule").FindColumn("trainingDummyCount"), "training dummies live on ModeRule");
@@ -288,8 +289,9 @@ namespace BuddahGo.Tests
                 ProjectConfigDatabase db = result.Database;
                 DesignTableSet set = DesignTableSet.Load();
                 Assert.AreEqual(set.Find("Skill", "Skill").Rows.Count, db.skills.Count);
-                Assert.IsFalse(db.skills.Exists(r => r.skillId.EndsWith("_anti")), "the *_anti rows are retired (unified backfire)");
-                Assert.IsNull(typeof(SkillRecord).GetField("antiSkillId"), "SkillRecord.antiSkillId retired with its column");
+                Assert.AreEqual(6, db.skills.FindAll(r => r.skillId.EndsWith("_anti")).Count, "the six *_anti rows are restored");
+                Assert.AreEqual(0f, db.skills.Find(r => r.skillId == "blackcurtain_anti").obsessionGain, "anti rows carry no obsession gain");
+                Assert.AreEqual("blackcurtain_anti", db.skills.Find(r => r.skillId == "blackcurtain").antiSkillId, "normal rows name their variant");
                 Assert.IsNull(typeof(SkillRecord).GetField("castLockSeconds"), "SkillRecord.castLockSeconds retired with its column");
                 SkillRecord acceleration = db.skills.Find(r => r.skillId == "acceleration");
                 Assert.AreEqual("skill.acceleration.name", acceleration.displayNameKey);
@@ -299,9 +301,9 @@ namespace BuddahGo.Tests
                 Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", "acceleration", "castConfirmDelaySeconds"), acceleration.castConfirmDelaySeconds);
                 Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", "acceleration", "effectDurationSeconds"), acceleration.effectDurationSeconds, "primary duration lives in Skill");
                 Assert.Greater(acceleration.effectDurationSeconds, 0f);
-                Assert.IsFalse(db.skillEffectGiants.Exists(r => r.skillId.EndsWith("_anti")), "family tables keep one row per normal skill");
+                Assert.IsTrue(db.skillEffectGiants.Exists(r => r.skillId == "giant_anti"), "family tables have a normal and an anti row");
                 Assert.AreEqual(Cell(set, "Skill", "SkillEffectGiant", "skillId", "giant", "scaleMultiplier"), db.skillEffectGiants.Find(r => r.skillId == "giant").scaleMultiplier);
-                CollectionAssert.AreEquivalent(new[] { "basic", "charged" }, db.pushes.ConvertAll(p => p.pushId), "charged_anti retired");
+                CollectionAssert.AreEquivalent(new[] { "basic", "charged", "charged_anti" }, db.pushes.ConvertAll(p => p.pushId), "charged_anti restored");
                 Assert.AreEqual(Cell(set, "Skill", "Push", "pushId", "charged", "speed"), db.pushes.Find(r => r.pushId == "charged").speed);
                 Assert.IsNull(set.Find("Skill", "ComboInput"), "Skill/ComboInput retired with ComboSkillInput (A7)");
                 Assert.IsNull(set.Find("Skill", "ComboBinding"), "Skill/ComboBinding retired with ComboSkillInput (A7)");

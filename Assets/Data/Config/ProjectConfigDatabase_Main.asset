@@ -87,6 +87,54 @@ MonoBehaviour:
     modeTag: 
     mapTag: 
     poolType: 1
+  - ruleSetId: default
+    skillId: acceleration_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: slowtrap_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: blackcurtain_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: giant_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: push_projectile_hands_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
+  - ruleSetId: default
+    skillId: reverseturn_anti
+    isEnabled: 1
+    allowDuplicate: 0
+    weight: 1
+    modeTag: 
+    mapTag: 
+    poolType: 3
   defaultLoadouts:
   - loadoutId: race_default
     slot0SkillId: acceleration
@@ -105,6 +153,7 @@ MonoBehaviour:
     descriptionKey: skill.acceleration.desc
     sortOrder: 10
     unlockState: unlocked
+    antiSkillId: acceleration_anti
     cooldownSeconds: 5
     castConfirmDelaySeconds: 1
     obsessionGain: 300
@@ -114,6 +163,7 @@ MonoBehaviour:
     descriptionKey: skill.slowtrap.desc
     sortOrder: 20
     unlockState: unlocked
+    antiSkillId: slowtrap_anti
     cooldownSeconds: 8
     castConfirmDelaySeconds: 1
     obsessionGain: 300
@@ -123,6 +173,7 @@ MonoBehaviour:
     descriptionKey: skill.blackcurtain.desc
     sortOrder: 30
     unlockState: unlocked
+    antiSkillId: blackcurtain_anti
     cooldownSeconds: 16
     castConfirmDelaySeconds: 1
     obsessionGain: 200
@@ -132,6 +183,7 @@ MonoBehaviour:
     descriptionKey: skill.giant.desc
     sortOrder: 40
     unlockState: unlocked
+    antiSkillId: giant_anti
     cooldownSeconds: 8
     castConfirmDelaySeconds: 1
     obsessionGain: 200
@@ -141,6 +193,7 @@ MonoBehaviour:
     descriptionKey: skill.push_projectile_hands.desc
     sortOrder: 50
     unlockState: unlocked
+    antiSkillId: push_projectile_hands_anti
     cooldownSeconds: 12
     castConfirmDelaySeconds: 1
     obsessionGain: 300
@@ -150,14 +203,82 @@ MonoBehaviour:
     descriptionKey: skill.reverseturn.desc
     sortOrder: 60
     unlockState: unlocked
+    antiSkillId: reverseturn_anti
     cooldownSeconds: 12
     castConfirmDelaySeconds: 1
     obsessionGain: 200
+    effectDurationSeconds: 10
+  - skillId: acceleration_anti
+    displayNameKey: skill.acceleration_anti.name
+    descriptionKey: skill.acceleration_anti.desc
+    sortOrder: 110
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 5
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 3
+  - skillId: slowtrap_anti
+    displayNameKey: skill.slowtrap_anti.name
+    descriptionKey: skill.slowtrap_anti.desc
+    sortOrder: 120
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 3
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 1
+  - skillId: blackcurtain_anti
+    displayNameKey: skill.blackcurtain_anti.name
+    descriptionKey: skill.blackcurtain_anti.desc
+    sortOrder: 130
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 16
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 10
+  - skillId: giant_anti
+    displayNameKey: skill.giant_anti.name
+    descriptionKey: skill.giant_anti.desc
+    sortOrder: 140
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 8
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 6
+  - skillId: push_projectile_hands_anti
+    displayNameKey: skill.push_projectile_hands_anti.name
+    descriptionKey: skill.push_projectile_hands_anti.desc
+    sortOrder: 150
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 10
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
+    effectDurationSeconds: 0
+  - skillId: reverseturn_anti
+    displayNameKey: skill.reverseturn_anti.name
+    descriptionKey: skill.reverseturn_anti.desc
+    sortOrder: 160
+    unlockState: hidden
+    antiSkillId: 
+    cooldownSeconds: 12
+    castConfirmDelaySeconds: 1
+    obsessionGain: 0
     effectDurationSeconds: 10
   skillEffectAccelerations:
   - skillId: acceleration
     extraForwardForce: 50
     extraMaxSpeed: 40
+    slowForwardForce: 0
+    slowMaxSpeed: 0
+  - skillId: acceleration_anti
+    extraForwardForce: 0
+    extraMaxSpeed: 0
+    slowForwardForce: 45
+    slowMaxSpeed: 40
   skillEffectSlowTraps:
   - skillId: slowtrap
     perTargetReapplyCooldown: 0.5
@@ -165,8 +286,24 @@ MonoBehaviour:
     slowForwardForce: 40
     slowMaxSpeed: 20
     slowDurationSeconds: 2
+    extraForwardForce: 0
+    extraMaxSpeed: 0
+    accelerationDurationSeconds: 0
+  - skillId: slowtrap_anti
+    perTargetReapplyCooldown: 0
+    affectCaster: 0
+    slowForwardForce: 0
+    slowMaxSpeed: 0
+    slowDurationSeconds: 0
+    extraForwardForce: 10
+    extraMaxSpeed: 3
+    accelerationDurationSeconds: 2
   skillEffectBlackCurtains:
   - skillId: blackcurtain
+    expandDurationSeconds: 1
+    fadeOutDurationSeconds: 2
+    maxOpacity: 1
+  - skillId: blackcurtain_anti
     expandDurationSeconds: 1
     fadeOutDurationSeconds: 2
     maxOpacity: 1
@@ -177,6 +314,14 @@ MonoBehaviour:
     growDurationSeconds: 0.35
     massMultiplier: 3
     forwardForceMultiplier: 3.5
+    restoreDurationSeconds: 0
+  - skillId: giant_anti
+    scaleMultiplier: 0.3
+    shrinkDurationSeconds: 0.25
+    growDurationSeconds: 0
+    massMultiplier: 0
+    forwardForceMultiplier: 0
+    restoreDurationSeconds: 0.25
   pushes:
   - pushId: basic
     rotationSpeedDegPerSec: 180
@@ -191,7 +336,10 @@ MonoBehaviour:
     sideOffset: 4
     leftSideBias: -0.1
     rightSideBias: 0.1
+    projectileCount: 0
+    projectileSpacing: 0
     colliderSize: {x: 0, y: 0, z: 0}
+    hitTurnTorqueImpulse: 0
   - pushId: charged
     rotationSpeedDegPerSec: 0
     windupSeconds: 1
@@ -205,7 +353,27 @@ MonoBehaviour:
     sideOffset: 0
     leftSideBias: 0
     rightSideBias: 0
+    projectileCount: 0
+    projectileSpacing: 0
     colliderSize: {x: 60, y: 90, z: 20}
+    hitTurnTorqueImpulse: 0
+  - pushId: charged_anti
+    rotationSpeedDegPerSec: 0
+    windupSeconds: 0.3
+    pushCooldownSeconds: 0
+    delayedPushActionSeconds: 0
+    lifetimeSeconds: 2
+    impulseStrength: 600
+    speed: 600
+    forwardOffset: 100
+    heightOffset: 30
+    sideOffset: 0
+    leftSideBias: 0
+    rightSideBias: 0
+    projectileCount: 5
+    projectileSpacing: 30
+    colliderSize: {x: 60, y: 50, z: 20}
+    hitTurnTorqueImpulse: 50
   obsessions:
   - profileId: default
     maxValue: 1000
@@ -949,6 +1117,30 @@ MonoBehaviour:
     zh: "\u9006\u59FB\u7F18"
   - key: skill.reverseturn.desc
     zh: "\u5E72\u6270\u8F6C\u5411\u8F93\u5165"
+  - key: skill.acceleration_anti.name
+    zh: "\u795E\u8DB3\u901A\uFF08\u566C\uFF09"
+  - key: skill.acceleration_anti.desc
+    zh: "\u795E\u8DB3\u901A\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.slowtrap_anti.name
+    zh: "\u7985\u5B9A\u7F13\u6D41\uFF08\u566C\uFF09"
+  - key: skill.slowtrap_anti.desc
+    zh: "\u7985\u5B9A\u7F13\u6D41\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.blackcurtain_anti.name
+    zh: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
+  - key: skill.blackcurtain_anti.desc
+    zh: "\u4E00\u5FF5\u5149\u660E\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.giant_anti.name
+    zh: "\u6CD5\u76F8\u91D1\u8EAB\uFF08\u566C\uFF09"
+  - key: skill.giant_anti.desc
+    zh: "\u6CD5\u76F8\u91D1\u8EAB\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.push_projectile_hands_anti.name
+    zh: "\u5982\u6765\u795E\u638C\uFF08\u566C\uFF09"
+  - key: skill.push_projectile_hands_anti.desc
+    zh: "\u5982\u6765\u795E\u638C\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: skill.reverseturn_anti.name
+    zh: "\u9006\u59FB\u7F18\uFF08\u566C\uFF09"
+  - key: skill.reverseturn_anti.desc
+    zh: "\u9006\u59FB\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
   - key: yuanqi.giant_palm.name
     zh: "\u91D1\u8EAB\u5DE8\u638C"
   - key: yuanqi.giant_palm.desc

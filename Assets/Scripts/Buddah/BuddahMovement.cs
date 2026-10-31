@@ -30,8 +30,8 @@ public class BuddahMovement : NetworkBehaviour
     [SerializeField] public float pushExtraMaxSpeed = 6f;
 
     [Header("Launch Continuity")]
-    [SerializeField, Min(0f)] private float launchInheritTime = 0.2f;
-    [SerializeField, Min(0f)] private float launchBlendTime = 0.32f;
+    [SerializeField, Min(0f)] private float launchInheritTime = 0f;
+    [SerializeField, Min(0f)] private float launchBlendTime = 0f;
 
     [Header("References")]
     [SerializeField] private Rigidbody rb;

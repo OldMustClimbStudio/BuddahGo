@@ -615,8 +615,8 @@ MonoBehaviour:
   turnInputMultiplier: 1
   pushGraceSeconds: 0.25
   pushExtraMaxSpeed: 6
-  launchInheritTime: 0.2
-  launchBlendTime: 0.32
+  launchInheritTime: 0
+  launchBlendTime: 0
   rb: {fileID: 8984405970169020143}
   predictionHandoffBridge: {fileID: 0}
 --- !u!114 &6200725826635987881

@@ -25,7 +25,7 @@
 - 容量溢出、重复事件和过期事件需要明确处理，关键效果不能悄悄丢失。
 - 开场、复活和结算交接需要考虑 owner/server/旁观者。请求成功返回只代表当前步骤被接受，不能证明 RPC 返回链路已完成。
 - 模式切换清理旧输入、队列和控制标记，防止 Legacy 与预测运动同时驱动角色。
-- 开场交接：本地 GO 到 motor 消费权威 handoff 之间，`RaceBodyIntroStateController` 继续沿 spline 末端切线驱动 kinematic 刚体和渲染采样（上限 `maxGoOvershootSeconds + maxHandoffPendingOvershootSeconds`），motor 在此期间不写刚体；Solo 物理时钟路径不外推。消费时 `ConsumePendingLaunchHandoffEvent` 把根落到碰撞体静止高度（`BuddahHandoffGroundSnap`），owner 与 server 同一路径。来龙去脉见 [联机修复](online-repair/progress.md) 与 [交接连续性](handoff-continuity/findings.md)。
+- 开场交接：本地 GO 到 motor 消费权威 handoff 之间，`RaceBodyIntroStateController` 继续沿 spline 末端切线驱动 kinematic 刚体和渲染采样（上限 `maxGoOvershootSeconds + maxHandoffPendingOvershootSeconds`），motor 在此期间不写刚体；Solo 物理时钟路径不外推。消费时 `ConsumePendingLaunchHandoffEvent` 把根落到碰撞体静止高度（`BuddahHandoffGroundSnap`），owner 与 server 同一路径。2026-10-30 起交接是完全物理的（玩法深化 §3）：消费那一 tick 设一次开场速度，Inherit / Blend 时长（`Movement.launchInheritSeconds` / `launchBlendSeconds`）和交接后的转向屏蔽都是 0，之后只有物理和输入；联机两端在这个设定下的交接表现没有重新验证。来龙去脉见 [联机修复](online-repair/progress.md) 与 [交接连续性](handoff-continuity/findings.md)。
 
 ## 技能 modifier 命令
 

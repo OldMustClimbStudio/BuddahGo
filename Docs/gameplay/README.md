@@ -1,6 +1,6 @@
 # 玩法深化：缘起、执念与操作改版
 
-日期 2026-10-25。状态（`feat/mechanics-update` ac3d5fe，PR #63）：阶段 A 的 A1–A7、阶段 B 和阶段 C 第一、二级已完成：2026-10-26 训练模式自动验证 13/13 通过（[训练模式验证记录](practice-verification.md)），2026-10-28 A7 AI 适配完成并在单人赛 harness 里跑过（见 §7.1 A7 的验证一行）；阶段 C 第三级（联机）和用户试玩还没做。2026-10-25/26 用户答复了第 8 节的大部分待定项，结论已改成“已定”。
+日期 2026-10-25。状态（`feat/mechanics-update` ac3d5fe，PR #63）：阶段 A 的 A1–A7、阶段 B 和阶段 C 第一、二级已完成：2026-10-26 训练模式自动验证 13/13 通过（[训练模式验证记录](practice-verification.md)），2026-10-28 A7 AI 适配完成并在单人赛 harness 里跑过（见 §7.1 A7 的验证一行）；阶段 C 第三级（联机）和用户试玩还没做。2026-10-25/26 用户答复了第 8 节的大部分待定项，结论已改成“已定”。2026-10-30 前进改为按住 W 推进，AI 同步适配（§3、§7.1 A8）。
 
 标记：“已定”是用户在讨论中确认的规则；“建议”是待用户确认的提案；“建议（实现采用）”是用户没有裁定、代码已按它实现的做法；“待确认”是还要问用户的地方。技能数值按配表现值（`Assets/Design/Tables/_Export`）；修改顺序是先改机制、再对接配表，见第 7 节。代码层面的构筑见 [缘起架构设计](yuanqi-architecture.md)。
 
@@ -26,16 +26,20 @@
 | 项 | 规则 | 状态 |
 |---|---|---|
 | 技能释放 | 取消搓招，单键释放 | 已定 |
+| 前进 | 不再自动前进：按住 W 向前推进，松开就停止推进。松开只撤掉推进力，不刹车，靠地面摩擦自然减速；推进力和限速沿用配表（`Movement.forwardForce` 50、`maxSpeed` 80 m/s），没有新参数 | 已定（2026-10-30） |
 | 手部朝向 | 鼠标控制；转手有速度上限，鼠标拉动带拖拽感，避免左右晃鼠标时手部抽搐 | 已定 |
-| 键位 | 左手 A/D 转向；右手鼠标瞄准，鼠标左/右键推掌（左键左手、右键右手）；技能槽 0/1/2 同时绑 Q/E/R 和 1/2/3。W/↑ 推掌保留但已废弃，见本节末尾 | 已定 |
+| 起跑交接 | 完全物理丢出去：GO 交接那一 tick 把开场的速度（RaceMap 上约 60 m/s）一次性交给刚体，之后不再锁速度、不混合、不屏蔽输入，摩擦立刻生效，W / A/D 立刻可用。什么都不按就带着这个速度沿惯性滑行，靠地面摩擦慢慢停下。`Movement.launchInheritSeconds`、`launchBlendSeconds` 由 0.2 / 0.32 秒改为 0，交接后屏蔽转向的 0.15 秒改为 0 | 已定（2026-10-30） |
+| 键位 | 左手 A/D 转向、W 前进；右手鼠标瞄准，鼠标左/右键推掌（左键左手、右键右手）；技能槽 0/1/2 同时绑 Q/E/R 和 1/2/3。W/↑ 推掌已删除（2026-10-30），见本节末尾 | 已定 |
 | 瞄准方式 | 光标投到地面取方向（赛车镜头在动，比鼠标横移更稳） | 已定 |
 | 转手上限 | 先沿用 `Push.basic.rotationSpeedDegPerSec` 180°/s 加平滑，试玩再调；命中率上升后蓄力掌冲量和 buff 时长需要重调 | 已定 |
 
 鼠标只换了输入来源：手部 yaw 仍由 owner 经 `BuddahHandControl.TrySendYawToServer` 同步给服务器，网络结构没变。没有鼠标、或光标射线打不到瞄准平面时，退回 ←/→ 转手（`HandRotation`）。鼠标只适用于 PC，以后支持手柄改用右摇杆。
 
+前进的开关在预测输入里，不是客户端表现：owner 每个 tick 读 W（`PlayerBuddahInputSource.GetThrottle`，按住为 1、松开为 0），`BuddahDriveInput.ResolveThrottle` 把它写进 `BuddahPredictedInputData.Throttle`，服务器按同一份输入模拟，预测和 reconcile 的路径都没变。AI 和训练木桩不走按键，经 `ISteeringOverride` 的 `drive` 写同一个字段：AI 一直推进到完赛（已定，2026-10-30），木桩恒为 0。其余状态沿用原规则（已定，2026-10-30）：倒计时期间移动门关闭，W 无效；起跑交接见上表（完全物理，交接后立刻读输入）；复活后速度清零，要按住 W 才走；禁锢时推进力和限速归零，W 无效；逆姻缘只反转左右，W 仍是前进；UI 挡输入时 W 和 A/D 一起失效。
+
 `HandPush` 动作是 PassThrough 类型：每个键单独上报，只在按下时推掌。按住一个键再按另一个键，两只手都会推（Button 类型会做冲突裁决，第二个键会被吞掉）。光标停在可交互的 UI 上时，点击不推掌。
 
-**废弃内容（2026-10-25，用户要求留尾巴）。** W/↑ 推掌（W 左手、↑ 右手）的代码和按键绑定暂时保留，但已不是主键位，主键位是鼠标左/右键；它也不再参与搓招。这部分属于废弃内容，后续可能再调整或删除。代码里有三处同样的注释：`BuddahHandControl.Awake` 里 `HandPush` 绑定的说明、`BuddahHandControl.TryResolvePushHand` 的 W/↑ 分支、`ComboSkillInput.OnHandPushPerformed` 的 W/↑ 映射（这个方法已不接线）。配表 `Global/InputBinding` 的 `status` 列也把这两条标为“废弃内容，后续可能再调整”。`InputSystem_Actions` 的 `HandPush` 绑定本身没法加注释：`.inputactions` 是 JSON，生成的 `InputSystem_Actions.cs` 也要和生成器输出一致。
+**废弃内容：W/↑ 推掌已删除（2026-10-30）。** 2026-10-25 起，W/↑ 推掌（W 左手、↑ 右手）按用户要求作为废弃内容暂留（“留尾巴”），主键位改成鼠标左/右键。2026-10-30 W 改为前进键，用户决定 W 和 ↑ 两条推掌一起删除：`InputSystem_Actions` 的 `HandPush` 只剩鼠标左/右键，`BuddahHandControl.TryResolvePushHand` 的 W/↑ 分支和标着“废弃内容”的注释已删（`ComboSkillInput` 里的那处已随 A7 删除），配表 `Global/InputBinding` 删掉这两行。↑ 现在不绑定任何动作。
 
 ## 4. 施法节奏
 
@@ -185,6 +189,7 @@
 | A5 | 缘起：技能状态板、开局登记、缘起模块、技能兼容接口 | A3；木桩来自 A1 | 已完成：#1、#2、#4（S8、S9、S10） |
 | A6 | HUD | A2–A5 | 已完成，最小可用版（S11） |
 | A7 | AI 适配，并最终退役搓招 | A2–A5；在单人赛验证 | 已完成（ac3d5fe，单人赛 harness 验证见下） |
+| A8 | 操作：W 推进（2026-10-30 追加），AI 走同一个推进开关 | A2、A7 | 已完成（S1、S13；单人赛 harness 验证见下） |
 
 #### A1 训练木桩
 
@@ -287,6 +292,23 @@
 | 验证 | 无窗口 EditMode `BuddahGo.Tests` 577/577（A7 前 559）；无窗口导表 0 错误；单人赛（5 个 AI，`AISkillRaceHarness`，编辑器 Play）：2026-10-28 Normal 难度一场（`Logs/a7/solo-1`，不入库）：自然结算（`natural-race-results`），0 运行错误；五个 AI 各执行 10–17 次施法（1.8–3.1 次/分钟），63 次请求全部被接受，没有一次在前一招待确认时再请求（施法串行成立），没有 Rejected；7 次反噬（keeper 1、hunter 1、brawler 2、trickster 0、opportunist 3）之后下一次执行都在 ≥ 11.1 s 后，惩罚 10 s 内三个槽的候选全部是 `cooldown-or-lock`；缘起触发 8 次：keeper #2 禅足冰封 ×4，brawler #1 金身巨掌 ×4，#4 金足破阵 0 次（keeper 这场没放过金身）；两个 AI 自然完赛（316.6 s、327.2 s），三个在完赛倒计时截止时在第 3 圈，真人不操作、停在起点。要用户试玩判断的：黑幕的频率（trickster 10 次、opportunist 7 次，每约 20 s 一次全屏黑幕）、#2 禁锢对车群的影响、圈速（带技能的 Normal AI 单圈 101–139 s，之前无技能基准 92.8–94.4 s） |
 | 完成标准 | 代码和配表里不再有搓招；AI 和真人走同一条施法路径；AI 能在单人赛里施法、打出缘起并吃到反噬惩罚（都已验证）。节奏、停手阈值和缘起参数的手感要用户试玩 |
 
+#### A8 前进：按住 W 推进
+
+用户决定（已定，2026-10-30）：前进不再自动，按住 W 推进、松开停止推进，AI 同步适配。细则见第 3 节：松开只撤推进力、不刹车；W/↑ 推掌两条都删；倒计时、起跑交接、复活、禁锢、反转、UI 挡输入沿用原规则；推进力沿用配表；AI 一直推进到完赛。
+
+| 项 | 内容 |
+|---|---|
+| 原来 | 自动前进来自预测马达：`BuddahPredictedMotor.BuildReplicateData` 里 `throttle = movementAllowed ? 1 : 0`，只有 `ISteeringOverride`（AI、木桩、harness 的停车）能改成 0；预测关闭时的 `BuddahMovement` 读 `PlayerBuddahInputSource.GetThrottle`，它恒为 1 |
+| 改哪里 | `InputSystem_Actions` 的 `Movement` 加 `<Keyboard>/w`（`.inputactions` 和生成的 `.cs` 一致），`HandPush` 删 `<Keyboard>/w`、`<Keyboard>/upArrow`；`PlayerBuddahInputSource.GetThrottle` 读 W；`BuddahPredictionOwnerInputBridge.ReadThrottle`（UI 挡输入时为 0，和 `ReadSteering` 一样）；`BuddahPredictedMotor.BuildReplicateData` 改用 `BuddahDriveInput.ResolveThrottle`（移动门关闭 → 0；有转向覆盖 → 覆盖的 `drive`；否则 → owner 的 W）；`BuddahHandControl.TryResolvePushHand` 删 W/↑ 分支 |
+| AI | 不按键：`AIRacerDriver.TryGetOverride` 的 `drive` 本来就是写进同一个 `Throttle` 字段的推进开关，一直为 true，完赛后为 false。AI 的运动模型 `BuddahMotionModel` 本来就按满推进力规划，所以 AI 的代码只补了注释，行为不变 |
+| 新增 | `BuddahDriveInput`（`New_Buddah/Core/`，纯函数）；`BuddahPredictionDebugState.throttleInput`（诊断用）；EditMode `DriveInputTests`（W 绑定在资产和包装类里一致、W 按住为 1 松开为 0、A/D / ↑ / 空格不推进、移动门和转向覆盖的优先级）；训练模式场景 S13 |
+| 退役 | W/↑ 推掌的绑定和代码分支；`MechanicsPracticeHarness` S1 里“W 仍推左手”的记录改成“W 和 ↑ 都不推掌”的检查；`AISkillEffectHarness` 让真人推掌的虚拟按键从 W 改成虚拟鼠标左键 |
+| 网络与预测 | 没有新的同步，`BuddahPredictedInputData` 结构不变（`Throttle` 原本就在里面，只是真人一直写 1），预测协议版本不用改。服务器用 owner 发来的输入模拟，推进开关和转向一样是服务器权威 |
+| 起跑交接 | 用户追加（已定，2026-10-30）：“完全的物理丢出去模式”。原来交接后 0.2 秒把速度钉在开场速度、油门和转向清零，再 0.32 秒把速度和输入线性混合回来，另有 0.15 秒屏蔽转向（`RaceBodyIntroStateController` 传给 `BeginLaunchHandoff` 的常量）。现在 `Movement.launchInheritSeconds` = `launchBlendSeconds` = 0（配表），`RaceBodyIntroStateController.LaunchSuppressTurnSeconds` = 0（代码常量，配表 doc 列 `launchSuppressTurnSeconds` 同步为 0）：`ConsumePendingLaunchHandoffEvent` 照旧在交接那一 tick 落地并设 `rb.velocity` = 开场速度，`BuddahPredictedLaunchHandoffResolver.Advance` 看到 0 时长直接进 Normal，之后只有物理。owner 和服务器走同一条路径，交接数据结构不变 |
+| 训练模式验证 | 结果见 S1、S13：W ↑ W 不施法、不推掌；不按 W 时油门 0、静止；按住 W 0.6 秒油门 1、速度上升；松开后油门 0、速度不再上升，滑行减速 约 1.95–1.97 m/s²（和改动前按地面摩擦 0.2 × 9.81 的估算一致）。改成完全物理交接后完整重跑 14/14 通过 |
+| 单人赛验证 | `AISkillRaceHarness` Normal 一场（2026-10-30，`Logs/a8/solo-20261030-231507`，不入库；W 推进和完全物理交接都已生效）：自然结算（`natural-race-results`），0 运行错误；trickster 320.5 s 自然完赛，其余四个 AI 在完赛倒计时截止时在第 3 圈；单圈 102–167 s（keeper 126.1 / 102.2，hunter 110.0 / 124.5，brawler 167.3 / 104.0，trickster 107.7 / 109.2 / 103.6，opportunist 129.0 / 104.2），和 A7 那场（101–139 s）同一量级，brawler 第一圈 167 s 偏慢；每个 AI 执行 10–18 次施法，71 次请求接受 69 次（opportunist 2 次被 A7 的 `rejected-global-visible` 挡下：已有黑幕可见时不再放黑幕），反噬 14 次，缘起 8 次（keeper #4 ×1、#2 ×2，brawler #1 ×5）。真人不按键：交接时 59.97 m/s，从第一个 tick 起只按摩擦减速（1.08 s 后 57.38 m/s，约 2.4 m/s²），之后被 AI 蓄力掌打中 10 次，靠冲量加滑行在 235.6 s 过了第 1 圈，没有任何 W 式的持续加速。同一天更早的一场（改交接之前）在 68 s 被手动停止（`operator-disabled`），期间编辑器里按过一次真实的 W，不作数 |
+| 完成标准 | 真人不按 W 不前进；AI 照常跑完比赛，圈速和改动前在同一量级；手感（滑行距离、松开后要不要减速）要用户试玩 |
+
 ### 7.2 阶段 B：配表对接
 
 阶段 A 稳定后做，已完成（16121ed），A7 的表改动已随 A7 做（ac3d5fe）。每项都按 [design-tables README](../design-tables/README.md) 的流程：改 xlsx 表头（`##var`、`##type`、`##comment`）→ `python Tools/design-tables/gen_records.py .` 重新生成记录类和 `export-map.json` → 组件里接 `DesignTableOverlay.Apply` / `ApplyMapped` → 补跨表校验规则 → 导入 → 更新 `Docs/design-tables` 对应的 inventory 文档 → 跑 `DesignTableTests`、`DesignTableRuntimeTests`。阶段 A 的序列化字段默认值就是表里的初值；接上后表是数值来源，组件和 SO 上的值只在没有表时兜底（design-tables 决定 14：覆盖而非重构）。退役的字段和 sheet 从表里删掉，不留无效列。
@@ -300,6 +322,7 @@
 | A5 缘起 | 新增 `Skill/Yuanqi`（缘起 id、两招、`consumeA / consumeB`、`mode`、`retriggerPolicy`、`isEnabled`、文案 key）和家族表 `YuanqiEffectFrostLock`（N、R、是否冻木桩）、`YuanqiEffectGiantCharge`（突进限速、回落秒数、M）；`__enums__` 加 `YuanqiId`、`YuanqiMode`、`YuanqiRetrigger`；`UI/Text` 加 `yuanqi.<id>.name / .desc`。#1 没有参数，不建家族表。表结构见 [缘起架构设计 §3](yuanqi-architecture.md) | 已完成 |
 | 预测修饰 | `ModifierCommandType` 加 `Freeze`、`EndModifier`、`Burst`、`MaxSpeedMultiplier`，`ModifierRule` 加四行，`StackPolicy` 加 `Restart`；`StructuralConstant.prediction_protocol_version` = 2 | 已完成 |
 | A6 HUD | `UI/UiTiming` 删掉 `SkillSlotUI` 的 `successHoldSeconds`、`fallbackCastLockSeconds`、`previewTimeoutSeconds` | 已完成 |
+| A8 前进 | `Global/InputBinding` 加 `Movement` 的 `<Keyboard>/w`（主键位），删掉 `HandPush` 的 W、↑ 两行，A/D 与空格的说明改写；`Movement.autoThrottle`（doc 列）的注释改成“前进不再自动”，值仍为 1（按住时的油门）。没有新参数 | 已完成 |
 | A7 AI | 删除 `Skill/ComboBinding`、`Skill/ComboInput` 和 `__enums__` 的 `ComboToken`；AI 表删掉搓招列（`SkillDifficulty.keyMistakeProbability`，`SkillTuning.keyMinSeconds / keyMaxSeconds / maxComboRetries`）和按技能的 `SkillOpportunity.backlashSeverity`、`SkillTuning.severeSeverityThreshold`、`SkillDifficulty.mildStopProbability`（`severeStopProbability` 改名 `stopProbability`）；补 `SkillTuning.backfireCost` 与五个 `yuanqi*` 列、`Personality.yuanqiAffinity`。导入 0 错误 | 已完成（ac3d5fe） |
 
 完成标准：表是数值来源，阶段 A 的序列化默认值只作兜底；导入后 `_Reports/validation.md` 没有错误（2026-10-26 import 模式 0 错误，3 条警告是 dev 就有的 `HudObsession` 场景对象路径）；两组配表测试通过（在 EditMode 559/559 里）。
@@ -329,6 +352,7 @@
 - [ ] AI 瞄准容差（`AI/SkillDifficulty.aimToleranceDegrees` ±20° / ±12° / ±6°）要不要按真人改用鼠标后的命中水平重调：A7 没有改，要用户试玩数据（建议先保持）
 - [ ] AI 的统一反噬代价和缘起决策参数（`AI/SkillTuning.backfireCost` 1、`yuanqiSetupMultiplier` 1.2、`yuanqiFollowUpScore` 0.8、`yuanqiFollowUpMultiplier` 1.5、`yuanqiFollowUpTempoSeconds` 0.3、`yuanqiLateWindowSeconds` 0.6，`SkillDifficulty.stopProbability` 1.01 / 0.7 / 0.45，`Personality.yuanqiAffinity` 1）都是建议（实现采用），按单人赛试玩再定
 - [ ] AI 已接受的施法在机会过期时不撤回（真人也撤不回，撤回不退冷却）是建议（实现采用），用户没裁定
+- [ ] 松开 W 后的滑行：没有刹车，只靠地面摩擦减速（训练模式实测 约 1.95–1.97 m/s²），按这个减速度从 80 m/s 滑到停约 41 秒、约 1.6 千米；要不要加松开减速或刹车，等试玩再定（建议先保持，已定的是“只撤推进力”）
 - [ ] 是否入表（design-tables 决定 4，需用户确认）：鼠标瞄准平滑 `BuddahHandControl.mouseAimSmoothingSeconds` 0.06 秒和死区 `mouseAimDeadRadius` 1.5 米目前只是代码序列化默认值，按 7.2 的完成标准（代码里不再有阶段 A 的默认值作为数值来源）应进 `Skill/Push` basic 行（建议作 adv 列）；木桩复位阈值（`TrainingDummy.disturbedContactSpeed` 0.5 m/s 等）和表现、HUD 布局参数按范围线可以留在代码
 
 已答复：
@@ -345,7 +369,9 @@
 - [x] 加价层数的清零规则：超过 5 秒或反噬时清零（已定）
 - [x] 保留单技能冷却（已定）
 - [x] 神足通时长：先按配表现值 3 秒（已定）
-- [x] 键位与瞄准方式（已定；W/↑ 推掌暂留为废弃内容）
+- [x] 键位与瞄准方式（已定；W/↑ 推掌暂留为废弃内容，2026-10-30 两条都删除）
+- [x] 起跑交接改成完全物理：交接时把开场速度一次性交给刚体，之后不锁速度、不混合、不屏蔽输入（已定，2026-10-30）
+- [x] 前进：不再自动，按住 W 推进、松开只撤推进力（不刹车）；起跑、倒计时、复活、禁锢、反转、UI 挡输入沿用原规则，推进力和限速沿用配表；AI 一直推进到完赛（已定，2026-10-30）
 - [x] 阶段 A 新增参数先用序列化字段带默认值；阶段 A 不改配表结构（已定）
 - [x] 训练木桩的数量、位置、物理、复位、身份、反馈（已定）
 - [x] 反噬时本槽照常进冷却；惩罚期间复活，惩罚继续（已定）
@@ -356,7 +382,7 @@
 
 ## 9. 不在本次范围
 
-- 驾驶仍只有转向：油门恒为 1（`PlayerBuddahInputSource.GetThrottle`），没有刹车或漂移。`space` 已绑定在 Movement 上但代码不读，可以留作以后的驾驶动作。
+- 驾驶只有 W 推进和 A/D 转向（2026-10-30 起前进不再自动），没有刹车、倒车或漂移。`space` 已绑定在 Movement 上但代码不读，可以留作以后的驾驶动作。
 - 全局技能（逆姻缘、一念光明）对领跑者同样有利。
 - 没有防御或反制手段；1 秒前摇的预警目前没有对应的反制机制。
 - 缘起让控制更容易叠加（如 #2 的禁锢），受害者保护（控制上限、短暂免控）仍然需要设计。

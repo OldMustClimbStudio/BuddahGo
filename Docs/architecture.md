@@ -20,6 +20,7 @@
 - `SkillExecutor` 负责施法入口、施法门与统一反噬，见[技能施法链路](#技能施法链路)；合法技能、配装和属性来自配置仓库。
 - `RoomStateManager` 负责多人场景流转。`ResultDecisionManager` 负责投票结果，再请求房间系统切场景。
 - 控制权交接、复活和模式切换需要同时处理运动限制、队列与表现状态，避免遗留旧状态。
+- 前进不是自动的（2026-10-30）：预测输入的 `Throttle` 由 `BuddahDriveInput.ResolveThrottle` 决定，移动门关闭时为 0；有 `ISteeringOverride`（AI、训练木桩）时取它的 `drive`；否则取 owner 的 W（`PlayerBuddahInputSource.GetThrottle`，按住 1、松开 0，不刹车）。真人和 AI 写同一个字段，服务器按同一份输入模拟。
 
 ## 技能施法链路
 
@@ -33,7 +34,7 @@
               反噬 → 技能不执行，开始统一反噬惩罚
 ```
 
-- 搓招已退役（A7）：`ComboSkillInput` 已删除，真人用技能键，AI 直接调用 `CastSlotServer`，两者经过同一个施法门。`HandPush` 同时绑 W/↑ 和鼠标左/右键，只用来推掌；W/↑ 是暂留的废弃键位，见[玩法深化 §3](gameplay/README.md#3-操作)。手部朝向取光标在地面上的投影（`BuddahHandControl`，纯数学在 `Buddah/Input/HandAimMath.cs`），yaw 仍经 `BuddahHandControl.TrySendYawToServer` 同步。
+- 搓招已退役（A7）：`ComboSkillInput` 已删除，真人用技能键，AI 直接调用 `CastSlotServer`，两者经过同一个施法门。`HandPush` 只绑鼠标左/右键，只用来推掌（W/↑ 推掌 2026-10-30 已删除，W 改为前进），见[玩法深化 §3](gameplay/README.md#3-操作)。手部朝向取光标在地面上的投影（`BuddahHandControl`，纯数学在 `Buddah/Input/HandAimMath.cs`），yaw 仍经 `BuddahHandControl.TrySendYawToServer` 同步。
 - 施法门 `SkillCastRules.EvaluateGate` 由 `TryResolveCast`（每次请求）和 `IsSlotReadyServer`（AI 就绪判断）共用，依次检查：已有待确认的施法、反噬锁、冻结、本槽冷却。没有全局施法锁。同一时刻最多一个待确认的施法，前摇期间的请求直接 `Rejected`；不同技能可以同时生效。
 - 冷却和确认前摇按所请求技能取值（前摇为 `Skill.castConfirmDelaySeconds`，没有配表行时 1 秒）。反噬同样花掉本槽冷却。
 - 同招加价（`SkillRepeatSurcharge`）：同一技能在自己冷却结束后 `repeatWindowSeconds` 内重放，本次执念增量乘以 `repeatGainMultiplier` 的层数次方。层数在请求时算出，只在正常执行时提交；反噬时全部清零。

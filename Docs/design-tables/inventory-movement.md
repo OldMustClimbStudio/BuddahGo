@@ -120,6 +120,7 @@
 - 消费方 `BuddahPredictionOwnerInputBridge.Initialize/ReadSteering`(OwnerInputBridge.cs:24,191-197)，受 `LocalInputBlock.IsBlocked` 阻断。
 - 建议表 InputBindings（Action、Key、Scheme），外加 SteeringInputMode（数字/模拟）、SteeringDeadzone；改键需先去掉硬编码 KeyCode。
 - 2026-10-26（玩法深化 A2 的键位，阶段 B 记进表）：`InputSystem_Actions.inputactions` 新增 `SkillSlot1/2/3` 三个动作与 HandPush 的鼠标左 / 右键绑定；`Global/InputBinding` 加 doc 列 `status`，补齐 SkillSlot1/2/3（Q/E/R 与 1/2/3 同时绑定，`SkillExecutor.OnSkillKeyPressed`）和 HandPush 的鼠标左/右键（主键位，`BuddahHandControl.TryResolvePushHand`）；W/↑ 推掌标为“废弃内容，后续可能再调整”；←/→ 只在没有鼠标时做回退，主瞄准是光标投到地面的方向，转速上限 `Push.basic.rotationSpeedDegPerSec`。
+- 2026-10-30（玩法深化 A8，前进改为按住 W）：`Movement` 动作加 `<Keyboard>/w`，`HandPush` 删掉 W、↑；`Global/InputBinding` 加 W 前进一行（主键位）、删掉 W/↑ 推掌两行；`Movement.autoThrottle`（doc 列）注释改成“前进不再自动”，值仍为 1。同日起跑交接改为完全物理：`Movement.launchInheritSeconds` 0.2 → 0、`launchBlendSeconds` 0.32 → 0，doc 列 `launchSuppressTurnSeconds` 0.15 → 0（`RaceBodyIntroStateController.LaunchSuppressTurnSeconds`）。下文 0.2 / 0.32 / 0.15 是 2026-10-12 基线。
 
 ## 表 11：GlobalSimulation / GlobalSettings
 

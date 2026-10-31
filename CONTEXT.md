@@ -56,11 +56,11 @@ The identity of a Racer within one Match. For a Human Player it equals their con
 _Avoid_: client id (for Racers), player id, owner id
 
 **Human Player**:
-A person controlling a Buddah from their own device.
+A person controlling a Buddah from their own device: holding W drives it forward (releasing only stops the drive, there is no brake), A/D steer, the mouse aims and pushes the hands, Q/E/R or 1/2/3 cast. Forward is not automatic (since 2026-10-30); see Drive in [GLOSSARY.md](GLOSSARY.md).
 _Avoid_: user, client, connection
 
 **AI Racer**:
-A computer-controlled Buddah that races in a Solo Match, casts skills with its own loadout and is ranked alongside the Human Player. Its name comes from a configurable list.
+A computer-controlled Buddah that races in a Solo Match, casts skills with its own loadout and is ranked alongside the Human Player. It presses no keys: it keeps the same drive switch a Human Player holds with W on until it finishes. Its name comes from a configurable list.
 _Avoid_: bot, NPC, CPU
 
 **Training Dummy**:

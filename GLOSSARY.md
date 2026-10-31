@@ -11,12 +11,16 @@
 _Avoid_: 道具库存、弹药
 
 **技能键（Skill Key）**：
-真人玩家单键施法用的键：槽 0/1/2 同时绑定 Q/E/R 和 1/2/3（`InputSystem_Actions` 的 `SkillSlot1`–`SkillSlot3`），按下即请求施放该槽。手部朝向跟随光标投到地面的点（转手上限 180°/s），鼠标左键推左手、右键推右手；←/→ 转手只在没有鼠标时作后备。W/↑ 推掌的绑定还在，但属于废弃内容，也不再参与搓招。
+真人玩家单键施法用的键：槽 0/1/2 同时绑定 Q/E/R 和 1/2/3（`InputSystem_Actions` 的 `SkillSlot1`–`SkillSlot3`），按下即请求施放该槽。手部朝向跟随光标投到地面的点（转手上限 180°/s），鼠标左键推左手、右键推右手；←/→ 转手只在没有鼠标时作后备。W 是前进键（见“推进”），W/↑ 推掌已删除（2026-10-30）。
 _Avoid_: 搓招键、快捷栏
 
 **搓招（Combo Input）**：
-已退役（A7）。曾指在规定时间窗内按顺序完成的 W/↑ 手部输入组合，用来触发对应技能槽。现在真人用技能键，AI 直接调用 `SkillExecutor.CastSlotServer`（和 owner RPC 同一个施法门）；`ComboSkillInput` 和配表 `Skill/ComboInput`、`Skill/ComboBinding` 已删除，W/↑ 只剩废弃的推掌绑定。本词条只为读旧文档保留。
+已退役（A7）。曾指在规定时间窗内按顺序完成的 W/↑ 手部输入组合，用来触发对应技能槽。现在真人用技能键，AI 直接调用 `SkillExecutor.CastSlotServer`（和 owner RPC 同一个施法门）；`ComboSkillInput` 和配表 `Skill/ComboInput`、`Skill/ComboBinding` 已删除，W/↑ 推掌的绑定也在 2026-10-30 删除。本词条只为读旧文档保留。
 _Avoid_: 瞬间施法、仅播放前摇、用它描述真人施法
+
+**推进（Drive）**：
+让 Buddah 向前的推力开关（2026-10-30 起前进不再自动）。真人按住 W 推进、松开停止推进：松开只撤掉推进力，不刹车，靠地面摩擦滑行。AI 和训练木桩不按键，经转向覆盖（`ISteeringOverride`）的 `drive` 写同一个开关：AI 一直推进到完赛，木桩恒为关。开关进预测输入（`BuddahPredictedInputData.Throttle`，`BuddahDriveInput.ResolveThrottle`），倒计时等移动门关闭时一律为关。推进力和限速来自 `Movement` 表。
+_Avoid_: 油门恒为 1、自动前进、刹车（现在没有刹车）
 
 **施法串行（Cast Serialization）**：
 技能之间没有全局施法锁，每个槽只受自己的冷却限制，所以两个技能可以同时生效；但任何时刻最多一个待确认施法：前一招还在确认前摇里时，请求任何槽都被拒绝（`CastStage.Rejected`），前一招执行、执念入账后才接受下一招。服务器按“待确认施法 → 反噬锁 → 禁锢 → 槽冷却”的顺序判定（`SkillCastRules.EvaluateGate`）。

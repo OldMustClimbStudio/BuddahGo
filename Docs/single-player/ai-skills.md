@@ -57,7 +57,7 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 
 冷却从请求时刻加 1 s 前摇起算，反噬也照常进本行冷却。没有全局施法锁：一招执行后即可请求另一个冷却已好的槽，两个技能可以同时生效，成对的技能会触发缘起（AI 的缘起决策见下文）。掌形 buff 期间每次推掌都是一次蓄力发射。
 
-**输入**：玩家单键施法（槽 0/1/2 = Q/E/R 与 1/2/3），手部朝向跟随光标的地面投影，鼠标左/右键推左/右手；W/↑ 推掌保留但已废弃。AI 不再搓招（A7）：决定后下一 tick 直接调用 `SkillExecutor.CastSlotServer`，再经 1 s 施法确认，从决定到效果出现约 1 s + 1 tick（决策前另有难度给定的反应延迟）。掌形 buff 期间 AI 的发射是直接的服务器推掌（`BuddahHandControl.InjectServerPush`，普通推掌冷却 0.4 s）。AI 的手部朝向经 `BuddahHandControl.InjectServerRotation` 以 180°/s 旋转，掌形发射方向 = 车头方向 + 手部 yaw。
+**输入**：玩家单键施法（槽 0/1/2 = Q/E/R 与 1/2/3），手部朝向跟随光标的地面投影，鼠标左/右键推左/右手；按住 W 前进、松开停止推进（2026-10-30，W/↑ 推掌已删除）。AI 不按键：前进经 `AIRacerDriver.TryGetOverride` 的 `drive`，和真人的 W 写进同一个预测输入字段（`BuddahDriveInput.ResolveThrottle`），一直推进到完赛（已定，2026-10-30），驾驶规划 `BuddahMotionModel` 也按满推进力建模，所以这次改动不改变 AI 的驾驶。AI 不再搓招（A7）：决定后下一 tick 直接调用 `SkillExecutor.CastSlotServer`，再经 1 s 施法确认，从决定到效果出现约 1 s + 1 tick（决策前另有难度给定的反应延迟）。掌形 buff 期间 AI 的发射是直接的服务器推掌（`BuddahHandControl.InjectServerPush`，普通推掌冷却 0.4 s）。AI 的手部朝向经 `BuddahHandControl.InjectServerRotation` 以 180°/s 旋转，掌形发射方向 = 车头方向 + 手部 yaw。
 
 **驾驶规划器**：`ThrustVectorPlanner` 不感知任何其他参赛者，没有车车碰撞建模；它直接读取真实转向符号 `FinalSteeringSign`。三档驾驶参数：简单 反应 8 tick + 抖动 5、次优失误 25%、角度噪声 10°；普通 3+3、10%、5°；困难 0、3%、2°（`Tools/ai/difficulty-*.json`）。
 
@@ -191,6 +191,10 @@ A7 之前的“每键搓招失误率”15% / 6% / 1% 已随搓招退役。简单
 | 风险模型 | `risk-stop` 候选 276 次（Normal 停手 70%）；最高概率的出手是 hunter 在执念 607（67%）放反转并反噬 |
 | 性能 | `AI.Skill` 每帧中位 0.034 ms、P95 0.149 ms（五个 AI 合计，含观察器），帧时中位 16.3 ms |
 | 未验证 | 真人参与时的体验、黑幕频率是否合适、#2 禁锢对车群是否过分（玩法深化 §9 的受害者保护）、#4 在自然比赛里能否触发、Easy / Hard 两档、联机 |
+
+## A8 单人赛验证（2026-10-30，W 推进 + 完全物理交接）
+
+AI 的推进开关一直为开（已定），代码只在 `AIRacerDriver.TryGetOverride` 补了注释。`AISkillRaceHarness` Normal 一场（2026-10-30，`Logs/a8/solo-20261030-231507`，不入库；W 推进和完全物理交接都已生效）：自然结算（`natural-race-results`），0 运行错误；trickster 320.5 s 自然完赛，其余四个 AI 在完赛倒计时截止时在第 3 圈；单圈 102–167 s（keeper 126.1 / 102.2，hunter 110.0 / 124.5，brawler 167.3 / 104.0，trickster 107.7 / 109.2 / 103.6，opportunist 129.0 / 104.2），和 A7 那场（101–139 s）同一量级，brawler 第一圈 167 s 偏慢；每个 AI 执行 10–18 次施法，71 次请求接受 69 次（opportunist 2 次被 A7 的 `rejected-global-visible` 挡下：已有黑幕可见时不再放黑幕），反噬 14 次，缘起 8 次（keeper #4 ×1、#2 ×2，brawler #1 ×5）。真人不按键：交接时 59.97 m/s，从第一个 tick 起只按摩擦减速（1.08 s 后 57.38 m/s，约 2.4 m/s²），之后被 AI 蓄力掌打中 10 次，靠冲量加滑行在 235.6 s 过了第 1 圈，没有任何 W 式的持续加速。同一天更早的一场（改交接之前）在 68 s 被手动停止（`operator-disabled`），期间编辑器里按过一次真实的 W，不作数。
 
 ## 后续交接与未定项
 

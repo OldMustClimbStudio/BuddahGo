@@ -58,40 +58,14 @@ public class SkillVfxReplicator : NetworkBehaviour
     [ObserversRpc]
     private void PlayVfxAllObserversRpc(string vfxId, float durationSeconds)
     {
-        PlayVfxInternal(vfxId, durationSeconds);
-    }
-
-    private void PlayVfxInternal(string vfxId, float durationSeconds)
-    {
-        if (vfxDatabase == null)
-        {
-            Debug.LogWarning("[SkillVfxReplicator] vfxDatabase is null.");
-            return;
-        }
-
-        if (!vfxDatabase.TryGetPrefab(vfxId, out var prefab) || prefab == null)
-        {
-            Debug.LogWarning($"[SkillVfxReplicator] Unknown vfxId '{vfxId}'.");
-            return;
-        }
-
-        if (prefab.GetComponent<SkillVfxPhaseController>() == null)
-        {
-            Debug.LogWarning($"[SkillVfxReplicator] '{vfxId}' is not a slot prefab (no SkillVfxPhaseController); nothing played.");
-            return;
-        }
-
-        PlaySlot(vfxId, prefab, durationSeconds);
+        PlaySlot(vfxId, durationSeconds, true);
     }
 
     // Local only (no RPC): plays a slot effect on this player on this client, e.g. what a local view controller
-    // decides per observer (一念光明's trail). Ignores ids whose prefab is not a slot.
+    // decides per observer (一念光明's trail). Silently ignores ids whose prefab is missing or not a slot.
     public void PlaySlotLocal(string vfxId, float durationSeconds)
     {
-        if (vfxDatabase == null || !vfxDatabase.TryGetPrefab(vfxId, out var prefab) || prefab == null)
-            return;
-        if (prefab.GetComponent<SkillVfxPhaseController>() != null)
-            PlaySlot(vfxId, prefab, durationSeconds);
+        PlaySlot(vfxId, durationSeconds, false);
     }
 
     // Ends a local slot effect early: its layers stop and it fades out over its dissipation.
@@ -104,9 +78,21 @@ public class SkillVfxReplicator : NetworkBehaviour
 
     // A slot prefab places its own layers on this player (caster anchors), so it is not parented or offset here:
     // the root stands at the player, the controller gets this player as the caster and runs the release window.
-    // Every client plays it locally; it never touches gameplay.
-    private void PlaySlot(string vfxId, GameObject prefab, float durationSeconds)
+    // Every client plays it locally; it never touches gameplay. warn: log why nothing played (the RPC path).
+    private void PlaySlot(string vfxId, float durationSeconds, bool warn)
     {
+        GameObject prefab = null;
+        string problem = vfxDatabase == null ? "vfxDatabase is null."
+            : !vfxDatabase.TryGetPrefab(vfxId, out prefab) || prefab == null ? $"Unknown vfxId '{vfxId}'."
+            : prefab.GetComponent<SkillVfxPhaseController>() == null ? $"'{vfxId}' is not a slot prefab (no SkillVfxPhaseController); nothing played."
+            : null;
+        if (problem != null)
+        {
+            if (warn)
+                Debug.LogWarning("[SkillVfxReplicator] " + problem);
+            return;
+        }
+
         if (_slots.TryGetValue(vfxId, out SkillVfxPhaseController previous) && previous != null)
             Destroy(previous.gameObject);
 
@@ -174,9 +160,6 @@ public class SkillVfxReplicator : NetworkBehaviour
     {
         var networkObjects = root.GetComponentsInChildren<NetworkObject>(true);
         var networkBehaviours = root.GetComponentsInChildren<NetworkBehaviour>(true);
-
-        if (networkObjects.Length == 0 && networkBehaviours.Length == 0)
-            return;
 
         foreach (var networkBehaviour in networkBehaviours)
         {

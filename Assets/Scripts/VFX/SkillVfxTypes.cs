@@ -87,8 +87,6 @@ namespace BuddahGo.VFX
         public float scaleMultiplier;
         public float lightSeconds;
         public float lightIntensity;
-        public float farThresholdMeters;
-        public float postPulseSeconds;
 
         public static SkillVfxVisualValues Defaults => new SkillVfxVisualValues
         {
@@ -101,8 +99,6 @@ namespace BuddahGo.VFX
             scaleMultiplier = 1f,
             lightSeconds = 0.3f,
             lightIntensity = 1f,
-            farThresholdMeters = 0f,
-            postPulseSeconds = 0.15f,
         };
     }
 

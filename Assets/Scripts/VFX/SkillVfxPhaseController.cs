@@ -156,11 +156,6 @@ namespace BuddahGo.VFX
             _chargeProgress = Mathf.Clamp01(value);
         }
 
-        // Hit placeholder: no hit feedback this round (palm doc 4.6); clients get no hit event yet.
-        public void NotifyHit(Vector3 worldPosition)
-        {
-        }
-
         // Ends every running phase, starts Dis and destroys the effect once every layer has finished.
         public float BeginDissipation()
         {
@@ -252,8 +247,7 @@ namespace BuddahGo.VFX
 
             float phaseSeconds = _phaseDuration[layer.phase];
             float t = now - phaseStart;
-            float start = SkillVfxRules.ToSeconds(layer.start, layer.startUnit, phaseSeconds, _visual);
-            float end = layer.end < 0f ? phaseSeconds : SkillVfxRules.ToSeconds(layer.end, layer.endUnit, phaseSeconds, _visual);
+            LayerWindow(layer, phaseSeconds, out float start, out float end);
 
             float fade = 1f;
             if (_phaseEnd.TryGetValue(layer.phase, out float phaseEnded))
@@ -405,7 +399,7 @@ namespace BuddahGo.VFX
             {
                 if (_layers[i] == null || _layers[i].phase != phase)
                     continue;
-                float end = _layers[i].end < 0f ? phaseSeconds : SkillVfxRules.ToSeconds(_layers[i].end, _layers[i].endUnit, phaseSeconds, _visual);
+                LayerWindow(_layers[i], phaseSeconds, out _, out float end);
                 longest = Mathf.Max(longest, end);
             }
             return longest;

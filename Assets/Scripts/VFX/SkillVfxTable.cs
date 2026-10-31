@@ -45,8 +45,6 @@ namespace BuddahGo.VFX
                 scaleMultiplier = record.scaleMultiplier > 0f ? record.scaleMultiplier : d.scaleMultiplier,
                 lightSeconds = record.lightSeconds,
                 lightIntensity = record.lightIntensity,
-                farThresholdMeters = d.farThresholdMeters,
-                postPulseSeconds = d.postPulseSeconds,
             };
         }
     }

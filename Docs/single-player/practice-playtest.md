@@ -1,6 +1,8 @@
 # Practice 快速试玩清单
 
-> **2026-10-26 注：** 本清单对应 2026-10-01 的 `21cc3cf` 试玩包。玩法机制更新（PR #63 `feat/mechanics-update`）之后，表里的“按 HUD 组合键使用技能”“buff 内再按 W 推掌”和六种各自的反噬表现都不适用了：技能改为 Q/E/R（或 1/2/3）单键释放，鼠标瞄准、鼠标左/右键推掌，反噬统一为 10 秒全技能锁（规则见 [玩法深化](../gameplay/README.md)）。Practice 现在还生成 3 个训练木桩，命中、减速、反转和冲量可以对木桩看，“0 AI 无法验证对手命中……”一句也已过时。新版本的自动验证见 [训练模式验证记录](../gameplay/practice-verification.md)；面向用户的新版试玩清单还没写，用户也还没试玩。另外，主菜单的单人赛按 `Match/ModeRule` Solo 行的 `aiCount`（现为 5）开局，0 AI 的 Practice 目前由诊断入口（如 `MechanicsPracticeHarness`）启动。这些入口只编进 Editor 和 Development 构建（`#if UNITY_EDITOR || DEVELOPMENT_BUILD`），所以普通 Release 构建开不了 0 AI 的 Practice，除非把 Solo 行的 `aiCount` 改成 0 再构建。
+> **2026-10-26 注：** 本清单对应 2026-10-01 的 `21cc3cf` 试玩包。玩法机制更新（PR #63 `feat/mechanics-update`）之后，表里的“按 HUD 组合键使用技能”“buff 内再按 W 推掌”和六种各自的反噬表现都不适用了：技能改为 Q/E/R（或 1/2/3）单键释放，鼠标瞄准、鼠标左/右键推掌，反噬统一为 10 秒全技能锁（规则见 [玩法深化](../gameplay/README.md)）。Practice 现在还生成 3 个训练木桩，命中、减速、反转和冲量可以对木桩看，“0 AI 无法验证对手命中……”一句也已过时。新版本的自动验证见 [训练模式验证记录](../gameplay/practice-verification.md)；面向用户的新版试玩清单还没写（用户 2026-10-31 的试玩见下一段）。另外，主菜单的“开始单人赛”按 `Match/ModeRule` Solo 行的 `aiCount`（现为 5）开局。2026-10-31 起同一个单人设置面板有第二个按钮 “Practice (0 AI)”，按 0 个 AI 开局，走 Practice 行（3 个木桩），普通 Release 构建也能进；按钮暂用英文，因为 SoloCJK 字体子集里没有“训练模式”这几个字。编辑器里还有菜单 `Tools/Mechanics/Start Practice (0 AI, 3 dummies)`，Play 停在主菜单时可用。
+>
+> **2026-10-31 试玩：** 用户在编辑器里亲自试玩机制更新后的训练模式（`feat/mechanics-update` fb22b0f9），反馈“没啥问题”，唯一的意见是训练模式没有可见的 UI 入口，当天补上了上面的按钮。
 
 **试玩包已交付（2026-10-01）：游戏源码 `21cc3cfd9246856f071b32f5730e0586ff547ea6`，含 V3 过线计时修复。** 当前 worktree 内启动 `Logs/v3-final-acceptance/playable-release/BuddahGo.exe`，在主菜单点“单人游戏”进入 Practice。这是普通 Windows x64 非 Development 构建，不含私有自动驾驶/验收器，也不需要任何验收命令参数。后续本页等文档提交不改变该包的游戏代码来源。
 

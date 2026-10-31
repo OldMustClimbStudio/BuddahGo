@@ -83,4 +83,4 @@
 
 玩法深化的四种新命令和回放 tick 解析由 EditMode 测试覆盖（[BuddahPredictedModifierResolverTests](../Assets/Tests/EditMode/BuddahPredictedModifierResolverTests.cs)、[BuddahPredictedModifierStateOpsTests](../Assets/Tests/EditMode/BuddahPredictedModifierStateOpsTests.cs)、`BuddahTickMathTests`、`HandoffClockTests`），实机只在训练模式（本机 host）验证过（[训练模式验证记录](gameplay/practice-verification.md)）。冻结、突进和反噬减速在远端 owner 上的预测与 reconcile 还没有联机验证。
 
-时钟修复不保证迟到客户端完整呈现配置的 Inherit/Blend 12/20 tick：完整呈现与权威结束时刻如何协调仍需协议决策。高速视觉接受也仍由用户决定。公开运行记录中的历史 75/75 及旧会话观测只证明对应版本，不作为快照配对提交的实测结果；未公开日志、实测数值和视频不在本文中补录。
+时钟修复不保证迟到客户端完整呈现配置的 Inherit/Blend 时长（原 12/20 tick；2026-10-30 起两段都配为 0，见上文开场交接）：以后重新配成非零时，完整呈现与权威结束时刻如何协调仍需协议决策。高速视觉接受也仍由用户决定。公开运行记录中的历史 75/75 及旧会话观测只证明对应版本，不作为快照配对提交的实测结果；未公开日志、实测数值和视频不在本文中补录。

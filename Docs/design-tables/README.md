@@ -41,7 +41,7 @@ BuddahGo 的平衡数值与各类信息由 Excel 维护，程序直接读取：�
 | `bool` | `true` / `false`（也接受 `1` / `0` / `是` / `否`） | `true` |
 | `string` / `text` | `string` 去掉首尾空格；`text` 原样保留（含首尾空格与换行），用于显示文案 | `acceleration`、`Player ` |
 | `enum:名称` | 写枚举名，名单在 `Global.xlsx` 的 `__enums__` sheet；也接受该成员的 `value` 整数（与 C# 枚举同号的，如 `ModifierCommandType`、`YuanqiMode`，写数字和写名字等价） | `Selectable`、`Hard` |
-| `list,类型#sep=|` | 用分隔符连接，默认 `\|`，搓招用 `,` | `movement\|buff`、`W,Up,W` |
+| `list,类型#sep=|` | 用分隔符连接，默认 `\|`，可用 `#sep=,` 改成逗号 | `movement\|buff`、`acceleration,giant` |
 | `vector3` / `color` | 逗号分隔，分量数必须正好 3 / 4，少写报错 | `0,0,-2`、`1,0.7,0,1` |
 | `curve` | 关键帧列表 `time,value,inSlope,outSlope` 用 `\|` 连接 | `0,0,2,2\|1,1,0,0` |
 | `xxx#key` | 主键列，同表不可重复；多列 `#key` 组成复合键 | `skillId` |

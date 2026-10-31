@@ -2,7 +2,7 @@
 
 筛查日期 2026-10-12，基线 dev 9ff6338。本文件只做盘点，不含实现。总览与跨域结论见 [README.md](README.md)。
 
-> 2026-10-26 玩法深化之后（代码 0dbc551，`PredictionProtocol.Version` 2），下列基线说法不再完整，原文保留：表 3 的命令枚举、叠加规则与 `ResetActiveSkillModifiers`（新增 Freeze / EndModifier / Burst / MaxSpeedMultiplier，技能重置还清 freeze 与 burst，不清反噬限速；带重置的传送也保留反噬限速），见表 3 末尾；表 2 的冲量来源多了 `BodyImpact = 5`（缘起 #4 撞击，只作日志标签）；表 7 的执念参数多了同招加价与反噬惩罚五列，见 [inventory-skills.md](inventory-skills.md) 第 10 节；表 10 的键位（技能键、鼠标瞄准与推掌），见表 10 末尾。
+> 2026-10-26 玩法深化之后（代码 0dbc551，`PredictionProtocol.Version` 2），下列基线说法不再完整，原文保留：表 3 的命令枚举、叠加规则与 `ResetActiveSkillModifiers`（新增 Freeze / EndModifier / Burst / MaxSpeedMultiplier，技能重置还清 freeze 与 burst，不清反噬限速；带重置的传送也保留反噬限速），见表 3 末尾；表 2 的冲量来源多了 `BodyImpact = 5`（缘起 #4 撞击，只作日志标签）；表 7 的执念参数多了同招加价与反噬惩罚五列，见 [inventory-skills.md](inventory-skills.md) 第 10 节；表 10 的键位（技能键、鼠标瞄准与推掌），见表 10 末尾。2026-10-28 A7 删除了 `ComboSkillInput`，结论 3、表 10 的硬编码、重复项 7 与待确认问题 6 里的 `ComboSkillInput` 已不存在。2026-10-30 A8 之后：表 1 的“自动油门 throttle = 1”不再成立，真人按住 W 才推进（`BuddahDriveInput.ResolveThrottle`，AI 经转向覆盖的 `drive` 一直推进）；表 4 的起跑交接改为完全物理，配表 `Movement.launchInheritSeconds` / `launchBlendSeconds` 为 0（覆盖 legacy 组件上的 0.2 / 0.32），交接后屏蔽转向的 0.15 秒改为 0（`RaceBodyIntroStateController.LaunchSuppressTurnSeconds`），继承与混合机制保留、时长为 0，见 [玩法深化 §3](../gameplay/README.md#3-操作)。
 
 范围：`Assets/Scripts/New_Buddah/**`、`Foundation/`、`GlobalSettings/`、`InputSystem/`、`Debug/`、`GameData/`，Buddah.prefab 上的相关组件，`ProjectSettings/` 中的物理、时间、画质。路径相对 `Assets/Scripts/`；prefab 行号指 `Assets/Character/Prefab/Buddah.prefab`。
 

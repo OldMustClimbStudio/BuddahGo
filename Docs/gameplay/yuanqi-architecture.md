@@ -70,7 +70,7 @@
 
 ### 1.5 改版前已经存在、直接复用的部件
 
-- `SteeringSuppression` 修饰：转向输入清零（开场交接在用）。
+- `SteeringSuppression` 修饰：转向输入清零（开场交接用它；2026-10-30 起交接完全物理，交接后的屏蔽时长为 0，修饰本身保留）。
 - `BuddahPredictionRouter.RouteImpulse(victim, impulse, torque, sourceType, source)`：服务器权威冲量，V2 预测的 Buddah 转到 `BuddahPredictionCombatAdapter.TryRouteImpulse`，owner 远端时自动 TargetRpc。#4 的撞击冲量走它（来源类型新增 `BodyImpact`）；突进本身是 `Burst` 修饰，不是冲量。
 - `BuddahHandControl.GetPushScaleMultiplier()` 读 `PlayerScaleEffect.CurrentScaleMultiplier`：普通推掌 hitbox、蓄力弹碰撞体与出生点改版前就随体型缩放，只有冲量不随。所以 #1 金身巨掌在代码里原本就有一半（见 5.2 与 Q11）。
 - `RacerDirectory.Current.All`：本局所有已登记的 racer（一念光明用它找受害者；木桩的 racer id 未分配，不在里面）。
@@ -337,7 +337,7 @@ tags：`skill, balance`。
 
 ### 3.7 与其他步骤共享的表变化
 
-README 7.2 列了 A1（木桩配置）、A3（删 `castLockSeconds`）、A4（删 `_anti` 行与列、`Obsession` 五个新列）的表改动，都已完成；A7（删 `ComboBinding / ComboInput`、AI 人格表加缘起决策参数）随 A7 做，还没开始。缘起对它们只有一个要求：`Skill.effectDurationSeconds` 继续是每个普通技能的主效果时长，状态板窗口靠它。
+README 7.2 列了 A1（木桩配置）、A3（删 `castLockSeconds`）、A4（删 `_anti` 行与列、`Obsession` 五个新列）的表改动，都已完成；A7（删 `ComboBinding / ComboInput`、AI 人格表加缘起决策参数）已随 A7 完成（ac3d5fe）。缘起对它们只有一个要求：`Skill.effectDurationSeconds` 继续是每个普通技能的主效果时长，状态板窗口靠它。
 
 ## 4. 禅足冰封（#2）的具体构筑
 

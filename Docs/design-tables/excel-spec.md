@@ -66,7 +66,7 @@ Tools/design-tables/                                  基线生成脚本（build
 | 记录 id | 全小写 snake_case，稳定不改 | `push_projectile_hands`、`race_default`、`racemap` |
 | 枚举值 | PascalCase，与 C# 枚举名一致 | `PackCentre`、`ReturnToRoom` |
 | 文案 key | `domain.entity.field` 点分小写，自动提取的 `ui.<class>.<slug>` 需人工定稿 | `skill.giant.name`、`match.default_player_name` |
-| 全局规则键 | snake_case | `combo_input_window_seconds` |
+| 全局规则键 | snake_case | `target_frame_rate` |
 | 单行全局表 | 主键列固定为 `profileId`，值 `default` | `Obsession.profileId` |
 | 列顺序 | 主键列最左，其后身份列、数值列组，`doc` 列最右 | — |
 

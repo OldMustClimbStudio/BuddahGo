@@ -33,6 +33,8 @@ The historical static recovery report follows; its “not executed” section de
 
 2026-10-26 note: the gameplay mechanics update (PR #63) made the acceptance steps below obsolete in two ways: casts are now single keys (Q/E/R or 1/2/3) and pushes use the mouse buttons (W/↑ push is deprecated, combos no longer cast for players), and the anti variants with their multi-projectile burst are gone (the unified backfire reuses the `Anti_Reflection_*` feel events). See [gameplay/README.md](gameplay/README.md).
 
+> **已被取代（2026-10-31）：** W/↑ 推掌已于 2026-10-30 删除（不再只是 deprecated），W 改为前进键、↑ 不绑定，见 [gameplay/README.md](gameplay/README.md#3-操作)。
+
 ## Integration
 
 - Base: `dev` at `7389ec8655a2f438d73c189338e055c962eef84f`.

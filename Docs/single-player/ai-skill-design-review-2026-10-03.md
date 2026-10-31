@@ -2,6 +2,8 @@
 
 > **2026-10-26 注：** F3（施法锁约等于效果时长、技能不可叠加）、F5 的玩家搓招和各技能自己的反噬效果已被 PR #63 取代：全局施法锁取消、`*_anti` 变体由统一反噬取代、玩家改为单键施法。现行规则见 [玩法深化](../gameplay/README.md)，对 AI 的影响见 [AI 技能](ai-skills.md) 顶部。
 
+> **已被取代（2026-10-31）：** A7（2026-10-28）起 AI 也不再搓招，F5 的按键注入入口随 `ComboSkillInput` 一起删除，AI 直接调用 `SkillExecutor.CastSlotServer`，2026-10-30 起 W/↑ 推掌也已删除、W 改为前进键，见 [AI 技能](ai-skills.md)。
+
 状态：设计复核，仅文档。基线源码 `e95c63c`（`docs/ai-skill-personalities` 工作树）。本次对照运行时代码与资产复核 [AI 技能使用设计](ai-skills.md) 与 [五种人格草案](ai-personalities.md)，列出与设计前提冲突的事实、设计层面的漏洞，以及据此对两份文档所做的修订。不改生产代码、场景、资源，不运行 Unity。
 
 复核读取的来源：`SkillExecutor`、`ComboSkillInput`、`BuddahHandControl`、`ObsessionFigure`、`SkillLoadout`、`LoadoutRules`、`AIRacerDriver`、`AIDifficultyProfile(s)`、`ThrustVectorPlanner`、`BuddahMotionModel`、`LeaderboardManager`、`PlayerProgressReporter`、`MatchSpawnManager`、六个技能及其反噬的 `Skill_*` 脚本与 `Assets/Skills_Assets/Skills/*.asset`、`Assets/Data/Config/ProjectConfigDatabase_Main.asset`、`Assets/Character/Prefab/Buddah.prefab`、`Tools/ai/difficulty-*.json`，以及 feat/single-player-mode 上的 `f9c56d8`。数值均来自上述文件在本基线的实际值；资产数值可随调校变化，设计只依赖量级关系。

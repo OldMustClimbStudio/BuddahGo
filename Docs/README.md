@@ -10,7 +10,7 @@
 | 代码评估与架构优化计划（执行入口） | [optimization/HANDOFF.md](optimization/HANDOFF.md) |
 | 联机预测撕裂与开场交接修复（执行入口） | [online-repair/HANDOFF.md](online-repair/HANDOFF.md) |
 | 单机模式设计与实现入口 | [single-player/HANDOFF.md](single-player/HANDOFF.md) |
-| AI 技能人格规格与本次实现（玩法深化去掉全局施法锁后，“任何两个技能不会同时生效”已不成立；A7 AI 适配时更新） | [技能管线](single-player/ai-skills.md) · [五人格](single-player/ai-personalities.md) · [实施验证](single-player/ai-skill-implementation-2026-10-03.md) · [试玩清单](single-player/ai-skill-playtest.md) |
+| AI 技能人格规格与本次实现（玩法深化去掉全局施法锁后，“任何两个技能不会同时生效”已不成立；技能管线与五人格已在 A7 AI 适配后按新规则改写，实施验证与试玩清单是旧规则的记录） | [技能管线](single-player/ai-skills.md) · [五人格](single-player/ai-personalities.md) · [实施验证](single-player/ai-skill-implementation-2026-10-03.md) · [试玩清单](single-player/ai-skill-playtest.md) |
 | 1–6 人开场路径、idle、开场玩家标识与联机后续 | [single-player/intro-presentation-2026-10-03.md](single-player/intro-presentation-2026-10-03.md) |
 | PR #59 代码复核与四轮清理记录 | [single-player/pr59-code-review-2026-10-04.md](single-player/pr59-code-review-2026-10-04.md) |
 | 特效资源恢复与洋红/不可见特效修复 | [vfx-asset-recovery.md](vfx-asset-recovery.md) |
@@ -20,7 +20,7 @@
 | 玩法深化：缘起、执念与反噬、单键施法与鼠标瞄准、训练木桩（阶段 A/B 和 A7 AI 适配已实现；联机验证和用户试玩未做） | [gameplay/README.md](gameplay/README.md) |
 | 缘起技能设计：每一对缘起的内容 | [gameplay/yuanqi.md](gameplay/yuanqi.md) |
 | 缘起架构设计：模块边界、配表扩展、禅足冰封的构筑（已实现） | [gameplay/yuanqi-architecture.md](gameplay/yuanqi-architecture.md) |
-| 训练模式验证记录：13 个场景的实测值与重跑方法（2026-10-26，只覆盖本机 host） | [gameplay/practice-verification.md](gameplay/practice-verification.md) |
+| 训练模式验证记录：14 个场景的实测值与重跑方法（2026-10-26 起，2026-10-30 A8 加了 S13；只覆盖本机 host） | [gameplay/practice-verification.md](gameplay/practice-verification.md) |
 | RaceMap 渲染：日落光照、手写天空、平面反射（原 SSR）、阴影距离、`BuddahGo/Lit`、复调清单与编辑器陷阱 | [rendering/racemap/README.md](rendering/racemap/README.md) |
 | 渲染 shader 开源库调研与效果对比样板间（样板间工程仅在本地） | [rendering/shader-repo-survey.md](rendering/shader-repo-survey.md) · [rendering/showcase/README.md](rendering/showcase/README.md) |
 | 画质设置：选项与档位规格（配表 `Graphics.xlsx`）、运行时模型与接口、菜单接入点、未实现与占位清单 | [rendering/graphics-settings.md](rendering/graphics-settings.md) |

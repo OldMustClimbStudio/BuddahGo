@@ -23,7 +23,7 @@ namespace BuddahGo.Match
         public MatchReturnTarget ReturnTarget => R != null && R.returnTarget == "Room" ? MatchReturnTarget.Room : MatchReturnTarget.MainMenuHome;
         public bool EndWhenAllRacersFinished => R?.endWhenAllRacersFinished ?? true;
         public bool EndOnHumanFinish => _aiCount == 0;
-        public bool SpawnTrainingDummies => _aiCount == 0; // Practice; phase B may move this into the ModeRule row.
+        public bool SpawnTrainingDummies => _aiCount == 0; // Practice only; the count and layout are the Match/ModeRule Practice row.
         public bool AllowSkipSpectating => R?.allowSkipSpectating ?? false; // S6
         public bool AllowQuitDialog => R?.allowQuitDialog ?? true;
         public bool AllowPause => R?.allowPause ?? false; // S7

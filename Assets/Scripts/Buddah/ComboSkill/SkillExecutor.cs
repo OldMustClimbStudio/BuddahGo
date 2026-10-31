@@ -927,7 +927,7 @@ public class SkillExecutor : NetworkBehaviour
 
     /// <summary>
     /// Server: freezes this racer (frost lock). Also interrupts its confirming cast: the cast is cancelled and that
-    /// slot's cooldown is refunded (only this freeze path refunds), and pending AI combo keys and hand input are dropped.
+    /// slot's cooldown is refunded (only this freeze path refunds), and pending hand input is dropped.
     /// A confirming backfire survives the freeze (SkillCastRules.DropsPendingCast, user rule 2026-10-26): its cooldown
     /// stays spent, nothing is refunded, and the penalty starts when its confirm window ends.
     /// </summary>

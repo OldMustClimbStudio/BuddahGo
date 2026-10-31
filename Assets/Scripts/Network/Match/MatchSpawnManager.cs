@@ -25,7 +25,7 @@ namespace SteamMultiplayer.Network.Match
         [Header("Practice Training Dummies")]
         [SerializeField, Min(0)] private int _trainingDummyCount = 3;
         [SerializeField, Min(0f)] private float _trainingDummySpacingMeters = 15f;
-        [Tooltip("Track distance from the projected launch point to the first dummy. On RaceMap the launch point projects about 37 m before the start line and the launch handoff (0.2 s inherit + 0.32 s blend) covers about 31 m at the 60 m/s intro speed, so 90 m puts the dummies about 53, 68 and 83 m past the line: on the first straight, clear of the intro flight (which ends at the launch point) and of the launch handoff.")]
+        [Tooltip("Track distance from the projected launch point to the first dummy. On RaceMap the launch point projects about 37 m before the start line, so 90 m puts the dummies about 53, 68 and 83 m past the line: on the first straight, clear of the intro flight (which ends at the launch point) and of the first second of the fully physical launch (about 60 m at the 60 m/s intro speed).")]
         [SerializeField] private float _trainingDummyStartOffsetMeters = 90f;
         [Tooltip("Side offset of the left and right dummies from the racing line. The racer body is about 7.8 m wide; each side is also clamped by the wall measured on that side.")]
         [SerializeField, Min(0f)] private float _trainingDummyLateralOffsetMeters = 10f;

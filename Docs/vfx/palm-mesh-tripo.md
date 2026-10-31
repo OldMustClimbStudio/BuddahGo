@@ -770,3 +770,10 @@ CPU 侧每 tick 0.18 ms（只是 dispatch 开销，GPU 时间未测）。截图 
 - 轮廓变弱：性能会话把 `FX_InkVolume` 的 SDF 法线改成"光线第一次碰到雾之后就冻结为入射法线"，但 `Density()` 里的剪影轮廓项（`rim = (1 − |n·rd|)^power`，让掠射处的雾收紧、剪影读得出）和掌 / 背面密度都靠每步的局部法线，冻结后手指深处和背面的轮廓全丢，形体变平。折中：样本落在表面带附近（`|sdf − centre| < 2.5 × bandWidth`）时仍每步算法线，其余（深处、远外）复用入射法线——表面带只占步数的一小部分，性能省的大头还在。prefab 已应用、场景已保存。
 
 实例当前的本体值（用户调过）：innerSolid 0.164、发光 2.56、外层雾 0.424 / 伸 5.9。
+
+### 20.15 减负重构（2026-10-31，代码，不改表现）
+
+- `PalmInkTimeline` 删掉粒子发射驱动（墨手 prefab 里已经没有粒子系统）和从未读过的 `gatherBandScale`；`InkFluidVolume.bandScale` 删掉（时间轴每帧写 1，`_SurfaceBand` 就等于 `surfaceBand`）。上面 20.5 表里"`bandScale` 固定 1"即此。
+- `InkFluidVolume` 删掉无人读的 `ActiveCount`、`DensityTexture`、`SpeedFactor`、`AnchorCentre`；自检探针 `ReadStats` / `ReadBounds` / `CellToWorld` 和 `SimulatingCount` / `GpuBytes` / `PooledCount` / `IsSimulating` 保留。
+- `PalmInkLayerSwitch` 只剩 `Mesh` / `Volume` 两个开关：`SurfaceSmoke`、`SurfaceWisps`、`InkFluid*` 面片都已退役，三维流体画在自己的隐藏世界盒上，不归这个开关管。
+- 逐项理由见 [retired.md 6.4](retired.md)。

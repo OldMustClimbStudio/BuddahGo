@@ -153,4 +153,28 @@ GUID 搜不到引用，但可能被代码按名字加载（`Shader.Find`、`Reso
 | `禅定缓流/阵法-完整黑底.png` | `Assets/Plugins/Piloto Studio/Materials/Fire/Character_Fire_Aura_add.mat`、`Character_Fire_Aura_Alpha.mat`（已跟踪的旧包）引用 | 那两个材质无人用；是否连旧包目录一起清由用户定 |
 | 第 5 节的 `SG_Transparent`、`地图/SG_Trail`、`VisualEffectGraph/角色Glow.shadergraph`、`ShaderGraph/一念光明/`、`一念光明/Shader Graphs_SG_BlackCurtain.mat` | 0 引用，但不是这轮重做留下的 | 用户决定 |
 | `Assets/VFX/Shared/预选/` 四个 prefab | 用户自建，仍引用包目录 | 用户决定 |
-| 第 3 节里只在文件内部的代码项：`ChargedHandProjectileRuntime` 的 VFX Graph 进度链与线性减速、`BuddahHandControl.FireChargedProjectileImmediate` / `FireProjectileBurstImmediate` 与 `_projectileChargedVisualPrefabServer` 一组、`ProjectileBurstParameters.spawnVisuals` 等、`launchEffectPrefab` | 是活文件里的死代码，不是独立文件；这次只做文件级退役 | 下一轮单独做 |
+| 第 3 节里只在文件内部的代码项：`ChargedHandProjectileRuntime` 的 VFX Graph 进度链与线性减速、`BuddahHandControl.FireChargedProjectileImmediate` / `FireProjectileBurstImmediate` 与 `_projectileChargedVisualPrefabServer` 一组、`ProjectileBurstParameters.spawnVisuals` 等、`launchEffectPrefab` | 是活文件里的死代码，不是独立文件；这次只做文件级退役 | **2026-10-31 已删**（减负重构，见 6.4） |
+
+## 6.4 2026-10-31 减负重构删除记录
+
+用户要求"表现力不要做减法，legacy code、手写代码优化要做"。只动代码，prefab、shader、视觉参数一律没碰。每项删前在代码、测试、`Tools/`、prefab / SO / 场景的 GUID 与字段名里搜过，均无读者；验证结果写在 PR #68 正文"减负重构"一段。
+
+| 提交 | 删掉的代码 | 为什么行为不变 |
+|---|---|---|
+| aa29aa72 | `BuddahHandControl.FireProjectileBurstImmediate`、`FireChargedProjectileImmediate`；`SpawnChargedProjectileBurst` 的 `if (burst.spawnVisuals)` 段；`ProjectileBurstParameters.spawnVisuals` / `visualPrefabOverride` / `progressPropertyOverride` | 两个方法 0 调用方；唯一的弹幕调用方总传 false / null，弹幕视觉一直由 `SkillExecutor.PlayChargedBurstVisualsObserversRpc` 在各客户端生成 |
+| 9b672b2b | `ChargedHandProjectileRuntime` 的 `launchEffectPrefab` / `launchEffectWorldOffset` / `SpawnLaunchEffect`、VFX Graph 进度（`_visualEffects`、`PlayAllVisualEffects`、`SetProgress` 的 VFX Graph 部分）和 `progressProperty` 参数链（`SpawnVisual`、`SpawnChargedBurstVisualsAtPositions`、`SkillExecutor` 与视觉 RPC 的实参） | 没有调用方传启动特效；4 个掌 prefab 都没有 `VisualEffect`，`Buddah.prefab` 的 `projectilePrefab` 为空；`SetProgress` 照旧喂插槽的 `SetChargeProgress` |
+| 635d96b3 | `ChargedHandProjectileRuntime.GetCurrentFlightSpeed` / `FlightEndSpeedFraction`（无曲线时的线性减速）、`TryStopAtSolidWorld` / `ShouldIgnoreSolidHit` / `_ignoreSolidWorld`；`SpawnServer`、`SpawnChargedProjectileServer` 的 `ignoreSolidWorld` 参数和 `ProjectileBurstParameters.ignoreSolidWorld` | 所有判定盒都带技能的速度曲线，`speedCurve` 改成必填；墙体扫掠从未被调用（掌一直穿墙）。普通投射物 `HandPushProjectileRuntime` 不动 |
+| a3545a00 | `BuddahHandControl._projectileChargedVisualPrefabServer` / `_projectileChargedProgressPropertyServer` / `DefaultChargedProjectileProgressProperty` / `_projectileIgnoreSolidWorldServer`，`ActivateProjectilePushMode` 的 `chargedVisualPrefab` / `chargedProgressProperty` / `ignoreSolidWorld` 参数，`Skill_PushProjectileHands.ignoreSolidWorld` 字段 | 技能总传 null / null，读出来的局部变量没人用；墙体开关没有读者。技能资产里存的 `ignoreSolidWorld: 0` 下次保存时由 Unity 丢弃 |
+| 2e448f40 | `SkillVfxPhaseController.NotifyHit`（空占位）；`SkillVfxVisualValues.farThresholdMeters` / `postPulseSeconds`；`Evaluate` 与 `LongestLayerSeconds` 各自的窗口公式改调 `LayerWindow` | 0 调用方 / 无读者；`LayerWindow` 在 Configure 之后用的是同一个 `_visual`，算出的起止时间相同。表里 `far_threshold_m` / `post_pulse_seconds` 两列照旧作为规格保留 |
+| 608229a7 | `SkillVfxReplicator.PlayVfxInternal`（并入 `PlaySlot(vfxId, seconds, warn)`） | RPC 路径照旧打印同样三条警告，本地路径照旧静默；RPC 名字、参数、声明顺序不变 |
+| 1d6f97e1 | `PalmInkTimeline` 的粒子发射驱动（`particles` / `baseRates`）和 `gatherBandScale`；`InkFluidVolume.bandScale`、`ActiveCount`、`DensityTexture`、`SpeedFactor`、`AnchorCentre` | 墨手 prefab 里 0 个粒子系统；`bandScale` 恒为 1（`_SurfaceBand` 不变）；getter 无读者。探针 `ReadStats` / `ReadBounds` / `CellToWorld` 和测试、vfxperf 用的计数保留 |
+| 7339f2f1 | `PalmInkLayerSwitch` 的 Smoke / Wisps / Fluid 开关 | prefab 里没有 `SurfaceSmoke` / `SurfaceWisps`，`InkFluid3D` 子物体没有 Renderer；`solo` 的 0 / 1 / 2 含义不变 |
+| 867971e8 | `PalmFrontalProto` 与 `SkillReleaseProto` 各自的位姿换算、PreviewDriver 设置、`Child` | 合成 `SkillReleaseProto.WriteCasterPose` / `PointDriver` / `Child`；菜单和公开入口不变 |
+| ea356a45 | `Tools/vfxperf` 五个脚本各自的 `res()`、`in_race()`、找本地玩家与记帧的 C# 片段 | 收进 `shots.py`；输出列、反射名、分段打印不变。`racestart.py` 改用 runpy 执行，不再覆盖调用方的 `OUT`（`palmshot.py` 的截图从此按文档落在 `shots/`） |
+
+这次刻意没做：
+
+- `PalmMeshTripo` 的去重：抽出公共函数后文件反而多 20 行，`Start` / `Poll` 又只能花额度验证，撤回不动。
+- prefab 盘点的 P1（删 16 个不发射的空壳粒子系统）和 P2–P7：会碰 prefab，等用户另定（DefaultHD 空壳节点、`Ground_2` 两个问题未答）。
+- VfxRegistry 的 `followTargetPosition` / `inheritTargetRotation` / `inheritTargetScale` 三列：只在 `Skill.xlsx` 和导出 CSV 里（生成代码里已经没有），改表要走配表流程，且 `Skill.xlsx` 正有别的会话的未提交改动。
+- `PlayerBlackCurtainTrail` 及 `BuddahRespawn` / `BuddahPredictedMotor.Events` 里的清拖尾调用：`VFX_Curtain_Release` 还挂着，等用户换成层控制拖尾（6.3）。

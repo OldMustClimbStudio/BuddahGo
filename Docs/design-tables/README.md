@@ -121,7 +121,7 @@ Library/DesignTables/import-state.txt 每台机器的工作簿哈希（不提交
 
 - 只记录、不接运行时：SkillConstant / DrivingConstant（代码与 prefab 常量）、ModifierRule 叠加策略、Respawn 的 teleport 标志列、Movement 的三个起跑常量列、ResultVoteRule 法定规则、IntroLayout、SkillIcon 的资源引用。
 - 代码待办（结构审计 A8 / C1）：ObsessionFigure 改为读全局单例而非每角色一份；四个 manager 的时长字段只读 ModeRule 后删除自己的序列化字段。结构审计 A7（HUD 按键 token 由表生成）随玩家搓招退役不再需要：token 图已隐藏；`Skill/ComboInput`、`Skill/ComboBinding` 已删除（玩法 A7，AI 适配：`ComboSkillInput` 删除，AI 直接调 `SkillExecutor.CastSlotServer`），`__enums__` 的 `ComboToken` 一并删除；`AI/SkillTuning` 的搓招列（`keyMinSeconds`、`keyMaxSeconds`、`maxComboRetries`）、`severeSeverityThreshold`、`scaleShrunkThreshold`，`AI/SkillDifficulty` 的 `keyMistakeProbability`、`mildStopProbability`，`AI/SkillOpportunity.backlashSeverity` 删除；`severeStopProbability` 改名 `stopProbability`；新增 `SkillTuning.backfireCost` 与五个 `yuanqi*` 缘起决策参数、`Personality.yuanqiAffinity`（默认值都是建议（实现采用））。
-- 逆转技能 HUD 贴图文件名 `逆姻缘.png` 与中文一致（2026-10-13 定为「逆姻缘」）；`giant_anti` 行已在阶段 B 删除（16121ed），`skill.giant_anti.*` 文案 key 保留。
+- 逆转技能 HUD 贴图文件名 `逆姻缘.png` 与中文一致（2026-10-13 定为「逆姻缘」）；`giant_anti` 行已在阶段 B 删除（16121ed），`skill.*_anti.*` 文案 key、`SkillId` 的 `*_anti` 枚举值和 `VfxRegistry` 的两个反噬 id 在 2026-10-31 退役清理时删除（[退役记录](../gameplay/retired.md)）。
 - `UI/Text` 里 `ui.<class>.<slug>` 形式的自动 key 需要策划定稿命名后，再替换代码里的 UI 字面量。
 - 技能 SO、Buddah.prefab 与 `Tools/ai/difficulty-*.json` 上已被表接管的重复字段尚未删除；`AIDifficultyAssetTool` 待退役。阶段 B 接上的 `ObsessionFigure` 五个同招加价与反噬惩罚字段、`Yuanqi_*` SO 字段和 `MatchSpawnManager` 的五个木桩字段同样保留，只作无表行时的兜底。
 - 中文文案进表后若新增字符，`Assets/Fonts/SoloCJK` 的静态字体子集需要重烘。2026-10-26 新增的缘起文案（`yuanqi.*`）用到子集外的字：名称缺巨、冰、封、破、阵，描述还缺冻、突等；HUD 在字体缺字时把缘起名称退回显示 id。A6 HUD 标签（`InGameHudLabels`，可选 key `hud.*`，`UI/Text` 里还没有这些行）里「冻结」「缘起」缺冻、起，退回英文。

@@ -310,7 +310,7 @@
 | SkillPresentation / SkillConstant / SkillSelectionRule | 各自的 `*_anti` 行（SkillSelectionRule 是 6 行 Hidden） | 无 |
 | FeelEvent | `acceleration_anti_observers`、`blackcurtain_anti_observers` | 无 |
 
-保留：`FeelEvent` 的 `Anti_Reflection_Shared / Local`（统一反噬反馈）、`VfxRegistry` 的反噬 id、`Global/__enums__` 里 `SkillId` 的 6 个 anti 值、`UI/Text` 的 `skill.*_anti.*` 文案；`ComboInput / ComboBinding` 已在 A7 删除（AI 不再逐键搓招，`ComboSkillInput` 删除）。
+保留：`FeelEvent` 的 `Anti_Reflection_Shared / Local`（统一反噬反馈）。`VfxRegistry` 的反噬 id、`Global/__enums__` 里 `SkillId` 的 6 个 anti 值、`UI/Text` 的 `skill.*_anti.*` 文案当时也保留，2026-10-31 删除（[退役记录](../gameplay/retired.md)）；`ComboInput / ComboBinding` 已在 A7 删除（AI 不再逐键搓招，`ComboSkillInput` 删除）。
 
 新增缘起表（结构见 [yuanqi-architecture.md](../gameplay/yuanqi-architecture.md) §3，字段名就是 SO 字段名）：
 

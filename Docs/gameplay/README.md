@@ -174,7 +174,7 @@
 | 新增参数 | 阶段 A 新增的参数（如同招加价的 5 秒、×1.15）先写成组件或 SO 上的序列化字段，带默认值；阶段 B 再接进配表，默认值就是表里的初值 | 已定 |
 | 配表结构 | 阶段 A 不改 xlsx 的表头和 sheet；退役的行和列先留在表里，代码不再读取，阶段 B 再删。这样阶段 A 中途导表和校验不会坏 | 已定 |
 
-每一步写清：改哪里、新增、退役、网络与预测、训练模式怎么验证、完成标准。A1–A6 按实现写（0dbc551），A7 按实现写（ac3d5fe），A8 按实现写（d6fc63b1、a5dc8808）。验证结果引用 [训练模式验证记录](practice-verification.md) 的场景编号 S0–S13。
+每一步写清：改哪里、新增、退役、网络与预测、训练模式怎么验证、完成标准。A1–A6 按实现写（0dbc551），A7 按实现写（ac3d5fe），A8 按实现写（d6fc63b1、a5dc8808）。验证结果引用 [训练模式验证记录](practice-verification.md) 的场景编号 S0–S13。这次机制更新退役的代码、资产、配表和文档见 [退役记录](retired.md)。
 
 ### 7.1 阶段 A：机制
 
@@ -219,7 +219,7 @@
 |---|---|
 | 改哪里 | 技能键：`SkillExecutor` 的 owner 绑定 `InputSystem_Actions.Player.SkillSlot1–3`，`OnSkillKeyPressed → RequestCast`；玩家不再经过 `ComboSkillInput.OnSkillSlotTriggered`（当时只剩服务器 AI 订阅它，A7 已连组件一起删除）。瞄准与推掌：`BuddahHandControl`，光标射线投到过 racer 高度的水平面取方向，`HandAimMath` 先平滑、再按 `rotationSpeedDegPerSec` 限速；`HandPush` 加鼠标左/右键。`PlayerBuddahInputSource` 没有改 |
 | 新增 | `InputSystem_Actions` 的 `SkillSlot1–3`（Q/E/R 与 1/2/3，`.inputactions` 和生成的 `.cs`）和 `HandPush` 的 `<Mouse>/leftButton`、`<Mouse>/rightButton`；`BuddahHandControl` 的 `useMouseAim`、`mouseAimSmoothingSeconds`（0.06 秒）、`mouseAimDeadRadius`（1.5 米，随体型放大）、`mouseAimPlaneHeightOffset`，这几个值是建议（实现采用），试玩再调；转手上限沿用 `Push.basic.rotationSpeedDegPerSec` 180°/s |
-| 退役 | 玩家侧的搓招：`ComboSkillInput` 的 owner 不再启用输入、不再监听 `HandPush`；HUD 搓招进度（槽位的 W/↑ token 运行时隐藏）。`ComboSkillInput` 当时保留给 AI 逐键搓招，A7 已连同两张搓招表一起删除 |
+| 退役 | 玩家侧的搓招：`ComboSkillInput` 的 owner 不再启用输入、不再监听 `HandPush`；HUD 搓招进度（槽位的 W/↑ token 先在运行时隐藏，2026-10-31 连图一起删除）。`ComboSkillInput` 当时保留给 AI 逐键搓招，A7 已连同两张搓招表一起删除 |
 | 网络与预测 | 手部 yaw 仍经 `BuddahHandControl.TrySendYawToServer` 同步，网络结构不变；施法请求仍走 `RequestCast → CastSlotServerRpc` |
 | 训练模式验证 | 结果见 S1、S2：Q / 2 / R 放出槽 0、1、2，W 和 `W↑W` 都不施法；手部朝向到达光标目标 ±3°，最大转速 180°/s；左键只推左手、右键只推右手。“鼠标转手不抽搐”和“对木桩的神掌命中率比方向键明显提高”要用户试玩确认 |
 | 完成标准 | 玩家侧不再经过搓招就能施法；单人赛里的 AI 仍能照常施法（A7 起 AI 直接调用 `CastSlotServer`） |
@@ -271,7 +271,7 @@
 | 项 | 内容 |
 |---|---|
 | 改哪里 | `SkillSlotUI`（状态在 `SkillSlotHudTimeline`）：每槽冷却、键位（Q/1、E/2、R/3）、同招加价窗口（冷却结束后 5 秒内显示下一次的执念倍率和窗口剩余秒数）、反噬锁和冻结时三个槽的倒计时；`ObsessionUI`：当前反噬概率是主数字，惩罚期间显示剩余秒数；`YuanqiToastUI`（`RaceMapUIBootstrap` 运行时挂到 HUD 画布）：施法者自己的缘起提示（`LocalYuanqiTriggered`）；选技能界面 `PropertiesSelectorUI` 在技能阶段列出本套配装能触发的缘起（`YuanqiCatalog.ForLoadout`，和服务器登记同一个答案） |
-| 退役 | 搓招进度（槽位的 W/↑ token 运行时隐藏）、全局施法锁的 UI（`LocalSkillUiEvent.CastLockSeconds`、2 秒假锁 `fallbackCastLockSeconds`）；`UI/UiTiming` 里 `SkillSlotUI` 的三行一并删除 |
+| 退役 | 搓招进度（槽位的 W/↑ token 运行时隐藏，2026-10-31 连图一起删除）、全局施法锁的 UI（`LocalSkillUiEvent.CastLockSeconds`、2 秒假锁 `fallbackCastLockSeconds`）；`UI/UiTiming` 里 `SkillSlotUI` 的三行一并删除 |
 | 计时口径 | 冷却和同招加价窗口按服务器执行时的 tick 定锚（`CastObserversRpc` / `BackfireSkillUiTargetRpc` 带 `serverTick`，`LocalSkillUiEvent.SecondsSinceServerEvent` = 本端估算的服务器 tick 减去它），不按 RPC 到达时刻，否则远端客户端会晚一个完整 RTT。和反噬、冻结计时一样以服务器时钟为准，远端只剩上行延迟（约 RTT/2）的偏差，方向安全：显示就绪后按下，请求到达服务器时冷却已经结束（本端估算服务器 tick 的误差只有一两个 tick，小于上行延迟）；窗口最后约半个 RTT 显示的加价实际不会收（对玩家有利）。host 与训练模式没有偏差 |
 | 文字 | 中文只用 SoloCJK 字体子集里有的字（`InGameHudLabels`，`InGameHudTests` 检查）；“冻”“起”不在子集里，“冻结”显示 FROZEN，缘起名显示英文或 id，等子集重烘（第 8 节） |
 | 训练模式验证 | 结果见 S11、S5、S6：槽位显示 Q/1、E/2、R/3，冷却 4.5s，“反噬 47%”（执念 495），惩罚中三个槽“反噬 9.6s”，冻结时 FROZEN |
@@ -318,7 +318,7 @@
 | A1 木桩 | 并进 `Match/ModeRule`：五列 `trainingDummyCount`、`trainingDummySpacingMeters`、`trainingDummyStartOffsetMeters`、`trainingDummyLateralOffsetMeters`、`trainingDummyResetDelaySeconds`（Practice 行 3 / 15 / 90 / 10 / 3，Online / Solo 的数量填 0）。`MatchSpawnManager` 只读 Practice 行（`TrainingDummyModeRuleMap`）；是否生成仍由代码里的 `IMatchRules.SpawnTrainingDummies` 决定 | 已完成 |
 | A2 操作 | `Push.rotationSpeedDegPerSec` 的 `##comment` 改成“鼠标转手速度上限”（方向键回退和 AI 也用它）；键位不做成可配，文档表 `Global/InputBinding` 列出 Q/E/R + 1/2/3、鼠标左/右键推掌、←/→ 回退，W/↑ 标为废弃 | 已完成 |
 | A3 节奏 | 删除 `Skill.castLockSeconds`（没有改成全局短间隔） | 已完成 |
-| A4 反噬 | 删除 `Skill` 表 6 行 `_anti` 和 `antiSkillId` 列；删掉 `SkillEffect*` 的反噬行与反噬列、`Push` 的 `charged_anti` 行和它专用的列、`SkillConstant`、`SkillSelectionRule`（Hidden）、`SkillPresentation`、`FeelEvent` 的反噬行；保留 `Anti_Reflection_*` 表现、`VfxRegistry` 的反噬 id、`__enums__` 里 `SkillId` 的反噬值和 `UI/Text` 的反噬文案 key。`Obsession` 新增 `repeatWindowSeconds` 5、`repeatGainMultiplier` 1.15、`backfireLockSeconds` 10、`backfireMaxSpeedMultiplier` 0.85、`backfireEndKeepRatio` 0.8。依赖 `antiSkillId` 的校验规则一起改 | 已完成 |
+| A4 反噬 | 删除 `Skill` 表 6 行 `_anti` 和 `antiSkillId` 列；删掉 `SkillEffect*` 的反噬行与反噬列、`Push` 的 `charged_anti` 行和它专用的列、`SkillConstant`、`SkillSelectionRule`（Hidden）、`SkillPresentation`、`FeelEvent` 的反噬行；保留 `Anti_Reflection_*` 表现（统一反噬的前摇在用）；`VfxRegistry` 的反噬 id、`__enums__` 里 `SkillId` 的反噬值和 `UI/Text` 的反噬文案 key 当时也保留，2026-10-31 退役清理时因无读取方删除（[退役记录](retired.md)）。`Obsession` 新增 `repeatWindowSeconds` 5、`repeatGainMultiplier` 1.15、`backfireLockSeconds` 10、`backfireMaxSpeedMultiplier` 0.85、`backfireEndKeepRatio` 0.8。依赖 `antiSkillId` 的校验规则一起改 | 已完成 |
 | A5 缘起 | 新增 `Skill/Yuanqi`（缘起 id、两招、`consumeA / consumeB`、`mode`、`retriggerPolicy`、`isEnabled`、文案 key）和家族表 `YuanqiEffectFrostLock`（N、R、是否冻木桩）、`YuanqiEffectGiantCharge`（突进限速、回落秒数、M）；`__enums__` 加 `YuanqiId`、`YuanqiMode`、`YuanqiRetrigger`；`UI/Text` 加 `yuanqi.<id>.name / .desc`。#1 没有参数，不建家族表。表结构见 [缘起架构设计 §3](yuanqi-architecture.md) | 已完成 |
 | 预测修饰 | `ModifierCommandType` 加 `Freeze`、`EndModifier`、`Burst`、`MaxSpeedMultiplier`，`ModifierRule` 加四行，`StackPolicy` 加 `Restart`；`StructuralConstant.prediction_protocol_version` = 2 | 已完成 |
 | A6 HUD | `UI/UiTiming` 删掉 `SkillSlotUI` 的 `successHoldSeconds`、`fallbackCastLockSeconds`、`previewTimeoutSeconds` | 已完成 |
@@ -354,6 +354,7 @@
 - [ ] AI 已接受的施法在机会过期时不撤回（真人也撤不回，撤回不退冷却）是建议（实现采用），用户没裁定
 - [ ] 松开 W 后的滑行：没有刹车，只靠地面摩擦减速（训练模式实测 约 1.95–1.97 m/s²），按这个减速度从 80 m/s 滑到停约 41 秒、约 1.6 千米；要不要加松开减速或刹车，等试玩再定（建议先保持，已定的是“只撤推进力”）
 - [ ] 是否入表（design-tables 决定 4，需用户确认）：鼠标瞄准平滑 `BuddahHandControl.mouseAimSmoothingSeconds` 0.06 秒和死区 `mouseAimDeadRadius` 1.5 米目前只是代码序列化默认值，按 7.2 的完成标准（代码里不再有阶段 A 的默认值作为数值来源）应进 `Skill/Push` basic 行（建议作 adv 列）；木桩复位阈值（`TrainingDummy.disturbedContactSpeed` 0.5 m/s 等）和表现、HUD 布局参数按范围线可以留在代码
+- [ ] 神足通、缓流、神掌 SO 资产上的时长和冷却（10 / 12、10 / 12、冷却 18）和配表（3 / 5、6 / 8、12）不一致；运行时以表为准，只在无表时生效。改成表值，还是按设计表 README 的遗留清单删掉这些被表接管的字段（2026-10-31 退役清理提出，见 [退役记录](retired.md) 第 6 节）
 
 已答复：
 

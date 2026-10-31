@@ -10,7 +10,7 @@ Now one penalty applies to every skill. The backfire is still rolled from obsess
 
 ## Consequences
 
-- The six `Skill_*_Anti` classes and assets, `SkillAction.antiSkillId`, `BuddahHandControl.FireChargedProjectileBurstReplicated`, the `Skill.antiSkillId` column and every `_anti` table row are gone. The shared presentation reuses the old anti assets: the `IsAnti` animator trigger and the `Anti_Reflection_Shared` / `Anti_Reflection_Local` feel events. The `_anti` values in the `SkillId` enum, the VFX registry ids and the text keys are kept.
+- The six `Skill_*_Anti` classes and assets, `SkillAction.antiSkillId`, `BuddahHandControl.FireChargedProjectileBurstReplicated`, the `Skill.antiSkillId` column and every `_anti` table row are gone. The shared presentation reuses the old anti assets: the `IsAnti` animator trigger and the `Anti_Reflection_Shared` / `Anti_Reflection_Local` feel events. The `_anti` values in the `SkillId` enum, the VFX registry ids and the text keys were kept at first; nothing read them, and the 2026-10-31 retirement pass deleted them (`Docs/gameplay/retired.md`).
 - A backfired cast ends with `CastStage.Executed` and `CastEvent.IsBacklash = true`; the field keeps its old name.
 - The values are table columns of `Skill/Obsession`: `backfireLockSeconds` 10, `backfireMaxSpeedMultiplier` 0.85 and `backfireEndKeepRatio` 0.8 (a provisional value).
 - The user's "反作用" idea (buffs on the caster may flip during a backfire) is 待确认 and not implemented.

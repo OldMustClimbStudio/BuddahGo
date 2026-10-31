@@ -168,16 +168,7 @@ namespace BuddahGo.VFX.EditorTools
             if (layer == null)
                 return placeholder.name + " has no CasterRelative / CasterAttached / CasterFollow layer";
 
-            float scale = Mathf.Abs(player.lossyScale.y);
-            Quaternion yaw = Quaternion.Euler(0f, player.eulerAngles.y, 0f);
-            Vector3 launchOffset = LaunchOffsetOf(placeholder);
-            Vector3 worldPos = layer.transform.position;
-            Quaternion worldRot = layer.transform.rotation;
-
-            layer.casterOffset = Quaternion.Inverse(yaw) * (worldPos - player.position) / scale;
-            layer.casterEuler = (Quaternion.Inverse(yaw) * worldRot).eulerAngles;
-            placeholder.transform.SetPositionAndRotation(player.position + yaw * (launchOffset * scale), yaw);
-            layer.transform.SetPositionAndRotation(worldPos, worldRot);
+            WriteCasterPose(layer, placeholder.transform, player, LaunchOffsetOf(placeholder));
             foreach (ParticleSystem ps in layer.GetComponentsInChildren<ParticleSystem>(true))
             {
                 ParticleSystem.MainModule main = ps.main;
@@ -223,12 +214,7 @@ namespace BuddahGo.VFX.EditorTools
             Transform player = FindRoot("Player");
             if (driver == null || player == null)
                 return "VFXtests needs PreviewDriver and Player";
-            driver.projectilePrefab = prefab;
-            driver.buffPrefab = null;
-            driver.caster = player;
-            driver.freezeAt = freezeAt;
-            driver.timeScale = 1f;
-            driver.repeat = freezeAt < 0f;
+            PointDriver(driver, prefab, player, freezeAt);
             var motion = driver.GetComponent<SkillVfxPreviewCasterMotion>();
             if (motion == null)
                 motion = driver.gameObject.AddComponent<SkillVfxPreviewCasterMotion>();
@@ -260,11 +246,36 @@ namespace BuddahGo.VFX.EditorTools
             return null;
         }
 
-        static Transform Child(Transform parent, string name)
+        internal static Transform Child(Transform parent, string name)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             return go.transform;
+        }
+
+        // The layer stays where it was placed by hand: its world pose relative to the player becomes the
+        // CasterRelative offset (player frame, player scale 1), and the placeholder root goes back to its launch point.
+        internal static void WriteCasterPose(SkillVfxLayer layer, Transform placeholder, Transform player, Vector3 launchOffset)
+        {
+            float scale = Mathf.Abs(player.lossyScale.y);
+            Quaternion yaw = Quaternion.Euler(0f, player.eulerAngles.y, 0f);
+            Vector3 worldPos = layer.transform.position;
+            Quaternion worldRot = layer.transform.rotation;
+            layer.casterOffset = Quaternion.Inverse(yaw) * (worldPos - player.position) / scale;
+            layer.casterEuler = (Quaternion.Inverse(yaw) * worldRot).eulerAngles;
+            placeholder.SetPositionAndRotation(player.position + yaw * (launchOffset * scale), yaw);
+            layer.transform.SetPositionAndRotation(worldPos, worldRot);
+        }
+
+        // Points the VFXtests PreviewDriver at one effect prefab, played on `caster`; freezeAt < 0 loops.
+        internal static void PointDriver(SkillVfxPreviewDriver driver, GameObject prefab, Transform caster, float freezeAt)
+        {
+            driver.projectilePrefab = prefab;
+            driver.buffPrefab = null;
+            driver.caster = caster;
+            driver.freezeAt = freezeAt;
+            driver.timeScale = 1f;
+            driver.repeat = freezeAt < 0f;
         }
     }
 }

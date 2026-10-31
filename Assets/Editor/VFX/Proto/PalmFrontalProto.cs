@@ -43,12 +43,12 @@ namespace BuddahGo.VFX.EditorTools
 
             var root = new GameObject("VFX_Palm_Release");
             var controller = root.AddComponent<SkillVfxPhaseController>();
-            Transform scaled = Child(root.transform, "Scaled");
-            Transform bodyFit = Child(scaled, "BodyFit");
+            Transform scaled = SkillReleaseProto.Child(root.transform, "Scaled");
+            Transform bodyFit = SkillReleaseProto.Child(scaled, "BodyFit");
             SetController(controller, "palm_release", scaled, bodyFit);
 
             // Imp: the Frontal burst, left at the launch point (the root flies on without it).
-            var layer = Child(scaled, "FX_Palm_Imp_C_Smoke_01").gameObject.AddComponent<SkillVfxLayer>();
+            var layer = SkillReleaseProto.Child(scaled, "FX_Palm_Imp_C_Smoke_01").gameObject.AddComponent<SkillVfxLayer>();
             layer.phase = SkillVfxPhase.Imp;
             layer.tier = SkillVfxTier.Core;
             layer.function = SkillVfxFunction.Smoke;
@@ -93,13 +93,6 @@ namespace BuddahGo.VFX.EditorTools
             return "built " + PrefabPath + " (" + frontal.GetComponentsInChildren<ParticleSystem>(true).Length + " particle systems)";
         }
 
-        static Transform Child(Transform parent, string name)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            return go.transform;
-        }
-
         static void SetController(SkillVfxPhaseController controller, string vfxId, Transform scaled, Transform bodyFit)
         {
             var so = new SerializedObject(controller);
@@ -125,19 +118,10 @@ namespace BuddahGo.VFX.EditorTools
             if (player == null || placeholder == null)
                 return "VFXtests needs Player and " + PlaceholderName;
             SkillVfxLayer layer = placeholder.GetComponentInChildren<SkillVfxLayer>(true);
-            Transform p = player.transform;
-            float scale = Mathf.Abs(p.lossyScale.y);
-            Quaternion yaw = Quaternion.Euler(0f, p.eulerAngles.y, 0f);
-
             Undo.RecordObject(placeholder.transform, "Write Frontal pose");
             Undo.RecordObject(layer, "Write Frontal pose");
             Undo.RecordObject(layer.transform, "Write Frontal pose");
-            Vector3 worldPos = layer.transform.position;
-            Quaternion worldRot = layer.transform.rotation;
-            layer.casterOffset = Quaternion.Inverse(yaw) * (worldPos - p.position) / scale;
-            layer.casterEuler = (Quaternion.Inverse(yaw) * worldRot).eulerAngles;
-            placeholder.transform.SetPositionAndRotation(p.position + yaw * (LaunchOffset * scale), yaw);
-            layer.transform.SetPositionAndRotation(worldPos, worldRot);
+            SkillReleaseProto.WriteCasterPose(layer, placeholder.transform, player.transform, LaunchOffset);
             PrefabUtility.ApplyPrefabInstance(placeholder, InteractionMode.UserAction);
             AssetDatabase.SaveAssets();
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
@@ -214,12 +198,7 @@ namespace BuddahGo.VFX.EditorTools
             var driver = Object.FindObjectOfType<SkillVfxPreviewDriver>();
             if (driver == null)
                 driver = new GameObject("PreviewDriver").AddComponent<SkillVfxPreviewDriver>();
-            driver.projectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-            driver.buffPrefab = null;
-            driver.caster = player.transform;
-            driver.freezeAt = freezeAt;
-            driver.timeScale = 1f;
-            driver.repeat = freezeAt < 0f;
+            SkillReleaseProto.PointDriver(driver, AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath), player.transform, freezeAt);
             // The palm is reviewed from a standing caster (the release placeholders' preview may have left the player running).
             var motion = driver.GetComponent<SkillVfxPreviewCasterMotion>();
             if (motion != null)

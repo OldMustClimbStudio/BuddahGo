@@ -17,9 +17,6 @@ internal struct ProjectileBurstParameters
     internal float additionalForwardSpawnOffset;
     internal float additionalHeightSpawnOffset;
     internal bool spawnServerHitboxes;
-    internal bool spawnVisuals;
-    internal GameObject visualPrefabOverride;
-    internal string progressPropertyOverride;
     internal string replicatedSkillId;
     internal AnimationCurve speedCurve;   // flight shape (ChargedProjectileFlight); null = linear fall
 }

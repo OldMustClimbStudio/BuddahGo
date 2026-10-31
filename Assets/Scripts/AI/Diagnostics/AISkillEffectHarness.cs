@@ -14,7 +14,7 @@ namespace BuddahGo.AI
 {
     // Explicitly controlled effect matrix. Never counted as natural racing or AI decision evidence.
     // Backlash cases (backlash: true) exercise the backfire: the cast confirms, spends its cooldown and the skill fails;
-    // the caster is then locked out of every skill for 10 s with max speed x0.85 (RacerSample.BackfireLeft /
+    // the caster is then locked out of every skill for Obsession.backfireLockSeconds (5 s) with max speed x0.85 (RacerSample.BackfireLeft /
     // MaxSpeedPenalty), and since 2026-10-31 the skill's own _anti variant also runs (mostly a self effect on the caster:
     // slow, root then boost, self curtain, shrink, self invert, a reverse palm burst). Backlash fixtures still place targets
     // like the normal ones; Tools/ai/analyze_skill_matrix.py holds the expectations (not yet updated for the variants).
@@ -146,7 +146,7 @@ namespace BuddahGo.AI
                 VisionUntil = r.GetComponent<SkillPerceptionState>().VisionImpairedUntilTick,
                 BuffLeft = r.GetComponent<BuddahHandControl>().ProjectileBuffSecondsLeft,
                 HasTrap = r.GetComponent<MovementSlowTrapZoneEffect>() != null,
-                // Unified backfire penalty: the 10 s skill lock (ObsessionFigure) and the x0.85 max-speed modifier (motor).
+                // Unified backfire penalty: the backfireLockSeconds skill lock (ObsessionFigure) and the x0.85 max-speed modifier (motor).
                 BackfireLeft = r.GetComponent<ObsessionFigure>().BackfireSecondsLeft,
                 MaxSpeedPenalty = r.GetComponent<BuddahPredictedMotor>().CurrentComputedStats.IsMaxSpeedPenaltyActive }).ToArray();
             _samples.WriteLine(JsonUtility.ToJson(new SampleRow { Case = _case, Elapsed = Time.timeAsDouble - _caseStart,

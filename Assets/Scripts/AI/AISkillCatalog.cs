@@ -64,7 +64,7 @@ namespace BuddahGo.AI
         public float AimHorizonSeconds = 2f;
         public float SpeedDropFraction = .2f;
         // Unified backfire (A7, 建议（实现采用）): the risk term of AISkillDecision.Utility is
-        // RiskWeight × P(backfire) × BackfireCost for every skill (10 s lock, ×0.85 max speed, ×0.8 obsession at the end).
+        // RiskWeight × P(backfire) × BackfireCost for every skill (Obsession.backfireLockSeconds lock, 5 s since 2026-10-31; ×0.85 max speed; ×0.8 obsession at the end; plus the skill's own _anti variant).
         public float BackfireCost = 1f;
         // 缘起 decision parameters (A7, 建议（实现采用）; AIYuanqiPlanner + AISkillCaster.Decide).
         public float YuanqiSetupMultiplier = 1.2f;        // value multiplier of the first skill of a pair whose second can follow in time

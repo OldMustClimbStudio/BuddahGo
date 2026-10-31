@@ -20,7 +20,6 @@ public class Skill_PushProjectileHands : SkillAction
     public AnimationCurve projectileSpeedCurve = ChargedProjectileFlight.DefaultSpeedCurve();
     [Min(0f)] public float projectileImpulseStrength = 12f;
     [SerializeField] public Vector3 projectileColliderSize = new Vector3(1.25f, 1.1f, 1.8f);
-    [SerializeField] private bool ignoreSolidWorld = false;
 
     [Header("VFX (vfx_id rows of Skill.xlsx / VfxRegistry, prefabs in SkillVfxDatabase)")]
     [Tooltip("Fire animation at the caster (Chg while winding up, Imp at launch).")]
@@ -60,11 +59,8 @@ public class Skill_PushProjectileHands : SkillAction
             projectileColliderSize,
             projectileForwardOffset,
             projectileHeightOffset,
-            null,
-            null,
             chargedPushCooldownSeconds,
             true,
-            ignoreSolidWorld,
             delayedPushActionSeconds,
             projectileSpeedCurve);
 

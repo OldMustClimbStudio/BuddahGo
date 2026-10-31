@@ -91,9 +91,6 @@ public class BuddahHandControl : NetworkBehaviour
     private Vector3 _projectileColliderSizeServer = new Vector3(1.25f, 1.1f, 1.8f);
     private float _projectileForwardOffsetServer;
     private float _projectileHeightOffsetServer;
-    private bool _projectileIgnoreSolidWorldServer;
-    private GameObject _projectileChargedVisualPrefabServer;
-    private string _projectileChargedProgressPropertyServer = "Progress";
     private float _projectileChargedPushCooldownServer;
     private float _projectileDelayedPushSecondsServer;
     // Charged palm flight shape (ChargedProjectileFlight). Not cleared when the buff ends: a palm already winding up
@@ -144,8 +141,6 @@ public class BuddahHandControl : NetworkBehaviour
     private AnimationCurve _projectileSpeedCurveLocal;
     // The bullet (palm_bullet): flies with the hitbox, next to the fire animation (_projectileChargedVfxIdLocal).
     private string _projectileChargedHandVfxIdLocal;
-
-    private const string DefaultChargedProjectileProgressProperty = "Progress";
 
     private InputAction handPushAction;
 
@@ -293,9 +288,6 @@ public class BuddahHandControl : NetworkBehaviour
         _projectileColliderSizeServer = new Vector3(1.25f, 1.1f, 1.8f);
         _projectileForwardOffsetServer = 0f;
         _projectileHeightOffsetServer = 0f;
-        _projectileIgnoreSolidWorldServer = false;
-        _projectileChargedVisualPrefabServer = null;
-        _projectileChargedProgressPropertyServer = DefaultChargedProjectileProgressProperty;
         _projectileChargedPushCooldownServer = 0f;
         GameLog.Verbose("[HandControl] Projectile push mode expired on server. Reverting to normal push.");
     }
@@ -727,11 +719,8 @@ public class BuddahHandControl : NetworkBehaviour
         Vector3 projectileColliderSize,
         float projectileForwardOffset,
         float projectileHeightOffset,
-        GameObject chargedVisualPrefab,
-        string chargedProgressProperty,
         float chargedPushCooldownSeconds,
         bool useChargedProjectileRuntime = false,
-        bool ignoreSolidWorld = false,
         float delayedPushActionSeconds = 0f,
         AnimationCurve chargedSpeedCurve = null)
     {
@@ -747,9 +736,6 @@ public class BuddahHandControl : NetworkBehaviour
         _projectileColliderSizeServer = SanitizeColliderSize(projectileColliderSize);
         _projectileForwardOffsetServer = Mathf.Max(0f, projectileForwardOffset);
         _projectileHeightOffsetServer = Mathf.Max(0f, projectileHeightOffset);
-        _projectileIgnoreSolidWorldServer = ignoreSolidWorld;
-        _projectileChargedVisualPrefabServer = chargedVisualPrefab;
-        _projectileChargedProgressPropertyServer = string.IsNullOrWhiteSpace(chargedProgressProperty) ? DefaultChargedProjectileProgressProperty : chargedProgressProperty;
         _projectileChargedPushCooldownServer = Mathf.Max(0f, chargedPushCooldownSeconds);
         _projectileDelayedPushSecondsServer = Mathf.Max(0f, delayedPushActionSeconds);
         _projectileSpeedCurveServer = chargedSpeedCurve;
@@ -867,8 +853,6 @@ public class BuddahHandControl : NetworkBehaviour
         Vector3 scaledColliderSize = projectileColliderSize * scaleMultiplier;
         Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
         Vector3 impulse = dir * projectileImpulseStrength;
-        GameObject chargedVisualPrefab = _projectileChargedVisualPrefabServer;
-        string chargedProgressProperty = string.IsNullOrWhiteSpace(_projectileChargedProgressPropertyServer) ? DefaultChargedProjectileProgressProperty : _projectileChargedProgressPropertyServer;
         PreciseTick spawnTick = base.TimeManager.GetPreciseTick(TickType.Tick);
 
         ChargedHandProjectileRuntime.SpawnServer(

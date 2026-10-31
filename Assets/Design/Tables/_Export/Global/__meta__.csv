@@ -61,7 +61,7 @@
 ,Global,Tag,(只读) Tag,ProjectSettings/TagManager.asset,
 ,Global,Layer,(只读) Layer,ProjectSettings/TagManager.asset,
 ,Global,Scene,(只读) Scene,ProjectSettings/EditorBuildSettings.asset,RaceMapEndField 不存在但两处仍引用
-,Global,InputBinding,(新增) InputBindingRecord,Assets/Scripts/InputSystem/InputSystem_Actions.inputactions,改键需先去掉硬编码 KeyCode；2026-10-26：技能键 Q/E/R 与 1/2/3 同时绑定，推掌主键位是鼠标左/右键，W/↑ 推掌是废弃内容（后续可能再调整）
+,Global,InputBinding,(新增) InputBindingRecord,Assets/Scripts/InputSystem/InputSystem_Actions.inputactions,改键需先去掉硬编码 KeyCode；2026-10-26：技能键 Q/E/R 与 1/2/3 同时绑定，推掌主键位是鼠标左/右键，W/↑ 推掌 2026-10-30 删除（W 改为前进键，↑ 不再绑定）
 ,Global,Timeline,(只读) 由 timeline 资产导出,Assets/Animation/CG/*.playable,只读显示；改时长请改 timeline
 ,Global,__enums__,枚举定义（不导出，校验用）,代码枚举 + 本规范新增枚举,
 ,Graphics,GraphicsPreset,(生成) GraphicsPresetRecord,Assets/Settings/URP-*.asset; ProjectSettings/QualitySettings.asset; CameraAntialiasingPolicy,2026-10-27 画质设置规格；默认档位复现各画质等级当时的实际值

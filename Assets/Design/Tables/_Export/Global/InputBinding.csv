@@ -1,7 +1,7 @@
 ##var,map,action,bindingPath,scheme,status,codeOverride
 ##type,string#key,string#key,string#key,string,string,string
 ##group,,,,,doc,doc
-##comment,,,,,主键位 / 回退 / 废弃（废弃内容，后续可能再调整）,代码绕过绑定的位置
+##comment,,,,,主键位 / 回退 / 已绑定，代码不读,代码绕过绑定的位置
 ,Player,Movement,<Keyboard>/a,;Keyboard&Mouse,主键位,A/D 转向（PlayerBuddahInputSource.GetSteering 只认 A/D）
 ,Player,Movement,<Keyboard>/d,;Keyboard&Mouse;XR,主键位,A/D 转向（PlayerBuddahInputSource.GetSteering 只认 A/D）
 ,Player,Movement,<Keyboard>/w,;Keyboard&Mouse,主键位,前进（2026-10-30）：按住 W 推进（油门 1，力 Movement.forwardForce），松开停止推进、靠地面摩擦滑行，没有刹车（PlayerBuddahInputSource.GetThrottle → BuddahDriveInput，进预测输入）

@@ -2,7 +2,7 @@
 ##type,string#key#ref=Skill/Skill.skillId,bool,float,float,float,float,float,float,float,float,float,float,string
 ##group,,,,,,,,,,,,,doc
 ##comment,,全局效果可见时不叠加,Acceleration,,,,,欧氏距离倍率,,,,,
-,acceleration,false,3,,,,,,,,,,AISkillDecision.cs:72-78
+,acceleration,false,3,,,,,,,,,,AISkillDecision.cs:73-79
 ,slowtrap,false,,0.3,0.7,6,,,,,,,DEC:93-96
 ,giant,false,,,,,2,1.5,,,0.5,,"DEC:98-105,131-132"
 ,push_projectile_hands,false,,0.35,0.65,,,1.5,110,0.5,,,DEC:106-114

@@ -1,7 +1,7 @@
 ##var,skillId,vfxId,vfxLocalOffset,vfxLocalEuler,vfxDurationSeconds,vfxStopBeforeEndSeconds,observersFeelEventId,observersFeelStopEventId,fovBoost,fovRampInSeconds,fovSettleSeconds,fovRampInCurve,fovSettleCurve,effective
 ##type,string#key#ref=Skill.skillId,string#ref=VfxRegistry.vfxId,vector3,vector3,float,float,string#ref=FeelEvent.eventId,string#ref=FeelEvent.eventId,float,float,float,curve,curve,bool
 ##group,,,,,,,,,,,,,,doc
-##comment,,空=不播,,,0=跟随 Skill.effectDurationSeconds；slowtrap 的 11 = 区域 10 s + 1 s 余韵,提前停止发射,,,施法者 FOV 增量,,,"time,value,inSlope,outSlope|…",,该行 vfx 字段是否真的被播放
+##comment,,空=不播,,,0=跟随 Skill.effectDurationSeconds；slowtrap 的 11 只是上限：区域结束（到期、缘起消耗、复位）时特效随区域停止（MovementSlowTrapZoneEffect.EndZone）,提前停止发射,,,施法者 FOV 增量,,,"time,value,inSlope,outSlope|…",,该行 vfx 字段是否真的被播放
 ,acceleration,accel_back_vfx,"0,0,-2","0,180,0",0,1,,,10,1,1,"0,0,2,2|1,1,0,0","0,1,-3.016146,-3.016146|1,0,-0.063498,-0.063498",true
 ,slowtrap,slowtrap_vfx,"0,0,0","0,0,0",11,0,,,,,,,,true
 ,blackcurtain,,,,0,,blackcurtain_observers,,,,,,,true

@@ -42,16 +42,16 @@
 ,selection.option.skin_b.desc,Default placeholder skin B.,Default placeholder skin B.,占位,
 ,selection.option.skin_c.name,Skin C,Skin C,占位,
 ,selection.option.skin_c.desc,Default placeholder skin C.,Default placeholder skin C.,占位,
-,racer.ai_fallback_prefix,AI ,AI ,AI 名为空时前缀+序号,RacerIdentity.cs:23
-,racer.human_fallback,Player,Player,,RacerIdentity.cs:23
-,racer.online_human_prefix,Player ,Player ,后接 clientId,MatchSpawnManager.cs:135
+,racer.ai_fallback_prefix,AI ,AI ,AI 名为空时前缀+序号,RacerIdentity.cs:30
+,racer.human_fallback,Player,Player,,RacerIdentity.cs:30
+,racer.online_human_prefix,Player ,Player ,后接 clientId,MatchSpawnManager.cs:201
 ,menu.option.max_players.4,4,4,,MaxPlayer
 ,menu.option.max_players.5,5,5,,MaxPlayer
 ,menu.option.max_players.6,6,6,,MaxPlayer
 ,menu.option.visibility.public,Public,Public,,RoomVisibility
 ,menu.option.visibility.friendsonly,FriendsOnly,FriendsOnly,,RoomVisibility
 ,menu.option.visibility.private,Private,Private,,RoomVisibility
-,ui.raceridentity.ai,AI ,AI ,自动提取，待策划定稿 key,Assets/Scripts/Match/Contracts/RacerIdentity.cs:23
+,ui.raceridentity.ai,AI ,AI ,自动提取，待策划定稿 key,Assets/Scripts/Match/Contracts/RacerIdentity.cs:30
 ,ui.sessionlauncher.单机设置缺失,单机设置缺失。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:45
 ,ui.sessionlauncher.主机地址为空,主机地址为空。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:58
 ,ui.sessionlauncher.无法连接主机,无法连接主机。,,自动提取，待策划定稿 key,Assets/Scripts/Match/SessionLauncher.cs:65
@@ -180,31 +180,31 @@
 ,ui.lobbybrowserui.no_joinable_rooms_found,No joinable rooms found.,No joinable rooms found.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserUI.cs:128
 ,ui.lobbybrowserui.found_lobbies_count_rooms,Found {lobbies.Count} rooms.,Found {lobbies.Count} rooms.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserUI.cs:147
 ,ui.lobbybrowserui.join_failed_reason,Join failed: {reason},Join failed: {reason},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/LobbyBrowserUI.cs:152
-,ui.propertiesselectorui.properties_selector,Properties Selector,Properties Selector,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:163
-,ui.propertiesselectorui.waiting_for_propertiesselectionmanager,Waiting for PropertiesSelectionManager...,Waiting for PropertiesSelectionManager...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:173
-,ui.propertiesselectorui.loading_match,Loading Match,Loading Match,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:205
-,ui.propertiesselectorui.loading_selectionmanager_resolvedmatchsc,Loading {_selectionManager.ResolvedMatchSceneName}...,Loading {_selectionManager.ResolvedMatchSceneName}...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:206
-,ui.propertiesselectorui.choose_skillloadout_slotcount_skills,Choose {SkillLoadout.SlotCount} skills,Choose {SkillLoadout.SlotCount} skills,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:213
-,ui.propertiesselectorui.step_selectionmanager_currentstageindex_,Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel},Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:215
-,ui.propertiesselectorui.time_remaining_selectionmanager_stagecou,Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s,Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:218
-,ui.propertiesselectorui.syncing_stage_data,Syncing stage data,Syncing stage data,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:222
-,ui.propertiesselectorui.waiting_for_host_stage_configuration,Waiting for host stage configuration...,Waiting for host stage configuration...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:223
-,ui.propertiesselectorui.all_stages_complete,All stages complete,All stages complete,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:228
-,ui.propertiesselectorui.waiting_to_enter_match,Waiting to enter match...,Waiting to enter match...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:229
-,ui.propertiesselectorui.resolved_map_mapoptionid,Resolved Map: {mapOptionId},Resolved Map: {mapOptionId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:236
-,ui.propertiesselectorui.resolved_map_pending,Resolved Map: pending,Resolved Map: pending,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:237
-,ui.propertiesselectorui.everyone_is_voting_on_the_current_stage_,Everyone is voting on the current stage option.,Everyone is voting on the current stage option.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:245
-,ui.propertiesselectorui.only_the_host_can_choose_during_this_sta,Only the host can choose during this stage.,Only the host can choose during this stage.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:246
-,ui.propertiesselectorui.choose_all_desired_options_before_the_ti,Choose all desired options before the timer ends.,Choose all desired options before the timer ends.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:248
-,ui.propertiesselectorui.choose_all_desired_options,Choose all desired options.,Choose all desired options.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:248
-,ui.propertiesselectorui.each_player_chooses_one_option_before_th,Each player chooses one option before the timer ends.,Each player chooses one option before the timer ends.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:250
-,ui.propertiesselectorui.each_player_chooses_one_option,Each player chooses one option.,Each player chooses one option.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:250
-,ui.propertiesselectorui.no_active_stage,No active stage.,No active stage.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:257
-,ui.propertiesselectorui.filledcount_skillloadout_slotcount_strin,{filledCount}/{SkillLoadout.SlotCount} [{string.Join(,{filledCount}/{SkillLoadout.SlotCount} [{string.Join(,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:283
-,ui.propertiesselectorui.names,", names)}]",", names)}]",自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:283
-,ui.propertiesselectorui.participant_playername_selectedoptionid,{participant.PlayerName}: {selectedOptionId},{participant.PlayerName}: {selectedOptionId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:285
-,ui.propertiesselectorui.n,\n,\n,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:299
-,ui.propertiesselectorui.no_players_connected,No players connected.,No players connected.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:299
+,ui.propertiesselectorui.properties_selector,Properties Selector,Properties Selector,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:175
+,ui.propertiesselectorui.waiting_for_propertiesselectionmanager,Waiting for PropertiesSelectionManager...,Waiting for PropertiesSelectionManager...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:185
+,ui.propertiesselectorui.loading_match,Loading Match,Loading Match,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:313
+,ui.propertiesselectorui.loading_selectionmanager_resolvedmatchsc,Loading {_selectionManager.ResolvedMatchSceneName}...,Loading {_selectionManager.ResolvedMatchSceneName}...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:314
+,ui.propertiesselectorui.choose_skillloadout_slotcount_skills,Choose {SkillLoadout.SlotCount} skills,Choose {SkillLoadout.SlotCount} skills,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:321
+,ui.propertiesselectorui.step_selectionmanager_currentstageindex_,Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel},Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:323
+,ui.propertiesselectorui.time_remaining_selectionmanager_stagecou,Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s,Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:326
+,ui.propertiesselectorui.syncing_stage_data,Syncing stage data,Syncing stage data,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:330
+,ui.propertiesselectorui.waiting_for_host_stage_configuration,Waiting for host stage configuration...,Waiting for host stage configuration...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:331
+,ui.propertiesselectorui.all_stages_complete,All stages complete,All stages complete,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:336
+,ui.propertiesselectorui.waiting_to_enter_match,Waiting to enter match...,Waiting to enter match...,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:337
+,ui.propertiesselectorui.resolved_map_mapoptionid,Resolved Map: {mapOptionId},Resolved Map: {mapOptionId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:344
+,ui.propertiesselectorui.resolved_map_pending,Resolved Map: pending,Resolved Map: pending,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:345
+,ui.propertiesselectorui.everyone_is_voting_on_the_current_stage_,Everyone is voting on the current stage option.,Everyone is voting on the current stage option.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:353
+,ui.propertiesselectorui.only_the_host_can_choose_during_this_sta,Only the host can choose during this stage.,Only the host can choose during this stage.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:354
+,ui.propertiesselectorui.choose_all_desired_options_before_the_ti,Choose all desired options before the timer ends.,Choose all desired options before the timer ends.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:356
+,ui.propertiesselectorui.choose_all_desired_options,Choose all desired options.,Choose all desired options.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:356
+,ui.propertiesselectorui.each_player_chooses_one_option_before_th,Each player chooses one option before the timer ends.,Each player chooses one option before the timer ends.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:358
+,ui.propertiesselectorui.each_player_chooses_one_option,Each player chooses one option.,Each player chooses one option.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:358
+,ui.propertiesselectorui.no_active_stage,No active stage.,No active stage.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:365
+,ui.propertiesselectorui.filledcount_skillloadout_slotcount_strin,{filledCount}/{SkillLoadout.SlotCount} [{string.Join(,{filledCount}/{SkillLoadout.SlotCount} [{string.Join(,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:391
+,ui.propertiesselectorui.names,", names)}]",", names)}]",自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:391
+,ui.propertiesselectorui.participant_playername_selectedoptionid,{participant.PlayerName}: {selectedOptionId},{participant.PlayerName}: {selectedOptionId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:393
+,ui.propertiesselectorui.n,\n,\n,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:407
+,ui.propertiesselectorui.no_players_connected,No players connected.,No players connected.,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertiesSelectorUI.cs:407
 ,ui.propertycarouselview.focused_none,Focused: None,Focused: None,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyCarouselView.cs:333
 ,ui.propertycarouselview.confirmed_none,Confirmed: None,Confirmed: None,自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyCarouselView.cs:339
 ,ui.propertycarouselview.confirmed_lastsubmittedoptionid,Confirmed: {_lastSubmittedOptionId},Confirmed: {_lastSubmittedOptionId},自动提取，待策划定稿 key,Assets/Scripts/UI/MenusUI/PropertyCarouselView.cs:340

@@ -149,7 +149,7 @@ public class ObsessionRecord
     /// <summary>float</summary>
     [Tooltip("达到即取上限")] public float backfireKeepPMaxAtOrAboveX = 0f;
     /// <summary>float#range=0,60</summary>
-    [Tooltip("同招加价窗口 s：技能自己的冷却结束后这么久内重放同一技能，本次执念增量再乘一层（ObsessionFigure.repeatWindowSeconds，SkillExecutor 每槽记层数）")] public float repeatWindowSeconds = 0f;
+    [Tooltip("同招加价窗口 s：技能自己的冷却结束后这么久内重放同一技能，本次执念增量再乘一层（ObsessionFigure.repeatWindowSeconds，SkillRepeatSurcharge 按技能 id 记层数，不按槽）")] public float repeatWindowSeconds = 0f;
     /// <summary>float#range=1,5</summary>
     [Tooltip("同招加价每层的执念倍率，复利 1.15 → 1.3225 → 1.52；超窗或反噬清零（ObsessionFigure.repeatGainMultiplier）；不可留空")] public float repeatGainMultiplier = 0f;
     /// <summary>float#range=0,60</summary>
@@ -181,7 +181,7 @@ public class YuanqiRecord
     /// <summary>enum:YuanqiMode</summary>
     [Tooltip("Instant 触发一次 / Sustained 两招都生效期间持续（YuanqiRegistry 读 SO.mode）；必须填，留空会沿用 SO 值")] public string mode = string.Empty;
     /// <summary>enum:YuanqiRetrigger</summary>
-    [Tooltip("OncePerOverlap：同一对只在新的一次重叠时再触发（YuanqiRegistry 读 SO.retriggerPolicy）；必须填")] public string retriggerPolicy = string.Empty;
+    [Tooltip("OncePerOverlap：同一对只在新的一次重叠时再触发（目前只有这一种：写入 Yuanqi_* SO，YuanqiPairTable 固定按“一次重叠只触发一次”判定，代码不按值分支）；必须填")] public string retriggerPolicy = string.Empty;
     /// <summary>bool</summary>
     [Tooltip("false = 暂时关掉这一对而不删行（YuanqiCatalog.ForLoadout 跳过）；留空等于 false，必须填 true")] public bool isEnabled = false;
 }
@@ -517,17 +517,17 @@ public class SkillTuningRecord
     /// <summary>float#range=0.01,1</summary>
     [Tooltip("SkillPersonalities.json Tuning")] public float speedDropFraction = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:78")] public float speedDropImpairSeconds = 0f;
+    [Tooltip("AISkillWorld.cs:73")] public float speedDropImpairSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:78; AISkillDecision.cs:16")] public float speedDropMinSpeed = 0f;
+    [Tooltip("AISkillWorld.cs:73; AISkillDecision.cs:17")] public float speedDropMinSpeed = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:93")] public float straightLookaheadSeconds = 0f;
+    [Tooltip("AISkillWorld.cs:88")] public float straightLookaheadSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:95")] public float cornerLookaheadSeconds = 0f;
+    [Tooltip("AISkillWorld.cs:90")] public float cornerLookaheadSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:96")] public float cornerValidityBase = 0f;
+    [Tooltip("AISkillWorld.cs:91")] public float cornerValidityBase = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:96")] public float cornerValidityScale = 0f;
+    [Tooltip("AISkillWorld.cs:91")] public float cornerValidityScale = 0f;
     /// <summary>float</summary>
     [Tooltip("AISkillDecision.TargetScore")] public float targetBonusImpaired = 0f;
     /// <summary>float</summary>
@@ -537,15 +537,15 @@ public class SkillTuningRecord
     /// <summary>float</summary>
     public float targetBonusPackCentrePerNeighbour = 0f;
     /// <summary>int</summary>
-    [Tooltip("AISkillDecision.cs:59")] public int packMinNeighbours = 0;
+    [Tooltip("AISkillDecision.cs:60")] public int packMinNeighbours = 0;
     /// <summary>float#range=0,3</summary>
     [Tooltip("统一反噬的代价系数：风险项 = riskWeight × 反噬概率 × backfireCost（AISkillDecision.Utility）；反噬对每个技能一样，不再按技能分严重度。建议（实现采用）默认值 1")] public float backfireCost = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillDecision.cs:158")] public float maxWindowSeconds = 0f;
+    [Tooltip("AISkillDecision.cs:162")] public float maxWindowSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillDecision.cs:158")] public float minRelativeSpeed = 0f;
+    [Tooltip("AISkillDecision.cs:162")] public float minRelativeSpeed = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillCaster.cs:159")] public float maxElapsedSeconds = 0f;
+    [Tooltip("AISkillCaster.cs:174")] public float maxElapsedSeconds = 0f;
     /// <summary>float#range=0,3</summary>
     [Tooltip("缘起起手：本槽是某对的先手、另一招冷却来得及时，价值乘它（再乘人格 yuanqiAffinity）（AISkillCaster.Decide / AIYuanqiPlanner.IsSetup）。建议（实现采用）默认值 1.2")] public float yuanqiSetupMultiplier = 0f;
     /// <summary>float#range=0,1</summary>

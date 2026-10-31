@@ -42,6 +42,7 @@ namespace NewBuddah.PredictionV2.Debugging
         public bool ownerVisualRootStabilizationApplied;
         public bool ownerVisualRootStabilizationEnabled = true;
         public float steeringInput;
+        public float throttleInput;
         public float planarSpeed;
         public float finalForwardForce;
         public float finalMaxSpeed;

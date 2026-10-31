@@ -7,7 +7,8 @@ using UnityEngine.InputSystem.LowLevel;
 
 namespace BuddahGo.Tests
 {
-    // Mouse left = left hand, mouse right = right hand on the one HandPush action (W/↑ deprecated, kept).
+    // Mouse left = left hand, mouse right = right hand on the one HandPush action (the W/↑ push bindings were deleted
+    // on 2026-10-30; W is the drive key, see DriveInputTests).
     // A Button action resolves conflicts between its bound controls, so a press of the second button while the
     // first is held never reaches `performed`; HandPush is PassThrough and BuddahHandControl ignores releases.
     public class HandPushInputTests
@@ -55,8 +56,8 @@ namespace BuddahGo.Tests
                 Assert.That(handPush.type, Is.EqualTo(InputActionType.PassThrough), "the .inputactions file and the wrapper JSON must match");
                 var paths = new List<string>();
                 foreach (InputBinding binding in handPush.bindings) paths.Add(binding.path);
-                Assert.That(paths, Is.EquivalentTo(new[] { "<Keyboard>/w", "<Keyboard>/upArrow", "<Mouse>/leftButton", "<Mouse>/rightButton" }),
-                    "mouse buttons are the primary push keys; the deprecated W/↑ bindings stay");
+                Assert.That(paths, Is.EquivalentTo(new[] { "<Mouse>/leftButton", "<Mouse>/rightButton" }),
+                    "mouse buttons are the only push keys; W drives and ↑ is unbound");
             }
             finally
             {

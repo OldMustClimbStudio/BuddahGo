@@ -336,7 +336,8 @@ namespace NewBuddah.PredictionV2.Core
                                    || _computedStats.IsRoomBypassActive
                                    || preHandoffBypassActive;
             float steering = movementAllowed ? (_ownerInputBridge.ReadSteering() * config.TurnInputMultiplier) : 0f;
-            float throttle = movementAllowed ? 1f : 0f;
+            float ownerThrottle = movementAllowed ? _ownerInputBridge.ReadThrottle() : 0f;
+            bool hasOverride = false, overrideDrive = false;
             bool ownerInputLive = IsOwner && movementAllowed;
             if (movementAllowed && RacerAuthority.HasLocalControl(NetworkObject))
             {
@@ -345,10 +346,12 @@ namespace NewBuddah.PredictionV2.Core
                     if (provider == null || !provider.isActiveAndEnabled || !(provider is ISteeringOverride source)) continue;
                     if (!source.TryGetOverride(out int key, out bool drive)) continue;
                     steering = Mathf.Clamp(key, -1, 1) * config.TurnInputMultiplier;
-                    throttle = drive ? 1f : 0f;
+                    hasOverride = true;
+                    overrideDrive = drive;
                     break;
                 }
             }
+            float throttle = BuddahDriveInput.ResolveThrottle(movementAllowed, ownerThrottle, hasOverride, overrideDrive);
 
             if (bootstrap != null)
             {
@@ -357,6 +360,7 @@ namespace NewBuddah.PredictionV2.Core
                 bootstrap.DebugState.gateBlocked = !movementAllowed && !_computedStats.IsRoomBypassActive;
                 bootstrap.DebugState.ownerInputLive = ownerInputLive;
                 bootstrap.DebugState.steeringInput = steering;
+                bootstrap.DebugState.throttleInput = throttle;
                 SyncModifierDebugState(currentTick);
             }
 

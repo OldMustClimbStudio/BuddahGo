@@ -31,7 +31,7 @@ namespace BuddahGo.AI
     // then runs controlled fixtures one by one and writes report.json / report.md / events.jsonl. Fixture tools, all
     // runtime-only and restored: reflection on ObsessionFigure.backfirePMaxPercent / backfireKeepPMaxAtOrAboveX (forced or
     // disabled backfire), SkillExecutor._nextReadyTime / _repeatSurcharge (cooldown and stack reset between scenarios),
-    // harness teleports, a parking ISteeringOverride on the human (Practice auto-throttles), a virtual keyboard and mouse,
+    // harness teleports, a parking ISteeringOverride on the human (lifted only in S13, which drives with W), a virtual keyboard and mouse,
     // and direct server authority calls. It never edits gameplay state outside those, and it is never natural-race
     // evidence. Start it from an idle MainMenu in Play mode: MechanicsPracticeHarness.Begin(absoluteOutputDir); poll
     // Status / IsRunning / LastReportPath. A finished run destroys its host, so it can be repeated in the same Play
@@ -195,7 +195,7 @@ namespace BuddahGo.AI
         {
             string[] noPairCast = { "acceleration", "blackcurtain", "reverseturn" };
             yield return new Scenario("S0", "spawn: three parked training dummies, identity, 1P intro, board", 30f, S0Spawn, null, true);
-            yield return new Scenario("S1", "skill keys Q / 2 / R through the real input path; W does not cast", 40f, S1SkillKeys, _submittedLoadout);
+            yield return new Scenario("S1", "skill keys Q / 2 / R through the real input path; W and ↑ neither cast nor push", 40f, S1SkillKeys, _submittedLoadout);
             yield return new Scenario("S2", "mouse aim (rate cap, ground point) and mouse push buttons", 40f, S2MouseAim, _submittedLoadout);
             yield return new Scenario("S3", "cast serialization: one pending cast, two effects at once", 25f, S3Serialization, new[] { "slowtrap", "giant", "blackcurtain" });
             yield return new Scenario("S4", "same-skill surcharge x1.15 compounding, reset after the window", 70f, S4Surcharge, noPairCast);
@@ -206,6 +206,8 @@ namespace BuddahGo.AI
             yield return new Scenario("S9", "#2 frost_lock: radius, freeze time, consume both, once per overlap", 60f, S9FrostLock, new[] { "acceleration", "slowtrap", "blackcurtain" });
             yield return new Scenario("S10", "#1 giant_palm: charged impulse follows body scale; off when either skill ends", 90f, S10GiantPalm, new[] { "giant", "push_projectile_hands", "blackcurtain" });
             yield return new Scenario("S11", "HUD smoke: key labels, cooldown text, backfire probability text", 30f, S11Hud, _submittedLoadout);
+            // S13 runs before S12, which ends the race.
+            yield return new Scenario("S13", "drive: no W = no push, W held pushes, release coasts", 30f, S13Drive, null);
             yield return new Scenario("S12", "rankings / results list only the human", 80f, S12Results, null);
         }
 
@@ -476,7 +478,7 @@ namespace BuddahGo.AI
             _backfireSaved = true;
             SetBaselineBackfire();
 
-            // Practice auto-throttles; the motor honours ISteeringOverride for every racer with local control.
+            // Keeps the human still (virtual W / A / D included); the motor honours ISteeringOverride for every racer with local control.
             _park = _human.gameObject.AddComponent<MechanicsHarnessParkOverride>();
             _motor.RefreshSteeringProviders();
             Event("human", human.name + " id=" + _humanRacerId + " baseMaxSpeed=" + F(_baseMaxSpeed));
@@ -703,19 +705,13 @@ namespace BuddahGo.AI
             yield return TapSlotKey(Key.Digit2, 1, "2");
             yield return TapSlotKey(Key.R, 2, "R");
 
+            // The former slot-0 combo (W ↑ W, 0.08 s apart). ComboSkillInput is deleted (A7) and the W / ↑ push bindings
+            // are deleted (2026-10-30, W is the drive key): the taps must neither cast nor push. The park override keeps
+            // W from moving the human here; S13 checks the drive.
             ClearCooldowns();
             float leftBefore = GetF(_hands, "_nextPushServerTimeLeft");
+            float rightBefore = GetF(_hands, "_nextPushServerTimeRight");
             int from = _casts.Count;
-            yield return Tap(Key.W);
-            yield return Wait(1.5f);
-            Check("W does not cast (player combos retired)", !_casts.Skip(from).Any(c => c.Stage == CastStage.Requested),
-                "no cast request", CastsSince(from, "none"));
-            Info("W still pushes the left hand (deprecated binding kept)", GetF(_hands, "_nextPushServerTimeLeft") > leftBefore ? "yes" : "no");
-
-            // The former slot-0 combo (W ↑ W, 0.08 s apart). ComboSkillInput is deleted (A7): there is no recognizer
-            // any more, so the three pushes must leave the executor silent.
-            ClearCooldowns();
-            from = _casts.Count;
             foreach (Key key in new[] { Key.W, Key.UpArrow, Key.W })
             {
                 yield return Tap(key);
@@ -724,6 +720,10 @@ namespace BuddahGo.AI
             yield return Wait(1.5f);
             Check("W ↑ W (the former slot-0 combo) does not cast", !_casts.Skip(from).Any(c => c.Stage == CastStage.Requested),
                 "no cast request", CastsSince(from, "none"));
+            float leftAfter = GetF(_hands, "_nextPushServerTimeLeft");
+            float rightAfter = GetF(_hands, "_nextPushServerTimeRight");
+            Check("W and ↑ push neither hand (push bindings deleted)", Mathf.Approximately(leftAfter, leftBefore) && Mathf.Approximately(rightAfter, rightBefore),
+                "both server push cooldowns untouched", "left " + F(leftBefore) + " -> " + F(leftAfter) + ", right " + F(rightBefore) + " -> " + F(rightAfter));
             EndInputScope();
         }
 
@@ -737,6 +737,73 @@ namespace BuddahGo.AI
             Check(label + " accepted for slot " + slot, HasCast(from, CastStage.Accepted, slot), "Accepted slot " + slot, CastsSince(from, "no event"));
             yield return Until(() => HasCast(from, CastStage.Executed, slot), 2.5f);
             Info(label + " execution", HasCast(from, CastStage.Executed, slot) ? "Executed " + _loadout.GetSkillId(slot) : "not executed");
+        }
+
+        // ---------------------------------------------------------------- S13 drive (W)
+
+        // W held = throttle 1, released = 0 and the racer coasts (no brake, user decision 2026-10-30). The park override
+        // is lifted for this scenario only; the staging spot is 40 m before the first dummy, and 0.6 s of push plus 1.4 s
+        // of coasting stays well short of it.
+        private IEnumerator S13Drive()
+        {
+            var body = _human.GetComponent<Rigidbody>();
+            var bootstrap = _human.GetComponent<BuddahPredictionBootstrap>();
+            if (body == null || bootstrap == null)
+            {
+                Fail("human rigidbody and prediction bootstrap", "present", body == null ? "no rigidbody" : "no bootstrap");
+                yield break;
+            }
+            BeginInputScope();
+            EnsureKeyboard();
+            _park.enabled = false;
+            try
+            {
+                yield return Wait(0.6f);
+                float idleSpeed = Flat(body.velocity).magnitude;
+                Check("no W: no push", bootstrap.DebugState.throttleInput == 0f && idleSpeed < 0.5f,
+                    "throttle 0, planar speed < 0.5 m/s", "throttle " + F(bootstrap.DebugState.throttleInput) + ", " + F(idleSpeed) + " m/s");
+
+                _keyboard.MakeCurrent();
+                yield return QueueInput(() => InputSystem.QueueStateEvent(_keyboard, new KeyboardState(Key.W)));
+                float pushStart = Time.time;
+                bool sawFull = false;
+                while (Time.time - pushStart < 0.6f)
+                {
+                    sawFull |= bootstrap.DebugState.throttleInput == 1f;
+                    yield return null;
+                }
+                float pushSeconds = Time.time - pushStart;
+                float pushedSpeed = Flat(body.velocity).magnitude;
+                float force = _motor.CurrentComputedStats.FinalForwardForce;
+                float ideal = force / Mathf.Max(0.001f, body.mass) * pushSeconds;
+                Check("W held: throttle 1", sawFull && bootstrap.DebugState.throttleInput == 1f, "throttle 1", "throttle " + F(bootstrap.DebugState.throttleInput));
+                Check("W held: the human speeds up", pushedSpeed >= 0.4f * ideal, ">= 40% of force / mass x time = " + F(0.4f * ideal) + " m/s",
+                    F(pushedSpeed) + " m/s after " + F(pushSeconds) + " s (force " + F(force) + ", mass " + F(body.mass) + ")");
+
+                yield return QueueInput(() => InputSystem.QueueStateEvent(_keyboard, new KeyboardState()));
+                yield return Wait(0.2f);
+                float coastStart = Time.time;
+                float coastStartSpeed = Flat(body.velocity).magnitude;
+                Check("W released: throttle 0", bootstrap.DebugState.throttleInput == 0f, "throttle 0", "throttle " + F(bootstrap.DebugState.throttleInput));
+                float peak = coastStartSpeed;
+                while (Time.time - coastStart < 1.2f)
+                {
+                    peak = Mathf.Max(peak, Flat(body.velocity).magnitude);
+                    yield return null;
+                }
+                float coastSeconds = Time.time - coastStart;
+                float coastEndSpeed = Flat(body.velocity).magnitude;
+                Check("W released: no more push (the speed does not rise)", peak <= coastStartSpeed + 0.3f && coastEndSpeed <= coastStartSpeed + 0.05f,
+                    "peak <= start + 0.3 m/s", "start " + F(coastStartSpeed) + ", peak " + F(peak) + ", end " + F(coastEndSpeed) + " m/s");
+                Info("coast deceleration", F((coastStartSpeed - coastEndSpeed) / Mathf.Max(0.001f, coastSeconds), "0.00") + " m/s2 over " + F(coastSeconds, "0.00") + " s",
+                    "no brake; ground friction only (estimate before the change: about 2 m/s2)");
+            }
+            finally
+            {
+                if (_park != null)
+                    _park.enabled = true;
+                EndInputScope();
+            }
         }
 
         // ---------------------------------------------------------------- S2 mouse aim

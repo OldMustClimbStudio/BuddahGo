@@ -25,7 +25,8 @@ namespace BuddahGo.AI
         private string _directory, _case;
         private StreamWriter _samples, _events;
         private RacerIdentity[] _racers;
-        private Keyboard _keyboard;
+        private Mouse _mouse;
+        private Vector2 _cursor;
         private SkillExecutor _source;
         private double _caseStart;
         private float _oldPmax, _oldKeep;
@@ -53,7 +54,10 @@ namespace BuddahGo.AI
             }
             _racers = RacerDirectory.Current.All.OrderBy(r => r.Id.Value).ToArray();
             foreach (var racer in _racers) if (racer.IsAI) racer.GetComponent<AISkillCaster>().enabled = false;
-            _keyboard = InputSystem.AddDevice<Keyboard>("AISkillEffectAcceptanceKeyboard");
+            // The human pushes with the mouse left button (W is the drive key since 2026-10-30); the cursor stays where it was.
+            _cursor = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
+            _mouse = InputSystem.AddDevice<Mouse>("AISkillEffectAcceptanceMouse");
+            InputSystem.QueueStateEvent(_mouse, new MouseState { position = _cursor });
             yield return new WaitForSeconds(2f);
             // Both sources cover self effects and the human->AI / AI->human / AI->AI target relationships.
             foreach (int sourceId in new[] { 10000, 0 })
@@ -79,9 +83,9 @@ namespace BuddahGo.AI
                         {
                             fired = true;
                             if (sourceId >= RacerId.AIBase) Write("buff-push", "server-key-accepted=" + _source.GetComponent<BuddahHandControl>().InjectServerPush(true));
-                            else { InputSystem.QueueStateEvent(_keyboard, new KeyboardState(Key.W)); Write("buff-push", "human-virtual-key-W"); }
+                            else { InputSystem.QueueStateEvent(_mouse, new MouseState { position = _cursor }.WithButton(MouseButton.Left)); Write("buff-push", "human-virtual-mouse-left"); }
                         }
-                        else if (fired && sourceId == 0) InputSystem.QueueStateEvent(_keyboard, new KeyboardState());
+                        else if (fired && sourceId == 0) InputSystem.QueueStateEvent(_mouse, new MouseState { position = _cursor });
                         yield return null;
                     }
                     Write("case-end", "executions=" + _executions);
@@ -161,7 +165,7 @@ namespace BuddahGo.AI
         {
             RestoreObsession();
             if (_source != null) _source.ServerCastChanged -= Cast;
-            if (_keyboard != null) { InputSystem.RemoveDevice(_keyboard); _keyboard = null; }
+            if (_mouse != null) { InputSystem.RemoveDevice(_mouse); _mouse = null; }
             _samples?.Dispose(); _events?.Dispose(); _samples = _events = null;
         }
         private void OnDestroy() => Cleanup();

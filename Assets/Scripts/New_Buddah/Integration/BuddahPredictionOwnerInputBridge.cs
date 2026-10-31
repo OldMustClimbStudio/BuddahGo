@@ -48,6 +48,14 @@ namespace NewBuddah.PredictionV2.Integration
             return _legacyInputSource.GetSteering();
         }
 
+        public float ReadThrottle()
+        {
+            if (LocalInputBlock.IsBlocked || !_initialized || !_enabled || _legacyInputSource == null)
+                return 0f;
+
+            return _legacyInputSource.GetThrottle();
+        }
+
         public void Dispose()
         {
             if (!_initialized)

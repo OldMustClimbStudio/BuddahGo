@@ -4,9 +4,10 @@ using UnityEngine;
 
 namespace BuddahGo.AI
 {
-    // MechanicsPracticeHarness fixture only: parks the human while the harness runs. Practice auto-throttles the human,
-    // and the predicted motor honours an ISteeringOverride for any racer with local control (the owner included), the
-    // same way a training dummy parks itself. Added and removed at runtime by the harness; never on a prefab.
+    // MechanicsPracticeHarness fixture only: parks the human while the harness runs, so no virtual W, A or D moves it
+    // (S13 disables it to drive with W). The predicted motor honours an ISteeringOverride for any racer with local control
+    // (the owner included), the same way a training dummy parks itself. Added and removed at runtime by the harness;
+    // never on a prefab.
     [DisallowMultipleComponent]
     public sealed class MechanicsHarnessParkOverride : MonoBehaviour, ISteeringOverride
     {

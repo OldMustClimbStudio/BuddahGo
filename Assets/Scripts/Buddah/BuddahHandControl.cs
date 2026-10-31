@@ -15,7 +15,7 @@ using UnityEngine.UI;
 public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
 {
     [Header("Input")]
-    [Tooltip("Read from InputSystem_Actions -> Player -> HandPush (mouse left / right button; W / UpArrow deprecated) and HandRotation (LeftArrow / RightArrow, fallback when there is no mouse).")]
+    [Tooltip("Read from InputSystem_Actions -> Player -> HandPush (mouse left / right button) and HandRotation (LeftArrow / RightArrow, fallback when there is no mouse).")]
     [SerializeField] private bool useGeneratedInputActions = true;
 
     [Header("Mouse Aim")]
@@ -46,10 +46,10 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     [SerializeField] private float rotationSpeedDegPerSec = 180f;
 
     [Header("Hand Animation")]
-    [Tooltip("Animator trigger fired on a left-hand push (mouse left button; W deprecated).")]
+    [Tooltip("Animator trigger fired on a left-hand push (mouse left button).")]
     [SerializeField] private string leftHandTriggerName = "LeftW";
 
-    [Tooltip("Animator trigger fired on a right-hand push (mouse right button; UpArrow deprecated).")]
+    [Tooltip("Animator trigger fired on a right-hand push (mouse right button).")]
     [SerializeField] private string rightHandTriggerName = "RightUp";
 
     [Tooltip("If true, will replicate left/right hand trigger events to other clients.")]
@@ -256,9 +256,8 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
             inputActions = new InputSystem_Actions();
             // HandRotation (←/→) is only the fallback when there is no mouse; the mouse aims the hands.
             handRotationAction = inputActions.Player.HandRotation;
-            // HandPush bindings: <Mouse>/leftButton = left hand, <Mouse>/rightButton = right hand (primary keys).
+            // HandPush bindings: <Mouse>/leftButton = left hand, <Mouse>/rightButton = right hand.
             // The action is PassThrough so a press of one button is never swallowed while the other is held.
-            // 废弃内容（deprecated）: W/↑ 推掌绑定暂时保留，后续可能再调整；主键位是鼠标左/右键。见 Docs/gameplay/README.md §3
             handPushAction = inputActions.Player.HandPush;
         }
 
@@ -712,8 +711,8 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     }
 
     /// <summary>
-    /// Maps a HandPush control to a hand. Mouse left button = left hand, mouse right button = right hand (primary keys);
-    /// <paramref name="clickMouse"/> is set for mouse buttons only.
+    /// Maps a HandPush control to a hand: mouse left button = left hand, mouse right button = right hand (the only HandPush
+    /// bindings since W became the drive key, 2026-10-30).
     /// </summary>
     private static bool TryResolvePushHand(InputControl control, out bool isLeft, out Mouse clickMouse)
     {
@@ -736,19 +735,6 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
             }
 
             return false;
-        }
-
-        // 废弃内容（deprecated）: W/↑ 推掌暂时保留，后续可能再调整；主键位是鼠标左/右键。见 Docs/gameplay/README.md §3
-        if (control is KeyControl key)
-        {
-            if (key.keyCode == Key.W)
-            {
-                isLeft = true;
-                return true;
-            }
-
-            if (key.keyCode == Key.UpArrow)
-                return true;
         }
 
         return false;

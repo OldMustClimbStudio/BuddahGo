@@ -5,27 +5,6 @@ namespace BuddahGo.Tests
 {
     public class ProjectileBurstPlannerTests
     {
-        [TestCase(1)]
-        [TestCase(3)]
-        [TestCase(4)]
-        [TestCase(5)]
-        public void BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection(int count)
-        {
-            var anchor = new Vector3(10, 20, 30);
-            var side = new Vector3(0, 0, -1);
-            var sum = Vector3.zero;
-            Vector3 previous = default;
-            for (int i = 0; i < count; i++)
-            {
-                var position = ProjectileBurstPlanner.GetSpawnPosition(anchor, side, i, count, 3, 2);
-                Assert.That(position.x, Is.EqualTo(anchor.x));
-                Assert.That(position.y, Is.EqualTo(anchor.y));
-                if (i > 0) Assert.That(position - previous, Is.EqualTo(side * 6));
-                sum += position; previous = position;
-            }
-            Assert.That(sum / count, Is.EqualTo(anchor));
-        }
-
         [Test]
         public void ColliderSizeUsesMagnitudeAndMinimumOnEachAxis()
         {

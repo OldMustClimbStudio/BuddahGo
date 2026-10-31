@@ -1181,93 +1181,6 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
             scaledVisualSize);
     }
 
-    public void FireProjectileBurstImmediate(
-        int projectileCount,
-        float projectileSpacing,
-        float projectileSpeed,
-        float projectileLifetimeSeconds,
-        float projectileImpulseStrength,
-        Vector3 projectileColliderSize,
-        bool reverseDirection,
-        bool allowSelfHit,
-        bool ignoreSolidWorld = false,
-        float hitTurnTorqueImpulse = 0f,
-        float additionalForwardSpawnOffset = 0f,
-        float additionalHeightSpawnOffset = 0f)
-    {
-        if (!IsServerInitialized)
-            return;
-
-        int safeProjectileCount = Mathf.Max(1, projectileCount);
-        float safeSpacing = Mathf.Max(0f, projectileSpacing);
-        float scaleMultiplier = GetPushScaleMultiplier();
-        Vector3 outwardDir = GetCurrentAimDirectionServer();
-        Vector3 burstAnchor = GetProjectileBurstAnchorPosition(outwardDir, scaleMultiplier, additionalForwardSpawnOffset, additionalHeightSpawnOffset);
-        Vector3 travelDir = reverseDirection ? -outwardDir : outwardDir;
-        Vector3 sideDir = Vector3.Cross(Vector3.up, outwardDir).normalized;
-
-        for (int i = 0; i < safeProjectileCount; i++)
-        {
-            Vector3 spawnPos = ProjectileBurstPlanner.GetSpawnPosition(burstAnchor, sideDir, i, safeProjectileCount, safeSpacing, scaleMultiplier);
-
-            SpawnProjectilePushServer(
-                spawnPos,
-                travelDir,
-                scaleMultiplier,
-                projectileSpeed,
-                projectileLifetimeSeconds,
-                projectileImpulseStrength,
-                projectileColliderSize,
-                hitTurnTorqueImpulse,
-                allowSelfHit,
-                ignoreSolidWorld);
-        }
-    }
-
-    public void FireChargedProjectileImmediate(
-        float buildUpSeconds,
-        float projectileSpeed,
-        float projectileLifetimeSeconds,
-        float projectileImpulseStrength,
-        Vector3 projectileColliderSize,
-        float additionalForwardSpawnOffset = 0f,
-        float additionalHeightSpawnOffset = 0f,
-        float hitTurnTorqueImpulse = 0f,
-        bool allowSelfHit = false,
-        bool ignoreSolidWorld = false)
-    {
-        if (!IsServerInitialized)
-            return;
-
-        float scaleMultiplier = GetPushScaleMultiplier();
-        Vector3 outwardDir = GetCurrentAimDirectionServer();
-        Vector3 spawnPos = GetProjectileBurstAnchorPosition(outwardDir, scaleMultiplier, additionalForwardSpawnOffset, additionalHeightSpawnOffset);
-        Vector3 scaledColliderSize = SanitizeColliderSize(projectileColliderSize * scaleMultiplier);
-        Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
-        Vector3 impulse = outwardDir * Mathf.Max(0f, projectileImpulseStrength);
-
-        ChargedHandProjectileRuntime.SpawnServer(
-            base.NetworkObject,
-            spawnPos,
-            outwardDir,
-            projectileSpeed,
-            buildUpSeconds,
-            projectileLifetimeSeconds,
-            impulse,
-            scaledColliderSize,
-            hitTurnTorqueImpulse,
-            allowSelfHit,
-            ignoreSolidWorld);
-
-        SpawnChargedProjectileVisualObserversRpc(
-            spawnPos,
-            outwardDir,
-            projectileSpeed,
-            buildUpSeconds,
-            projectileLifetimeSeconds,
-            scaledVisualSize);
-    }
-
     private Vector3 GetCurrentAimDirectionServer()
     {
         Vector3 dir = Quaternion.AngleAxis(_syncedYawOffsetDeg.Value, Vector3.up) * transform.forward;
@@ -1277,24 +1190,6 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
 
         dir.y = 0f;
         return dir.normalized;
-    }
-
-    private Vector3 GetProjectileBurstAnchorPosition(Vector3 outwardDir, float scaleMultiplier, float additionalForwardSpawnOffset, float additionalHeightSpawnOffset)
-    {
-        float forwardDistance = (pushForwardOffset + Mathf.Max(0f, additionalForwardSpawnOffset)) * scaleMultiplier;
-        float extraHeight = Mathf.Max(0f, additionalHeightSpawnOffset) * scaleMultiplier;
-
-        if (leftHandBone != null && rightHandBone != null)
-        {
-            Vector3 midpoint = (leftHandBone.position + rightHandBone.position) * 0.5f;
-            return midpoint
-                   + Vector3.up * ((pushHeightOffset * 0.1f * scaleMultiplier) + extraHeight)
-                   + outwardDir * forwardDistance;
-        }
-
-        return transform.position
-               + Vector3.up * ((pushHeightOffset * scaleMultiplier) + extraHeight)
-               + outwardDir * forwardDistance;
     }
 
     [ObserversRpc]

@@ -6,7 +6,6 @@ using FishNet.Object;
 using NewBuddah.PredictionV2.Core;
 using NewBuddah.PredictionV2.Integration;
 using UnityEngine;
-using UnityEngine.VFX;
 
 [RequireComponent(typeof(Rigidbody))]
 public class ChargedHandProjectileRuntime : MonoBehaviour
@@ -27,21 +26,17 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
     private bool _hasSpawnTick;
     private float _localSpawnTime;
     private float _hitTurnTorqueImpulse;
-    private string _progressProperty = "Progress";
     private bool _applyHits;
     private bool _allowAttackerHit;
     private bool _ignoreSolidWorld;
     private bool _armed;
     private Collider _hitbox;
-    private VisualEffect[] _visualEffects;
     // Visual copies only: the layered skill effect (Docs/vfx), driven by the same timing as the hitbox.
     private SkillVfxPhaseController _skillVfx;
     private bool _dissipating;
     private Transform _followTarget;
     private Vector3 _followTargetStartPosition;
     private Vector3 _startPosition;
-    private GameObject _launchEffectPrefab;
-    private Vector3 _launchEffectWorldOffset;
     private readonly HashSet<NetworkObject> _hitVictims = new();
     // Flight speed shape (ChargedProjectileFlight): null = the old linear fall to FlightEndSpeedFraction.
     private float[] _flightDistanceFractions;
@@ -108,10 +103,7 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         GameObject visualPrefab,
         Vector3 visualLocalEuler,
         Vector3 visualScale,
-        string progressProperty,
         Transform followTarget = null,
-        GameObject launchEffectPrefab = null,
-        Vector3? launchEffectWorldOffset = null,
         SkillVfxPhaseController.Context? skillVfxContext = null,
         AnimationCurve speedCurve = null,
         PreciseTick? spawnTick = null,
@@ -136,7 +128,7 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         if (projectile == null)
             projectile = root.AddComponent<ChargedHandProjectileRuntime>();
 
-        projectile.InitializeVisual(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds, visualLocalEuler, visualScale, progressProperty, launchEffectPrefab, launchEffectWorldOffset ?? Vector3.zero, speedCurve, spawnTick, followTargetStart);
+        projectile.InitializeVisual(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds, visualLocalEuler, visualScale, speedCurve, spawnTick, followTargetStart);
         projectile.StartSkillVfx(skillVfxContext, followTarget);
         return projectile;
     }
@@ -179,27 +171,17 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         float flightLifetimeSeconds,
         Vector3 visualLocalEuler,
         Vector3 visualScale,
-        string progressProperty,
-        GameObject launchEffectPrefab,
-        Vector3 launchEffectWorldOffset,
         AnimationCurve speedCurve,
         PreciseTick? spawnTick,
         Vector3? followTargetStart)
     {
         _applyHits = false;
-        _progressProperty = string.IsNullOrWhiteSpace(progressProperty) ? "Progress" : progressProperty;
         ConfigureMotion(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds, speedCurve, spawnTick, followTargetStart);
-        _launchEffectPrefab = launchEffectPrefab;
-        _launchEffectWorldOffset = launchEffectWorldOffset;
         if (_hitbox != null)
             _hitbox.enabled = false;
 
         transform.rotation *= Quaternion.Euler(visualLocalEuler);
         transform.localScale = Vector3.Scale(transform.localScale, visualScale);
-
-        _visualEffects = GetComponentsInChildren<VisualEffect>(true);
-        SetProgress(0f);
-        PlayAllVisualEffects();
 
         // Ink palm (VFX_Palm_Bullet / _Anti): its timeline plays the gather / flight / dissipate looks over this projectile's
         // timing; the moving is done here, not by the timeline. It draws in the skill-effect pass like the slot effects.
@@ -341,7 +323,6 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
             _skillVfx.BeginPhase(SkillVfxPhase.Prj, _flightDuration);
         }
         FollowChargingTargetPosition();
-        SpawnLaunchEffect();
 
         if (_hitbox != null)
             _hitbox.enabled = _applyHits;
@@ -371,27 +352,6 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         _hitbox.enabled = false;
     }
 
-    private void SpawnLaunchEffect()
-    {
-        if (_launchEffectPrefab == null)
-            return;
-
-        Vector3 effectPosition = transform.position + _launchEffectWorldOffset;
-        GameObject effect = Instantiate(_launchEffectPrefab, effectPosition, Quaternion.LookRotation(_direction, Vector3.up));
-        // This detached burst outlives the projectile, but must not accumulate empty roots per shot.
-        float lifetime = 0f;
-        foreach (ParticleSystem particles in effect.GetComponentsInChildren<ParticleSystem>(true))
-        {
-            var main = particles.main;
-            if (!particles.emission.enabled)
-                continue;
-            lifetime = Mathf.Max(lifetime,
-                (main.startDelay.constantMax + main.duration + main.startLifetime.constantMax)
-                / Mathf.Max(0.01f, main.simulationSpeed));
-        }
-        Destroy(effect, Mathf.Max(0.1f, lifetime));
-    }
-
     private void FollowChargingTargetPosition()
     {
         if (_followTarget == null)
@@ -403,37 +363,11 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         transform.position = nextPosition;
     }
 
+    // Charge progress for the slot effect (0..1, full at ProgressCompletionFraction of the wind-up).
     private void SetProgress(float value)
     {
         if (_skillVfx != null)
             _skillVfx.SetChargeProgress(value);
-
-        if (_visualEffects == null || _visualEffects.Length == 0)
-            return;
-
-        for (int i = 0; i < _visualEffects.Length; i++)
-        {
-            VisualEffect visualEffect = _visualEffects[i];
-            if (visualEffect == null || !visualEffect.HasFloat(_progressProperty))
-                continue;
-
-            visualEffect.SetFloat(_progressProperty, value);
-        }
-    }
-
-    private void PlayAllVisualEffects()
-    {
-        if (_visualEffects == null)
-            return;
-
-        for (int i = 0; i < _visualEffects.Length; i++)
-        {
-            if (_visualEffects[i] == null)
-                continue;
-
-            _visualEffects[i].Reinit();
-            _visualEffects[i].Play();
-        }
     }
 
     private void OnTriggerEnter(Collider other)

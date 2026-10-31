@@ -717,7 +717,7 @@ public class SkillExecutor : NetworkBehaviour
             return;
         handControl.SpawnChargedBurstVisualsAtPositions(starts, direction, speed, buildUpSeconds,
             lifetimeSeconds, localEuler, visualSize, handControl.ResolveSkillVfxPrefab(skill.VfxId),
-            "Progress", skill.projectileColliderSize, serverSpawnTick,
+            skill.projectileColliderSize, serverSpawnTick,
             handControl.ResolveSkillVfxPrefab(skill.HandVfxId), skill.projectileSpeedCurve, casterPositionAtSpawn);
     }
 

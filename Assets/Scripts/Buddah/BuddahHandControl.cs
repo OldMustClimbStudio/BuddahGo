@@ -1021,7 +1021,7 @@ public class BuddahHandControl : NetworkBehaviour
 
     public void SpawnChargedBurstVisualsAtPositions(Vector3[] starts, Vector3 direction, float speed,
         float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
-        GameObject visualPrefab, string progressProperty, Vector3 colliderSize, PreciseTick? spawnTick = null,
+        GameObject visualPrefab, Vector3 colliderSize, PreciseTick? spawnTick = null,
         GameObject handPrefab = null, AnimationCurve speedCurve = null, Vector3? casterPositionAtSpawn = null)
     {
         // Burst-shared layers (one flash, gust and light for the volley) sit on index 0, moved to the row's centre.
@@ -1034,7 +1034,7 @@ public class BuddahHandControl : NetworkBehaviour
         {
             ChargedHandProjectileRuntime.SpawnVisual(starts[i], direction, speed, buildUpSeconds,
                 lifetimeSeconds, visualPrefab != null ? visualPrefab : projectilePrefab,
-                localEuler, visualSize, progressProperty, transform,
+                localEuler, visualSize, transform,
                 skillVfxContext: BuildSkillVfxContext(colliderSize, i, centre - starts[i]),
                 speedCurve: speedCurve,
                 spawnTick: spawnTick,
@@ -1042,7 +1042,7 @@ public class BuddahHandControl : NetworkBehaviour
             // the bullet: the ink palm on every projectile of the volley, on the same path as its hitbox
             if (handPrefab != null)
                 ChargedHandProjectileRuntime.SpawnVisual(starts[i], direction, speed, buildUpSeconds,
-                    lifetimeSeconds, handPrefab, localEuler, visualSize, progressProperty, transform,
+                    lifetimeSeconds, handPrefab, localEuler, visualSize, transform,
                     speedCurve: speedCurve,
                     spawnTick: spawnTick,
                     followTargetStart: casterPositionAtSpawn);
@@ -1118,7 +1118,6 @@ public class BuddahHandControl : NetworkBehaviour
             resolvedVisualPrefab != null ? resolvedVisualPrefab : projectilePrefab,
             projectileVisualLocalEuler,
             scaledVisualSize,
-            DefaultChargedProjectileProgressProperty,
             transform,
             skillVfxContext: BuildSkillVfxContext(_projectileColliderSizeLocal, 0, Vector3.zero),
             speedCurve: _projectileSpeedCurveLocal,
@@ -1137,7 +1136,6 @@ public class BuddahHandControl : NetworkBehaviour
                 handPrefab,
                 projectileVisualLocalEuler,
                 scaledVisualSize,
-                DefaultChargedProjectileProgressProperty,
                 transform,
                 speedCurve: _projectileSpeedCurveLocal,
                 spawnTick: serverSpawnTick,

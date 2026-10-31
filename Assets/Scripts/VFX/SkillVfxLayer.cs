@@ -62,6 +62,11 @@ namespace BuddahGo.VFX
         [Header("Timing")]
         [Tooltip("How the content follows a window longer or shorter than at the controller's reference length: Fixed plays it as authored, Stretch slows / speeds every particle system by the same ratio, Rhythm scales only delays, emission lengths and burst times. Needs a PhaseFraction window and a reference length for the phase.")]
         public SkillVfxTimeScaling timeScaling = SkillVfxTimeScaling.Fixed;
+        [Tooltip("End of the window: every particle system under the layer stops emitting and its live particles play out their own lifetime; the effect is removed only after the last one has died, instead of a fixed tail after the window.")]
+        public bool particlesDieNaturally;
+        [Tooltip("With particlesDieNaturally: particle systems that must be gone when the window ends instead of dying of old age after it (转向反转's yin-yang). endWithWindowSeconds before the end they stop emitting and every live particle plays the rest of its own colour-over-lifetime fade over exactly that many seconds, starting from its current alpha.")]
+        public ParticleSystem[] endWithWindow;
+        public float endWithWindowSeconds = 1f;
 
         static readonly int FxAlphaId = Shader.PropertyToID("_FxAlpha");
         static readonly int FxProgressId = Shader.PropertyToID("_FxProgress");
@@ -85,6 +90,7 @@ namespace BuddahGo.VFX
         Vector3 _baseScale;
         MaterialPropertyBlock _block;
         bool _active;
+        bool _endingStarted;
         bool _enabledByTier = true;
         bool _played;
 
@@ -192,6 +198,24 @@ namespace BuddahGo.VFX
                 _graphs[i].playRate = _baseGraphPlayRate[i] / simulation;
         }
 
+        // Real seconds a particle born at the end of the window can still live, at time scale k (Stretch runs the
+        // particles at 1 / k speed, so they live k times longer).
+        internal float LongestParticleSeconds(float k)
+        {
+            float simulation = timeScaling == SkillVfxTimeScaling.Stretch ? k : 1f;
+            float longest = 0f;
+            for (int i = 0; _particles != null && i < _particles.Length; i++)
+            {
+                float speed = Mathf.Max(1e-3f, _baseSimulationSpeed[i]);
+                // Ended inside the window; endWithWindowSeconds covers a window that ended before the ending began.
+                if (EndsWithWindow(_particles[i]))
+                    longest = Mathf.Max(longest, endWithWindowSeconds);
+                else
+                    longest = Mathf.Max(longest, SkillVfxRules.MaxLifetime(_particles[i].main.startLifetime) * simulation / speed);
+            }
+            return longest;
+        }
+
         static ParticleSystem.MinMaxCurve ScaleCurve(ParticleSystem.MinMaxCurve curve, float k)
         {
             switch (curve.mode)
@@ -267,6 +291,8 @@ namespace BuddahGo.VFX
             _active = false;
             for (int i = 0; i < _particles.Length; i++)
                 _particles[i].Stop(false, ParticleSystemStopBehavior.StopEmitting);
+            // The window ended before the ending began (shorter than endWithWindowSeconds, or cut early): play it now.
+            BeginEnding(endWithWindowSeconds);
             for (int i = 0; i < _trails.Length; i++)
                 _trails[i].emitting = false;
             for (int i = 0; i < _graphs.Length; i++)
@@ -278,6 +304,47 @@ namespace BuddahGo.VFX
                 SetVisible(false);
             if (_light != null)
                 _light.enabled = false;
+        }
+
+        bool EndsWithWindow(ParticleSystem system)
+        {
+            return particlesDieNaturally && endWithWindow != null && System.Array.IndexOf(endWithWindow, system) >= 0;
+        }
+
+        // The endWithWindow systems stop emitting and their live particles end within `seconds` (real time).
+        internal void BeginEnding(float seconds)
+        {
+            if (_endingStarted || !particlesDieNaturally || endWithWindow == null || endWithWindow.Length == 0)
+                return;
+            _endingStarted = true;
+            for (int i = 0; i < _particles.Length; i++)
+            {
+                if (!EndsWithWindow(_particles[i]))
+                    continue;
+                _particles[i].Stop(false, ParticleSystemStopBehavior.StopEmitting);
+                PlayEnding(_particles[i], seconds);
+            }
+        }
+
+        // Each particle jumps to the point of its colour-over-lifetime fade with its current alpha and its lifetime is
+        // set so that the rest of the fade takes `seconds`; one that would die sooner on its own is left alone.
+        static void PlayEnding(ParticleSystem system, float seconds)
+        {
+            float rest = Mathf.Max(1e-3f, seconds * system.main.simulationSpeed);
+            ParticleSystem.ColorOverLifetimeModule colour = system.colorOverLifetime;
+            Gradient fade = colour.enabled && colour.color.mode == ParticleSystemGradientMode.Gradient ? colour.color.gradient : null;
+            var live = new ParticleSystem.Particle[system.particleCount];
+            int count = system.GetParticles(live);
+            for (int i = 0; i < count; i++)
+            {
+                if (live[i].remainingLifetime <= rest)
+                    continue;
+                float age = 1f - live[i].remainingLifetime / Mathf.Max(1e-4f, live[i].startLifetime);
+                float from = Mathf.Min(fade != null ? SkillVfxRules.EndingAge(fade, age) : age, 0.999f);
+                live[i].startLifetime = rest / (1f - from);
+                live[i].remainingLifetime = rest;
+            }
+            system.SetParticles(live, count);
         }
 
         internal void ClearParticles()

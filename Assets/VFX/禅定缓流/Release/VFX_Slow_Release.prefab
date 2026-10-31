@@ -29481,8 +29481,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  anchor: 4
-  casterOffset: {x: 0, y: 0, z: 0}
+  anchor: 5
+  casterOffset: {x: 0, y: 0.62, z: 0}
   casterEuler: {x: -0, y: 0, z: 0}
   faceCamera: 0
   feelEventId: 
@@ -29490,6 +29490,7 @@ MonoBehaviour:
   trailSecondsScale: 1
   trailTimeFollowsWindow: 0
   timeScaling: 1
+  particlesDieNaturally: 1
 --- !u!1 &5189617272629088624
 GameObject:
   m_ObjectHideFlags: 0

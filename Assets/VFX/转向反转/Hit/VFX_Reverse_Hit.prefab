@@ -5080,6 +5080,10 @@ MonoBehaviour:
   trailSecondsScale: 1
   trailTimeFollowsWindow: 0
   timeScaling: 1
+  particlesDieNaturally: 1
+  endWithWindow:
+  - {fileID: 8219000921351206886}
+  endWithWindowSeconds: 1
 --- !u!1 &2060916441586353530
 GameObject:
   m_ObjectHideFlags: 0
@@ -24646,7 +24650,7 @@ ParticleSystem:
   m_GameObject: {fileID: 4013357717221056482}
   serializedVersion: 8
   lengthInSec: 3
-  simulationSpeed: 1
+  simulationSpeed: 5
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -25050,7 +25054,7 @@ ParticleSystem:
     startRotationX:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
+      scalar: 3.1415927
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -25103,7 +25107,7 @@ ParticleSystem:
     startRotationY:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
+      scalar: 3.1415927
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -25156,7 +25160,7 @@ ParticleSystem:
     startRotation:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
+      scalar: 3.1415927
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -25211,7 +25215,7 @@ ParticleSystem:
     maxNumParticles: 1000
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
-    rotation3D: 1
+    rotation3D: 0
     gravityModifier:
       serializedVersion: 2
       minMaxState: 0
@@ -25910,7 +25914,7 @@ ParticleSystem:
     curve:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.7853982
+      scalar: 0
       minScalar: 0.7853982
       maxCurve:
         serializedVersion: 2

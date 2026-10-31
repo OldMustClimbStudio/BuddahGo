@@ -50,6 +50,9 @@ def session():
     return new_session()
 
 def call(tool, args, retry=True):
+    # The server's active instance is shared by every client, so another session can switch it: route each call.
+    if tool != "set_active_instance":
+        args = dict(args); args.setdefault("unity_instance", INSTANCE)
     sid = session()
     r, body, _ = post({"method": "tools/call", "params": {"name": tool, "arguments": args}}, sid)
     if r is None or ("error" in r and retry):

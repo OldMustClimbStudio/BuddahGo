@@ -195,18 +195,25 @@ namespace BuddahGo.VFX
         {
             float end = Time.time;
             float tailScale = 1f;
+            float naturalTail = 0f;
             foreach (KeyValuePair<SkillVfxPhase, float> pair in _phaseStart)
             {
                 // A window may outlast its phase (a Seconds window longer than the gameplay length).
                 end = Mathf.Max(end, pair.Value + Mathf.Max(_phaseDuration[pair.Key], LongestLayerSeconds(pair.Key)));
                 for (int i = 0; _layers != null && i < _layers.Length; i++)
                 {
+                    if (_layers[i] == null || _layers[i].phase != pair.Key)
+                        continue;
+                    float k = LayerTimeScale(_layers[i], _phaseDuration[pair.Key]);
                     // Stretched particles also live k times longer after the window.
-                    if (_layers[i] != null && _layers[i].phase == pair.Key && _layers[i].timeScaling == SkillVfxTimeScaling.Stretch)
-                        tailScale = Mathf.Max(tailScale, LayerTimeScale(_layers[i], _phaseDuration[pair.Key]));
+                    if (_layers[i].timeScaling == SkillVfxTimeScaling.Stretch)
+                        tailScale = Mathf.Max(tailScale, k);
+                    // Its last particles die of old age instead of being cut by the fixed tail.
+                    if (_layers[i].particlesDieNaturally && _layers[i].EnabledByTier)
+                        naturalTail = Mathf.Max(naturalTail, _layers[i].LongestParticleSeconds(k));
                 }
             }
-            _destroyAt = end + Mathf.Max(0f, extraSeconds) * tailScale + MaxTailFade();
+            _destroyAt = end + Mathf.Max(Mathf.Max(0f, extraSeconds) * tailScale, naturalTail) + MaxTailFade();
         }
 
         private void LateUpdate()
@@ -224,8 +231,8 @@ namespace BuddahGo.VFX
                 Evaluate(layer, now, view);
                 // After its window the layer stops emitting, but its live particles (local space) still ride on the
                 // caster until the effect is destroyed; otherwise they are left on the track where the window ended.
-                if (!layer.IsActive && layer.HasStarted && layer.anchor == SkillVfxAnchor.CasterAttached && _caster != null)
-                    PlaceOnCaster(layer, _casterVisual.rotation);
+                if (!layer.IsActive && layer.HasStarted && FollowsCaster(layer) && _caster != null)
+                    PlaceOnCaster(layer, Facing(layer));
             }
 
             if (_destroyAt >= 0f && now >= _destroyAt)
@@ -283,10 +290,10 @@ namespace BuddahGo.VFX
 
             if (layer.anchor == SkillVfxAnchor.CasterFeet && _caster != null)
                 layer.transform.SetPositionAndRotation(CasterFeet(), Quaternion.identity);
-            else if (layer.anchor == SkillVfxAnchor.CasterAttached && _caster != null)
+            else if (FollowsCaster(layer) && _caster != null)
             {
                 Vector3 before = layer.transform.position;
-                PlaceOnCaster(layer, _casterVisual.rotation);
+                PlaceOnCaster(layer, Facing(layer));
                 // Respawn / teleport: the caster jumped, so a trail would draw a line across the map. Start it afresh
                 // (this used to be PlayerBlackCurtainTrail / PlayerAccelerationTrail.NotifyTeleportRebase).
                 if (!firstFrame && (layer.transform.position - before).sqrMagnitude > TeleportJump * TeleportJump)
@@ -295,6 +302,9 @@ namespace BuddahGo.VFX
 
             float u = Mathf.Clamp01((t - start) / Mathf.Max(1e-4f, end - start));
             layer.Apply(u, window * fade, _chargeProgress, _visual.lightIntensity, view);
+            // Its endWithWindow systems fade out over the window's last seconds, gone when the rest stops emitting.
+            if (fade >= 1f && end - t <= layer.endWithWindowSeconds)
+                layer.BeginEnding(end - t);
         }
 
         public float ReferenceSeconds(SkillVfxPhase phase)
@@ -327,6 +337,18 @@ namespace BuddahGo.VFX
             return SkillVfxRules.TimeScale(start, end, referenceStart, referenceEnd);
         }
 
+        private static bool FollowsCaster(SkillVfxLayer layer)
+        {
+            return layer.anchor == SkillVfxAnchor.CasterAttached || layer.anchor == SkillVfxAnchor.CasterFollow;
+        }
+
+        // CasterAttached turns with the caster. CasterRelative and CasterFollow keep the release direction: this root
+        // is placed once at the caster's facing when the effect is played and never turns.
+        private Quaternion Facing(SkillVfxLayer layer)
+        {
+            return layer.anchor == SkillVfxAnchor.CasterAttached ? _casterVisual.rotation : transform.rotation;
+        }
+
         // Farther than any racer moves in one frame (units).
         private const float TeleportJump = 60f;
 
@@ -350,7 +372,7 @@ namespace BuddahGo.VFX
 
         private void OnLayerStarted(SkillVfxLayer layer)
         {
-            bool onCaster = layer.anchor == SkillVfxAnchor.CasterRelative || layer.anchor == SkillVfxAnchor.CasterAttached;
+            bool onCaster = layer.anchor == SkillVfxAnchor.CasterRelative || FollowsCaster(layer);
             if (onCaster && _caster != null)
             {
                 if (layer.transform.parent != null)
@@ -358,8 +380,7 @@ namespace BuddahGo.VFX
                     layer.transform.SetParent(null, false);
                     _detached.Add(layer.gameObject);
                 }
-                // CasterRelative: turned with the release direction (this root). CasterAttached: with the caster.
-                PlaceOnCaster(layer, layer.anchor == SkillVfxAnchor.CasterRelative ? transform.rotation : _casterVisual.rotation);
+                PlaceOnCaster(layer, Facing(layer));
             }
             else if ((layer.anchor == SkillVfxAnchor.DetachAtStart || onCaster) && layer.transform.parent != null)
             {

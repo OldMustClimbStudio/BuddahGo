@@ -122,6 +122,58 @@ namespace BuddahGo.Tests
             }
         }
 
+        // CasterFollow anchor (禅定缓流's ground zone, 2026-10-30): the layer keeps to the caster's position and scale,
+        // during and after its window, but keeps the facing the effect was played with when the caster turns.
+        [Test]
+        public void CasterFollowLayerFollowsThePositionButNotTheFacing()
+        {
+            var caster = new GameObject("Caster");
+            var root = new GameObject("Effect");
+            var layerGo = new GameObject("FX_Test_Imp_C_Flash_01");
+            try
+            {
+                caster.transform.rotation = Quaternion.Euler(0f, 30f, 0f);
+                root.transform.rotation = caster.transform.rotation;
+                var controller = root.AddComponent<SkillVfxPhaseController>();
+                layerGo.transform.SetParent(root.transform, false);
+                var layer = layerGo.AddComponent<SkillVfxLayer>();
+                layer.phase = SkillVfxPhase.Imp;
+                layer.anchor = SkillVfxAnchor.CasterFollow;
+                layer.casterOffset = new Vector3(0f, 3f, -2f);
+                layer.end = -1f;
+
+                controller.Configure(new SkillVfxPhaseController.Context { caster = caster.transform });
+                controller.BeginPhase(SkillVfxPhase.Imp, 5f);
+                var lateUpdate = typeof(SkillVfxPhaseController)
+                    .GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                lateUpdate.Invoke(controller, null);
+
+                Quaternion started = root.transform.rotation;
+                caster.transform.SetPositionAndRotation(new Vector3(50f, 0f, 80f), Quaternion.Euler(0f, 150f, 0f));
+                caster.transform.localScale = Vector3.one * 2f;
+                lateUpdate.Invoke(controller, null);
+                Vector3 expected = caster.transform.position + started * (layer.casterOffset * 2f);
+                Assert.That(Vector3.Distance(layerGo.transform.position, expected), Is.LessThan(1e-3f));
+                Assert.That(Quaternion.Angle(layerGo.transform.rotation, started), Is.LessThan(0.01f));
+                Assert.That(layerGo.transform.lossyScale.y, Is.EqualTo(2f).Within(1e-4f));
+
+                // After the window: still on the caster, still not turned.
+                controller.EndPhase(SkillVfxPhase.Imp);
+                lateUpdate.Invoke(controller, null);
+                caster.transform.SetPositionAndRotation(new Vector3(-30f, 0f, 200f), Quaternion.Euler(0f, 270f, 0f));
+                lateUpdate.Invoke(controller, null);
+                expected = caster.transform.position + started * (layer.casterOffset * 2f);
+                Assert.That(Vector3.Distance(layerGo.transform.position, expected), Is.LessThan(1e-3f));
+                Assert.That(Quaternion.Angle(layerGo.transform.rotation, started), Is.LessThan(0.01f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(layerGo);
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(caster);
+            }
+        }
+
         // After its window the layer stops emitting, but the particles still alive stay on the caster (禅定缓流 window
         // ends at 55 % of the slow; its smoke was left on the track).
         [Test]

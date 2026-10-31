@@ -163,10 +163,10 @@ namespace BuddahGo.VFX.EditorTools
 
             SkillVfxLayer layer = null;
             foreach (SkillVfxLayer candidate in placeholder.GetComponentsInChildren<SkillVfxLayer>(true))
-                if (candidate.anchor == SkillVfxAnchor.CasterRelative || candidate.anchor == SkillVfxAnchor.CasterAttached)
+                if (candidate.anchor == SkillVfxAnchor.CasterRelative || candidate.anchor == SkillVfxAnchor.CasterAttached || candidate.anchor == SkillVfxAnchor.CasterFollow)
                     layer = candidate;
             if (layer == null)
-                return placeholder.name + " has no CasterRelative / CasterAttached layer";
+                return placeholder.name + " has no CasterRelative / CasterAttached / CasterFollow layer";
 
             float scale = Mathf.Abs(player.lossyScale.y);
             Quaternion yaw = Quaternion.Euler(0f, player.eulerAngles.y, 0f);

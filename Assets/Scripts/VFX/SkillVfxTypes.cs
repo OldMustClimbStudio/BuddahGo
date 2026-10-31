@@ -55,6 +55,9 @@ namespace BuddahGo.VFX
         // Same offset as CasterRelative, but kept on the caster every frame of the window (buffs, trails, zones that
         // move with the caster), turned with the caster's own facing.
         CasterAttached,
+        // Kept on the caster's position (and scale) every frame like CasterAttached, but keeps the facing of the
+        // moment it started: the caster turning does not turn it (禅定缓流's ground zone).
+        CasterFollow,
     }
 
     // How a layer's content follows a window that is longer or shorter than the one it was tuned for (the phase length
@@ -200,6 +203,34 @@ namespace BuddahGo.VFX
             if (fadeOut > 0f)
                 a = Mathf.Min(a, (end - t) / fadeOut);
             return Mathf.Clamp01(a);
+        }
+
+        // Longest a particle of this start lifetime can live (seconds of particle time).
+        internal static float MaxLifetime(ParticleSystem.MinMaxCurve lifetime)
+        {
+            switch (lifetime.mode)
+            {
+                case ParticleSystemCurveMode.Constant:
+                case ParticleSystemCurveMode.TwoConstants:
+                    return lifetime.constantMax;
+                default:
+                    return lifetime.curveMultiplier;
+            }
+        }
+
+        // Normalized age from which a particle now at `age` plays the rest of its own ending: the point on the
+        // gradient's last segment (its fade-out) with the same alpha, so nothing jumps. Already fading: unchanged.
+        internal static float EndingAge(Gradient gradient, float age)
+        {
+            GradientAlphaKey[] keys = gradient.alphaKeys;
+            if (keys.Length < 2)
+                return age;
+            GradientAlphaKey from = keys[keys.Length - 2];
+            GradientAlphaKey to = keys[keys.Length - 1];
+            if (age >= from.time || from.alpha <= to.alpha)
+                return age;
+            float alpha = Mathf.Min(gradient.Evaluate(age).a, from.alpha);
+            return Mathf.Lerp(from.time, to.time, Mathf.InverseLerp(from.alpha, to.alpha, alpha));
         }
 
         static float SafeRatio(float value, float reference)

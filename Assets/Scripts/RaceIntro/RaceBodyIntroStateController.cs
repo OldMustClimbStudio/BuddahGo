@@ -33,6 +33,9 @@ public class RaceBodyIntroStateController : MonoBehaviour
     [SerializeField, Min(0f)] private float defaultHandoffLeadTime = 0.5f;
     [Tooltip("After the scheduled GO time the body keeps moving along the spline end tangent at intro speed until the authoritative GO arrives, but never longer than this. Beyond it the body parks (kinematic, colliders off) and a warning is logged once per sequence.")]
     [SerializeField, Min(0f)] private float maxGoOvershootSeconds = 0.15f;
+    // Fully physical handoff (2026-10-30): no steering suppression after the throw; the table records it as
+    // Movement.launchSuppressTurnSeconds (doc). Inherit / blend are Movement.launchInheritSeconds / launchBlendSeconds = 0.
+    private const float LaunchSuppressTurnSeconds = 0f;
     [Tooltip("Extra seconds beyond maxGoOvershootSeconds that the local owner keeps following the spline end tangent after its own GO while the authoritative handoff round trip (ServerRpc + TargetRpc) is still pending. One tick on a host, the RTT on a pure client. Beyond the sum the body parks.")]
     [SerializeField, Min(0f)] private float maxHandoffPendingOvershootSeconds = 0.35f;
     [Tooltip("Ticks the intro render-time sample trails behind network time. Must match the owner graphical smoother lag: Buddah.prefab NetworkObject > Prediction > Owner Interpolation (1). If that value changes, change this too or the GO switch shows a step of the difference.")]
@@ -564,7 +567,7 @@ public class RaceBodyIntroStateController : MonoBehaviour
             movementController.BeginLaunchHandoff(
                 snapshot,
                 Mathf.Max(0.1f, GetHandoffLeadTime()),
-                0.15f,
+                LaunchSuppressTurnSeconds,
                 false,
                 _activeSequenceId,
                 false);

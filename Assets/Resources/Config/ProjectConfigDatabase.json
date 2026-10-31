@@ -350,8 +350,8 @@
             },
             "pushGraceSeconds": 0.25,
             "pushExtraMaxSpeed": 6.0,
-            "launchInheritSeconds": 0.20000000298023225,
-            "launchBlendSeconds": 0.3199999928474426,
+            "launchInheritSeconds": 0.0,
+            "launchBlendSeconds": 0.0,
             "handoffGroundSnapMaxDistance": 1.5,
             "handoffGroundProbeHeight": 3.0,
             "velocitySampleDeltaSeconds": 0.019999999552965165

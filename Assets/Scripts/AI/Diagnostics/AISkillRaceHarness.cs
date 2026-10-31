@@ -135,6 +135,7 @@ namespace BuddahGo.AI
                 var record = new RacerRecord { Id = identity.Id.Value, Name = identity.DisplayName,
                     Identity = identity, Body = identity.GetComponent<Rigidbody>(), Motor = identity.GetComponent<BuddahPredictedMotor>(),
                     Driver = identity.GetComponent<AIRacerDriver>(), Caster = identity.GetComponent<AISkillCaster>(),
+                    Executor = identity.GetComponent<SkillExecutor>(),
                     Lap = identity.GetComponent<LapProgress>(), Progress = identity.GetComponent<SplineProgressTracker>(),
                     Obsession = identity.GetComponent<ObsessionFigure>(), Perception = identity.GetComponent<SkillPerceptionState>() };
                 if (identity.IsAI)
@@ -146,9 +147,16 @@ namespace BuddahGo.AI
                 else
                 {
                     if (record.Driver.enabled) throw new InvalidOperationException("Human takeover would invalidate an A3 natural race.");
-                    record.Combo = identity.GetComponent<ComboSkillInput>(); record.Hands = identity.GetComponent<BuddahHandControl>();
-                    record.ComboEnabled = record.Combo.enabled; record.HandsEnabled = record.Hands.enabled;
-                    if (!ControlledEffects) { record.Combo.enabled = false; record.Hands.enabled = false; }
+                    // A7: the Human Player casts by slot key; only the hands (pushes/aim) are a component to disable here.
+                    record.Hands = identity.GetComponent<BuddahHandControl>();
+                    record.HandsEnabled = record.Hands.enabled;
+                    if (!ControlledEffects) record.Hands.enabled = false;
+                }
+                // 缘起 triggers per racer (yuanqiId from SkillExecutor.YuanqiObserved): the solo-race check reads them.
+                if (record.Executor != null)
+                {
+                    record.OnYuanqi = (yuanqiId, payload, local) => { record.Yuanqi++; record.YuanqiIds.Add(yuanqiId); Event("yuanqi", record.Id + ":" + yuanqiId); };
+                    record.Executor.YuanqiObserved += record.OnYuanqi;
                 }
                 _racers.Add(record);
             }
@@ -231,8 +239,8 @@ namespace BuddahGo.AI
             Stalls = r.Stalls, Discontinuities = r.Discontinuities, Requests = r.Caster != null ? r.Caster.Telemetry.Requests : 0,
             Accepted = r.Caster != null ? r.Caster.Telemetry.Accepted : 0, Executed = r.Caster != null ? r.Caster.Telemetry.Executed : 0,
             Backlashes = r.Caster != null ? r.Caster.Telemetry.Backlashes : 0, Cancelled = r.Caster != null ? r.Caster.Telemetry.Cancelled : 0,
-            ComboFailures = r.Caster != null ? r.Caster.Commitment.FailedCombos : 0, Keys = r.Caster != null ? r.Caster.Telemetry.Keys : 0,
-            BuffShots = r.Caster != null ? r.Caster.Telemetry.BuffShots : 0 };
+            BuffShots = r.Caster != null ? r.Caster.Telemetry.BuffShots : 0,
+            Yuanqi = r.Yuanqi, YuanqiIds = string.Join(",", r.YuanqiIds) };
         private double InputShareOfFramesOver(double thresholdMs)
         {
             double total = 0d, input = 0d;
@@ -259,7 +267,7 @@ namespace BuddahGo.AI
             foreach (var r in _racers)
             {
                 if (r.Caster != null) r.Caster.Telemetry.Observed -= Skill;
-                if (r.Combo != null) r.Combo.enabled = r.ComboEnabled;
+                if (r.Executor != null && r.OnYuanqi != null) r.Executor.YuanqiObserved -= r.OnYuanqi;
                 if (r.Hands != null) r.Hands.enabled = r.HandsEnabled;
             }
             _obstacles?.Dispose();
@@ -274,15 +282,18 @@ namespace BuddahGo.AI
         {
             public int Id, FinalLap, FinalCheckpoint, Stalls, Discontinuities; public string Name, Personality;
             public RacerIdentity Identity; public Rigidbody Body; public BuddahPredictedMotor Motor; public AIRacerDriver Driver;
-            public AISkillCaster Caster; public LapProgress Lap; public SplineProgressTracker Progress; public ObsessionFigure Obsession;
-            public SkillPerceptionState Perception; public ComboSkillInput Combo; public BuddahHandControl Hands;
-            public bool ComboEnabled, HandsEnabled, NaturalFinish, HasSample, Stalled;
+            public AISkillCaster Caster; public SkillExecutor Executor; public LapProgress Lap; public SplineProgressTracker Progress; public ObsessionFigure Obsession;
+            public SkillPerceptionState Perception; public BuddahHandControl Hands;
+            public bool HandsEnabled, NaturalFinish, HasSample, Stalled;
+            public int Yuanqi; public readonly List<string> YuanqiIds = new List<string>(); public Action<string, YuanqiPresentationPayload, bool> OnYuanqi;
             public Vector3 LastPosition; public float LastDistance, Unwrapped, BestDistance, FinalDistance;
             public double LastClock, LastAdvanceClock, FinishSeconds; public double[] Laps = Array.Empty<double>();
         }
         [Serializable] private sealed class RacerResult
         {
-            public int RacerId, FinalLap, FinalCheckpoint, Stalls, Discontinuities, Requests, Accepted, Executed, Backlashes, Cancelled, ComboFailures, Keys, BuffShots;
+            public int RacerId, FinalLap, FinalCheckpoint, Stalls, Discontinuities, Requests, Accepted, Executed, Backlashes, Cancelled, BuffShots;
+            // 缘起 triggers of this racer (count and comma-separated yuanqiIds, from SkillExecutor.YuanqiObserved).
+            public int Yuanqi; public string YuanqiIds;
             public string Name, Personality, DNFReason; public bool NaturalFinish; public double FinishSeconds; public double[] Laps; public float FinalDistance;
         }
         [Serializable] private sealed class Summary

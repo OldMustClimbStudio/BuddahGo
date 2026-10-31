@@ -15,7 +15,6 @@ MonoBehaviour:
   skillId: acceleration_anti
   displayName: "\u795E\u8DB3\u901A\uFF08\u566C\uFF09"
   cooldownSeconds: 8
-  castLockSeconds: 6
   obsessionGain: 0
   antiSkillId: 
   slowForwardForce: 45

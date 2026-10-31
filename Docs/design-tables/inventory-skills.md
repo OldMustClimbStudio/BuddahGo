@@ -2,6 +2,8 @@
 
 筛查日期 2026-10-12，基线 dev 9ff6338。本文件只做盘点，不含实现。总览与跨域结论见 [README.md](README.md)。
 
+> 2026-10-26 玩法深化之后（代码 0dbc551），反噬变体（`*_anti` 行、`antiSkillId`、`castLockSeconds`）已从表与代码退役（2026-10-31：反噬变体和 `antiSkillId` 已按用户决定恢复，`castLockSeconds` 仍退役，见决定 30），`Obsession` 加了五列，缘起有了三张新表，见第 10 节末尾与第 15 节。其余各节仍是 2026-10-12 基线的盘点记录，其中这些说法不再适用：第 1、3 节的 castLockSeconds / antiSkillId / `AntiCastConfirmDelaySeconds` / 反噬 id 推断（施法前摇在 `Skill.castConfirmDelaySeconds`，反噬共用它）；第 2、3 节的 6 行 `*_anti` 与第 2 节 `giant_anti` 显示名、`anti_blackcurtain` 的命名问题；第 4 节的 4.2、4.4、4.8 与 4.5、4.6、4.9 里的 Anti 部分（6 个 `Skill_*_Anti` 类与资产已删）；第 5 节的反噬表现条目（`accel_anti_vfx`、`slow_trap_anti_vfx`、`reverse_turn_trap_anti_vfx` 等）与第 6 节"SO 引用"里的两个 anti id（SO 已删，id 留在 `VfxRegistry`）；第 7 节的 `acceleration_anti_observers`、`blackcurtain_anti_observers`；第 8 节（`ComboSkillInput`、`Skill/ComboBinding`、`Skill/ComboInput` 已随 A7 删除）；第 9 节（技能键 Q/E/R 与 1/2/3，鼠标瞄准与鼠标左 / 右键推掌，见 [inventory-movement.md](inventory-movement.md) 表 10；2026-10-30 起 W 是前进键、按住才推进，“油门恒 1”不再成立，W/↑ 推掌已删除，↑ 不绑定）；第 11 节 `rotationSpeedDegPerSec` 的含义（改为鼠标转手速度上限，←/→ 只在没有鼠标时回退）；第 13 节的 Hidden 池 6 行（已删）；第 14 节的「（噬）」后缀（`skill.*_anti.*` 文案保留，没有行引用）；"重复与遗留来源"的 3、9、13 与 10 里的 Anti 部分，12 的计数现为 VFX id 1 个（`reverse_turn_trap_vfx`）、Feel 事件 2 个（`acceleration_local`、`blackcurtain_observers`）；待确认问题 2 已答（反噬的施法不加执念，玩法 README 6.2 已定），3 不再需要回答（玩家搓招已退役），7 里的黑幕 XOR 规则与神掌反噬规则随反噬变体删除。A7（2026-10-28，ac3d5fe）删除 `ComboSkillInput` 后，第 1 节 `GlobalRuleRecord` 的读取方 `ComboSkillInput.ApplyConfiguredGlobalRules` 与 `combo_input_window_seconds`、"重复与遗留来源"2 里的 `ComboSkillInput.Awake`、5、11 里的 `ComboSkillInput.debugHud` 也不再适用。
+
 范围：`Assets/Scripts/Buddah/**`、`Assets/Scripts/VFX/**`、`Assets/Skills_Assets/**`、`Assets/Scripts/Config/**`、`Assets/Data/Config/`、`Assets/Resources/Config/`，以及 Buddah.prefab 上的相关组件。
 
 缩写：CS=`Assets/Scripts/Buddah/ComboSkill/`；SA/X=`Assets/Skills_Assets/Skills/X.asset`；SDB=`Assets/Skills_Assets/Skill Database.asset`；BP=`Assets/Character/Prefab/Buddah.prefab`；MAIN=`Assets/Data/Config/ProjectConfigDatabase_Main.asset`；JSON=`Assets/Resources/Config/ProjectConfigDatabase.json`；RM=`Assets/Scenes/RaceMap.unity`。数值写作「代码默认 / asset 或 prefab 实际值」，运行时以后者为准。Buddah.prefab 在场景里没有任何 override。
@@ -176,6 +178,8 @@
 
 ## 8. 表 ComboBinding（`CS/ComboSkillInput.cs`，BP:801-812）
 
+> 已删除（A7）：`ComboSkillInput` 连同 `Skill/ComboBinding`、`Skill/ComboInput` 和 `__enums__.ComboToken` 一起退役，AI 和玩家都走 `SkillExecutor.CastSlotServer`。下文是基线记录。
+
 | name | slot | sequence |
 |---|---|---|
 | Skill_1 | 0 | W, Up, W |
@@ -207,6 +211,18 @@
 | backfireKeepPMaxAtOrAboveX | :40 | 1000 / 1000 | 达到即取上限 |
 
 公式：衰减每秒 = drain + a·gap²，gap 为与领先者完成度差（百分比，:77-85）；增长 `AddServer(obsessionGain)` 在施法执行时（SkillExecutor.cs:394）；反噬概率 `P = Pmax/(1+e^(-k(x-mid)))`，x≥阈值直接 Pmax (:157-170)；掷骰 `Random.value*100 < P`（`SkillExecutor.ResolveCastVariant:313-344`），AISkillCaster.cs:163 调同一函数。GlobalRule 的 catchup_recovery_a、obsession_recovery_baseline 只有常量定义，ObsessionFigure 不读配置。
+
+2026-10-26 阶段 B：`Skill/Obsession` 加五列，初值是阶段 A 的 `ObsessionFigure` 序列化默认值，`ObsessionFigure.Awake` 的同名覆盖直接接上（序列化值退为兜底）：
+
+| 列 | 初值 | 读取方 | 含义 |
+|---|---|---|---|
+| repeatWindowSeconds | 5 | ObsessionFigure → SkillExecutor（`SkillRepeatSurcharge` 按技能 id 记层数） | 冷却结束后多少秒内重放同一技能算同招加价 |
+| repeatGainMultiplier | 1.15 | 同上 | 每层的执念倍率，复利 1.15 → 1.3225 → 1.52 |
+| backfireLockSeconds | 10 | ObsessionFigure；SkillExecutor 也用它做限速惩罚的时长 | 反噬惩罚时长：锁全部技能、执念停止自然下降、限速打折 |
+| backfireMaxSpeedMultiplier | 0.85 | ObsessionFigure → 预测修饰 MaxSpeedMultiplier | 惩罚期间限速倍率，复活不清 |
+| backfireEndKeepRatio | 0.8 | ObsessionFigure | 惩罚结束时执念保留比例 |
+
+五列都不能留空（空格导入为 0，range 检查跳过空格），由 `DesignTableDomainRules.BackfireAndSurchargeCellsAreFilled` 报 Error。
 
 ## 11. 表 HandPush（`Buddah/BuddahHandControl.cs`，BP:644-661）
 
@@ -278,3 +294,36 @@
 9. Buddah.prefab 上的参数（移动、推手、相机、复活、执念）是否一起迁表？迁则 ObsessionFigure 需改为读配置。
 10. 慢速陷阱区域半径目前在 SlowTrapZone.prefab 的 scale 上，是否改为表列？
 11. AI 侧 SkillPersonalities、AISkillCatalog.SkillIds、SkillVfxReplicator 都依赖同一组技能 id，是否纳入本次重构？
+
+## 15. 2026-10-26 阶段 B：反噬变体退役与缘起表
+
+删除（代码读取方一起删）：
+
+| 位置 | 删除内容 | 代码 |
+|---|---|---|
+| Skill/Skill | `castLockSeconds`、`antiSkillId` 两列；6 行 `*_anti` | `SkillAction.castLockSeconds`、`SkillDatabase.GetCastLockSeconds`、`SkillConfigRepository.TryGetCastLock`、`ProjectConfigValidator` 与 `DesignTableDomainRules` 的反噬规则、`SkillConfigCrossValidator` 的锁定比较 |
+| SkillEffectAcceleration | `acceleration_anti` 行；`slowForwardForce`、`slowMaxSpeed` 列 | 无（类已在阶段 A 删除） |
+| SkillEffectSlowTrap | `slowtrap_anti` 行；`extraForwardForce`、`extraMaxSpeed`、`accelerationDurationSeconds` 列 | 无 |
+| SkillEffectBlackCurtain | `blackcurtain_anti` 行 | 无 |
+| SkillEffectGiant | `giant_anti` 行；`restoreDurationSeconds` 列 | 无 |
+| Push | `charged_anti` 行；`projectileCount`、`projectileSpacing`、`hitTurnTorqueImpulse` 列 | 无（`PushChargedAntiMap` 已在阶段 A 删除） |
+| SkillPresentation / SkillConstant / SkillSelectionRule | 各自的 `*_anti` 行（SkillSelectionRule 是 6 行 Hidden） | 无 |
+| FeelEvent | `acceleration_anti_observers`、`blackcurtain_anti_observers` | 无 |
+
+保留：`FeelEvent` 的 `Anti_Reflection_Shared / Local`（统一反噬反馈）。`VfxRegistry` 的反噬 id、`Global/__enums__` 里 `SkillId` 的 6 个 anti 值、`UI/Text` 的 `skill.*_anti.*` 文案当时也保留，2026-10-31 删除（[退役记录](../gameplay/retired.md)）；`ComboInput / ComboBinding` 已在 A7 删除（AI 不再逐键搓招，`ComboSkillInput` 删除）。
+
+新增缘起表（结构见 [yuanqi-architecture.md](../gameplay/yuanqi-architecture.md) §3，字段名就是 SO 字段名）：
+
+| sheet | 列 | 读取方 |
+|---|---|---|
+| Skill/Yuanqi | yuanqiId（`enum:YuanqiId#key`）、pairNumber（doc）、displayNameKey、descriptionKey、skillA、skillB、consumeA、consumeB、mode、retriggerPolicy、isEnabled | SkillDatabase：`YuanqiRowMap` 显式映射到 `Skill Database.asset` 的 `yuanqis` 里同 id 的 Yuanqi_* SO；名称经 `GetYuanqiDisplayName`（HUD 缘起提示、选技能界面）；描述经 `GetYuanqiDescription`，没有界面显示 |
+| Skill/YuanqiEffectFrostLock | yuanqiId、freezeSeconds（N=1.5）、radiusMeters（R=12）、affectsTrainingDummies（true） | SkillDatabase 同名覆盖 Yuanqi_FrostLock |
+| Skill/YuanqiEffectGiantCharge | yuanqiId、burstExtraMaxSpeed（60）、burstSeconds（0.8）、impactImpulseMultiplier（M=3） | SkillDatabase 同名覆盖 Yuanqi_GiantCharge |
+
+三行：giant_palm（#1，giant + push_projectile_hands，Sustained，不消耗）、frost_lock（#2，acceleration + slowtrap，Instant，两招都消耗）、giant_charge（#4，acceleration + giant，Instant，只消耗 acceleration）。#1 没有参数，不建家族表。写入时机与技能 SO 相同：每局 Play 首次查表时写入，编辑器退出 Play 时恢复资产。
+
+校验（`DesignTableDomainRules`）：两招不同、无序唯一、Sustained 不消耗（`mode` 按导入时的解析判断，写 `Sustained` 或枚举值 `1` 都算）、`skillA / skillB / consumeA / consumeB / mode / retriggerPolicy / isEnabled` 必填（Error；留空的招式会让 `YuanqiCatalog` 静默丢掉这一对）；三个技能两两都有启用的缘起时报 Warning。家族行的资产类名不由表规则检查（表规则看不到资产）：类名不符时 `SkillDatabase` 跳过该行并打 Warning，`SkillConfigCrossValidator` 报告，EditMode 测试 `EveryYuanqiRowHasAnAssetOfItsFamily` 失败。
+
+文案：`UI/Text` 新增 `yuanqi.<id>.name / .desc` 六个 key。名称里的巨、冰、封、破、阵不在 SoloCJK 子集里（描述还缺更多字），字体重烘之前 HUD 退回显示 id。
+
+机制更新新增、没有进表的参数（组件序列化字段，Buddah.prefab 没有覆盖，代码默认即实际值）：`BuddahHandControl` 的 `useMouseAim` true、`mouseAimSmoothingSeconds` 0.06、`mouseAimDeadRadius` 1.5（乘体型）、`mouseAimPlaneHeightOffset` 0、`yawResendAfterFreezeSeconds` 0.3；`RacerSkillPresentationState` 的 `releaseDelaySeconds` 0.1、`holdAnimatorWhileFrozen` true；`SkillVfxReplicator.defaultStopLingerSeconds` 1。技能与缘起 SO 上也有新字段没有进表，各自的 .asset 都没有序列化它们，代码默认即实际值：`Yuanqi_GiantCharge` 的施法者镜头 FOV 冲击 `casterFovKickDegrees` 8、`casterFovKickHoldSeconds` 0.15、`casterFovKickSettleSeconds` 0.65；`Skill_Acceleration.consumedVfxLingerSeconds` 1；`Skill_SlowTrap.zoneEndVfxLingerSeconds` 1。是否入表按决定 4 先与用户同步（待确认）。

@@ -62,13 +62,13 @@ namespace BuddahGo.AI
             // Runtime instance only, in an explicitly labelled deterministic effect fixture.
             typeof(ObsessionFigure).GetField("backfirePMaxPercent", Private).SetValue(executor.GetComponent<ObsessionFigure>(), 0f);
         }
-        private static void BeginCombo(RacerIdentity racer, int slot)
+        // A7: the AI commits to a slot and requests it through SkillExecutor.CastSlotServer on the next tick (no combo keys).
+        private static void BeginCast(RacerIdentity racer, int slot)
         {
-            var caster = racer.GetComponent<AISkillCaster>(); var input = racer.GetComponent<ComboSkillInput>();
+            var caster = racer.GetComponent<AISkillCaster>();
             var executor = racer.GetComponent<SkillExecutor>();
-            input.ClearCombo(); input.TryGetSequenceForSlot(slot, out var sequence);
             caster.CastingEnabled = true;
-            caster.Commitment.Begin(slot, sequence, executor.TimeManager.LocalTick,
+            caster.Commitment.Begin(slot, executor.TimeManager.LocalTick,
                 executor.TimeManager.LocalTick + (uint)Mathf.CeilToInt(6f / (float)executor.TimeManager.TickDelta));
         }
 
@@ -77,22 +77,25 @@ namespace BuddahGo.AI
             yield return WaitFor(() => _race.Status == "racing", 90f);
             if (_race.Status != "racing") throw new InvalidOperationException("Lifecycle fixture did not reach GO.");
             yield return new WaitForSeconds(1f);
-            Status = "root-cancels-combo";
+            Status = "root-keeps-accepted-cast";
             var keeper = Racer(10000); var caster = keeper.GetComponent<AISkillCaster>(); var executor = keeper.GetComponent<SkillExecutor>();
-            int before = caster.Telemetry.Executed, keys = caster.Telemetry.Keys;
-            BeginCombo(keeper, 0);
-            yield return WaitFor(() => caster.Telemetry.Keys > keys, 2f);
+            int before = caster.Telemetry.Executed;
+            Normal(executor); BeginCast(keeper, 0);
+            yield return WaitFor(() => executor.HasPendingCast, 2f);
+            Check("commitment requested the cast on the next tick", executor.HasPendingCast && caster.Commitment.Waiting);
             executor.ApplyRootThenAccelerationToOwner(.6f, 0f, 0f, .01f);
-            yield return new WaitForSeconds(.2f);
-            Check("root cancels partially entered combo", !caster.Commitment.Active && !executor.HasPendingCast && caster.Telemetry.Executed == before);
+            yield return new WaitForSeconds(1.5f);
+            // Rooting does not cancel a Human Player's accepted cast, so the AI's executes too (Q2).
+            Check("root keeps the accepted cast", !caster.Commitment.Active && !executor.HasPendingCast && caster.Telemetry.Executed == before + 1);
             caster.CastingEnabled = false;
             yield return new WaitForSeconds(.8f); executor.ResetActiveSkillEffectsServer();
 
             Status = "respawn-cancels-confirmation";
             var hunter = Racer(10001); caster = hunter.GetComponent<AISkillCaster>(); executor = hunter.GetComponent<SkillExecutor>();
-            before = caster.Telemetry.Executed; BeginCombo(hunter, 0);
+            // A confirming backfire survives respawn (Human Player rule), so this fixture must not roll one.
+            Normal(executor); before = caster.Telemetry.Executed; BeginCast(hunter, 0);
             yield return WaitFor(() => executor.HasPendingCast, 4f);
-            Check("combo reached real confirmation", executor.HasPendingCast);
+            Check("request reached real confirmation", executor.HasPendingCast);
             var motor = hunter.GetComponent<BuddahPredictedMotor>();
             motor.TryApplyServerAuthoritativeTeleport(hunter.transform.position + Vector3.up, hunter.transform.rotation,
                 hunter.GetComponent<SplineProgressTracker>().progress01, BuddahPredictedTeleportSourceType.Manual,

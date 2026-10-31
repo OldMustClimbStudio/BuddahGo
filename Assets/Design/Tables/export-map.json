@@ -39,19 +39,24 @@
   "list": "defaultLoadouts",
   "tags": "skill,info"
  },
- "Skill/ComboInput": {
-  "record": "ComboInputRecord",
-  "list": "comboInputs",
-  "tags": "skill,balance"
- },
- "Skill/ComboBinding": {
-  "record": "ComboBindingRecord",
-  "list": "comboBindings",
-  "tags": "skill,info"
- },
  "Skill/Obsession": {
   "record": "ObsessionRecord",
   "list": "obsessions",
+  "tags": "skill,balance"
+ },
+ "Skill/Yuanqi": {
+  "record": "YuanqiRecord",
+  "list": "yuanqis",
+  "tags": "skill,info"
+ },
+ "Skill/YuanqiEffectFrostLock": {
+  "record": "YuanqiEffectFrostLockRecord",
+  "list": "yuanqiEffectFrostLocks",
+  "tags": "skill,balance"
+ },
+ "Skill/YuanqiEffectGiantCharge": {
+  "record": "YuanqiEffectGiantChargeRecord",
+  "list": "yuanqiEffectGiantCharges",
   "tags": "skill,balance"
  },
  "Movement/Movement": {

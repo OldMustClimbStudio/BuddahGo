@@ -41,7 +41,7 @@ public class Skill_BlackCurtain_Anti : SkillAction
         GameLog.Verbose($"[Skill_BlackCurtain_Anti][Server] Triggered by {caster.name}, totalDuration={actualDuration:0.00}s");
     }
 
-    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         var settings = new BlackCurtainPresentation.Settings
         {
@@ -59,7 +59,7 @@ public class Skill_BlackCurtain_Anti : SkillAction
             centerProperty = centerProperty,
             centerWorldOffset = centerWorldOffset,
         };
-        if (!BlackCurtainPresentation.TryPlay(caster, isAnti, localIsCaster, GetType().Name, settings))
+        if (!BlackCurtainPresentation.TryPlay(caster, true, localIsCaster, GetType().Name, settings))
             return;
 
         float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);

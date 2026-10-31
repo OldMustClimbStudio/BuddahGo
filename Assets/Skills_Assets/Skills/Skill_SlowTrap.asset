@@ -15,7 +15,6 @@ MonoBehaviour:
   skillId: slowtrap
   displayName: "\u7985\u5B9A\u7F13\u6D41"
   cooldownSeconds: 12
-  castLockSeconds: 10
   obsessionGain: 300
   antiSkillId: slowtrap_anti
   triggerColliderPrefab: {fileID: 3548138375007760348, guid: 7d62612470e8e3a4ea41c006f4cf5ecb,

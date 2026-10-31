@@ -15,7 +15,6 @@ MonoBehaviour:
   skillId: blackcurtain_anti
   displayName: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
   cooldownSeconds: 16
-  castLockSeconds: 14
   obsessionGain: 100
   antiSkillId: 
   fullscreenMaterial: {fileID: -876546973899608171, guid: 542df48691f3a4f4c848f6dd8209b18f,

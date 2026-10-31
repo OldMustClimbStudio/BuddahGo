@@ -13,6 +13,8 @@ public class Skill_Acceleration : SkillAction
     [SerializeField] public string vfxId = "accel_back_vfx"; // Configure matching VFX id in SkillVfxReplicator.
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.back * 2f;
     [SerializeField] public Vector3 vfxLocalEuler = new Vector3(0f, 180f, 0f);
+    [Tooltip("缘起 consumed the skill: seconds the stopped back VFX lingers (particles fade) before it is destroyed.")]
+    [Min(0f)] public float consumedVfxLingerSeconds = 1f;
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = "acceleration_shared";
     [SerializeField] private string observersFeelStopEventId = string.Empty;
@@ -49,7 +51,7 @@ public class Skill_Acceleration : SkillAction
         // Authored Feel bindings take precedence over the timed VFX fallback.
     }
 
-    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         ExecuteObservers(caster, slotIndex);
 
@@ -59,6 +61,30 @@ public class Skill_Acceleration : SkillAction
         if (localCasterBuffFovBoost <= 0f)
             return;
 
-        caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, durationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve);
+        // Tagged with the skill id so a 缘起 consume settles the boost only while this skill still owns the FOV slot.
+        caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, durationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve, skillId);
+    }
+
+    public override ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster)
+    {
+        return caster != null ? new AccelerationRuntimeHandle(caster, skillId, durationSeconds) : null;
+    }
+
+    // 缘起 consumed the buff: the trail fades out now, the back VFX stops, the owner's FOV boost settles early.
+    public override void ExecuteConsumedObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
+    {
+        if (caster == null)
+            return;
+
+        caster.EndAccelerationTrailEarlyLocal();
+
+        var vfx = caster.GetComponent<SkillVfxReplicator>();
+        if (vfx != null)
+            vfx.StopVfxLocal(vfxId, consumedVfxLingerSeconds);
+
+        if (localIsCaster)
+            caster.SettleCameraFovBoostEarlyLocal(skillId, localCasterBuffFovSettleSeconds, localCasterBuffFovSettleCurve);
+
+        GameLog.Verbose($"[Skill_Acceleration][Observers] '{skillId}' consumed (slot {slotIndex}), localIsCaster={localIsCaster}");
     }
 }

@@ -9,27 +9,25 @@ using UnityEngine;
 public class SkillRecord
 {
     /// <summary>enum:SkillId#key (key)</summary>
-    [Tooltip("技能唯一 id，snake_case；名单在 Global/__enums__ 的 SkillId")] public string skillId = string.Empty;
+    [Tooltip("技能唯一 id，snake_case；名单在 Global/__enums__ 的 SkillId；SkillConfigRepository 与 SkillDatabase 按它取行")] public string skillId = string.Empty;
     /// <summary>string#ref=UI/Text.key</summary>
-    [Tooltip("显示名文案 key")] public string displayNameKey = string.Empty;
+    [Tooltip("显示名文案 key（SkillConfigRepository.GetDisplayName）")] public string displayNameKey = string.Empty;
     /// <summary>string#ref=UI/Text.key</summary>
-    [Tooltip("描述文案 key")] public string descriptionKey = string.Empty;
+    [Tooltip("描述文案 key（SkillConfigRepository.GetDescription、SkillDatabase.BuildSelectableSkillOptions）")] public string descriptionKey = string.Empty;
     /// <summary>int</summary>
-    [Tooltip("选择界面排序")] public int sortOrder = 0;
+    [Tooltip("选择界面排序（SkillDatabase.CompareSelectableSkills）")] public int sortOrder = 0;
     /// <summary>enum:SkillUnlockState</summary>
-    [Tooltip("unlocked / locked / hidden")] public string unlockState = string.Empty;
+    [Tooltip("unlocked / locked / hidden（SkillDatabase.BuildSelectableSkillOptions 读 locked；SkillConfigCrossValidator 跳过 hidden）")] public string unlockState = string.Empty;
     /// <summary>string#ref=Skill.skillId</summary>
     [Tooltip("反噬变体 id；普通技能必填，反噬行留空")] public string antiSkillId = string.Empty;
     /// <summary>float#range=0,120</summary>
-    [Tooltip("冷却，从请求时刻+前摇起算")] public float cooldownSeconds = 0f;
-    /// <summary>float#range=0,120</summary>
-    [Tooltip("施法锁定")] public float castLockSeconds = 0f;
+    [Tooltip("槽位冷却 s，从请求时刻+前摇起算；反噬照常进本行冷却（SkillExecutor 经 SkillDatabase.GetCooldownSeconds）")] public float cooldownSeconds = 0f;
     /// <summary>float#range=0,5</summary>
-    [Tooltip("施法前摇；反噬行按本行生效（原 GlobalRule anti_cast_confirm_delay_seconds）")] public float castConfirmDelaySeconds = 0f;
+    [Tooltip("施法前摇 s，也是反噬的统一确认窗口，惩罚在窗口结束时开始（SkillExecutor 经 SkillConfigRepository.TryGetCastConfirmDelay）")] public float castConfirmDelaySeconds = 0f;
     /// <summary>float#range=0,1000</summary>
-    [Tooltip("施法增加的执念；反噬按原技能取值，反噬行必须留空")] public float obsessionGain = 0f;
+    [Tooltip("施法执行时增加的执念，同招加价按 Obsession.repeatGainMultiplier 复利；反噬不加（SkillExecutor 经 SkillDatabase.GetObsessionGain）")] public float obsessionGain = 0f;
     /// <summary>float#range=0,120</summary>
-    [Tooltip("主效果持续时间，写入技能 SO 的主时长字段：acceleration/giant→durationSeconds，slowtrap→zoneDurationSeconds，slowtrap_anti→rootDurationSeconds，blackcurtain→holdDurationSeconds，push_projectile_hands→buffDurationSeconds，reverseturn→invertDurationSeconds；push_projectile_hands_anti 瞬发无时长")] public float effectDurationSeconds = 0f;
+    [Tooltip("主效果持续 s，也是缘起状态板的生效窗口（SkillExecutor.ResolveEffectDurationSeconds）；SkillDatabase 写入技能 SO 的主时长字段：acceleration/giant→durationSeconds，slowtrap→zoneDurationSeconds，blackcurtain→holdDurationSeconds，push_projectile_hands→buffDurationSeconds，reverseturn→invertDurationSeconds；反噬行：acceleration_anti/giant_anti→durationSeconds，slowtrap_anti→rootDurationSeconds，blackcurtain_anti→holdDurationSeconds，reverseturn_anti→invertDurationSeconds，push_projectile_hands_anti 瞬发无时长")] public float effectDurationSeconds = 0f;
 }
 
 /// <summary>Skill.xlsx / SkillEffectAcceleration</summary>
@@ -37,11 +35,11 @@ public class SkillRecord
 public class SkillEffectAccelerationRecord
 {
     /// <summary>enum:SkillId#key#ref=Skill.skillId (key)</summary>
-    [Tooltip("普通与反噬各一行；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
+    [Tooltip("普通与反噬各一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_Acceleration / Skill_Acceleration_Anti SO（DesignTableOverlay.Apply）；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
     /// <summary>float</summary>
-    [Tooltip("普通：额外前推力 N")] public float extraForwardForce = 0f;
+    [Tooltip("额外前推力 N（Skill_Acceleration.extraForwardForce）")] public float extraForwardForce = 0f;
     /// <summary>float</summary>
-    [Tooltip("普通：额外限速 m/s")] public float extraMaxSpeed = 0f;
+    [Tooltip("额外限速 m/s（Skill_Acceleration.extraMaxSpeed）")] public float extraMaxSpeed = 0f;
     /// <summary>float</summary>
     [Tooltip("反噬：减速力 N")] public float slowForwardForce = 0f;
     /// <summary>float</summary>
@@ -53,17 +51,17 @@ public class SkillEffectAccelerationRecord
 public class SkillEffectSlowTrapRecord
 {
     /// <summary>enum:SkillId#key#ref=Skill.skillId (key)</summary>
-    [Tooltip("普通与反噬各一行；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
+    [Tooltip("普通与反噬各一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_SlowTrap / Skill_SlowTrap_Anti SO（DesignTableOverlay.Apply）；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
     /// <summary>float</summary>
-    [Tooltip("普通：同一目标重复施加间隔 s")] public float perTargetReapplyCooldown = 0f;
+    [Tooltip("同一目标重复施加间隔 s（Skill_SlowTrap.perTargetReapplyCooldown）")] public float perTargetReapplyCooldown = 0f;
     /// <summary>bool</summary>
-    [Tooltip("普通：是否影响施法者")] public bool affectCaster = false;
+    [Tooltip("是否影响施法者（Skill_SlowTrap.affectCaster）")] public bool affectCaster = false;
     /// <summary>float</summary>
-    [Tooltip("普通：减速力 N")] public float slowForwardForce = 0f;
+    [Tooltip("减速力 N（Skill_SlowTrap.slowForwardForce）")] public float slowForwardForce = 0f;
     /// <summary>float</summary>
-    [Tooltip("普通：限速削减 m/s")] public float slowMaxSpeed = 0f;
+    [Tooltip("限速削减 m/s（Skill_SlowTrap.slowMaxSpeed）")] public float slowMaxSpeed = 0f;
     /// <summary>float</summary>
-    [Tooltip("普通：每次减速持续 s")] public float slowDurationSeconds = 0f;
+    [Tooltip("每次减速持续 s（Skill_SlowTrap.slowDurationSeconds）")] public float slowDurationSeconds = 0f;
     /// <summary>float</summary>
     [Tooltip("反噬：定身后加速力 N")] public float extraForwardForce = 0f;
     /// <summary>float</summary>
@@ -77,13 +75,13 @@ public class SkillEffectSlowTrapRecord
 public class SkillEffectBlackCurtainRecord
 {
     /// <summary>enum:SkillId#key#ref=Skill.skillId (key)</summary>
-    [Tooltip("普通与反噬各一行；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
+    [Tooltip("普通与反噬各一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_BlackCurtain / Skill_BlackCurtain_Anti SO（DesignTableOverlay.Apply）；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
     /// <summary>float</summary>
-    [Tooltip("展开 s")] public float expandDurationSeconds = 0f;
+    [Tooltip("展开 s（Skill_BlackCurtain.expandDurationSeconds）")] public float expandDurationSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("淡出 s")] public float fadeOutDurationSeconds = 0f;
+    [Tooltip("淡出 s（Skill_BlackCurtain.fadeOutDurationSeconds）")] public float fadeOutDurationSeconds = 0f;
     /// <summary>float#range=0,1</summary>
-    [Tooltip("最大不透明度")] public float maxOpacity = 0f;
+    [Tooltip("最大不透明度（Skill_BlackCurtain.maxOpacity）")] public float maxOpacity = 0f;
 }
 
 /// <summary>Skill.xlsx / SkillEffectGiant</summary>
@@ -91,17 +89,17 @@ public class SkillEffectBlackCurtainRecord
 public class SkillEffectGiantRecord
 {
     /// <summary>enum:SkillId#key#ref=Skill.skillId (key)</summary>
-    [Tooltip("普通与反噬各一行；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
+    [Tooltip("普通与反噬各一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_Giant / Skill_Giant_Anti SO（DesignTableOverlay.Apply）；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
     /// <summary>float</summary>
-    [Tooltip("体型倍率（反噬 <1）")] public float scaleMultiplier = 0f;
+    [Tooltip("体型倍率（Skill_Giant.scaleMultiplier；反噬 <1，Skill_Giant_Anti.scaleMultiplier）")] public float scaleMultiplier = 0f;
     /// <summary>float</summary>
-    [Tooltip("缩回 / 缩小过渡 s")] public float shrinkDurationSeconds = 0f;
+    [Tooltip("缩回过渡 s（Skill_Giant.shrinkDurationSeconds）；反噬：缩小过渡 s")] public float shrinkDurationSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("普通：变大过渡 s")] public float growDurationSeconds = 0f;
+    [Tooltip("变大过渡 s（Skill_Giant.growDurationSeconds）")] public float growDurationSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("普通：质量倍率（反噬代码固定 1）")] public float massMultiplier = 0f;
+    [Tooltip("质量倍率（Skill_Giant.massMultiplier）")] public float massMultiplier = 0f;
     /// <summary>float</summary>
-    [Tooltip("普通：推力倍率（反噬代码固定 1）")] public float forwardForceMultiplier = 0f;
+    [Tooltip("推力倍率（Skill_Giant.forwardForceMultiplier）")] public float forwardForceMultiplier = 0f;
     /// <summary>float</summary>
     [Tooltip("反噬：恢复过渡 s")] public float restoreDurationSeconds = 0f;
 }
@@ -111,9 +109,9 @@ public class SkillEffectGiantRecord
 public class PushRecord
 {
     /// <summary>string#key (key)</summary>
-    [Tooltip("basic=普通推掌（BuddahHandControl），charged=如来神掌蓄力弹（Skill_PushProjectileHands），charged_anti=反噬弹幕（Skill_PushProjectileHands_Anti）")] public string pushId = string.Empty;
+    [Tooltip("basic=普通推掌（BuddahHandControl.PushBasicMap），charged=如来神掌蓄力弹（SkillDatabase.PushChargedMap → Skill_PushProjectileHands），charged_anti=反噬弹幕（SkillDatabase.PushChargedAntiMap → Skill_PushProjectileHands_Anti）")] public string pushId = string.Empty;
     /// <summary>float</summary>
-    [Tooltip("basic：手部旋转速度（AI 也读）")] public float rotationSpeedDegPerSec = 0f;
+    [Tooltip("basic：鼠标转手速度上限 °/s，光标目标先平滑再按此限速（BuddahHandControl.rotationSpeedDegPerSec）；方向键回退与 AI 瞄准估算（AISkillCaster 经 HandRotationSpeed）也用它")] public float rotationSpeedDegPerSec = 0f;
     /// <summary>float</summary>
     [Tooltip("basic=pushWindupSeconds 前摇；charged / charged_anti=buildUpSeconds 蓄力")] public float windupSeconds = 0f;
     /// <summary>float</summary>
@@ -146,36 +144,12 @@ public class PushRecord
     [Tooltip("charged_anti：命中时的转向冲量")] public float hitTurnTorqueImpulse = 0f;
 }
 
-/// <summary>Skill.xlsx / ComboInput</summary>
-[Serializable]
-public class ComboInputRecord
-{
-    /// <summary>string#key (key)</summary>
-    public string profileId = string.Empty;
-    /// <summary>float#range=0.05,2</summary>
-    [Tooltip("连续按键最大间隔，超时清空缓冲（ComboSkillInput.stepWindowSeconds）")] public float inputWindowSeconds = 0f;
-    /// <summary>int#range=1,16</summary>
-    [Tooltip("搓招输入缓冲长度（ComboSkillInput.maxBuffer）")] public int maxBuffer = 0;
-}
-
-/// <summary>Skill.xlsx / ComboBinding</summary>
-[Serializable]
-public class ComboBindingRecord
-{
-    /// <summary>int#key (key)</summary>
-    [Tooltip("技能槽 0-2")] public int slotIndex = 0;
-    /// <summary>string</summary>
-    public string name = string.Empty;
-    /// <summary>list,enum:ComboToken#sep=,</summary>
-    [Tooltip("按键序列 W / Up")] public List<string> sequence = new List<string>();
-}
-
 /// <summary>Skill.xlsx / Obsession</summary>
 [Serializable]
 public class ObsessionRecord
 {
     /// <summary>string#key (key)</summary>
-    public string profileId = string.Empty;
+    [Tooltip("单行 default；ObsessionFigure.Awake 按同名字段覆盖（DesignTableOverlay.Apply），prefab 值只作无表时的兜底")] public string profileId = string.Empty;
     /// <summary>float</summary>
     [Tooltip("上限")] public float maxValue = 0f;
     /// <summary>float</summary>
@@ -194,6 +168,70 @@ public class ObsessionRecord
     [Tooltip("sigmoid 中点")] public float backfireMidpointX = 0f;
     /// <summary>float</summary>
     [Tooltip("达到即取上限")] public float backfireKeepPMaxAtOrAboveX = 0f;
+    /// <summary>float#range=0,60</summary>
+    [Tooltip("同招加价窗口 s：技能自己的冷却结束后这么久内重放同一技能，本次执念增量再乘一层（ObsessionFigure.repeatWindowSeconds，SkillRepeatSurcharge 按技能 id 记层数，不按槽）")] public float repeatWindowSeconds = 0f;
+    /// <summary>float#range=1,5</summary>
+    [Tooltip("同招加价每层的执念倍率，复利 1.15 → 1.3225 → 1.52；超窗或反噬清零（ObsessionFigure.repeatGainMultiplier）；不可留空")] public float repeatGainMultiplier = 0f;
+    /// <summary>float#range=0,60</summary>
+    [Tooltip("反噬惩罚时长 s：确认窗口结束后锁住全部技能、执念停止自然下降、限速打折（ObsessionFigure.backfireLockSeconds）")] public float backfireLockSeconds = 0f;
+    /// <summary>float#range=0.1,1</summary>
+    [Tooltip("惩罚期间的限速倍率，走预测修饰 MaxSpeedMultiplier，复活不清（ObsessionFigure.backfireMaxSpeedMultiplier）；不可留空")] public float backfireMaxSpeedMultiplier = 0f;
+    /// <summary>float#range=0,1</summary>
+    [Tooltip("惩罚结束时执念保留的比例（ObsessionFigure.backfireEndKeepRatio）；不可留空，0 会清空执念")] public float backfireEndKeepRatio = 0f;
+}
+
+/// <summary>Skill.xlsx / Yuanqi</summary>
+[Serializable]
+public class YuanqiRecord
+{
+    /// <summary>enum:YuanqiId#key (key)</summary>
+    [Tooltip("缘起 id，名单在 Global/__enums__ 的 YuanqiId；SkillDatabase 按它找 yuanqiId 相同的 Yuanqi_* SO（Skill Database.asset 的 yuanqis），观察者也按它解析表现")] public string yuanqiId = string.Empty;
+    /// <summary>string#ref=UI/Text.key</summary>
+    [Tooltip("显示名文案 key（SkillDatabase.GetYuanqiDisplayName：HUD 缘起提示与选技能界面）")] public string displayNameKey = string.Empty;
+    /// <summary>string#ref=UI/Text.key</summary>
+    [Tooltip("描述文案 key（SkillDatabase.GetYuanqiDescription：选技能界面）")] public string descriptionKey = string.Empty;
+    /// <summary>enum:SkillId#ref=Skill.skillId</summary>
+    [Tooltip("两招无序；ctx.EntryA 总是 skillA（SkillDatabase 写入 Yuanqi_* SO 的 skillA，YuanqiCatalog / YuanqiRegistry 读 SO）")] public string skillA = string.Empty;
+    /// <summary>enum:SkillId#ref=Skill.skillId</summary>
+    [Tooltip("另一招，必须不同于 skillA；同一对在表内只能出现一次（Yuanqi_* SO 的 skillB）")] public string skillB = string.Empty;
+    /// <summary>bool</summary>
+    [Tooltip("触发后 skillA 的剩余效果是否被消耗（YuanqiRegistry 读 SO.consumeA）；必须填 true / false")] public bool consumeA = false;
+    /// <summary>bool</summary>
+    [Tooltip("触发后 skillB 的剩余效果是否被消耗（YuanqiRegistry 读 SO.consumeB）；必须填 true / false；Sustained 时两列都必须是 false")] public bool consumeB = false;
+    /// <summary>enum:YuanqiMode</summary>
+    [Tooltip("Instant 触发一次 / Sustained 两招都生效期间持续（YuanqiRegistry 读 SO.mode）；必须填，留空会沿用 SO 值")] public string mode = string.Empty;
+    /// <summary>enum:YuanqiRetrigger</summary>
+    [Tooltip("OncePerOverlap：同一对只在新的一次重叠时再触发（目前只有这一种：写入 Yuanqi_* SO，YuanqiPairTable 固定按“一次重叠只触发一次”判定，代码不按值分支）；必须填")] public string retriggerPolicy = string.Empty;
+    /// <summary>bool</summary>
+    [Tooltip("false = 暂时关掉这一对而不删行（YuanqiCatalog.ForLoadout 跳过）；留空等于 false，必须填 true")] public bool isEnabled = false;
+}
+
+/// <summary>Skill.xlsx / YuanqiEffectFrostLock</summary>
+[Serializable]
+public class YuanqiEffectFrostLockRecord
+{
+    /// <summary>enum:YuanqiId#key#ref=Yuanqi.yuanqiId (key)</summary>
+    [Tooltip("每对一行；SkillDatabase 在 Play 首次查表时按同名字段写入 Yuanqi_FrostLock SO（DesignTableOverlay.Apply）")] public string yuanqiId = string.Empty;
+    /// <summary>float#range=0,10</summary>
+    [Tooltip("N：范围内每个目标被禁锢的秒数（Yuanqi_FrostLock.freezeSeconds → SkillExecutor.ApplyFreezeToOwner）")] public float freezeSeconds = 0f;
+    /// <summary>float#range=0,100</summary>
+    [Tooltip("R：以施法者为中心的水平半径 m，缓流区域半径 7.5 m 可作参照（Yuanqi_FrostLock.radiusMeters）")] public float radiusMeters = 0f;
+    /// <summary>bool</summary>
+    [Tooltip("训练木桩也被冻住，训练模式验证靠它（Yuanqi_FrostLock.affectsTrainingDummies）；留空等于 false")] public bool affectsTrainingDummies = false;
+}
+
+/// <summary>Skill.xlsx / YuanqiEffectGiantCharge</summary>
+[Serializable]
+public class YuanqiEffectGiantChargeRecord
+{
+    /// <summary>enum:YuanqiId#key#ref=Yuanqi.yuanqiId (key)</summary>
+    [Tooltip("每对一行；SkillDatabase 在 Play 首次查表时按同名字段写入 Yuanqi_GiantCharge SO（DesignTableOverlay.Apply）")] public string yuanqiId = string.Empty;
+    /// <summary>float#range=0,500</summary>
+    [Tooltip("突进起始时在基础限速上额外加的限速 m/s，按 增量×剩余比例² 回落到 0（Yuanqi_GiantCharge.burstExtraMaxSpeed → SkillExecutor.ApplyBurstToOwner）")] public float burstExtraMaxSpeed = 0f;
+    /// <summary>float#range=0,10</summary>
+    [Tooltip("回落秒数，撞击判定也持续这么久（Yuanqi_GiantCharge.burstSeconds → ApplyBurstToOwner 与 BuddahBodyImpact.Arm）")] public float burstSeconds = 0f;
+    /// <summary>float#range=0,20</summary>
+    [Tooltip("M：撞击冲量 = M × Push.basic.impulseStrength，方向为施法者指向被撞者的水平方向（Yuanqi_GiantCharge.impactImpulseMultiplier）")] public float impactImpulseMultiplier = 0f;
 }
 
 /// <summary>Movement.xlsx / Movement</summary>
@@ -231,9 +269,9 @@ public class MovementRecord
     /// <summary>float</summary>
     [Tooltip("受击宽限期临时限速增量（原 PushReaction.extraMaxSpeed）")] public float pushExtraMaxSpeed = 0f;
     /// <summary>float</summary>
-    [Tooltip("起跑交接：继承开场速度的时长（BuddahMovement.launchInheritTime）")] public float launchInheritSeconds = 0f;
+    [Tooltip("起跑交接：继承开场速度的时长（BuddahMovement.launchInheritTime）。0 = 完全物理交接（2026-10-30 已定）：交接那一 tick 把开场速度给刚体一次，之后不再锁速度、不屏蔽输入")] public float launchInheritSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("起跑交接：线性混合时长（BuddahMovement.launchBlendTime）")] public float launchBlendSeconds = 0f;
+    [Tooltip("起跑交接：线性混合时长（BuddahMovement.launchBlendTime）。0 = 完全物理交接（2026-10-30 已定），不混合速度和输入")] public float launchBlendSeconds = 0f;
     /// <summary>float</summary>
     [Tooltip("交接时地面吸附最大距离")] public float handoffGroundSnapMaxDistance = 0f;
     /// <summary>float</summary>
@@ -366,18 +404,14 @@ public class SkillDifficultyRecord
     public string difficulty = string.Empty;
     /// <summary>float</summary>
     public float riskWeight = 0f;
-    /// <summary>float</summary>
-    public float severeStopProbability = 0f;
-    /// <summary>float</summary>
-    public float mildStopProbability = 0f;
+    /// <summary>float#range=0,1.01</summary>
+    [Tooltip("停手阈值：当前反噬概率 ≥ 此值就不放任何技能（统一反噬后所有技能同一阈值；1.01 = 从不停手）（AISkillDecision）。Easy 1.01 / Normal 0.7 / Hard 0.45 沿用原 severeStopProbability；建议（实现采用）默认值")] public float stopProbability = 0f;
     /// <summary>float</summary>
     public float decisionSeconds = 0f;
     /// <summary>float</summary>
     public float reactionMinSeconds = 0f;
     /// <summary>float</summary>
     public float reactionMaxSeconds = 0f;
-    /// <summary>float</summary>
-    public float keyMistakeProbability = 0f;
     /// <summary>float</summary>
     public float aimToleranceDegrees = 0f;
     /// <summary>float</summary>
@@ -426,6 +460,8 @@ public class PersonalityRecord
     public float impairedTargetMultiplier = 0f;
     /// <summary>int#range=0,6</summary>
     public int handsShots = 0;
+    /// <summary>float#range=0,1.5</summary>
+    [Tooltip("缘起倾向：起手 / 跟进的价值倍率再乘它，0 = 不做缘起决策（AISkillCaster.Decide）。建议（实现采用）默认值 1")] public float yuanqiAffinity = 0f;
 }
 
 /// <summary>AI.xlsx / PersonalitySituationBias</summary>
@@ -446,8 +482,6 @@ public class SkillOpportunityRecord
 {
     /// <summary>string#key#ref=Skill/Skill.skillId (key)</summary>
     public string skillId = string.Empty;
-    /// <summary>float#range=0,1</summary>
-    public float backlashSeverity = 0f;
     /// <summary>bool</summary>
     [Tooltip("全局效果可见时不叠加")] public bool blockWhenGlobalVisible = false;
     /// <summary>float</summary>
@@ -498,26 +532,22 @@ public class SkillTuningRecord
     [Tooltip("SkillPersonalities.json Tuning")] public float straightCurvature = 0f;
     /// <summary>float</summary>
     [Tooltip("校验范围 Straight-1；SkillPersonalities.json Tuning")] public float cornerCurvature = 0f;
-    /// <summary>float#range=0.05,0.3</summary>
-    [Tooltip("SkillPersonalities.json Tuning")] public float keyMinSeconds = 0f;
-    /// <summary>float</summary>
-    [Tooltip("校验范围 Min-0.34 (< combo_input_window)；SkillPersonalities.json Tuning")] public float keyMaxSeconds = 0f;
     /// <summary>float#range=0.1,5</summary>
     [Tooltip("SkillPersonalities.json Tuning")] public float aimHorizonSeconds = 0f;
     /// <summary>float#range=0.01,1</summary>
     [Tooltip("SkillPersonalities.json Tuning")] public float speedDropFraction = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:78")] public float speedDropImpairSeconds = 0f;
+    [Tooltip("AISkillWorld.cs:73")] public float speedDropImpairSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:78; AISkillDecision.cs:16")] public float speedDropMinSpeed = 0f;
+    [Tooltip("AISkillWorld.cs:73; AISkillDecision.cs:17")] public float speedDropMinSpeed = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:93")] public float straightLookaheadSeconds = 0f;
+    [Tooltip("AISkillWorld.cs:88")] public float straightLookaheadSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:95")] public float cornerLookaheadSeconds = 0f;
+    [Tooltip("AISkillWorld.cs:90")] public float cornerLookaheadSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:96")] public float cornerValidityBase = 0f;
+    [Tooltip("AISkillWorld.cs:91")] public float cornerValidityBase = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillWorld.cs:96")] public float cornerValidityScale = 0f;
+    [Tooltip("AISkillWorld.cs:91")] public float cornerValidityScale = 0f;
     /// <summary>float</summary>
     [Tooltip("AISkillDecision.TargetScore")] public float targetBonusImpaired = 0f;
     /// <summary>float</summary>
@@ -527,17 +557,25 @@ public class SkillTuningRecord
     /// <summary>float</summary>
     public float targetBonusPackCentrePerNeighbour = 0f;
     /// <summary>int</summary>
-    [Tooltip("AISkillDecision.cs:59")] public int packMinNeighbours = 0;
+    [Tooltip("AISkillDecision.cs:60")] public int packMinNeighbours = 0;
+    /// <summary>float#range=0,3</summary>
+    [Tooltip("统一反噬的代价系数：风险项 = riskWeight × 反噬概率 × backfireCost（AISkillDecision.Utility）；反噬对每个技能一样，不再按技能分严重度。建议（实现采用）默认值 1")] public float backfireCost = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillDecision.cs:146")] public float severeSeverityThreshold = 0f;
+    [Tooltip("AISkillDecision.cs:162")] public float maxWindowSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillDecision.cs:158")] public float maxWindowSeconds = 0f;
+    [Tooltip("AISkillDecision.cs:162")] public float minRelativeSpeed = 0f;
     /// <summary>float</summary>
-    [Tooltip("AISkillDecision.cs:158")] public float minRelativeSpeed = 0f;
-    /// <summary>float</summary>
-    [Tooltip("AISkillCaster.cs:159")] public float maxElapsedSeconds = 0f;
-    /// <summary>int</summary>
-    [Tooltip("AISkillCommitment.cs:38")] public int maxComboRetries = 0;
+    [Tooltip("AISkillCaster.cs:174")] public float maxElapsedSeconds = 0f;
+    /// <summary>float#range=0,3</summary>
+    [Tooltip("缘起起手：本槽是某对的先手、另一招冷却来得及时，价值乘它（再乘人格 yuanqiAffinity）（AISkillCaster.Decide / AIYuanqiPlanner.IsSetup）。建议（实现采用）默认值 1.2")] public float yuanqiSetupMultiplier = 0f;
+    /// <summary>float#range=0,1</summary>
+    [Tooltip("缘起跟进：另一招生效中时本槽的机会分下限 max(自身, 此值)（AISkillCaster.Decide / AIYuanqiPlanner.TryGetFollowUp）。建议（实现采用）默认值 0.8")] public float yuanqiFollowUpScore = 0f;
+    /// <summary>float#range=0,3</summary>
+    [Tooltip("缘起跟进：价值乘它（再乘人格 yuanqiAffinity）（AISkillCaster.Decide）。建议（实现采用）默认值 1.5")] public float yuanqiFollowUpMultiplier = 0f;
+    /// <summary>float#range=0.05,4</summary>
+    [Tooltip("缘起跟进时的节奏抽样秒数（代替人格 tempoSeconds，耐心按 0，否则等不到窗口）（AISkillCaster.Decide）。建议（实现采用）默认值 0.3")] public float yuanqiFollowUpTempoSeconds = 0f;
+    /// <summary>float#range=0,5</summary>
+    [Tooltip("缘起跟进：先放的那招会被消耗时晚打——只有它剩余 ≤ 前摇 + 此值才成为跟进候选；不消耗时立刻成为候选（AIYuanqiPlanner.TryGetFollowUp）。建议（实现采用）默认值 0.6")] public float yuanqiLateWindowSeconds = 0f;
 }
 
 /// <summary>AI.xlsx / Roster</summary>
@@ -600,6 +638,16 @@ public class ModeRuleRecord
     [Tooltip("Solo 固定 5")] public int aiCount = 0;
     /// <summary>enum:SoloDifficulty</summary>
     [Tooltip("单人设置面板的默认难度（SoloSetupPanel；原 RacerNaming.defaultDifficulty）")] public string defaultDifficulty = string.Empty;
+    /// <summary>int#range=0,10</summary>
+    [Tooltip("训练木桩数量（MatchSpawnManager 只读 Practice 行；IMatchRules.SpawnTrainingDummies 只在 Practice 为真）；Online / Solo 填 0")] public int trainingDummyCount = 0;
+    /// <summary>float#range=0,200</summary>
+    [Tooltip("相邻木桩沿赛车线的间距 m（MatchSpawnManager，Practice 行）")] public float trainingDummySpacingMeters = 0f;
+    /// <summary>float</summary>
+    [Tooltip("起跑投影点到第一个木桩的赛道距离 m，RaceMap 上 90 m 落在起跑线后第一段直道（MatchSpawnManager，Practice 行）")] public float trainingDummyStartOffsetMeters = 0f;
+    /// <summary>float#range=0,50</summary>
+    [Tooltip("左右两个木桩离赛车线的横向距离 m，两侧再按墙距收窄（MatchSpawnManager，Practice 行）")] public float trainingDummyLateralOffsetMeters = 0f;
+    /// <summary>float#range=0,60</summary>
+    [Tooltip("木桩离开生成点后多久没再受到技能或碰撞就传送回去 s（MatchSpawnManager → TrainingDummy，Practice 行）")] public float trainingDummyResetDelaySeconds = 0f;
 }
 
 /// <summary>Match.xlsx / Track</summary>

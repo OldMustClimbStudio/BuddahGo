@@ -63,12 +63,12 @@ public static class ProjectConfigValidator
             }
         }
 
-        // Backfire adds the obsession of the requested skill (SkillExecutor.QueueCast); a value on the anti row is never read.
+        // A backfire adds no obsession (unified penalty, its _anti variant still runs); a value on the anti row is never read.
         for (int i = 0; i < database.skills.Count; i++)
         {
             SkillRecord record = database.skills[i];
             if (record != null && antiIds.Contains(NormalizeId(record.skillId)) && record.obsessionGain != 0f)
-                results.Add(Create(ProjectConfigValidationSeverity.Warning, "Skill[" + i + "]", "obsessionGain on anti skill '" + record.skillId + "' is ignored; backfire uses the requested skill's gain."));
+                results.Add(Create(ProjectConfigValidationSeverity.Warning, "Skill[" + i + "]", "obsessionGain on anti skill '" + record.skillId + "' is ignored; a backfire adds no obsession."));
         }
     }
 

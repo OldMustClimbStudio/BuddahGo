@@ -13,12 +13,20 @@ public class SkillVfxReplicator : NetworkBehaviour
     [SerializeField] private float prewarmAliveSeconds = 0.05f;
     [SerializeField] private int revealDelayFrames = 2;
 
+    [Header("Stop")]
+    [Tooltip("StopVfxAll without an explicit linger: seconds a stopped instance lingers (particles fade) before it is destroyed.")]
+    [SerializeField, Min(0f)] private float defaultStopLingerSeconds = 1f;
+
     private static readonly Vector3 DefaultLocalOffset = Vector3.back * 2f;
     private static readonly Vector3 DefaultLocalEuler = new Vector3(0f, 180f, 0f);
     private const float DefaultStopPlayingBeforeEndSeconds = 0f;
 
     private static readonly HashSet<int> PrewarmedPrefabIds = new();
     private bool prewarmStarted;
+
+    // Every instance this replicator spawned, parented or not: an unparented instance (SkillVfxFollowTarget, e.g. the
+    // slow-trap zone) is not under this transform, so stopping by id cannot search the children.
+    private readonly List<TimedVfxInstance> _spawnedInstances = new();
 
     public override void OnStartClient()
     {
@@ -100,6 +108,7 @@ public class SkillVfxReplicator : NetworkBehaviour
         var timer = vfxObj.GetComponent<TimedVfxInstance>();
         if (timer == null) timer = vfxObj.AddComponent<TimedVfxInstance>();
         timer.Refresh(durationSeconds, stopPlayingBeforeEndSeconds);
+        TrackSpawnedInstance(timer);
 
         SetAllRenderersEnabled(vfxObj, false);
         vfxObj.SetActive(true);
@@ -148,6 +157,56 @@ public class SkillVfxReplicator : NetworkBehaviour
         }
 
         GameLog.Verbose($"[SkillVfxReplicator] Prewarm finished. warmed={warmedCount}", this);
+    }
+
+    /// <summary>
+    /// Server-side call: stop every live instance of <paramref name="vfxId"/> this replicator spawned, on ALL clients
+    /// (a 缘起 consumed the skill). Emission stops now; existing particles linger, then the instance is destroyed.
+    /// </summary>
+    public void StopVfxAll(string vfxId, float lingerSeconds)
+    {
+        if (!IsServerInitialized || string.IsNullOrWhiteSpace(vfxId)) return;
+        StopVfxAllObserversRpc(vfxId, Mathf.Max(0f, lingerSeconds));
+    }
+
+    /// <summary>Server-side call with the replicator's default linger.</summary>
+    public void StopVfxAll(string vfxId)
+    {
+        StopVfxAll(vfxId, defaultStopLingerSeconds);
+    }
+
+    /// <summary>This peer only: stop the live instances of <paramref name="vfxId"/> spawned by this replicator.</summary>
+    public void StopVfxLocal(string vfxId, float lingerSeconds)
+    {
+        if (string.IsNullOrWhiteSpace(vfxId)) return;
+
+        int stopped = 0;
+        for (int i = _spawnedInstances.Count - 1; i >= 0; i--)
+        {
+            TimedVfxInstance instance = _spawnedInstances[i];
+            if (instance == null)
+            {
+                _spawnedInstances.RemoveAt(i);
+                continue;
+            }
+
+            var tag = instance.GetComponent<SkillVfxTag>();
+            if (tag == null || tag.VfxId != vfxId)
+                continue;
+
+            instance.StopNow(lingerSeconds);
+            stopped++;
+        }
+
+        GameLog.Verbose($"[SkillVfxReplicator] Stop '{vfxId}': {stopped} instance(s), linger={lingerSeconds:0.##}s.", this);
+    }
+
+    private void TrackSpawnedInstance(TimedVfxInstance instance)
+    {
+        // Destroyed instances compare equal to null; drop them before adding so the list stays small.
+        _spawnedInstances.RemoveAll(existing => existing == null);
+        if (!_spawnedInstances.Contains(instance))
+            _spawnedInstances.Add(instance);
     }
 
     private TimedVfxInstance FindExisting(string vfxId)
@@ -258,6 +317,14 @@ public class SkillVfxReplicator : NetworkBehaviour
             follow = vfxObj.AddComponent<SkillVfxFollowTarget>();
 
         follow.Initialize(transform, localOffset, localEuler, settings.InheritTargetRotation, settings.InheritTargetScale);
+    }
+
+    // New RPCs are appended below, after the existing RPC declarations, to preserve their relative order.
+
+    [ObserversRpc]
+    private void StopVfxAllObserversRpc(string vfxId, float lingerSeconds)
+    {
+        StopVfxLocal(vfxId, lingerSeconds);
     }
 }
 

@@ -170,17 +170,24 @@ namespace BuddahGo.Tests
                 RootUntilTick = 100, AccelUntilTick = 101, PostRootAccelUntilTick = 102,
                 ScaleUntilTick = 103, InvertTurnUntilTick = 104, PushGraceUntilTick = 105,
                 SuppressSteeringUntilTick = 106, RoomBypassUntilTick = 107,
+                FreezeUntilTick = 108, BurstUntilTick = 109, MaxSpeedPenaltyUntilTick = 110,
                 AccelExtraForwardForce = 2, AccelExtraMaxSpeed = 3, PostRootAccelExtraForwardForce = 4,
-                PostRootAccelExtraMaxSpeed = 5, ScaleMultiplier = 6, ScaleMassMultiplier = 7, ScaleForwardForceMultiplier = 8
+                PostRootAccelExtraMaxSpeed = 5, ScaleMultiplier = 6, ScaleMassMultiplier = 7, ScaleForwardForceMultiplier = 8,
+                BurstExtraMaxSpeed = 9, MaxSpeedPenaltyMultiplier = 0.85f,
+                // A duration, not a timestamp: translating it would change the burst decay length.
+                BurstDurationTicks = 48
             };
             var local = BuddahTickMath.ModifiersToLocal(state, 100, 200);
             Assert.That(new[] { local.RootUntilTick, local.AccelUntilTick, local.PostRootAccelUntilTick,
                 local.ScaleUntilTick, local.InvertTurnUntilTick, local.PushGraceUntilTick,
-                local.SuppressSteeringUntilTick, local.RoomBypassUntilTick },
-                Is.EqualTo(new uint[] { 200, 201, 202, 203, 204, 205, 206, 207 }));
+                local.SuppressSteeringUntilTick, local.RoomBypassUntilTick,
+                local.FreezeUntilTick, local.BurstUntilTick, local.MaxSpeedPenaltyUntilTick },
+                Is.EqualTo(new uint[] { 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210 }));
             Assert.That(new[] { local.AccelExtraForwardForce, local.AccelExtraMaxSpeed, local.PostRootAccelExtraForwardForce,
-                local.PostRootAccelExtraMaxSpeed, local.ScaleMultiplier, local.ScaleMassMultiplier, local.ScaleForwardForceMultiplier },
-                Is.EqualTo(new float[] { 2, 3, 4, 5, 6, 7, 8 }));
+                local.PostRootAccelExtraMaxSpeed, local.ScaleMultiplier, local.ScaleMassMultiplier, local.ScaleForwardForceMultiplier,
+                local.BurstExtraMaxSpeed, local.MaxSpeedPenaltyMultiplier },
+                Is.EqualTo(new float[] { 2, 3, 4, 5, 6, 7, 8, 9, 0.85f }));
+            Assert.That(local.BurstDurationTicks, Is.EqualTo(48u));
             Assert.That(state.RootUntilTick, Is.EqualTo(100));
             Assert.That(BuddahTickMath.ModifiersToLocal(default, 100, 200), Is.EqualTo(default(BuddahPredictedModifierState)));
         }

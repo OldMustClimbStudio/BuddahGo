@@ -17,12 +17,14 @@ public partial class ProjectConfigDatabase
     public List<SkillEffectGiantRecord> skillEffectGiants = new List<SkillEffectGiantRecord>();
     [Header("Skill / Push")]
     public List<PushRecord> pushes = new List<PushRecord>();
-    [Header("Skill / ComboInput")]
-    public List<ComboInputRecord> comboInputs = new List<ComboInputRecord>();
-    [Header("Skill / ComboBinding")]
-    public List<ComboBindingRecord> comboBindings = new List<ComboBindingRecord>();
     [Header("Skill / Obsession")]
     public List<ObsessionRecord> obsessions = new List<ObsessionRecord>();
+    [Header("Skill / Yuanqi")]
+    public List<YuanqiRecord> yuanqis = new List<YuanqiRecord>();
+    [Header("Skill / YuanqiEffectFrostLock")]
+    public List<YuanqiEffectFrostLockRecord> yuanqiEffectFrostLocks = new List<YuanqiEffectFrostLockRecord>();
+    [Header("Skill / YuanqiEffectGiantCharge")]
+    public List<YuanqiEffectGiantChargeRecord> yuanqiEffectGiantCharges = new List<YuanqiEffectGiantChargeRecord>();
     [Header("Movement / Movement")]
     public List<MovementRecord> movements = new List<MovementRecord>();
     [Header("Movement / Respawn")]

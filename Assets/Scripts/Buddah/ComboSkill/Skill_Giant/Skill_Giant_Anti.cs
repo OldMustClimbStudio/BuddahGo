@@ -19,7 +19,7 @@ public class Skill_Giant_Anti : SkillAction
         GameLog.Verbose($"[Skill_Giant_Anti][Server] Apply x{scaleMultiplier:0.##} scale for {durationSeconds:0.##}s");
     }
 
-    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         ScaleSkillPresentation.ApplyScaleEffect(caster, scaleMultiplier, durationSeconds, shrinkDurationSeconds, restoreDurationSeconds);
 
@@ -27,7 +27,7 @@ public class Skill_Giant_Anti : SkillAction
         GameLog.Verbose($"[Skill_Giant_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
     }
 
-    public override void ExecuteLocal(SkillExecutor caster, int slotIndex, bool isAnti)
+    public override void ExecuteLocal(SkillExecutor caster, int slotIndex)
     {
         if (caster == null || !caster.IsOwner)
             return;

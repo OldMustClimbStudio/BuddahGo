@@ -15,7 +15,6 @@ MonoBehaviour:
   skillId: reverseturn
   displayName: "\u9006\u56E0\u7F18"
   cooldownSeconds: 12
-  castLockSeconds: 10
   obsessionGain: 200
   antiSkillId: reverseturn_anti
   invertDurationSeconds: 10

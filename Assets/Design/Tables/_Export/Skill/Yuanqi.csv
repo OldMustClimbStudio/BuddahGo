@@ -1,0 +1,7 @@
+##var,yuanqiId,pairNumber,displayNameKey,descriptionKey,skillA,skillB,consumeA,consumeB,mode,retriggerPolicy,isEnabled
+##type,enum:YuanqiId#key,"int#range=1,15",string#ref=UI/Text.key,string#ref=UI/Text.key,enum:SkillId#ref=Skill.skillId,enum:SkillId#ref=Skill.skillId,bool,bool,enum:YuanqiMode,enum:YuanqiRetrigger,bool
+##group,,doc,,,,,,,,,
+##comment,缘起 id，名单在 Global/__enums__ 的 YuanqiId；SkillDatabase 按它找 yuanqiId 相同的 Yuanqi_* SO（Skill Database.asset 的 yuanqis），观察者也按它解析表现,Docs/gameplay/yuanqi.md 的固定编号 #1–#15，只为对照，无读取方,显示名文案 key（SkillDatabase.GetYuanqiDisplayName：HUD 缘起提示与选技能界面）,描述文案 key（SkillDatabase.GetYuanqiDescription：选技能界面）,两招无序；ctx.EntryA 总是 skillA（SkillDatabase 写入 Yuanqi_* SO 的 skillA，YuanqiCatalog / YuanqiRegistry 读 SO）,另一招，必须不同于 skillA；同一对在表内只能出现一次（Yuanqi_* SO 的 skillB）,触发后 skillA 的剩余效果是否被消耗（YuanqiRegistry 读 SO.consumeA）；必须填 true / false,触发后 skillB 的剩余效果是否被消耗（YuanqiRegistry 读 SO.consumeB）；必须填 true / false；Sustained 时两列都必须是 false,Instant 触发一次 / Sustained 两招都生效期间持续（YuanqiRegistry 读 SO.mode）；必须填，留空会沿用 SO 值,OncePerOverlap：同一对只在新的一次重叠时再触发（目前只有这一种：写入 Yuanqi_* SO，YuanqiPairTable 固定按“一次重叠只触发一次”判定，代码不按值分支）；必须填,false = 暂时关掉这一对而不删行（YuanqiCatalog.ForLoadout 跳过）；留空等于 false，必须填 true
+,giant_palm,1,yuanqi.giant_palm.name,yuanqi.giant_palm.desc,giant,push_projectile_hands,false,false,Sustained,OncePerOverlap,true
+,frost_lock,2,yuanqi.frost_lock.name,yuanqi.frost_lock.desc,acceleration,slowtrap,true,true,Instant,OncePerOverlap,true
+,giant_charge,4,yuanqi.giant_charge.name,yuanqi.giant_charge.desc,acceleration,giant,true,false,Instant,OncePerOverlap,true

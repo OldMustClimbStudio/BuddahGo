@@ -31,6 +31,25 @@ namespace BuddahGo.Tests
             return 0f;
         }
 
+        /// <summary>skillId of every Skill/Skill row, split by unlockState: hidden rows are never offered to players.</summary>
+        private static void SkillRows(DesignTableSet set, out HashSet<string> offered, out HashSet<string> hidden)
+        {
+            DesignSheet s = set.Find("Skill", "Skill");
+            Assert.IsNotNull(s, "Skill/Skill missing");
+            ColumnSpec id = s.FindColumn("skillId"), unlock = s.FindColumn("unlockState");
+            Assert.IsNotNull(id, "Skill.skillId missing");
+            Assert.IsNotNull(unlock, "Skill.unlockState missing");
+            offered = new HashSet<string>();
+            hidden = new HashSet<string>();
+            foreach (DataRow row in s.Rows)
+            {
+                string skillId = s.Cell(row, id).Trim();
+                if (skillId.Length == 0) continue;
+                bool isHidden = string.Equals(s.Cell(row, unlock).Trim(), "hidden", StringComparison.OrdinalIgnoreCase);
+                (isHidden ? hidden : offered).Add(skillId);
+            }
+        }
+
         private static Type T(string name)
         {
             foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
@@ -67,7 +86,6 @@ namespace BuddahGo.Tests
         {
             AssertMap(T("BuddahHandControl"), typeof(PushRecord), BuddahHandControl.PushBasicMap);
             AssertMap(T("Skill_PushProjectileHands"), typeof(PushRecord), SkillDatabase.PushChargedMap);
-            AssertMap(T("Skill_PushProjectileHands_Anti"), typeof(PushRecord), SkillDatabase.PushChargedAntiMap);
             AssertMap(T("BuddahMovement"), typeof(MovementRecord), "launchInheritSeconds=launchInheritTime", "launchBlendSeconds=launchBlendTime");
             AssertMap(T("RaceBodyIntroStateController"), typeof(IntroRecord), "handoffLeadSeconds=defaultHandoffLeadTime");
             AssertMap(T("RaceBodyIntroStateController"), typeof(MovementRecord), "velocitySampleDeltaSeconds");
@@ -88,7 +106,25 @@ namespace BuddahGo.Tests
             AssertMap(T("AIDifficultyProfile"), typeof(DrivingTierRecord), Fields(typeof(DrivingTierRecord), "difficulty", "rolloutTail"));
             AssertMap(T("AISkillDifficulty"), typeof(SkillDifficultyRecord), Fields(typeof(SkillDifficultyRecord)));
             AssertMap(T("AISkillTuning"), typeof(SkillTuningRecord), Fields(typeof(SkillTuningRecord), "profileId"));
-            AssertMap(T("ComboSkillInput"), typeof(ComboInputRecord), "inputWindowSeconds=stepWindowSeconds", "maxBuffer");
+            AssertMap(T("MatchSpawnManager"), typeof(ModeRuleRecord), SteamMultiplayer.Network.Match.MatchSpawnManager.TrainingDummyModeRuleMap);
+            AssertMap(typeof(YuanqiAction), typeof(YuanqiRecord), SkillDatabase.YuanqiRowMap);
+
+            // Every YuanqiEffect<Pair> list of the database has a Yuanqi_* class that owns all of its columns (same-name Apply).
+            int families = 0;
+            foreach (FieldInfo list in typeof(ProjectConfigDatabase).GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!list.FieldType.IsGenericType || list.FieldType.GetGenericTypeDefinition() != typeof(List<>))
+                    continue;
+                Type record = list.FieldType.GetGenericArguments()[0];
+                if (!record.Name.StartsWith("YuanqiEffect", StringComparison.Ordinal))
+                    continue;
+                Type action = SkillDatabase.YuanqiFamilyActionType(record);
+                Assert.IsNotNull(action, record.Name + " has no Yuanqi_* class in SkillDatabase.YuanqiFamilyActionType");
+                Assert.IsTrue(typeof(YuanqiAction).IsAssignableFrom(action), action.Name);
+                AssertMap(action, record, Fields(record));
+                families++;
+            }
+            Assert.GreaterOrEqual(families, 2, "YuanqiEffectFrostLock and YuanqiEffectGiantCharge");
         }
 
         [Test]
@@ -104,10 +140,9 @@ namespace BuddahGo.Tests
             {
                 Assert.IsTrue(skills.TryGetCooldown(row.skillId, out float cooldown), row.skillId);
                 Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", row.skillId, "cooldownSeconds"), cooldown, row.skillId + ".cooldownSeconds");
-                Assert.IsTrue(skills.TryGetCastLock(row.skillId, out float castLock));
-                Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", row.skillId, "castLockSeconds"), castLock, row.skillId + ".castLockSeconds");
+                Assert.IsTrue(skills.TryGetObsessionGain(row.skillId, out float gain), row.skillId);
+                Assert.AreEqual(Cell(set, "Skill", "Skill", "skillId", row.skillId, "obsessionGain"), gain, row.skillId + ".obsessionGain");
             }
-            Assert.AreEqual(Cell(set, "Skill", "ComboInput", "profileId", "default", "inputWindowSeconds"), DesignTableOverlay.Single(main.comboInputs, null).inputWindowSeconds);
 
             // Skill SOs: apply onto copies so the assets on disk stay untouched.
             SkillDatabase source = AssetDatabase.LoadAssetAtPath<SkillDatabase>(SkillDatabaseAsset);
@@ -121,6 +156,20 @@ namespace BuddahGo.Tests
                 foreach (SkillAction action in source.normalSkills) { if (action == null) continue; SkillAction c = UnityEngine.Object.Instantiate(action); temp.Add(c); scratch.normalSkills.Add(c); copies.Add(c); }
                 foreach (SkillAction action in source.antiSkills) { if (action == null) continue; SkillAction c = UnityEngine.Object.Instantiate(action); temp.Add(c); scratch.antiSkills.Add(c); copies.Add(c); }
                 foreach (SkillAction action in source.skills) { if (action == null) continue; SkillAction c = UnityEngine.Object.Instantiate(action); temp.Add(c); scratch.skills.Add(c); copies.Add(c); }
+                // 缘起 copies start from values no table cell holds, so every mapped field must come from the tables.
+                List<YuanqiAction> pairs = new List<YuanqiAction>();
+                foreach (YuanqiAction pair in source.yuanqis)
+                {
+                    if (pair == null) continue;
+                    YuanqiAction c = UnityEngine.Object.Instantiate(pair);
+                    c.skillA = c.skillB = "probe";
+                    c.consumeA = c.consumeB = true;
+                    c.isEnabled = false;
+                    c.mode = c.mode == YuanqiMode.Instant ? YuanqiMode.Sustained : YuanqiMode.Instant;
+                    if (c is Yuanqi_FrostLock frostCopy) { frostCopy.freezeSeconds = 999f; frostCopy.radiusMeters = 999f; frostCopy.affectsTrainingDummies = false; }
+                    if (c is Yuanqi_GiantCharge chargeCopy) { chargeCopy.burstExtraMaxSpeed = 999f; chargeCopy.burstSeconds = 999f; chargeCopy.impactImpulseMultiplier = 999f; }
+                    temp.Add(c); scratch.yuanqis.Add(c); pairs.Add(c);
+                }
                 scratch.ApplyDesignTablesNow();
 
                 int checked_ = 0;
@@ -135,7 +184,7 @@ namespace BuddahGo.Tests
                     Assert.AreEqual(expected, (float)f.GetValue(copy), copy.skillId + "." + field + " did not receive Skill.effectDurationSeconds");
                     checked_++;
                 }
-                Assert.GreaterOrEqual(checked_, 10, "primary durations applied");
+                Assert.GreaterOrEqual(checked_, 6, "primary durations applied (one per normal skill)");
 
                 Skill_Giant giant = (Skill_Giant)copies.Find(c => c.skillId == "giant");
                 Assert.AreEqual(Cell(set, "Skill", "SkillEffectGiant", "skillId", "giant", "scaleMultiplier"), giant.scaleMultiplier, "family sheet reaches the SO");
@@ -145,13 +194,172 @@ namespace BuddahGo.Tests
                 Assert.AreEqual(Cell(set, "Skill", "Push", "pushId", "charged", "speed"), hands.projectileSpeed, "Push charged row reaches the SO");
                 Assert.AreEqual(Cell(set, "Skill", "Push", "pushId", "charged", "windupSeconds"), hands.buildUpSeconds);
                 Skill_PushProjectileHands_Anti burst = (Skill_PushProjectileHands_Anti)copies.Find(c => c.skillId == "push_projectile_hands_anti");
-                Assert.AreEqual((int)Cell(set, "Skill", "Push", "pushId", "charged_anti", "projectileCount"), burst.projectileCount);
+                Assert.AreEqual((int)Cell(set, "Skill", "Push", "pushId", "charged_anti", "projectileCount"), burst.projectileCount, "Push charged_anti row reaches the anti SO");
+
+                DesignSheet yuanqiSheet = set.Find("Skill", "Yuanqi");
+                Assert.IsNotNull(yuanqiSheet, "Skill/Yuanqi missing");
+                Assert.AreEqual(yuanqiSheet.Rows.Count, pairs.Count, "one 缘起 asset per Skill/Yuanqi row");
+                foreach (YuanqiAction pair in pairs)
+                {
+                    string id = pair.yuanqiId;
+                    Assert.AreEqual(Text(set, "Skill", "Yuanqi", "yuanqiId", id, "skillA"), pair.skillA, id + ".skillA");
+                    Assert.AreEqual(Text(set, "Skill", "Yuanqi", "yuanqiId", id, "skillB"), pair.skillB, id + ".skillB");
+                    Assert.AreEqual(Text(set, "Skill", "Yuanqi", "yuanqiId", id, "consumeA") == "true", pair.consumeA, id + ".consumeA");
+                    Assert.AreEqual(Text(set, "Skill", "Yuanqi", "yuanqiId", id, "consumeB") == "true", pair.consumeB, id + ".consumeB");
+                    Assert.AreEqual(Text(set, "Skill", "Yuanqi", "yuanqiId", id, "mode"), pair.mode.ToString(), id + ".mode");
+                    Assert.AreEqual(Text(set, "Skill", "Yuanqi", "yuanqiId", id, "retriggerPolicy"), pair.retriggerPolicy.ToString(), id + ".retriggerPolicy");
+                    Assert.AreEqual(Text(set, "Skill", "Yuanqi", "yuanqiId", id, "isEnabled") == "true", pair.isEnabled, id + ".isEnabled");
+                }
+                Yuanqi_FrostLock frost = (Yuanqi_FrostLock)pairs.Find(p => p.yuanqiId == "frost_lock");
+                Assert.AreEqual(Cell(set, "Skill", "YuanqiEffectFrostLock", "yuanqiId", "frost_lock", "freezeSeconds"), frost.freezeSeconds, "family sheet reaches the 缘起 SO");
+                Assert.AreEqual(Cell(set, "Skill", "YuanqiEffectFrostLock", "yuanqiId", "frost_lock", "radiusMeters"), frost.radiusMeters);
+                Assert.AreEqual(Text(set, "Skill", "YuanqiEffectFrostLock", "yuanqiId", "frost_lock", "affectsTrainingDummies") == "true", frost.affectsTrainingDummies);
+                Yuanqi_GiantCharge charge = (Yuanqi_GiantCharge)pairs.Find(p => p.yuanqiId == "giant_charge");
+                Assert.AreEqual(Cell(set, "Skill", "YuanqiEffectGiantCharge", "yuanqiId", "giant_charge", "burstExtraMaxSpeed"), charge.burstExtraMaxSpeed);
+                Assert.AreEqual(Cell(set, "Skill", "YuanqiEffectGiantCharge", "yuanqiId", "giant_charge", "burstSeconds"), charge.burstSeconds);
+                Assert.AreEqual(Cell(set, "Skill", "YuanqiEffectGiantCharge", "yuanqiId", "giant_charge", "impactImpulseMultiplier"), charge.impactImpulseMultiplier);
+
+                // Text: the row's displayNameKey through UI/Text.
+                Assert.AreEqual(Text(set, "UI", "Text", "key", "yuanqi.frost_lock.name", "zh"), scratch.GetYuanqiDisplayName("frost_lock"), "缘起 name from UI/Text");
+                Assert.AreEqual(Text(set, "UI", "Text", "key", "yuanqi.frost_lock.desc", "zh"), scratch.GetYuanqiDescription("frost_lock"), "缘起 description from UI/Text");
             }
             finally
             {
                 foreach (UnityEngine.Object o in temp)
                     if (o != null) UnityEngine.Object.DestroyImmediate(o);
             }
+        }
+
+        /// <summary>Raw (trimmed) cell text of the row whose key column equals keyValue.</summary>
+        private static string Text(DesignTableSet set, string workbook, string sheet, string keyVar, string keyValue, string var)
+        {
+            DesignSheet s = set.Find(workbook, sheet);
+            Assert.IsNotNull(s, workbook + "/" + sheet + " missing");
+            ColumnSpec key = s.FindColumn(keyVar), column = s.FindColumn(var);
+            Assert.IsNotNull(column, sheet + "." + var + " missing");
+            foreach (DataRow row in s.Rows)
+                if (s.Cell(row, key).Trim() == keyValue)
+                    return s.Cell(row, column).Trim();
+            Assert.Fail("row '" + keyValue + "' not found in " + workbook + "/" + sheet);
+            return string.Empty;
+        }
+
+        [Test]
+        public void EveryYuanqiRowHasAnAssetOfItsFamily()
+        {
+            // The table rule cannot see assets: each Skill/Yuanqi row needs a 缘起 asset in the Skill Database, and every
+            // YuanqiEffect<Pair> row must target an asset of the class SkillDatabase.YuanqiFamilyActionType names.
+            DesignTableSet set = DesignTableSet.Load();
+            SkillDatabase database = AssetDatabase.LoadAssetAtPath<SkillDatabase>(SkillDatabaseAsset);
+            Assert.IsNotNull(database, SkillDatabaseAsset);
+            Dictionary<string, YuanqiAction> assets = new Dictionary<string, YuanqiAction>();
+            foreach (YuanqiAction pair in database.yuanqis)
+                if (pair != null) assets[pair.yuanqiId] = pair;
+
+            DesignSheet yuanqi = set.Find("Skill", "Yuanqi");
+            Assert.IsNotNull(yuanqi, "Skill/Yuanqi missing");
+            ColumnSpec id = yuanqi.FindColumn("yuanqiId");
+            foreach (DataRow row in yuanqi.Rows)
+                Assert.IsTrue(assets.ContainsKey(yuanqi.Cell(row, id).Trim()), "Skill/Yuanqi row '" + yuanqi.Cell(row, id) + "' has no asset in " + SkillDatabaseAsset);
+
+            int checkedRows = 0;
+            foreach (KeyValuePair<string, DesignTableSet.ExportTarget> target in set.ExportTargets)
+            {
+                if (target.Value.Workbook != "Skill" || !target.Value.Sheet.StartsWith("YuanqiEffect", StringComparison.Ordinal))
+                    continue;
+                Type expected = SkillDatabase.YuanqiFamilyActionType(T(target.Value.RecordType));
+                Assert.IsNotNull(expected, target.Key + " has no Yuanqi_* class");
+                DesignSheet family = set.Find("Skill", target.Value.Sheet);
+                ColumnSpec familyId = family.FindColumn("yuanqiId");
+                foreach (DataRow row in family.Rows)
+                {
+                    string rowId = family.Cell(row, familyId).Trim();
+                    Assert.IsTrue(assets.TryGetValue(rowId, out YuanqiAction asset), target.Key + " row '" + rowId + "' has no asset");
+                    Assert.IsInstanceOf(expected, asset, target.Key + " row '" + rowId + "' targets " + asset.GetType().Name);
+                    checkedRows++;
+                }
+            }
+            Assert.GreaterOrEqual(checkedRows, 2, "frost_lock and giant_charge family rows");
+        }
+
+        [Test]
+        public void YuanqiTextFallsBackToTheAssetName()
+        {
+            SkillDatabase scratch = ScriptableObject.CreateInstance<SkillDatabase>();
+            Yuanqi_GiantPalm probe = ScriptableObject.CreateInstance<Yuanqi_GiantPalm>();
+            try
+            {
+                probe.yuanqiId = "probe_pair_without_row";
+                probe.displayName = "Probe Pair";
+                scratch.yuanqis.Add(probe);
+                scratch.ApplyDesignTablesNow();
+                Assert.AreEqual("Probe Pair", scratch.GetYuanqiDisplayName(" probe_pair_without_row "), "no row and no text key: the SO displayName");
+                Assert.AreEqual("unknown_pair", scratch.GetYuanqiDisplayName("unknown_pair"), "no asset either: the id");
+                Assert.AreEqual(string.Empty, scratch.GetYuanqiDisplayName(null));
+                Assert.AreEqual("fallback", scratch.GetYuanqiDescription("probe_pair_without_row", "fallback"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(probe);
+                UnityEngine.Object.DestroyImmediate(scratch);
+            }
+        }
+
+        [Test]
+        public void SkillDatabaseHoldsTheNormalSkillsAndTheirAntiVariants()
+        {
+            // 2026-10-31: a backfire applies the unified penalty and runs the skill's own *_anti variant, so the six anti
+            // SkillActions are back (hidden rows, never offered). Any other hidden row must not resolve to an action.
+            ProjectConfigDatabase main = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset);
+            Assert.IsNotNull(main, MainAsset);
+            Assert.IsTrue(ProjectConfigRuntime.EnsureInitialized(main));
+            SkillRows(DesignTableSet.Load(), out HashSet<string> offered, out HashSet<string> hidden);
+            SkillDatabase database = AssetDatabase.LoadAssetAtPath<SkillDatabase>(SkillDatabaseAsset);
+            Assert.IsNotNull(database, SkillDatabaseAsset);
+
+            foreach (string id in offered)
+                Assert.IsTrue(database.TryGet(id, out SkillAction action) && action != null, "Skill row '" + id + "' has no SkillAction");
+            foreach (string id in hidden)
+            {
+                if (id.EndsWith("_anti", StringComparison.Ordinal))
+                    Assert.IsTrue(database.TryGet(id, out SkillAction anti) && database.antiSkills.Contains(anti), "anti row '" + id + "' resolves to an asset of antiSkills");
+                else
+                    Assert.IsFalse(database.TryGet(id, out _), "hidden Skill row '" + id + "' still resolves to a SkillAction");
+            }
+            foreach (string id in offered)
+                Assert.IsTrue(database.TryGet(database.GetAntiSkillId(id, null), out _), "skill '" + id + "' names a variant that resolves");
+            CollectionAssert.AreEquivalent(offered, database.GetSelectableNormalSkills().ConvertAll(s => s.skillId), "selection offers exactly the non-hidden Skill rows");
+
+            Assert.IsNull(typeof(SkillAction).GetField("castLockSeconds"), "SkillAction.castLockSeconds is retired (no global cast lock)");
+        }
+
+        [Test]
+        public void SkillCrossValidatorResolvesEveryBackfireVariantFromTheTable()
+        {
+            ProjectConfigDatabase main = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset);
+            Assert.IsNotNull(main, MainAsset);
+            SkillDatabase database = AssetDatabase.LoadAssetAtPath<SkillDatabase>(SkillDatabaseAsset);
+            Assert.IsNotNull(database, SkillDatabaseAsset);
+            using (var serializedDatabase = new SerializedObject(database))
+                Assert.AreSame(main, serializedDatabase.FindProperty("_projectConfigDatabase").objectReferenceValue, "the validator must compare this skill database");
+            SkillRows(DesignTableSet.Load(), out HashSet<string> offered, out HashSet<string> hidden);
+
+            int resolved = 0;
+            foreach (ProjectConfigValidationMessage message in SkillConfigCrossValidator.Validate(main))
+            {
+                if (message.message.StartsWith("Anti resolution", StringComparison.Ordinal))
+                {
+                    StringAssert.StartsWith("Anti resolution: config -> '", message.message, message.context);
+                    resolved++;
+                }
+                StringAssert.DoesNotContain("Resolved anti id is absent", message.message, message.context);
+                if (message.severity != ProjectConfigValidationSeverity.Warning)
+                    continue;
+                foreach (string id in hidden)
+                    if (!id.EndsWith("_anti", StringComparison.Ordinal))
+                        StringAssert.DoesNotContain("'" + id + "'", message.message, "warning about hidden Skill row '" + id + "'");
+            }
+            Assert.AreEqual(offered.Count, resolved, "every offered skill resolves its variant from Skill.antiSkillId");
         }
 
         [Test]

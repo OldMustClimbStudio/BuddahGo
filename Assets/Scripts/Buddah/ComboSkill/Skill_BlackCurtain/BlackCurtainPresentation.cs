@@ -32,6 +32,7 @@ internal static class BlackCurtainPresentation
         if (viewController == null)
             viewController = localCamera.gameObject.AddComponent<BlackCurtainViewController>();
 
+        // Normal cast: the caster sees the track edge and everyone else gets the victim view; the anti variant flips it.
         bool localShouldSeeEdge = localIsCaster ^ isAnti;
         Vector2 center = ResolveScreenCenter(localCamera, caster, settings.centerWorldOffset);
         GameLog.Verbose($"[{logPrefix}][Observers] localIsCaster={localIsCaster}, isAnti={isAnti}, localShouldSeeEdge={localShouldSeeEdge}, camera={localCamera.name}");

@@ -1,6 +1,6 @@
 # BuddahGo
 
-佛像竞速派对游戏：玩家驾驶佛像跑圈，用搓招技能互相干扰。基于 Unity、FishNet、FishyFacepunch 和 Steam。
+佛像竞速派对游戏：玩家驾驶佛像跑圈，用技能互相干扰，两个技能同时生效时可能触发缘起。基于 Unity、FishNet、FishyFacepunch 和 Steam。
 
 ## 玩法模式
 
@@ -8,8 +8,9 @@
 |---|---|
 | 联机 | Steam 大厅建房/加入，房间就绪、属性与技能选择、比赛、结算与投票 |
 | 单机（Solo） | 主菜单直接开局，离线 host 上 1 名玩家对 5 个 AI；AI 驾驶分 Easy / Normal / Hard 三档，五种技能人格各自配装与施法；结算后可 Rematch 或回主菜单 |
+| 训练模式（Practice） | AI 数为 0 的单机，主菜单没有单独入口：配表 `Match/ModeRule` Solo 行的 `aiCount` 为 0 时单机开局即训练模式（规则读 Practice 行）；起跑后第一段直道生成 3 个训练木桩作技能靶子，木桩不是参赛者；结算只显示用时 |
 
-两种模式共用同一套运动、技能、计时与结算代码；差异集中在 `IMatchRules`（`Assets/Scripts/Match/`），其取值来自配表 `Match/ModeRule`。
+三种模式共用同一套运动、技能、计时与结算代码；差异集中在 `IMatchRules`（`Assets/Scripts/Match/`），其取值来自配表 `Match/ModeRule` 的 Online / Solo / Practice 行。
 
 ## 策划配表
 
@@ -39,9 +40,9 @@ git lfs pull
 | 目录 | 内容 |
 |---|---|
 | `Assets/Scripts/Network/` | 连接、大厅、房间状态、比赛进度与结算（联机主流程） |
-| `Assets/Scripts/Match/` | 模式规则、会话启动、比赛时钟与计时、参赛者身份；`Match/UI/` 为单机界面 |
-| `Assets/Scripts/AI/` | AI 驾驶（`ThrustVectorPlanner`、赛车线、难度配置）与技能人格；`AI/Diagnostics/` 为仅开发构建的取证 harness |
-| `Assets/Scripts/New_Buddah/`、`Buddah/` | 预测运动、手部推掌、技能执行 |
+| `Assets/Scripts/Match/` | 模式规则、会话启动、比赛时钟与计时、参赛者身份；`Match/TrainingDummy/` 为训练木桩，`Match/UI/` 为单机界面 |
+| `Assets/Scripts/AI/` | AI 驾驶（`ThrustVectorPlanner`、赛车线、难度配置）与技能人格；`AI/Diagnostics/` 为仅开发构建的取证与验证 harness（含训练模式机制验证 `MechanicsPracticeHarness`） |
+| `Assets/Scripts/New_Buddah/`、`Buddah/` | 预测运动、手部推掌、技能执行；`Buddah/ComboSkill/Yuanqi/` 为缘起（状态板、登记与各对模块） |
 | `Assets/Scripts/RaceIntro/` | 1–6 人开场路径与交接 |
 | `Assets/Scripts/Config/` | `ProjectConfigDatabase` 记录与仓库、`DesignTableOverlay`（运行时把配表记录覆盖到组件字段） |
 | `Assets/Scripts/Editor/DesignTables/` | Excel 配表导入器：xlsx 读取、表头校验、映射、增量导入、菜单与 CLI |
@@ -74,5 +75,6 @@ Unity.exe -batchmode -nographics -projectPath <项目路径> -runTests -testPlat
 - [CONTRIBUTING.md](CONTRIBUTING.md)：分支、提交、PR、验证及资源规则。
 - [Docs/README.md](Docs/README.md)：架构、网络、预测与单机模式文档索引。
 - [Docs/design-tables/README.md](Docs/design-tables/README.md)：策划配表系统入口（规范、决策、筛查清单）。
-- [CONTEXT.md](CONTEXT.md)：领域术语；[Docs/adr/](Docs/adr/)：架构决策。
+- [Docs/gameplay/README.md](Docs/gameplay/README.md)：玩法机制入口（缘起、执念与反噬、施法节奏、操作与键位）。
+- [CONTEXT.md](CONTEXT.md)：比赛与参赛者术语；[GLOSSARY.md](GLOSSARY.md)：技能与风险术语；[Docs/adr/](Docs/adr/)：架构决策。
 - [Docs/unity-mcp.md](Docs/unity-mcp.md)：Unity MCP 启动方法。

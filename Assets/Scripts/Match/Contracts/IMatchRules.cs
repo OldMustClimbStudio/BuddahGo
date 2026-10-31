@@ -16,6 +16,8 @@ namespace BuddahGo.Match
         MatchReturnTarget ReturnTarget { get; }
         bool EndWhenAllRacersFinished { get; }
         bool EndOnHumanFinish { get; }
+        // Practice only (Solo with zero AI racers): three parked, non-racing training dummies (README A1).
+        bool SpawnTrainingDummies { get; }
         bool AllowSkipSpectating { get; }
         bool AllowQuitDialog { get; }
         bool AllowPause { get; }

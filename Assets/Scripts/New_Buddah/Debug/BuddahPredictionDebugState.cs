@@ -22,6 +22,9 @@ namespace NewBuddah.PredictionV2.Debugging
         public bool pushGraceActive;
         public bool suppressSteeringActive;
         public bool roomBypassActive;
+        public bool frozen;
+        public bool burstActive;
+        public bool maxSpeedPenaltyActive;
         public bool lastImpulseConsumed;
         public bool reconcileHadCorrection;
         public bool lastTeleportConsumed;
@@ -39,12 +42,15 @@ namespace NewBuddah.PredictionV2.Debugging
         public bool ownerVisualRootStabilizationApplied;
         public bool ownerVisualRootStabilizationEnabled = true;
         public float steeringInput;
+        public float throttleInput;
         public float planarSpeed;
         public float finalForwardForce;
         public float finalMaxSpeed;
         public float finalTurnTorque;
         public float finalSteeringSign = 1f;
         public float scaleMultiplier = 1f;
+        public float burstExtraMaxSpeed;
+        public float maxSpeedPenaltyMultiplier = 1f;
         public float preImpulseSpeed;
         public float postImpulseSpeed;
         public float lastImpulseTurnTorque;
@@ -86,6 +92,10 @@ namespace NewBuddah.PredictionV2.Debugging
         public uint pushGraceUntilTick;
         public uint suppressSteeringUntilTick;
         public uint roomBypassUntilTick;
+        public uint freezeUntilTick;
+        public uint burstUntilTick;
+        public uint burstDurationTicks;
+        public uint maxSpeedPenaltyUntilTick;
         public int pendingImpulseCount;
         public Vector3 lastImpulseVector;
         public Vector3 preTeleportPosition;

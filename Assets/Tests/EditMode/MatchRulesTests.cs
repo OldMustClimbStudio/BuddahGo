@@ -25,7 +25,16 @@ namespace BuddahGo.Tests
             Assert.That(rules.EndWhenAllRacersFinished, Is.False);
             Assert.That(rules.AllowQuitDialog, Is.False);
             Assert.That(rules.DefaultPlayerName, Is.Null);
+            Assert.That(rules.SpawnTrainingDummies, Is.False, "Online never spawns training dummies.");
             AssertDeferredFeaturesDisabled(rules);
+        }
+
+        // Training dummies (README A1) belong to Practice only: Solo with zero AI racers.
+        [TestCase(0, true), TestCase(1, false), TestCase(3, false), TestCase(5, false)]
+        public void OnlyPracticeSpawnsTrainingDummies(int aiCount, bool spawnsDummies)
+        {
+            var rules = new SoloMatchRules(new SoloMatchSettings(aiCount, SoloDifficulty.Normal));
+            Assert.That(rules.SpawnTrainingDummies, Is.EqualTo(spawnsDummies));
         }
 
         [TestCase(0, true), TestCase(1, false), TestCase(3, false), TestCase(5, false)]

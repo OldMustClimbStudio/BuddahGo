@@ -19,6 +19,8 @@
 - host 作为 owner 的行为不回退。
 - 服务器对远端身体不再在 GO 之后对 kinematic 刚体施力。
 
+> **已被取代（2026-10-31）：** 2026-10-30 起开场交接完全物理，`Movement.launchInheritSeconds` / `launchBlendSeconds` 配为 0，交接后屏蔽转向也是 0，Inherit / Blend 两段不再出现，见 [玩法深化 §3](../gameplay/README.md#3-操作)。
+
 ### 不变项
 
 - 技能命中、冲量、modifier、复活传送的现有行为不变（R6/R7 对比基线）。

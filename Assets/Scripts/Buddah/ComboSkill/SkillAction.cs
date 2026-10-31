@@ -10,8 +10,6 @@ public abstract class SkillAction : ScriptableObject
 
     [Header("Balance")]
     [Min(0f)] public float cooldownSeconds = 1f;
-    [Min(0f)] public float castLockSeconds = 0.25f;
-
 
     [Header("Obsession")]
     [Min(0f)] public float obsessionGain = 0f;
@@ -20,7 +18,7 @@ public abstract class SkillAction : ScriptableObject
 
     // 反噬技能相关参数放在这里
     [Header("Anti (Backfire) Variant")]
-    [Tooltip("If set, casting this skill may instead cast the Anti variant based on ObsessionFigure.")]
+    [Tooltip("The skill's own _anti variant. A backfire applies the unified penalty and always runs this variant (2026-10-31).")]
     public string antiSkillId = string.Empty;
 
     protected static float ResolveVfxDuration(float configuredSeconds, float fallbackSeconds)
@@ -50,7 +48,7 @@ public abstract class SkillAction : ScriptableObject
     /// <summary>
     /// Observer-side execution with network context. Default behavior keeps older skills working.
     /// </summary>
-    public virtual void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public virtual void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         ExecuteObservers(caster, slotIndex);
     }
@@ -58,7 +56,33 @@ public abstract class SkillAction : ScriptableObject
     /// <summary>
     /// Runs only on the owning client for local feel (camera/UI/input feedback).
     /// </summary>
-    public virtual void ExecuteLocal(SkillExecutor caster, int slotIndex, bool isAnti)
+    public virtual void ExecuteLocal(SkillExecutor caster, int slotIndex)
+    {
+        // optional
+    }
+
+    // ---- 缘起 (skill state board) ----
+
+    /// <summary>
+    /// Server: when this execution counts as "生效中" on the caster's SkillStateBoard. Default: from execution, for the
+    /// table Skill.effectDurationSeconds (SO primary duration without tables); 0 registers nothing.
+    /// </summary>
+    public virtual SkillActiveWindow GetActiveWindow(SkillExecutor caster)
+    {
+        return new SkillActiveWindow(0f, caster != null ? caster.ResolveEffectDurationSeconds(skillId) : 0f);
+    }
+
+    /// <summary>
+    /// Server, right after ExecuteServer: the handle a 缘起 uses to consume (or rewrite) this execution's running effect.
+    /// Null = the skill cannot be consumed.
+    /// </summary>
+    public virtual ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster) => null;
+
+    /// <summary>
+    /// Every peer (host included): presentation of an early end after a 缘起 consumed the skill (trail, FOV, VFX...).
+    /// Presentation only; the server already ended the effect itself.
+    /// </summary>
+    public virtual void ExecuteConsumedObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         // optional
     }

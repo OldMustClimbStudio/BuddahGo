@@ -30,4 +30,4 @@
 ,sideContactNormalY,0.7,AIRacerDriver.cs:90,[Eng]
 ,groundNormalY,0.99,AIRacerDriver.cs:96,[Eng]
 ,defaultFriction,0.6,AIRacerDriver.cs:98,[Eng]
-,groundContactValiditySeconds,0.1,AIRacerDriver.cs:142,[Eng]
+,groundContactValiditySeconds,0.1,AIRacerDriver.cs:144,[Eng]

@@ -1,6 +1,6 @@
 ##var,skillId,scaleMultiplier,shrinkDurationSeconds,growDurationSeconds,massMultiplier,forwardForceMultiplier,restoreDurationSeconds
 ##type,enum:SkillId#key#ref=Skill.skillId,float,float,float,float,float,float
 ##group,,,,,,,
-##comment,普通与反噬各一行；空格 = 该行的技能类没有这个字段,体型倍率（反噬 <1）,缩回 / 缩小过渡 s,普通：变大过渡 s,普通：质量倍率（反噬代码固定 1）,普通：推力倍率（反噬代码固定 1）,反噬：恢复过渡 s
+##comment,普通与反噬各一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_Giant / Skill_Giant_Anti SO（DesignTableOverlay.Apply）；空格 = 该行的技能类没有这个字段,体型倍率（Skill_Giant.scaleMultiplier；反噬 <1，Skill_Giant_Anti.scaleMultiplier）,缩回过渡 s（Skill_Giant.shrinkDurationSeconds）；反噬：缩小过渡 s,变大过渡 s（Skill_Giant.growDurationSeconds）,质量倍率（Skill_Giant.massMultiplier）,推力倍率（Skill_Giant.forwardForceMultiplier）,反噬：恢复过渡 s
 ,giant,4,0.35,0.35,3,3.5,
 ,giant_anti,0.3,0.25,,,,0.25

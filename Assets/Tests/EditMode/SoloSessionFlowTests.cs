@@ -100,6 +100,37 @@ namespace BuddahGo.Tests
         }
 
         [UnityTest]
+        public IEnumerator SetupPracticeButton_StartsZeroAIPracticeWithTrainingDummies()
+        {
+            // The setup panel's second start button is the visible Practice entry: Solo host, 0 AI, Practice rules.
+            EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");
+            yield return new EnterPlayMode();
+            yield return null;
+            Object.FindFirstObjectByType<MainMenuUI>().ShowSoloSetup();
+            yield return null;
+            var practice = GameObject.Find("StartTraining");
+            Assert.That(practice, Is.Not.Null);
+            Assert.That(practice.GetComponent<Button>().interactable, Is.True);
+            practice.GetComponent<Button>().onClick.Invoke();
+            Assert.That(MatchRules.Current.SpawnTrainingDummies, Is.True, SessionControl.Current.LastError);
+            Assert.That(MatchRules.Current.EndOnHumanFinish, Is.True);
+            Assert.That(practice.GetComponent<Button>().interactable, Is.False, "One request per click.");
+            float deadline = Time.realtimeSinceStartup + 45f;
+            while (Time.realtimeSinceStartup < deadline && (PropertiesSelectionManager.Instance == null ||
+                !PropertiesSelectionManager.Instance.IsClientInitialized || PropertiesSelectionManager.Instance.Participants.Count == 0))
+                yield return null;
+            Assert.That(PropertiesSelectionManager.Instance, Is.Not.Null, "Practice must reach the selection scene.");
+            Assert.That(PropertiesSelectionManager.Instance.Participants.Count, Is.EqualTo(1), "Practice has no AI racers.");
+            var network = Object.FindFirstObjectByType<NetworkManager>();
+            SessionControl.Current.RequestStopSession();
+            deadline = Time.realtimeSinceStartup + 45f;
+            while (Time.realtimeSinceStartup < deadline && (network.ClientManager.Started ||
+                SceneManager.GetActiveScene().name != SceneNames.MainMenu)) yield return null;
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.MainMenu));
+            yield return new ExitPlayMode();
+        }
+
+        [UnityTest]
         public IEnumerator Practice_SelectsExitsReopensAndRematches_WithSyntheticFinish()
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");
@@ -188,7 +219,27 @@ namespace BuddahGo.Tests
             Assert.That(LocalInputBlock.IsBlocked, Is.False);
             Assert.That(MatchServices.Clock, Is.Not.Null);
             Assert.That(MatchServices.Timing, Is.Not.Null);
-            Assert.That(Object.FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None).Length, Is.EqualTo(1));
+            // Practice (0 AI) adds three training dummies from the same prefab; they carry reporters but are never racers.
+            var reporters = Object.FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None);
+            var ownedReporters = System.Array.FindAll(reporters, reporter => reporter.IsOwner);
+            Assert.That(ownedReporters.Length, Is.EqualTo(1));
+            var dummies = System.Array.FindAll(Object.FindObjectsByType<RacerIdentity>(FindObjectsSortMode.None), identity => identity.IsTrainingDummy);
+            Assert.That(dummies.Length, Is.EqualTo(3), "Practice spawns three training dummies.");
+            Assert.That(reporters.Length, Is.EqualTo(ownedReporters.Length + dummies.Length));
+            foreach (var dummy in dummies)
+            {
+                Assert.That(dummy.IsAssigned, Is.False, "A training dummy keeps the unassigned racer id.");
+                Assert.That(dummy.OwnerId, Is.EqualTo(-1));
+                Assert.That(RacerAuthority.IsServerDummy(dummy) && RacerAuthority.IsServerControlled(dummy), Is.True);
+                Assert.That(RacerAuthority.IsServerAI(dummy), Is.False);
+                Assert.That(RacerAuthority.HasLocalControl(dummy.NetworkObject), Is.True, "The server parks the dummy through the motor override.");
+                Assert.That(RacerAuthority.IsProgressAuthority(dummy), Is.False, "No lap, progress or wrong-way logic runs for a dummy.");
+                Assert.That(dummy.GetComponent<Rigidbody>().isKinematic, Is.False, "The host must be able to push a dummy.");
+                Assert.That(dummy.GetComponent<RaceBodyIntroStateController>().HasAssignment, Is.False, "The intro neither flies nor launches dummies.");
+                Assert.That(dummy.GetComponent<TrainingDummy>(), Is.Not.Null);
+            }
+            Assert.That(RacerDirectory.Current.All.Count, Is.EqualTo(1), "Dummies are not in the racer directory.");
+            Assert.That(LeaderboardManager.Instance.Rankings.Count, Is.EqualTo(1), "Dummies are not ranked.");
 
             // Same component, two rounds: stale synchronized Lap Times must not survive Begin.
             // This exercises timing state only, and is not a physical lap/completion acceptance run.
@@ -211,7 +262,7 @@ namespace BuddahGo.Tests
                 .GetComponentInChildren<RaceCompletionTracker>(true);
             Assert.That(unowned.OwnerId, Is.EqualTo(-1));
             Assert.That(finish.TryRegisterFinish(unowned), Is.False);
-            var live = Object.FindFirstObjectByType<PlayerProgressReporter>().GetComponent<RaceCompletionTracker>();
+            var live = ownedReporters[0].GetComponent<RaceCompletionTracker>();
             start = MatchServices.Clock.Now - finish.LapsToFinish;
             timing.Begin(start);
             for (int lap = 1; lap < finish.LapsToFinish; lap++) timing.ObserveCompletedLaps(racer, lap, start + lap);
@@ -223,6 +274,7 @@ namespace BuddahGo.Tests
             finish.EvaluateRaceEndServer();
             Assert.That(finish.IsRaceForceEnded, Is.True);
             Assert.That(LeaderboardManager.Instance.BuildFinalResultsSnapshot()[0].IsFinished, Is.True);
+            Assert.That(LeaderboardManager.Instance.BuildFinalResultsSnapshot().Count, Is.EqualTo(1), "Results never list training dummies.");
             float resultDeadline = Time.realtimeSinceStartup + 45f;
             while (Time.realtimeSinceStartup < resultDeadline && MatchResultPresentationCoordinator.Instance.CurrentStage != MatchResultPresentationStage.ResultInteractive)
                 yield return null;

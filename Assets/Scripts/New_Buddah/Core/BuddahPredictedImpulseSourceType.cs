@@ -7,5 +7,7 @@ namespace NewBuddah.PredictionV2.Core
         Projectile = 2,
         ChargedProjectile = 3,
         DebugBox = 4,
+        // 缘起 #4 giant charge: a bursting giant's body hits another racer (BuddahBodyImpact). Log/evidence label only.
+        BodyImpact = 5,
     }
 }

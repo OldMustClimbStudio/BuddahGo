@@ -2,18 +2,38 @@ using FishNet.Object;
 using BuddahGo.Match;
 using FishNet.Object.Synchronizing;
 using System.Collections;
+using System.Collections.Generic;
 using SteamMultiplayer.Network;
 using SteamMultiplayer.Network.Results;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(NetworkObject))]
-public class BuddahHandControl : NetworkBehaviour
+public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
 {
     [Header("Input")]
-    [Tooltip("Read from InputSystem_Actions -> Player -> HandRotation (LeftArrow / RightArrow).")]
+    [Tooltip("Read from InputSystem_Actions -> Player -> HandPush (mouse left / right button) and HandRotation (LeftArrow / RightArrow, fallback when there is no mouse).")]
     [SerializeField] private bool useGeneratedInputActions = true;
+
+    [Header("Mouse Aim")]
+    [Tooltip("Owner aims the hands with the cursor projected onto the ground plane. Off, or without a mouse, LeftArrow / RightArrow turn the hands.")]
+    [SerializeField] private bool useMouseAim = true;
+
+    [Tooltip("Time constant (seconds) of the exponential smoothing applied to the cursor target before the rotationSpeedDegPerSec cap. 0 = no smoothing.")]
+    [SerializeField, Min(0f)] private float mouseAimSmoothingSeconds = 0.06f;
+
+    [Tooltip("Cursor closer than this to the body (metres, multiplied by the body scale) holds the current aim target.")]
+    [SerializeField, Min(0f)] private float mouseAimDeadRadius = 1.5f;
+
+    [Tooltip("Height of the horizontal aim plane above the movement root (metres).")]
+    [SerializeField] private float mouseAimPlaneHeightOffset = 0f;
+
+    [Header("Freeze")]
+    [Tooltip("After a freeze (禁锢) ends, the owner re-sends its hand yaw once after this delay: the server drops yaw updates while it still sees the racer frozen, so a turn made in that tail would otherwise stay unsynced.")]
+    [SerializeField, Min(0f)] private float yawResendAfterFreezeSeconds = 0.3f;
 
     [Header("Hand Bones")]
     [Tooltip("Optional: if empty, will try to auto-find via Animator Humanoid LeftHand/RightHand.")]
@@ -22,14 +42,14 @@ public class BuddahHandControl : NetworkBehaviour
     [SerializeField] private Transform rightHandBone;
 
     [Header("Rotation")]
-    [Tooltip("Degrees per second.")]
+    [Tooltip("Hand turn speed cap in degrees per second (mouse aim and the arrow-key fallback).")]
     [SerializeField] private float rotationSpeedDegPerSec = 180f;
 
     [Header("Hand Animation")]
-    [Tooltip("Animator trigger fired when W is pressed (left-hand one-shot animation).")]
+    [Tooltip("Animator trigger fired on a left-hand push (mouse left button).")]
     [SerializeField] private string leftHandTriggerName = "LeftW";
 
-    [Tooltip("Animator trigger fired when UpArrow is pressed (right-hand one-shot animation).")]
+    [Tooltip("Animator trigger fired on a right-hand push (mouse right button).")]
     [SerializeField] private string rightHandTriggerName = "RightUp";
 
     [Tooltip("If true, will replicate left/right hand trigger events to other clients.")]
@@ -96,16 +116,37 @@ public class BuddahHandControl : NetworkBehaviour
     private float _projectileDelayedPushSecondsServer;
     private uint _inputGeneration;
 
+    /// <summary>
+    /// This client's own racer hands (set in OnStartClient for the owner, cleared on stop). Presentation reads it, e.g.
+    /// <c>AimGroundIndicator</c>, so nothing has to search the scene for the local racer. Null without one.
+    /// </summary>
+    public static BuddahHandControl LocalOwner { get; private set; }
+
     public float ServerHandYaw => _syncedYawOffsetDeg.Value;
     public float HandRotationSpeed => rotationSpeedDegPerSec;
     public float ServerPushCooldown => GetActivePushCooldownServer(IsProjectilePushModeActiveServer(), _projectileUseChargedRuntimeServer);
     public float ProjectileBuffSecondsLeft => IsServerInitialized ? Mathf.Max(0f, _projectilePushModeUntilServer - Time.time) : 0f;
 
-    public bool CanPushServer(bool left) => IsServerInitialized && Time.time >= (left ? _nextPushServerTimeLeft : _nextPushServerTimeRight);
+    /// <summary>Skill/Push "basic" impulseStrength (table value in play): the base of 缘起 impulse multipliers (#4's M).</summary>
+    public float BasicPushImpulseStrength => pushImpulseStrength;
+
+    /// <summary>
+    /// Server, #1 金身巨掌 (IHandsImpulseScale): while true, the charged-projectile impulse is multiplied by the same
+    /// body-scale sample that already sizes the projectile. Cleared by ResetSkillInputAndEffects.
+    /// </summary>
+    public bool ImpulseFollowsScale { get; set; }
+
+    public bool CanPushServer(bool left) => IsServerInitialized && !IsMotorFrozen() && Time.time >= (left ? _nextPushServerTimeLeft : _nextPushServerTimeRight);
 
     public void InjectServerRotation(int axis, float tickDelta)
     {
         if (!RacerAuthority.IsServerAI(this) || !ResultAreaInteractionGate.ShouldProcessRaceProgress(gameObject)) return;
+        // Frozen (禁锢): the hands stop turning, so the AI's rotation input is dropped.
+        if (IsMotorFrozen())
+        {
+            HandRotationAxis = 0f;
+            return;
+        }
         HandRotationAxis = Mathf.Clamp(axis, -1, 1);
         _syncedYawOffsetDeg.Value = Mathf.DeltaAngle(0f, _syncedYawOffsetDeg.Value + HandRotationAxis * rotationSpeedDegPerSec * tickDelta);
     }
@@ -122,6 +163,25 @@ public class BuddahHandControl : NetworkBehaviour
         if (IsServerInitialized) ClearProjectilePushModeServer();
         ClearProjectilePushModeLocal();
         HandRotationAxis = 0f;
+        ImpulseFollowsScale = false;
+    }
+
+    /// <summary>
+    /// Server: 缘起 consumed the charged-push buff. Only the buff ends; pushes already in windup keep their snapshot
+    /// (no input generation bump), the impulse rewrite belongs to the 缘起 that set it.
+    /// </summary>
+    public void EndProjectilePushModeServer()
+    {
+        if (!IsServerInitialized)
+            return;
+        ClearProjectilePushModeServer();
+        GameLog.Verbose("[HandControl] Projectile push mode ended early on server (consumed).");
+    }
+
+    /// <summary>Every peer: drops the local charged-push mode (presentation side of a consumed buff).</summary>
+    public void EndProjectilePushModeLocal()
+    {
+        ClearProjectilePushModeLocal();
     }
     public void CancelPendingServerInput() { if (IsServerInitialized) _inputGeneration++; }
 
@@ -143,7 +203,27 @@ public class BuddahHandControl : NetworkBehaviour
     private InputSystem_Actions inputActions;
     private InputAction handRotationAction;
     private Animator animator;
+    private NewBuddah.PredictionV2.Core.BuddahPredictedMotor _motor;
+    private PlayerScaleEffect _scaleEffect;
 
+    // Mouse aim (owner only).
+    private Camera _aimCamera;
+    private bool _hasMouseAimTarget;
+    private float _smoothedMouseAimYawDeg;
+    private static readonly List<RaycastResult> s_UiRaycastResults = new();
+
+    // Owner: the cursor's aim-plane point, sampled once per frame (TryGetAimGroundPoint).
+    private int _aimGroundPointFrame = -1;
+    private bool _hasAimGroundPoint;
+    private Vector3 _aimGroundPoint;
+
+    // Owner: freeze edge for the post-freeze yaw resend (0 = none scheduled).
+    private bool _wasFrozenLocal;
+    private float _yawResendAt;
+
+    private const float HandRotationAxisEpsilonDeg = 0.001f;
+
+    // Owner-authoritative, body-relative and UNWRAPPED: observers Lerp the synced copy, so wrapping would spin them.
     private float handYawOffsetDeg;
     private float _lastSentYaw;
     private float _nextSendTime;
@@ -156,7 +236,7 @@ public class BuddahHandControl : NetworkBehaviour
 
     /// <summary>
     /// Current hand rotation input axis.
-    /// -1 = LeftArrow, +1 = RightArrow, 0 = none.
+    /// -1 = turning left (LeftArrow), +1 = turning right (RightArrow), 0 = none. With mouse aim it is the sign of this frame's step.
     /// </summary>
     public float HandRotationAxis { get; private set; }
 
@@ -170,8 +250,9 @@ public class BuddahHandControl : NetworkBehaviour
     private void Awake()
     {
         animator = GetComponentInChildren<Animator>(true);
+        _motor = GetComponent<NewBuddah.PredictionV2.Core.BuddahPredictedMotor>();
         // Skill/Push "basic" row owns the hand-push numbers; prefab values stay as fallback. Explicit mapping only:
-        // the charged / charged_anti rows of the same sheet belong to the projectile skills (SkillDatabase).
+        // the charged row of the same sheet belongs to the projectile skill (SkillDatabase).
         ProjectConfigDatabase db = DesignTableOverlay.Db;
         if (db != null)
             DesignTableOverlay.ApplyMapped(this, DesignTableOverlay.Single(db.pushes, r => r.pushId == "basic"), PushBasicMap);
@@ -179,7 +260,10 @@ public class BuddahHandControl : NetworkBehaviour
         if (useGeneratedInputActions)
         {
             inputActions = new InputSystem_Actions();
+            // HandRotation (←/→) is only the fallback when there is no mouse; the mouse aims the hands.
             handRotationAction = inputActions.Player.HandRotation;
+            // HandPush bindings: <Mouse>/leftButton = left hand, <Mouse>/rightButton = right hand.
+            // The action is PassThrough so a press of one button is never swallowed while the other is held.
             handPushAction = inputActions.Player.HandPush;
         }
 
@@ -200,6 +284,7 @@ public class BuddahHandControl : NetworkBehaviour
         if (!IsOwner)
             return;
 
+        LocalOwner = this;
         inputActions?.Enable();
         GameLog.Verbose("[HandControl] inputActions Enabled (owner).");
 
@@ -218,12 +303,24 @@ public class BuddahHandControl : NetworkBehaviour
     {
         base.OnStopClient();
         DisableInput();
+        ClearLocalOwner();
     }
 
     private void OnDisable()
     {
         // Covers despawn / scene unload in-editor.
         DisableInput();
+    }
+
+    private void OnDestroy()
+    {
+        ClearLocalOwner();
+    }
+
+    private void ClearLocalOwner()
+    {
+        if (LocalOwner == this)
+            LocalOwner = null;
     }
 
     private void DisableInput()
@@ -245,14 +342,156 @@ public class BuddahHandControl : NetworkBehaviour
         if (IsRaceGameplayBlocked())
             return;
 
-        HandRotationAxis = ReadHandRotationAxis();
+        UpdateHandAimLocal(Time.deltaTime);
+        TrySendYawToServer();
+    }
 
-        if (Mathf.Abs(HandRotationAxis) > 0.001f)
+    private void UpdateHandAimLocal(float deltaTime)
+    {
+        // Frozen (禁锢): the hands stop turning; the aim input is ignored (the server drops yaw updates too).
+        bool frozen = IsMotorFrozen();
+        TrackLocalFreezeForYawResend(frozen);
+        if (frozen)
         {
-            handYawOffsetDeg += HandRotationAxis * rotationSpeedDegPerSec * Time.deltaTime;
+            HandRotationAxis = 0f;
+            // Re-seed the smoothing from the held yaw when the freeze ends, instead of jumping to a stale target.
+            _hasMouseAimTarget = false;
+            return;
         }
 
-        TrySendYawToServer();
+        // A local modal (quit dialog) owns the mouse while it is open, as it owns steering.
+        if (LocalInputBlock.IsBlocked)
+        {
+            HandRotationAxis = 0f;
+            return;
+        }
+
+        if (TryGetMouseAimTarget(deltaTime, out float targetYawDeg))
+        {
+            // Recomputed every frame, so the hands keep their world aim while A/D turns the body.
+            float step = HandAimMath.RateLimitedStep(handYawOffsetDeg, targetYawDeg, rotationSpeedDegPerSec, deltaTime);
+            handYawOffsetDeg += step;
+            HandRotationAxis = step > HandRotationAxisEpsilonDeg ? 1f : step < -HandRotationAxisEpsilonDeg ? -1f : 0f;
+            return;
+        }
+
+        // Fallback without a mouse (or when the cursor ray misses the aim plane): LeftArrow / RightArrow.
+        _hasMouseAimTarget = false;
+        HandRotationAxis = ReadHandRotationAxis();
+        if (Mathf.Abs(HandRotationAxis) > 0.001f)
+        {
+            handYawOffsetDeg += HandRotationAxis * rotationSpeedDegPerSec * deltaTime;
+        }
+    }
+
+    /// <summary>
+    /// Owner: the smoothed, body-relative cursor target in degrees. False when there is no mouse or camera,
+    /// or the cursor ray misses the aim plane. Inside the dead radius the current target is held.
+    /// </summary>
+    private bool TryGetMouseAimTarget(float deltaTime, out float targetYawDeg)
+    {
+        targetYawDeg = handYawOffsetDeg;
+
+        if (!TryGetCursorRay(out Ray cursorRay))
+            return false;
+
+        // transform is the movement root: the server rebuilds the push as AngleAxis(yaw, up) * transform.forward,
+        // so the offset is measured from this forward, not from the smoothed visual root.
+        Vector3 bodyPosition = transform.position;
+        float scaleMultiplier = GetPushScaleMultiplier();
+        HandAimSampleKind sample = HandAimMath.TryGetTargetYawOffset(
+            cursorRay,
+            GetAimPlaneHeight(),
+            bodyPosition,
+            transform.forward,
+            mouseAimDeadRadius * scaleMultiplier,
+            out float rawTargetYawDeg);
+
+        if (sample == HandAimSampleKind.Miss)
+            return false;
+
+        if (!_hasMouseAimTarget)
+        {
+            _smoothedMouseAimYawDeg = handYawOffsetDeg;
+            _hasMouseAimTarget = true;
+        }
+
+        if (sample == HandAimSampleKind.Aim)
+            _smoothedMouseAimYawDeg = HandAimMath.SmoothAngle(_smoothedMouseAimYawDeg, rawTargetYawDeg, deltaTime, mouseAimSmoothingSeconds);
+
+        targetYawDeg = _smoothedMouseAimYawDeg;
+        return true;
+    }
+
+    /// <summary>
+    /// Owner: the cursor's point on the horizontal aim plane this frame, i.e. the ground point the hands aim at (the
+    /// dead radius does not apply; see <see cref="IsInsideMouseAimDeadRadius"/>). Presentation only: the placeholder
+    /// <c>AimGroundIndicator</c> draws it. False when this is not the owner, mouse aim is off or there is no
+    /// mouse or camera, race gameplay or a local modal blocks the input, or the ray misses the plane this frame. A
+    /// freeze does not make it false. Sampled once per frame, so any reader in any order gets the same point.
+    /// </summary>
+    public bool TryGetAimGroundPoint(out Vector3 point)
+    {
+        int frame = Time.frameCount;
+        if (_aimGroundPointFrame != frame)
+        {
+            _aimGroundPointFrame = frame;
+            _hasAimGroundPoint = TrySampleAimGroundPoint(out _aimGroundPoint);
+        }
+        point = _aimGroundPoint;
+        return _hasAimGroundPoint;
+    }
+
+    /// <summary>
+    /// Read-only: true when an aim-plane point is inside the mouse-aim dead radius (mouseAimDeadRadius × body scale,
+    /// horizontal distance from the movement root), where the hands hold their target instead of following the cursor.
+    /// Same rule as the aim itself (<see cref="HandAimMath.IsInsideDeadRadius"/>).
+    /// </summary>
+    public bool IsInsideMouseAimDeadRadius(Vector3 aimGroundPoint)
+    {
+        return HandAimMath.IsInsideDeadRadius(aimGroundPoint, transform.position, mouseAimDeadRadius * GetPushScaleMultiplier());
+    }
+
+    private bool TrySampleAimGroundPoint(out Vector3 point)
+    {
+        point = Vector3.zero;
+        if (!IsOwner || IsRaceGameplayBlocked() || LocalInputBlock.IsBlocked)
+            return false;
+        if (!TryGetCursorRay(out Ray cursorRay))
+            return false;
+
+        var plane = new Plane(Vector3.up, new Vector3(0f, GetAimPlaneHeight(), 0f));
+        if (!plane.Raycast(cursorRay, out float enter))
+            return false;
+        point = cursorRay.GetPoint(enter);
+        return true;
+    }
+
+    // Owner mouse aim input: the camera ray through the cursor. False with mouse aim off, no mouse or no camera.
+    private bool TryGetCursorRay(out Ray cursorRay)
+    {
+        cursorRay = default;
+        Mouse mouse = Mouse.current;
+        if (!useMouseAim || mouse == null)
+            return false;
+
+        if (_aimCamera == null || !_aimCamera.isActiveAndEnabled)
+            _aimCamera = Camera.main;
+        if (_aimCamera == null)
+            return false;
+
+        cursorRay = _aimCamera.ScreenPointToRay(mouse.position.ReadValue());
+        return true;
+    }
+
+    private float GetAimPlaneHeight() => transform.position.y + mouseAimPlaneHeightOffset;
+
+    // Owner: a freeze just ended locally → schedule one yaw resend (see yawResendAfterFreezeSeconds).
+    private void TrackLocalFreezeForYawResend(bool frozen)
+    {
+        if (_wasFrozenLocal && !frozen)
+            _yawResendAt = Time.time + yawResendAfterFreezeSeconds;
+        _wasFrozenLocal = frozen;
     }
 
     private void RefreshProjectilePushModeExpiration()
@@ -318,9 +557,11 @@ public class BuddahHandControl : NetworkBehaviour
         if (Time.time < _nextSendTime)
             return;
 
-        if (Mathf.Abs(handYawOffsetDeg - _lastSentYaw) < 0.1f)
+        bool resendDue = _yawResendAt > 0f && Time.time >= _yawResendAt;
+        if (!resendDue && Mathf.Abs(handYawOffsetDeg - _lastSentYaw) < 0.1f)
             return;
 
+        _yawResendAt = 0f;
         _lastSentYaw = handYawOffsetDeg;
         _nextSendTime = Time.time + 0.05f;
         SetHandYawServerRpc(handYawOffsetDeg);
@@ -329,6 +570,9 @@ public class BuddahHandControl : NetworkBehaviour
     [ServerRpc]
     private void SetHandYawServerRpc(float yawOffsetDeg)
     {
+        // Frozen (禁锢): the hands stop turning on every peer, so the server keeps the synced yaw while frozen.
+        if (IsMotorFrozen())
+            return;
         _syncedYawOffsetDeg.Value = yawOffsetDeg;
     }
 
@@ -406,6 +650,7 @@ public class BuddahHandControl : NetworkBehaviour
         }
     }
 
+    // Fallback hand turning (no mouse, or the cursor ray misses the aim plane). Mouse aim is the primary input.
     private float ReadHandRotationAxis()
     {
         if (handRotationAction == null)
@@ -436,40 +681,124 @@ public class BuddahHandControl : NetworkBehaviour
 
     private void OnHandPushPerformed(InputAction.CallbackContext ctx)
     {
+        // HandPush is a PassThrough action, so each bound control reports on its own (a Button action's conflict
+        // resolution would swallow the second hand while the first button is held). Only presses push; releases
+        // also arrive here and are ignored.
+        if (!ctx.ReadValueAsButton())
+            return;
+
         GameLog.Verbose($"[HandControl] HandPush PERFORMED. IsOwner={IsOwner}, control={ctx.control?.path}");
 
-        if (!IsOwner || animator == null || IsRaceGameplayBlocked())
+        if (!IsOwner || animator == null)
         {
             Debug.LogWarning($"[HandControl] Ignored HandPush. IsOwner={IsOwner}, animatorNull={animator==null}");
             return;
         }
 
-        if (ctx.control is not KeyControl key)
+        // Mouse clicks outside the race (intro, results) are normal, so this is not a warning.
+        if (IsRaceGameplayBlocked())
         {
-            Debug.LogWarning("[HandControl] HandPush was not a KeyControl.");
+            GameLog.Verbose("[HandControl] Ignored HandPush: race gameplay is blocked.");
             return;
         }
 
-        GameLog.Verbose($"[HandControl] Key = {key.keyCode}");
+        // A local modal (quit dialog) owns the input while it is open.
+        if (LocalInputBlock.IsBlocked)
+            return;
 
-        if (key.keyCode == Key.W)
+        // Frozen (禁锢) locks pushes: no animation here, and the server refuses the request too (TryPushServer).
+        if (IsMotorFrozen())
+            return;
+
+        if (!TryResolvePushHand(ctx.control, out bool isLeft, out Mouse clickMouse))
         {
-            float activeCooldown = GetActivePushCooldownLocal();
+            Debug.LogWarning($"[HandControl] HandPush from an unsupported control: {ctx.control?.path}");
+            return;
+        }
+
+        // A click on an interactive UI element (button, toggle...) belongs to the UI, not to the hands.
+        if (clickMouse != null && IsPointerOverInteractiveUi(clickMouse.position.ReadValue()))
+            return;
+
+        GameLog.Verbose($"[HandControl] Push {(isLeft ? "left" : "right")} hand from {ctx.control.path}");
+
+        float activeCooldown = GetActivePushCooldownLocal();
+        if (isLeft)
+        {
             if (Time.time < _nextPushLocalTimeLeft)
                 return;
             _nextPushLocalTimeLeft = Time.time + activeCooldown;
-            TryStartPush(true);
-            StartDelayedPushAnimationLocal(true);
         }
-        else if (key.keyCode == Key.UpArrow)
+        else
         {
-            float activeCooldown = GetActivePushCooldownLocal();
             if (Time.time < _nextPushLocalTimeRight)
                 return;
             _nextPushLocalTimeRight = Time.time + activeCooldown;
-            TryStartPush(false);
-            StartDelayedPushAnimationLocal(false);
         }
+
+        TryStartPush(isLeft);
+        StartDelayedPushAnimationLocal(isLeft);
+    }
+
+    /// <summary>
+    /// Maps a HandPush control to a hand: mouse left button = left hand, mouse right button = right hand (the only HandPush
+    /// bindings since W became the drive key, 2026-10-30).
+    /// </summary>
+    private static bool TryResolvePushHand(InputControl control, out bool isLeft, out Mouse clickMouse)
+    {
+        isLeft = false;
+        clickMouse = null;
+
+        if (control is ButtonControl button && button.device is Mouse mouse)
+        {
+            if (button == mouse.leftButton)
+            {
+                isLeft = true;
+                clickMouse = mouse;
+                return true;
+            }
+
+            if (button == mouse.rightButton)
+            {
+                clickMouse = mouse;
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// True when the topmost UI raycast hit under the pointer belongs to an active, interactable Selectable.
+    /// Non-interactive HUD graphics (images, labels) do not block pushes.
+    /// </summary>
+    private static bool IsPointerOverInteractiveUi(Vector2 screenPosition)
+    {
+        EventSystem eventSystem = EventSystem.current;
+        if (eventSystem == null)
+            return false;
+
+        var pointer = new PointerEventData(eventSystem) { position = screenPosition };
+        s_UiRaycastResults.Clear();
+        eventSystem.RaycastAll(pointer, s_UiRaycastResults);
+
+        bool blocked = false;
+        if (s_UiRaycastResults.Count > 0 && s_UiRaycastResults[0].gameObject != null)
+        {
+            // The click goes to the topmost hit and bubbles up to its nearest Selectable parent.
+            Selectable selectable = s_UiRaycastResults[0].gameObject.GetComponentInParent<Selectable>();
+            blocked = selectable != null && selectable.IsActive() && selectable.IsInteractable();
+        }
+
+        s_UiRaycastResults.Clear();
+        return blocked;
+    }
+
+    private bool IsMotorFrozen()
+    {
+        return _motor != null && _motor.IsFrozen;
     }
 
     private void StartDelayedPushAnimationLocal(bool isLeft)
@@ -541,6 +870,10 @@ public class BuddahHandControl : NetworkBehaviour
 
     private bool TryPushServer(bool isLeft, float yawSnapshotDeg, Vector3 handWorldPositionSnapshot, bool animateServerInput)
     {
+        // Frozen (禁锢) locks pushes. Checked before any cooldown write, so a refused push does not burn the hand cooldown.
+        if (IsMotorFrozen())
+            return false;
+
         if (!ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject))
             return false;
 
@@ -672,11 +1005,13 @@ public class BuddahHandControl : NetworkBehaviour
 
     private float GetPushScaleMultiplier()
     {
-        var scaleEffect = GetComponent<PlayerScaleEffect>();
-        if (scaleEffect == null)
+        // Cached: mouse aim reads it every frame on the owner.
+        if (_scaleEffect == null)
+            _scaleEffect = GetComponent<PlayerScaleEffect>();
+        if (_scaleEffect == null)
             return 1f;
 
-        return Mathf.Max(0.1f, scaleEffect.CurrentScaleMultiplier);
+        return Mathf.Max(0.1f, _scaleEffect.CurrentScaleMultiplier);
     }
 
     private Vector3 GetPushSpawnPosition(
@@ -811,7 +1146,9 @@ public class BuddahHandControl : NetworkBehaviour
     {
         Vector3 scaledColliderSize = projectileColliderSize * scaleMultiplier;
         Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
-        Vector3 impulse = dir * projectileImpulseStrength;
+        // #1 金身巨掌: the impulse follows the same scale sample as the size, uncapped.
+        float impulseScale = ImpulseFollowsScale ? scaleMultiplier : 1f;
+        Vector3 impulse = dir * (projectileImpulseStrength * impulseScale);
         GameObject chargedVisualPrefab = _projectileChargedVisualPrefabServer;
         string chargedProgressProperty = string.IsNullOrWhiteSpace(_projectileChargedProgressPropertyServer) ? DefaultChargedProjectileProgressProperty : _projectileChargedProgressPropertyServer;
 

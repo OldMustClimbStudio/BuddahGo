@@ -2,6 +2,8 @@
 
 筛查日期 2026-10-12，基线 dev 9ff6338。本文件只做盘点，不含实现。总览与跨域结论见 [README.md](README.md)。
 
+> 2026-10-26 玩法深化之后（代码 0dbc551，`PredictionProtocol.Version` 2），下列基线说法不再完整，原文保留：表 3 的命令枚举、叠加规则与 `ResetActiveSkillModifiers`（新增 Freeze / EndModifier / Burst / MaxSpeedMultiplier，技能重置还清 freeze 与 burst，不清反噬限速；带重置的传送也保留反噬限速），见表 3 末尾；表 2 的冲量来源多了 `BodyImpact = 5`（缘起 #4 撞击，只作日志标签）；表 7 的执念参数多了同招加价与反噬惩罚五列，见 [inventory-skills.md](inventory-skills.md) 第 10 节；表 10 的键位（技能键、鼠标瞄准与推掌），见表 10 末尾。2026-10-28 A7 删除了 `ComboSkillInput`，结论 3、表 10 的硬编码、重复项 7 与待确认问题 6 里的 `ComboSkillInput` 已不存在。2026-10-30 A8 之后：表 1 的“自动油门 throttle = 1”不再成立，真人按住 W 才推进（`BuddahDriveInput.ResolveThrottle`，AI 经转向覆盖的 `drive` 一直推进）；表 4 的起跑交接改为完全物理，配表 `Movement.launchInheritSeconds` / `launchBlendSeconds` 为 0（覆盖 legacy 组件上的 0.2 / 0.32），交接后屏蔽转向的 0.15 秒改为 0（`RaceBodyIntroStateController.LaunchSuppressTurnSeconds`），继承与混合机制保留、时长为 0，见 [玩法深化 §3](../gameplay/README.md#3-操作)。
+
 范围：`Assets/Scripts/New_Buddah/**`、`Foundation/`、`GlobalSettings/`、`InputSystem/`、`Debug/`、`GameData/`，Buddah.prefab 上的相关组件，`ProjectSettings/` 中的物理、时间、画质。路径相对 `Assets/Scripts/`；prefab 行号指 `Assets/Character/Prefab/Buddah.prefab`。
 
 ## 结论先行
@@ -49,6 +51,8 @@
 - 结算顺序 — Resolver.cs:37-63 — 先缩放、再加 Accel、再加 PostRootAccel、再取反、最后定身清零；结果 ≥0 — 规则，写进表说明。
 - 持续时间换 tick — `BuddahTickMath.DurationToTicks`(TickMath.cs:80-83) — 向上取整，粒度 1/60 s。
 - `ResetActiveSkillModifiers` — Events.cs:27-40 — 只重置 root / accel / scale / invert，不重置 pushGrace / suppress / roomBypass。
+
+2026-10-26 玩法深化（PredictionProtocol v2）新增四条命令，`Movement/ModifierRule`（presentationOnly，只记录）各加一行：Freeze（RefreshMaxDuration，技能重置时清）、EndModifier（瞬时命令，把目标修饰的期限提前到当前 tick，只缩短不延长；马达接受 Acceleration、RootThenAcceleration、Scale、Freeze、Burst、MaxSpeedMultiplier 六种目标，只有缘起消耗神足通 / 金身时才经 `SkillExecutor.EndAccelerationForOwner / EndScaleForOwner` 发 Acceleration / Scale；加速通道只结束正幅度，别人放的减速保留）、Burst（新枚举值 `StackPolicy.Restart`：后到的命令同时覆盖期限与幅度，技能重置时清）、MaxSpeedMultiplier（反噬惩罚 ×0.85，期限取较大、倍率后写覆盖，技能重置与复活都不清）。`Global/__enums__` 的 `ModifierCommandType` 同时改成与 C# `BuddahPredictedModifierCommandType` 相同的编号（Acceleration=1 … RoomBypass=7，Freeze=8 … MaxSpeedMultiplier=11）；原来从 0 起编，而导入校验接受 value 整数、消费方把整数当 C# 枚举值，`1` 在表里是 RootThenAcceleration、在代码里是 Acceleration。
 
 ## 表 4：LaunchHandoff（起跑交接）
 
@@ -115,6 +119,8 @@
 - 控制方案声明了 Gamepad / Touch / Joystick / XR 但无绑定；D 键 group 写成 ";Keyboard&Mouse;XR"，疑似误配。
 - 消费方 `BuddahPredictionOwnerInputBridge.Initialize/ReadSteering`(OwnerInputBridge.cs:24,191-197)，受 `LocalInputBlock.IsBlocked` 阻断。
 - 建议表 InputBindings（Action、Key、Scheme），外加 SteeringInputMode（数字/模拟）、SteeringDeadzone；改键需先去掉硬编码 KeyCode。
+- 2026-10-26（玩法深化 A2 的键位，阶段 B 记进表）：`InputSystem_Actions.inputactions` 新增 `SkillSlot1/2/3` 三个动作与 HandPush 的鼠标左 / 右键绑定；`Global/InputBinding` 加 doc 列 `status`，补齐 SkillSlot1/2/3（Q/E/R 与 1/2/3 同时绑定，`SkillExecutor.OnSkillKeyPressed`）和 HandPush 的鼠标左/右键（主键位，`BuddahHandControl.TryResolvePushHand`）；W/↑ 推掌标为“废弃内容，后续可能再调整”；←/→ 只在没有鼠标时做回退，主瞄准是光标投到地面的方向，转速上限 `Push.basic.rotationSpeedDegPerSec`。
+- 2026-10-30（玩法深化 A8，前进改为按住 W）：`Movement` 动作加 `<Keyboard>/w`，`HandPush` 删掉 W、↑；`Global/InputBinding` 加 W 前进一行（主键位）、删掉 W/↑ 推掌两行；`Movement.autoThrottle`（doc 列）注释改成“前进不再自动”，值仍为 1。同日起跑交接改为完全物理：`Movement.launchInheritSeconds` 0.2 → 0、`launchBlendSeconds` 0.32 → 0，doc 列 `launchSuppressTurnSeconds` 0.15 → 0（`RaceBodyIntroStateController.LaunchSuppressTurnSeconds`）。下文 0.2 / 0.32 / 0.15 是 2026-10-12 基线。
 
 ## 表 11：GlobalSimulation / GlobalSettings
 

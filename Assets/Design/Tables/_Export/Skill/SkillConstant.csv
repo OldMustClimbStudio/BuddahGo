@@ -15,7 +15,7 @@
 ,push_projectile_hands_anti,ignoreSolidWorld,true,BuddahHandControl.cs:969
 ,reverseturn,targetScope,AllOthers,Skill_ReverseTurn.cs:26-39
 ,reverseturn_anti,targetScope,Self,
-,blackcurtain,casterSeesTrackEdge,true,BlackCurtainPresentation.cs:35 (caster XOR anti)
+,blackcurtain,casterSeesTrackEdge,true,BlackCurtainPresentation.cs:36（施法者看到边线）
 ,blackcurtain_anti,casterSeesTrackEdge,false,
 ,giant,scalesMaxSpeed,false,Resolver.cs:30-38
 ,giant_anti,massMultiplier,1,Skill_Giant_Anti.cs:18

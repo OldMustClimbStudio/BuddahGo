@@ -14,6 +14,7 @@ namespace BuddahGo.Match
         public MatchReturnTarget ReturnTarget => R != null && R.returnTarget == "MainMenuHome" ? MatchReturnTarget.MainMenuHome : MatchReturnTarget.Room;
         public bool EndWhenAllRacersFinished => R?.endWhenAllRacersFinished ?? false;
         public bool EndOnHumanFinish => R?.endOnHumanFinish ?? false;
+        public bool SpawnTrainingDummies => false;
         public bool AllowSkipSpectating => R?.allowSkipSpectating ?? false;
         public bool AllowQuitDialog => R?.allowQuitDialog ?? false;
         public bool AllowPause => R?.allowPause ?? false;

@@ -113,10 +113,16 @@ namespace NewBuddah.PredictionV2.Core
         private void Awake()
         {
             ResolveReferences();
-            // Cache only steering sources; the per-tick loop should not scan every component.
-            _steeringProviders = Array.FindAll(GetComponents<MonoBehaviour>(), provider => provider is ISteeringOverride);
+            RefreshSteeringProviders();
             InitializePredictionRigidbody();
             enabled = false;
+        }
+
+        // Cache only steering sources; the per-tick loop should not scan every component. Re-run when a source is
+        // added after Awake (MatchSpawnManager adds the Practice TrainingDummy between Instantiate and Spawn).
+        internal void RefreshSteeringProviders()
+        {
+            _steeringProviders = Array.FindAll(GetComponents<MonoBehaviour>(), provider => provider is ISteeringOverride);
         }
 
         public override void OnStartClient()
@@ -227,6 +233,7 @@ namespace NewBuddah.PredictionV2.Core
         public override void OnStartNetwork()
         {
             base.OnStartNetwork();
+            RefreshSteeringProviders();
             ValidatePredictionInvariants();
         }
 
@@ -329,7 +336,8 @@ namespace NewBuddah.PredictionV2.Core
                                    || _computedStats.IsRoomBypassActive
                                    || preHandoffBypassActive;
             float steering = movementAllowed ? (_ownerInputBridge.ReadSteering() * config.TurnInputMultiplier) : 0f;
-            float throttle = movementAllowed ? 1f : 0f;
+            float ownerThrottle = movementAllowed ? _ownerInputBridge.ReadThrottle() : 0f;
+            bool hasOverride = false, overrideDrive = false;
             bool ownerInputLive = IsOwner && movementAllowed;
             if (movementAllowed && RacerAuthority.HasLocalControl(NetworkObject))
             {
@@ -338,10 +346,12 @@ namespace NewBuddah.PredictionV2.Core
                     if (provider == null || !provider.isActiveAndEnabled || !(provider is ISteeringOverride source)) continue;
                     if (!source.TryGetOverride(out int key, out bool drive)) continue;
                     steering = Mathf.Clamp(key, -1, 1) * config.TurnInputMultiplier;
-                    throttle = drive ? 1f : 0f;
+                    hasOverride = true;
+                    overrideDrive = drive;
                     break;
                 }
             }
+            float throttle = BuddahDriveInput.ResolveThrottle(movementAllowed, ownerThrottle, hasOverride, overrideDrive);
 
             if (bootstrap != null)
             {
@@ -350,6 +360,7 @@ namespace NewBuddah.PredictionV2.Core
                 bootstrap.DebugState.gateBlocked = !movementAllowed && !_computedStats.IsRoomBypassActive;
                 bootstrap.DebugState.ownerInputLive = ownerInputLive;
                 bootstrap.DebugState.steeringInput = steering;
+                bootstrap.DebugState.throttleInput = throttle;
                 SyncModifierDebugState(currentTick);
             }
 
@@ -390,6 +401,12 @@ namespace NewBuddah.PredictionV2.Core
 
             InitializePredictionRigidbody();
             uint currentTick = TimeManager != null ? TimeManager.LocalTick : data.GetTick();
+            // Modifiers resolve at the replayed tick during a client reconcile replay (the per-tick Burst decay
+            // must match what the server simulated); consumes and launch state keep the live tick.
+            var prediction = PredictionManager;
+            uint modifierTick = BuddahTickMath.ModifierResolveTick(IsServerInitialized,
+                state.IsReplayed() && prediction != null && prediction.IsReconciling,
+                currentTick, prediction != null ? prediction.ClientReplayTick : currentTick);
 
             _ = data.LastConsumedImpulseId;
             _ = data.LastConsumedTeleportId;
@@ -398,7 +415,7 @@ namespace NewBuddah.PredictionV2.Core
             _ = data.OwnerControlMask;
 
             RefreshLaunchState(currentTick);
-            _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
+            _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, modifierTick);
             ApplyResolvedMassMultiplier();
             _impulseConsumedThisTick = false;
 #if (UNITY_EDITOR || DEVELOPMENT_BUILD) && BUDDAH_PREDICTION_SHADOW
@@ -424,7 +441,7 @@ namespace NewBuddah.PredictionV2.Core
             // ConsumeReady) is rb-writing authority. OLD queue + LEG shadow compare retired in V4.
             ConsumePendingImpulseEvents_Authoritative(currentTick);
             RefreshLaunchState(currentTick);
-            _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
+            _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, modifierTick);
             if (_presentationWasRooted != _computedStats.IsRooted)
             {
                 _presentationWasRooted = _computedStats.IsRooted;

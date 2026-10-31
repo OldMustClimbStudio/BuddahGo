@@ -489,7 +489,6 @@ GameObject:
   - component: {fileID: -6967932826743009680}
   - component: {fileID: 7966388255017697292}
   - component: {fileID: -3335753095235380355}
-  - component: {fileID: -4047580665225652334}
   - component: {fileID: -713974680141041721}
   - component: {fileID: 3264553301400044323}
   - component: {fileID: -7394383762514951774}
@@ -614,13 +613,10 @@ MonoBehaviour:
   turnDecayPerSecond: 3
   maxSpeed: 80
   turnInputMultiplier: 1
-  directHeadingDegreesPerSecond: 360
-  directHeadingAngularDamping: 14
-  directHeadingSnapAngle: 2
   pushGraceSeconds: 0.25
   pushExtraMaxSpeed: 6
-  launchInheritTime: 0.2
-  launchBlendTime: 0.32
+  launchInheritTime: 0
+  launchBlendTime: 0
   rb: {fileID: 8984405970169020143}
   predictionHandoffBridge: {fileID: 0}
 --- !u!114 &6200725826635987881
@@ -639,6 +635,11 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   useGeneratedInputActions: 1
+  useMouseAim: 1
+  mouseAimSmoothingSeconds: 0.06
+  mouseAimDeadRadius: 1.5
+  mouseAimPlaneHeightOffset: 0
+  yawResendAfterFreezeSeconds: 0.3
   leftHandBone: {fileID: 6754417643696001773}
   rightHandBone: {fileID: 889650169719779197}
   rotationSpeedDegPerSec: 180
@@ -700,6 +701,8 @@ MonoBehaviour:
   maxSpeedFieldOfView: 35
   maxSpeedDistanceOffset: 10
   speedZoomSmoothTime: 0.1
+  stableIntroExitSmoothTime: 0.6
+  stableIntroExitBlendDuration: 1.2
   adaptToPlayerScale: 1
   cameraDistanceScaleFactor: 1
   cameraFovPerExtraScale: 0
@@ -782,35 +785,11 @@ MonoBehaviour:
   backfireK: 0.008
   backfireMidpointX: 500
   backfireKeepPMaxAtOrAboveX: 1000
---- !u!114 &-4047580665225652334
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3574822749539875012}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8477a01e04a889b4db3a82035a0906f8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 7
-  _addedNetworkObject: {fileID: 5961911359123562421}
-  _networkObjectCache: {fileID: 5961911359123562421}
-  useGeneratedInputActions: 1
-  stepWindowSeconds: 0.35
-  maxBuffer: 6
-  bindings:
-  - name: Skill_1
-    slotIndex: 0
-    sequence: 000000000100000000000000
-  - name: Skill_2
-    slotIndex: 1
-    sequence: 010000000000000001000000
-  - name: Skill_3
-    slotIndex: 2
-    sequence: 00000000000000000100000001000000
-  debugHud: 0
+  repeatWindowSeconds: 5
+  repeatGainMultiplier: 1.15
+  backfireLockSeconds: 5
+  backfireMaxSpeedMultiplier: 0.85
+  backfireEndKeepRatio: 0.8
 --- !u!114 &-713974680141041721
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -823,7 +802,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d1fd240cf2b49448ad70ab86ecbd97f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 8
+  _componentIndexCache: 7
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   _skillDatabase: {fileID: 11400000, guid: 7cbd45d736ea3e64bb0477a811b3f6bf, type: 2}
@@ -843,10 +822,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 888374126f239764ab7c82ebcaf7632f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 9
+  _componentIndexCache: 8
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
-  comboInput: {fileID: -4047580665225652334}
   loadout: {fileID: -713974680141041721}
   database: {fileID: 11400000, guid: 7cbd45d736ea3e64bb0477a811b3f6bf, type: 2}
   feelRouter: {fileID: 0}
@@ -867,13 +845,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e325df983ac6b9241a8d260ce7259488, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 10
+  _componentIndexCache: 9
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   vfxDatabase: {fileID: 11400000, guid: 3a626f7dd3675054abcc20967cccbf5b, type: 2}
   prewarmOnStart: 1
   prewarmAliveSeconds: 0.05
   revealDelayFrames: 2
+  defaultStopLingerSeconds: 1
 --- !u!114 &-4850889153095608646
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -886,7 +865,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7305a557aecc35848b5f86a60db47d62, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 11
+  _componentIndexCache: 10
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   progress01: 0
@@ -980,7 +959,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f678393c69c331418985080981164cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 12
+  _componentIndexCache: 11
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   wrongWayWrapStartThreshold: 0.2
@@ -1021,6 +1000,9 @@ MonoBehaviour:
   collidersToToggle:
   - {fileID: 1118377708582347918}
   defaultHandoffLeadTime: 0.5
+  maxGoOvershootSeconds: 0.15
+  maxHandoffPendingOvershootSeconds: 0.35
+  introVisualLagTicks: 1
   velocitySampleDeltaSeconds: 0.02
 --- !u!114 &5961911359123562421
 MonoBehaviour:
@@ -1048,7 +1030,6 @@ MonoBehaviour:
   - {fileID: -6967932826743009680}
   - {fileID: 7966388255017697292}
   - {fileID: -3335753095235380355}
-  - {fileID: -4047580665225652334}
   - {fileID: -713974680141041721}
   - {fileID: 3264553301400044323}
   - {fileID: -7394383762514951774}
@@ -1108,7 +1089,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 13
+  _componentIndexCache: 12
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   _componentConfiguration: 0
@@ -1154,7 +1135,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01a271dd97d875347b0cea860df29a9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 14
+  _componentIndexCache: 13
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   _boundingBox: 0
@@ -1230,6 +1211,9 @@ MonoBehaviour:
     pushGraceActive: 0
     suppressSteeringActive: 0
     roomBypassActive: 0
+    frozen: 0
+    burstActive: 0
+    maxSpeedPenaltyActive: 0
     lastImpulseConsumed: 0
     reconcileHadCorrection: 0
     lastTeleportConsumed: 0
@@ -1253,6 +1237,8 @@ MonoBehaviour:
     finalTurnTorque: 0
     finalSteeringSign: 1
     scaleMultiplier: 1
+    burstExtraMaxSpeed: 0
+    maxSpeedPenaltyMultiplier: 1
     preImpulseSpeed: 0
     postImpulseSpeed: 0
     lastImpulseTurnTorque: 0
@@ -1294,6 +1280,10 @@ MonoBehaviour:
     pushGraceUntilTick: 0
     suppressSteeringUntilTick: 0
     roomBypassUntilTick: 0
+    freezeUntilTick: 0
+    burstUntilTick: 0
+    burstDurationTicks: 0
+    maxSpeedPenaltyUntilTick: 0
     pendingImpulseCount: 0
     lastImpulseVector: {x: 0, y: 0, z: 0}
     preTeleportPosition: {x: 0, y: 0, z: 0}
@@ -1355,6 +1345,8 @@ MonoBehaviour:
   turnInputMultiplier: 2
   pushGraceSeconds: 0.25
   pushExtraMaxSpeed: 6
+  handoffGroundSnapMaxDistance: 1.5
+  handoffGroundProbeHeight: 3
 --- !u!114 &912340000000000004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1367,7 +1359,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e298ee802d14f38bf6f030cd1e3fed1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 15
+  _componentIndexCache: 14
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
   _tickCallbacks: 6
@@ -1387,8 +1379,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bootstrap: {fileID: 912340000000000002}
-  anchor: {x: 16, y: 16}
-  panelSize: {x: 760, y: 1000}
   mirrorSummaryToConsole: 1
   consoleMirrorIntervalSeconds: 0.5
 --- !u!114 &912340000000000006
@@ -1442,6 +1432,8 @@ MonoBehaviour:
   visualScaleEffect: {fileID: 0}
   stabilizeOwnerVisualRootInPrediction: 0
   lockVisualRootDuringIntroAndPresentation: 1
+  logHandoffFrames: 0
+  logHandoffFramesAfterGo: 45
 --- !u!114 &8633058841083368909
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1485,6 +1477,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3db7cb7c841ab0c4d8823295fcefcefe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  diagnosticsEnabled: 0
   visualRoot: {fileID: 0}
   fotou: {fileID: 0}
   firstBone: {fileID: 0}
@@ -1502,9 +1495,78 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8199f3e5a4c3b014997df7bb38c32ea9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 16
+  _componentIndexCache: 15
   _addedNetworkObject: {fileID: 5961911359123562421}
   _networkObjectCache: {fileID: 5961911359123562421}
+--- !u!114 &981470015000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 809829405e884b56ad733df92cef3d55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Profile: {fileID: 0}
+--- !u!114 &7267044006599327590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 898b95c0e587484e9ac5cceb3772200b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 17
+  _addedNetworkObject: {fileID: 5961911359123562421}
+  _networkObjectCache: {fileID: 5961911359123562421}
+--- !u!114 &4889513177694151655
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 614dcb41e85547c4e90bd20632ede27e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  markerVisual: {fileID: 3409961794117833201}
+  heightAboveVisualRoot: 8.5
+  targetPixelHeight: 32
+  minimumScale: 1.25
+  maximumScale: 8
+--- !u!114 &5393487742474791642
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73e271603e1896046b730f48bf9e1a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &3212872375011852415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ea204c93fd956b4f9b730da53fcf78e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &3577612813534418027
 GameObject:
   m_ObjectHideFlags: 0
@@ -4259,51 +4321,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6da43522623d4704e979466dc7650b65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &981470015000001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3574822749539875012}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 809829405e884b56ad733df92cef3d55, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  Profile: {fileID: 0}
---- !u!114 &7267044006599327590
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3574822749539875012}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 898b95c0e587484e9ac5cceb3772200b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 17
-  _addedNetworkObject: {fileID: 5961911359123562421}
-  _networkObjectCache: {fileID: 5961911359123562421}
---- !u!114 &4889513177694151655
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3574822749539875012}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 614dcb41e85547c4e90bd20632ede27e, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  markerVisual: {fileID: 3409961794117833201}
-  heightAboveVisualRoot: 8.5
-  targetPixelHeight: 32
-  minimumScale: 1.25
-  maximumScale: 8
 --- !u!1001 &9183447588538311417
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4393,28 +4410,3 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 9183447588538311417}
   m_PrefabAsset: {fileID: 0}
-
---- !u!114 &5393487742474791642
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3574822749539875012}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 73e271603e1896046b730f48bf9e1a3d, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
---- !u!114 &3212872375011852415
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3574822749539875012}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ea204c93fd956b4f9b730da53fcf78e, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:

@@ -2,54 +2,40 @@ using System;
 
 namespace BuddahGo.AI
 {
-    public enum AISkillCommitmentPhase { Idle, Decided, Combo, WaitingConfirm, Resolved }
+    public enum AISkillCommitmentPhase { Idle, Decided, WaitingConfirm, Resolved }
 
-    // Tick-only action state. The shared input recognizer and executor, not this class, decide casts.
+    // Tick-only action state. A7: no combo keys. The caster decides a slot (Decided), requests it on the next tick
+    // like a Human Player pressing the key (WaitingConfirm) and the shared SkillExecutor, not this class, decides
+    // whether the cast is accepted, executed, cancelled or backfires.
     public sealed class AISkillCommitment
     {
         public AISkillCommitmentPhase Phase { get; private set; }
         public int Slot { get; private set; } = -1;
-        public int KeyIndex { get; private set; }
-        public int Retries { get; private set; }
         public uint Deadline { get; private set; }
         public bool Active => Phase != AISkillCommitmentPhase.Idle && Phase != AISkillCommitmentPhase.Resolved;
         public bool Waiting => Phase == AISkillCommitmentPhase.WaitingConfirm;
-        public int FailedCombos { get; private set; }
-        private uint _nextKey;
-        private bool _delayed;
-        private ComboSkillInput.Token[] _sequence;
+        private uint _beginTick;
 
-        public void Begin(int slot, ComboSkillInput.Token[] sequence, uint tick, uint deadline)
+        public void Begin(int slot, uint tick, uint deadline)
         {
-            if (Active || sequence == null || sequence.Length == 0) throw new InvalidOperationException("Cannot replace an active skill commitment.");
-            Slot = slot; _sequence = sequence; Deadline = deadline; KeyIndex = 0; Retries = 0;
-            _delayed = false; _nextKey = tick + 1; Phase = AISkillCommitmentPhase.Decided;
+            if (Active) throw new InvalidOperationException("Cannot replace an active skill commitment.");
+            Slot = slot; Deadline = deadline; _beginTick = tick; Phase = AISkillCommitmentPhase.Decided;
         }
 
-        public bool NextKey(uint tick, float delta, float minInterval, float maxInterval, float inputWindow,
-            float mistakeProbability, Random random, out ComboSkillInput.Token token, int maxRetries = 1)
+        // True once, on a tick after Begin and before the deadline: the caster then calls CastSlotServer(Slot).
+        // At the deadline the commitment cancels itself (the caster records "opportunity-expired").
+        public bool ShouldRequest(uint tick)
         {
-            token = default;
-            if (!Active || Waiting || tick < _nextKey || tick >= Deadline) return false;
-            Phase = AISkillCommitmentPhase.Combo;
-            if (!_delayed && KeyIndex > 0 && random.NextDouble() < mistakeProbability)
-            {
-                FailedCombos++;
-                if (Retries >= maxRetries) { Cancel(); return false; }
-                Retries++; KeyIndex = 0; _delayed = true;
-                _nextKey = tick + SecondsToTicks(inputWindow + delta, delta);
-                return false;
-            }
-            _delayed = false;
-            token = _sequence[KeyIndex++];
-            _nextKey = tick + SecondsToTicks(minInterval + (float)random.NextDouble() * (maxInterval - minInterval), delta);
-            if (KeyIndex == _sequence.Length) Phase = AISkillCommitmentPhase.WaitingConfirm;
+            if (Phase != AISkillCommitmentPhase.Decided) return false;
+            if (tick >= Deadline) { Cancel(); return false; }
+            if (tick <= _beginTick) return false;
+            Phase = AISkillCommitmentPhase.WaitingConfirm;
             return true;
         }
 
         public void Accepted() { if (Active) Phase = AISkillCommitmentPhase.WaitingConfirm; }
-        public void Resolve() { Phase = AISkillCommitmentPhase.Resolved; _sequence = null; }
-        public void Cancel() { Phase = AISkillCommitmentPhase.Idle; Slot = -1; KeyIndex = 0; _sequence = null; }
+        public void Resolve() { Phase = AISkillCommitmentPhase.Resolved; }
+        public void Cancel() { Phase = AISkillCommitmentPhase.Idle; Slot = -1; }
         public void ReleaseResolved() { if (Phase == AISkillCommitmentPhase.Resolved) Cancel(); }
         public static uint SecondsToTicks(float seconds, float delta) => (uint)Math.Max(1, Math.Ceiling(seconds / delta));
     }

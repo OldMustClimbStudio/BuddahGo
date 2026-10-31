@@ -9,3 +9,7 @@
 ,PushGrace,RefreshMaxDuration,,,false,
 ,SteeringSuppression,RefreshMaxDuration,,,false,转向清零
 ,RoomBypass,RefreshMaxDuration,,,false,绕过房间闸门
+,Freeze,RefreshMaxDuration,,,true,ValueA=秒；两次禁锢取较晚的期限不累加；期间定身、速度清零、转向与推掌和施法都锁住、冲量推不动（缘起 #2）
+,EndModifier,,,,false,瞬时命令，不是期限修饰：把目标修饰（ValueA=类型，Acceleration / Scale）的期限提前到当前 tick，只缩短不延长；加速通道只结束正幅度，别人放的减速保留
+,Burst,Restart,,,true,ValueA=额外限速 ValueB=秒；FinalMaxSpeed 加 增量×剩余比例²，起步时速度直接设到新上限（缘起 #4）
+,MaxSpeedMultiplier,RefreshMaxDurationOverwriteMagnitude,,,false,ValueA=限速倍率 ValueB=秒；反噬惩罚的 ×0.85，复活与技能重置都不清，持续到惩罚结束

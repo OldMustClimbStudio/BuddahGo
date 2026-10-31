@@ -131,8 +131,91 @@ public class AISkillDecisionTests
         Assert.That(easyHigh, Is.EqualTo(easyLow));
         Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p,
             _catalog.ForDifficulty(SoloDifficulty.Hard), _catalog.Tuning, .45f, 2, 0)), Is.True);
+        // A7: the backfire penalty is the same for every skill, so one stop threshold per difficulty applies to all of them.
         Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Pursued,
-            _catalog.Personalities[0], _catalog.ForDifficulty(SoloDifficulty.Hard), _catalog.Tuning, .5f, 2, 0)), Is.False);
+            _catalog.Personalities[0], _catalog.ForDifficulty(SoloDifficulty.Hard), _catalog.Tuning, .5f, 2, 0)), Is.True);
+        Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Pursued,
+            _catalog.Personalities[0], _catalog.ForDifficulty(SoloDifficulty.Normal), _catalog.Tuning, .5f, 2, 0)), Is.False);
+        Assert.That(_catalog.ForDifficulty(SoloDifficulty.Hard).StopProbability, Is.LessThan(_catalog.ForDifficulty(SoloDifficulty.Normal).StopProbability));
+    }
+    [Test] public void RiskTermIsUnifiedBackfireProbabilityTimesCost()
+    {
+        var p = _catalog.Personalities[1]; var d = _catalog.ForDifficulty(SoloDifficulty.Hard); var opportunity = new AISkillOpportunity(1, 6);
+        _catalog.Tuning.BackfireCost = 2f;
+        float safe = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p, d, _catalog.Tuning, 0f, 2, 0);
+        float risky = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p, d, _catalog.Tuning, .2f, 2, 0);
+        Assert.That(safe - risky, Is.EqualTo(d.RiskWeight * .2f * 2f).Within(.0001f));
+        float trap = AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Chasing, _catalog.Personalities[0], d, _catalog.Tuning, .2f, 2, 0);
+        float trapSafe = AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Chasing, _catalog.Personalities[0], d, _catalog.Tuning, 0f, 2, 0);
+        Assert.That(trapSafe - trap, Is.EqualTo(safe - risky).Within(.0001f), "Every skill pays the same risk.");
+    }
+    [Test] public void LateYuanqiFollowUpPassesTheValidityGateAsDecideBuildsIt()
+    {
+        // A7 缘起 follow-up (建议（实现采用）): the planner already subtracts the confirm from the window, and Utility
+        // subtracts required = confirm + 2 ticks itself, so Decide must hand it the time the first skill is still
+        // active at execution (RemainingSeconds). #2 frost_lock, 神足通 active with 1.5 s left (late window), confirm 1 s.
+        const float delta = 1f / 60f, confirm = 1f, age = .1f, required = confirm + delta * 2f;
+        var frost = ScriptableObject.CreateInstance<Yuanqi_FrostLock>();
+        try
+        {
+            frost.yuanqiId = "frost_lock"; frost.skillA = "acceleration"; frost.skillB = "slowtrap"; frost.consumeA = frost.consumeB = true; frost.mode = YuanqiMode.Instant;
+            var planner = AIYuanqiPlanner.Build(new[] { "slowtrap", "acceleration", "giant" }, new[] { frost }, id => id == "slowtrap" ? 6f : 3f);
+            var board = new[] { new SkillStateEntry { EntryId = 1, SkillId = "acceleration", Slot = 1, StartTick = 0, UntilTick = 190 + 90, IsActivated = true, IsEnded = false } };
+            Assert.That(planner.TryGetFollowUp(0, board, 190, delta, confirm, .6f, out var followUp), Is.True);
+            Assert.That(followUp.ValidSeconds, Is.EqualTo(.5f).Within(.001f)); Assert.That(followUp.RemainingSeconds, Is.EqualTo(1.5f).Within(.001f));
+            var p = _catalog.Personalities[0]; var d = _catalog.ForDifficulty(SoloDifficulty.Normal);
+            var candidate = new AISkillOpportunity(Mathf.Max(0f, _catalog.Tuning.YuanqiFollowUpScore), followUp.RemainingSeconds + age);
+            float utility = AISkillDecision.Utility(AISkillKind.SlowTrap, candidate, AISkillSituation.Pursued, p, d, _catalog.Tuning, 0f, required, age);
+            Assert.That(float.IsNegativeInfinity(utility), Is.False, "a late follow-up must be castable, not rejected on validity");
+            Assert.That(utility, Is.GreaterThan(0f));
+            // The request deadline alone (remaining − confirm) would subtract the confirm twice and never pass the gate.
+            var deadlineOnly = new AISkillOpportunity(candidate.Score, followUp.ValidSeconds + age);
+            Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.SlowTrap, deadlineOnly, AISkillSituation.Pursued, p, d, _catalog.Tuning, 0f, required, age)), Is.True);
+        }
+        finally { Object.DestroyImmediate(frost); }
+    }
+    [Test] public void YuanqiValueMultiplierScalesTheValueButNotTheRisk()
+    {
+        var p = _catalog.Personalities[1]; var d = _catalog.ForDifficulty(SoloDifficulty.Hard); var opportunity = new AISkillOpportunity(1, 6);
+        float plain = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p, d, _catalog.Tuning, .2f, 2, 0);
+        float boosted = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p, d, _catalog.Tuning, .2f, 2, 0, 1f, 1.5f);
+        float risk = d.RiskWeight * .2f * _catalog.Tuning.BackfireCost;
+        Assert.That(boosted, Is.EqualTo((plain + risk) * 1.5f - risk).Within(.0001f));
+    }
+    private static float ClassifyImpaired(NewBuddah.PredictionV2.Core.BuddahPredictedModifierState m, uint tick, out bool accelerating, out bool slowed)
+    {
+        AISkillWorld.Classify(in m, tick, 1f / 60f, out accelerating, out slowed, out float impaired);
+        return impaired;
+    }
+    [Test] public void ClassifyTreatsTheBackfireSpeedPenaltyAsSlowedAndImpaired()
+    {
+        var m = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { MaxSpeedPenaltyUntilTick = 160, MaxSpeedPenaltyMultiplier = .85f };
+        float impaired = ClassifyImpaired(m, 100, out bool accelerating, out bool slowed);
+        Assert.That(slowed, Is.True); Assert.That(accelerating, Is.False); Assert.That(impaired, Is.EqualTo(1f).Within(.0001f));
+        Assert.That(ClassifyImpaired(m, 160, out _, out slowed), Is.Zero); Assert.That(slowed, Is.False);
+    }
+    [Test] public void ClassifyTreatsTheBurstAsAccelerating()
+    {
+        var m = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { BurstUntilTick = 148, BurstDurationTicks = 48, BurstExtraMaxSpeed = 60f };
+        Assert.That(ClassifyImpaired(m, 100, out bool accelerating, out bool slowed), Is.Zero);
+        Assert.That(accelerating, Is.True); Assert.That(slowed, Is.False);
+        m.BurstUntilTick = 100; ClassifyImpaired(m, 100, out accelerating, out _); Assert.That(accelerating, Is.False);
+        var boost = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { AccelUntilTick = 280, AccelExtraForwardForce = 50f, AccelExtraMaxSpeed = 40f };
+        ClassifyImpaired(boost, 100, out accelerating, out slowed); Assert.That(accelerating, Is.True); Assert.That(slowed, Is.False);
+    }
+    [Test] public void ClassifyKeepsRootFreezeInvertAndSlowButNotShrinking()
+    {
+        var root = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { RootUntilTick = 130, FreezeUntilTick = 190, InvertTurnUntilTick = 160 };
+        Assert.That(ClassifyImpaired(root, 100, out _, out _), Is.EqualTo(1.5f).Within(.0001f));
+        var slow = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { AccelUntilTick = 220, AccelExtraForwardForce = -20f };
+        Assert.That(ClassifyImpaired(slow, 100, out bool accelerating, out bool slowed), Is.EqualTo(2f).Within(.0001f));
+        Assert.That(slowed, Is.True); Assert.That(accelerating, Is.False);
+        // 缩小 has no source after the unified backfire: a small scale is not an impairment any more.
+        var shrunk = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { ScaleUntilTick = 400, ScaleMultiplier = .3f };
+        Assert.That(ClassifyImpaired(shrunk, 100, out _, out slowed), Is.Zero); Assert.That(slowed, Is.False);
+        var racer = Racer(0, 100f); racer.Scale = .3f;
+        Assert.That(racer.IsImpaired(.2f), Is.False);
+        racer.Slowed = true; Assert.That(racer.IsImpaired(.2f), Is.True);
     }
     [Test] public void OpportunistOnlyGetsBonusWhileStateWillStillExistAtExecution()
     {

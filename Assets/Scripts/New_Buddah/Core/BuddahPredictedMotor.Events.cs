@@ -27,14 +27,8 @@ namespace NewBuddah.PredictionV2.Core
         public void ResetActiveSkillModifiers()
         {
             if ((!IsServerInitialized && !IsOwner) || TimeManager == null || config == null) return;
-            _modifierState.RootUntilTick = 0;
-            _modifierState.AccelUntilTick = 0;
-            _modifierState.AccelExtraForwardForce = _modifierState.AccelExtraMaxSpeed = 0f;
-            _modifierState.PostRootAccelUntilTick = 0;
-            _modifierState.PostRootAccelExtraForwardForce = _modifierState.PostRootAccelExtraMaxSpeed = 0f;
-            _modifierState.ScaleUntilTick = 0;
-            _modifierState.ScaleMultiplier = _modifierState.ScaleMassMultiplier = _modifierState.ScaleForwardForceMultiplier = 1f;
-            _modifierState.InvertTurnUntilTick = 0;
+            // Clears root/accel/scale/invert/freeze/burst; keeps the backfire max-speed penalty.
+            BuddahPredictedModifierStateOps.ClearActiveSkillModifiers(ref _modifierState);
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, TimeManager.LocalTick);
             SyncModifierDebugState(TimeManager.LocalTick);
         }
@@ -362,6 +356,8 @@ namespace NewBuddah.PredictionV2.Core
                 return currentTick + durationTicks;
             }
 
+            bool freezeApplied = false;
+            bool burstApplied = false;
             switch (command.Type)
             {
                 case BuddahPredictedModifierCommandType.Acceleration:
@@ -400,11 +396,42 @@ namespace NewBuddah.PredictionV2.Core
                     _modifierState.RoomBypassUntilTick = Math.Max(_modifierState.RoomBypassUntilTick, ToTicks(command.ValueA));
                     LogModifier($"modifier roomBypass enter source={command.Source} until={_modifierState.RoomBypassUntilTick}");
                     break;
+                case BuddahPredictedModifierCommandType.Freeze:
+                    BuddahPredictedModifierStateOps.ApplyFreeze(ref _modifierState, ToTicks(command.ValueA));
+                    freezeApplied = _modifierState.FreezeUntilTick > currentTick;
+                    LogModifier($"modifier freeze enter source={command.Source} until={_modifierState.FreezeUntilTick}");
+                    break;
+                case BuddahPredictedModifierCommandType.EndModifier:
+                {
+                    BuddahPredictedModifierCommandType target = BuddahPredictedModifierCommandData.ReadEndModifierTarget(command);
+                    if (!BuddahPredictedModifierStateOps.EndModifier(ref _modifierState, target, currentTick))
+                        return false;
+                    LogModifier($"modifier end source={command.Source} target={target} tick={currentTick}");
+                    break;
+                }
+                case BuddahPredictedModifierCommandType.Burst:
+                {
+                    uint burstDurationTicks = command.ValueB > 0f
+                        ? BuddahTickMath.DurationToTicks(command.ValueB, (float)TimeManager.TickDelta)
+                        : 0u;
+                    BuddahPredictedModifierStateOps.ApplyBurst(ref _modifierState, command.ValueA, ToTicks(command.ValueB), burstDurationTicks);
+                    burstApplied = _modifierState.BurstUntilTick > currentTick;
+                    LogModifier($"modifier burst enter source={command.Source} extraMs={_modifierState.BurstExtraMaxSpeed:0.00} until={_modifierState.BurstUntilTick} durationTicks={burstDurationTicks}");
+                    break;
+                }
+                case BuddahPredictedModifierCommandType.MaxSpeedMultiplier:
+                    BuddahPredictedModifierStateOps.ApplyMaxSpeedMultiplier(ref _modifierState, command.ValueA, ToTicks(command.ValueB));
+                    LogModifier($"modifier maxSpeedMul enter source={command.Source} mul={_modifierState.MaxSpeedPenaltyMultiplier:0.00} until={_modifierState.MaxSpeedPenaltyUntilTick}");
+                    break;
                 default:
                     return false;
             }
 
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
+            if (freezeApplied)
+                StopBodyForFreeze();
+            if (burstApplied)
+                LaunchBodyForBurst();
             SyncModifierDebugState(currentTick);
             return true;
         }
@@ -534,7 +561,8 @@ namespace NewBuddah.PredictionV2.Core
 
             if (eventData.ResetModifiers)
             {
-                _modifierState = default;
+                // Everything is wiped except the backfire max-speed penalty, which outlives a respawn.
+                _modifierState = BuddahPredictedModifierStateOps.PreservePersistentOnReset(_modifierState);
                 _handoffState = default;
                 _hasPendingLaunchHandoffEvent = false;
                 if (bootstrap != null)
@@ -584,8 +612,9 @@ namespace NewBuddah.PredictionV2.Core
                     bootstrap.DebugState.progressSnappedByTeleport = true;
             }
 
-            if (_skillExecutor != null && (IsOwner || RacerAuthority.IsServerAI(this)))
+            if (_skillExecutor != null && (IsOwner || RacerAuthority.IsServerControlled(this)))
                 _skillExecutor.ResetActiveSkillEffectsForOwner(eventData.ResetModifiers);
+            if (_skillExecutor != null && IsServerInitialized && eventData.ResetModifiers && !RacerAuthority.IsServerControlled(this)) _skillExecutor.ResetYuanqiStateServer("respawn"); // 缘起 board is server-only; a Human Player's respawn never reaches the server-controlled reset
 
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
             SyncModifierDebugState(currentTick);

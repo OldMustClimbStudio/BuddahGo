@@ -14,14 +14,16 @@ public class SkillDatabase : ScriptableObject
     [Header("Normal Skills")]
     public List<SkillAction> normalSkills = new();
 
-    [Header("Anti Skills")]
-    public List<SkillAction> antiSkills = new();
-
     [Header("Legacy / Unsorted (Optional)")]
-    [Tooltip("Backward-compatible list. Runtime will merge this list with Normal Skills and Anti Skills.")]
+    [Tooltip("Backward-compatible list. Runtime will merge this list with Normal Skills.")]
     public List<SkillAction> skills = new();
 
+    [Header("缘起 (Skill Pairs)")]
+    [Tooltip("Every 缘起 pair asset. YuanqiCatalog picks the enabled pairs fully inside a loadout; observers resolve presentations by yuanqiId.")]
+    public List<YuanqiAction> yuanqis = new();
+
     private Dictionary<string, SkillAction> _byId;
+    private Dictionary<string, YuanqiAction> _yuanqiById;
 
     private void OnEnable()
     {
@@ -43,6 +45,64 @@ public class SkillDatabase : ScriptableObject
 
         return _byId.TryGetValue(skillId, out skill);
     }
+
+    /// <summary>All 缘起 pair assets (table values applied in play, like the skills). Filter with YuanqiCatalog.ForLoadout.</summary>
+    public IReadOnlyList<YuanqiAction> GetYuanqis()
+    {
+        if (_byId == null)
+            RebuildLookup();
+        EnsureDesignTablesApplied();
+        return yuanqis;
+    }
+
+    public bool TryGetYuanqi(string yuanqiId, out YuanqiAction action)
+    {
+        action = null;
+        if (_byId == null || _yuanqiById == null)
+            RebuildLookup();
+        EnsureDesignTablesApplied();
+        string id = (yuanqiId ?? string.Empty).Trim();
+        return id.Length > 0 && _yuanqiById.TryGetValue(id, out action) && action != null;
+    }
+
+    /// <summary>Skill/Yuanqi row of the pair (identity, text keys, closing rules); false without tables or row.</summary>
+    public bool TryGetYuanqiRecord(string yuanqiId, out YuanqiRecord record)
+    {
+        string id = (yuanqiId ?? string.Empty).Trim();
+        ProjectConfigDatabase db = DesignTableOverlay.Db;
+        record = id.Length > 0 && db != null ? DesignTableOverlay.Single(db.yuanqis, r => (r.yuanqiId ?? string.Empty).Trim() == id) : null;
+        return record != null;
+    }
+
+    /// <summary>
+    /// Display text of a 缘起 (HUD toast, loadout screen): UI/Text via the row's displayNameKey (yuanqi.&lt;id&gt;.name
+    /// when there is no row), else the SO displayName, else the id.
+    /// </summary>
+    public string GetYuanqiDisplayName(string yuanqiId)
+    {
+        string id = (yuanqiId ?? string.Empty).Trim();
+        if (id.Length == 0)
+            return string.Empty;
+        string fallback = TryGetYuanqi(id, out YuanqiAction action) && !string.IsNullOrWhiteSpace(action.displayName) ? action.displayName : id;
+        string key = TryGetYuanqiRecord(id, out YuanqiRecord record) && !string.IsNullOrWhiteSpace(record.displayNameKey)
+            ? record.displayNameKey.Trim()
+            : YuanqiTextKeyPrefix + id + ".name";
+        return DesignTableOverlay.Text(key, fallback);
+    }
+
+    /// <summary>Description text of a 缘起 (loadout screen): UI/Text via the row's descriptionKey (yuanqi.&lt;id&gt;.desc without a row), else <paramref name="fallback"/>.</summary>
+    public string GetYuanqiDescription(string yuanqiId, string fallback = "")
+    {
+        string id = (yuanqiId ?? string.Empty).Trim();
+        if (id.Length == 0)
+            return fallback ?? string.Empty;
+        string key = TryGetYuanqiRecord(id, out YuanqiRecord record) && !string.IsNullOrWhiteSpace(record.descriptionKey)
+            ? record.descriptionKey.Trim()
+            : YuanqiTextKeyPrefix + id + ".desc";
+        return DesignTableOverlay.Text(key, fallback ?? string.Empty);
+    }
+
+    private const string YuanqiTextKeyPrefix = "yuanqi.";
 
     public List<SkillAction> GetSelectableNormalSkills()
     {
@@ -67,11 +127,10 @@ public class SkillDatabase : ScriptableObject
         }
 
         List<SkillAction> results = new List<SkillAction>();
-        HashSet<string> antiSkillIds = BuildAntiSkillIdSet();
         HashSet<string> seen = new HashSet<string>();
 
-        AddSelectableSkillsFromList(normalSkills, antiSkillIds, seen, results, "normalSkills");
-        AddSelectableSkillsFromList(skills, antiSkillIds, seen, results, "skills");
+        AddSelectableSkillsFromList(normalSkills, seen, results, "normalSkills");
+        AddSelectableSkillsFromList(skills, seen, results, "skills");
         return results;
     }
 
@@ -125,17 +184,6 @@ public class SkillDatabase : ScriptableObject
         return fallbackSkill != null ? Mathf.Max(0f, fallbackSkill.cooldownSeconds) : 0f;
     }
 
-    public float GetCastLockSeconds(string skillId, SkillAction fallbackSkill)
-    {
-        if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository)
-            && repository.TryGetCastLock(skillId, out float configuredValue))
-        {
-            return Mathf.Max(0f, configuredValue);
-        }
-
-        return fallbackSkill != null ? Mathf.Max(0f, fallbackSkill.castLockSeconds) : 0f;
-    }
-
     public float GetObsessionGain(string skillId, SkillAction fallbackSkill)
     {
         if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository)
@@ -145,17 +193,6 @@ public class SkillDatabase : ScriptableObject
         }
 
         return fallbackSkill != null ? Mathf.Max(0f, fallbackSkill.ObsessionGain) : 0f;
-    }
-
-    public string GetAntiSkillId(string skillId, SkillAction fallbackSkill)
-    {
-        if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository)
-            && repository.TryGetAntiSkillId(skillId, out string configuredValue))
-        {
-            return configuredValue;
-        }
-
-        return fallbackSkill != null ? (fallbackSkill.antiSkillId ?? string.Empty).Trim() : string.Empty;
     }
 
     public bool GetAllowDuplicateSkillSelections(bool fallbackValue = false)
@@ -237,8 +274,8 @@ public class SkillDatabase : ScriptableObject
     {
         _byId = new Dictionary<string, SkillAction>();
         AddListToLookup(normalSkills, "normalSkills");
-        AddListToLookup(antiSkills, "antiSkills");
         AddListToLookup(skills, "skills");
+        RebuildYuanqiLookup();
         _tablesApplied = false;
         EnsureDesignTablesApplied();
     }
@@ -265,8 +302,9 @@ public class SkillDatabase : ScriptableObject
 #if UNITY_EDITOR
     // The overlay writes into the skill assets themselves; in the editor those are the project assets, so restore
     // their serialized values when Play Mode ends (otherwise the inspector and the drift validator would show the
-    // table values, and any later save of the asset would bake them in).
-    private readonly Dictionary<SkillAction, string> _editorSnapshots = new Dictionary<SkillAction, string>();
+    // table values, and any later save of the asset would bake them in). The 缘起 assets are included: their
+    // Skill/Yuanqi and YuanqiEffect<Pair> rows are overlaid the same way.
+    private readonly Dictionary<ScriptableObject, string> _editorSnapshots = new Dictionary<ScriptableObject, string>();
 
     private void SnapshotSkillAssetsForEditor()
     {
@@ -275,6 +313,10 @@ public class SkillDatabase : ScriptableObject
         foreach (SkillAction skill in _byId.Values)
             if (skill != null && !_editorSnapshots.ContainsKey(skill))
                 _editorSnapshots[skill] = JsonUtility.ToJson(skill);
+        if (yuanqis != null)
+            foreach (YuanqiAction yuanqi in yuanqis)
+                if (yuanqi != null && !_editorSnapshots.ContainsKey(yuanqi))
+                    _editorSnapshots[yuanqi] = JsonUtility.ToJson(yuanqi);
         if (_editorSnapshots.Count > 0)
             UnityEditor.EditorApplication.playModeStateChanged += RestoreSkillAssetsOnExit;
     }
@@ -284,7 +326,7 @@ public class SkillDatabase : ScriptableObject
         if (change != UnityEditor.PlayModeStateChange.ExitingPlayMode && change != UnityEditor.PlayModeStateChange.EnteredEditMode)
             return;
         UnityEditor.EditorApplication.playModeStateChanged -= RestoreSkillAssetsOnExit;
-        foreach (KeyValuePair<SkillAction, string> kv in _editorSnapshots)
+        foreach (KeyValuePair<ScriptableObject, string> kv in _editorSnapshots)
             if (kv.Key != null)
                 JsonUtility.FromJsonOverwrite(kv.Value, kv.Key);
         _editorSnapshots.Clear();
@@ -297,8 +339,8 @@ public class SkillDatabase : ScriptableObject
     {
         _byId = new Dictionary<string, SkillAction>();
         AddListToLookup(normalSkills, "normalSkills");
-        AddListToLookup(antiSkills, "antiSkills");
         AddListToLookup(skills, "skills");
+        RebuildYuanqiLookup();
         ApplyDesignTablesToSkills();
     }
 
@@ -307,12 +349,11 @@ public class SkillDatabase : ScriptableObject
     {
         switch (skill)
         {
-            case Skill_Acceleration _: case Skill_Acceleration_Anti _: case Skill_Giant _: case Skill_Giant_Anti _: return "durationSeconds";
+            case Skill_Acceleration _: case Skill_Giant _: return "durationSeconds";
             case Skill_SlowTrap _: return "zoneDurationSeconds";
-            case Skill_SlowTrap_Anti _: return "rootDurationSeconds";
-            case Skill_BlackCurtain _: case Skill_BlackCurtain_Anti _: return "holdDurationSeconds";
+            case Skill_BlackCurtain _: return "holdDurationSeconds";
             case Skill_PushProjectileHands _: return "buffDurationSeconds";
-            case Skill_ReverseTurn _: case Skill_ReverseTurn_Anti _: return "invertDurationSeconds";
+            case Skill_ReverseTurn _: return "invertDurationSeconds";
             default: return null;
         }
     }
@@ -324,18 +365,28 @@ public class SkillDatabase : ScriptableObject
         "impulseStrength=projectileImpulseStrength", "speed=projectileSpeed", "forwardOffset=projectileForwardOffset", "heightOffset=projectileHeightOffset", "colliderSize=projectileColliderSize"
     };
 
-    /// <summary>Skill/Push "charged_anti" row → Skill_PushProjectileHands_Anti fields.</summary>
-    public static readonly string[] PushChargedAntiMap =
+    /// <summary>Skill/Yuanqi row → YuanqiAction fields. Explicit: the row also carries text keys and pairNumber, which are not SO fields.</summary>
+    public static readonly string[] YuanqiRowMap =
     {
-        "windupSeconds=buildUpSeconds", "lifetimeSeconds=projectileLifetimeSeconds", "impulseStrength=projectileImpulseStrength", "speed=projectileSpeed",
-        "forwardOffset=additionalForwardSpawnOffset", "heightOffset=additionalHeightSpawnOffset", "projectileCount", "projectileSpacing", "colliderSize=projectileColliderSize", "hitTurnTorqueImpulse"
+        "skillA", "skillB", "consumeA", "consumeB", "mode", "retriggerPolicy", "isEnabled"
     };
+
+    /// <summary>Yuanqi_* class whose same-name fields a YuanqiEffect&lt;Pair&gt; record overlays (null = not a 缘起 family record).</summary>
+    public static System.Type YuanqiFamilyActionType(System.Type familyRecord)
+    {
+        if (familyRecord == typeof(YuanqiEffectFrostLockRecord)) return typeof(Yuanqi_FrostLock);
+        if (familyRecord == typeof(YuanqiEffectGiantChargeRecord)) return typeof(Yuanqi_GiantCharge);
+        return null;
+    }
 
     // Design tables own the effect numbers; the SO fields are only the editor-time fallback.
     // Applied in play mode only so edit-mode validation can still compare SO values against the tables.
-    //   Skill.effectDurationSeconds      → the primary duration field of each skill class (EffectDurationField)
-    //   SkillEffect<Family> rows         → same-name fields of the normal / anti class (blank cells have no field on that class)
-    //   Push charged / charged_anti rows → explicit mapping onto the two projectile skills (basic row belongs to BuddahHandControl)
+    //   Skill.effectDurationSeconds → the primary duration field of each skill class (EffectDurationField)
+    //   SkillEffect<Family> rows    → same-name fields of the skill class
+    //   Push charged row            → explicit mapping onto Skill_PushProjectileHands (basic row belongs to BuddahHandControl)
+    //   Yuanqi rows                 → explicit mapping onto the Yuanqi_* SO with the same yuanqiId (YuanqiRowMap)
+    //   YuanqiEffect<Pair> rows     → same-name fields of that pair's Yuanqi_* class (YuanqiFamilyActionType)
+    // Rows without an asset here are skipped silently.
     private void ApplyDesignTablesToSkills()
     {
         ProjectConfigDatabase db = DesignTableOverlay.Db;
@@ -361,8 +412,43 @@ public class SkillDatabase : ScriptableObject
 
         if (TryGetAction("push_projectile_hands", out SkillAction charged))
             DesignTableOverlay.ApplyMapped(charged, DesignTableOverlay.Single(db.pushes, r => r.pushId == "charged"), PushChargedMap);
-        if (TryGetAction("push_projectile_hands_anti", out SkillAction chargedAnti))
-            DesignTableOverlay.ApplyMapped(chargedAnti, DesignTableOverlay.Single(db.pushes, r => r.pushId == "charged_anti"), PushChargedAntiMap);
+
+        if (db.yuanqis != null)
+        {
+            foreach (YuanqiRecord row in db.yuanqis)
+            {
+                if (row != null && TryGetYuanqiAsset(row.yuanqiId, out YuanqiAction yuanqi))
+                    DesignTableOverlay.ApplyMapped(yuanqi, row, YuanqiRowMap);
+            }
+        }
+
+        ApplyYuanqiFamily(db.yuanqiEffectFrostLocks, r => r.yuanqiId);
+        ApplyYuanqiFamily(db.yuanqiEffectGiantCharges, r => r.yuanqiId);
+    }
+
+    private void ApplyYuanqiFamily<T>(List<T> rows, System.Func<T, string> yuanqiIdOf) where T : class
+    {
+        if (rows == null)
+            return;
+        System.Type expected = YuanqiFamilyActionType(typeof(T));
+        foreach (T row in rows)
+        {
+            if (row == null || !TryGetYuanqiAsset(yuanqiIdOf(row), out YuanqiAction yuanqi))
+                continue;
+            if (expected == null || !expected.IsInstanceOfType(yuanqi))
+            {
+                Debug.LogWarning($"[SkillDatabase] {typeof(T).Name} row '{yuanqiIdOf(row)}' targets {yuanqi.GetType().Name}, expected {(expected != null ? expected.Name : "a known 缘起 family")}; row skipped.");
+                continue;
+            }
+            DesignTableOverlay.Apply(yuanqi, row);
+        }
+    }
+
+    private bool TryGetYuanqiAsset(string yuanqiId, out YuanqiAction yuanqi)
+    {
+        yuanqi = null;
+        string id = (yuanqiId ?? string.Empty).Trim();
+        return id.Length > 0 && _yuanqiById != null && _yuanqiById.TryGetValue(id, out yuanqi) && yuanqi != null;
     }
 
     private void ApplyFamily<T>(List<T> rows, System.Func<T, string> skillIdOf) where T : class
@@ -402,9 +488,30 @@ public class SkillDatabase : ScriptableObject
         }
     }
 
+    private void RebuildYuanqiLookup()
+    {
+        _yuanqiById = new Dictionary<string, YuanqiAction>();
+        if (yuanqis == null)
+            return;
+
+        foreach (YuanqiAction yuanqi in yuanqis)
+        {
+            string id = yuanqi != null ? (yuanqi.yuanqiId ?? string.Empty).Trim() : string.Empty;
+            if (id.Length == 0)
+                continue;
+
+            if (_yuanqiById.ContainsKey(id))
+            {
+                Debug.LogWarning($"[SkillDatabase] Duplicate yuanqiId '{id}' in database (list=yuanqis).");
+                continue;
+            }
+
+            _yuanqiById.Add(id, yuanqi);
+        }
+    }
+
     private void AddSelectableSkillsFromList(
         List<SkillAction> list,
-        HashSet<string> antiSkillIds,
         HashSet<string> seen,
         List<SkillAction> results,
         string listName)
@@ -417,9 +524,6 @@ public class SkillDatabase : ScriptableObject
             if (!TryGetValidSkillId(skill, out string skillId))
                 continue;
 
-            if (antiSkillIds.Contains(skillId))
-                continue;
-
             if (!seen.Add(skillId))
             {
                 Debug.LogWarning($"[SkillDatabase] Duplicate selectable skillId '{skillId}' skipped (list={listName}).");
@@ -428,21 +532,6 @@ public class SkillDatabase : ScriptableObject
 
             results.Add(skill);
         }
-    }
-
-    private HashSet<string> BuildAntiSkillIdSet()
-    {
-        HashSet<string> antiSkillIds = new HashSet<string>();
-        if (antiSkills == null)
-            return antiSkillIds;
-
-        foreach (SkillAction skill in antiSkills)
-        {
-            if (TryGetValidSkillId(skill, out string skillId))
-                antiSkillIds.Add(skillId);
-        }
-
-        return antiSkillIds;
     }
 
     private static bool TryGetValidSkillId(SkillAction skill, out string skillId)

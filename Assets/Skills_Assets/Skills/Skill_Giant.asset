@@ -17,7 +17,6 @@ MonoBehaviour:
   cooldownSeconds: 8
   castLockSeconds: 6
   obsessionGain: 200
-  antiSkillId: giant_anti
   scaleMultiplier: 4
   durationSeconds: 6
   growDurationSeconds: 0.35

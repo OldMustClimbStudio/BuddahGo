@@ -10,9 +10,10 @@
       "Push",
       "SkillSelectionRule",
       "DefaultLoadout",
-      "ComboInput",
-      "ComboBinding",
-      "Obsession"
+      "Obsession",
+      "Yuanqi",
+      "YuanqiEffectFrostLock",
+      "YuanqiEffectGiantCharge"
     ],
     "Movement": [
       "Movement",
@@ -142,15 +143,19 @@
       "skill",
       "info"
     ],
-    "Skill/ComboInput": [
+    "Skill/Obsession": [
       "skill",
       "balance"
     ],
-    "Skill/ComboBinding": [
+    "Skill/Yuanqi": [
       "skill",
       "info"
     ],
-    "Skill/Obsession": [
+    "Skill/YuanqiEffectFrostLock": [
+      "skill",
+      "balance"
+    ],
+    "Skill/YuanqiEffectGiantCharge": [
       "skill",
       "balance"
     ],

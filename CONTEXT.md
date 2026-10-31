@@ -19,7 +19,7 @@ A Match with exactly one Human Player and zero to five AI Racers at a chosen Dif
 _Avoid_: single-player mode, offline mode, bot match
 
 **Practice**:
-A Solo Match with zero AI Racers. Results show times only, with no placement.
+A Solo Match with zero AI Racers. Three Training Dummies are spawned on the first straight as targets, and results show times only, with no placement.
 _Avoid_: free roam, training mode, time trial
 
 **Match Rules**:
@@ -56,17 +56,21 @@ The identity of a Racer within one Match. For a Human Player it equals their con
 _Avoid_: client id (for Racers), player id, owner id
 
 **Human Player**:
-A person controlling a Buddah from their own device.
+A person controlling a Buddah from their own device: holding W drives it forward (releasing only stops the drive, there is no brake), A/D steer, the mouse aims and pushes the hands, Q/E/R or 1/2/3 cast. Forward is not automatic (since 2026-10-30); see Drive in [GLOSSARY.md](GLOSSARY.md).
 _Avoid_: user, client, connection
 
 **AI Racer**:
-A computer-controlled Buddah that races in a Solo Match, casts skills with its own loadout and is ranked alongside the Human Player. Its name comes from a configurable list.
+A computer-controlled Buddah that races in a Solo Match, casts skills with its own loadout and is ranked alongside the Human Player. It presses no keys: it keeps the same drive switch a Human Player holds with W on until it finishes. Its name comes from a configurable list.
 _Avoid_: bot, NPC, CPU
+
+**Training Dummy**:
+A parked, ownerless Buddah that only Practice spawns as a target for skills, pushes and skill synergies (缘起, see [GLOSSARY.md](GLOSSARY.md)): three of them, 15 m apart along the first straight past the start line, left, centre and right. It is not a Racer: it stays parked and never casts, and its RacerId stays unassigned, so it never runs laps or timing or appears in the ranking and results. Normal physics, impulses and skill effects such as slows, inversion and freezes act on it, and an overhead readout shows the effects currently on it. Once displaced, it returns to its spawn point 3 s after the last skill effect, impulse or contact with a moving body.
+_Avoid_: bot, target AI, NPC
 
 ### AI Behaviour
 
 **Difficulty**:
-The Easy, Normal or Hard setting of a Solo Match. Each tier is an AI profile that sets the AI Racers' target speed, whether they may brake (Hard never brakes), how much they avoid walls, their reaction delay and planning precision, their per-car randomness and their Fumble chance; together these give each tier its own race pace. Skill use per tier is designed but not yet implemented.
+The Easy, Normal or Hard setting of a Solo Match. Each tier is an AI profile that sets the AI Racers' target speed, whether they may brake (Hard never brakes), how much they avoid walls, their reaction delay and planning precision, their per-car randomness and their Fumble chance; together these give each tier its own race pace. Each tier also sets how AI Racers use skills: how much backfire risk they accept (one stop threshold per tier since the unified backfire), their decision and reaction time and their aim tolerance. AI Racers request casts through the same server entry as a Human Player's key press; combo key mistakes went away with combos (A7, 2026-10-28).
 _Avoid_: AI level, skill level
 
 **Steering Plan**:

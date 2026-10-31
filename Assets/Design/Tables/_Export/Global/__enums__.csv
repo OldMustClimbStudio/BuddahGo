@@ -10,23 +10,26 @@
 ,SkillUnlockState,unlocked,0,,
 ,SkillUnlockState,locked,1,,
 ,SkillUnlockState,hidden,2,,
-,ComboToken,W,0,,
-,ComboToken,Up,1,,
 ,SkillTargetScope,Self,0,,
 ,SkillTargetScope,AllOthers,1,,
 ,StackPolicy,RefreshMaxDuration,0,,
 ,StackPolicy,RefreshMaxDurationOverwriteMagnitude,1,,
 ,StackPolicy,MaxMagnitudeMaxDuration,2,,
+,StackPolicy,Restart,3,,后到的命令同时覆盖期限与幅度（Burst）
 ,ImpulseSourceType,MeleePush,0,,
 ,ImpulseSourceType,Projectile,1,,
 ,ImpulseSourceType,ChargedProjectile,2,,
-,ModifierCommandType,Acceleration,0,,
-,ModifierCommandType,RootThenAcceleration,1,,
-,ModifierCommandType,InvertTurn,2,,
-,ModifierCommandType,Scale,3,,
-,ModifierCommandType,PushGrace,4,,
-,ModifierCommandType,SteeringSuppression,5,,
-,ModifierCommandType,RoomBypass,6,,
+,ModifierCommandType,Acceleration,1,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,RootThenAcceleration,2,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,InvertTurn,3,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,Scale,4,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,PushGrace,5,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,SteeringSuppression,6,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,RoomBypass,7,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,Freeze,8,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,EndModifier,9,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,Burst,10,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,MaxSpeedMultiplier,11,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
 ,TeleportSourceType,DropRespawn,0,,
 ,TeleportSourceType,WrongWayCorrection,1,,
 ,TeleportSourceType,Manual,2,,
@@ -79,3 +82,9 @@
 ,SkillId,giant_anti,9,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
 ,SkillId,push_projectile_hands_anti,10,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
 ,SkillId,reverseturn_anti,11,,唯一技能名单；SO skillId、AI 配装、图标表都以此为准
+,YuanqiId,frost_lock,0,,缘起名单；Yuanqi_* SO 的 yuanqiId 以此为准（序号不是 yuanqi.md 的 pairNumber）
+,YuanqiId,giant_charge,1,,缘起名单；Yuanqi_* SO 的 yuanqiId 以此为准（序号不是 yuanqi.md 的 pairNumber）
+,YuanqiId,giant_palm,2,,缘起名单；Yuanqi_* SO 的 yuanqiId 以此为准（序号不是 yuanqi.md 的 pairNumber）
+,YuanqiMode,Instant,0,,与 C# YuanqiMode 同值
+,YuanqiMode,Sustained,1,,与 C# YuanqiMode 同值
+,YuanqiRetrigger,OncePerOverlap,0,,与 C# YuanqiRetrigger 同值

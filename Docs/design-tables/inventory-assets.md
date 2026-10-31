@@ -2,6 +2,8 @@
 
 筛查日期 2026-10-12，基线 dev 9ff6338。本文件只做盘点，不含实现。总览与跨域结论见 [README.md](README.md)。
 
+> 2026-10-26 玩法深化之后（代码 0dbc551）：`SkillSlot_1/2/3.prefab` 的 `SkillSlotUI.tokens`（W / ↑ 图）在运行时隐藏，已退役，不再与 `ComboSkillInput.bindings` 重复（AI 仍用 `ComboSkillInput`，直到 A7）。6 个 `Assets/Skills_Assets/Skills/Skill_*_Anti.asset` 已删，`Skill Database.asset` 只剩 6 个普通技能，另有 `yuanqis` 列表引用 `Assets/Skills_Assets/Yuanqi/` 下的 `Yuanqi_FrostLock`、`Yuanqi_GiantCharge`、`Yuanqi_GiantPalm` 三个资产。`InputSystem_Actions.inputactions` 的 Player map 新增 `SkillSlot1/2/3`（Q/E/R 与 1/2/3），HandPush 加了鼠标左 / 右键（W / ↑ 推掌保留但已废弃）。下文 ComboSkillInput 一段、重复项清单里关于 tokens 的说法、各 `_Anti` 资产的条目（如 `Skill_PushProjectileHands_Anti` 的蓄力 VFX 引用、`accel_anti_vfx` 等缺失 vfxId 的来源）和 Input_Bindings 一节的 Player map 按 2026-10-12 基线记录。
+
 范围：`Assets/Character/**`、`SharedAssets/**`、`Placeholder/**`、`Sources/**`、`Material/**`、`VFX/**`、`Settings/**`、`Resources/**`、`DefaultPrefabObjects.asset`、`FishNet.Config.XML`、`ProjectSettings/`（TagManager、DynamicsManager、InputManager、EditorBuildSettings），以及本项目 prefab 上自有组件的序列化值。GUID 已通过 .meta 解析到具体文件。"代码默认 X / prefab Y" 表示 Inspector 覆盖了 C# 初始值，配表以 prefab 为准。本文件与 skills / movement / match-flow 清单有意重叠，用于从资产侧交叉核对。
 
 ## 结论先行

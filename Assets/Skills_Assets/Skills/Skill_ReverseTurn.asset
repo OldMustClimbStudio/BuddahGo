@@ -17,7 +17,6 @@ MonoBehaviour:
   cooldownSeconds: 12
   castLockSeconds: 10
   obsessionGain: 200
-  antiSkillId: reverseturn_anti
   invertDurationSeconds: 10
   vfxDurationSeconds: 0
   vfxStopPlayingBeforeEndSeconds: 0

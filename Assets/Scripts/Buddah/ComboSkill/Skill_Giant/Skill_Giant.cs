@@ -3,8 +3,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Skill_Giant", menuName = "Skills/Actions/Normal/Giant")]
 public class Skill_Giant : SkillAction
 {
-    private const string DefaultAntiSkillId = "giant_anti";
-
     [Header("Scale Buff")]
     [Min(1f)] public float scaleMultiplier = 5f;
     [Min(0.1f)] public float durationSeconds = 6f;
@@ -16,16 +14,6 @@ public class Skill_Giant : SkillAction
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = string.Empty;
     [SerializeField] private string observersFeelStopEventId = string.Empty;
-
-    private void OnEnable()
-    {
-        EnsureAntiSkillId();
-    }
-
-    private void OnValidate()
-    {
-        EnsureAntiSkillId();
-    }
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
@@ -39,7 +27,7 @@ public class Skill_Giant : SkillAction
         GameLog.Verbose($"[Skill_Giant][Server] Apply x{scaleMultiplier:0.##} scale for {durationSeconds:0.##}s");
     }
 
-    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         ScaleSkillPresentation.ApplyScaleEffect(caster, scaleMultiplier, durationSeconds, growDurationSeconds, shrinkDurationSeconds);
 
@@ -47,7 +35,7 @@ public class Skill_Giant : SkillAction
         GameLog.Verbose($"[Skill_Giant][Observers] '{skillId}' triggered (slot {slotIndex})");
     }
 
-    public override void ExecuteLocal(SkillExecutor caster, int slotIndex, bool isAnti)
+    public override void ExecuteLocal(SkillExecutor caster, int slotIndex)
     {
         if (caster == null || !caster.IsOwner)
             return;
@@ -55,9 +43,21 @@ public class Skill_Giant : SkillAction
         ScaleSkillPresentation.ResetLocalCamera(caster, GetType().Name);
     }
 
-    private void EnsureAntiSkillId()
+    public override ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster)
     {
-        if (string.IsNullOrWhiteSpace(antiSkillId))
-            antiSkillId = DefaultAntiSkillId;
+        return caster != null ? new GiantRuntimeHandle(caster, skillId, durationSeconds) : null;
+    }
+
+    // 缘起 consumed the giant form: every peer runs the normal shrink now (the motor scale already ended).
+    public override void ExecuteConsumedObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
+    {
+        if (caster == null)
+            return;
+
+        var effect = caster.GetComponent<PlayerScaleEffect>();
+        if (effect != null)
+            effect.EndEarly();
+
+        GameLog.Verbose($"[Skill_Giant][Observers] '{skillId}' consumed (slot {slotIndex}), shrinking early.");
     }
 }

@@ -1,5 +1,7 @@
 #if UNITY_EDITOR
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace BuddahGo.DesignTables
 {
@@ -10,10 +12,135 @@ namespace BuddahGo.DesignTables
         {
             CheckpointCountMatchesTrack(set, issues);
             RosterMatchesPersonalities(set, issues);
-            KeyMaxBelowComboWindow(set, issues);
-            SkillRowsAreConsistent(set, issues);
             DefaultLoadoutUsesSelectableSkills(set, issues);
+            YuanqiRowsAreFilled(set, issues);
+            YuanqiPairsAreValid(set, issues);
+            YuanqiAvoidsPairwiseTriangles(set, issues);
+            BackfireAndSurchargeCellsAreFilled(set, issues);
+            TrainingDummyCellsAreFilled(set, issues);
             GraphicsSettingsAreComplete(set, issues);
+        }
+
+        /// <summary>Error for each blank cell of <paramref name="vars"/> in the row (columns the sheet lacks are skipped).</summary>
+        private static void RequireFilled(DesignSheet sheet, DataRow row, List<Issue> issues, string why, params string[] vars)
+        {
+            foreach (string var in vars)
+            {
+                ColumnSpec column = sheet.FindColumn(var);
+                if (column != null && string.IsNullOrWhiteSpace(sheet.Cell(row, column)))
+                    issues.Add(new Issue { Severity = IssueSeverity.Error, Location = sheet.Location(row, column), Message = "'" + var + "' must be filled: " + why });
+            }
+        }
+
+        // A blank bool imports as false (a blank isEnabled silently disables the pair), a blank enum leaves the SO value
+        // and a blank skill imports as "" (YuanqiCatalog then drops the pair; the enum and ref checks skip blanks).
+        private static void YuanqiRowsAreFilled(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet yuanqi = set.Find("Skill", "Yuanqi");
+            if (yuanqi == null) return;
+            foreach (DataRow row in yuanqi.Rows)
+                RequireFilled(yuanqi, row, issues, "a blank skill drops the pair, a blank bool reads false and a blank enum keeps the asset value",
+                    "skillA", "skillB", "consumeA", "consumeB", "mode", "retriggerPolicy", "isEnabled");
+        }
+
+        /// <summary>
+        /// True when the cell imports as <paramref name="member"/>: the same parse as DesignTableOverlay.TryParse (an int
+        /// is the enum value, decision 29; otherwise the name, ignoring case).
+        /// </summary>
+        private static bool CellIsEnumMember<TEnum>(string cell, TEnum member) where TEnum : struct, Enum
+        {
+            string raw = (cell ?? string.Empty).Trim();
+            if (raw.Length == 0)
+                return false;
+            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+                return value == Convert.ToInt32(member, CultureInfo.InvariantCulture);
+            return Enum.TryParse(raw, true, out TEnum parsed) && parsed.Equals(member);
+        }
+
+        // yuanqi-architecture 3.6: two different skills, each unordered pair once, a Sustained pair consumes nothing.
+        private static void YuanqiPairsAreValid(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet yuanqi = set.Find("Skill", "Yuanqi");
+            if (yuanqi == null) return;
+            ColumnSpec id = yuanqi.FindColumn("yuanqiId"), a = yuanqi.FindColumn("skillA"), b = yuanqi.FindColumn("skillB");
+            ColumnSpec mode = yuanqi.FindColumn("mode"), consumeA = yuanqi.FindColumn("consumeA"), consumeB = yuanqi.FindColumn("consumeB");
+            if (id == null || a == null || b == null) return;
+            Dictionary<string, string> pairs = new Dictionary<string, string>();
+            foreach (DataRow row in yuanqi.Rows)
+            {
+                string yid = yuanqi.Cell(row, id).Trim(), sa = yuanqi.Cell(row, a).Trim(), sb = yuanqi.Cell(row, b).Trim();
+                if (sa.Length > 0 && sa == sb)
+                    issues.Add(new Issue { Severity = IssueSeverity.Error, Location = yuanqi.Location(row, b), Message = "缘起 '" + yid + "' pairs '" + sa + "' with itself; skillA and skillB must differ" });
+                else if (sa.Length > 0 && sb.Length > 0)
+                {
+                    string pair = string.CompareOrdinal(sa, sb) < 0 ? sa + "+" + sb : sb + "+" + sa;
+                    if (pairs.TryGetValue(pair, out string first))
+                        issues.Add(new Issue { Severity = IssueSeverity.Error, Location = yuanqi.Location(row, id), Message = "缘起 '" + yid + "' repeats the pair " + pair + " of '" + first + "'; each unordered pair appears once" });
+                    else
+                        pairs.Add(pair, yid);
+                }
+
+                // By name or by value ("1"): both import as Sustained.
+                if (mode == null || !CellIsEnumMember(yuanqi.Cell(row, mode), YuanqiMode.Sustained)) continue;
+                foreach (ColumnSpec consume in new[] { consumeA, consumeB })
+                {
+                    if (consume != null && ValueConverter.TryBool(yuanqi.Cell(row, consume), out bool consumes) && consumes)
+                        issues.Add(new Issue { Severity = IssueSeverity.Error, Location = yuanqi.Location(row, consume), Message = "Sustained 缘起 '" + yid + "' cannot consume a skill; set " + consume.Var + " to false" });
+                }
+            }
+        }
+
+        // Design rule: avoid three skills that trigger each other pairwise. A Warning, not an Error: the designer decides.
+        private static void YuanqiAvoidsPairwiseTriangles(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet yuanqi = set.Find("Skill", "Yuanqi");
+            if (yuanqi == null) return;
+            ColumnSpec a = yuanqi.FindColumn("skillA"), b = yuanqi.FindColumn("skillB"), enabled = yuanqi.FindColumn("isEnabled");
+            if (a == null || b == null) return;
+            Dictionary<string, HashSet<string>> partners = new Dictionary<string, HashSet<string>>();
+            foreach (DataRow row in yuanqi.Rows)
+            {
+                string sa = yuanqi.Cell(row, a).Trim(), sb = yuanqi.Cell(row, b).Trim();
+                bool on = enabled == null || (ValueConverter.TryBool(yuanqi.Cell(row, enabled), out bool e) && e);
+                if (!on || sa.Length == 0 || sb.Length == 0 || sa == sb) continue;
+                foreach (string[] edge in new[] { new[] { sa, sb }, new[] { sb, sa } })
+                {
+                    if (!partners.TryGetValue(edge[0], out HashSet<string> set0))
+                        partners[edge[0]] = set0 = new HashSet<string>();
+                    set0.Add(edge[1]);
+                }
+            }
+            List<string> skills = new List<string>(partners.Keys);
+            skills.Sort(string.CompareOrdinal);
+            for (int i = 0; i < skills.Count; i++)
+                for (int j = i + 1; j < skills.Count; j++)
+                    for (int k = j + 1; k < skills.Count; k++)
+                        if (partners[skills[i]].Contains(skills[j]) && partners[skills[j]].Contains(skills[k]) && partners[skills[k]].Contains(skills[i]))
+                            issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = "Skill.xlsx/Yuanqi", Message = "skills " + skills[i] + ", " + skills[j] + " and " + skills[k] + " all trigger each other pairwise; the design avoids such triangles" });
+        }
+
+        // Blank numeric cells import as 0 and the #range check skips them: a blank multiplier or keep ratio would zero the effect.
+        private static void BackfireAndSurchargeCellsAreFilled(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet obsession = set.Find("Skill", "Obsession");
+            if (obsession == null) return;
+            foreach (DataRow row in obsession.Rows)
+                RequireFilled(obsession, row, issues, "a blank cell imports as 0 and the range check skips it",
+                    "repeatWindowSeconds", "repeatGainMultiplier", "backfireLockSeconds", "backfireMaxSpeedMultiplier", "backfireEndKeepRatio");
+        }
+
+        // Rows that spawn training dummies need every placement cell (a blank spacing stacks them all on one spot).
+        private static void TrainingDummyCellsAreFilled(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet mode = set.Find("Match", "ModeRule");
+            ColumnSpec count = mode != null ? mode.FindColumn("trainingDummyCount") : null;
+            if (count == null) return;
+            foreach (DataRow row in mode.Rows)
+            {
+                if (ValueConverter.ToInt(mode.Cell(row, count)) <= 0) continue;
+                RequireFilled(mode, row, issues, "this row spawns training dummies (trainingDummyCount > 0)",
+                    "trainingDummySpacingMeters", "trainingDummyStartOffsetMeters", "trainingDummyLateralOffsetMeters", "trainingDummyResetDelaySeconds");
+            }
         }
 
         private static void CheckpointCountMatchesTrack(DesignTableSet set, List<Issue> issues)
@@ -47,56 +174,6 @@ namespace BuddahGo.DesignTables
             if (roster == null || personalities == null) return;
             if (roster.Rows.Count != personalities.Rows.Count)
                 issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "AI.xlsx/Roster", Message = "Roster has " + roster.Rows.Count + " slots but Personality has " + personalities.Rows.Count + " rows; AISkillCatalog requires them to match RacerId.MaxAI (5)" });
-        }
-
-        private static void KeyMaxBelowComboWindow(DesignTableSet set, List<Issue> issues)
-        {
-            // The AI's key-hold maximum must stay inside the player's combo input window.
-            float keyMax = -1f, window = -1f;
-            DesignSheet tuning = set.Find("AI", "SkillTuning");
-            if (tuning != null && tuning.FindColumn("keyMaxSeconds") != null && tuning.Rows.Count > 0)
-                keyMax = ValueConverter.ToFloat(tuning.Cell(tuning.Rows[0], tuning.FindColumn("keyMaxSeconds")));
-            else
-            {
-                DesignSheet global = set.Find("AI", "SkillGlobal");
-                if (global != null)
-                {
-                    ColumnSpec k = global.FindColumn("key"), v = global.FindColumn("value");
-                    foreach (DataRow row in global.Rows)
-                        if (global.Cell(row, k).Trim() == "KeyMaxSeconds") keyMax = ValueConverter.ToFloat(global.Cell(row, v));
-                }
-            }
-            DesignSheet combo = set.Find("Skill", "ComboInput");
-            if (combo != null && combo.FindColumn("inputWindowSeconds") != null && combo.Rows.Count > 0)
-                window = ValueConverter.ToFloat(combo.Cell(combo.Rows[0], combo.FindColumn("inputWindowSeconds")));
-            if (keyMax >= 0f && window >= 0f && keyMax >= window)
-                issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "AI.xlsx/SkillTuning", Message = "keyMaxSeconds " + keyMax + " must be below Skill/ComboInput.inputWindowSeconds " + window });
-        }
-
-        private static void SkillRowsAreConsistent(DesignTableSet set, List<Issue> issues)
-        {
-            DesignSheet skill = set.Find("Skill", "Skill");
-            if (skill == null) return;
-            ColumnSpec id = skill.FindColumn("skillId"), anti = skill.FindColumn("antiSkillId"), gain = skill.FindColumn("obsessionGain");
-            if (id == null || anti == null) return;
-            HashSet<string> antiIds = new HashSet<string>();
-            foreach (DataRow row in skill.Rows)
-            {
-                string a = skill.Cell(row, anti).Trim();
-                string sid = skill.Cell(row, id).Trim();
-                if (!string.IsNullOrEmpty(a)) antiIds.Add(a);
-                else if (!sid.EndsWith("_anti"))
-                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, anti), Message = "normal skill '" + sid + "' has no antiSkillId" });
-            }
-            if (gain == null) return;
-            // Backfire adds the requested skill's obsessionGain (SkillExecutor.QueueCast); the anti row's value is never read.
-            foreach (DataRow row in skill.Rows)
-            {
-                string sid = skill.Cell(row, id).Trim();
-                string g = skill.Cell(row, gain).Trim();
-                if (antiIds.Contains(sid) && !string.IsNullOrEmpty(g) && ValueConverter.ToFloat(g) != 0f)
-                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, gain), Message = "obsessionGain on anti skill '" + sid + "' is ignored (backfire uses the requested skill's gain); leave it blank" });
-            }
         }
 
         private static void DefaultLoadoutUsesSelectableSkills(DesignTableSet set, List<Issue> issues)

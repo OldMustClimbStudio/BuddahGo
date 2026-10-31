@@ -114,6 +114,8 @@ namespace BuddahGo.AI
         // Product path: the spawner hands each AI its own difficulty profile instance; the driver destroys it with the racer.
         public void AdoptProfile(AIDifficultyProfile profile) { if (_ownsProfile && Profile != null && Profile != profile) Destroy(Profile); Profile = profile; _ownsProfile = true; }
 
+        // drive is the same push switch a human holds with W; the AI keeps it on until it finishes (user decision 2026-10-30),
+        // which is what BuddahMotionModel plans with (full forward force).
         public bool TryGetOverride(out int steering, out bool drive)
         {
             steering = 0; drive = true;

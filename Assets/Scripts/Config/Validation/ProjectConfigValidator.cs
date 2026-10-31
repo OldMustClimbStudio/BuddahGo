@@ -36,9 +36,8 @@ public static class ProjectConfigValidator
 
     private static void ValidateSkills(ProjectConfigDatabase database, List<ProjectConfigValidationMessage> results)
     {
+        // A backfire fails the requested cast (unified penalty), so the table has no *_anti rows or antiSkillId column any more.
         HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        HashSet<string> knownSkillIds = BuildSkillIdSet(database);
-        HashSet<string> antiIds = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < database.skills.Count; i++)
         {
             SkillRecord record = database.skills[i];
@@ -52,23 +51,6 @@ public static class ProjectConfigValidator
 
             if (!seen.Add(skillId))
                 results.Add(Create(ProjectConfigValidationSeverity.Error, context, "Duplicate skillId '" + skillId + "'."));
-
-            string antiSkillId = NormalizeId(record.antiSkillId);
-            if (!string.IsNullOrWhiteSpace(antiSkillId))
-            {
-                if (!knownSkillIds.Contains(antiSkillId))
-                    results.Add(Create(ProjectConfigValidationSeverity.Error, context, "antiSkillId '" + antiSkillId + "' does not exist."));
-                else
-                    antiIds.Add(antiSkillId);
-            }
-        }
-
-        // Backfire adds the obsession of the requested skill (SkillExecutor.QueueCast); a value on the anti row is never read.
-        for (int i = 0; i < database.skills.Count; i++)
-        {
-            SkillRecord record = database.skills[i];
-            if (record != null && antiIds.Contains(NormalizeId(record.skillId)) && record.obsessionGain != 0f)
-                results.Add(Create(ProjectConfigValidationSeverity.Warning, "Skill[" + i + "]", "obsessionGain on anti skill '" + record.skillId + "' is ignored; backfire uses the requested skill's gain."));
         }
     }
 

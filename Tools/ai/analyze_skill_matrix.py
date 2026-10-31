@@ -30,6 +30,9 @@ def active_effects(racer, tick):
         effects.add("hands-buff")
     if racer["HasTrap"]:
         effects.add("trap-zone")
+    # Unified backfire penalty (A4/A7): the 10 s skill lock and/or the x0.85 max-speed modifier.
+    if racer.get("BackfireLeft", 0) > 0 or racer.get("MaxSpeedPenalty", False):
+        effects.add("backfire")
     return effects
 
 
@@ -44,11 +47,12 @@ def analyze(directory):
     for name, rows in groups.items():
         variant, source_text, skill = name.split("-", 2)
         source = int(source_text)
+        # Backlash is the unified backfire for every skill: no skill effect, only the penalty on the caster.
         expected_self = {
             "normal": {"acceleration": {"acceleration"}, "slowtrap": {"trap-zone"}, "giant": {"giant", "acceleration"},
                        "push_projectile_hands": {"hands-buff"}, "reverseturn": set(), "blackcurtain": set()},
-            "backlash": {"acceleration": {"slow"}, "slowtrap": {"root", "acceleration"}, "giant": {"small"},
-                         "push_projectile_hands": set(), "reverseturn": {"reverse"}, "blackcurtain": {"vision"}},
+            "backlash": {skill_id: {"backfire"} for skill_id in
+                         ("acceleration", "slowtrap", "giant", "push_projectile_hands", "reverseturn", "blackcurtain")},
         }[variant][skill]
         seen = collections.defaultdict(set)
         for row in rows:
@@ -64,16 +68,24 @@ def analyze(directory):
         executed = sum(e["Event"] == "cast" and e["Detail"].startswith("Executed;") for e in case_events)
         repeated_rejected = any(e["Event"] == "immediate-repeat" and e["Detail"] == "accepted=False" for e in case_events)
         self_ok = expected_self.issubset(seen[source])
+        if variant == "backlash":
+            # A backfired cast must not produce the skill's own effect on the caster.
+            self_ok = self_ok and not (seen[source] & {"acceleration", "trap-zone", "giant", "hands-buff", "slow", "root", "small"})
         target_ok = True
         if skill in ("reverseturn", "blackcurtain"):
             effect = "reverse" if skill == "reverseturn" else "vision"
-            expected = {source} if variant == "backlash" else set(seen) - {source}
+            # A backfired global skill affects nobody; a normal one reaches every opponent.
+            expected = set() if variant == "backlash" else set(seen) - {source}
             actual = {r for r, effects in seen.items() if effect in effects}
             target_ok = actual == expected
         if skill == "slowtrap" and variant == "normal":
             target_ok = bool(actual_targets) and "slow" not in seen[source]
         if skill == "push_projectile_hands":
-            target_ok = launches == (5 if variant == "backlash" else 1)
+            # Normal: the one buffed push launches a projectile. Backlash: no hands buff, so nothing is launched.
+            target_ok = launches == (0 if variant == "backlash" else 1)
+        if variant == "backlash":
+            target_ok = target_ok and not actual_targets
+        # 1 s confirm + 10 s penalty < 18 s: everything, the penalty included, is over at the end of the case.
         recovered = rows[-1]["Elapsed"] >= 18 and not any(final.values())
         cases.append({"case": name, "executions": executed, "repeatRejected": repeated_rejected,
                       "selfEffects": sorted(seen[source]), "affectedOpponents": actual_targets,

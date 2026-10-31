@@ -4,9 +4,6 @@
 ##comment,组件,,,,
 ,SkillSlotUI,rotateSpeed,120,float,Assets/UI/UI预制键位/SkillSlot_1.prefab
 ,SkillSlotUI,bindRetryInterval,0.5,float,Assets/UI/UI预制键位/SkillSlot_1.prefab
-,SkillSlotUI,successHoldSeconds,2,float,Assets/UI/UI预制键位/SkillSlot_1.prefab
-,SkillSlotUI,fallbackCastLockSeconds,2,float,Assets/UI/UI预制键位/SkillSlot_1.prefab
-,SkillSlotUI,previewTimeoutSeconds,0.5,float,Assets/UI/UI预制键位/SkillSlot_1.prefab
 ,SkillInspectPanelUI,fadeDuration,0.35,float,Assets/Scenes/PropertySelection.unity
 ,SkillInspectPanelUI,fadeCurve,"0,0,0,0|1,1,2,2",curve,Assets/Scenes/PropertySelection.unity
 ,SkillInspectController,enterDuration,0.35,float,Assets/Scenes/PropertySelection.unity

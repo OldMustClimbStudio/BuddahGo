@@ -13,6 +13,10 @@ using UnityEngine.InputSystem.LowLevel;
 namespace BuddahGo.AI
 {
     // Explicitly controlled effect matrix. Never counted as natural racing or AI decision evidence.
+    // Backlash cases (backlash: true) exercise the unified backfire (A4/A7): the cast confirms, spends its cooldown and
+    // does nothing; the caster is then locked out of every skill for 10 s with max speed x0.85 (RacerSample.BackfireLeft /
+    // MaxSpeedPenalty). No skill has its own backfire effect any more, so backlash fixtures place targets exactly like
+    // the normal ones and expect them untouched; Tools/ai/analyze_skill_matrix.py holds the expectations.
     public sealed class AISkillEffectHarness : MonoBehaviour
     {
         public string Status { get; private set; }
@@ -21,7 +25,8 @@ namespace BuddahGo.AI
         private string _directory, _case;
         private StreamWriter _samples, _events;
         private RacerIdentity[] _racers;
-        private Keyboard _keyboard;
+        private Mouse _mouse;
+        private Vector2 _cursor;
         private SkillExecutor _source;
         private double _caseStart;
         private float _oldPmax, _oldKeep;
@@ -49,7 +54,10 @@ namespace BuddahGo.AI
             }
             _racers = RacerDirectory.Current.All.OrderBy(r => r.Id.Value).ToArray();
             foreach (var racer in _racers) if (racer.IsAI) racer.GetComponent<AISkillCaster>().enabled = false;
-            _keyboard = InputSystem.AddDevice<Keyboard>("AISkillEffectAcceptanceKeyboard");
+            // The human pushes with the mouse left button (W is the drive key since 2026-10-30); the cursor stays where it was.
+            _cursor = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
+            _mouse = InputSystem.AddDevice<Mouse>("AISkillEffectAcceptanceMouse");
+            InputSystem.QueueStateEvent(_mouse, new MouseState { position = _cursor });
             yield return new WaitForSeconds(2f);
             // Both sources cover self effects and the human->AI / AI->human / AI->AI target relationships.
             foreach (int sourceId in new[] { 10000, 0 })
@@ -75,9 +83,9 @@ namespace BuddahGo.AI
                         {
                             fired = true;
                             if (sourceId >= RacerId.AIBase) Write("buff-push", "server-key-accepted=" + _source.GetComponent<BuddahHandControl>().InjectServerPush(true));
-                            else { InputSystem.QueueStateEvent(_keyboard, new KeyboardState(Key.W)); Write("buff-push", "human-virtual-key-W"); }
+                            else { InputSystem.QueueStateEvent(_mouse, new MouseState { position = _cursor }.WithButton(MouseButton.Left)); Write("buff-push", "human-virtual-mouse-left"); }
                         }
-                        else if (fired && sourceId == 0) InputSystem.QueueStateEvent(_keyboard, new KeyboardState());
+                        else if (fired && sourceId == 0) InputSystem.QueueStateEvent(_mouse, new MouseState { position = _cursor });
                         yield return null;
                     }
                     Write("case-end", "executions=" + _executions);
@@ -106,7 +114,8 @@ namespace BuddahGo.AI
                 Vector3 offset = Vector3.zero;
                 if (!source)
                 {
-                    float distance = skill == "slowtrap" && !_backlash ? -4f : skill == "push_projectile_hands" ? (_backlash ? -25f : 25f) : 20f;
+                    // Same placement for normal and backlash cases: a backfired skill has no effect of its own.
+                    float distance = skill == "slowtrap" ? -4f : skill == "push_projectile_hands" ? 25f : 20f;
                     offset = forward * (distance + targetIndex * 8f) + side * ((targetIndex % 3 - 1) * 3f);
                     targetIndex++;
                 }
@@ -135,7 +144,10 @@ namespace BuddahGo.AI
                 PerceivedSign = r.GetComponent<AIRacerDriver>().PerceivedSteeringSign,
                 VisionUntil = r.GetComponent<SkillPerceptionState>().VisionImpairedUntilTick,
                 BuffLeft = r.GetComponent<BuddahHandControl>().ProjectileBuffSecondsLeft,
-                HasTrap = r.GetComponent<MovementSlowTrapZoneEffect>() != null }).ToArray();
+                HasTrap = r.GetComponent<MovementSlowTrapZoneEffect>() != null,
+                // Unified backfire penalty: the 10 s skill lock (ObsessionFigure) and the x0.85 max-speed modifier (motor).
+                BackfireLeft = r.GetComponent<ObsessionFigure>().BackfireSecondsLeft,
+                MaxSpeedPenalty = r.GetComponent<BuddahPredictedMotor>().CurrentComputedStats.IsMaxSpeedPenaltyActive }).ToArray();
             _samples.WriteLine(JsonUtility.ToJson(new SampleRow { Case = _case, Elapsed = Time.timeAsDouble - _caseStart,
                 Tick = _source.TimeManager.LocalTick, Racers = rows }));
         }
@@ -153,14 +165,14 @@ namespace BuddahGo.AI
         {
             RestoreObsession();
             if (_source != null) _source.ServerCastChanged -= Cast;
-            if (_keyboard != null) { InputSystem.RemoveDevice(_keyboard); _keyboard = null; }
+            if (_mouse != null) { InputSystem.RemoveDevice(_mouse); _mouse = null; }
             _samples?.Dispose(); _events?.Dispose(); _samples = _events = null;
         }
         private void OnDestroy() => Cleanup();
         [Serializable] private struct RacerSample
         {
             public int RacerId; public BuddahPredictedMotorComputedStats Stats; public Vector3 Position, Velocity, Scale;
-            public float PerceivedSign, BuffLeft; public uint VisionUntil; public bool HasTrap;
+            public float PerceivedSign, BuffLeft, BackfireLeft; public uint VisionUntil; public bool HasTrap, MaxSpeedPenalty;
         }
         [Serializable] private struct SampleRow { public string Case; public double Elapsed; public uint Tick; public RacerSample[] Racers; }
         [Serializable] private struct EventRow { public string Case, Event, Detail; public uint Tick; public double Elapsed; }

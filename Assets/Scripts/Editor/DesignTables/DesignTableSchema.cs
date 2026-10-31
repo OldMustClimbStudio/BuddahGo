@@ -19,7 +19,7 @@ namespace BuddahGo.DesignTables
         Curve
     }
 
-    /// <summary>Parsed form of one ##type cell, e.g. "string#key#ref=SkillDefinition.skillId" or "list,enum:ComboToken#sep=,".</summary>
+    /// <summary>Parsed form of one ##type cell, e.g. "string#key#ref=SkillDefinition.skillId" or "list,enum:SkillId#sep=,".</summary>
     public sealed class TypeSpec
     {
         public string Raw = string.Empty;

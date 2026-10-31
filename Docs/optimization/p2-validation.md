@@ -63,7 +63,7 @@ PlayerCamera.GetCameraScaleMultiplier 已具备 self→parent→children 缓存�
 
 ## P2-5d
 
-LeaderboardTMPUI 在 StringBuilder/插值/Split 之前比较全部显示输入快照，保留刷新间隔、事件订阅和所有格式文本。可见排名使用精确字段比较（原 RankEntry.Equals 的 Approximate 不适合作为文本缓存判据）；外部改写文本也会恢复。重复读取进度合并为同次刷新的一次无副作用读取。ObsessionUI 实际没有字符串拼接，SkillSlotUI 已按 skillId 跳过相同展示，不增加无意义缓存；它们按不同组件查找的 P2-4 例外保留。I6 不合并不同 UI 行为。R 项待集中验证。
+LeaderboardTMPUI 在 StringBuilder/插值/Split 之前比较全部显示输入快照，保留刷新间隔、事件订阅和所有格式文本。可见排名使用精确字段比较（原 RankEntry.Equals 的 Approximate 不适合作为文本缓存判据）；外部改写文本也会恢复。重复读取进度合并为同次刷新的一次无副作用读取。ObsessionUI 当时没有字符串拼接（2026-10-26 A6 之后它有反噬概率、执念值和惩罚倒计时三个标签，只在显示值变化时重建文本），SkillSlotUI 已按 skillId 跳过相同展示，不增加无意义缓存；它们按不同组件查找的 P2-4 例外保留。I6 不合并不同 UI 行为。R 项待集中验证。
 
 ## P2-5e
 

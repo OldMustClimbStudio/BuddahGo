@@ -17,7 +17,6 @@ MonoBehaviour:
   cooldownSeconds: 18
   castLockSeconds: 15
   obsessionGain: 300
-  antiSkillId: push_projectile_hands_anti
   buffDurationSeconds: 15
   buildUpSeconds: 1
   chargedPushCooldownSeconds: 1

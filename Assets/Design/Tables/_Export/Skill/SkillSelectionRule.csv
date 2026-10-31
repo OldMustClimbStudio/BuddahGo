@@ -11,9 +11,3 @@
 ,default,acceleration,,,Fallback,true,false,1
 ,default,push_projectile_hands,,,Fallback,true,false,1
 ,default,blackcurtain,,,Fallback,true,false,1
-,default,acceleration_anti,,,Hidden,true,false,1
-,default,slowtrap_anti,,,Hidden,true,false,1
-,default,blackcurtain_anti,,,Hidden,true,false,1
-,default,giant_anti,,,Hidden,true,false,1
-,default,push_projectile_hands_anti,,,Hidden,true,false,1
-,default,reverseturn_anti,,,Hidden,true,false,1

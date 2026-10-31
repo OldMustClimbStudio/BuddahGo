@@ -51,7 +51,6 @@ namespace BuddahGo.Tests
         {
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             Assert.That(typeof(BuddahPredictionDebugOverlay).GetMethod("OnGUI", flags), Is.Null);
-            Assert.That(typeof(ComboSkillInput).GetMethod("OnGUI", flags), Is.Null);
         }
 
         [Test]
@@ -60,8 +59,6 @@ namespace BuddahGo.Tests
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Character/Prefab/Buddah.prefab");
             Assert.That(prefab, Is.Not.Null);
             Assert.That(prefab.GetComponent<BuddahPredictionBootstrap>().DebugSettings.enableOnScreenDebug, Is.False);
-            var combo = new SerializedObject(prefab.GetComponent<ComboSkillInput>());
-            Assert.That(combo.FindProperty("debugHud").boolValue, Is.False);
             var overlay = new SerializedObject(prefab.GetComponent<BuddahPredictionDebugOverlay>());
             Assert.That(overlay.FindProperty("mirrorSummaryToConsole").boolValue, Is.True);
         }

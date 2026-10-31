@@ -17,7 +17,6 @@ MonoBehaviour:
   cooldownSeconds: 12
   castLockSeconds: 10
   obsessionGain: 300
-  antiSkillId: slowtrap_anti
   triggerColliderPrefab: {fileID: 3548138375007760348, guid: 7d62612470e8e3a4ea41c006f4cf5ecb,
     type: 3}
   debugReferencePrefab: {fileID: 0}

@@ -25,12 +25,14 @@ public class Skill_SlowTrap : SkillAction
     [Min(0.05f)] public float slowDurationSeconds = 1.25f;
 
     [Header("VFX (Optional)")]
-    [Tooltip("VFX lifetime. 0 = follow zoneDurationSeconds.")]
+    [Tooltip("VFX lifetime upper bound. 0 = follow zoneDurationSeconds. The zone stops its VFX when it ends (expiry, 缘起 consume, reset), so a longer value never shows a zone that is gone.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
     [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
     [SerializeField] public string vfxId = "slow_trap_vfx";
     [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
     [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
+    [Tooltip("The zone ended (expiry, 缘起 consume or server-controlled reset): seconds the stopped zone VFX lingers (particles fade) before it is destroyed.")]
+    [Min(0f)] public float zoneEndVfxLingerSeconds = 1f;
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
@@ -55,6 +57,7 @@ public class Skill_SlowTrap : SkillAction
             debugReferenceLocalOffset,
             debugReferenceLocalEuler,
             debugReferenceLocalScale);
+        zone.ConfigureRuntimeHandle(skillId, vfxId, zoneEndVfxLingerSeconds);
 
         var vfx = caster.GetComponent<SkillVfxReplicator>();
         float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, zoneDurationSeconds);
@@ -69,4 +72,16 @@ public class Skill_SlowTrap : SkillAction
         GameLog.Verbose($"[Skill_SlowTrap][Observers] '{skillId}' triggered (slot {slotIndex})");
         // VFX replication is sent from server in ExecuteServer().
     }
+
+    // The zone component is its own handle (created by ExecuteServer just before this call). Unity's fake null
+    // must not leak out as a non-null interface reference.
+    public override ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster)
+    {
+        if (caster == null)
+            return null;
+        var zone = caster.GetComponent<MovementSlowTrapZoneEffect>();
+        return zone != null ? zone : null;
+    }
+
+    // Nothing extra on observers: the zone VFX stop is its own SkillVfxReplicator RPC, sent by the zone when it ends.
 }

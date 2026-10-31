@@ -31,6 +31,8 @@ The restored original acceleration prefab contains a NetworkObject; Unity's Fish
 
 The historical static recovery report follows; its “not executed” section describes the state before this follow-up.
 
+2026-10-26 note: the gameplay mechanics update (PR #63) made the acceptance steps below obsolete in two ways: casts are now single keys (Q/E/R or 1/2/3) and pushes use the mouse buttons (W/↑ push is deprecated, combos no longer cast for players), and the anti variants with their multi-projectile burst are gone (the unified backfire reuses the `Anti_Reflection_*` feel events). See [gameplay/README.md](gameplay/README.md).
+
 ## Integration
 
 - Base: `dev` at `7389ec8655a2f438d73c189338e055c962eef84f`.

@@ -1,0 +1,5 @@
+##var,yuanqiId,burstExtraMaxSpeed,burstSeconds,impactImpulseMultiplier
+##type,enum:YuanqiId#key#ref=Yuanqi.yuanqiId,"float#range=0,500","float#range=0,10","float#range=0,20"
+##group,,,,
+##comment,每对一行；SkillDatabase 在 Play 首次查表时按同名字段写入 Yuanqi_GiantCharge SO（DesignTableOverlay.Apply）,突进起始时在基础限速上额外加的限速 m/s，按 增量×剩余比例² 回落到 0（Yuanqi_GiantCharge.burstExtraMaxSpeed → SkillExecutor.ApplyBurstToOwner）,回落秒数，撞击判定也持续这么久（Yuanqi_GiantCharge.burstSeconds → ApplyBurstToOwner 与 BuddahBodyImpact.Arm）,M：撞击冲量 = M × Push.basic.impulseStrength，方向为施法者指向被撞者的水平方向（Yuanqi_GiantCharge.impactImpulseMultiplier）
+,giant_charge,60,0.8,3

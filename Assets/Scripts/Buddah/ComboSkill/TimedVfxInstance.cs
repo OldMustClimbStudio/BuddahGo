@@ -18,6 +18,17 @@ public class TimedVfxInstance : MonoBehaviour
         _particleStopped = false;
     }
 
+    /// <summary>
+    /// Stops emission now and destroys the instance after at most <paramref name="lingerSeconds"/>, so live particles
+    /// fade instead of popping (a consumed skill's VFX). A later Refresh restarts it as usual.
+    /// </summary>
+    public void StopNow(float lingerSeconds)
+    {
+        StopAllParticleSystems();
+        _particleStopped = true;
+        _timeLeft = Mathf.Min(_timeLeft, Mathf.Max(0f, lingerSeconds));
+    }
+
     private void Update()
     {
         _timeLeft -= Time.deltaTime;

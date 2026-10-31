@@ -1,7 +1,6 @@
-##var,pushId,rotationSpeedDegPerSec,windupSeconds,pushCooldownSeconds,delayedPushActionSeconds,lifetimeSeconds,impulseStrength,speed,forwardOffset,heightOffset,sideOffset,leftSideBias,rightSideBias,projectileCount,projectileSpacing,colliderSize,hitTurnTorqueImpulse
-##type,string#key,float,float,float,float,float,float,float,float,float,float,float,float,int,float,vector3,float
-##group,,,,,,,,,,,,,,,,,
-##comment,basic=普通推掌（BuddahHandControl），charged=如来神掌蓄力弹（Skill_PushProjectileHands），charged_anti=反噬弹幕（Skill_PushProjectileHands_Anti）,basic：手部旋转速度（AI 也读）,basic=pushWindupSeconds 前摇；charged / charged_anti=buildUpSeconds 蓄力,basic=pushCooldownSeconds；charged=chargedPushCooldownSeconds,charged：蓄力后延迟推掌动作 s,basic=hitbox 存活 pushLifetimeSeconds；charged=projectileLifetimeSeconds,basic=pushImpulseStrength；charged=projectileImpulseStrength,charged：projectileSpeed m/s,basic=pushForwardOffset；charged=projectileForwardOffset；charged_anti=additionalForwardSpawnOffset,basic=pushHeightOffset；charged=projectileHeightOffset；charged_anti=additionalHeightSpawnOffset,basic=pushSideOffset,basic=pushLeftSideBias,basic=pushRightSideBias,charged_anti：弹幕数量,charged_anti：弹幕间距 m,charged：projectileColliderSize；basic 的 hitbox 尺寸见 SkillConstant,charged_anti：命中时的转向冲量
-,basic,180,0.1,0.4,,0.3,100,,7,1,4,-0.1,0.1,,,,
-,charged,,1,1,0.9,3,500,600,0,30,,,,,,"60,90,20",
-,charged_anti,,0.3,,,2,600,600,100,30,,,,5,30,"60,50,20",50
+##var,pushId,rotationSpeedDegPerSec,windupSeconds,pushCooldownSeconds,delayedPushActionSeconds,lifetimeSeconds,impulseStrength,speed,forwardOffset,heightOffset,sideOffset,leftSideBias,rightSideBias,colliderSize
+##type,string#key,float,float,float,float,float,float,float,float,float,float,float,float,vector3
+##group,,,,,,,,,,,,,,
+##comment,basic=普通推掌（BuddahHandControl.PushBasicMap），charged=如来神掌蓄力弹（SkillDatabase.PushChargedMap → Skill_PushProjectileHands）,basic：鼠标转手速度上限 °/s，光标目标先平滑再按此限速（BuddahHandControl.rotationSpeedDegPerSec）；方向键回退与 AI 瞄准估算（AISkillCaster 经 HandRotationSpeed）也用它,basic=pushWindupSeconds 前摇；charged=buildUpSeconds 蓄力,basic=pushCooldownSeconds；charged=chargedPushCooldownSeconds,charged：蓄力后延迟推掌动作 s,basic=hitbox 存活 pushLifetimeSeconds；charged=projectileLifetimeSeconds,basic=pushImpulseStrength；charged=projectileImpulseStrength,charged：projectileSpeed m/s,basic=pushForwardOffset；charged=projectileForwardOffset,basic=pushHeightOffset；charged=projectileHeightOffset,basic=pushSideOffset,basic=pushLeftSideBias,basic=pushRightSideBias,charged：projectileColliderSize；basic 的 hitbox 尺寸见 SkillConstant
+,basic,180,0.1,0.4,,0.3,100,,7,1,4,-0.1,0.1,
+,charged,,1,1,0.9,3,500,600,0,30,,,,"60,90,20"

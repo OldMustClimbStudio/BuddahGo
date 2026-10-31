@@ -1,5 +1,7 @@
 # Practice 快速试玩清单
 
+> **2026-10-26 注：** 本清单对应 2026-10-01 的 `21cc3cf` 试玩包。玩法机制更新（PR #63 `feat/mechanics-update`）之后，表里的“按 HUD 组合键使用技能”“buff 内再按 W 推掌”和六种各自的反噬表现都不适用了：技能改为 Q/E/R（或 1/2/3）单键释放，鼠标瞄准、鼠标左/右键推掌，反噬统一为 10 秒全技能锁（规则见 [玩法深化](../gameplay/README.md)）。Practice 现在还生成 3 个训练木桩，命中、减速、反转和冲量可以对木桩看，“0 AI 无法验证对手命中……”一句也已过时。新版本的自动验证见 [训练模式验证记录](../gameplay/practice-verification.md)；面向用户的新版试玩清单还没写，用户也还没试玩。另外，主菜单的单人赛按 `Match/ModeRule` Solo 行的 `aiCount`（现为 5）开局，0 AI 的 Practice 目前由诊断入口（如 `MechanicsPracticeHarness`）启动。这些入口只编进 Editor 和 Development 构建（`#if UNITY_EDITOR || DEVELOPMENT_BUILD`），所以普通 Release 构建开不了 0 AI 的 Practice，除非把 Solo 行的 `aiCount` 改成 0 再构建。
+
 **试玩包已交付（2026-10-01）：游戏源码 `21cc3cfd9246856f071b32f5730e0586ff547ea6`，含 V3 过线计时修复。** 当前 worktree 内启动 `Logs/v3-final-acceptance/playable-release/BuddahGo.exe`，在主菜单点“单人游戏”进入 Practice。这是普通 Windows x64 非 Development 构建，不含私有自动驾驶/验收器，也不需要任何验收命令参数。后续本页等文档提交不改变该包的游戏代码来源。
 
 Unity 相关回归 **151 passed / 0 failed / 0 skipped**，普通 Release 构建成功且无构建错误；实际启动到可见主菜单已核对。此前自动测试 Player 已正常退出并释放测试输入，普通试玩 Player 于 21:59 UTC 打开供用户操作。没有确认到阻止本次人工预览的新运行错误；这不是以下项目或完整 Practice 已通过的结论。

@@ -28,7 +28,7 @@
   → ResolveCastVariant（按执念掷骰，只决定是否反噬，不换 SkillAction）
   → QueueCast（写槽冷却、算同招加价层数；PlayQueuedCastFeedbackObserversRpc 播前摇，反噬播统一反噬表现）
   → 1 秒后 ExecuteQueuedCastAfterDelay → SkillCastRules.ResolveConfirmOutcome
-      反噬：ExecuteBackfireServer（不执行技能、不加执念，开始 10 秒惩罚）→ ServerCastChanged(Executed, IsBacklash)
+      反噬：ExecuteBackfireServer（普通技能不执行、不加执念，开始 5 秒惩罚，再放出该技能的 _anti 变体；变体不登记状态板）→ ServerCastChanged(Executed, IsBacklash)
       正常：executedSkill.ExecuteServer(caster, slot)   ← 技能真正生效的时刻
             → ObsessionFigure.AddServer(gain × 1.15^层数)
             → CastObserversRpc → ExecuteObservers / ExecuteLocal（纯表现）
@@ -511,7 +511,7 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 |---|---|---|
 | A1 木桩 | 保留 `SkillExecutor`；木桩没有状态板和登记（`SkillExecutor.SetUpYuanqiServer` 跳过），但是缘起的目标；头顶读数显示冻结 | 已做 |
 | A3 节奏 | 去掉全局锁后状态板上才可能同时有两条 entry；闸门的待确认施法检查保证执念先入账再接受下一招 | 已做 |
-| A4 反噬 | 反噬不再有效果，也就不登记状态板；统一惩罚的“10 秒锁技能”和禁锢的动作锁是同一个检查点（`SkillCastRules.EvaluateGate`） | 已做 |
+| A4 反噬 | 反噬放出的 `_anti` 变体（2026-10-31 恢复）不登记状态板，不能触发或参与缘起；本应触发缘起时反噬，缘起不触发、上一招按普通版本跑完；统一惩罚的“锁技能”（2026-10-31 起 5 秒）和禁锢的动作锁是同一个检查点（`SkillCastRules.EvaluateGate`） | 已做 |
 | A5 缘起 | 本文第 2、4、5 节 | 已做 |
 | A6 HUD | 冻结倒计时、缘起触发提示、选技能界面的“本配装有哪些缘起”（本地用 `SkillLoadout` + `SkillDatabase.GetYuanqis()` 经 `YuanqiCatalog.ForLoadout` 算） | 已做 |
 | A7 AI | `AISkillCaster` 直接调 `CastSlotServer`；缘起决策 `AIYuanqiPlanner` 读 `YuanqiRegistry.Registered`（服务器按配装登记的同一份 `SkillDatabase.GetYuanqis()` + `YuanqiCatalog.ForLoadout`）；被冻住的 AI 不需要特殊处理（无扭矩、无施法） | 已完成（ac3d5fe，2026-10-28）：先后、跟进、起手规则见 [AI 技能](../single-player/ai-skills.md) 的“8. 缘起决策” |

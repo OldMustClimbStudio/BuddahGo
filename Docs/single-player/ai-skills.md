@@ -9,7 +9,7 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 | 施法路径 | `AISkillCaster.Decide` 选定槽位 → `AISkillCommitment`（Decided → 下一 tick 像真人按键一样请求 → WaitingConfirm → Resolved，没有按键步骤）→ `SkillExecutor.CastSlotServer`。和 owner RPC 同一个施法门：施法串行、本槽冷却、同招加价、统一反噬都在 `SkillExecutor` 里，AI 没有自己的规则 | 已定 |
 | 已接受的施法 | 机会过期（`opportunity-expired`）不再撤回已被服务器接受、正在前摇的施法（真人也撤不回，撤回又不退冷却）；完赛、离开比赛阶段、`CastingEnabled` 关闭、开场交接、效果重置这些原因照旧取消待确认的普通施法；已判定的反噬谁也取消不了 | 建议（实现采用） |
 | 拒绝原因 | 服务器拒绝请求时承诺取消，原因带上拒绝它的那道门：`rejected-pending` / `rejected-backfirelocked` / `rejected-frozen` / `rejected-cooldown`（`SkillExecutor.ResolveCastBlockServer`）；门是开的却被拒，是 AI 专用的入口检查（同类全局效果已可见），记 `rejected-global-visible` | 建议（实现采用） |
-| 反噬风险 | （2026-10-31：反噬恢复为统一惩罚 + 该技能自己的 `_anti` 变体；AI 风险是否要把变体代价加回来待用户答复，现在仍按下面的统一代价。）统一反噬后代价与技能无关：`u = v × 缘起倍率 − riskWeight × P(反噬) × backfireCost`，`P(反噬) ≥ stopProbability` 直接不放（所有技能一个阈值）。`AI/SkillTuning.backfireCost` 1；`AI/SkillDifficulty.stopProbability` Easy 1.01（从不停手）/ Normal 0.7 / Hard 0.45，沿用原 `severeStopProbability`；`backlashSeverity`、`mildStopProbability`、`severeSeverityThreshold` 删除 | 建议（实现采用） |
+| 反噬风险 | （2026-10-31：反噬是该技能自己的 `_anti` 变体 + 5 秒惩罚；用户定先保持下面的统一代价，不把变体代价加回来，试玩后再调。）统一反噬后代价与技能无关：`u = v × 缘起倍率 − riskWeight × P(反噬) × backfireCost`，`P(反噬) ≥ stopProbability` 直接不放（所有技能一个阈值）。`AI/SkillTuning.backfireCost` 1；`AI/SkillDifficulty.stopProbability` Easy 1.01（从不停手）/ Normal 0.7 / Hard 0.45，沿用原 `severeStopProbability`；`backlashSeverity`、`mildStopProbability`、`severeSeverityThreshold` 删除 | 建议（实现采用） |
 | `AISkillWorld` 快照 | `AISkillWorld.Classify`：反噬惩罚的 ×0.85 限速（`MaxSpeedPenaltyUntilTick`）记为 `Slowed` 并计入受损秒数；#4 突进（`BurstUntilTick`）记为 `Accelerating`；缩小不再算受损（统一反噬后没有缩小来源） | 建议（实现采用） |
 | 缘起决策 | `AIYuanqiPlanner`，见下文“8. 缘起决策”。只用已实现的三对（#1、#2、#4），读 `YuanqiRegistry.Registered`（服务器按配装登记的同一份 `SkillDatabase.GetYuanqis()` + `YuanqiCatalog.ForLoadout`）。规则：先放会被消耗的那招，在它结束前至少 1 秒请求另一招，两招执念合计估风险（已定）；具体倍率、窗口、节奏是建议值 | 已定（规则）/ 建议（实现采用）（数值） |
 | 掌形瞄准 | 仍经 `BuddahHandControl.InjectServerRotation`（180°/s，`Push.basic.rotationSpeedDegPerSec`）；发射改为直接 `InjectServerPush(true)`（不再注入搓招键），间隔按 `ServerPushCooldown`。瞄准容差 ±20° / ±12° / ±6° 没有重调：真人改鼠标瞄准后命中率的变化要用户试玩数据，见玩法深化 §8 | 待定（容差） |
@@ -198,7 +198,7 @@ AI 的推进开关一直为开（已定），代码只在 `AIRacerDriver.TryGetO
 
 2026-10-31 PR #63 中途 review 与退役清理之后，`AISkillRaceHarness` Normal 再跑一场（`Logs/review/solo-20261031`，不入库）：自然结算（`natural-race-results`）；trickster 313.4 s、keeper 322.1 s、opportunist 322.4 s、hunter 326.5 s 自然完赛，brawler 在完赛倒计时截止时在第 3 圈；单圈 93.4–138.8 s；72 次请求接受 71 次（1 次 `rejected-global-visible`），执行 71 次（每个 AI 13–17 次），反噬 12 次，缘起 8 次（brawler #1 ×4，keeper #2 ×3、#4 ×1）。控制台只有结算演出传送完赛车辆时的“kinematic 刚体不能设速度”报错，dev 上就有，与本分支无关。
 
-2026-10-31 反噬变体恢复之后（反噬 = 统一惩罚 + 必定变体），`AISkillRaceHarness` Normal 再跑一场（`Logs/review/solo-anti-20261031`，不入库）：自然结算；trickster 335.1 s、opportunist 343.7 s 自然完赛，其余三个在完赛倒计时截止时在第 3 圈；单圈 99.4–174.1 s，比变体恢复前那场（93.4–138.8 s）慢，反噬变体会让施法者自己减速、定身、缩小或反转；68 次请求全部接受，执行 67 次、取消 1 次，反噬 13 次（每次都放出变体），缘起 5 次（brawler #1 ×3，keeper #2 ×2）。AI 风险仍按统一 `backfireCost`，是否把变体代价加回来待用户答复。控制台只有结算演出传送完赛车辆时的 kinematic 报错（dev 已有）。
+2026-10-31 反噬变体恢复之后（反噬 = 统一惩罚 + 必定变体），`AISkillRaceHarness` Normal 再跑一场（`Logs/review/solo-anti-20261031`，不入库）：自然结算；trickster 335.1 s、opportunist 343.7 s 自然完赛，其余三个在完赛倒计时截止时在第 3 圈；单圈 99.4–174.1 s，比变体恢复前那场（93.4–138.8 s）慢，反噬变体会让施法者自己减速、定身、缩小或反转；68 次请求全部接受，执行 67 次、取消 1 次，反噬 13 次（每次都放出变体），缘起 5 次（brawler #1 ×3，keeper #2 ×2）。AI 风险仍按统一 `backfireCost`（用户 2026-10-31：先保持）。控制台只有结算演出传送完赛车辆时的 kinematic 报错（dev 已有）。
 
 ## 后续交接与未定项
 

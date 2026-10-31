@@ -69,7 +69,6 @@ namespace BuddahGo.VFX
 
         [Header("Driven by PalmInkTimeline")]
         public float pull = 0f;
-        public float bandScale = 1f;
         [Range(0f, 1f)] public float emissionScale = 1f;
         [Range(0f, 1f)] public float fadeOut = 0f;
         [Tooltip("Gather: while > 0, ink anywhere in the box is carried straight toward the surface at this speed (cells / s).")] public float gatherSpeed = 0f;
@@ -127,7 +126,6 @@ namespace BuddahGo.VFX
         static readonly System.Comparison<InkFluidVolume> s_byScore = (a, b) => a.score.CompareTo(b.score);
         static readonly uint[] s_zero6 = new uint[6];
 
-        public static int ActiveCount => s_active.Count;
         public static int SimulatingCount { get { int n = 0; foreach (var v in s_active) if (v.state != null) n++; return n; } }
         public static int PooledCount { get { int n = 0; foreach (var kv in s_pool) n += kv.Value.Count; return n; } }
         // Bytes held by the shared scratch set and the state sets (simulating + pooled).
@@ -284,13 +282,10 @@ namespace BuddahGo.VFX
         static int s_spawnCounter;
         float speedFactor = 1f;
 
-        public RenderTexture DensityTexture => state?.den;
         public bool IsSimulating => state != null;
         internal bool InBudget => wanted;
-        public float SpeedFactor => speedFactor;
         public Vector3 BoxMin => anchorCentre - BoxSize * 0.5f;
         public Vector3 BoxSize => new Vector3(resolution.x, resolution.y, resolution.z) * Mathf.Max(cellSize, 0.01f);
-        public Vector3 AnchorCentre => anchorCentre;
 
         void OnEnable()
         {
@@ -522,7 +517,7 @@ namespace BuddahGo.VFX
             compute.SetInt("_SweepCount", sweep);
             compute.SetVector("_HandVelocity", handVel);
             compute.SetFloat("_InjectRate", injectRate * emissionScale * speedFactor);
-            compute.SetFloat("_SurfaceBand", surfaceBand * Mathf.Max(bandScale, 0.1f));
+            compute.SetFloat("_SurfaceBand", surfaceBand);
             compute.SetVector("_EmitOffset", emitOffset);
             compute.SetFloat("_Pull", pull);
             compute.SetFloat("_VelDissipation", Mathf.Pow(velocityDissipation, dt * 30f));

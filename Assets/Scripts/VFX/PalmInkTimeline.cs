@@ -9,7 +9,7 @@ namespace BuddahGo.VFX
     // Over `duration` seconds: the fog gathers out of noise during the first `gatherSeconds` (volume _FxDissolve 1 -> 0,
     // _FxAlpha 0 -> 1, smoke emission 0 -> 1), holds, then dissipates over the last `dissipateSeconds` along
     // `dissipateCurve` (volume _FxDissolve 0 -> 1, smoke emission off and the fluid's density fades). Drives the Volume
-    // renderer through a MaterialPropertyBlock, the InkFluidVolume children, and the particle children's emission.
+    // renderer through a MaterialPropertyBlock and the InkFluidVolume children.
     // Plays on enable at runtime; in the editor, tick Preview to loop it.
     // Section 20: the launch motion belongs to the skill (Docs/vfx/push-projectile-hands.md, "飞行速度"): in the race
     // ChargedHandProjectileRuntime moves this object along Skill_PushProjectileHands' speed shape and calls
@@ -33,7 +33,6 @@ namespace BuddahGo.VFX
 
         [Header("Gather / scatter feel")]
         [Tooltip("Fluid: pull toward the surface while gathering, push away while dissipating (cells / s^2).")] public float smokePull = 60f;
-        [Tooltip("Fluid: emission band width multiplier at the start of the gather.")] public float gatherBandScale = 5f;
         [Tooltip("Volume: spill (fog far from the surface) at the start of the gather.")] public float gatherSpill = 0.6f;
         [Tooltip("Volume: spill falloff distance at the start of the gather.")] public float gatherSpillFalloff = 14f;
         [Tooltip("Volume: domain warp at the end of the dissipate (the fog tears apart).")] public float dissipateWarp = 40f;
@@ -72,8 +71,6 @@ namespace BuddahGo.VFX
         float baseSpill = -1f, baseSpillFalloff, baseWarp;
         MaterialPropertyBlock block;
         double lastEditorTime;
-        float[] baseRates;
-        ParticleSystem[] particles;
         // cached by Collect(): Apply runs every frame on every flying palm, so no per-frame hierarchy searches
         InkFluidVolume[] fluids;
         MeshRenderer volumeRenderer;
@@ -196,9 +193,6 @@ namespace BuddahGo.VFX
 
         void Collect()
         {
-            particles = GetComponentsInChildren<ParticleSystem>(true);
-            baseRates = new float[particles.Length];
-            for (int i = 0; i < particles.Length; i++) baseRates[i] = particles[i].emission.rateOverTime.constant;
             fluids = GetComponentsInChildren<InkFluidVolume>(true);
             Transform vol = transform.Find("Volume");
             volumeRenderer = vol != null ? vol.GetComponent<MeshRenderer>() : null;
@@ -217,37 +211,34 @@ namespace BuddahGo.VFX
             float present = gather * (1f - dissipate);
 
             if (!collected || !Application.isPlaying) Collect();   // edit mode: the hierarchy may be edited under us
+            var mr = volumeRenderer;
+            if (mr != null)
             {
-                var mr = volumeRenderer;
-                if (mr != null)
+                if (block == null) block = new MaterialPropertyBlock();
+                mr.GetPropertyBlock(block);
+                float fadeIn = hold ? 1f : gatherSeconds > 0f ? Mathf.Clamp01(time / (gatherSeconds * Mathf.Max(volumeFadeInFraction, 0.01f))) : 1f;
+                block.SetFloat(FxAlphaId, Mathf.Clamp01(volumeAlphaMax * fadeIn * (1f - dissipate)));   // 0 at both ends
+                block.SetFloat(FxDissolveId, Mathf.Max(1f - gather, dissipate));
+                // resting values: from InkVolumeColor when the Volume has one (live-editable), else from the material
+                if (volumeColor != null)
                 {
-                    if (block == null) block = new MaterialPropertyBlock();
-                    mr.GetPropertyBlock(block);
-                    float fadeIn = hold ? 1f : gatherSeconds > 0f ? Mathf.Clamp01(time / (gatherSeconds * Mathf.Max(volumeFadeInFraction, 0.01f))) : 1f;
-                    block.SetFloat(FxAlphaId, Mathf.Clamp01(volumeAlphaMax * fadeIn * (1f - dissipate)));   // 0 at both ends
-                    block.SetFloat(FxDissolveId, Mathf.Max(1f - gather, dissipate));
-                    // resting values: from InkVolumeColor when the Volume has one (live-editable), else from the material
-                    var ivc = volumeColor;
-                    if (ivc != null)
-                    {
-                        baseSpill = ivc.outerDensity; baseSpillFalloff = ivc.outerFalloff;
-                        if (mr.sharedMaterial != null) baseWarp = mr.sharedMaterial.GetFloat(WarpId);
-                    }
-                    else if (baseSpill < 0f && mr.sharedMaterial != null)
-                    {
-                        baseSpill = mr.sharedMaterial.GetFloat(SpillId);
-                        baseSpillFalloff = mr.sharedMaterial.GetFloat(SpillFalloffId);
-                        baseWarp = mr.sharedMaterial.GetFloat(WarpId);
-                    }
-                    if (baseSpill >= 0f)
-                    {
-                        // gather: fog starts spilled far out and converges; dissipate: it spills again and tears
-                        block.SetFloat(SpillId, Mathf.Lerp(Mathf.Lerp(gatherSpill, baseSpill, gather), dissipateSpill, dissipate));
-                        block.SetFloat(SpillFalloffId, Mathf.Lerp(gatherSpillFalloff, baseSpillFalloff, gather));
-                        block.SetFloat(WarpId, Mathf.Lerp(baseWarp, dissipateWarp, dissipate));
-                    }
-                    mr.SetPropertyBlock(block);
+                    baseSpill = volumeColor.outerDensity; baseSpillFalloff = volumeColor.outerFalloff;
+                    if (mr.sharedMaterial != null) baseWarp = mr.sharedMaterial.GetFloat(WarpId);
                 }
+                else if (baseSpill < 0f && mr.sharedMaterial != null)
+                {
+                    baseSpill = mr.sharedMaterial.GetFloat(SpillId);
+                    baseSpillFalloff = mr.sharedMaterial.GetFloat(SpillFalloffId);
+                    baseWarp = mr.sharedMaterial.GetFloat(WarpId);
+                }
+                if (baseSpill >= 0f)
+                {
+                    // gather: fog starts spilled far out and converges; dissipate: it spills again and tears
+                    block.SetFloat(SpillId, Mathf.Lerp(Mathf.Lerp(gatherSpill, baseSpill, gather), dissipateSpill, dissipate));
+                    block.SetFloat(SpillFalloffId, Mathf.Lerp(gatherSpillFalloff, baseSpillFalloff, gather));
+                    block.SetFloat(WarpId, Mathf.Lerp(baseWarp, dissipateWarp, dissipate));
+                }
+                mr.SetPropertyBlock(block);
             }
 
             foreach (var fluid3d in fluids)
@@ -256,16 +247,7 @@ namespace BuddahGo.VFX
                 fluid3d.emissionScale = present;
                 fluid3d.fadeOut = dissipate;
                 fluid3d.pull = -smokePull * dissipate;
-                fluid3d.bandScale = 1f;
                 fluid3d.gatherSpeed = !hold && time < gatherSeconds ? fluidGatherSpeed * (1f - gather) : 0f;
-            }
-
-            if (particles == null || baseRates == null || baseRates.Length != particles.Length) Collect();
-            for (int i = 0; i < particles.Length; i++)
-            {
-                if (particles[i] == null) continue;
-                var em = particles[i].emission;
-                em.rateOverTime = baseRates[i] * present;
             }
         }
     }

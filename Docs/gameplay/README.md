@@ -1,6 +1,6 @@
 # 玩法深化：缘起、执念与操作改版
 
-日期 2026-10-25。状态（`feat/mechanics-update`，PR #63，2026-10-31 中途 review 与退役清理后）：阶段 A 的 A1–A8、阶段 B 和阶段 C 第一、二级已完成：训练模式自动验证 2026-10-26 13/13 通过，A8 之后 2026-10-30 重跑 14/14（[训练模式验证记录](practice-verification.md)），2026-10-28 A7 AI 适配完成并在单人赛 harness 里跑过（见 §7.1 A7 的验证一行）；阶段 C 第三级（联机）和用户试玩还没做。2026-10-25/26 用户答复了第 8 节的大部分待定项，结论已改成“已定”。2026-10-30 前进改为按住 W 推进，AI 同步适配（§3、§7.1 A8）。
+日期 2026-10-25。状态（`feat/mechanics-update`，PR #63，2026-10-31 中途 review 与退役清理后）：阶段 A 的 A1–A8、阶段 B 和阶段 C 第一、二级已完成：训练模式自动验证 2026-10-26 13/13 通过，A8 之后 2026-10-30 重跑 14/14（[训练模式验证记录](practice-verification.md)），2026-10-28 A7 AI 适配完成并在单人赛 harness 里跑过（见 §7.1 A7 的验证一行）；阶段 C 第三级（联机）和用户试玩还没做。2026-10-25/26 用户答复了第 8 节的大部分待定项，结论已改成“已定”。2026-10-30 前进改为按住 W 推进，AI 同步适配（§3、§7.1 A8）。2026-10-31 用户推翻“六种 `_anti` 变体由统一惩罚取代”：反噬改为统一惩罚 + 必定放出该技能自己的 `_anti` 变体，变体按 dev 原样恢复（§6.2）。
 
 标记：“已定”是用户在讨论中确认的规则；“建议”是待用户确认的提案；“建议（实现采用）”是用户没有裁定、代码已按它实现的做法；“待确认”是还要问用户的地方。技能数值按配表现值（`Assets/Design/Tables/_Export`）；修改顺序是先改机制、再对接配表，见第 7 节。代码层面的构筑见 [缘起架构设计](yuanqi-architecture.md)。
 
@@ -150,8 +150,9 @@
 | 惩罚 | 10 秒内：所有技能锁住；执念条冻结、不自然下降（落后补偿的额外下降也暂停）；极速 ×0.85 | 已定 |
 | 结束时 | 执念 ×0.8（降低当前持有值的 20%） | 已定（暂定值） |
 | 身上已有的 buff | 不打断；已生效的缘起照常按各自规则继续；锁住期间不能放技能，所以无法触发新缘起 | 已定 |
-| 反作用 | 用户提到反噬“有些许可能出现反作用”。理解为：反噬时，身上已有 buff 有一定概率反转（比如金身变缩小，巨掌跟着变小掌）。统一反噬后金身的缩小变体退役，这是唯一的“变小”来源 | 待确认理解与概率 |
-| 六种 `_anti` 变体 | 由统一惩罚取代 | 已定 |
+| 反作用 | 用户提到反噬“有些许可能出现反作用”。理解为：反噬时，身上已有 buff 有一定概率反转（比如金身变缩小，巨掌跟着变小掌）。2026-10-31 变体恢复后，它和变体是什么关系（被变体取代，还是另外保留）待用户答复 | 待确认 |
+| 六种 `_anti` 变体 | **统一惩罚 + 必定变体**：反噬时照常施加上面的统一惩罚（本次技能失效、不加执念、本槽照常进冷却、三槽锁 10 秒、极速 ×0.85、执念冻结、结束 ×0.8），同时必定放出这个技能自己的 `_anti` 反效果。变体内容按改版前 dev 原样恢复（神足通反噬自身减速、缓流反噬定身后加速、一念光明反噬只遮自己、金身反噬缩小、神掌反噬向后的反向弹幕、逆姻缘反噬反转自己）。这一行推翻了 2026-10-25 起记的“由统一惩罚取代（已定）”。实现见 [退役记录](retired.md) 第 8 节 | 已定（2026-10-31） |
+| 变体与惩罚的边界 | 变体按自己的时长独立结束，和 10 秒锁、×0.85 互不影响；反噬判定后被禁锢，变体照常放出；变体不进技能状态板，不能触发也不能参与缘起；复活时变体效果按普通技能效果的复位规则清掉（惩罚照旧持续）；变体不加执念、不另算冷却 | 建议（实现采用），待用户答复（2026-10-31 已提问） |
 
 执念条冻结后，解锁时的执念就是反噬时的值 × 0.8：
 
@@ -237,7 +238,7 @@
 
 #### A4 执念与反噬：统一反噬、同招加价
 
-规则见 6.1、6.2（同招加价、加价清零、反噬惩罚、结束 ×0.8 已定；反作用待确认，没有实现）。
+规则见 6.1、6.2（同招加价、加价清零、反噬惩罚、结束 ×0.8 已定；反作用待确认，没有实现）。2026-10-31 起反噬还必定放出该技能的 `_anti` 变体（6.2），下表的“退役”一行随之大部分作废，见表后说明。
 
 | 项 | 内容 |
 |---|---|
@@ -246,7 +247,9 @@
 | 退役 | 6 个 `Skill_*_Anti` 类和资产、`SkillAction.antiSkillId`、`ExecuteObservers` / `ExecuteLocal` 的 `isAnti` 参数、`BuddahHandControl.FireChargedProjectileBurstReplicated`、各技能运行时组件里的反噬分支和各自的反噬特效。缓流反噬的定身效果 `MovementRootThenAccelerationEffect` 保留，作为预测关闭时禁锢的兜底。配表里的 `_anti` 行已在阶段 B 删除（16121ed） |
 | 网络与预测 | 极速 ×0.85 和其他运动修饰一样走预测桥接（服务器 + owner TargetRpc），技能重置不清（`BuddahPredictedModifierStateOps.ClearActiveSkillModifiers` 不动 `MaxSpeedPenaltyUntilTick`；`Movement/ModifierRule` 的 `resetOnSkillReset = false` 只是文档记录），复活 teleport 由 `PreservePersistentOnReset` 保留；执念和惩罚结束 tick 都是 `SyncVar`，各端按自己的时钟算剩余时间 |
 | 训练模式验证 | 结果见 S4、S5、S6：增量 300 → 345 → 396.75，冷却结束超过 5 秒再放回到 300；反噬时技能不生效、执念不涨，三个槽都拒绝，极速 80 → 68，执念不动，中途复活惩罚仍在，正好 10 秒，结束时 ×0.8；已判定的反噬被禁锢时照常进入惩罚，冷却不退 |
-| 完成标准 | 反噬只剩统一惩罚一种；观察指标：反噬后多久能放出第一招安全技能，超过 30 秒就考虑把 0.8 往下调（配表 `Obsession.backfireEndKeepRatio`），要试玩数据 |
+| 完成标准 | 反噬是统一惩罚加该技能自己的变体（2026-10-31 起；A4 当时是只剩统一惩罚一种）；观察指标：反噬后多久能放出第一招安全技能，超过 30 秒就考虑把 0.8 往下调（配表 `Obsession.backfireEndKeepRatio`），要试玩数据 |
+
+**2026-10-31 变体恢复。** 用户推翻了“由统一惩罚取代”。上表“退役”一行里的 6 个 `Skill_*_Anti` 类和资产、`SkillAction.antiSkillId`、`FireChargedProjectileBurstReplicated` 和配表的反噬行都按 dev 原样恢复。`ExecuteObservers` / `ExecuteLocal` 不恢复 `isAnti` 参数：变体类自己知道是变体，只有黑幕的 `BlackCurtainPresentation.TryPlay` 和 `SkillPerceptionState.ApplyCurtain` 重新带一个反噬标志。反噬走 `ExecuteBackfireServer`：先开始统一惩罚，再按 dev 的顺序解析变体（表 `antiSkillId` → SO `antiSkillId` → `<id>_anti`），在服务器执行一次，`BackfireVariantObserversRpc` 播表现。提交 7a078eed（配表）、6f8fdb74（弹幕方法）、69e80978（黑幕标志）、7a15e7e5（类与资产）、45eadb63（校验）、b688b5e5（接线）、c369d584（测试）。
 
 #### A5 缘起
 
@@ -306,7 +309,7 @@
 |---|---|
 | 改哪里 | `AISkillCaster` 不再注入搓招键：`Decide` 选定槽位后 `AISkillCommitment` 记为 Decided，下一 tick 像真人按键一样调用 `SkillExecutor.CastSlotServer(slot)`（和 owner RPC 同一个入口，施法串行、同招加价、统一反噬都在 `SkillExecutor` 里），然后等 Executed / Cancelled / Rejected。瞄准仍经 `BuddahHandControl.InjectServerRotation`，掌形发射改为直接 `InjectServerPush`；容差 ±20° / ±12° / ±6° 没有重调（见第 8 节） |
 | 新增 | 缘起决策 `AIYuanqiPlanner`（`Assets/Scripts/AI/`，纯逻辑）：按本配装登记的对（`YuanqiRegistry.Registered`，与服务器同一份 `SkillDatabase.GetYuanqis()` + `YuanqiCatalog.ForLoadout`）决定先后（会被消耗的那招先放；两招都消耗或都不消耗时主效果长的先放）、跟进（另一招生效中、剩余 ≥ 前摇 + 1 tick；先放那招会被消耗时只在剩余 ≤ 前摇 + 0.6 s 时跟进，否则立刻）和起手（另一招的冷却来得及、第二招的反噬概率 `P(当前执念 + 第一招增量)` 低于停手阈值才给加成）。只用已实现的三对，没设计的对不补。统一反噬风险：`u = v × 缘起倍率 − riskWeight × P(反噬) × backfireCost`，每个难度一个停手阈值 `stopProbability`；`AISkillWorld.Classify` 把反噬的 ×0.85 记为减速受损、突进记为加速。参数：`AI/SkillTuning` 的 `backfireCost` 1、`yuanqiSetupMultiplier` 1.2、`yuanqiFollowUpScore` 0.8、`yuanqiFollowUpMultiplier` 1.5、`yuanqiFollowUpTempoSeconds` 0.3、`yuanqiLateWindowSeconds` 0.6，`AI/SkillDifficulty.stopProbability` 1.01 / 0.7 / 0.45，`AI/Personality.yuanqiAffinity` 1；JSON 兜底 `SkillPersonalities.json` 同步。这些数值是建议（实现采用） |
-| 退役 | `ComboSkillInput`（类、prefab 组件、`SkillExecutor` 的订阅与 `ClearCombo`）、`Skill/ComboInput`、`Skill/ComboBinding`、`__enums__` 的 `ComboToken`、`AISkillCommitment` 的按键步骤、AI 表的搓招列（`keyMistakeProbability`、`keyMinSeconds`、`keyMaxSeconds`、`maxComboRetries`）、按技能的 `backlashSeverity` 与 `mildStopProbability` / `severeSeverityThreshold`（`severeStopProbability` 改名 `stopProbability`）、校验规则 `KeyMaxBelowComboWindow`。`AISkillEffectHarness` 和 `Tools/ai/analyze_skill_matrix.py` 的反噬用例改成统一反噬 |
+| 退役 | （2026-10-31：反噬变体恢复后，AI 是否要把按技能的反噬代价加回来待用户答复，现在仍按统一 `backfireCost`。）`ComboSkillInput`（类、prefab 组件、`SkillExecutor` 的订阅与 `ClearCombo`）、`Skill/ComboInput`、`Skill/ComboBinding`、`__enums__` 的 `ComboToken`、`AISkillCommitment` 的按键步骤、AI 表的搓招列（`keyMistakeProbability`、`keyMinSeconds`、`keyMaxSeconds`、`maxComboRetries`）、按技能的 `backlashSeverity` 与 `mildStopProbability` / `severeSeverityThreshold`（`severeStopProbability` 改名 `stopProbability`）、校验规则 `KeyMaxBelowComboWindow`。`AISkillEffectHarness` 和 `Tools/ai/analyze_skill_matrix.py` 的反噬用例改成统一反噬 |
 | 网络与预测 | 没有新的同步；`SkillExecutor` 只多了只读的 `ResolveCastBlockServer`（AI 记录被哪道门拒绝） |
 | 验证 | 无窗口 EditMode `BuddahGo.Tests` 577/577（A7 前 559）；无窗口导表 0 错误；单人赛（5 个 AI，`AISkillRaceHarness`，编辑器 Play）：2026-10-28 Normal 难度一场（`Logs/a7/solo-1`，不入库）：自然结算（`natural-race-results`），0 运行错误；五个 AI 各执行 10–17 次施法（1.8–3.1 次/分钟），63 次请求全部被接受，没有一次在前一招待确认时再请求（施法串行成立），没有 Rejected；7 次反噬（keeper 1、hunter 1、brawler 2、trickster 0、opportunist 3）之后下一次执行都在 ≥ 11.1 s 后，惩罚 10 s 内三个槽的候选全部是 `cooldown-or-lock`；缘起触发 8 次：keeper #2 禅足冰封 ×4，brawler #1 金身巨掌 ×4，#4 金足破阵 0 次（keeper 这场没放过金身）；两个 AI 自然完赛（316.6 s、327.2 s），三个在完赛倒计时截止时在第 3 圈，真人不操作、停在起点。要用户试玩判断的：黑幕的频率（trickster 10 次、opportunist 7 次，每约 20 s 一次全屏黑幕）、#2 禁锢对车群的影响、圈速（带技能的 Normal AI 单圈 101–139 s，之前无技能基准 92.8–94.4 s） |
 | 完成标准 | 代码和配表里不再有搓招；AI 和真人走同一条施法路径；AI 能在单人赛里施法、打出缘起并吃到反噬惩罚（都已验证）。节奏、停手阈值和缘起参数的手感要用户试玩 |
@@ -337,7 +340,7 @@
 | A1 木桩 | 并进 `Match/ModeRule`：五列 `trainingDummyCount`、`trainingDummySpacingMeters`、`trainingDummyStartOffsetMeters`、`trainingDummyLateralOffsetMeters`、`trainingDummyResetDelaySeconds`（Practice 行 3 / 15 / 90 / 10 / 3，Online / Solo 的数量填 0）。`MatchSpawnManager` 只读 Practice 行（`TrainingDummyModeRuleMap`）；是否生成仍由代码里的 `IMatchRules.SpawnTrainingDummies` 决定 | 已完成 |
 | A2 操作 | `Push.rotationSpeedDegPerSec` 的 `##comment` 改成“鼠标转手速度上限”（方向键回退和 AI 也用它）；键位不做成可配，文档表 `Global/InputBinding` 列出 Q/E/R + 1/2/3、鼠标左/右键推掌、←/→ 回退，W/↑ 标为废弃 | 已完成 |
 | A3 节奏 | 删除 `Skill.castLockSeconds`（没有改成全局短间隔） | 已完成 |
-| A4 反噬 | 删除 `Skill` 表 6 行 `_anti` 和 `antiSkillId` 列；删掉 `SkillEffect*` 的反噬行与反噬列、`Push` 的 `charged_anti` 行和它专用的列、`SkillConstant`、`SkillSelectionRule`（Hidden）、`SkillPresentation`、`FeelEvent` 的反噬行；保留 `Anti_Reflection_*` 表现（统一反噬的前摇在用）；`VfxRegistry` 的反噬 id、`__enums__` 里 `SkillId` 的反噬值和 `UI/Text` 的反噬文案 key 阶段 B 按“建议（实现采用）”保留，2026-10-31 退役清理时因无读取方删除，保留删除已定（2026-10-31，见[退役记录](retired.md) 4.1，`SkillId` 编号 6–11 不复用）。`Obsession` 新增 `repeatWindowSeconds` 5、`repeatGainMultiplier` 1.15、`backfireLockSeconds` 10、`backfireMaxSpeedMultiplier` 0.85、`backfireEndKeepRatio` 0.8。依赖 `antiSkillId` 的校验规则一起改 | 已完成 |
+| A4 反噬 | 删除 `Skill` 表 6 行 `_anti` 和 `antiSkillId` 列；删掉 `SkillEffect*` 的反噬行与反噬列、`Push` 的 `charged_anti` 行和它专用的列、`SkillConstant`、`SkillSelectionRule`（Hidden）、`SkillPresentation`、`FeelEvent` 的反噬行；保留 `Anti_Reflection_*` 表现（统一反噬的前摇在用）；`VfxRegistry` 的反噬 id、`__enums__` 里 `SkillId` 的反噬值和 `UI/Text` 的反噬文案 key 阶段 B 按“建议（实现采用）”保留，2026-10-31 退役清理时因无读取方删除，保留删除已定（2026-10-31，见[退役记录](retired.md) 4.1，`SkillId` 编号 6–11 不复用）。**2026-10-31 推翻**：用户决定恢复反噬变体，上面删掉的反噬行与列（不含 `castLockSeconds`）、`antiSkillId`、`SkillId` 6–11、12 个文案 key 和两个 VFX id 都按 dev 原样恢复（7a078eed），“6–11 不复用”作废。`Obsession` 新增 `repeatWindowSeconds` 5、`repeatGainMultiplier` 1.15、`backfireLockSeconds` 10、`backfireMaxSpeedMultiplier` 0.85、`backfireEndKeepRatio` 0.8。依赖 `antiSkillId` 的校验规则一起改 | 已完成 |
 | A5 缘起 | 新增 `Skill/Yuanqi`（缘起 id、两招、`consumeA / consumeB`、`mode`、`retriggerPolicy`、`isEnabled`、文案 key）和家族表 `YuanqiEffectFrostLock`（N、R、是否冻木桩）、`YuanqiEffectGiantCharge`（突进限速、回落秒数、M）；`__enums__` 加 `YuanqiId`、`YuanqiMode`、`YuanqiRetrigger`；`UI/Text` 加 `yuanqi.<id>.name / .desc`。#1 没有参数，不建家族表。表结构见 [缘起架构设计 §3](yuanqi-architecture.md) | 已完成 |
 | 预测修饰 | `ModifierCommandType` 加 `Freeze`、`EndModifier`、`Burst`、`MaxSpeedMultiplier`，`ModifierRule` 加四行，`StackPolicy` 加 `Restart`；`StructuralConstant.prediction_protocol_version` = 2 | 已完成 |
 | A6 HUD | `UI/UiTiming` 删掉 `SkillSlotUI` 的 `successHoldSeconds`、`fallbackCastLockSeconds`、`previewTimeoutSeconds` | 已完成 |
@@ -362,7 +365,9 @@
 
 还要用户答复或安排的：
 
-- [ ] 反噬“反作用”：理解对不对，概率多少（6.2；没有实现）
+- [ ] 反噬“反作用”：理解对不对，概率多少；2026-10-31 变体恢复后，它是被变体取代还是另外保留（6.2；没有实现）
+- [ ] 反噬变体与惩罚的边界（6.2“变体与惩罚的边界”，现在按建议实现）：变体时长和 10 秒锁各自计时；被禁锢时变体照常放出；变体不进状态板、不参与缘起；复活时变体效果按普通复位清掉；变体不加执念、不另算冷却
+- [ ] AI 的反噬风险要不要把变体代价加回来（A7 删掉了按技能的 `backlashSeverity` 和两档停手阈值）；现在仍是统一 `backfireCost`（建议先保持）
 - [ ] 缘起效果（如 #2 的禁锢）算不算控制，是否计入受害者控制上限（第 9 节的受害者保护）
 - [ ] 神足通被敌人的缓流覆盖共享加速槽之后，#2 / #4 “消耗神足通”对移动没有作用，#4 从减速后的上限起步：是否接受（[缘起架构设计](yuanqi-architecture.md) Q15）
 - [ ] SoloCJK 字体子集重烘：“冻”“起”等字缺失，“冻结”和缘起名现在显示英文或 id（A6）。2026-10-31 补充：单人设置面板现有文字也缺 9 个字（三 五 六 四 固 格 种 装 零），“六人单人赛”“五种技能人格 · 固定配装”显示成方块；训练模式按钮缺“训练模式”，暂用英文 “Practice (0 AI)”

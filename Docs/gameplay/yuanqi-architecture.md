@@ -249,7 +249,7 @@ public interface IHandsImpulseScale { bool ImpulseFollowsScale { get; set; } }  
 - 新数字先是 SO 上的序列化字段带默认值（README 7.0，已定），进表后 SO 值只是无表时的兜底；不写字面量在方法里。
 - 新修饰命令按附录 A 一次改齐，并在 `Movement/ModifierRule`（presentationOnly）与 `Global/__enums__.ModifierCommandType` 登记。
 - 登记处每次触发自动记 `SkillCombatEvents.Record("yuanqi-trigger", yuanqiId, caster, target, pos, …)`（每个目标一条，没有目标时一条）；#4 的撞击另记 `hit / body-impact`。
-- 反噬变体已删除：六个 `Skill_*_Anti` 类与资产、`FireChargedProjectileBurstReplicated`、`PlayChargedBurstVisuals*`、`ResolveAntiSkillId` 的后缀推断；`MovementRootThenAccelerationEffect` 留作 legacy 路径的禁锢。
+- 反噬变体已删除：六个 `Skill_*_Anti` 类与资产、`FireChargedProjectileBurstReplicated`、`PlayChargedBurstVisuals*`、`ResolveAntiSkillId` 的后缀推断（2026-10-31 按用户决定全部恢复：反噬 = 统一惩罚 + 必定变体，变体不进状态板、不参与缘起，见 [README §6.2](README.md)）；`MovementRootThenAccelerationEffect` 留作 legacy 路径的禁锢。
 - 日志走 `GameLog.Verbose` 并带 `[Yuanqi]` 前缀；不在表现层写游戏状态。
 
 ## 3. 配表怎么变

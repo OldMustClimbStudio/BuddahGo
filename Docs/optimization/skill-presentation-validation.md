@@ -1,6 +1,6 @@
 # 技能表现修复：N6 / B11
 
-> **已被取代（2026-10-31）：** N6 的反噬连发和 B11 的反噬技能已随六种 `*_anti` 变体删除，反噬统一为 10 秒惩罚，见 [ADR 0007](../adr/0007-unified-backfire-replaces-per-skill-anti-variants.md)。
+> **已被取代（2026-10-31）：** N6 的反噬连发和 B11 的反噬技能曾随六种 `*_anti` 变体删除，2026-10-31 按用户决定恢复（反噬 = 统一 10 秒惩罚 + 必定变体），见 [ADR 0007](../adr/0007-unified-backfire-replaces-per-skill-anti-variants.md)。
 
 ## N6 反噬连发起点
 

@@ -54,8 +54,12 @@ _Avoid_: 槽、Slot、站位
 _Avoid_: 法力、技能余额
 
 **反噬（Backfire）**：
-按当前执念掷骰得到的统一惩罚，掷骰在服务器接受施法请求的那一刻。被判定反噬的施法照常播放 1 秒确认前摇（统一的反噬表现：`IsAnti` 动画触发和 `Anti_Reflection_Shared` / `_Local` 反馈事件），本槽照常进冷却，但技能不生效、不加执念、不计入同招加价。前摇结束时开始 10 秒惩罚：所有技能锁住，执念冻结，极速 ×0.85；结束时执念 ×0.8。复活和传送不解除惩罚，身上已有的 buff 和正在进行的缘起不受影响。参数在配表 `Skill/Obsession`（`backfireLockSeconds`、`backfireMaxSpeedMultiplier`、`backfireEndKeepRatio`）。代码里施法结果仍沿用旧名 `CastEvent.IsBacklash`。用户提到的“反作用”（反噬时身上 buff 有概率反转）待确认，没有实现。
-_Avoid_: 反噬变体、`*_anti` 技能、技能拒绝（那是 `CastStage.Rejected`）
+按当前执念掷骰得到的统一惩罚，掷骰在服务器接受施法请求的那一刻。被判定反噬的施法照常播放 1 秒确认前摇（统一的反噬表现：`IsAnti` 动画触发和 `Anti_Reflection_Shared` / `_Local` 反馈事件），本槽照常进冷却，但技能不生效、不加执念、不计入同招加价。前摇结束时开始 10 秒惩罚：所有技能锁住，执念冻结，极速 ×0.85；结束时执念 ×0.8。复活和传送不解除惩罚，身上已有的 buff 和正在进行的缘起不受影响。2026-10-31 起，前摇结束时除了开始惩罚，还必定放出这个技能自己的反噬变体（`*_anti`，按改版前 dev 原样：神足通反噬自身减速、缓流反噬定身后加速、一念光明反噬只遮自己、金身反噬缩小、神掌反噬反向弹幕、逆姻缘反噬反转自己）。参数在配表 `Skill/Obsession`（`backfireLockSeconds`、`backfireMaxSpeedMultiplier`、`backfireEndKeepRatio`）。代码里施法结果仍沿用旧名 `CastEvent.IsBacklash`。用户提到的“反作用”（反噬时身上 buff 有概率反转）待确认，没有实现。
+_Avoid_: 技能拒绝（那是 `CastStage.Rejected`）
+
+**反噬变体（Backfire variant）**：
+每个技能各自的反效果技能（`Skill_*_Anti`，配表 `Skill.antiSkillId` 指向 `*_anti` 行），反噬时和统一惩罚一起必定放出。变体不加执念、不另算冷却，现在不进缘起状态板（建议（实现采用），待用户答复）。
+_Avoid_: 反噬技能（它不能被选或施放，只在反噬时出现）
 
 **同招加价（Same-skill Surcharge）**：
 同一技能在自己冷却结束后 5 秒内再次施放时，本次执念增量 ×1.15，连续时复利叠加（×1.15 → ×1.3225 → ×1.52），与中间放没放别的技能无关。超过 5 秒才放、或发生反噬，层数清零；被取消和反噬的施法不计层数。参数在配表 `Skill/Obsession` 的 `repeatWindowSeconds`、`repeatGainMultiplier`；HUD 在冷却结束后的窗口里显示下一次的倍率和剩余秒数。

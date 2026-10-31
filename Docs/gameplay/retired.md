@@ -9,8 +9,11 @@
 - **保留**：看起来像旧东西，但有读取方或是有意留下的，不能删。
 - **待定**：要用户决定。
 - **已定**：用户已裁定（写明日期和裁定方式）。
+- **已恢复**：曾经退役，后来按用户决定恢复（写明原因和提交）。
 
 调查文档、修复记录和诊断探针不删，只加“已被取代”注（用户规则）。
+
+> **2026-10-31 反噬变体恢复。** 用户推翻了“六种 `_anti` 变体由统一惩罚取代”：反噬改为统一惩罚 + 必定放出该技能自己的 `_anti` 变体，按 dev 原样恢复。下面凡是关于反噬变体的条目都已恢复，以第 8 节为准；其余退役内容（搓招、全局施法锁、W/↑ 推掌、旧起跑交接、HUD token 等）不变。
 
 ## 1. 各步实现时已经删掉的（2026-10-26 至 2026-10-30）
 
@@ -18,9 +21,9 @@
 
 | 内容 | 退役原因 | 提交 |
 |---|---|---|
-| 6 个 `Skill_*_Anti` 类、资产，`SkillDatabase.antiSkills`、`SkillAction.antiSkillId`、`ExecuteObservers` / `ExecuteLocal` 的 `isAnti` 参数、`BuddahHandControl.FireChargedProjectileBurstReplicated`、`SkillExecutor.PlayChargedBurstVisualsServer` | 统一反噬取代各技能的反噬变体（A4，[ADR 0007](../adr/0007-unified-backfire-replaces-per-skill-anti-variants.md)） | 1ca7c50 |
+| 6 个 `Skill_*_Anti` 类、资产，`SkillDatabase.antiSkills`、`SkillAction.antiSkillId`、`ExecuteObservers` / `ExecuteLocal` 的 `isAnti` 参数、`BuddahHandControl.FireChargedProjectileBurstReplicated`、`SkillExecutor.PlayChargedBurstVisualsServer` | 统一反噬取代各技能的反噬变体（A4，[ADR 0007](../adr/0007-unified-backfire-replaces-per-skill-anti-variants.md)） | 1ca7c50；**已恢复**（2026-10-31，第 8 节；`isAnti` 参数不恢复，`castLockSeconds` 不恢复） |
 | 全局施法锁 `_castLockedUntil`、`SkillAction.castLockSeconds`、`SkillDatabase.GetCastLockSeconds`、`SkillConfigRepository.TryGetCastLock` | 去掉全局锁，改为施法串行（A3） | 1ca7c50 |
-| 配表 `Skill.castLockSeconds`、`Skill.antiSkillId`、6 行 `_anti`，家族表与 `Push` 的反噬行和反噬列，`UI/UiTiming` 里 `SkillSlotUI` 的三行 | 同上（阶段 B） | 16121ed |
+| 配表 `Skill.castLockSeconds`、`Skill.antiSkillId`、6 行 `_anti`，家族表与 `Push` 的反噬行和反噬列，`UI/UiTiming` 里 `SkillSlotUI` 的三行 | 同上（阶段 B） | 16121ed；反噬部分**已恢复**（2026-10-31，7a078eed），`castLockSeconds` 和 `UiTiming` 三行不恢复 |
 | `LocalSkillUiEvent.CastLockSeconds`、HUD 2 秒假锁 | 同上（A6） | 6c4abee |
 | `ComboSkillInput`（类、prefab 组件、`SkillExecutor` 的订阅与 `ClearCombo`）、`Skill/ComboInput`、`Skill/ComboBinding`、`ComboToken`、AI 搓招列、`backlashSeverity`、`mildStopProbability` | 单键释放（A2）后 AI 也改为直接施法（A7） | ac3d5fe |
 | W/↑ 推掌的绑定、`TryResolvePushHand` 的 W/↑ 分支、`Global/InputBinding` 两行 | W 改为前进键（A8） | d6fc63b1 |
@@ -31,8 +34,8 @@
 | 内容 | 状态 | 说明 | 提交 |
 |---|---|---|---|
 | `SkillSlotUI.TokenUI`、`tokens` 列表、`HideRetiredTokens`、`SetGraphicVisible` | 已删 | 搓招 token 图只为运行时隐藏而留；图本身也删了（第 3 节） | 3cd7d5d1 |
-| `BuddahHandControl.FireProjectileBurstImmediate`、`FireChargedProjectileImmediate`、`GetProjectileBurstAnchorPosition` | 已删 | 只服务反噬变体的反向弹幕，没有调用方（在本分支之前就已无调用） | 00472741 |
-| `ProjectileBurstParameters`、`ProjectileBurstPlanner.GetSpawnPosition` 和它的测试 `BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection` | 已删 | 同上；`SanitizeColliderSize` 还在用，保留 | 00472741 |
+| `BuddahHandControl.FireProjectileBurstImmediate`、`FireChargedProjectileImmediate`、`GetProjectileBurstAnchorPosition` | 已恢复 | 只服务反噬变体的反向弹幕，没有调用方（在本分支之前就已无调用） | 00472741；2026-10-31 回退（6f8fdb74），反噬神掌的反向弹幕要用 |
+| `ProjectileBurstParameters`、`ProjectileBurstPlanner.GetSpawnPosition` 和它的测试 `BurstIsCenteredAndSpacingScalesAlongRequestedSideDirection` | 已恢复 | 同上；`SanitizeColliderSize` 还在用，保留 | 00472741；2026-10-31 回退（6f8fdb74），反噬神掌的反向弹幕要用 |
 | `BuddahMovement.launchInheritTime` / `launchBlendTime` 的代码默认值 0.2 / 0.32 | 已改为 0 | 预测关闭时的旧运动组件，无表时的兜底要和 `Movement` 表的 0 一致 | 5fc675e7 |
 | `SkillExecutor.ApplyFreezeToOwner` 注释里的“AI 搓招按键” | 已改 | AI 搓招 A7 已删 | f7f62017 |
 | `MatchSpawnManager._trainingDummyStartOffsetMeters` 的 tooltip 里的 0.2 秒继承 + 0.32 秒混合 | 已改 | A8 完全物理交接 | f7f62017 |
@@ -61,19 +64,21 @@
 
 | 内容 | 状态 | 说明 | 提交 |
 |---|---|---|---|
-| `Global/__enums__` 的 6 个 `SkillId` `*_anti` 值 | 已删（已定） | 统一反噬后没有读取方，见 4.1 | 6cf32706 |
-| `UI/Text` 的 12 个 `skill.*_anti.name / .desc` | 已删（已定） | 同上，见 4.1 | 6cf32706 |
-| `Skill/VfxRegistry` 的 `accel_anti_vfx`、`reverse_turn_trap_anti_vfx` | 已删（已定） | 库中本来就没有条目，见 4.1 | 6cf32706 |
+| `Global/__enums__` 的 6 个 `SkillId` `*_anti` 值 | 已恢复 | 统一反噬后没有读取方，见 4.1 | 6cf32706；2026-10-31 恢复（7a078eed），见第 8 节 |
+| `UI/Text` 的 12 个 `skill.*_anti.name / .desc` | 已恢复 | 同上，见 4.1 | 6cf32706；2026-10-31 恢复（7a078eed），见第 8 节 |
+| `Skill/VfxRegistry` 的 `accel_anti_vfx`、`reverse_turn_trap_anti_vfx` | 已恢复 | 库中本来就没有条目，见 4.1 | 6cf32706；2026-10-31 恢复（7a078eed），见第 8 节 |
 | `Skill/Obsession.repeatWindowSeconds` 注释“SkillExecutor 每槽记层数” | 已改 | 同招加价按技能 id 记层数（`SkillRepeatSurcharge`） | bbda0a20 |
 | `Skill/Yuanqi.retriggerPolicy` 注释“YuanqiRegistry 读 SO.retriggerPolicy” | 已改 | 代码不按值分支，一次重叠只触发一次是 `YuanqiPairTable` 固定的 | bbda0a20 |
 | `Skill/SkillPresentation.vfxDurationSeconds` 注释“slowtrap 的 11 = 区域 10 s + 1 s 余韵” | 已改 | 区域现在 6 秒，11 只是上限，区域结束时特效随之停止 | bbda0a20 |
-| `Skill/Skill.skillId` 注释里“枚举里保留的 *_anti 值” | 已改 | 枚举值已删 | 6cf32706 |
+| `Skill/Skill.skillId` 注释里“枚举里保留的 *_anti 值” | 已改 | 枚举值已删 | 6cf32706；枚举值恢复后注释沿用现在的写法 |
 | `Global/InputBinding.status` 注释与 `__meta__` 说明里的“W/↑ 推掌是废弃内容” | 已改 | A8 已删 | bbda0a20 |
 | 指向本分支改过的文件的行号：`FeelEvent.usedBy`、`SkillConstant.source`（黑幕）、`AI/SkillOpportunity.source`、`AI/SkillTuning` 的 12 处注释、`AI/DrivingConstant.source`、`UI/HudObsession.flashFrequencyMin`、`UI/Text.context`（`RacerIdentity`、`MatchSpawnManager`、`PropertiesSelectorUI` 共 29 行）、`StructuralConstant.source`（`skill_slot_count`、`prediction_protocol_version`） | 已改 | 按基线 5f91e51 那一行的内容在 HEAD 里重新定位 | bbda0a20 |
 | `Skill/FeelEvent` 的 `Anti_Reflection_*` 两行 | 保留 | 统一反噬的前摇表现在用 | — |
 | `Movement.launchInheritSeconds` / `launchBlendSeconds` 两列 | 保留 | 值为 0，机制可调 | — |
 
-### 4.1 `*_anti` 枚举值、文案和 VFX id 的删除（已定）
+### 4.1 `*_anti` 枚举值、文案和 VFX id 的删除（已被取代：2026-10-31 已恢复）
+
+> **已被取代（2026-10-31）：** 同一天晚些时候用户决定恢复反噬变体（第 8 节），本节删除的枚举值、文案和 VFX id 都已恢复（7a078eed）。下面保留当时的记录。
 
 **已定（2026-10-31）。** 用户答复“两种都可以”（保留或删除都要和 PR #68 对齐，原话：“既然都要对齐 那么就随意选择一个方式即可。但务必请写清楚”），由总控选择保留删除，不回退 6cf32706。阶段 B 原来按“建议（实现采用）”保留这批数据（[design-tables 决定 26](../design-tables/decisions.md)、[ADR 0007](../adr/0007-unified-backfire-replaces-per-skill-anti-variants.md)），这个说法由本节取代。
 
@@ -88,7 +93,7 @@
 | `Skill/VfxRegistry` | `accel_anti_vfx`、`reverse_turn_trap_anti_vfx`（库中本来没有条目） |
 
 - **保留**：`Skill/FeelEvent` 的 `Anti_Reflection_Shared`、`Anti_Reflection_Local` 和动画触发器 `IsAnti`。统一反噬的 1 秒确认前摇播的就是它们（`SkillExecutor.PlayQueuedCastFeedbackObserversRpc`）。
-- **编号 6–11 不复用。** 以后新增技能从 `SkillId` 的 12 开始编号，不要把 6–11 分给新技能，免得旧存档、日志或 PR #68 里残留的 `_anti` 引用被误读成新技能。
+- ~~**编号 6–11 不复用。**~~ 作废（2026-10-31）：6–11 已恢复给六个反噬变体，新技能照常从 12 开始编号。
 - **恢复方法**：如果以后要恢复，单独回退 6cf32706，再按第 7 节的方式无窗口导表。
 
 ## 5. 2026-10-31 清理：文档
@@ -109,7 +114,8 @@
 ## 6. 留给用户决定
 
 - 神足通、缓流、神掌 SO 资产的时长和冷却和表不一致（第 3 节）。可选做法：把 SO 改成表值，或者按设计表 README 的遗留清单删除这些已被表接管的重复字段。两种都会改 SO，没有替用户定。
-- 已答复：`*_anti` 枚举值、文案和 VFX id 保留删除（已定 2026-10-31，见 4.1）。
+- 已被取代：`*_anti` 枚举值、文案和 VFX id 曾“保留删除（已定）”，同一天按用户决定恢复（第 8 节）。
+- 反噬变体与惩罚的边界（第 8 节“待用户答复”）：现在按建议实现，等用户答复。
 - `Docs/vfx/retired.md` 计划删除 `Anti_Reflection_*` Feel 事件和 `IsAnti` 前摇；那是 VFX 重构的事，这里保留。
 
 ## 7. 和 PR #68 合并时怎么对齐
@@ -127,8 +133,35 @@ PR #68（`refactor/vfx-refactor` → dev）从 dev 9629c317 切出，那时 dev 
 
 处理原则：
 
-- **以统一反噬为准。** 反噬没有技能变体（[ADR 0007](../adr/0007-unified-backfire-replaces-per-skill-anti-variants.md)）。合并时删掉 #68 对 `Skill_*_Anti` 类和资产、`antiSkillId`、`isAnti` 参数、`ResolveAntiSkillId` 的改动和引用，以及第 4.1 节删除的 id，不要把它们带回来。
+- **（2026-10-31 改）保留 `_anti` 引用。** 反噬是统一惩罚 + 必定变体（[ADR 0007](../adr/0007-unified-backfire-replaces-per-skill-anti-variants.md) 修订段、第 8 节），#63 已按 dev 原样恢复六个变体，所以 #68 对 `Skill_*_Anti` 类和资产、`antiSkillId`、反噬弹幕和这些 id 的改动和引用都保留，按内容合并。差别只有两处：#63 的 `ExecuteObservers` / `ExecuteLocal` 没有 `isAnti` 参数（变体类自己知道是变体），#68 里依赖这个参数的地方改成变体类自己的分支；#63 的反噬不再换成变体去执行，而是先开始统一惩罚、再执行变体（`SkillExecutor.ExecuteBackfireServer` → `RunBackfireVariantServer`），#68 里 `ResolveCastVariant` 换技能的写法以 #63 为准。
 - **`Anti_Reflection_*` 和 `IsAnti` 保留**，统一反噬的确认前摇在用。
-- **#68 新增的三个反噬 VFX id（建议，待 VFX 侧和用户确认）**：`cast_anti`（反噬通用前摇）和统一反噬的确认前摇是同一个时刻，合并时可以改由 `SkillExecutor` 的统一反噬前摇播放；`palm_release_anti`、`palm_bullet_anti` 只服务已删的反噬神掌，没有播放方，按 #68 自己的退役规则记进 `Docs/vfx/retired.md` 再删。这三项属于 VFX 重构的范围，这里不替它定。
-- **配表冲突**：按 [design-tables README](../design-tables/README.md) 的做法，先合并 `_Export` 下的 CSV 镜像（保留 #63 删掉的行和列都不回来），再按合并后的镜像构建 `Tools/design-tables/tablemodel.py` 的 `Sheet` / `Model`，用 `write_workbook_xlsx` 重建冲突的 xlsx（本分支合并 dev 时的 e91a977 就是这样做的），`gen_records.py` 重新生成记录类，最后无窗口强制导入（`DesignTableCli.ImportAndValidate -designForce`）。导入必须 0 错误，导入后镜像不应再变。
+- **#68 新增的三个反噬 VFX id**：变体恢复后都有播放方：`cast_anti`（反噬通用前摇）对应统一反噬的确认前摇，`palm_release_anti`、`palm_bullet_anti` 对应恢复的反噬神掌弹幕，合并时保留，由 VFX 侧接到 #63 的播放路径上。
+- **配表冲突**：按 [design-tables README](../design-tables/README.md) 的做法，先合并 `_Export` 下的 CSV 镜像（#63 已恢复反噬行和列，两边的反噬行都保留，`castLockSeconds` 不回来），再按合并后的镜像构建 `Tools/design-tables/tablemodel.py` 的 `Sheet` / `Model`，用 `write_workbook_xlsx` 重建冲突的 xlsx（本分支合并 dev 时的 e91a977 就是这样做的），`gen_records.py` 重新生成记录类，最后无窗口强制导入（`DesignTableCli.ImportAndValidate -designForce`）。导入必须 0 错误，导入后镜像不应再变。
 - **合并后验证**：无窗口 EditMode，加训练模式 harness（S5 反噬）。
+
+## 8. 2026-10-31 反噬变体恢复
+
+**已定（2026-10-31，用户）。** 用户原话：“我去 不对 反噬反效果变体不应该删除”、“应该保留”。用户选定：反噬时**统一惩罚 + 必定变体**，变体内容**按改版前 dev 上的原样恢复**。这推翻了 README §6.2 从 29af5cf 设计初稿起记的“六种 `_anti` 变体由统一惩罚取代（已定）”，也推翻了第 4.1 节的删除。只恢复反效果变体本身；搓招、全局施法锁、W/↑ 推掌等其他退役内容不恢复。
+
+恢复的内容（以 dev a3315eaa / 16121ed^ 为准）：
+
+| 内容 | 状态 | 说明 | 提交 |
+|---|---|---|---|
+| `ProjectileBurstParameters`、`ProjectileBurstPlanner.GetSpawnPosition`、弹幕锚点和两个 `Fire*Immediate` 方法及测试 | 已恢复 | 回退 00472741 | 6f8fdb74 |
+| 配表：`Skill.antiSkillId` 与 6 行 `_anti`；`SkillEffectAcceleration / SlowTrap / BlackCurtain / Giant` 的反噬行和反噬专用列；`Push` 的 `charged_anti` 行与 `projectileCount`、`projectileSpacing`、`hitTurnTorqueImpulse`；`SkillPresentation`、`SkillSelectionRule`（Hidden）、`SkillConstant`、`FeelEvent`、`VfxRegistry` 的反噬行；`SkillId` 6–11；12 个文案 key | 已恢复 | 从 16121ed^ 的工作簿合并回来，值不改；`castLockSeconds`、搓招表、`UiTiming` 三行和 AI 严重度列不恢复。无窗口导表 0 错误 | 7a078eed |
+| `BlackCurtainPresentation.TryPlay` 的 `isAnti`、`SkillPerceptionState.ApplyCurtain` 的 `backlash` | 已恢复 | 一念光明反噬只遮施法者自己；普通黑幕传 false，行为不变 | 69e80978 |
+| 6 个 `Skill_*_Anti` 类与资产（原 GUID）、`SkillDatabase.antiSkills` 与资产列表、`SkillAction.antiSkillId`（六个普通资产上也恢复）、`GetAntiSkillId`、`SkillConfigRepository.TryGetAntiSkillId`、反噬行的主时长字段、`PushChargedAntiMap`、`Skill_Giant` 的默认反噬 id、反向弹幕 `FireChargedProjectileBurstReplicated` 及其表现 RPC | 已恢复 | 变体类沿用现在的 `ExecuteObservers` / `ExecuteLocal` 签名，不恢复 `isAnti` 参数；资产里的 `castLockSeconds` 键去掉 | 7a15e7e5 |
+| 校验：`DesignTableDomainRules.SkillRowsAreConsistent`、`ProjectConfigValidator` 的 `antiSkillId` 检查、`SkillConfigCrossValidator` 的反噬资产、`antiSkillId` 漂移、“Anti resolution”报告和 `charged_anti` 映射 | 已恢复 | 提示文字改成“反噬不加执念” | 45eadb63 |
+| 接线：`ExecuteBackfireServer` 先开始统一惩罚，再按 dev 的顺序解析变体（表 `antiSkillId` → SO `antiSkillId` → `<id>_anti`）并在服务器执行一次；`BackfireVariantObserversRpc`（追加在最后，预测协议 v2 未发布） | 新增 | 统一惩罚规则不变 | b688b5e5 |
+| 测试：`BackfireVariantTests`（每个技能对应 dev 的变体类、变体不进选择、变体不再套变体、不加执念）；训练模式 S5 / S6 检查变体照常放出 | 新增 | 无窗口 EditMode 615/615；训练模式 14/14；单人赛 Normal 自然结算 | c369d584 |
+
+待用户答复（2026-10-31 已经通过总控提问；现在按建议实现，标“建议（实现采用）”）：
+
+1. 变体的时长和 10 秒锁、×0.85 各自计时，谁先结束都不影响另一个。
+2. 反噬判定后在前摇里被禁锢：惩罚照常进入（已定），变体也照常放出。
+3. 变体不进技能状态板，不能触发也不能参与缘起。
+4. 复活时变体的效果按普通技能效果的复位规则清掉，惩罚照旧持续。
+5. AI 的反噬风险仍是统一的 `backfireCost`，没有把按技能的严重度加回来。
+6. “反作用”（反噬时已有 buff 按概率反转）和变体的关系：被变体取代，还是另外保留。
+7. 变体不加执念、不另算冷却，本槽按原技能冷却（沿用 6.2 已定）。
+

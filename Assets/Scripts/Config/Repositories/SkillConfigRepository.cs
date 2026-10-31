@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-/// <summary>Lookup over Skill.xlsx / Skill rows (identity, cooldown / cast delay, obsession gain, primary duration).</summary>
+/// <summary>Lookup over Skill.xlsx / Skill rows (identity, cooldown / cast delay, obsession gain, primary duration, anti id).</summary>
 public class SkillConfigRepository
 {
     private readonly Dictionary<string, SkillRecord> _byId = new Dictionary<string, SkillRecord>(StringComparer.Ordinal);
@@ -84,6 +84,16 @@ public class SkillConfigRepository
             return false;
 
         value = record.obsessionGain;
+        return true;
+    }
+
+    public bool TryGetAntiSkillId(string skillId, out string antiSkillId)
+    {
+        antiSkillId = string.Empty;
+        if (!TryGet(skillId, out SkillRecord record) || string.IsNullOrWhiteSpace(record.antiSkillId))
+            return false;
+
+        antiSkillId = record.antiSkillId.Trim();
         return true;
     }
 

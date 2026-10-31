@@ -16,6 +16,11 @@ public abstract class SkillAction : ScriptableObject
 
     public float ObsessionGain => obsessionGain;
 
+    // 反噬技能相关参数放在这里
+    [Header("Anti (Backfire) Variant")]
+    [Tooltip("The skill's own _anti variant. A backfire applies the unified penalty and always runs this variant (2026-10-31).")]
+    public string antiSkillId = string.Empty;
+
     protected static float ResolveVfxDuration(float configuredSeconds, float fallbackSeconds)
     {
         return configuredSeconds > 0f ? configuredSeconds : fallbackSeconds;

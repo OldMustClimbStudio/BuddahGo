@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "\u4E00\u5FF5\u5149\u660E"
   cooldownSeconds: 16
   obsessionGain: 200
+  antiSkillId: blackcurtain_anti
   fullscreenMaterial: {fileID: -876546973899608171, guid: 542df48691f3a4f4c848f6dd8209b18f,
     type: 3}
   fullscreenMaterialName: SG_BlackCurtain

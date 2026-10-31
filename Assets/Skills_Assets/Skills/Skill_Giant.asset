@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "\u6CD5\u76F8\u91D1\u8EAB"
   cooldownSeconds: 8
   obsessionGain: 200
+  antiSkillId: giant_anti
   scaleMultiplier: 4
   durationSeconds: 6
   growDurationSeconds: 0.35

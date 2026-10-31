@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "\u5982\u6765\u795E\u638C"
   cooldownSeconds: 18
   obsessionGain: 300
+  antiSkillId: push_projectile_hands_anti
   buffDurationSeconds: 15
   buildUpSeconds: 1
   chargedPushCooldownSeconds: 1

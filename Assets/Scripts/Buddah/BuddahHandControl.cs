@@ -1298,6 +1298,111 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
             scaledVisualSize);
     }
 
+    // The server plans the burst once; peers receive these world-space origins.
+    public void FireChargedProjectileBurstReplicated(Skill_PushProjectileHands_Anti skill)
+    {
+        if (!IsServerInitialized || skill == null)
+            return;
+
+        SpawnChargedProjectileBurst(new ProjectileBurstParameters
+        {
+            projectileCount = skill.projectileCount,
+            projectileSpacing = skill.projectileSpacing,
+            buildUpSeconds = skill.buildUpSeconds,
+            projectileSpeed = skill.projectileSpeed,
+            projectileLifetimeSeconds = skill.projectileLifetimeSeconds,
+            projectileImpulseStrength = skill.projectileImpulseStrength,
+            projectileColliderSize = skill.projectileColliderSize,
+            reverseDirection = true,
+            allowSelfHit = true,
+            ignoreSolidWorld = true,
+            hitTurnTorqueImpulse = skill.hitTurnTorqueImpulse,
+            additionalForwardSpawnOffset = skill.additionalForwardSpawnOffset,
+            additionalHeightSpawnOffset = skill.additionalHeightSpawnOffset,
+            spawnServerHitboxes = true,
+            spawnVisuals = false,
+            visualPrefabOverride = null,
+            progressPropertyOverride = null,
+            replicatedSkillId = skill.skillId
+        });
+    }
+
+    private void SpawnChargedProjectileBurst(ProjectileBurstParameters burst)
+    {
+        int safeProjectileCount = Mathf.Max(1, burst.projectileCount);
+        float safeSpacing = Mathf.Max(0f, burst.projectileSpacing);
+        float scaleMultiplier = GetPushScaleMultiplier();
+        Vector3 outwardDir = GetCurrentAimDirectionServer();
+        Vector3 burstAnchor = GetProjectileBurstAnchorPosition(outwardDir, scaleMultiplier, burst.additionalForwardSpawnOffset, burst.additionalHeightSpawnOffset);
+        Vector3 travelDir = burst.reverseDirection ? -outwardDir : outwardDir;
+        Vector3 sideDir = Vector3.Cross(Vector3.up, outwardDir).normalized;
+        Vector3 scaledColliderSize = SanitizeColliderSize(burst.projectileColliderSize * scaleMultiplier);
+        Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
+        string resolvedProgressProperty = string.IsNullOrWhiteSpace(burst.progressPropertyOverride) ? DefaultChargedProjectileProgressProperty : burst.progressPropertyOverride;
+        if (burst.spawnServerHitboxes && string.IsNullOrEmpty(burst.replicatedSkillId))
+            Debug.LogWarning("[BuddahHandControl] Charged burst has no skillId; hitboxes spawn but replicated visuals cannot be resolved.", this);
+        Vector3[] replicatedStarts = string.IsNullOrEmpty(burst.replicatedSkillId) ? null : new Vector3[safeProjectileCount];
+
+        for (int i = 0; i < safeProjectileCount; i++)
+        {
+            Vector3 spawnPos = ProjectileBurstPlanner.GetSpawnPosition(burstAnchor, sideDir, i, safeProjectileCount, safeSpacing, scaleMultiplier);
+
+            if (replicatedStarts != null)
+                replicatedStarts[i] = spawnPos;
+
+            if (burst.spawnServerHitboxes)
+            {
+                Vector3 impulse = travelDir * Mathf.Max(0f, burst.projectileImpulseStrength);
+                ChargedHandProjectileRuntime.SpawnServer(
+                    base.NetworkObject,
+                    spawnPos,
+                    travelDir,
+                    burst.projectileSpeed,
+                    burst.buildUpSeconds,
+                    burst.projectileLifetimeSeconds,
+                    impulse,
+                    scaledColliderSize,
+                    burst.hitTurnTorqueImpulse,
+                    burst.allowSelfHit,
+                    burst.ignoreSolidWorld);
+            }
+
+            if (burst.spawnVisuals)
+            {
+                ChargedHandProjectileRuntime.SpawnVisual(
+                    spawnPos,
+                    travelDir,
+                    burst.projectileSpeed,
+                    burst.buildUpSeconds,
+                    burst.projectileLifetimeSeconds,
+                    burst.visualPrefabOverride != null ? burst.visualPrefabOverride : projectilePrefab,
+                    projectileVisualLocalEuler,
+                    scaledVisualSize,
+                    resolvedProgressProperty,
+                    transform);
+            }
+        }
+
+        if (replicatedStarts != null)
+        {
+            SkillExecutor executor = GetComponent<SkillExecutor>();
+            if (executor != null)
+                executor.PlayChargedBurstVisualsServer(burst.replicatedSkillId, replicatedStarts, travelDir,
+                    burst.projectileSpeed, burst.buildUpSeconds, burst.projectileLifetimeSeconds,
+                    projectileVisualLocalEuler, scaledVisualSize);
+        }
+    }
+
+    public void SpawnChargedBurstVisualsAtPositions(Vector3[] starts, Vector3 direction, float speed,
+        float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
+        GameObject visualPrefab, string progressProperty)
+    {
+        for (int i = 0; i < starts.Length; i++)
+            ChargedHandProjectileRuntime.SpawnVisual(starts[i], direction, speed, buildUpSeconds,
+                lifetimeSeconds, visualPrefab != null ? visualPrefab : projectilePrefab,
+                localEuler, visualSize, progressProperty, transform);
+    }
+
     private Vector3 GetCurrentAimDirectionServer()
     {
         Vector3 dir = Quaternion.AngleAxis(_syncedYawOffsetDeg.Value, Vector3.up) * transform.forward;

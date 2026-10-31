@@ -3,6 +3,8 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Skill_Giant", menuName = "Skills/Actions/Normal/Giant")]
 public class Skill_Giant : SkillAction
 {
+    private const string DefaultAntiSkillId = "giant_anti";
+
     [Header("Scale Buff")]
     [Min(1f)] public float scaleMultiplier = 5f;
     [Min(0.1f)] public float durationSeconds = 6f;
@@ -14,6 +16,22 @@ public class Skill_Giant : SkillAction
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = string.Empty;
     [SerializeField] private string observersFeelStopEventId = string.Empty;
+
+    private void OnEnable()
+    {
+        EnsureAntiSkillId();
+    }
+
+    private void OnValidate()
+    {
+        EnsureAntiSkillId();
+    }
+
+    private void EnsureAntiSkillId()
+    {
+        if (string.IsNullOrWhiteSpace(antiSkillId))
+            antiSkillId = DefaultAntiSkillId;
+    }
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {

@@ -13,7 +13,7 @@ namespace SteamMultiplayer.Network
     //        FreezeUntilTick, BurstUntilTick/BurstDurationTicks/BurstExtraMaxSpeed,
     //        MaxSpeedPenaltyUntilTick/MaxSpeedPenaltyMultiplier and ComputedStats gains IsFrozen /
     //        IsBurstActive / IsMaxSpeedPenaltyActive (reconcile payload); new SkillExecutor TargetRpcs
-    //        and ObserversRpcs, the anti-skill RPC removed, new backfire SyncVars; 缘起 (wave 2) appends
+    //        and ObserversRpcs, the anti-skill RPC removed (appended back at the end of SkillExecutor on 2026-10-31 when the _anti variants returned), new backfire SyncVars; 缘起 (wave 2) appends
     //        SkillExecutor.SkillConsumedObserversRpc / YuanqiObserversRpc (YuanqiPresentationPayload) and
     //        SkillVfxReplicator.StopVfxAllObserversRpc, and impulse source BodyImpact=5; presentation
     //        interfaces (wave 3) add SkillExecutor.CastObserversRpc's surchargeStacks and serverTick

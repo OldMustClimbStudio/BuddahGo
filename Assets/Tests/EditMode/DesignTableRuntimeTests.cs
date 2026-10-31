@@ -154,6 +154,7 @@ namespace BuddahGo.Tests
             {
                 List<SkillAction> copies = new List<SkillAction>();
                 foreach (SkillAction action in source.normalSkills) { if (action == null) continue; SkillAction c = UnityEngine.Object.Instantiate(action); temp.Add(c); scratch.normalSkills.Add(c); copies.Add(c); }
+                foreach (SkillAction action in source.antiSkills) { if (action == null) continue; SkillAction c = UnityEngine.Object.Instantiate(action); temp.Add(c); scratch.antiSkills.Add(c); copies.Add(c); }
                 foreach (SkillAction action in source.skills) { if (action == null) continue; SkillAction c = UnityEngine.Object.Instantiate(action); temp.Add(c); scratch.skills.Add(c); copies.Add(c); }
                 // 缘起 copies start from values no table cell holds, so every mapped field must come from the tables.
                 List<YuanqiAction> pairs = new List<YuanqiAction>();
@@ -192,6 +193,8 @@ namespace BuddahGo.Tests
                 Skill_PushProjectileHands hands = (Skill_PushProjectileHands)copies.Find(c => c.skillId == "push_projectile_hands");
                 Assert.AreEqual(Cell(set, "Skill", "Push", "pushId", "charged", "speed"), hands.projectileSpeed, "Push charged row reaches the SO");
                 Assert.AreEqual(Cell(set, "Skill", "Push", "pushId", "charged", "windupSeconds"), hands.buildUpSeconds);
+                Skill_PushProjectileHands_Anti burst = (Skill_PushProjectileHands_Anti)copies.Find(c => c.skillId == "push_projectile_hands_anti");
+                Assert.AreEqual((int)Cell(set, "Skill", "Push", "pushId", "charged_anti", "projectileCount"), burst.projectileCount, "Push charged_anti row reaches the anti SO");
 
                 DesignSheet yuanqiSheet = set.Find("Skill", "Yuanqi");
                 Assert.IsNotNull(yuanqiSheet, "Skill/Yuanqi missing");
@@ -303,10 +306,10 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void SkillDatabaseHoldsOnlyTheNormalSkills()
+        public void SkillDatabaseHoldsTheNormalSkillsAndTheirAntiVariants()
         {
-            // A4: a backfire now fails the requested cast, so the six *_anti SkillActions are retired, and phase B deleted their
-            // rows. Any hidden row added later must not resolve to an action and must never be offered for selection.
+            // 2026-10-31: a backfire applies the unified penalty and runs the skill's own *_anti variant, so the six anti
+            // SkillActions are back (hidden rows, never offered). Any other hidden row must not resolve to an action.
             ProjectConfigDatabase main = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset);
             Assert.IsNotNull(main, MainAsset);
             Assert.IsTrue(ProjectConfigRuntime.EnsureInitialized(main));
@@ -317,12 +320,17 @@ namespace BuddahGo.Tests
             foreach (string id in offered)
                 Assert.IsTrue(database.TryGet(id, out SkillAction action) && action != null, "Skill row '" + id + "' has no SkillAction");
             foreach (string id in hidden)
-                Assert.IsFalse(database.TryGet(id, out _), "hidden Skill row '" + id + "' still resolves to a SkillAction");
+            {
+                if (id.EndsWith("_anti", StringComparison.Ordinal))
+                    Assert.IsTrue(database.TryGet(id, out SkillAction anti) && database.antiSkills.Contains(anti), "anti row '" + id + "' resolves to an asset of antiSkills");
+                else
+                    Assert.IsFalse(database.TryGet(id, out _), "hidden Skill row '" + id + "' still resolves to a SkillAction");
+            }
+            foreach (string id in offered)
+                Assert.IsTrue(database.TryGet(database.GetAntiSkillId(id, null), out _), "skill '" + id + "' names a variant that resolves");
             CollectionAssert.AreEquivalent(offered, database.GetSelectableNormalSkills().ConvertAll(s => s.skillId), "selection offers exactly the non-hidden Skill rows");
 
-            Assert.IsNull(typeof(SkillAction).GetField("antiSkillId"), "SkillAction.antiSkillId is retired");
             Assert.IsNull(typeof(SkillAction).GetField("castLockSeconds"), "SkillAction.castLockSeconds is retired (no global cast lock)");
-            Assert.IsNull(typeof(SkillDatabase).GetField("antiSkills"), "SkillDatabase.antiSkills is retired");
         }
 
         [Test]

@@ -12,6 +12,7 @@ namespace BuddahGo.DesignTables
         {
             CheckpointCountMatchesTrack(set, issues);
             RosterMatchesPersonalities(set, issues);
+            SkillRowsAreConsistent(set, issues);
             DefaultLoadoutUsesSelectableSkills(set, issues);
             YuanqiRowsAreFilled(set, issues);
             YuanqiPairsAreValid(set, issues);
@@ -34,6 +35,32 @@ namespace BuddahGo.DesignTables
 
         // A blank bool imports as false (a blank isEnabled silently disables the pair), a blank enum leaves the SO value
         // and a blank skill imports as "" (YuanqiCatalog then drops the pair; the enum and ref checks skip blanks).
+        private static void SkillRowsAreConsistent(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet skill = set.Find("Skill", "Skill");
+            if (skill == null) return;
+            ColumnSpec id = skill.FindColumn("skillId"), anti = skill.FindColumn("antiSkillId"), gain = skill.FindColumn("obsessionGain");
+            if (id == null || anti == null) return;
+            HashSet<string> antiIds = new HashSet<string>();
+            foreach (DataRow row in skill.Rows)
+            {
+                string a = skill.Cell(row, anti).Trim();
+                string sid = skill.Cell(row, id).Trim();
+                if (!string.IsNullOrEmpty(a)) antiIds.Add(a);
+                else if (!sid.EndsWith("_anti"))
+                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, anti), Message = "normal skill '" + sid + "' has no antiSkillId" });
+            }
+            if (gain == null) return;
+            // A backfire adds no obsession (unified penalty, its _anti variant still runs); the anti row's value is never read.
+            foreach (DataRow row in skill.Rows)
+            {
+                string sid = skill.Cell(row, id).Trim();
+                string g = skill.Cell(row, gain).Trim();
+                if (antiIds.Contains(sid) && !string.IsNullOrEmpty(g) && ValueConverter.ToFloat(g) != 0f)
+                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, gain), Message = "obsessionGain on anti skill '" + sid + "' is ignored (a backfire adds no obsession); leave it blank" });
+            }
+        }
+
         private static void YuanqiRowsAreFilled(DesignTableSet set, List<Issue> issues)
         {
             DesignSheet yuanqi = set.Find("Skill", "Yuanqi");

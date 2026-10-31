@@ -334,7 +334,7 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void SkillCrossValidatorIgnoresHiddenRowsAndResolvesNoBackfireVariant()
+        public void SkillCrossValidatorResolvesEveryBackfireVariantFromTheTable()
         {
             ProjectConfigDatabase main = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset);
             Assert.IsNotNull(main, MainAsset);
@@ -342,16 +342,24 @@ namespace BuddahGo.Tests
             Assert.IsNotNull(database, SkillDatabaseAsset);
             using (var serializedDatabase = new SerializedObject(database))
                 Assert.AreSame(main, serializedDatabase.FindProperty("_projectConfigDatabase").objectReferenceValue, "the validator must compare this skill database");
-            SkillRows(DesignTableSet.Load(), out _, out HashSet<string> hidden);
+            SkillRows(DesignTableSet.Load(), out HashSet<string> offered, out HashSet<string> hidden);
 
+            int resolved = 0;
             foreach (ProjectConfigValidationMessage message in SkillConfigCrossValidator.Validate(main))
             {
-                StringAssert.DoesNotStartWith("Anti resolution", message.message, message.context);
+                if (message.message.StartsWith("Anti resolution", StringComparison.Ordinal))
+                {
+                    StringAssert.StartsWith("Anti resolution: config -> '", message.message, message.context);
+                    resolved++;
+                }
+                StringAssert.DoesNotContain("Resolved anti id is absent", message.message, message.context);
                 if (message.severity != ProjectConfigValidationSeverity.Warning)
                     continue;
                 foreach (string id in hidden)
-                    StringAssert.DoesNotContain("'" + id + "'", message.message, "warning about hidden Skill row '" + id + "'");
+                    if (!id.EndsWith("_anti", StringComparison.Ordinal))
+                        StringAssert.DoesNotContain("'" + id + "'", message.message, "warning about hidden Skill row '" + id + "'");
             }
+            Assert.AreEqual(offered.Count, resolved, "every offered skill resolves its variant from Skill.antiSkillId");
         }
 
         [Test]

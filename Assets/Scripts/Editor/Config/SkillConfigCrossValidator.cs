@@ -34,6 +34,7 @@ public static class SkillConfigCrossValidator
 
             var actions = new Dictionary<string, SkillAction>(StringComparer.Ordinal);
             Collect(database.normalSkills, actions, path, results);
+            Collect(database.antiSkills, actions, path, results);
             Collect(database.skills, actions, path, results);
 
             // Hidden rows are never offered or cast, so they need no action.
@@ -50,13 +51,43 @@ public static class SkillConfigCrossValidator
                 if (repository.TryGet(id, out SkillRecord row))
                 {
                     Compare(results, context, "cooldownSeconds", action.cooldownSeconds, row.cooldownSeconds);
-                    Compare(results, context, "obsessionGain", action.obsessionGain, row.obsessionGain);
+                    // Anti rows carry no obsession gain (a backfire adds none), so only normal skills are compared.
+                    if (!string.IsNullOrEmpty(row.antiSkillId) || !string.IsNullOrWhiteSpace(action.antiSkillId))
+                        Compare(results, context, "obsessionGain", action.obsessionGain, row.obsessionGain);
+                    if (!string.Equals((action.antiSkillId ?? string.Empty).Trim(), (row.antiSkillId ?? string.Empty).Trim(), StringComparison.Ordinal))
+                        Add(results, ProjectConfigValidationSeverity.Warning, context,
+                            "antiSkillId differs: action='" + action.antiSkillId + "', config='" + row.antiSkillId + "'. Config takes priority when nonempty.");
                     string durationField = SkillDatabase.EffectDurationField(action);
                     if (durationField != null && row.effectDurationSeconds > 0f)
                         CompareField(results, context, action, durationField, row.effectDurationSeconds);
                 }
                 else
                     Add(results, ProjectConfigValidationSeverity.Warning, context, "Action id '" + id + "' has no Skill row; runtime uses SkillAction balance values.");
+
+                // The variant a backfire of this skill runs (SkillExecutor.ResolveAntiSkillId order: config, SkillAction, "<id>_anti").
+                if (!id.EndsWith("_anti", StringComparison.Ordinal))
+                {
+                    string anti = string.Empty;
+                    string layer = "none";
+                    if (repository.TryGetAntiSkillId(id, out string configuredAnti))
+                    {
+                        anti = configuredAnti;
+                        layer = "config";
+                    }
+                    else if (!string.IsNullOrWhiteSpace(action.antiSkillId))
+                    {
+                        anti = action.antiSkillId.Trim();
+                        layer = "SkillAction";
+                    }
+                    else if (actions.ContainsKey(id + "_anti"))
+                    {
+                        anti = id + "_anti";
+                        layer = "inferred suffix";
+                    }
+                    Add(results, ProjectConfigValidationSeverity.Info, context, "Anti resolution: " + layer + " -> '" + anti + "'.");
+                    if (anti.Length > 0 && !actions.ContainsKey(anti))
+                        Add(results, ProjectConfigValidationSeverity.Warning, context, "Resolved anti id is absent; a backfire would run no variant.");
+                }
 
                 using var serializedAction = new SerializedObject(action);
                 SerializedProperty vfx = serializedAction.FindProperty("vfxId");
@@ -74,9 +105,11 @@ public static class SkillConfigCrossValidator
                 CompareFamily(results, context, action, id, config.skillEffectSlowTraps);
                 CompareFamily(results, context, action, id, config.skillEffectBlackCurtains);
                 CompareFamily(results, context, action, id, config.skillEffectGiants);
-                // Skill/Push charged row uses the explicit mapping of SkillDatabase.
+                // Skill/Push charged rows use the explicit mapping of SkillDatabase.
                 if (id == "push_projectile_hands")
                     CompareMapped(results, context, action, Find(config.pushes, "charged"), SkillDatabase.PushChargedMap);
+                else if (id == "push_projectile_hands_anti")
+                    CompareMapped(results, context, action, Find(config.pushes, "charged_anti"), SkillDatabase.PushChargedAntiMap);
             }
 
             CompareYuanqis(results, path, database, config);

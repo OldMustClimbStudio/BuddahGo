@@ -28,7 +28,6 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
     private float _hitTurnTorqueImpulse;
     private bool _applyHits;
     private bool _allowAttackerHit;
-    private bool _ignoreSolidWorld;
     private bool _armed;
     private Collider _hitbox;
     // Visual copies only: the layered skill effect (Docs/vfx), driven by the same timing as the hitbox.
@@ -38,12 +37,12 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
     private Vector3 _followTargetStartPosition;
     private Vector3 _startPosition;
     private readonly HashSet<NetworkObject> _hitVictims = new();
-    // Flight speed shape (ChargedProjectileFlight): null = the old linear fall to FlightEndSpeedFraction.
+    // Flight speed shape (ChargedProjectileFlight). Every caller passes the skill's curve; without one the palm stays
+    // put (only an unconfigured client's empty fallback visual could get here).
     private float[] _flightDistanceFractions;
     private float _flightTravelled;
 
     private const float ProgressCompletionFraction = 0.8f;
-    private const float FlightEndSpeedFraction = 0.2f;
 
     private void Awake()
     {
@@ -73,8 +72,7 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         Vector3 colliderSize,
         float hitTurnTorqueImpulse,
         bool allowAttackerHit,
-        bool ignoreSolidWorld,
-        AnimationCurve speedCurve = null,
+        AnimationCurve speedCurve,
         PreciseTick? spawnTick = null)
     {
         GameObject root = new GameObject("ChargedHandProjectile_Server");
@@ -90,7 +88,7 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         box.enabled = false;
 
         ChargedHandProjectileRuntime projectile = root.AddComponent<ChargedHandProjectileRuntime>();
-        projectile.InitializeServer(attacker, attacker != null ? attacker.transform : null, startPos, direction, speed, buildUpDuration, flightLifetimeSeconds, impulse, hitTurnTorqueImpulse, allowAttackerHit, ignoreSolidWorld, speedCurve, spawnTick);
+        projectile.InitializeServer(attacker, attacker != null ? attacker.transform : null, startPos, direction, speed, buildUpDuration, flightLifetimeSeconds, impulse, hitTurnTorqueImpulse, allowAttackerHit, speedCurve, spawnTick);
         return projectile;
     }
 
@@ -144,14 +142,12 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         Vector3 impulse,
         float hitTurnTorqueImpulse,
         bool allowAttackerHit,
-        bool ignoreSolidWorld,
         AnimationCurve speedCurve,
         PreciseTick? spawnTick)
     {
         _attacker = attacker;
         _applyHits = true;
         _allowAttackerHit = allowAttackerHit;
-        _ignoreSolidWorld = ignoreSolidWorld;
         _impulse = impulse;
         _hitTurnTorqueImpulse = hitTurnTorqueImpulse;
         EnsureServerHitbox();
@@ -286,11 +282,11 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         CheckVictimOverlaps();
     }
 
-    // Distance to move this frame. With a speed shape: where the shape's integral puts the palm now, minus where it is.
+    // Distance to move this frame: where the speed shape's integral puts the palm now, minus where it is.
     private float GetFlightStep()
     {
         if (_flightDistanceFractions == null)
-            return GetCurrentFlightSpeed() * Time.deltaTime;
+            return 0f;
 
         float flightElapsed = Mathf.Max(0f, Elapsed() - _buildUpDuration);
         float normalizedFlight = _flightDuration > 0f ? Mathf.Clamp01(flightElapsed / _flightDuration) : 1f;
@@ -298,17 +294,6 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         float step = target - _flightTravelled;
         _flightTravelled = target;
         return step;
-    }
-
-    private float GetCurrentFlightSpeed()
-    {
-        if (_speed <= 0f)
-            return 0f;
-
-        float flightElapsed = Mathf.Max(0f, Elapsed() - _buildUpDuration);
-        float normalizedFlight = _flightDuration > 0f ? Mathf.Clamp01(flightElapsed / _flightDuration) : 1f;
-        float speedFraction = Mathf.Lerp(1f, FlightEndSpeedFraction, normalizedFlight);
-        return _speed * speedFraction;
     }
 
     private void ArmProjectile()
@@ -402,39 +387,6 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         BuddahGo.Match.SkillCombatEvents.Record("hit", "charged-projectile", _attacker, victimNO, transform.position, routed);
     }
 
-    private bool TryStopAtSolidWorld(float moveDistance)
-    {
-        Rigidbody body = GetComponent<Rigidbody>();
-        if (body == null)
-            return false;
-
-        RaycastHit[] hits = body.SweepTestAll(_direction, moveDistance, QueryTriggerInteraction.Ignore);
-        if (hits == null || hits.Length == 0)
-            return false;
-
-        float nearestDistance = float.MaxValue;
-        bool foundBlockingHit = false;
-
-        for (int i = 0; i < hits.Length; i++)
-        {
-            Collider hitCollider = hits[i].collider;
-            if (ShouldIgnoreSolidHit(hitCollider))
-                continue;
-
-            nearestDistance = Mathf.Min(nearestDistance, hits[i].distance);
-            foundBlockingHit = true;
-        }
-
-        if (!foundBlockingHit)
-            return false;
-
-        Vector3 nextPosition = transform.position + (_direction * Mathf.Max(0f, nearestDistance - 0.01f));
-        nextPosition.y = _lockedY;
-        transform.position = nextPosition;
-        Destroy(gameObject);
-        return true;
-    }
-
     private void CheckVictimOverlaps()
     {
         if (!_armed || !_applyHits || !InstanceFinder.IsServerStarted || _hitbox == null)
@@ -453,24 +405,6 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         Collider[] fallbackOverlaps = Physics.OverlapSphere(_hitbox.bounds.center, _hitbox.bounds.extents.magnitude, ~0, QueryTriggerInteraction.Collide);
         for (int i = 0; i < fallbackOverlaps.Length; i++)
             TryApplyHit(fallbackOverlaps[i]);
-    }
-
-    private bool ShouldIgnoreSolidHit(Collider hitCollider)
-    {
-        if (hitCollider == null)
-            return true;
-
-        if (_hitbox != null && hitCollider == _hitbox)
-            return true;
-
-        if (hitCollider.isTrigger)
-            return true;
-
-        NetworkObject hitNetworkObject = hitCollider.GetComponentInParent<NetworkObject>();
-        if (hitNetworkObject != null)
-            return true;
-
-        return false;
     }
 
     private void IgnoreAttackerColliders()

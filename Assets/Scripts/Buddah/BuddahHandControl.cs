@@ -578,7 +578,6 @@ public class BuddahHandControl : NetworkBehaviour
         float projectileImpulseStrength = _projectileImpulseStrengthServer;
         Vector3 projectileColliderSize = _projectileColliderSizeServer;
         float projectileBuildUpSeconds = _projectileBuildUpSecondsServer;
-        bool projectileIgnoreSolidWorld = _projectileIgnoreSolidWorldServer;
 
         StartCoroutine(ServerSpawnPushAfterWindup(
             isLeft,
@@ -590,8 +589,7 @@ public class BuddahHandControl : NetworkBehaviour
             projectileSpeed,
             projectileLifetime,
             projectileImpulseStrength,
-            projectileColliderSize,
-            projectileIgnoreSolidWorld));
+            projectileColliderSize));
         if (animateServerInput)
             StartCoroutine(AnimateServerInput(isLeft, useProjectileMode ? _projectileDelayedPushSecondsServer : 0f, _inputGeneration));
         return true;
@@ -614,8 +612,7 @@ public class BuddahHandControl : NetworkBehaviour
         float projectileSpeed,
         float projectileLifetimeSeconds,
         float projectileImpulseStrength,
-        Vector3 projectileColliderSize,
-        bool projectileIgnoreSolidWorld)
+        Vector3 projectileColliderSize)
     {
         uint generation = _inputGeneration;
         if (pushWindupSeconds > 0f)
@@ -654,8 +651,7 @@ public class BuddahHandControl : NetworkBehaviour
                     projectileImpulseStrength,
                     projectileColliderSize,
                     0f,
-                    false,
-                    projectileIgnoreSolidWorld);
+                    false);
                 yield break;
             }
 
@@ -866,8 +862,7 @@ public class BuddahHandControl : NetworkBehaviour
         float projectileImpulseStrength,
         Vector3 projectileColliderSize,
         float hitTurnTorqueImpulse = 0f,
-        bool allowSelfHit = false,
-        bool ignoreSolidWorld = false)
+        bool allowSelfHit = false)
     {
         Vector3 scaledColliderSize = projectileColliderSize * scaleMultiplier;
         Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
@@ -887,7 +882,6 @@ public class BuddahHandControl : NetworkBehaviour
             scaledColliderSize,
             hitTurnTorqueImpulse,
             allowSelfHit,
-            ignoreSolidWorld,
             _projectileSpeedCurveServer,
             spawnTick);
 
@@ -956,7 +950,6 @@ public class BuddahHandControl : NetworkBehaviour
             projectileColliderSize = skill.projectileColliderSize,
             reverseDirection = true,
             allowSelfHit = true,
-            ignoreSolidWorld = true,
             hitTurnTorqueImpulse = skill.hitTurnTorqueImpulse,
             additionalForwardSpawnOffset = skill.additionalForwardSpawnOffset,
             additionalHeightSpawnOffset = skill.additionalHeightSpawnOffset,
@@ -1003,7 +996,6 @@ public class BuddahHandControl : NetworkBehaviour
                     scaledColliderSize,
                     burst.hitTurnTorqueImpulse,
                     burst.allowSelfHit,
-                    burst.ignoreSolidWorld,
                     burst.speedCurve,
                     spawnTick);
             }

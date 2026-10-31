@@ -36,11 +36,16 @@ public class RaceMapUIBootstrap : MonoBehaviour
         EnsureRuntimeHud(_spawnedUi);
     }
 
-    // HUD parts that exist only at runtime (A6, no prefab edit): the caster's 缘起 toast on the HUD canvas.
+    // HUD parts that exist only at runtime (A6, no prefab edit): the caster's 缘起 toast on the HUD canvas, and the
+    // placeholder mouse-aim ground marker (it draws its own world-space object, not under the canvas).
     private static void EnsureRuntimeHud(GameObject hud)
     {
-        if (hud != null && hud.GetComponent<YuanqiToastUI>() == null)
+        if (hud == null)
+            return;
+        if (hud.GetComponent<YuanqiToastUI>() == null)
             hud.AddComponent<YuanqiToastUI>();
+        if (hud.GetComponent<AimGroundIndicator>() == null)
+            hud.AddComponent<AimGroundIndicator>();
     }
 
     private void OnDestroy()

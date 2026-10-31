@@ -446,7 +446,7 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 - **撞击**：`SkillExecutor.YuanqiImpactObserved(YuanqiImpactInfo)`（`YuanqiId`、`VictimObjectId`、`Point`、`Impulse`），`BuddahBodyImpact` 每记一次撞击发一次。
 - **冻结与突进**：`RacerSkillPresentationState`（运行时挂到每端每个 racer 上，`SkillExecutor.PresentationState` 或 `RacerSkillPresentationState.GetOrAdd(racer)`）提供 `FrozenChanged`、`BurstChanged`、`IsFrozen`、`FreezeSecondsLeft`、`IsBurstActive`、`BurstSecondsLeft`。开始立即报告，结束要持续 0.1 秒（`releaseDelaySeconds`）才报告，防止快照抖动。
 - **反噬惩罚**：`ObsessionFigure.BackfireStateChanged(bool)`，服务器和每个客户端各发一次，由同步的结束 tick 驱动，中途加入的客户端也会收到一次开始。
-- **准星地面点**：`BuddahHandControl.TryGetAimGroundPoint(out Vector3)`（owner，每帧采样一次），不画准星。
+- **准星地面点**：`BuddahHandControl.TryGetAimGroundPoint(out Vector3)`（owner，每帧采样一次），配 `IsInsideMouseAimDeadRadius` 和 `LocalOwner`。2026-10-31 起由占位图标 `AimGroundIndicator` 画出（圆环加十字，死区内隐藏），等手部朝向指引设计，见 [README A6](README.md#a6-hud)。
 
 不需要美术的“动作层”直接实现：冻结期间该 racer 的 Animator 速度设为 0，解冻后恢复（各端）；双手停止转动（见 2.6）。#4 突进时施法者自己的相机有一次短 FOV 抖动（`Yuanqi_GiantCharge.casterFovKickDegrees` 8 度，保持 0.15 秒，0.65 秒回落，待试玩调）。
 

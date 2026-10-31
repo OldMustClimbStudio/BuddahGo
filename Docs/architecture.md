@@ -61,7 +61,7 @@
 - `ObsessionFigure.BackfireStateChanged`：反噬开始和结束，每个端都会触发。
 - `RacerSkillPresentationState`：每个端给每个 racer 运行时挂上，提供 `FrozenChanged` / `BurstChanged` 与剩余时间。
 - `SkillExecutor.YuanqiObserved` / `YuanqiImpactObserved`：缘起触发与每次突进撞击。
-- `BuddahHandControl.TryGetAimGroundPoint`：owner 端当前帧的光标地面点，不画准星。
+- `BuddahHandControl.TryGetAimGroundPoint`：owner 端当前帧的光标地面点；`IsInsideMouseAimDeadRadius` 判断它是否在死区内，`BuddahHandControl.LocalOwner` 是本机 owner 的手部组件。占位图标 `AimGroundIndicator`（`UI/InGameUI/`，由 `RaceMapUIBootstrap` 运行时挂到 HUD）读这三个入口，在瞄准点画圆环加十字，等手部朝向指引设计后替换，见[玩法深化 A6](gameplay/README.md#a6-hud)。
 
 不需要美术的动作层已经实现：冻结期间角色 Animator 定格，手部停转。
 

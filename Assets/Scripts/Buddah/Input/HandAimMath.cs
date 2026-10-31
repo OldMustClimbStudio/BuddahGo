@@ -36,13 +36,25 @@ internal static class HandAimMath
             return HandAimSampleKind.Miss;
 
         Vector3 hit = cursorRay.GetPoint(enter);
-        Vector3 planar = new Vector3(hit.x - bodyPosition.x, 0f, hit.z - bodyPosition.z);
-        float safeDeadRadius = Mathf.Max(0f, deadRadius);
-        if (planar.sqrMagnitude <= safeDeadRadius * safeDeadRadius || planar.sqrMagnitude < MinPlanarSqrMagnitude)
+        if (IsInsideDeadRadius(hit, bodyPosition, deadRadius))
             return HandAimSampleKind.InsideDeadRadius;
 
+        Vector3 planar = new Vector3(hit.x - bodyPosition.x, 0f, hit.z - bodyPosition.z);
         yawOffsetDeg = Vector3.SignedAngle(flatForward, planar, Vector3.up);
         return HandAimSampleKind.Aim;
+    }
+
+    /// <summary>
+    /// True when the aim-plane point is too close to the body (horizontal distance ≤ deadRadius, or practically zero)
+    /// to give a stable direction. The one dead-radius rule: mouse aim holds its target there and the aim indicator hides.
+    /// </summary>
+    internal static bool IsInsideDeadRadius(Vector3 aimPoint, Vector3 bodyPosition, float deadRadius)
+    {
+        float dx = aimPoint.x - bodyPosition.x;
+        float dz = aimPoint.z - bodyPosition.z;
+        float sqr = dx * dx + dz * dz;
+        float safeDeadRadius = Mathf.Max(0f, deadRadius);
+        return sqr <= safeDeadRadius * safeDeadRadius || sqr < MinPlanarSqrMagnitude;
     }
 
     /// <summary>

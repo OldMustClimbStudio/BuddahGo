@@ -277,7 +277,26 @@
 | 训练模式验证 | 结果见 S11、S5、S6：槽位显示 Q/1、E/2、R/3，冷却 4.5s，“反噬 47%”（执念 495），惩罚中三个槽“反噬 9.6s”，冻结时 FROZEN |
 | 完成标准 | 不看日志也能读出执念、反噬概率、加价窗口，以及本套配装的缘起；位置、字体和可读性要用户试玩确认 |
 
-**表现层（已定，2026-10-26）。** 这一轮只做接口、不做新特效：每个新状态和事件在各端都能读到，美术以后从接口挂特效。接口有 `SkillExecutor.YuanqiObserved`（缘起触发，载荷含中心、半径、秒数、方向、目标 id）、`SkillExecutor.YuanqiImpactObserved`（#4 每次撞击）、`RacerSkillPresentationState.FrozenChanged / BurstChanged`、`ObsessionFigure.BackfireStateChanged`、`BuddahHandControl.TryGetAimGroundPoint`（准星地面点，不画准星）。不需要美术的“动作层”直接实现：冻结时该 racer 的 Animator 停住、双手不转；#4 突进时施法者相机有一次短 FOV 抖动（8 度，待试玩调）。细节见 [缘起架构设计 §4.7](yuanqi-architecture.md)。
+**表现层（已定，2026-10-26）。** 这一轮只做接口、不做新特效：每个新状态和事件在各端都能读到，美术以后从接口挂特效。接口有 `SkillExecutor.YuanqiObserved`（缘起触发，载荷含中心、半径、秒数、方向、目标 id）、`SkillExecutor.YuanqiImpactObserved`（#4 每次撞击）、`RacerSkillPresentationState.FrozenChanged / BurstChanged`、`ObsessionFigure.BackfireStateChanged`、`BuddahHandControl.TryGetAimGroundPoint`（准星地面点，2026-10-31 起有占位图标，见下）。不需要美术的“动作层”直接实现：冻结时该 racer 的 Animator 停住、双手不转；#4 突进时施法者相机有一次短 FOV 抖动（8 度，待试玩调）。细节见 [缘起架构设计 §4.7](yuanqi-architecture.md)。
+
+**瞄准点占位图标（已定：占位已做，2026-10-31；手部朝向指引的设计待定）。** 用户要“一个做鼠标位置指示的图标占位符，这个是为了未来进一步处理手部朝向指引的”。它是以后手部朝向指引表现的落脚点，这次只做占位、不做美术。用户确认的四项（2026-10-31）：
+
+| 项 | 规则 | 状态 |
+|---|---|---|
+| 画在哪 | 世界空间：光标射线投到瞄准平面（过 racer 高度的水平面，和手部瞄准同一个点）上，平放一个圆环加十字；图标总是正好在光标下面 | 已定 |
+| 画什么 | 只画瞄准点，不画角色到瞄准点的指向线 | 已定 |
+| 何时显示 | 只给本机 owner 显示：比赛进行中、手能瞄准时显示；倒计时、开场演出、UI 挡输入（退出确认框）、没有鼠标或相机时隐藏。禁锢（冻结）期间照常显示，手不转但能看到光标落点。复活是瞬移，没有单独的隐藏 | 已定 |
+| 死区 | 光标在死区内（离 racer 水平距离 ≤ `mouseAimDeadRadius` 1.5 米 × 体型倍率）时隐藏，那里手保持原目标、不跟光标；和瞄准用同一条判断 `HandAimMath.IsInsideDeadRadius` | 已定 |
+
+| 项 | 内容 |
+|---|---|
+| 改哪里 | 新增 `AimGroundIndicator`（`UI/InGameUI/`，`RaceMapUIBootstrap.EnsureRuntimeHud` 运行时挂到 HUD 画布，和 `YuanqiToastUI` 同一个入口，没有改 prefab；图标本身是单独的场景物体，不挂在画布下）和纯逻辑 `AimGroundIndicatorMath`（显示判断、抬高、圆环十字网格）。`BuddahHandControl` 只加了只读入口：`LocalOwner`（owner 端 `OnStartClient` 设、停止时清，HUD 不用每帧搜场景）和 `IsInsideMouseAimDeadRadius(point)`；`HandAimMath.TryGetTargetYawOffset` 的死区判断抽成 `IsInsideDeadRadius`，瞄准行为不变 |
+| 占位参数 | `AimGroundIndicator` 的序列化字段，代码注释标“占位，等手部朝向指引设计”：圆环半径 1.0 米、线宽 0.15 米、十字半长 0.35 米（编辑器里第一版 0.5 米在赛车镜头下直径只有约 22 像素，放大一倍）、48 段、颜色 (1, 0.85, 0.3, 0.9)、离瞄准平面抬高 0.05 米、死区内隐藏 = 是。图形是程序化网格加内置 `Sprites/Default` 材质（在 Always Included Shaders 里，打包可用），没有新美术资源。尺寸不随体型缩放 |
+| 网络与预测 | 没有。只读 owner 本地的光标和瞄准平面，不发 RPC，不进预测；AI、木桩和别人的 racer 都不画 |
+| 已知限制 | 角色自己的头和手会挡住图标：RaceMap 渲染器的 RenderObjects 特性 `RenderBuddah`（`URP-HighFidelity-Renderer` 等，`Buddah` 层）在透明物体之后单独画角色，地图边缘（`RenderMapEdge`）同理，所以图标即使关掉深度测试也会被盖住；赛车镜头在身后偏高，光标落在角色前方几米时常被佛头挡住（编辑器实测：右前方 35°、9 米处被挡）。试过关深度测试（自建着色器、`UI/Default` 的 `unity_GUIZTestMode`），只对坡道地面有用，而且各画质档不一致，已撤回。指引设计时要么给它在 `RenderBuddah` 之后单独一个 RenderObjects 阶段，要么改成屏幕空间。其他：瞄准平面是水平面，地面有坡时图标会浮在地面上方或沉到地面下（它标的是手实际瞄准的点，不是地表）；光标靠近地平线时瞄准点很远、图标很小；光标采样和相机更新的先后可能差一帧 |
+| 以后接手部朝向指引 | 读侧不动：`BuddahHandControl.LocalOwner`、`TryGetAimGroundPoint`、`IsInsideMouseAimDeadRadius`。换表现只改 `AimGroundIndicator` 的 `BuildVisual` / `LateUpdate` 绘制部分（或换成 prefab 字段）；要画手的实际朝向（平滑和限速之后）而不是光标点，需要在 `BuddahHandControl` 再加一个只读的当前手部 yaw（现在只有 `ServerHandYaw`，owner 本地的 `handYawOffsetDeg` 是私有的） |
+| 配表 | 这次不加数值。占位参数属于表现和 HUD 布局，按第 8 节的范围线留在代码；等指引设计定了再看要不要进表 |
+| 验证 | 无窗口 EditMode `BuddahGo.Tests` 604/604（基线 597，新增 `AimGroundIndicatorTests` 7 个：显示判断、抬高、死区与瞄准一致、网格形状）。编辑器训练模式（2026-10-31，虚拟鼠标、真实鼠标停用）：开场演出和倒计时期间不画；比赛中光标摆到离 racer 9 米处，图标就在 `TryGetAimGroundPoint` 的点上（差 0.000 米），投回屏幕和光标差 0.1 像素；光标在 0.81 米处（死区内）隐藏，回到 9 米外重新显示；禁锢 4 秒期间照常显示；打开退出确认框隐藏、关闭后恢复；场上 4 个 racer（本机 1 个、木桩 3 个）只有 1 个图标。没验证：坡道上的遮挡、单人赛和联机客户端、试玩手感 |
 
 #### A7 AI 适配
 
@@ -348,6 +367,7 @@
 - [ ] 神足通被敌人的缓流覆盖共享加速槽之后，#2 / #4 “消耗神足通”对移动没有作用，#4 从减速后的上限起步：是否接受（[缘起架构设计](yuanqi-architecture.md) Q15）
 - [ ] SoloCJK 字体子集重烘：“冻”“起”等字缺失，“冻结”和缘起名现在显示英文或 id（A6）
 - [ ] 缘起特效（#2 结冰与冰块、#4 突进与撞击、#1 巨掌）：表现接口已留，美术未做
+- [ ] 手部朝向指引的设计：瞄准点占位图标已做（A6，2026-10-31，圆环加十字，只给 owner），指引画什么（光标点还是手的实际朝向、要不要指向线）、美术和参数待定
 - [ ] 占位值和新参数的试玩调整：#2 的 N、R，#4 的突进与 M，转手平滑，突进 FOV，反噬结束的 ×0.8（全部在配表或组件字段上）
 - [ ] AI 瞄准容差（`AI/SkillDifficulty.aimToleranceDegrees` ±20° / ±12° / ±6°）要不要按真人改用鼠标后的命中水平重调：A7 没有改，要用户试玩数据（建议先保持）
 - [ ] AI 的统一反噬代价和缘起决策参数（`AI/SkillTuning.backfireCost` 1、`yuanqiSetupMultiplier` 1.2、`yuanqiFollowUpScore` 0.8、`yuanqiFollowUpMultiplier` 1.5、`yuanqiFollowUpTempoSeconds` 0.3、`yuanqiLateWindowSeconds` 0.6，`SkillDifficulty.stopProbability` 1.01 / 0.7 / 0.45，`Personality.yuanqiAffinity` 1）都是建议（实现采用），按单人赛试玩再定

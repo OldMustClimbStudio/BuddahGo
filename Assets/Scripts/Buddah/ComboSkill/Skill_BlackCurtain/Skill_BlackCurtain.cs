@@ -59,7 +59,7 @@ public class Skill_BlackCurtain : SkillAction
             centerProperty = centerProperty,
             centerWorldOffset = centerWorldOffset,
         };
-        if (!BlackCurtainPresentation.TryPlay(caster, localIsCaster, GetType().Name, settings))
+        if (!BlackCurtainPresentation.TryPlay(caster, false, localIsCaster, GetType().Name, settings))
             return;
 
         float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);

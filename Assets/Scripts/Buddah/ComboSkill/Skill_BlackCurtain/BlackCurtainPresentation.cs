@@ -19,7 +19,7 @@ internal static class BlackCurtainPresentation
         public Vector3 centerWorldOffset;
     }
 
-    internal static bool TryPlay(SkillExecutor caster, bool localIsCaster, string logPrefix, Settings settings)
+    internal static bool TryPlay(SkillExecutor caster, bool isAnti, bool localIsCaster, string logPrefix, Settings settings)
     {
         Camera localCamera = ResolveLocalCamera();
         if (localCamera == null)
@@ -32,10 +32,10 @@ internal static class BlackCurtainPresentation
         if (viewController == null)
             viewController = localCamera.gameObject.AddComponent<BlackCurtainViewController>();
 
-        // The caster sees the track edge; every other local player gets the victim view.
-        bool localShouldSeeEdge = localIsCaster;
+        // Normal cast: the caster sees the track edge and everyone else gets the victim view; the anti variant flips it.
+        bool localShouldSeeEdge = localIsCaster ^ isAnti;
         Vector2 center = ResolveScreenCenter(localCamera, caster, settings.centerWorldOffset);
-        GameLog.Verbose($"[{logPrefix}][Observers] localIsCaster={localIsCaster}, localShouldSeeEdge={localShouldSeeEdge}, camera={localCamera.name}");
+        GameLog.Verbose($"[{logPrefix}][Observers] localIsCaster={localIsCaster}, isAnti={isAnti}, localShouldSeeEdge={localShouldSeeEdge}, camera={localCamera.name}");
         viewController.Play(
             settings.fullscreenMaterial,
             settings.fullscreenMaterialName,

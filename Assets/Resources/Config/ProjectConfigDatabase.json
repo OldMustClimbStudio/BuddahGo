@@ -1292,54 +1292,6 @@
             "zh": "干扰转向输入"
         },
         {
-            "key": "skill.acceleration_anti.name",
-            "zh": "神足通（噬）"
-        },
-        {
-            "key": "skill.acceleration_anti.desc",
-            "zh": "神足通的反噬变体"
-        },
-        {
-            "key": "skill.slowtrap_anti.name",
-            "zh": "禅定缓流（噬）"
-        },
-        {
-            "key": "skill.slowtrap_anti.desc",
-            "zh": "禅定缓流的反噬变体"
-        },
-        {
-            "key": "skill.blackcurtain_anti.name",
-            "zh": "一念光明（噬）"
-        },
-        {
-            "key": "skill.blackcurtain_anti.desc",
-            "zh": "一念光明的反噬变体"
-        },
-        {
-            "key": "skill.giant_anti.name",
-            "zh": "法相金身（噬）"
-        },
-        {
-            "key": "skill.giant_anti.desc",
-            "zh": "法相金身的反噬变体"
-        },
-        {
-            "key": "skill.push_projectile_hands_anti.name",
-            "zh": "如来神掌（噬）"
-        },
-        {
-            "key": "skill.push_projectile_hands_anti.desc",
-            "zh": "如来神掌的反噬变体"
-        },
-        {
-            "key": "skill.reverseturn_anti.name",
-            "zh": "逆姻缘（噬）"
-        },
-        {
-            "key": "skill.reverseturn_anti.desc",
-            "zh": "逆姻缘的反噬变体"
-        },
-        {
             "key": "yuanqi.giant_palm.name",
             "zh": "金身巨掌"
         },

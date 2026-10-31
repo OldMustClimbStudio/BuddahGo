@@ -949,30 +949,6 @@ MonoBehaviour:
     zh: "\u9006\u59FB\u7F18"
   - key: skill.reverseturn.desc
     zh: "\u5E72\u6270\u8F6C\u5411\u8F93\u5165"
-  - key: skill.acceleration_anti.name
-    zh: "\u795E\u8DB3\u901A\uFF08\u566C\uFF09"
-  - key: skill.acceleration_anti.desc
-    zh: "\u795E\u8DB3\u901A\u7684\u53CD\u566C\u53D8\u4F53"
-  - key: skill.slowtrap_anti.name
-    zh: "\u7985\u5B9A\u7F13\u6D41\uFF08\u566C\uFF09"
-  - key: skill.slowtrap_anti.desc
-    zh: "\u7985\u5B9A\u7F13\u6D41\u7684\u53CD\u566C\u53D8\u4F53"
-  - key: skill.blackcurtain_anti.name
-    zh: "\u4E00\u5FF5\u5149\u660E\uFF08\u566C\uFF09"
-  - key: skill.blackcurtain_anti.desc
-    zh: "\u4E00\u5FF5\u5149\u660E\u7684\u53CD\u566C\u53D8\u4F53"
-  - key: skill.giant_anti.name
-    zh: "\u6CD5\u76F8\u91D1\u8EAB\uFF08\u566C\uFF09"
-  - key: skill.giant_anti.desc
-    zh: "\u6CD5\u76F8\u91D1\u8EAB\u7684\u53CD\u566C\u53D8\u4F53"
-  - key: skill.push_projectile_hands_anti.name
-    zh: "\u5982\u6765\u795E\u638C\uFF08\u566C\uFF09"
-  - key: skill.push_projectile_hands_anti.desc
-    zh: "\u5982\u6765\u795E\u638C\u7684\u53CD\u566C\u53D8\u4F53"
-  - key: skill.reverseturn_anti.name
-    zh: "\u9006\u59FB\u7F18\uFF08\u566C\uFF09"
-  - key: skill.reverseturn_anti.desc
-    zh: "\u9006\u59FB\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
   - key: yuanqi.giant_palm.name
     zh: "\u91D1\u8EAB\u5DE8\u638C"
   - key: yuanqi.giant_palm.desc

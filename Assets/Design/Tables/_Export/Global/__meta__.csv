@@ -2,14 +2,14 @@
 ##type,string#key,string#key,string,string,string
 ##group,,,,,
 ##comment,,,,实际值来源,
-,Skill,Skill,(生成) SkillRecord ← SkillDefinition + SkillBalance + SkillEffectParam 主时长,Assets/Data/Config/ProjectConfigDatabase_Main.asset; Assets/Skills_Assets/Skills/*.asset,2026-10-13 v2：身份、冷却/前摇、执念、主效果时长合一；2026-10-26 阶段 B：castLockSeconds、antiSkillId 两列与 6 行 *_anti 删除（反噬改为统一惩罚）
+,Skill,Skill,(生成) SkillRecord ← SkillDefinition + SkillBalance + SkillEffectParam 主时长,Assets/Data/Config/ProjectConfigDatabase_Main.asset; Assets/Skills_Assets/Skills/*.asset,2026-10-13 v2：身份、冷却/前摇、执念、主效果时长合一；2026-10-26 阶段 B：castLockSeconds、antiSkillId 两列与 6 行 *_anti 删除（反噬改为统一惩罚）；2026-10-31：Global/__enums__ 的 6 个 SkillId *_anti 值删除
 ,Skill,SkillEffectAcceleration,(生成) SkillEffectAccelerationRecord,Assets/Skills_Assets/Skills/*.asset,主时长 durationSeconds 在 Skill.effectDurationSeconds
 ,Skill,SkillEffectSlowTrap,(生成) SkillEffectSlowTrapRecord,Assets/Skills_Assets/Skills/*.asset,区域时长 zoneDurationSeconds 在 Skill.effectDurationSeconds；区域半径见 SkillConstant
 ,Skill,SkillEffectBlackCurtain,(生成) SkillEffectBlackCurtainRecord,Assets/Skills_Assets/Skills/*.asset,保持时长 holdDurationSeconds 在 Skill.effectDurationSeconds
 ,Skill,SkillEffectGiant,(生成) SkillEffectGiantRecord,Assets/Skills_Assets/Skills/*.asset,持续 durationSeconds 在 Skill.effectDurationSeconds
 ,Skill,Push,(生成) PushRecord ← BuddahHandControl + Skill_PushProjectileHands,Assets/Character/Prefab/Buddah.prefab; Assets/Skills_Assets/Skills/Skill_PushProjectileHands.asset,basic 行覆盖 BuddahHandControl，charged 行在 Play 模式覆盖技能 SO（SkillDatabase 的显式映射）；2026-10-26 阶段 B：charged_anti 行与它专用的三列删除
 ,Skill,SkillPresentation,(新增) SkillPresentationRecord,Assets/Skills_Assets/Skills/*.asset,ReverseTurn 的 vfx 字段代码从不播放；2026-10-26 阶段 B：6 行 *_anti 删除
-,Skill,VfxRegistry,(新增) VfxRegistryRecord ← SkillVfxDatabase,Assets/Skills_Assets/SkillVfxDatabase.asset; RaceMap VfxStartupWarmup,
+,Skill,VfxRegistry,(新增) VfxRegistryRecord ← SkillVfxDatabase,Assets/Skills_Assets/SkillVfxDatabase.asset; RaceMap VfxStartupWarmup,2026-10-31：两个反噬变体 id 行（accel_anti_vfx、reverse_turn_trap_anti_vfx，库中无条目）删除
 ,Skill,FeelEvent,(新增) FeelEventRecord ← SkillFeelRouter.entries,Assets/Character/Prefab/Buddah.prefab,
 ,Skill,SkillSelectionRule,SkillSelectionRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,
 ,Skill,DefaultLoadout,DefaultLoadoutRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,运行时优先取此表（SkillLoadout.cs:90-101）；prefab 的 _defaultSkillIds 第 3 槽 blackcurtain 只是兜底
@@ -53,7 +53,7 @@
 ,UI,HudObsession,(新增) HudObsessionRecord ← ObsessionUI,Assets/UI/UIprefap.prefab,
 ,UI,UiTiming,"(新增, 键值) UiTimingRecord",各 UI 组件 SerializeField 实际值,
 ,UI,MiniMap,(新增) MiniMapRecord（边界在 Match/Track）,Assets/UI/UIprefap.prefab,
-,UI,Text,(新增) LocalizedTextRecord,MAIN 技能文案 + C# 硬编码文案（自动提取）+ 场景静态文本,自动提取的 key 需人工定稿；英文列为空表示待翻译
+,UI,Text,(新增) LocalizedTextRecord,MAIN 技能文案 + C# 硬编码文案（自动提取）+ 场景静态文本,自动提取的 key 需人工定稿；英文列为空表示待翻译；2026-10-31：12 个 skill.*_anti.name/desc 反噬变体文案 key 删除（统一反噬后无读取方）
 ,Global,GlobalRule,GlobalRuleRecord,Assets/Data/Config/ProjectConfigDatabase_Main.asset,只放真正跨域的开关；搓招已退役（A7，没有搓招键表），施法前摇→Skill.castConfirmDelaySeconds，圈数→Match/Track，倒计时→Match/ModeRule，执念→Skill/Obsession
 ,Global,StructuralConstant,(只读) 结构性常量,代码常量,全列 doc：仅记录，不导出
 ,Global,GlobalPhysics,"(新增, 只读候选) GlobalPhysicsRecord",ProjectSettings/DynamicsManager.asset,

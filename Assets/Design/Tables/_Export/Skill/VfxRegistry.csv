@@ -4,6 +4,4 @@
 ##comment,,相对工程路径,SkillVfxAttachmentSettings,,,启动预热（VfxStartupWarmup）,
 ,accel_back_vfx,Assets/VFX/神足通/Acceleration粒子效果.prefab,true,true,false,false,acceleration
 ,slowtrap_vfx,Assets/VFX/禅定缓流/slowtrap_vfxZone.prefab,true,false,false,true,slowtrap
-,accel_anti_vfx,,true,true,false,false,(反噬变体已退役；id 保留，库中无条目)
 ,reverse_turn_trap_vfx,,true,true,false,false,(SO 引用但库中无条目，代码也不播放)
-,reverse_turn_trap_anti_vfx,,true,true,false,false,(反噬变体已退役；id 保留，库中无条目)

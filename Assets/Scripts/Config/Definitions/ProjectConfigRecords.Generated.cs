@@ -9,7 +9,7 @@ using UnityEngine;
 public class SkillRecord
 {
     /// <summary>enum:SkillId#key (key)</summary>
-    [Tooltip("技能唯一 id，snake_case；名单在 Global/__enums__ 的 SkillId（枚举里保留的 *_anti 值已无行）；SkillConfigRepository 与 SkillDatabase 按它取行")] public string skillId = string.Empty;
+    [Tooltip("技能唯一 id，snake_case；名单在 Global/__enums__ 的 SkillId；SkillConfigRepository 与 SkillDatabase 按它取行")] public string skillId = string.Empty;
     /// <summary>string#ref=UI/Text.key</summary>
     [Tooltip("显示名文案 key（SkillConfigRepository.GetDisplayName）")] public string displayNameKey = string.Empty;
     /// <summary>string#ref=UI/Text.key</summary>
@@ -249,9 +249,9 @@ public class MovementRecord
     /// <summary>float</summary>
     [Tooltip("受击宽限期临时限速增量（原 PushReaction.extraMaxSpeed）")] public float pushExtraMaxSpeed = 0f;
     /// <summary>float</summary>
-    [Tooltip("起跑交接：继承开场速度的时长（BuddahMovement.launchInheritTime）")] public float launchInheritSeconds = 0f;
+    [Tooltip("起跑交接：继承开场速度的时长（BuddahMovement.launchInheritTime）。0 = 完全物理交接（2026-10-30 已定）：交接那一 tick 把开场速度给刚体一次，之后不再锁速度、不屏蔽输入")] public float launchInheritSeconds = 0f;
     /// <summary>float</summary>
-    [Tooltip("起跑交接：线性混合时长（BuddahMovement.launchBlendTime）")] public float launchBlendSeconds = 0f;
+    [Tooltip("起跑交接：线性混合时长（BuddahMovement.launchBlendTime）。0 = 完全物理交接（2026-10-30 已定），不混合速度和输入")] public float launchBlendSeconds = 0f;
     /// <summary>float</summary>
     [Tooltip("交接时地面吸附最大距离")] public float handoffGroundSnapMaxDistance = 0f;
     /// <summary>float</summary>

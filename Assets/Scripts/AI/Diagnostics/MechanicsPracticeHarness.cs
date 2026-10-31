@@ -199,8 +199,8 @@ namespace BuddahGo.AI
             yield return new Scenario("S2", "mouse aim (rate cap, ground point) and mouse push buttons", 40f, S2MouseAim, _submittedLoadout);
             yield return new Scenario("S3", "cast serialization: one pending cast, two effects at once", 25f, S3Serialization, new[] { "slowtrap", "giant", "blackcurtain" });
             yield return new Scenario("S4", "same-skill surcharge x1.15 compounding, reset after the window", 70f, S4Surcharge, noPairCast);
-            yield return new Scenario("S5", "backfire: fails, locks all slots, freezes obsession, x0.85 speed, survives respawn, x0.8 at the end", 50f, S5Backfire, noPairCast);
-            yield return new Scenario("S6", "freeze interrupt: cancel + refund; a rolled backfire survives", 40f, S6FreezeInterrupt, noPairCast);
+            yield return new Scenario("S5", "backfire: the skill fails and its _anti variant runs; locks all slots, freezes obsession, x0.85 speed, survives respawn, x0.8 at the end", 50f, S5Backfire, noPairCast);
+            yield return new Scenario("S6", "freeze interrupt: cancel + refund; a rolled backfire survives and still runs its _anti variant", 40f, S6FreezeInterrupt, noPairCast);
             yield return new Scenario("S7", "dummies: slow + readout, invert, impulse and 3 s reset", 80f, S7Dummies, new[] { "slowtrap", "reverseturn", "blackcurtain" });
             yield return new Scenario("S8", "#4 giant_charge, both orders, body impact on a dummy", 120f, S8GiantCharge, new[] { "acceleration", "giant", "blackcurtain" });
             yield return new Scenario("S9", "#2 frost_lock: radius, freeze time, consume both, once per overlap", 60f, S9FrostLock, new[] { "acceleration", "slowtrap", "blackcurtain" });
@@ -1041,6 +1041,11 @@ namespace BuddahGo.AI
             bool boardEntry = BoardActive(skill);
             bool accel = AccelActive(_motor);
             Check("no skill effect", !boardEntry && !accel, "no board entry, no acceleration modifier", "board=" + boardEntry + " accel=" + accel);
+            // User rule 2026-10-31: the backfire also runs the skill's own _anti variant (acceleration_anti: a self slow on
+            // the shared acceleration channel, negative extras).
+            bool variant = VariantSlowActive(_motor);
+            Check("the skill's _anti variant runs", skill != "acceleration" || variant, "acceleration_anti: self slow (negative acceleration extras)",
+                "slow=" + variant + " extraMaxSpeed=" + F(_motor.CurrentSkillModifiers.AccelExtraMaxSpeed) + " extraForce=" + F(_motor.CurrentSkillModifiers.AccelExtraForwardForce));
             Check("backfire penalty active", _obs.IsBackfireActive && Mathf.Abs(_obs.BackfireSecondsLeft - lockSeconds) <= 0.25f,
                 "IsBackfireActive, " + F(lockSeconds) + " s left", "active=" + _obs.IsBackfireActive + " left=" + F(_obs.BackfireSecondsLeft) + " s");
             float cooldownLeft = CooldownLeft(0);
@@ -1056,8 +1061,11 @@ namespace BuddahGo.AI
             float frozenValue = _obs.Current;
             yield return Wait(0.4f);
             var stats = _motor.CurrentComputedStats;
-            Check("max speed penalty", stats.IsMaxSpeedPenaltyActive && Mathf.Abs(stats.FinalMaxSpeed - expectedCap) <= expectedCap * 0.01f,
-                F(expectedCap) + " m/s (" + F(_obs.BackfireMaxSpeedMultiplier) + " x " + F(_baseMaxSpeed) + ")",
+            // The variant's slow (if still running) lowers the cap before the x0.85 penalty multiplies it.
+            float variantExtra = VariantSlowActive(_motor) ? _motor.CurrentSkillModifiers.AccelExtraMaxSpeed : 0f;
+            float expectedNow = (_baseMaxSpeed + variantExtra) * _obs.BackfireMaxSpeedMultiplier;
+            Check("max speed penalty", stats.IsMaxSpeedPenaltyActive && Mathf.Abs(stats.FinalMaxSpeed - expectedNow) <= expectedNow * 0.01f,
+                F(expectedNow) + " m/s (" + F(_obs.BackfireMaxSpeedMultiplier) + " x (" + F(_baseMaxSpeed) + " " + F(variantExtra) + " variant slow))",
                 "active=" + stats.IsMaxSpeedPenaltyActive + " FinalMaxSpeed=" + F(stats.FinalMaxSpeed));
             Info("HUD while locked", SlotStatusTexts());
             yield return Wait(2.6f);
@@ -1138,6 +1146,9 @@ namespace BuddahGo.AI
             bool executed = TryCast(from, CastStage.Executed, 0, out CastRec rec);
             Check("still ends in backfire", executed && rec.Backlash && _obs.IsBackfireActive, "Executed + IsBacklash, penalty active",
                 executed ? "IsBacklash=" + rec.Backlash + " penalty=" + _obs.IsBackfireActive : CastsSince(from, "none"));
+            bool variantAfterFreeze = VariantSlowActive(_motor);
+            Check("the _anti variant still runs after the freeze", _loadout.GetSkillId(0) != "acceleration" || variantAfterFreeze,
+                "acceleration_anti self slow active", "slow=" + variantAfterFreeze + " frozen=" + _motor.IsFrozen);
             Check("backfire keeps the spent cooldown", Mathf.Abs(cooldownAfter - cooldownBefore) <= 0.05f && cooldownBefore > 3f,
                 "unchanged by the freeze (> 3 s left)", F(cooldownBefore) + " s -> " + F(cooldownAfter) + " s, now " + F(CooldownLeft(0)) + " s");
         }
@@ -2004,6 +2015,13 @@ namespace BuddahGo.AI
         {
             uint now = NowTick();
             return untilTick > now && _exec.TimeManager != null ? (float)((untilTick - now) * _exec.TimeManager.TickDelta) : 0f;
+        }
+
+        // acceleration_anti (backfire variant): the shared acceleration channel holds negative extras.
+        private bool VariantSlowActive(BuddahPredictedMotor motor)
+        {
+            var mods = motor.CurrentSkillModifiers;
+            return mods.AccelUntilTick > NowTick() && mods.AccelExtraMaxSpeed < 0f;
         }
 
         private bool AccelActive(BuddahPredictedMotor motor)

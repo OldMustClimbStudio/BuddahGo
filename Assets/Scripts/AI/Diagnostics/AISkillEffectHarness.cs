@@ -13,10 +13,11 @@ using UnityEngine.InputSystem.LowLevel;
 namespace BuddahGo.AI
 {
     // Explicitly controlled effect matrix. Never counted as natural racing or AI decision evidence.
-    // Backlash cases (backlash: true) exercise the unified backfire (A4/A7): the cast confirms, spends its cooldown and
-    // does nothing; the caster is then locked out of every skill for 10 s with max speed x0.85 (RacerSample.BackfireLeft /
-    // MaxSpeedPenalty). No skill has its own backfire effect any more, so backlash fixtures place targets exactly like
-    // the normal ones and expect them untouched; Tools/ai/analyze_skill_matrix.py holds the expectations.
+    // Backlash cases (backlash: true) exercise the backfire: the cast confirms, spends its cooldown and the skill fails;
+    // the caster is then locked out of every skill for 10 s with max speed x0.85 (RacerSample.BackfireLeft /
+    // MaxSpeedPenalty), and since 2026-10-31 the skill's own _anti variant also runs (mostly a self effect on the caster:
+    // slow, root then boost, self curtain, shrink, self invert, a reverse palm burst). Backlash fixtures still place targets
+    // like the normal ones; Tools/ai/analyze_skill_matrix.py holds the expectations (not yet updated for the variants).
     public sealed class AISkillEffectHarness : MonoBehaviour
     {
         public string Status { get; private set; }

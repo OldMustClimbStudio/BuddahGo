@@ -100,25 +100,48 @@ namespace BuddahGo.Tests
             }
         }
 
-        // README section 8 budget, per cast.
-        [TestCase(BufPrefab, 1)]
-        public void PrefabStaysWithinTheCastBudget(string path, int copies)
+        // README section 8 (2026-10-31): particle systems per slot prefab, empty roots included. The hand-tuned
+        // Piloto-based slots keep their current count as the ceiling; every other slot keeps the original 10.
+        static readonly Dictionary<string, int> ParticleSystemCeilings = new Dictionary<string, int>
+        {
+            { "cast_anti", 47 }, { "palm_release", 25 }, { "palm_release_anti", 25 },
+            { "cast", 21 }, { "reverse_hit", 19 }, { "accel_release", 15 },
+        };
+        const int DefaultParticleSystemCeiling = 10;
+
+        [Test]
+        public void EverySlotStaysWithinItsParticleSystemCeilingAndUsesNoRealtimeLight()
+        {
+            var database = AssetDatabase.LoadAssetAtPath<SkillVfxDatabase>("Assets/Skills_Assets/SkillVfxDatabase.asset");
+            Assert.That(database.entries.Select(e => e.vfxId), Is.SupersetOf(ParticleSystemCeilings.Keys), "ceilings of retired ids");
+
+            var overruns = new List<string>();
+            foreach (SkillVfxDatabase.Entry entry in database.entries)
+            {
+                Assert.That(entry.prefab, Is.Not.Null, entry.vfxId);
+                int ceiling = ParticleSystemCeilings.TryGetValue(entry.vfxId, out int listed) ? listed : DefaultParticleSystemCeiling;
+                int systems = entry.prefab.GetComponentsInChildren<ParticleSystem>(true).Length;
+                if (systems > ceiling)
+                    overruns.Add(entry.vfxId + ": " + systems + " particle systems > " + ceiling);
+                int lights = entry.prefab.GetComponentsInChildren<Light>(true).Length;
+                if (lights > 0)
+                    overruns.Add(entry.vfxId + ": " + lights + " realtime lights");
+            }
+            Assert.That(overruns, Is.Empty);
+        }
+
+        // README section 8: no shadows and light meshes. The other slots' particle totals and shadow flags wait for the
+        // user's decision (README section 8, 2026-10-31 inventory).
+        [TestCase(BufPrefab)]
+        public void BuffPrefabCastsAndReceivesNoShadows(string path)
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            ParticleSystem[] systems = prefab.GetComponentsInChildren<ParticleSystem>(true);
-            Assert.That(systems.Length, Is.LessThanOrEqualTo(4), "particle systems per cast");
-            Assert.That(systems.Sum(s => s.main.maxParticles) * copies, Is.LessThanOrEqualTo(2000), "particles per cast");
-
             foreach (MeshFilter filter in prefab.GetComponentsInChildren<MeshFilter>(true))
             {
                 if (filter.sharedMesh != null)
                     Assert.That(filter.sharedMesh.triangles.Length / 3, Is.LessThanOrEqualTo(3000), filter.name);
             }
 
-            Light[] lights = prefab.GetComponentsInChildren<Light>(true);
-            Assert.That(lights.Length, Is.LessThanOrEqualTo(2));
-            foreach (Light light in lights)
-                Assert.That(light.shadows, Is.EqualTo(LightShadows.None), light.name);
             foreach (Renderer renderer in prefab.GetComponentsInChildren<Renderer>(true))
             {
                 Assert.That(renderer.shadowCastingMode, Is.EqualTo(UnityEngine.Rendering.ShadowCastingMode.Off), renderer.name);

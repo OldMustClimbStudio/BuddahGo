@@ -116,6 +116,12 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     private float _projectileDelayedPushSecondsServer;
     private uint _inputGeneration;
 
+    /// <summary>
+    /// This client's own racer hands (set in OnStartClient for the owner, cleared on stop). Presentation reads it, e.g.
+    /// <c>AimGroundIndicator</c>, so nothing has to search the scene for the local racer. Null without one.
+    /// </summary>
+    public static BuddahHandControl LocalOwner { get; private set; }
+
     public float ServerHandYaw => _syncedYawOffsetDeg.Value;
     public float HandRotationSpeed => rotationSpeedDegPerSec;
     public float ServerPushCooldown => GetActivePushCooldownServer(IsProjectilePushModeActiveServer(), _projectileUseChargedRuntimeServer);
@@ -278,6 +284,7 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
         if (!IsOwner)
             return;
 
+        LocalOwner = this;
         inputActions?.Enable();
         GameLog.Verbose("[HandControl] inputActions Enabled (owner).");
 
@@ -296,12 +303,24 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     {
         base.OnStopClient();
         DisableInput();
+        ClearLocalOwner();
     }
 
     private void OnDisable()
     {
         // Covers despawn / scene unload in-editor.
         DisableInput();
+    }
+
+    private void OnDestroy()
+    {
+        ClearLocalOwner();
+    }
+
+    private void ClearLocalOwner()
+    {
+        if (LocalOwner == this)
+            LocalOwner = null;
     }
 
     private void DisableInput()
@@ -406,9 +425,10 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
 
     /// <summary>
     /// Owner: the cursor's point on the horizontal aim plane this frame, i.e. the ground point the hands aim at (the
-    /// dead radius does not apply). Presentation only; no reticle is drawn. False when this is not the owner, mouse aim
-    /// is off or there is no mouse or camera, race gameplay or a local modal blocks the input, or the ray misses the
-    /// plane this frame. Sampled once per frame, so any reader in any order gets the same point.
+    /// dead radius does not apply; see <see cref="IsInsideMouseAimDeadRadius"/>). Presentation only: the placeholder
+    /// <c>AimGroundIndicator</c> draws it. False when this is not the owner, mouse aim is off or there is no
+    /// mouse or camera, race gameplay or a local modal blocks the input, or the ray misses the plane this frame. A
+    /// freeze does not make it false. Sampled once per frame, so any reader in any order gets the same point.
     /// </summary>
     public bool TryGetAimGroundPoint(out Vector3 point)
     {
@@ -420,6 +440,16 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
         }
         point = _aimGroundPoint;
         return _hasAimGroundPoint;
+    }
+
+    /// <summary>
+    /// Read-only: true when an aim-plane point is inside the mouse-aim dead radius (mouseAimDeadRadius × body scale,
+    /// horizontal distance from the movement root), where the hands hold their target instead of following the cursor.
+    /// Same rule as the aim itself (<see cref="HandAimMath.IsInsideDeadRadius"/>).
+    /// </summary>
+    public bool IsInsideMouseAimDeadRadius(Vector3 aimGroundPoint)
+    {
+        return HandAimMath.IsInsideDeadRadius(aimGroundPoint, transform.position, mouseAimDeadRadius * GetPushScaleMultiplier());
     }
 
     private bool TrySampleAimGroundPoint(out Vector3 point)

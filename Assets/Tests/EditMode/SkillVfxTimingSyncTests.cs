@@ -13,6 +13,11 @@ namespace BuddahGo.Tests
         const string SkillDatabaseAsset = "Assets/Skills_Assets/Skill Database.asset";
         const string VfxDatabaseAsset = "Assets/Skills_Assets/SkillVfxDatabase.asset";
 
+        // Not played through PlaySlotLocal: the palm runtime gives Chg the charge, Prj the flight and Buf the buff, and
+        // Imp keeps its own Seconds window, so an Imp reference would rescale nothing. Their prefabs have no reference
+        // on any phase yet; until they do, a table change moves their windows and leaves the content at its speed.
+        static readonly HashSet<string> PhaseDrivenSlots = new HashSet<string> { "palm_release", "palm_release_anti", "palm_buff" };
+
         [Test]
         public void EverySlotASkillPlaysHasAReferenceLength()
         {
@@ -29,6 +34,8 @@ namespace BuddahGo.Tests
                     continue;
                 slots++;
                 Assert.Greater(timing.seconds, 0f, pair.Key + " plays '" + timing.vfxId + "' with no length");
+                if (PhaseDrivenSlots.Contains(timing.vfxId))
+                    continue;
                 Assert.Greater(slot.ReferenceSeconds(SkillVfxPhase.Imp), 0f,
                     timing.vfxId + " has no Imp reference length: a table change would cut it instead of rescaling it");
             }
@@ -51,6 +58,21 @@ namespace BuddahGo.Tests
             Assert.AreEqual(reverse.effectDurationSeconds, lengths["reverseturn/reverse_release"], 1e-4f);
             Assert.AreEqual(reverse.effectDurationSeconds, lengths["reverseturn/reverse_hit"], 1e-4f);
             Assert.AreEqual(slow.effectDurationSeconds, lengths["slowtrap/slow_release"], 1e-4f, "slowtrap's effect must follow the zone length");
+
+            // palm: each shot charges for the Push row's windup, then flies its lifetime; the buff lasts the skill's duration.
+            SkillRecord palm = db.skills.Find(r => r.skillId == "push_projectile_hands");
+            PushRecord charged = db.pushes.Find(r => r.pushId == "charged");
+            PushRecord chargedAnti = db.pushes.Find(r => r.pushId == "charged_anti");
+            Assert.IsNotNull(palm);
+            Assert.IsNotNull(charged);
+            Assert.IsNotNull(chargedAnti);
+            float shot = charged.windupSeconds + charged.lifetimeSeconds;
+            float shotAnti = chargedAnti.windupSeconds + chargedAnti.lifetimeSeconds;
+            Assert.AreEqual(shot, lengths["push_projectile_hands/palm_release"], 1e-4f);
+            Assert.AreEqual(shot, lengths["push_projectile_hands/palm_bullet"], 1e-4f);
+            Assert.AreEqual(palm.effectDurationSeconds, lengths["push_projectile_hands/palm_buff"], 1e-4f);
+            Assert.AreEqual(shotAnti, lengths["push_projectile_hands_anti/palm_release_anti"], 1e-4f);
+            Assert.AreEqual(shotAnti, lengths["push_projectile_hands_anti/palm_bullet_anti"], 1e-4f);
         }
 
         // A skill reports the length it plays: the gameplay length by default; an absolute vfxDurationSeconds on the SO

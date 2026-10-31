@@ -59,4 +59,13 @@ public class Skill_PushProjectileHands_Anti : SkillAction
         float feelDuration = Mathf.Max(0.05f, buildUpSeconds + projectileLifetimeSeconds);
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, feelDuration);
     }
+
+    // Every bullet of the volley runs Chg over buildUpSeconds and Prj over projectileLifetimeSeconds, as the normal palm.
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        float shotSeconds = buildUpSeconds + projectileLifetimeSeconds;
+        const string shotSource = "Skill/Push charged_anti windupSeconds + lifetimeSeconds → buildUpSeconds + projectileLifetimeSeconds";
+        AddVfxSlot(into, vfxId, 0f, shotSeconds, shotSource);
+        AddVfxSlot(into, handVfxId, 0f, shotSeconds, shotSource);
+    }
 }

@@ -104,4 +104,15 @@ public class Skill_PushProjectileHands : SkillAction
 
         caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, buffDurationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve);
     }
+
+    // Per shot, the fire animation and the bullet run Chg over buildUpSeconds and Prj over projectileLifetimeSeconds
+    // (ChargedHandProjectileRuntime), then dissolve; the buff state runs Buf for buffDurationSeconds.
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        float shotSeconds = buildUpSeconds + projectileLifetimeSeconds;
+        const string shotSource = "Skill/Push charged windupSeconds + lifetimeSeconds → buildUpSeconds + projectileLifetimeSeconds";
+        AddVfxSlot(into, vfxId, 0f, shotSeconds, shotSource);
+        AddVfxSlot(into, handVfxId, 0f, shotSeconds, shotSource);
+        AddVfxSlot(into, buffVfxId, 0f, buffDurationSeconds, "Skill.effectDurationSeconds → buffDurationSeconds");
+    }
 }

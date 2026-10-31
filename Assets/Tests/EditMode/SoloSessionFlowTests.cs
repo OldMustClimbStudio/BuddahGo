@@ -100,6 +100,37 @@ namespace BuddahGo.Tests
         }
 
         [UnityTest]
+        public IEnumerator SetupPracticeButton_StartsZeroAIPracticeWithTrainingDummies()
+        {
+            // The setup panel's second start button is the visible Practice entry: Solo host, 0 AI, Practice rules.
+            EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");
+            yield return new EnterPlayMode();
+            yield return null;
+            Object.FindFirstObjectByType<MainMenuUI>().ShowSoloSetup();
+            yield return null;
+            var practice = GameObject.Find("StartTraining");
+            Assert.That(practice, Is.Not.Null);
+            Assert.That(practice.GetComponent<Button>().interactable, Is.True);
+            practice.GetComponent<Button>().onClick.Invoke();
+            Assert.That(MatchRules.Current.SpawnTrainingDummies, Is.True, SessionControl.Current.LastError);
+            Assert.That(MatchRules.Current.EndOnHumanFinish, Is.True);
+            Assert.That(practice.GetComponent<Button>().interactable, Is.False, "One request per click.");
+            float deadline = Time.realtimeSinceStartup + 45f;
+            while (Time.realtimeSinceStartup < deadline && (PropertiesSelectionManager.Instance == null ||
+                !PropertiesSelectionManager.Instance.IsClientInitialized || PropertiesSelectionManager.Instance.Participants.Count == 0))
+                yield return null;
+            Assert.That(PropertiesSelectionManager.Instance, Is.Not.Null, "Practice must reach the selection scene.");
+            Assert.That(PropertiesSelectionManager.Instance.Participants.Count, Is.EqualTo(1), "Practice has no AI racers.");
+            var network = Object.FindFirstObjectByType<NetworkManager>();
+            SessionControl.Current.RequestStopSession();
+            deadline = Time.realtimeSinceStartup + 45f;
+            while (Time.realtimeSinceStartup < deadline && (network.ClientManager.Started ||
+                SceneManager.GetActiveScene().name != SceneNames.MainMenu)) yield return null;
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.MainMenu));
+            yield return new ExitPlayMode();
+        }
+
+        [UnityTest]
         public IEnumerator Practice_SelectsExitsReopensAndRematches_WithSyntheticFinish()
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");

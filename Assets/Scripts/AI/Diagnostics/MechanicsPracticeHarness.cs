@@ -207,6 +207,7 @@ namespace BuddahGo.AI
             yield return new Scenario("S10", "#1 giant_palm: charged impulse follows body scale; off when either skill ends", 90f, S10GiantPalm, new[] { "giant", "push_projectile_hands", "blackcurtain" });
             yield return new Scenario("S11", "HUD smoke: key labels, cooldown text, backfire probability text", 30f, S11Hud, _submittedLoadout);
             // S13 runs before S12, which ends the race.
+            yield return new Scenario("S14", "backfire instead of a 缘起: no #4, acceleration not consumed and runs to its end, giant_anti runs, 5 s penalty", 40f, S14BackfireInsteadOfYuanqi, new[] { "acceleration", "giant", "blackcurtain" });
             yield return new Scenario("S13", "drive: no W = no push, W held pushes, release coasts", 30f, S13Drive, null);
             yield return new Scenario("S12", "rankings / results list only the human", 80f, S12Results, null);
         }
@@ -1102,6 +1103,62 @@ namespace BuddahGo.AI
             Check("BackfireStateChanged raised start and end", raisedTrue && ended, "true, then false", "start=" + raisedTrue + " end=" + ended);
             Info("owner HUD backfire event", _uiEvents.Skip(uiFrom).Any(u => u.Stacks < 0) ? "SurchargeStacks -1 received" : "no -1 event");
         }
+
+        // ---------------------------------------------------------------- S14 backfire instead of a 缘起
+        // User rule 2026-10-31: when the cast that would complete a 缘起 backfires, the pair does not trigger, the skill already
+        // running is not consumed and runs its normal version to its own end, and the backfired skill only runs its own _anti
+        // variant plus the 5 s penalty.
+
+        private IEnumerator S14BackfireInsteadOfYuanqi()
+        {
+            var charge = Registered<Yuanqi_GiantCharge>();
+            Check("giant_charge registered for the loadout", charge != null, GiantChargeId, RegisteredIds());
+            float lockSeconds = _obs.BackfireLockSeconds;
+            float accelSeconds = ResolveEffectSeconds("acceleration");
+            int from = _casts.Count, yuanqiFrom = _yuanqis.Count;
+            _exec.CastSlotServer(0); // acceleration, normal
+            yield return Until(() => HasCast(from, CastStage.Executed, 0), 2.5f);
+            if (!TryCast(from, CastStage.Executed, 0, out CastRec accelExec))
+            {
+                Fail("acceleration executed", "Executed", CastsSince(from, "none"));
+                yield break;
+            }
+            yield return Wait(0.9f);
+
+            int from2 = _casts.Count;
+            bool accepted;
+            ForceBackfireNext();
+            try { accepted = _exec.CastSlotServer(1); } // giant: would complete #4 giant_charge
+            finally { SetBaselineBackfire(); }
+            Check("forced-backfire giant accepted", accepted && HasCast(from2, CastStage.Accepted, 1), "Accepted slot 1", CastsSince(from2, "none"));
+            yield return Until(() => HasCast(from2, CastStage.Executed, 1), 2.5f);
+            if (!TryCast(from2, CastStage.Executed, 1, out CastRec giantExec))
+            {
+                Fail("giant resolves", "Executed after the confirm window", CastsSince(from2, "none"));
+                yield break;
+            }
+            Check("giant ends as a backfire", giantExec.Backlash, "IsBacklash = true", "IsBacklash = " + giantExec.Backlash);
+            bool accelRunning = BoardActive("acceleration") && AccelActive(_motor);
+            Check("acceleration still running when the giant backfires", accelRunning,
+                "board entry live, acceleration buff active", "board=" + BoardActive("acceleration") + " buff=" + AccelActive(_motor) + " at " + F(giantExec.T - accelExec.T) + " s");
+            yield return Wait(0.5f);
+            Check("no 缘起 triggers", !_yuanqis.Skip(yuanqiFrom).Any(), "no YuanqiObserved", YuanqiSince(yuanqiFrom));
+            Check("no burst", !_motor.CurrentComputedStats.IsBurstActive, "IsBurstActive false", "burst=" + _motor.CurrentComputedStats.IsBurstActive);
+            Check("the giant does not grow (no board entry)", !BoardActive("giant"), "no giant board entry", "giant=" + BoardActive("giant"));
+            float scale = _motor.CurrentScaleMultiplier;
+            Check("giant_anti runs: the caster shrinks", scale < 0.99f, "motor scale < 1", F(scale));
+            Check("5 s penalty active", _obs.IsBackfireActive && Mathf.Abs(_obs.BackfireSecondsLeft - (lockSeconds - 0.5f)) <= 0.3f,
+                F(lockSeconds) + " s penalty, about " + F(lockSeconds - 0.5f) + " s left", "active=" + _obs.IsBackfireActive + " left=" + F(_obs.BackfireSecondsLeft) + " s");
+
+            yield return UntilClock(() => !BoardActive("acceleration"), accelSeconds + 1f);
+            float ran = Time.time - accelExec.T;
+            Check("acceleration runs its normal version to its own end", Mathf.Abs(ran - accelSeconds) <= 0.3f,
+                F(accelSeconds) + " s ±0.3 (not consumed)", F(ran) + " s");
+            Check("still no 缘起 after the acceleration ended", !_yuanqis.Skip(yuanqiFrom).Any(), "no YuanqiObserved", YuanqiSince(yuanqiFrom));
+        }
+
+        private static float ResolveEffectSeconds(string skillId)
+            => ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository skills) && skills.TryGet(skillId, out SkillRecord row) ? row.effectDurationSeconds : 0f;
 
         // ---------------------------------------------------------------- S6 freeze interrupt
 

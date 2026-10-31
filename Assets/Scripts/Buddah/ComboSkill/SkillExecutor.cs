@@ -779,6 +779,7 @@ public class SkillExecutor : NetworkBehaviour
             ApplyMaxSpeedMultiplierToOwner(_obs.BackfireMaxSpeedMultiplier, _obs.BackfireLockSeconds);
         }
         _repeatSurcharge.Clear();
+        RunBackfireVariantServer(cast);
 
         // CastObserversRpc is skipped, so the owner HUD learns the spent cooldown here.
         NetworkConnection conn = Owner;
@@ -786,6 +787,52 @@ public class SkillExecutor : NetworkBehaviour
             BackfireSkillUiTargetRpc(conn, cast.Slot, cast.CooldownSeconds, ServerTickForHud());
 
         ServerCastChanged?.Invoke(new CastEvent(CastStage.Executed, cast.Slot, cast.SkillId, backlash: true));
+    }
+
+    // User rule 2026-10-31: a backfire applies the unified penalty and always runs the requested skill's own _anti variant
+    // (restored as on dev). The variant runs once on the server, right after the penalty starts; it never goes on the 缘起
+    // state board, adds no obsession and has no cooldown of its own (the slot keeps the requested skill's cooldown).
+    private void RunBackfireVariantServer(QueuedCast cast)
+    {
+        string antiSkillId = ResolveAntiSkillId(cast.SkillId, cast.Skill);
+        if (string.IsNullOrWhiteSpace(antiSkillId) || database == null
+            || !database.TryGet(antiSkillId, out SkillAction anti) || anti == null)
+        {
+            Debug.LogWarning($"[SkillExecutor][Server] Backfire of '{cast.SkillId}' has no _anti variant ('{antiSkillId}'); only the unified penalty applies.", this);
+            return;
+        }
+
+        // A failing variant must not skip the Executed event (AI commitments wait for it); the penalty already started.
+        try { anti.ExecuteServer(this, cast.Slot); }
+        catch (Exception exception) { Debug.LogException(exception, this); }
+        BackfireVariantObserversRpc(cast.Slot, antiSkillId);
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Server] BACKFIRE VARIANT '{antiSkillId}' (slot {cast.Slot}) for '{cast.SkillId}'.");
+    }
+
+    // Config Skill.antiSkillId, else SkillAction.antiSkillId, else "<id>_anti" if that action exists (as on dev).
+    private string ResolveAntiSkillId(string skillId, SkillAction skill)
+    {
+        if (database != null)
+        {
+            string configuredAntiSkillId = database.GetAntiSkillId(skillId, skill);
+            if (!string.IsNullOrWhiteSpace(configuredAntiSkillId))
+                return configuredAntiSkillId;
+        }
+
+        if (skill != null && !string.IsNullOrWhiteSpace(skill.antiSkillId))
+            return skill.antiSkillId.Trim();
+
+        if (string.IsNullOrWhiteSpace(skillId) || database == null)
+            return string.Empty;
+
+        string inferredAntiSkillId = $"{skillId}_anti";
+        if (database.TryGet(inferredAntiSkillId, out SkillAction inferredAntiSkill) && inferredAntiSkill != null)
+        {
+            Debug.LogWarning($"[SkillExecutor][Server] Skill '{skillId}' has no configured antiSkillId. Falling back to inferred anti '{inferredAntiSkillId}'.");
+            return inferredAntiSkillId;
+        }
+
+        return string.Empty;
     }
 
     [ObserversRpc]
@@ -1339,5 +1386,18 @@ public class SkillExecutor : NetworkBehaviour
         handControl.SpawnChargedBurstVisualsAtPositions(starts, direction, speed, buildUpSeconds,
             lifetimeSeconds, localEuler, visualSize, skill.ChargedProjectileVfxPrefab,
             skill.ChargedProjectileProgressProperty);
+    }
+
+    // A backfire's _anti variant on every peer (presentation and owner feel), resolved from this client's SkillDatabase like
+    // CastObserversRpc. Appended last to keep the RPC order (PredictionProtocol v2, unreleased).
+    [ObserversRpc]
+    private void BackfireVariantObserversRpc(int slotIndex, string antiSkillId)
+    {
+        if (database == null || !database.TryGet(antiSkillId, out SkillAction anti) || anti == null)
+            return;
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Observers] backfire variant '{antiSkillId}' (slot {slotIndex}), IsOwner={IsOwner}");
+        anti.ExecuteObservers(this, slotIndex, IsOwner);
+        if (IsOwner)
+            anti.ExecuteLocal(this, slotIndex);
     }
 }

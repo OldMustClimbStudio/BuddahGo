@@ -49,7 +49,7 @@ public class ObsessionFigure : NetworkBehaviour
 
     [Header("Backfire Penalty")]
     [Tooltip("Seconds after the backfired cast's confirm window during which every skill is locked and the obsession decay is paused.")]
-    [Min(0f)] [SerializeField] private float backfireLockSeconds = 10f;
+    [Min(0f)] [SerializeField] private float backfireLockSeconds = 5f;
 
     [Tooltip("Max speed multiplier for the caster while the backfire penalty lasts (predicted modifier).")]
     [Range(0.1f, 1f)] [SerializeField] private float backfireMaxSpeedMultiplier = 0.85f;

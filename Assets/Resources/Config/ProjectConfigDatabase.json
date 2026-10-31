@@ -476,7 +476,7 @@
             "backfireKeepPMaxAtOrAboveX": 1000.0,
             "repeatWindowSeconds": 5.0,
             "repeatGainMultiplier": 1.149999976158142,
-            "backfireLockSeconds": 10.0,
+            "backfireLockSeconds": 5.0,
             "backfireMaxSpeedMultiplier": 0.8500000238418579,
             "backfireEndKeepRatio": 0.800000011920929
         }

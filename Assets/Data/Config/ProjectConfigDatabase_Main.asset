@@ -387,7 +387,7 @@ MonoBehaviour:
     backfireKeepPMaxAtOrAboveX: 1000
     repeatWindowSeconds: 5
     repeatGainMultiplier: 1.15
-    backfireLockSeconds: 10
+    backfireLockSeconds: 5
     backfireMaxSpeedMultiplier: 0.85
     backfireEndKeepRatio: 0.8
   yuanqis:

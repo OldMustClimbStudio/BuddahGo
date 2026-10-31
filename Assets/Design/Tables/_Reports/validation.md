@@ -1,8 +1,8 @@
 # Design tables validation
 
-- time: 2026-10-31 16:09:39
+- time: 2026-10-31 16:55:48
 - mode: import (force)
-- changed workbooks: Global, Skill, UI
+- changed workbooks: Skill
 - sheets re-mapped: 38, kept: 0, records: 536
 - errors: 0, warnings: 3
 - outputs written: yes

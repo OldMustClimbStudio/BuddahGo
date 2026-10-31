@@ -99,7 +99,7 @@ GUID 搜不到引用，但可能被代码按名字加载（`Shader.Find`、`Reso
 | 2D 流体面片：`Assets/Scripts/VFX/InkFluidSheet.cs`、`Rendering/Shaders/FX/InkFluid.compute`、`FX_InkFluidSheet.shader`、`如来神掌/Materials/Mat_FX_Palm_InkFluid.mat` | 待删 | prefab 里的 `InkFluid` / `InkFluidSide` 子物体已删（2026-10-29），没有对象再用；`PalmInkTimeline.Apply` 里还有一段 `foreach InkFluidSheet`（找不到就跳过），删脚本时把那段一起删。用户看过粒子版后又要回流体的"感觉"，最终由三维版 `InkFluidVolume` 取代 | `InkFluid3D`（`InkFluidVolume` + `InkFluid3D.compute` + `FX_InkFluid3D.shader`） |
 | compute 粒子：`Assets/Scripts/VFX/InkParticles.cs`、`Rendering/Shaders/FX/InkParticles.compute`、`FX_InkParticle.shader`、`如来神掌/Materials/Mat_FX_Palm_InkParticle.mat` | 待删 | prefab 的 `InkParticles` 子物体已于 2026-10-30 删除；用户判定"不是烟雾模拟，是软圆盘硬凑的"，由三维流体取代 | 同上 |
 | Shuriken 层材质：`Mat_FX_Palm_Wisp.mat`、`Mat_FX_Palm_Plume.mat`、`Mat_FX_Palm_SurfaceSmoke.mat` | 待删 | `SurfaceWisps` / `Plume` 子物体已删，无引用；`FX_SmokeSprite` 已在第 2 节 | 同上 |
-| `Assets/VFX/如来神掌/Mesh/Palm_Tripo_v1.glb` | 保留 | Tripo 原始输出，重生成 `Mesh_FX_Palm_Tripo.asset` / SDF 的来源 | — |
+| `Assets/VFX/如来神掌/Mesh/Palm_Tripo_v1.glb` | 已删（2026-10-31，用户决定不进仓库） | Tripo 原始输出，只用于重生成 `Mesh_FX_Palm_Tripo.asset`（SDF 从 Mesh 资产烘焙，不读它）；无 GUID 引用。留档在仓库外，见 [palm-mesh-tripo.md](palm-mesh-tripo.md) 第 1 节 | — |
 | 调参截图 `Docs/vfx/palm-mesh-tripo/*.png`（约 40 张） | 保留 | 文档各节引用；按"保留调查文档"的规则不删 | — |
 | `InkFluidVolume.Tick` 的子步循环（`ceil(dt / maxStep)` 与 `ceil(格数 / maxCellsPerStep)` 取大、上限 6，每个子步跑完整 19 次 dispatch） | 已删（2026-10-30，性能会话） | 帧越慢子步越多的正反馈是 24 掌 147 ms 的主因之一。替代：每帧 1 步（长帧 2 步），手的路径由 `Source` 核的 `_WorldToHandSweep` 扫描覆盖 | 同文件 |
 | `InkFluidVolume` 每实例 8 张 3D RenderTexture（`velB` / `denB` / `prsA` / `prsB` / `div` / `curl` 随实例分配） | 已删 | 改成全体共用的静态 scratch + 状态纹理池；每掌 41 MB → 12 MB | 同文件 `ScratchSet` / `StateSet` |

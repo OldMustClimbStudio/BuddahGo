@@ -285,6 +285,8 @@ namespace BuddahGo.VFX.EditorTools
         // to Unity by negating X and reversing winding, and saves a Mesh asset next to the GLB. Returns the asset path.
         public static string ImportGlb(string glbPath, string assetName)
         {
+            // Raw Tripo GLBs are not kept in the repository (Docs/vfx/palm-mesh-tripo.md section 1 says where v1 is).
+            if (!File.Exists(glbPath)) throw new FileNotFoundException("GLB not found: " + glbPath + " (raw Tripo outputs are archived outside the repository, see Docs/vfx/palm-mesh-tripo.md)", glbPath);
             byte[] bytes = File.ReadAllBytes(glbPath);
             if (BitConverter.ToUInt32(bytes, 0) != 0x46546C67u) throw new Exception("not a GLB: " + glbPath);
             int offset = 12;

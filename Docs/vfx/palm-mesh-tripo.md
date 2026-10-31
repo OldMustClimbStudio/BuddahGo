@@ -7,7 +7,7 @@
 | 项 | 值 |
 |---|---|
 | 可用网格 | `Assets/VFX/如来神掌/Mesh/Mesh_FX_Palm_Tripo.asset` |
-| 原始输出 | `Assets/VFX/如来神掌/Mesh/Palm_Tripo_v1.glb`（Tripo 直出，无贴图、无材质、带 UV；工程没装 glTF 导入器，Unity 把它当普通文件，只作留档） |
+| 原始输出 | `Palm_Tripo_v1.glb`（Tripo 直出，无贴图、无材质、带 UV；工程没装 glTF 导入器，Unity 把它当普通文件，只作留档）。**不进仓库**（用户 2026-10-31 决定）：原在 `Assets/VFX/如来神掌/Mesh/`，已从分支删除，留档在仓库外 `C:/Users/dwh88/AppData/Roaming/Claude/side-session-notes/local_d01011c4-9f17-49cd-9880-1c1a19d5e89c/palm-tripo/Palm_Tripo_v1.glb`（连同原 `.meta`）。Tripo 每次生成结果不同，要从原始模型重导 `Mesh_FX_Palm_Tripo.asset` 时从那里拷回；重烘 SDF 不需要它（`PalmVolumeBaker` 读的是 Mesh 资产） |
 | 面数 / 顶点 | 4 782 三角面 / 3 152 顶点（预算 ≤ 5 000） |
 | 轴向 | 掌心朝 +Z，手指朝 +Y，拇指在 −X 侧；中心在原点 |
 | 尺寸 | 59.9 × 90.0 × 34.5（等比缩放到高 90，对应参考碰撞盒 60 × 90；厚度 34.5 是拇指外展造成的，手掌本身约 15） |
@@ -63,7 +63,7 @@ v1 请求体：
 
 Tripo 的 GLB 是 glTF 右手系、+X 朝前（文档里 `export_orientation` 默认 `+x`）。工程没有 glTFast，所以 `Assets/Editor/VFX/PalmMeshTripo.cs` 自带一个最小 GLB 读取器（`ImportGlb`）：读 JSON + BIN 块，合并所有 primitive 并应用节点变换，X 取反、三角形反绕序换成 Unity 左手系（手是手性体，这一步不能省），生成 Mesh 资产。导入后实测包围盒 0.383 × 1.000 × 0.665：掌心朝 −X、手指 +Y、拇指 −Z。
 
-之后在 Editor 里绕 Y 转 +90°（−X → +Z），按包围盒中心归零，等比缩放到高 90，另存为 `Mesh_FX_Palm_Tripo.asset`；中间的 raw 资产已删，GLB 保留。缩放与碰撞盒的关系沿用实现笔记的做法：主体按碰撞盒等比缩放，不逐轴贴合。
+之后在 Editor 里绕 Y 转 +90°（−X → +Z），按包围盒中心归零，等比缩放到高 90，另存为 `Mesh_FX_Palm_Tripo.asset`；中间的 raw 资产已删，GLB 当时保留（2026-10-31 起不进仓库，留档位置见第 1 节）。缩放与碰撞盒的关系沿用实现笔记的做法：主体按碰撞盒等比缩放，不逐轴贴合。
 
 ## 5. 工具：`Assets/Editor/VFX/PalmMeshTripo.cs`
 
@@ -89,7 +89,7 @@ Tripo 的 GLB 是 glTF 右手系、+X 朝前（文档里 `export_orientation` �
 
 - 用户看过三视图后的意见：手势、拇指外展角度、手腕切口要不要收圆、掌心法轮要不要。
 - 这只白模对应设计里的哪一层（设计交接笔记里用户已否决过几版手部网格方案，当前时间轴是一张白纸）；由设计会话与用户定。
-- `Palm_Tripo_v1.glb` 要不要进仓库（160 KB，留档用；没有导入器时它在工程里只是普通文件）。
+- ~~`Palm_Tripo_v1.glb` 要不要进仓库（160 KB，留档用；没有导入器时它在工程里只是普通文件）。~~ **已定（用户 2026-10-31）**：中间产物，合并前从分支删除，不进仓库，也不为 `.glb` 补 LFS 规则；留档位置见第 1 节。
 
 ## 8. 水墨玻璃 shader `FX/InkGlass`（2026-10-29，用户当场追加）
 

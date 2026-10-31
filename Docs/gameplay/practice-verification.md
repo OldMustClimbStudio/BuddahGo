@@ -44,6 +44,10 @@
 
 随后起跑交接改成完全物理（[README §3](README.md)：交接那一 tick 设一次开场速度，不再锁速度、混合或屏蔽转向），再完整跑一轮（`Logs/mechanics-practice/a8-20261030-232226/`）：14/14 通过，0 个失败检查；S13 按住 W 0.60 秒到 14.2 m/s，松开后 1.20 秒减速 1.96 m/s²。无窗口 EditMode 两次都是 597/597（新增 `DriveInputTests` 3 个）。
 
+## 2026-10-31 重跑（中途 review 与退役清理之后）
+
+PR #63 中途 review 修了反噬结束的结算顺序（施法闸门先结算到期的惩罚，b1d0b688），之后清理了退役的代码、资产和配表（见 [退役记录](retired.md)）。完整 14 个场景再跑一轮（本机 `Logs/mechanics-practice/20261031-145819/`）：14/14 通过，0 个失败检查。S5 惩罚正好 601 tick（10.017 秒），结束时执念 487.242 → 389.794（×0.8），极速 80 → 68 → 80；S4 增量 300 → 345 → 396.75。控制台只有已知的警告（Steam 未启动、`acceleration_local` 没有 Feel 播放器）和结算演出把完赛的车传送进结算区时的“kinematic 刚体不能设速度”报错（`BuddahMovement.TeleportPredictedMotor`，由 `PlayerFinishPresentationController` 调用；dev 上就有，这个分支没有改过这条路径）。
+
 ## 重跑方法
 
 1. 在本 worktree 打开编辑器，打开 `Assets/Scenes/MainMenu.unity`，进入 Play，停在主菜单。

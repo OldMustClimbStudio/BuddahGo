@@ -196,6 +196,8 @@ A7 之前的“每键搓招失误率”15% / 6% / 1% 已随搓招退役。简单
 
 AI 的推进开关一直为开（已定），代码只在 `AIRacerDriver.TryGetOverride` 补了注释。`AISkillRaceHarness` Normal 一场（2026-10-30，`Logs/a8/solo-20261030-231507`，不入库；W 推进和完全物理交接都已生效）：自然结算（`natural-race-results`），0 运行错误；trickster 320.5 s 自然完赛，其余四个 AI 在完赛倒计时截止时在第 3 圈；单圈 102–167 s（keeper 126.1 / 102.2，hunter 110.0 / 124.5，brawler 167.3 / 104.0，trickster 107.7 / 109.2 / 103.6，opportunist 129.0 / 104.2），和 A7 那场（101–139 s）同一量级，brawler 第一圈 167 s 偏慢；每个 AI 执行 10–18 次施法，71 次请求接受 69 次（opportunist 2 次被 A7 的 `rejected-global-visible` 挡下：已有黑幕可见时不再放黑幕），反噬 14 次，缘起 8 次（keeper #4 ×1、#2 ×2，brawler #1 ×5）。真人不按键：交接时 59.97 m/s，从第一个 tick 起只按摩擦减速（1.08 s 后 57.38 m/s，约 2.4 m/s²），之后被 AI 蓄力掌打中 10 次，靠冲量加滑行在 235.6 s 过了第 1 圈，没有任何 W 式的持续加速。同一天更早的一场（改交接之前）在 68 s 被手动停止（`operator-disabled`），期间编辑器里按过一次真实的 W，不作数。
 
+2026-10-31 PR #63 中途 review 与退役清理之后，`AISkillRaceHarness` Normal 再跑一场（`Logs/review/solo-20261031`，不入库）：自然结算（`natural-race-results`）；trickster 313.4 s、keeper 322.1 s、opportunist 322.4 s、hunter 326.5 s 自然完赛，brawler 在完赛倒计时截止时在第 3 圈；单圈 93.4–138.8 s；72 次请求接受 71 次（1 次 `rejected-global-visible`），执行 71 次（每个 AI 13–17 次），反噬 12 次，缘起 8 次（brawler #1 ×4，keeper #2 ×3、#4 ×1）。控制台只有结算演出传送完赛车辆时的“kinematic 刚体不能设速度”报错，dev 上就有，与本分支无关。
+
 ## 后续交接与未定项
 
 - 本轮明确要求"先进行文档落盘，暂时不用直接开始 implement"。不自动进入代码、资源修改、Unity 实播、测试或构建；等待用户后续开始指令。

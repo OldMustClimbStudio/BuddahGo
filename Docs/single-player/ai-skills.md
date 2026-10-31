@@ -198,6 +198,8 @@ AI 的推进开关一直为开（已定），代码只在 `AIRacerDriver.TryGetO
 
 2026-10-31 PR #63 中途 review 与退役清理之后，`AISkillRaceHarness` Normal 再跑一场（`Logs/review/solo-20261031`，不入库）：自然结算（`natural-race-results`）；trickster 313.4 s、keeper 322.1 s、opportunist 322.4 s、hunter 326.5 s 自然完赛，brawler 在完赛倒计时截止时在第 3 圈；单圈 93.4–138.8 s；72 次请求接受 71 次（1 次 `rejected-global-visible`），执行 71 次（每个 AI 13–17 次），反噬 12 次，缘起 8 次（brawler #1 ×4，keeper #2 ×3、#4 ×1）。控制台只有结算演出传送完赛车辆时的“kinematic 刚体不能设速度”报错，dev 上就有，与本分支无关。
 
+2026-10-31 反噬变体恢复之后（反噬 = 统一惩罚 + 必定变体），`AISkillRaceHarness` Normal 再跑一场（`Logs/review/solo-anti-20261031`，不入库）：自然结算；trickster 335.1 s、opportunist 343.7 s 自然完赛，其余三个在完赛倒计时截止时在第 3 圈；单圈 99.4–174.1 s，比变体恢复前那场（93.4–138.8 s）慢，反噬变体会让施法者自己减速、定身、缩小或反转；68 次请求全部接受，执行 67 次、取消 1 次，反噬 13 次（每次都放出变体），缘起 5 次（brawler #1 ×3，keeper #2 ×2）。AI 风险仍按统一 `backfireCost`，是否把变体代价加回来待用户答复。控制台只有结算演出传送完赛车辆时的 kinematic 报错（dev 已有）。
+
 ## 后续交接与未定项
 
 - 本轮明确要求"先进行文档落盘，暂时不用直接开始 implement"。不自动进入代码、资源修改、Unity 实播、测试或构建；等待用户后续开始指令。

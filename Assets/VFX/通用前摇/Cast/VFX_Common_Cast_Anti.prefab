@@ -110144,8 +110144,8 @@ MonoBehaviour:
   burstShared: 0
   startUnit: 1
   start: 0
-  endUnit: 1
-  end: -1
+  endUnit: 0
+  end: 7
   fadeInSeconds: 0
   fadeOutSeconds: 0
   tailFadeSeconds: 0
@@ -110282,6 +110282,9 @@ MonoBehaviour:
   trailSecondsScale: 1
   trailTimeFollowsWindow: 0
   timeScaling: 1
+  particlesDieNaturally: 1
+  endWithWindow: []
+  endWithWindowSeconds: 1
 --- !u!1 &3752276130485722759
 GameObject:
   m_ObjectHideFlags: 0
@@ -203163,7 +203166,7 @@ MonoBehaviour:
   bodyFitRoot: {fileID: 3876205565748840619}
   referenceSeconds:
   - phase: 3
-    seconds: 1
+    seconds: 2
 --- !u!1 &7738013514907902786
 GameObject:
   m_ObjectHideFlags: 0

@@ -222,7 +222,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 5
     castLockSeconds: 3
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 3
   - skillId: slowtrap_anti
@@ -233,7 +233,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 3
     castLockSeconds: 1
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 1
   - skillId: blackcurtain_anti
@@ -244,7 +244,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 16
     castLockSeconds: 14
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 10
   - skillId: giant_anti
@@ -255,7 +255,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 8
     castLockSeconds: 6
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 6
   - skillId: push_projectile_hands_anti
@@ -266,7 +266,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 10
     castLockSeconds: 10
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 0
   - skillId: reverseturn_anti
@@ -277,7 +277,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 12
     castLockSeconds: 10
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 10
   skillEffectAccelerations:

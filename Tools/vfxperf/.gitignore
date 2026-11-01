@@ -1,0 +1,5 @@
+*.out
+shots/
+out/
+umcp_session.txt
+__pycache__/

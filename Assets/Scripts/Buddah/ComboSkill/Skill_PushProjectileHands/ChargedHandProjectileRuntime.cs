@@ -1,10 +1,11 @@
 using System.Collections.Generic;
+using BuddahGo.VFX;
 using FishNet;
+using FishNet.Managing.Timing;
 using FishNet.Object;
 using NewBuddah.PredictionV2.Core;
 using NewBuddah.PredictionV2.Integration;
 using UnityEngine;
-using UnityEngine.VFX;
 
 [RequireComponent(typeof(Rigidbody))]
 public class ChargedHandProjectileRuntime : MonoBehaviour
@@ -12,30 +13,36 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
     private NetworkObject _attacker;
     private Vector3 _direction;
     private float _speed;
-    private float _expireTime;
     private float _lockedY;
     private Vector3 _impulse;
     private float _buildUpDuration;
     private float _flightDuration;
-    private float _spawnTime;
-    private float _armTime;
+    // One clock for every copy of a projectile (Docs/vfx/push-projectile-hands.md section 15): seconds since the server
+    // spawned the hitbox, read from the network tick. Server hitbox and client visuals agree even across a frame hitch
+    // (Time.time gains at most maximumDeltaTime per frame, the tick gains real time). Without a network (editor
+    // previews) it falls back to Time.time.
+    private PreciseTick _spawnTick;
+    private PalmInkTimeline[] _inkTimelines;
+    private bool _hasSpawnTick;
+    private float _localSpawnTime;
     private float _hitTurnTorqueImpulse;
-    private string _progressProperty = "Progress";
     private bool _applyHits;
     private bool _allowAttackerHit;
-    private bool _ignoreSolidWorld;
     private bool _armed;
     private Collider _hitbox;
-    private VisualEffect[] _visualEffects;
+    // Visual copies only: the layered skill effect (Docs/vfx), driven by the same timing as the hitbox.
+    private SkillVfxPhaseController _skillVfx;
+    private bool _dissipating;
     private Transform _followTarget;
     private Vector3 _followTargetStartPosition;
     private Vector3 _startPosition;
-    private GameObject _launchEffectPrefab;
-    private Vector3 _launchEffectWorldOffset;
     private readonly HashSet<NetworkObject> _hitVictims = new();
+    // Flight speed shape (ChargedProjectileFlight). Every caller passes the skill's curve; without one the palm stays
+    // put (only an unconfigured client's empty fallback visual could get here).
+    private float[] _flightDistanceFractions;
+    private float _flightTravelled;
 
     private const float ProgressCompletionFraction = 0.8f;
-    private const float FlightEndSpeedFraction = 0.2f;
 
     private void Awake()
     {
@@ -65,7 +72,8 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         Vector3 colliderSize,
         float hitTurnTorqueImpulse,
         bool allowAttackerHit,
-        bool ignoreSolidWorld)
+        AnimationCurve speedCurve,
+        PreciseTick? spawnTick = null)
     {
         GameObject root = new GameObject("ChargedHandProjectile_Server");
         root.transform.SetPositionAndRotation(startPos, Quaternion.LookRotation(direction, Vector3.up));
@@ -80,7 +88,7 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         box.enabled = false;
 
         ChargedHandProjectileRuntime projectile = root.AddComponent<ChargedHandProjectileRuntime>();
-        projectile.InitializeServer(attacker, attacker != null ? attacker.transform : null, startPos, direction, speed, buildUpDuration, flightLifetimeSeconds, impulse, hitTurnTorqueImpulse, allowAttackerHit, ignoreSolidWorld);
+        projectile.InitializeServer(attacker, attacker != null ? attacker.transform : null, startPos, direction, speed, buildUpDuration, flightLifetimeSeconds, impulse, hitTurnTorqueImpulse, allowAttackerHit, speedCurve, spawnTick);
         return projectile;
     }
 
@@ -93,10 +101,11 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         GameObject visualPrefab,
         Vector3 visualLocalEuler,
         Vector3 visualScale,
-        string progressProperty,
         Transform followTarget = null,
-        GameObject launchEffectPrefab = null,
-        Vector3? launchEffectWorldOffset = null)
+        SkillVfxPhaseController.Context? skillVfxContext = null,
+        AnimationCurve speedCurve = null,
+        PreciseTick? spawnTick = null,
+        Vector3? followTargetStart = null)
     {
         GameObject root;
         if (visualPrefab != null)
@@ -117,7 +126,8 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         if (projectile == null)
             projectile = root.AddComponent<ChargedHandProjectileRuntime>();
 
-        projectile.InitializeVisual(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds, visualLocalEuler, visualScale, progressProperty, launchEffectPrefab, launchEffectWorldOffset ?? Vector3.zero);
+        projectile.InitializeVisual(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds, visualLocalEuler, visualScale, speedCurve, spawnTick, followTargetStart);
+        projectile.StartSkillVfx(skillVfxContext, followTarget);
         return projectile;
     }
 
@@ -132,16 +142,16 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         Vector3 impulse,
         float hitTurnTorqueImpulse,
         bool allowAttackerHit,
-        bool ignoreSolidWorld)
+        AnimationCurve speedCurve,
+        PreciseTick? spawnTick)
     {
         _attacker = attacker;
         _applyHits = true;
         _allowAttackerHit = allowAttackerHit;
-        _ignoreSolidWorld = ignoreSolidWorld;
         _impulse = impulse;
         _hitTurnTorqueImpulse = hitTurnTorqueImpulse;
         EnsureServerHitbox();
-        ConfigureMotion(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds);
+        ConfigureMotion(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds, speedCurve, spawnTick, null);
         SetProgress(0f);
 
         if (!_allowAttackerHit)
@@ -157,28 +167,46 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         float flightLifetimeSeconds,
         Vector3 visualLocalEuler,
         Vector3 visualScale,
-        string progressProperty,
-        GameObject launchEffectPrefab,
-        Vector3 launchEffectWorldOffset)
+        AnimationCurve speedCurve,
+        PreciseTick? spawnTick,
+        Vector3? followTargetStart)
     {
         _applyHits = false;
-        _progressProperty = string.IsNullOrWhiteSpace(progressProperty) ? "Progress" : progressProperty;
-        ConfigureMotion(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds);
-        _launchEffectPrefab = launchEffectPrefab;
-        _launchEffectWorldOffset = launchEffectWorldOffset;
+        ConfigureMotion(startPos, followTarget, direction, speed, buildUpDuration, flightLifetimeSeconds, speedCurve, spawnTick, followTargetStart);
         if (_hitbox != null)
             _hitbox.enabled = false;
 
         transform.rotation *= Quaternion.Euler(visualLocalEuler);
         transform.localScale = Vector3.Scale(transform.localScale, visualScale);
 
-        _visualEffects = GetComponentsInChildren<VisualEffect>(true);
-        SetProgress(0f);
-        PlayAllVisualEffects();
+        // Ink palm (VFX_Palm_Bullet / _Anti): its timeline plays the gather / flight / dissipate looks over this projectile's
+        // timing; the moving is done here, not by the timeline. It draws in the skill-effect pass like the slot effects.
+        _inkTimelines = GetComponentsInChildren<PalmInkTimeline>(true);
+        if (_inkTimelines.Length > 0)
+            SkillVfxPhaseController.MoveToCharacterLayer(transform);
+        foreach (PalmInkTimeline timeline in _inkTimelines)
+            timeline.ConfigureForProjectile(_buildUpDuration, _flightDuration, Elapsed());
     }
 
-    private void ConfigureMotion(Vector3 startPos, Transform followTarget, Vector3 direction, float speed, float buildUpDuration, float flightLifetimeSeconds)
+    private void StartSkillVfx(SkillVfxPhaseController.Context? context, Transform followTarget)
     {
+        _skillVfx = GetComponent<SkillVfxPhaseController>();
+        if (_skillVfx == null)
+            return;
+
+        SkillVfxPhaseController.Context resolved = context ?? new SkillVfxPhaseController.Context { caster = followTarget };
+        _skillVfx.Configure(resolved);
+        // what is left of the wind-up: a copy that starts late gets a shorter charge, then arms with the hitbox
+        _skillVfx.BeginPhase(SkillVfxPhase.Chg, Mathf.Max(0.01f, _buildUpDuration - Elapsed()));
+    }
+
+    // spawnTick: the server's tick when it spawned the hitbox (the same value reaches the clients in the visual RPC).
+    // followTargetStart: where the followed caster was at that moment, as the server saw it. A copy that spawns later
+    // still follows the caster's movement since the server spawn, so it does not lag by what the caster drove meanwhile.
+    private void ConfigureMotion(Vector3 startPos, Transform followTarget, Vector3 direction, float speed, float buildUpDuration, float flightLifetimeSeconds, AnimationCurve speedCurve, PreciseTick? spawnTick, Vector3? followTargetStart)
+    {
+        _flightDistanceFractions = speedCurve != null ? ChargedProjectileFlight.Cumulative(speedCurve) : null;
+        _flightTravelled = 0f;
         Vector3 planarDirection = direction;
         planarDirection.y = 0f;
         if (planarDirection.sqrMagnitude < 0.0001f)
@@ -188,26 +216,45 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         _speed = Mathf.Max(0f, speed);
         _buildUpDuration = Mathf.Max(0f, buildUpDuration);
         _flightDuration = Mathf.Max(0.05f, flightLifetimeSeconds);
-        _spawnTime = Time.time;
-        _armTime = _spawnTime + _buildUpDuration;
-        _expireTime = _armTime + _flightDuration;
+        _hasSpawnTick = spawnTick.HasValue && InstanceFinder.TimeManager != null;
+        _spawnTick = spawnTick ?? default;
+        _localSpawnTime = Time.time;
         _lockedY = startPos.y;
         _followTarget = followTarget;
-        _followTargetStartPosition = followTarget != null ? followTarget.position : Vector3.zero;
+        _followTargetStartPosition = followTargetStart ?? (followTarget != null ? followTarget.position : Vector3.zero);
         _startPosition = startPos;
 
         transform.SetPositionAndRotation(startPos, Quaternion.LookRotation(_direction, Vector3.up));
     }
 
+    private float Elapsed()
+    {
+        return _hasSpawnTick ? (float)InstanceFinder.TimeManager.TimePassed(_spawnTick) : Time.time - _localSpawnTime;
+    }
+
     private void Update()
     {
-        if (Time.time >= _expireTime)
+        float elapsed = Elapsed();
+        if (_inkTimelines != null)
+            foreach (PalmInkTimeline timeline in _inkTimelines)
+                timeline.time = Mathf.Min(elapsed, timeline.duration);   // the ink's look follows the same clock
+        if (elapsed >= _buildUpDuration + _flightDuration)
         {
+            if (_skillVfx != null && !_applyHits)
+            {
+                // The visual copy dissolves in place; the controller destroys it when every layer has finished.
+                if (!_dissipating)
+                {
+                    _dissipating = true;
+                    _skillVfx.BeginDissipation();
+                }
+                return;
+            }
+
             Destroy(gameObject);
             return;
         }
 
-        float elapsed = Time.time - _spawnTime;
         float progressDuration = _buildUpDuration * ProgressCompletionFraction;
         float buildProgress = progressDuration > 0f ? Mathf.Clamp01(elapsed / progressDuration) : 1f;
         SetProgress(buildProgress);
@@ -222,8 +269,7 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
             ArmProjectile();
         }
 
-        float currentSpeed = GetCurrentFlightSpeed();
-        float moveDistance = currentSpeed * Time.deltaTime;
+        float moveDistance = GetFlightStep();
         if (moveDistance <= 0f)
             return;
 
@@ -236,15 +282,18 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         CheckVictimOverlaps();
     }
 
-    private float GetCurrentFlightSpeed()
+    // Distance to move this frame: where the speed shape's integral puts the palm now, minus where it is.
+    private float GetFlightStep()
     {
-        if (_speed <= 0f)
+        if (_flightDistanceFractions == null)
             return 0f;
 
-        float flightElapsed = Mathf.Max(0f, Time.time - _armTime);
+        float flightElapsed = Mathf.Max(0f, Elapsed() - _buildUpDuration);
         float normalizedFlight = _flightDuration > 0f ? Mathf.Clamp01(flightElapsed / _flightDuration) : 1f;
-        float speedFraction = Mathf.Lerp(1f, FlightEndSpeedFraction, normalizedFlight);
-        return _speed * speedFraction;
+        float target = _speed * _flightDuration * ChargedProjectileFlight.DistanceFraction(_flightDistanceFractions, normalizedFlight);
+        float step = target - _flightTravelled;
+        _flightTravelled = target;
+        return step;
     }
 
     private void ArmProjectile()
@@ -252,8 +301,13 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         _armed = true;
         if (_applyHits) BuddahGo.Match.SkillCombatEvents.Record("launched", "charged-projectile", _attacker, null, transform.position);
         SetProgress(1f);
+        if (_skillVfx != null)
+        {
+            _skillVfx.EndPhase(SkillVfxPhase.Chg);
+            _skillVfx.BeginPhase(SkillVfxPhase.Imp);
+            _skillVfx.BeginPhase(SkillVfxPhase.Prj, _flightDuration);
+        }
         FollowChargingTargetPosition();
-        SpawnLaunchEffect();
 
         if (_hitbox != null)
             _hitbox.enabled = _applyHits;
@@ -283,27 +337,6 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         _hitbox.enabled = false;
     }
 
-    private void SpawnLaunchEffect()
-    {
-        if (_launchEffectPrefab == null)
-            return;
-
-        Vector3 effectPosition = transform.position + _launchEffectWorldOffset;
-        GameObject effect = Instantiate(_launchEffectPrefab, effectPosition, Quaternion.LookRotation(_direction, Vector3.up));
-        // This detached burst outlives the projectile, but must not accumulate empty roots per shot.
-        float lifetime = 0f;
-        foreach (ParticleSystem particles in effect.GetComponentsInChildren<ParticleSystem>(true))
-        {
-            var main = particles.main;
-            if (!particles.emission.enabled)
-                continue;
-            lifetime = Mathf.Max(lifetime,
-                (main.startDelay.constantMax + main.duration + main.startLifetime.constantMax)
-                / Mathf.Max(0.01f, main.simulationSpeed));
-        }
-        Destroy(effect, Mathf.Max(0.1f, lifetime));
-    }
-
     private void FollowChargingTargetPosition()
     {
         if (_followTarget == null)
@@ -315,34 +348,11 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         transform.position = nextPosition;
     }
 
+    // Charge progress for the slot effect (0..1, full at ProgressCompletionFraction of the wind-up).
     private void SetProgress(float value)
     {
-        if (_visualEffects == null || _visualEffects.Length == 0)
-            return;
-
-        for (int i = 0; i < _visualEffects.Length; i++)
-        {
-            VisualEffect visualEffect = _visualEffects[i];
-            if (visualEffect == null || !visualEffect.HasFloat(_progressProperty))
-                continue;
-
-            visualEffect.SetFloat(_progressProperty, value);
-        }
-    }
-
-    private void PlayAllVisualEffects()
-    {
-        if (_visualEffects == null)
-            return;
-
-        for (int i = 0; i < _visualEffects.Length; i++)
-        {
-            if (_visualEffects[i] == null)
-                continue;
-
-            _visualEffects[i].Reinit();
-            _visualEffects[i].Play();
-        }
+        if (_skillVfx != null)
+            _skillVfx.SetChargeProgress(value);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -377,39 +387,6 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         BuddahGo.Match.SkillCombatEvents.Record("hit", "charged-projectile", _attacker, victimNO, transform.position, routed);
     }
 
-    private bool TryStopAtSolidWorld(float moveDistance)
-    {
-        Rigidbody body = GetComponent<Rigidbody>();
-        if (body == null)
-            return false;
-
-        RaycastHit[] hits = body.SweepTestAll(_direction, moveDistance, QueryTriggerInteraction.Ignore);
-        if (hits == null || hits.Length == 0)
-            return false;
-
-        float nearestDistance = float.MaxValue;
-        bool foundBlockingHit = false;
-
-        for (int i = 0; i < hits.Length; i++)
-        {
-            Collider hitCollider = hits[i].collider;
-            if (ShouldIgnoreSolidHit(hitCollider))
-                continue;
-
-            nearestDistance = Mathf.Min(nearestDistance, hits[i].distance);
-            foundBlockingHit = true;
-        }
-
-        if (!foundBlockingHit)
-            return false;
-
-        Vector3 nextPosition = transform.position + (_direction * Mathf.Max(0f, nearestDistance - 0.01f));
-        nextPosition.y = _lockedY;
-        transform.position = nextPosition;
-        Destroy(gameObject);
-        return true;
-    }
-
     private void CheckVictimOverlaps()
     {
         if (!_armed || !_applyHits || !InstanceFinder.IsServerStarted || _hitbox == null)
@@ -428,24 +405,6 @@ public class ChargedHandProjectileRuntime : MonoBehaviour
         Collider[] fallbackOverlaps = Physics.OverlapSphere(_hitbox.bounds.center, _hitbox.bounds.extents.magnitude, ~0, QueryTriggerInteraction.Collide);
         for (int i = 0; i < fallbackOverlaps.Length; i++)
             TryApplyHit(fallbackOverlaps[i]);
-    }
-
-    private bool ShouldIgnoreSolidHit(Collider hitCollider)
-    {
-        if (hitCollider == null)
-            return true;
-
-        if (_hitbox != null && hitCollider == _hitbox)
-            return true;
-
-        if (hitCollider.isTrigger)
-            return true;
-
-        NetworkObject hitNetworkObject = hitCollider.GetComponentInParent<NetworkObject>();
-        if (hitNetworkObject != null)
-            return true;
-
-        return false;
     }
 
     private void IgnoreAttackerColliders()

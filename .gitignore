@@ -29,6 +29,11 @@ Thumbs.db
 *.downloading
 *.zip
 
+# Third-party VFX packs: the source stays local; effects use copies listed in Docs/vfx/asset-sources.md
+# (Docs/vfx/README.md section 7). Do not reference these folders from tracked assets.
+Assets/Piloto Studio/
+Assets/Piloto Studio.meta
+
 # Plugin demos/samples that are usually safe to ignore after audit.
 Assets/Plugins/Feel/FeelDemos/
 Assets/Plugins/Feel/FeelDemos.meta

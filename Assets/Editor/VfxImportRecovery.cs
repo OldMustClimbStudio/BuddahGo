@@ -7,13 +7,11 @@ namespace BuddahGo.Editor
     /// <summary>Rebuilds the original VFX imports without replacing their art or shader bindings.</summary>
     internal static class VfxImportRecovery
     {
+        // The VFX Graph effects that used to be listed here (skill / backfire reflection, charged palm, slow zone)
+        // were retired with the first-pass effects (Docs/vfx/retired.md).
         private static readonly string[] AssetGuids =
         {
-            "7f11fe28133f1a74594785107b98f2fe", // Piloto UberFXSG
-            "6c750d3209196614bbf876bb4bd7644e", // Skill reflection
-            "7dc83248cbf2c54468946e8fe16e0605", // Backfire reflection
-            "ea3d04c1a681abd4eb4cb98da1918ae8", // Charged palm
-            "d2d715d4a221c8645bf39f837f752d7a"  // Slow zone
+            "7f11fe28133f1a74594785107b98f2fe" // Piloto UberFXSG
         };
 
         [MenuItem("Tools/BuddahGo/Repair Original VFX Imports", false, 210)]

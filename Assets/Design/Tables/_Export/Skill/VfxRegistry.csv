@@ -1,9 +1,18 @@
-##var,vfxId,prefabPath,followTargetPosition,inheritTargetRotation,inheritTargetScale,warmup,referencedBy
-##type,string#key,string#path,bool,bool,bool,bool,string
-##group,,,,,,,doc
-##comment,,相对工程路径,SkillVfxAttachmentSettings,,,启动预热（VfxStartupWarmup）,
-,accel_back_vfx,Assets/VFX/神足通/Acceleration粒子效果.prefab,true,true,false,false,acceleration
-,slowtrap_vfx,Assets/VFX/禅定缓流/slowtrap_vfxZone.prefab,true,false,false,true,slowtrap
-,accel_anti_vfx,,true,true,false,false,(SO 引用但库中无条目，代码也不播放)
-,reverse_turn_trap_vfx,,true,true,false,false,(SO 引用但库中无条目，代码也不播放)
-,reverse_turn_trap_anti_vfx,,true,true,false,false,(SO 引用但库中无条目，代码也不播放)
+##var,vfxId,prefabPath,followTargetPosition,inheritTargetRotation,inheritTargetScale,warmup,referencedBy,antiOf,chgRatio,impFrames,disSeconds,linSeconds,bufFadeSeconds,trailSeconds,scaleMultiplier,lightSeconds,lightIntensity,farThresholdMeters,postPulseSeconds
+##type,string#key,string#path,bool,bool,bool,bool,string,string,float,int,float,float,float,float,float,float,float,float,float
+##group,,,doc,doc,doc,,doc,,,,,,,,,,,doc,doc
+##comment,,相对工程路径；EditMode 测试校验与 SkillVfxDatabase 的 prefab 一致,SkillVfxAttachmentSettings,,,启动预热：VfxStartupWarmup 预热表里 warmup=true 且 SkillVfxDatabase 有 prefab 的条目,,反噬特效配对的正常特效 vfxId；正常特效留空,蓄力层窗口占蓄力时长（玩法值）的比例,释放闪光帧数（按 60 帧/秒换算）,到期消散时长 s,残留时长 s（≤ 1.5，纯视觉）,buff 状态层淡入 / 淡出各 s,拖尾时长 s：拖尾长度 = 速度 × 该值,整体视觉尺寸倍率（主体先按碰撞盒贴合）,发射点光寿命 s（≤ 0.5）,点光强度倍率,"远距省略阈值：随""特效质量""档一起实现，现在无读取方（README 第 8 节）",施法者后期脉冲时长上限 s；Feel 预制体里编排，EditMode 测试校验
+,palm_release,Assets/VFX/如来神掌/Release/VFX_Palm_Release.prefab,false,false,false,true,push_projectile_hands（开火动画，施法者身上，Skill_PushProjectileHands.vfxId）,,1,4,0.4,0,0.3,0.25,1,0.3,1,0,0.15
+,palm_bullet,Assets/VFX/如来神掌/Bullet/VFX_Palm_Bullet.prefab,false,false,false,true,push_projectile_hands（子弹：墨手，随判定一起飞，Skill_PushProjectileHands.handVfxId；不是插槽，时长由 PalmInkTimeline 跟随技能）,,,,,,,,,,,,
+,palm_release_anti,Assets/VFX/如来神掌/Release/VFX_Palm_Release_Anti.prefab,false,false,false,true,push_projectile_hands_anti（红色开火动画，每轮一个，层 burstShared；FrontalBurst 的变体，Skill_PushProjectileHands_Anti.vfxId）,palm_release,1,4,0.4,0,0.3,0.125,1,0.3,1,0,0.15
+,palm_bullet_anti,Assets/VFX/如来神掌/Bullet/VFX_Palm_Bullet_Anti.prefab,false,false,false,true,push_projectile_hands_anti（红色子弹：每发一只红墨手，墨手的变体，Skill_PushProjectileHands_Anti.handVfxId；不是插槽）,palm_bullet,,,,,,,,,,,
+,palm_buff,Assets/VFX/如来神掌/Buff/VFX_Palm_Buff.prefab,true,true,true,true,push_projectile_hands,,1,4,0.4,0,0.3,0.25,1,0.3,1,0,0.15
+,accel_release,Assets/VFX/神足通/Release/VFX_Accel_Release.prefab,false,false,false,true,acceleration,,,,,,,,,,,,
+,slow_release,Assets/VFX/禅定缓流/Release/VFX_Slow_Release.prefab,false,false,false,true,slowtrap,,,,,,,,,,,,
+,reverse_hit,Assets/VFX/转向反转/Hit/VFX_Reverse_Hit.prefab,false,false,false,true,reverseturn（受击插槽，Skill_ReverseTurn.hitVfxId）,,,,,,,,,,,,
+,curtain_hit,Assets/VFX/一念光明/Hit/VFX_Curtain_Hit.prefab,false,false,false,true,blackcurtain（每个玩家身上的路线拖尾，BlackCurtainViewController）,,,,,,,,,,,,
+,cast,Assets/VFX/通用前摇/Cast/VFX_Common_Cast.prefab,false,false,false,true,全部技能（通用前摇，SkillExecutor 在施法确认延迟内对每个客户端播放）,,,,,,,,,,,,
+,cast_anti,Assets/VFX/通用前摇/Cast/VFX_Common_Cast_Anti.prefab,false,false,false,true,全部 _anti 技能（反噬通用前摇）,cast,,,,,,,,,,,
+,giant_release,Assets/VFX/巨大化/Release/VFX_Giant_Release.prefab,false,false,false,true,giant（释放插槽，Skill_Giant.releaseVfxId，整段变大时长）,,,,,,,,,,,,
+,reverse_release,Assets/VFX/转向反转/Release/VFX_Reverse_Release.prefab,false,false,false,true,reverseturn（释放插槽，施法者身上，Skill_ReverseTurn.vfxId）,,,,,,,,,,,,
+,curtain_release,Assets/VFX/一念光明/Release/VFX_Curtain_Release.prefab,false,false,false,true,blackcurtain（释放插槽，施法者身上，Skill_BlackCurtain.releaseVfxId）,,,,,,,,,,,,

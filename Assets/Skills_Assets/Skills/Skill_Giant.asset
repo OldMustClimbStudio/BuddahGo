@@ -24,5 +24,6 @@ MonoBehaviour:
   shrinkDurationSeconds: 0.35
   massMultiplier: 3
   forwardForceMultiplier: 3.5
+  releaseVfxId: giant_release
   observersFeelEventId: 
   observersFeelStopEventId: 

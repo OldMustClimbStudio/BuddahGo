@@ -17593,8 +17593,8 @@ MonoBehaviour:
   runOnAwake: 1
   shaderVariantCollections:
   - {fileID: 20000000, guid: 5f3b64457c9f94249830dbf5532d6269, type: 2}
-  vfxPrefabs:
-  - {fileID: 6079683255119547140, guid: ef7dfc3a2f7f32a4790c8d434ca2a9a6, type: 3}
+  vfxPrefabs: []
+  skillVfxDatabase: {fileID: 11400000, guid: 3a626f7dd3675054abcc20967cccbf5b, type: 2}
   warmupAnchor: {fileID: 0}
   keepAliveSeconds: 0.1
 --- !u!4 &2117107103

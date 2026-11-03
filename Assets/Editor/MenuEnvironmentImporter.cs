@@ -801,9 +801,13 @@ public static class MenuEnvironmentImporter
     {
         if (sun != null)
         {
-            // Low dusk sun: long shadows, warm rim on the roofs, the scene sits mostly in soft shade.
+            // Low dusk sun: long shadows, warm rim on the roofs, the scene sits mostly in soft shade. Colour as
+            // RaceMap's MainLight after the C2 re-tune (2900 K with the (1, 0.92, 0.82) filter); the intensity stays
+            // the menu's own.
             sun.transform.rotation = Quaternion.LookRotation(new Vector3(-0.42f, -0.30f, -0.86f).normalized, Vector3.up);
-            sun.color = new Color(1f, 0.72f, 0.50f);
+            sun.useColorTemperature = true;
+            sun.colorTemperature = 2900f;
+            sun.color = new Color(1f, 0.92f, 0.82f);
             sun.intensity = 1.4f;
             sun.shadows = LightShadows.Soft;
             sun.shadowStrength = 0.85f;
@@ -2017,12 +2021,12 @@ public static class MenuEnvironmentImporter
                 typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
     }
 
-    // The menu keeps RaceMap's original (pre-dusk) lighting environment: the Sunset Sky material RaceMap_Sky.mat, skybox
-    // ambient x1.2, skybox reflections (256 px, 2 bounces, x1) and exp2 fog 0.0009. RaceMap itself has since moved to
-    // RaceMap_Sky_Dusk.mat, Trilight ambient and fog 0.0011 (0.96, 0.68, 0.40), so the two scenes no longer match.
-    // The importer only references RaceMap's assets; RaceMap owns them. Lightmapping.lightingSettings below assigns
-    // RaceMap's own RaceMap_Lighting.lighting rather than a copy, so a change to it in either scene changes both.
-    private const string RaceMapSkyPath = "Assets/Scenes/RaceMap/RaceMap_Sky.mat";
+    // The menu shares RaceMap's dusk environment (the user's decision, 2026-11-03): the Sunset Sky material
+    // RaceMap_Sky_Dusk.mat, RaceMap's Trilight ambient, skybox reflections (256 px, 2 bounces, x1) and RaceMap's exp2 fog
+    // 0.0009 (1.263, 0.967, 0.612), calibrated against that sky (Docs/rendering/racemap/dusk-color-study.md section 11).
+    // The importer only references RaceMap's assets; RaceMap owns them, and a re-tune there changes the menu too.
+    // Lightmapping.lightingSettings below assigns RaceMap's own RaceMap_Lighting.lighting rather than a copy.
+    private const string RaceMapSkyPath = "Assets/Scenes/RaceMap/RaceMap_Sky_Dusk.mat";
     private const string RaceMapLightingSettingsPath = "Assets/Scenes/RaceMap/RaceMap_Lighting.lighting";
 
     private static void SetupEnvironment(Light sun)
@@ -2035,7 +2039,10 @@ public static class MenuEnvironmentImporter
 
         RenderSettings.skybox = sky;
         RenderSettings.sun = sun;
-        RenderSettings.ambientMode = AmbientMode.Skybox;
+        RenderSettings.ambientMode = AmbientMode.Trilight;
+        RenderSettings.ambientSkyColor = new Color(0.36f, 0.44f, 0.6f);
+        RenderSettings.ambientEquatorColor = new Color(0.66f, 0.5f, 0.36f);
+        RenderSettings.ambientGroundColor = new Color(0.2f, 0.15f, 0.13f);
         RenderSettings.ambientIntensity = 1.2f;
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
         RenderSettings.defaultReflectionResolution = 256;
@@ -2044,15 +2051,14 @@ public static class MenuEnvironmentImporter
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.ExponentialSquared;
         RenderSettings.fogDensity = 0.0009f;
-        RenderSettings.fogColor = new Color(1.036835f, 0.813274f, 0.510614f);
+        RenderSettings.fogColor = new Color(1.263f, 0.967f, 0.612f);
         RenderSettings.subtractiveShadowColor = new Color(0.1792453f, 0.1792453f, 0.1792453f);
         DynamicGI.UpdateEnvironment();
     }
 
-    // RaceMap's original (pre-dusk) post profile (ACES, exposure +0.3, contrast 10, saturation 5, white balance 4 / -3,
-    // bloom off). RaceMap now grades with RaceMap_Dusk_Profile.asset, so the menu no longer matches the race.
-    // The importer only references it; RaceMap owns it.
-    private const string RaceMapPostProfilePath = "Assets/Scenes/RaceMap/RaceMap_Environment_Profile.asset";
+    // RaceMap's dusk post profile (ACES, exposure +0.05, contrast 14, saturation 4, white balance 10 / -4, warm bloom),
+    // shared with the race since 2026-11-03. The importer only references it; RaceMap owns it.
+    private const string RaceMapPostProfilePath = "Assets/Scenes/RaceMap/RaceMap_Dusk_Profile.asset";
 
     private static void CreateGlobalVolume()
     {

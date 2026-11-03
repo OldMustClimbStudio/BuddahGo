@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text;
 
 namespace SteamMultiplayer.Network
 {
@@ -74,28 +73,6 @@ namespace SteamMultiplayer.Network
                 player.IsReady = nextReady;
                 _players[i] = player;
             }
-        }
-
-        internal string BuildSummary()
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("Players");
-
-            if (_players.Count == 0)
-            {
-                sb.AppendLine("(none)");
-                return sb.ToString();
-            }
-
-            for (int i = 0; i < _players.Count; i++)
-            {
-                RoomPlayerState player = _players[i];
-                string roleLabel = player.IsHost ? "Host" : "Player";
-                string readyLabel = player.IsHost ? "Leader" : (player.IsReady ? "Ready" : "Waiting");
-                sb.AppendLine($"{player.PlayerName} [{roleLabel}] [{readyLabel}]");
-            }
-
-            return sb.ToString();
         }
 
         internal void Upsert(RoomPlayerState playerState, int playerId)

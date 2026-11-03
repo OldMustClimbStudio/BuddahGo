@@ -52,7 +52,6 @@ namespace SteamMultiplayer.Network
         public readonly SyncList<RoomPlayerState> Players = new SyncList<RoomPlayerState>();
 
         private readonly SyncVar<bool> _transitioningToPropertiesSelector = new SyncVar<bool>();
-        private readonly SyncVar<string> _playersSummaryText = new SyncVar<string>();
         private readonly SyncVar<bool> _waitingForRacePlayers = new SyncVar<bool>();
         private readonly SyncVar<bool> _raceCountdownActive = new SyncVar<bool>();
         private readonly SyncVar<int> _raceCountdownSecondsRemaining = new SyncVar<int>();
@@ -84,8 +83,6 @@ namespace SteamMultiplayer.Network
         internal int DiagnosticGameplaySequence => _reportedGameplayLiveSequenceId;
 
         public bool IsTransitioningToPropertiesSelector => _transitioningToPropertiesSelector.Value;
-        public string PlayersSummaryText => _playersSummaryText.Value;
-        public bool RequireAllClientsReady => _requireAllClientsReady;
         public bool CanHostStartGame => Players.Count > 0 && (!_requireAllClientsReady || AreAllRequiredPlayersReady());
         public bool IsWaitingForRacePlayers => _waitingForRacePlayers.Value;
         public bool IsRaceCountdownActive => _raceCountdownActive.Value;
@@ -237,7 +234,6 @@ namespace SteamMultiplayer.Network
             }
 
             _transitioningToPropertiesSelector.Value = false;
-            UpdatePlayersSummaryText();
             ResetRaceFlowStateServer();
             _matchSessionPhase.Value = MatchSessionPhase.InRoom;
             _returningToRoomMenu = false;
@@ -262,7 +258,6 @@ namespace SteamMultiplayer.Network
             StopAllCoroutines();
             Players.Clear();
             _transitioningToPropertiesSelector.Value = false;
-            _playersSummaryText.Value = string.Empty;
             _waitingForRacePlayers.Value = false;
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
@@ -288,14 +283,6 @@ namespace SteamMultiplayer.Network
                 return;
 
             StartGameServerRpc();
-        }
-
-        public void RequestReturnToRoomMenuKeepingSession()
-        {
-            if (!IsClientInitialized)
-                return;
-
-            ReturnToRoomMenuKeepingSessionServerRpc();
         }
 
         public void ReportLocalIntroAssignmentApplied(int sequenceId)
@@ -363,7 +350,6 @@ namespace SteamMultiplayer.Network
 
             player.IsReady = !player.IsReady;
             Players[index] = player;
-            UpdatePlayersSummaryText();
             LogDebug($"Ready toggled for {player.PlayerName}: {player.IsReady}");
         }
 
@@ -394,21 +380,6 @@ namespace SteamMultiplayer.Network
         }
 
         [ServerRpc(RequireOwnership = false)]
-        private void ReturnToRoomMenuKeepingSessionServerRpc(NetworkConnection caller = null)
-        {
-            if (caller == null || !caller.IsAuthenticated)
-                return;
-
-            if (_matchSessionPhase.Value != MatchSessionPhase.InResult)
-            {
-                LogDebug($"Ignored room-return request from player {caller.ClientId} because phase={_matchSessionPhase.Value}");
-                return;
-            }
-
-            ReturnToRoomMenuKeepingSessionServer();
-        }
-
-        [ServerRpc(RequireOwnership = false)]
         private void SubmitDisplayNameServerRpc(string displayName, NetworkConnection caller = null)
         {
             if (caller == null || !caller.IsAuthenticated)
@@ -434,7 +405,6 @@ namespace SteamMultiplayer.Network
 
             player.PlayerName = sanitizedName;
             Players[index] = player;
-            UpdatePlayersSummaryText();
         }
 
         private void HandleAuthenticationResult(NetworkConnection conn, bool authenticated)
@@ -556,7 +526,6 @@ namespace SteamMultiplayer.Network
             RoomPlayerState playerState = BuildRoomPlayerState(conn);
             Roster.Upsert(playerState, conn.ClientId);
 
-            UpdatePlayersSummaryText();
             LogDebug($"Registered room player: {playerState.PlayerName} ({playerState.SteamId})");
         }
 
@@ -569,7 +538,6 @@ namespace SteamMultiplayer.Network
 
             Players.RemoveAt(index);
             _raceStartHandshake.RemovePlayer(playerId);
-            UpdatePlayersSummaryText();
             LogDebug($"Removed room player {playerId}");
         }
 
@@ -744,12 +712,6 @@ namespace SteamMultiplayer.Network
         }
 
         [Server]
-        public void ReturnToRoomMenuKeepingSessionServer()
-        {
-            ReturnToRoomMenuKeepingSessionServer(_mainMenuSceneName);
-        }
-
-        [Server]
         public void ReturnToRoomMenuKeepingSessionServer(string targetMainMenuSceneName)
         {
             if (!IsServerInitialized)
@@ -836,7 +798,6 @@ namespace SteamMultiplayer.Network
             _transitioningToPropertiesSelector.Value = false;
             _matchSessionPhase.Value = MatchSessionPhase.InRoom;
             _returningToRoomMenu = false;
-            UpdatePlayersSummaryText();
             LogDebug("Main menu loaded while keeping the current room session alive.");
         }
 
@@ -856,7 +817,6 @@ namespace SteamMultiplayer.Network
         private void ResetPlayersReadyStateForRoomReturn()
         {
             Roster.ResetReadyForRoomReturn();
-            UpdatePlayersSummaryText();
         }
 
         [Server]
@@ -1139,12 +1099,6 @@ namespace SteamMultiplayer.Network
         private void NotifyPropertiesSelectorRequestedObserversRpc()
         {
             OnPropertiesSelectorTransitionRequested?.Invoke();
-        }
-
-        [Server]
-        private void UpdatePlayersSummaryText()
-        {
-            _playersSummaryText.Value = Roster.BuildSummary();
         }
 
         internal int GetLocalClientId()

@@ -73,6 +73,8 @@ namespace BuddahGo.Tests
         {
             { "cast_anti", 47 }, { "palm_release", 25 }, { "palm_release_anti", 25 },
             { "cast", 21 }, { "reverse_hit", 19 }, { "accel_release", 15 },
+            // 10 + the scale surge ring (Docs/vfx/giant.md).
+            { "slow_release", 11 },
         };
         const int DefaultParticleSystemCeiling = 10;
 

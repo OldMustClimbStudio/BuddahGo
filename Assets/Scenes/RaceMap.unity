@@ -8613,7 +8613,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnOrderIndex: 1
-  debugLabel: 
 --- !u!1001 &516797567
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -19865,7 +19864,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnOrderIndex: 4
-  debugLabel: 
 --- !u!1001 &961685748
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21006,7 +21004,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnOrderIndex: 2
-  debugLabel: 
 --- !u!1001 &1023583947
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -29192,7 +29189,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnOrderIndex: 3
-  debugLabel: 
 --- !u!1001 &1351932791
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -29586,7 +29582,6 @@ MonoBehaviour:
   lapsToFinish: 3
   postFirstFinishCountdownSeconds: 15
   enableVerboseLogs: 1
-  resultSceneName: RaceMapEndField
   hasFirstFinisher: 0
   firstFinisherClientId: -1
   countdownRemaining: 0
@@ -29844,7 +29839,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnOrderIndex: 5
-  debugLabel: 
 --- !u!1001 &1389881427
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -45656,7 +45650,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnOrderIndex: 0
-  debugLabel: 
 --- !u!1001 &1878558410
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -98,6 +98,12 @@ Shader "BuddahGo/ZenGround"
                 if (any(uv < 0.0) || any(uv > 1.0)) return float3(1e4, 1e4, 0);      // outside: plain sand, no rake
                 return SAMPLE_TEXTURE2D_LOD(_Field, sampler_Field, uv, 0).rgb;
             }
+            // rake ring distance with the uv clamped to the field, for the finite differences at the field border
+            float fieldR (float2 bm)
+            {
+                float2 uv = (bm - _FieldParams.xy) * _FieldParams.zw + 0.5 * _FieldParams.zw;
+                return SAMPLE_TEXTURE2D_LOD(_Field, sampler_Field, saturate(uv), 0).r;
+            }
             // sand colour weights (B black, A yellow; white is the rest), bilinear so the colours blend softly
             float2 sandWeights (float2 bm)
             {
@@ -133,8 +139,11 @@ Shader "BuddahGo/ZenGround"
                 if (rake > 0 && moss < 0.5)
                 {
                     const float e = 0.15;
-                    float gx = groove(field(bm + float2(e, 0)).r) - groove(field(bm - float2(e, 0)).r);
-                    float gy = groove(field(bm + float2(0, e)).r) - groove(field(bm - float2(0, e)).r);
+                    float rxp = fieldR(bm + float2(e, 0)), rxn = fieldR(bm - float2(e, 0));
+                    float ryp = fieldR(bm + float2(0, e)), ryn = fieldR(bm - float2(0, e));
+                    float rakeAll = step(max(max(rxp, rxn), max(ryp, ryn)), 5e3);   // no groove slope next to unraked texels
+                    float gx = (groove(rxp) - groove(rxn)) * rakeAll;
+                    float gy = (groove(ryp) - groove(ryn)) * rakeAll;
                     float hx = SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm + float2(e, 0)) * _SandTiling).r - SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm - float2(e, 0)) * _SandTiling).r;
                     float hy = SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm + float2(0, e)) * _SandTiling).r - SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm - float2(0, e)) * _SandTiling).r;
                     float dX = (gx * _GrooveNormal + hx * _SandNormal) / (2 * e);

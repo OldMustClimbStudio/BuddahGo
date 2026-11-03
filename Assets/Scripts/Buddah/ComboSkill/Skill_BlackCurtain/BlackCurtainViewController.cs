@@ -117,38 +117,20 @@ public class BlackCurtainViewController : MonoBehaviour
     public bool IsBlackCurtainActive => _activeUntil > Time.time;
 
     public void Play(
-        Material fullscreenMaterial,
-        string fallbackMaterialName,
-        string fallbackShaderName,
+        BlackCurtainEyeProfile eyeProfile,
+        Transform casterVisual,
+        Transform casterRoot,
         float expandDuration,
         float holdDuration,
         float fadeOutDuration,
         float maxOpacity,
-        string progressProperty,
-        string opacityProperty,
-        string elapsedTimeProperty,
-        string activeProperty,
-        string centerProperty,
-        bool canSeeEdge,
-        Vector2 center)
+        bool isAnti,
+        bool canSeeEdge)
     {
         if (_screenEffect == null)
             return;
 
-        _screenEffect.ApplyOrRefresh(
-            fullscreenMaterial,
-            fallbackMaterialName,
-            fallbackShaderName,
-            expandDuration,
-            holdDuration,
-            fadeOutDuration,
-            maxOpacity,
-            progressProperty,
-            opacityProperty,
-            elapsedTimeProperty,
-            activeProperty,
-            centerProperty,
-            center);
+        _screenEffect.Play(eyeProfile, casterVisual, casterRoot, expandDuration, holdDuration, fadeOutDuration, maxOpacity, isAnti);
 
         float totalDuration = Mathf.Max(0.01f, expandDuration) + Mathf.Max(0f, holdDuration) + Mathf.Max(0f, fadeOutDuration);
         float endsAt = Time.time + totalDuration;

@@ -750,6 +750,15 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   colour filter, white balance 10 / -4, saturation 4 and Bloom tint (1, 0.90, 0.78); `Volume_Dark` follows it 0.1 EV
   darker. Before/after: [dusk_c2_compare/all.jpg](dusk_c2_compare/all.jpg). Start-grid chroma 33 -> 21, Buddha chroma
   42.6 -> 29; the study's A2/B2 looks are the stronger fixes if the warm cast is still too much.
+  **Reflections (2026-11-03, after the C2 re-tune):** `Reflection Probe Lower` is no longer realtime; its cubemap
+  `RaceMap/ReflectionProbe-Lower.exr` (256 px HDR) was rendered with `Lightmapping.BakeReflectionProbe` and the probe
+  holds it in Custom mode, and a second probe `Reflection Probe EndField` (600 x 120 x 600 at (1493, 40, -684),
+  `ReflectionProbe-EndField.exr`) covers the results field the old box missed. The zen landscape and track are
+  Reflection Probe Static so the probes see them. Re-render both after a sky, sun or layout change (select the probe,
+  Bake, keep Custom mode with the file). The menu scene shares all of this and has its own `Reflection Probe Shrine`
+  (`MenuEnvironmentSetting/ReflectionProbe-Shrine.exr`, recreated by `MenuEnvironmentImporter`).
+  Before/after: [dusk_refl_compare/all.jpg](dusk_refl_compare/all.jpg), [menu_dusk_compare/all.jpg](menu_dusk_compare/all.jpg),
+  [menu_refl_compare/all.jpg](menu_refl_compare/all.jpg).
 - **Occluder fade.** `Assets/Scripts/Rendering/OccluderFade.cs` fades the tall objects (torii, gate, watari span) while
   they block the gameplay camera's view of a player.
 - **Players.** `Buddah.prefab` uses the new silver metal `Assets/Material/Skin/SilverSkin.mat`. The prefab was also
@@ -775,11 +784,21 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   Fidelity's edges without FXAA's softness, URP 14 has none.
 - **Reflections**: SSR and the Deferred keep-alive renderer were removed on 2026-10-28 (the user's decision on review
   M6); a future map with glossy surfaces that are not flat would need SSR back, see the plugin's notes.
-- **Menu lighting assets** (open, user decision): the menu shares RaceMap's pre-dusk sky, post profile and the mutable
-  `RaceMap_Lighting.lighting`. Options: give the menu its own copies, move it to the dusk assets, or keep sharing.
+- **Menu lighting assets** (decided 2026-11-03): the menu follows the dusk look. It references RaceMap's
+  `RaceMap_Sky_Dusk.mat`, `RaceMap_Dusk_Profile.asset`, Trilight ambient, fog and sun colour treatment (its own sun
+  direction and intensity), written by `MenuEnvironmentImporter`. The pre-dusk `RaceMap_Sky.mat` and
+  `RaceMap_Environment_Profile.asset` are referenced by no scene any more (retire in a later pass). The menu got
+  about 0.25 EV darker with the shared profile (exposure +0.05 instead of +0.3); not compensated.
 - **Graphics settings**: spec, model and API only; no menu yet (see [../graphics-settings.md](../graphics-settings.md)).
 
-- **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).
+- **Lightmap bake.** The user asked for a bake on 2026-11-03 (reversing the 10-27 deferral), but the Progressive
+  lightmapper (GPU and CPU) reported `out of memory` on this PC with the system commit charge at 51 of 54 GB, even
+  with only the two old planes in GI; the zen landscape and track also have no lightmap UVs (`uv2` empty), so
+  Contribute GI on them needs Generate Lightmap UVs on the FBX imports first (expect many 2048 atlases at 8
+  texels/unit; use a low Scale in Lightmap). Until then the pre-dusk `LightingData.asset` stays assigned (light
+  probes and ambient from the old sunset bake) and reflections come from the custom probe cubemaps above.
+  A cancelled bake detaches the scene's LightingData (light probes vanish and the whole frame warms up); reassign
+  `Lightmapping.lightingDataAsset` if that happens.
 - **Capture tool** renders without HDR and still assumes the old track height (see How to compare).
 
 - **Not verified by playing a match.** The WhiteBalance and curtain fixes, planar reflections under a real black

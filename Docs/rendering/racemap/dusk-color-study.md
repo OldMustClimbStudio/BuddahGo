@@ -286,3 +286,10 @@ B2 适合用户觉得 A2"太像下午"的情况——它把整个场景往暮色
 证据：[dusk_c2_compare/all.jpg](dusk_c2_compare/all.jpg)（五视角 before/after）、[dusk_study/c2_before_after_01.gif](dusk_study/c2_before_after_01.gif)、[dusk_study/c2_before_after_04.gif](dusk_study/c2_before_after_04.gif)、[dusk_study/c2_vfx.jpg](dusk_study/c2_vfx.jpg)。
 
 没做的：没有 bake（用户决定）；没在比赛里看；急弯视角 Buddha 对赛道的 ΔE 仍是 3.5（第 8 节）；A2/B2 的数值保留在第 6 节，随时可以换。
+
+## 12. 菜单共用与反射探针（2026-11-03）
+
+- **菜单（cd6f8f47）**：`MenuEnvironmentSetting.unity` 改用 `RaceMap_Sky_Dusk.mat`、`RaceMap_Dusk_Profile.asset`、RaceMap 的 Trilight 环境光和校准后的雾；太阳保留菜单自己的方向和强度 1.4，颜色改成和 RaceMap 一样的 2900 K + (1, 0.92, 0.82)。`MenuEnvironmentImporter` 写同样的值。整帧 L\* 36 → 28（黄昏 profile 曝光 +0.05，旧的是 +0.3），没有补偿。对比：[menu_dusk_compare/all.jpg](menu_dusk_compare/all.jpg)。
+- **RaceMap 反射探针（96f5fbbb）**：`Reflection Probe Lower` 从实时改成 `Lightmapping.BakeReflectionProbe` 烘出的 `ReflectionProbe-Lower.exr`（Custom 模式）；新增 `Reflection Probe EndField`（600 × 120 × 600，中心 (1493, 40, −684)）覆盖原来探针盒子没包到的结算场；景观和赛道的 368 个渲染器标成 Reflection Probe Static。起跑格 Buddha 色度 26.5 → 28.4（探针里多了橙色沙地），直道 / 急弯 Buddha–赛道 ΔE 23.5 → 28.2 / 3.5 → 10.5，结算场 38.8 → 29.5。对比：[dusk_refl_compare/all.jpg](dusk_refl_compare/all.jpg)。
+- **菜单反射探针（be22c51a）**：`Reflection Probe Shrine`，包围整个神社环境 + 10 m，`MenuEnvironmentSetting/ReflectionProbe-Shrine.exr`，导入器重建时会复用。对比：[menu_refl_compare/all.jpg](menu_refl_compare/all.jpg)（主镜头里变化很小，受益的是银色 Buddha 和光滑道具）。
+- **灯光烘焙没有做成**：用户 2026-11-03 要求烘焙，但 Progressive Lightmapper 的 GPU 和 CPU 后端都报 `out of memory`——系统提交内存 51 / 54 GB、可用 0 MB（编辑器进程 7.7–10.7 GB，重启编辑器后也一样），连只烘两块旧平面都失败；另外禅意景观与赛道的 FBX 没有 lightmap UV（`uv2` 为空），要让它们参与 GI 得先在导入设置里开 Generate Lightmap UVs 并给低 Scale in Lightmap。取消烘焙会把场景的 LightingData 引用清掉（光照探针消失、整帧回暖 +10 色度），已用 `Lightmapping.lightingDataAsset` 挂回旧的 bake。需要的条件：关掉其他大内存应用或重启后，在 Lighting 窗口 Generate Lighting；之后把两个 RaceMap 探针改回 Baked（或继续用 Custom）。

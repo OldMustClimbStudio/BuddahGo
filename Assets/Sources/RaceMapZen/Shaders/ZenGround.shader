@@ -3,6 +3,7 @@
 // B = black-sand weight, A = yellow-sand weight; white = 1 - B - A (round 24: 白川砂 / 黑砂 / 黄土砂 with soft 30-40 m blends).
 // Within 5.0..5.6 m of the track edge the ground fades into a dark pebble band.
 // Texture space is the Blender ground space in metres: X = -worldX - 153, Y = -worldZ - 293 (see RaceMapZen notes).
+// All passes share one UnityPerMaterial CBUFFER (SRP Batcher), and DepthNormals writes the same raked normal as ForwardLit.
 Shader "BuddahGo/ZenGround"
 {
     Properties
@@ -23,6 +24,50 @@ Shader "BuddahGo/ZenGround"
         Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Queue" = "Geometry" }
         LOD 300
 
+        HLSLINCLUDE
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+        TEXTURE2D(_Field); SAMPLER(sampler_Field);
+        TEXTURE2D(_SandMap); SAMPLER(sampler_SandMap);
+        TEXTURE2D(_SandRough); SAMPLER(sampler_SandRough);
+        TEXTURE2D(_SandHeight); SAMPLER(sampler_SandHeight);
+        CBUFFER_START(UnityPerMaterial)
+            float4 _FieldParams;
+            float4 _Field_ST, _SandMap_ST, _SandRough_ST, _SandHeight_ST;
+            float _SandTiling, _GrooveFreq, _GrooveNormal, _SandNormal;
+            half4 _RustTint;
+        CBUFFER_END
+
+        float2 blenderMetres (float3 positionWS) { return float2(-positionWS.x - 153.0, -positionWS.z - 293.0); }
+        float2 fieldUV (float2 bm) { return (bm - _FieldParams.xy) * _FieldParams.zw + 0.5 * _FieldParams.zw; }
+        float3 field (float2 bm)
+        {
+            float2 uv = fieldUV(bm);
+            if (any(uv < 0.0) || any(uv > 1.0)) return float3(1e4, 1e4, 0);      // outside: plain sand, no rake
+            return SAMPLE_TEXTURE2D_LOD(_Field, sampler_Field, uv, 0).rgb;
+        }
+        // rake ring distance with the uv clamped to the field, for the finite differences at the field border
+        float fieldR (float2 bm) { return SAMPLE_TEXTURE2D_LOD(_Field, sampler_Field, saturate(fieldUV(bm)), 0).r; }
+        float groove (float fR) { return pow(saturate(0.5 * cos(fR * _GrooveFreq) + 0.5), 1.8); }
+
+        // raked normal: rake grooves (finite differences of the groove height) + sand grain height
+        float3 rakeNormal (float2 bm)
+        {
+            const float e = 0.15;
+            float rxp = fieldR(bm + float2(e, 0)), rxn = fieldR(bm - float2(e, 0));
+            float ryp = fieldR(bm + float2(0, e)), ryn = fieldR(bm - float2(0, e));
+            float rakeAll = step(max(max(rxp, rxn), max(ryp, ryn)), 5e3);         // no groove slope next to unraked texels
+            float gx = (groove(rxp) - groove(rxn)) * rakeAll;
+            float gy = (groove(ryp) - groove(ryn)) * rakeAll;
+            float hx = SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm + float2(e, 0)) * _SandTiling).r - SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm - float2(e, 0)) * _SandTiling).r;
+            float hy = SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm + float2(0, e)) * _SandTiling).r - SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm - float2(0, e)) * _SandTiling).r;
+            float dX = (gx * _GrooveNormal + hx * _SandNormal) / (2 * e);
+            float dY = (gy * _GrooveNormal + hy * _SandNormal) / (2 * e);
+            // Blender (X, Y) = (-world x, -world z): d/dworldx = -d/dX, d/dworldz = -d/dY
+            return normalize(float3(dX, 1.0, dY));
+        }
+        ENDHLSL
+
         Pass
         {
             Name "ForwardLit"
@@ -41,19 +86,7 @@ Shader "BuddahGo/ZenGround"
             #pragma multi_compile_fragment _ _LIGHT_LAYERS
             #pragma multi_compile _ _FORWARD_PLUS
             #pragma multi_compile_fog
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
-            TEXTURE2D(_Field); SAMPLER(sampler_Field);
-            TEXTURE2D(_SandMap); SAMPLER(sampler_SandMap);
-            TEXTURE2D(_SandRough); SAMPLER(sampler_SandRough);
-            TEXTURE2D(_SandHeight); SAMPLER(sampler_SandHeight);
-            CBUFFER_START(UnityPerMaterial)
-                float4 _FieldParams;
-                float4 _Field_ST, _SandMap_ST, _SandRough_ST, _SandHeight_ST;
-                float _SandTiling, _GrooveFreq, _GrooveNormal, _SandNormal;
-                half4 _RustTint;
-            CBUFFER_END
 
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
             struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float fogFactor : TEXCOORD1; };
@@ -92,30 +125,17 @@ Shader "BuddahGo/ZenGround"
                 return d;
             }
 
-            float3 field (float2 bm)
-            {
-                float2 uv = (bm - _FieldParams.xy) * _FieldParams.zw + 0.5 * _FieldParams.zw;
-                if (any(uv < 0.0) || any(uv > 1.0)) return float3(1e4, 1e4, 0);      // outside: plain sand, no rake
-                return SAMPLE_TEXTURE2D_LOD(_Field, sampler_Field, uv, 0).rgb;
-            }
-            // rake ring distance with the uv clamped to the field, for the finite differences at the field border
-            float fieldR (float2 bm)
-            {
-                float2 uv = (bm - _FieldParams.xy) * _FieldParams.zw + 0.5 * _FieldParams.zw;
-                return SAMPLE_TEXTURE2D_LOD(_Field, sampler_Field, saturate(uv), 0).r;
-            }
             // sand colour weights (B black, A yellow; white is the rest), bilinear so the colours blend softly
             float2 sandWeights (float2 bm)
             {
-                float2 uv = (bm - _FieldParams.xy) * _FieldParams.zw + 0.5 * _FieldParams.zw;
+                float2 uv = fieldUV(bm);
                 if (any(uv < 0.0) || any(uv > 1.0)) return float2(0, 0);
                 return saturate(SAMPLE_TEXTURE2D_LOD(_Field, sampler_Field, uv, 0).ba);
             }
-            float groove (float fR) { return pow(saturate(0.5 * cos(fR * _GrooveFreq) + 0.5), 1.8); }
 
             half4 frag (Varyings i) : SV_Target
             {
-                float2 bm = float2(-i.positionWS.x - 153.0, -i.positionWS.z - 293.0);   // Blender ground metres
+                float2 bm = blenderMetres(i.positionWS);   // Blender ground metres
                 float3 F = field(bm);
                 float2 sw = sandWeights(bm);
                 float moss = 0.0;                       // round 17: no lawn or moss ground any more
@@ -134,23 +154,8 @@ Shader "BuddahGo/ZenGround"
                 float band = saturate((F.g - 5.0) / 0.6);
                 col = lerp(peb, col, band);
 
-                // normal: rake grooves (finite differences of the groove height) + sand grain height
                 float3 n = float3(0, 1, 0);
-                if (rake > 0 && moss < 0.5)
-                {
-                    const float e = 0.15;
-                    float rxp = fieldR(bm + float2(e, 0)), rxn = fieldR(bm - float2(e, 0));
-                    float ryp = fieldR(bm + float2(0, e)), ryn = fieldR(bm - float2(0, e));
-                    float rakeAll = step(max(max(rxp, rxn), max(ryp, ryn)), 5e3);   // no groove slope next to unraked texels
-                    float gx = (groove(rxp) - groove(rxn)) * rakeAll;
-                    float gy = (groove(ryp) - groove(ryn)) * rakeAll;
-                    float hx = SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm + float2(e, 0)) * _SandTiling).r - SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm - float2(e, 0)) * _SandTiling).r;
-                    float hy = SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm + float2(0, e)) * _SandTiling).r - SAMPLE_TEXTURE2D(_SandHeight, sampler_SandHeight, (bm - float2(0, e)) * _SandTiling).r;
-                    float dX = (gx * _GrooveNormal + hx * _SandNormal) / (2 * e);
-                    float dY = (gy * _GrooveNormal + hy * _SandNormal) / (2 * e) ;
-                    // Blender (X, Y) = (-world x, -world z): d/dworldx = -d/dX, d/dworldz = -d/dY
-                    n = normalize(float3(dX, 1.0, dY));
-                }
+                if (rake > 0 && moss < 0.5) n = rakeNormal(bm);
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = i.positionWS;
@@ -171,8 +176,71 @@ Shader "BuddahGo/ZenGround"
             }
             ENDHLSL
         }
-        UsePass "Universal Render Pipeline/Lit/DepthOnly"
-        UsePass "Universal Render Pipeline/Lit/DepthNormals"
+
+        // own depth passes instead of UsePass Lit: Lit's passes declare Lit's UnityPerMaterial CBUFFER (SRP Batcher)
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On
+            ColorMask R
+            HLSLPROGRAM
+            #pragma target 2.0
+            #pragma vertex vert
+            #pragma fragment frag
+
+            struct Attributes { float4 positionOS : POSITION; };
+            struct Varyings { float4 positionCS : SV_POSITION; };
+
+            Varyings vert (Attributes v) { Varyings o; o.positionCS = TransformObjectToHClip(v.positionOS.xyz); return o; }
+            half frag (Varyings i) : SV_Target { return i.positionCS.z; }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            ZWrite On
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert
+            #pragma fragment frag
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+
+            struct Attributes { float4 positionOS : POSITION; };
+            struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; };
+
+            Varyings vert (Attributes v)
+            {
+                Varyings o;
+                VertexPositionInputs p = GetVertexPositionInputs(v.positionOS.xyz);
+                o.positionCS = p.positionCS; o.positionWS = p.positionWS;
+                return o;
+            }
+
+            // output encoding as in URP 14 LitDepthNormalsPass.hlsl
+            void frag (Varyings i, out half4 outNormalWS : SV_Target0
+            #ifdef _WRITE_RENDERING_LAYERS
+                , out float4 outRenderingLayers : SV_Target1
+            #endif
+            )
+            {
+                float2 bm = blenderMetres(i.positionWS);
+                float3 n = float3(0, 1, 0);
+                if (field(bm).r < 5e3) n = rakeNormal(bm);
+            #if defined(_GBUFFER_NORMALS_OCT)
+                float2 octNormalWS = PackNormalOctQuadEncode(n);
+                outNormalWS = half4(PackFloat2To888(saturate(octNormalWS * 0.5 + 0.5)), 0.0);
+            #else
+                outNormalWS = half4(NormalizeNormalPerPixel(n), 0.0);
+            #endif
+            #ifdef _WRITE_RENDERING_LAYERS
+                outRenderingLayers = float4(EncodeMeshRenderingLayer(GetMeshRenderingLayer()), 0, 0, 0);
+            #endif
+            }
+            ENDHLSL
+        }
     }
     FallBack "Hidden/Universal Render Pipeline/FallbackError"
 }

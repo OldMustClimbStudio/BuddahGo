@@ -724,6 +724,32 @@ effects, trails and the black curtain in a full match; VSync's effect on online 
 are not a multiple of 60 Hz (`FrameRateLock`'s original concern; Solo's presentation timeline interpolates by time);
 the F9 panel's clicks also reaching gameplay input.
 
+## Zen landscape and dusk (2026-10-29 to 2026-11-03)
+
+The map's surroundings were redesigned in Blender as a karesansui (dry garden) and imported as one landscape. The track
+itself, the air walls, the spline, checkpoints and spawns kept their gameplay setup.
+
+- **Import.** `Assets/Editor/RaceMapZen/RaceMapZenImporter.cs` builds the single root `RaceMapZen_Landscape` from
+  `Assets/Sources/RaceMapZen/` (models, prefabs, materials, `Data/RaceMapZen_Layout.json`). Re-running it replaces
+  that root; it never stacks a second copy. The landscape has no colliders.
+- **Track.** `Map/RaceMapZen_Track` replaces the old lane model; the old `Assets/Sources/地图/` models and the
+  `反转法线空气墙` prefab are deleted. Floor collision and planar reflection moved to the new mesh; its polished-concrete
+  material is smoother so the dusk sky and sun read in the reflection.
+- **Ground.** `ZenGround` shader (`Assets/Sources/RaceMapZen/Shaders/`) reads a ground-field texture: R = rake distance
+  field, G = distance to the track edge, plus weights for three sand colours (white, black, yellow) blended over
+  30–40 m. The rake grooves are computed from it in the shader.
+- **Dusk.** RaceMap now uses its own copies `RaceMap/RaceMap_Sky_Dusk.mat` and `RaceMap/RaceMap_Dusk_Profile.asset`
+  (low warm sun, warm grade, cool shadows). The original `RaceMap_Sky.mat` and `RaceMap_Environment_Profile.asset`
+  are unchanged and stay shared with the menu scene (below). Nothing was baked; light probes are still the old bake
+  ("no bake for now"). The reflection probe that the silver Buddha uses is realtime.
+- **Occluder fade.** `Assets/Scripts/Rendering/OccluderFade.cs` fades the tall objects (torii, gate, watari span) while
+  they block the gameplay camera's view of a player.
+- **Players.** `Buddah.prefab` uses the new silver metal `Assets/Material/Skin/SilverSkin.mat`. The prefab was also
+  re-serialized by the editor (component order, fields synced with the current scripts).
+- **Menu scene.** `MenuEnvironmentSetting.unity` now uses RaceMap's post profile, camera anti-aliasing, skybox
+  `RaceMap_Sky.mat`, `RaceMap_Lighting.lighting`, ambient, reflections and fog; `MenuEnvironmentImporter.cs` writes the
+  same settings so a rebuild keeps them. Its directional light stays the menu's own.
+
 ## Known limits and open items (current state)
 
 - **Anti-aliasing**: TAA (Balanced) not checked on skill particles and trails in a full match; NVIDIA FXAA 3.11 would

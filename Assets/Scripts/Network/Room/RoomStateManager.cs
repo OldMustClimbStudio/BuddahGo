@@ -64,6 +64,7 @@ namespace SteamMultiplayer.Network
         private bool _returningToRoomMenu;
         private Coroutine _clientRaceSceneDiagnosticsRoutine;
         private Coroutine _clientRaceSceneReadyRoutine;
+        private Coroutine _raceCountdownRoutine;
         private readonly RaceStartHandshake _raceStartHandshake = new RaceStartHandshake();
         private RoomRoster _roomRoster;
         private RoomRoster Roster => _roomRoster ??= new RoomRoster(Players);
@@ -256,6 +257,7 @@ namespace SteamMultiplayer.Network
             }
 
             StopAllCoroutines();
+            _raceCountdownRoutine = null;
             Players.Clear();
             _transitioningToPropertiesSelector.Value = false;
             _waitingForRacePlayers.Value = false;
@@ -669,6 +671,7 @@ namespace SteamMultiplayer.Network
         private void BeginRacePreparationServer()
         {
             StopAllCoroutines();
+            _raceCountdownRoutine = null;
             _transitioningToPropertiesSelector.Value = false;
             _waitingForRacePlayers.Value = true;
             _raceCountdownActive.Value = false;
@@ -841,7 +844,7 @@ namespace SteamMultiplayer.Network
 
             // Only begin countdown after every authenticated connection owns a race-scene player avatar.
             LogDebug("[Race] Countdown start");
-            StartCoroutine(RaceCountdownCoroutine());
+            _raceCountdownRoutine = StartCoroutine(RaceCountdownCoroutine());
         }
 
         [Server]
@@ -856,6 +859,7 @@ namespace SteamMultiplayer.Network
             {
                 if (!AreAllPlayersReadyForRaceServer())
                 {
+                    _raceCountdownRoutine = null;
                     StopRaceCountdownServer();
                     _pregameCountdownCompleted.Value = false;
                     _waitingForRacePlayers.Value = true;
@@ -870,6 +874,7 @@ namespace SteamMultiplayer.Network
                 _raceCountdownSecondsRemaining.Value--;
             }
 
+            _raceCountdownRoutine = null;
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
             _waitingForRacePlayers.Value = false;
@@ -882,6 +887,13 @@ namespace SteamMultiplayer.Network
         [Server]
         private void StopRaceCountdownServer()
         {
+            // Stop the running countdown so a quick stop/restart cannot leave two coroutines decrementing.
+            if (_raceCountdownRoutine != null)
+            {
+                StopCoroutine(_raceCountdownRoutine);
+                _raceCountdownRoutine = null;
+            }
+
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
         }

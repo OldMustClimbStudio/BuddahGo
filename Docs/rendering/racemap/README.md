@@ -757,6 +757,9 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   longer places and nothing referenced (53 `Town_Walls_*`, 37 `Town_Buildings_*`, `SM_Arch_PlasterWall_Bay`,
   `Zen_Trk_SM_Arch_SteppingSlab_A`, `Zen_Trk_SM_Prop_StoneLantern_B`); checked by GUID in every text asset and by
   name in scripts, with no Resources or Addressables loads.
+  The menu's own sky and post assets, unused since the menu moved to RaceMap's (PR #70):
+  `Assets/Sources/MenuEnvironment/Materials/SKY_MenuEnvironment.mat`, `Data/VP_MenuEnvironment.asset` and
+  `Textures/Baked/T_Sky_MenuEnvironment.png` (only the deleted material used the texture).
 
 ## Known limits and open items (current state)
 

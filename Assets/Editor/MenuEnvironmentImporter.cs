@@ -2041,9 +2041,11 @@ public static class MenuEnvironmentImporter
         RenderSettings.skybox = sky;
         RenderSettings.sun = sun;
         RenderSettings.ambientMode = AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.36f, 0.44f, 0.6f);
-        RenderSettings.ambientEquatorColor = new Color(0.66f, 0.5f, 0.36f);
-        RenderSettings.ambientGroundColor = new Color(0.2f, 0.15f, 0.13f);
+        // Cooler gradient than the first dusk version (0.36/0.44/0.6, 0.66/0.5/0.36, 0.2/0.15/0.13): with the
+        // 2900 K sun the baked light probes went all-orange, this keeps a blue fill (study section 13).
+        RenderSettings.ambientSkyColor = new Color(0.50f, 0.62f, 0.90f);
+        RenderSettings.ambientEquatorColor = new Color(0.50f, 0.50f, 0.52f);
+        RenderSettings.ambientGroundColor = new Color(0.18f, 0.16f, 0.16f);
         RenderSettings.ambientIntensity = 1.2f;
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
         RenderSettings.defaultReflectionResolution = 256;

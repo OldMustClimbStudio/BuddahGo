@@ -15,27 +15,27 @@ RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 9
   m_Fog: 1
-  m_FogColor: {r: 0.58, g: 0.54, b: 0.64, a: 1}
-  m_FogMode: 1
-  m_FogDensity: 0.01
+  m_FogColor: {r: 1.036835, g: 0.813274, b: 0.510614, a: 1}
+  m_FogMode: 3
+  m_FogDensity: 0.0009
   m_LinearFogStart: 18
   m_LinearFogEnd: 210
   m_AmbientSkyColor: {r: 0.62, g: 0.66, b: 0.78, a: 1}
   m_AmbientEquatorColor: {r: 0.78, g: 0.69, b: 0.68, a: 1}
   m_AmbientGroundColor: {r: 0.3, g: 0.27, b: 0.26, a: 1}
-  m_AmbientIntensity: 1
-  m_AmbientMode: 1
-  m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 83b88d87067291347896cb80cbb88911, type: 2}
+  m_AmbientIntensity: 1.2
+  m_AmbientMode: 0
+  m_SubtractiveShadowColor: {r: 0.1792453, g: 0.1792453, b: 0.1792453, a: 1}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 5b175773fe5e0954dbcde76fc45f4955, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
   m_HaloTexture: {fileID: 0}
   m_SpotCookie: {fileID: 10001, guid: 0000000000000000e000000000000000, type: 0}
   m_DefaultReflectionMode: 0
-  m_DefaultReflectionResolution: 128
-  m_ReflectionBounces: 1
-  m_ReflectionIntensity: 0.6
+  m_DefaultReflectionResolution: 256
+  m_ReflectionBounces: 2
+  m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 1795565854}
   m_UseRadianceAmbientProbe: 0
@@ -97,7 +97,8 @@ LightmapSettings:
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
-  m_LightingSettings: {fileID: 0}
+  m_LightingSettings: {fileID: 4890085278179872738, guid: 60a12d8682d90e844bdd4d21b3c5ec9e,
+    type: 2}
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -8802,6 +8803,7 @@ GameObject:
   m_Component:
   - component: {fileID: 454372324}
   - component: {fileID: 454372325}
+  - component: {fileID: 454372326}
   m_Layer: 0
   m_Name: Light_Lantern__Torii_R
   m_TagString: Untagged
@@ -8886,6 +8888,29 @@ Light:
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+--- !u!114 &454372326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 454372323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Version: 3
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_LightLayerMask: 1
+  m_RenderingLayers: 1
+  m_CustomShadowLayers: 0
+  m_ShadowLayerMask: 1
+  m_ShadowRenderingLayers: 1
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
 --- !u!1001 &462570628
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11833,6 +11858,7 @@ GameObject:
   - component: {fileID: 607202263}
   - component: {fileID: 607202267}
   - component: {fileID: 607202268}
+  - component: {fileID: 607202269}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -12461,10 +12487,10 @@ MonoBehaviour:
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 1
-  m_Antialiasing: 2
+  m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
-  m_Dithering: 0
+  m_Dithering: 1
   m_ClearDepth: 1
   m_AllowXRRendering: 1
   m_AllowHDROutput: 1
@@ -12508,6 +12534,7 @@ MonoBehaviour:
   focusFieldOfView: 45
   framePadding: 0.05
   moveDuration: 1.4
+  clickSlopPixels: 6
   focalLength: 70
   aperture: 2.8
   backButton: {fileID: 113520581}
@@ -12560,6 +12587,24 @@ MonoBehaviour:
     parts: []
     proxy: {fileID: 511916943}
   clickSlopPixels: 6
+--- !u!114 &607202269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607202253}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9cd630bc738af746be94e28d2cf0e5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  levels:
+  - qualityLevel: Balanced
+    mode: 3
+  - qualityLevel: Performant
+    mode: 1
+  fallback: 1
 --- !u!1 &607202531
 GameObject:
   m_ObjectHideFlags: 0
@@ -14442,10 +14487,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_IsGlobal: 1
-  priority: 0
+  priority: 1
   blendDistance: 0
   weight: 1
-  sharedProfile: {fileID: 11400000, guid: 951f784874367f74c96539eb5b819661, type: 2}
+  sharedProfile: {fileID: 11400000, guid: 3effc84ca5ca4904d89fb9b093e2efe5, type: 2}
 --- !u!4 &680131630
 Transform:
   m_ObjectHideFlags: 0
@@ -21635,7 +21680,7 @@ PrefabInstance:
     - target: {fileID: 974433648073306841, guid: 14c72fe09030e6b4cb1f07c96f53a4b5,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: -14.6
+      value: -14.71
       objectReference: {fileID: 0}
     - target: {fileID: 974433648073306841, guid: 14c72fe09030e6b4cb1f07c96f53a4b5,
         type: 3}
@@ -29037,6 +29082,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1383594736}
   - component: {fileID: 1383594737}
+  - component: {fileID: 1383594738}
   m_Layer: 0
   m_Name: Light_Lantern__Torii_L
   m_TagString: Untagged
@@ -29121,6 +29167,29 @@ Light:
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+--- !u!114 &1383594738
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1383594735}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Version: 3
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_LightLayerMask: 1
+  m_RenderingLayers: 1
+  m_CustomShadowLayers: 0
+  m_ShadowLayerMask: 1
+  m_ShadowRenderingLayers: 1
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
 --- !u!1001 &1392926582
 PrefabInstance:
   m_ObjectHideFlags: 0

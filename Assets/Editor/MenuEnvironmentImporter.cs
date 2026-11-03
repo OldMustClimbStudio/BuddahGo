@@ -881,7 +881,11 @@ public static class MenuEnvironmentImporter
         go.AddComponent<AudioListener>();
         var data = go.AddComponent<UniversalAdditionalCameraData>();
         data.renderPostProcessing = true;
-        data.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+        // Same camera setup as RaceMap's Main Camera: post AA comes from the quality level (FXAA on top of
+        // High Fidelity's MSAA, TAA on Balanced, FXAA on Performant), and dithering is on.
+        data.antialiasing = AntialiasingMode.None;
+        data.dithering = true;
+        go.AddComponent<BuddahGo.Rendering.CameraAntialiasingPolicy>();
         var look = go.AddComponent<SteamMultiplayer.UI.MenuCameraMouseLook>();
         look.SetFocusTargets(CreateFocusPoint("Focus_EmaWall", "SM_Arch_EmaWall_A__TerraceWest"),
                              CreateFocusPoint("Focus_Hokora", "SM_Arch_Hokora_A__TerraceWest"));
@@ -2013,84 +2017,50 @@ public static class MenuEnvironmentImporter
                 typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
     }
 
+    // RaceMap's lighting environment, shared so that the menu is lit like the race: the Sunset Sky material, skybox
+    // ambient x1.2, skybox reflections (256 px, 2 bounces, x1), exp2 distance fog and RaceMap's lighting settings asset.
+    // The importer only references RaceMap's assets; RaceMap owns them. Values mirror RaceMap.unity's Lighting window.
+    private const string RaceMapSkyPath = "Assets/Scenes/RaceMap/RaceMap_Sky.mat";
+    private const string RaceMapLightingSettingsPath = "Assets/Scenes/RaceMap/RaceMap_Lighting.lighting";
+
     private static void SetupEnvironment(Light sun)
     {
-        string skyPath = $"{MaterialFolder}/SKY_MenuEnvironment.mat";
-        var sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
-        // Equirectangular render of the Blender world (sky-mirror gradient with the pink horizon band).
-        if (sky == null) { sky = new Material(Shader.Find("Skybox/Panoramic")); AssetDatabase.CreateAsset(sky, skyPath); }
-        sky.shader = Shader.Find("Skybox/Panoramic");
-        string skyTexPath = Root + "/Textures/Baked/T_Sky_MenuEnvironment.png";
-        if (AssetImporter.GetAtPath(skyTexPath) is TextureImporter skyImporter && skyImporter.maxTextureSize != 4096)
-        {
-            skyImporter.maxTextureSize = 4096;
-            skyImporter.mipmapEnabled = false;
-            skyImporter.wrapModeU = TextureWrapMode.Repeat;
-            skyImporter.wrapModeV = TextureWrapMode.Clamp;
-            skyImporter.SaveAndReimport();
-        }
-        sky.SetTexture("_MainTex", AssetDatabase.LoadAssetAtPath<Texture2D>(skyTexPath));
-        sky.SetFloat("_Mapping", 1f);
-        sky.SetFloat("_ImageType", 0f);
-        sky.SetFloat("_Exposure", 1f);
-        sky.SetColor("_Tint", new Color(0.5f, 0.5f, 0.5f));
-        EditorUtility.SetDirty(sky);
+        var sky = AssetDatabase.LoadAssetAtPath<Material>(RaceMapSkyPath);
+        if (sky == null) Debug.LogError($"[MenuEnvironment] Sky material not found at {RaceMapSkyPath}.");
+        var lightingSettings = AssetDatabase.LoadAssetAtPath<LightingSettings>(RaceMapLightingSettingsPath);
+        if (lightingSettings == null) Debug.LogError($"[MenuEnvironment] Lighting settings not found at {RaceMapLightingSettingsPath}.");
+        else Lightmapping.lightingSettings = lightingSettings;
 
         RenderSettings.skybox = sky;
         RenderSettings.sun = sun;
-        RenderSettings.ambientMode = AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.62f, 0.66f, 0.78f);
-        RenderSettings.ambientEquatorColor = new Color(0.78f, 0.69f, 0.68f);
-        RenderSettings.ambientGroundColor = new Color(0.30f, 0.27f, 0.26f);
+        RenderSettings.ambientMode = AmbientMode.Skybox;
+        RenderSettings.ambientIntensity = 1.2f;
+        RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
+        RenderSettings.defaultReflectionResolution = 256;
+        RenderSettings.reflectionBounces = 2;
+        RenderSettings.reflectionIntensity = 1f;
         RenderSettings.fog = true;
-        RenderSettings.fogMode = FogMode.Linear;
-        // Lavender-rose haze that eats the far rim and the cliff base, for depth.
-        RenderSettings.fogColor = new Color(0.58f, 0.54f, 0.64f);
-        RenderSettings.fogStartDistance = 18f;
-        RenderSettings.fogEndDistance = 210f;
-        RenderSettings.reflectionIntensity = 0.6f;
+        RenderSettings.fogMode = FogMode.ExponentialSquared;
+        RenderSettings.fogDensity = 0.0009f;
+        RenderSettings.fogColor = new Color(1.036835f, 0.813274f, 0.510614f);
+        RenderSettings.subtractiveShadowColor = new Color(0.1792453f, 0.1792453f, 0.1792453f);
+        DynamicGI.UpdateEnvironment();
     }
+
+    // RaceMap's post profile, shared so that the menu is graded exactly like the race (ACES, exposure +0.3,
+    // contrast 10, saturation 5, white balance 4 / -3, bloom off). The importer only references it; RaceMap owns it.
+    private const string RaceMapPostProfilePath = "Assets/Scenes/RaceMap/RaceMap_Environment_Profile.asset";
 
     private static void CreateGlobalVolume()
     {
-        string profilePath = Root + "/Data/VP_MenuEnvironment.asset";
-        var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
+        var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(RaceMapPostProfilePath);
         if (profile == null)
-        {
-            profile = ScriptableObject.CreateInstance<VolumeProfile>();
-            AssetDatabase.CreateAsset(profile, profilePath);
-        }
-        // Dusk grade: darker exposure, firmer contrast, cool shadows / warm highlights, lantern bloom.
-        Get<Tonemapping>(profile).mode.Override(TonemappingMode.ACES);
-        var bloom = Get<Bloom>(profile);
-        bloom.intensity.Override(1.1f); bloom.threshold.Override(0.85f); bloom.scatter.Override(0.75f);
-        bloom.tint.Override(new Color(1f, 0.82f, 0.66f));
-        var color = Get<ColorAdjustments>(profile);
-        color.postExposure.Override(0.45f); color.contrast.Override(8f); color.saturation.Override(-4f);
-        color.colorFilter.Override(new Color(1f, 0.95f, 0.92f));
-        var split = Get<SplitToning>(profile);
-        split.shadows.Override(new Color(0.46f, 0.50f, 0.58f)); split.highlights.Override(new Color(0.64f, 0.55f, 0.47f)); split.balance.Override(-25f);
-        var smh = Get<ShadowsMidtonesHighlights>(profile);
-        smh.shadows.Override(new Vector4(0.95f, 0.97f, 1.04f, -0.04f));
-        var vig = Get<Vignette>(profile);
-        vig.intensity.Override(0.2f); vig.smoothness.Override(0.55f); vig.color.Override(new Color(0.08f, 0.06f, 0.10f));
-        EditorUtility.SetDirty(profile);
-        AssetDatabase.SaveAssets();
+            Debug.LogError($"[MenuEnvironment] Post profile not found at {RaceMapPostProfilePath}; the Global Volume has no profile.");
         var go = new GameObject("Global Volume");
         var v = go.AddComponent<Volume>();
         v.isGlobal = true;
+        v.priority = 1f;
         v.sharedProfile = profile;
-    }
-
-    private static T Get<T>(VolumeProfile profile) where T : VolumeComponent
-    {
-        if (!profile.TryGet(out T c))
-        {
-            c = profile.Add<T>(true);
-            AssetDatabase.AddObjectToAsset(c, profile);
-        }
-        c.active = true;
-        return c;
     }
 
     private static void MarkStatic(GameObject root)

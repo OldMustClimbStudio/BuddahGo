@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace BuddahGo.Rendering.Settings
@@ -33,7 +34,9 @@ namespace BuddahGo.Rendering.Settings
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Bootstrap()
         {
-            Initialize(GraphicsSettingsCatalog.FromDatabase(DesignTableOverlay.Db), new PlayerPrefsGraphicsSettingsStore(), new GraphicsSettingsApplier(), apply: true);
+            var catalog = GraphicsSettingsCatalog.FromDatabase(DesignTableOverlay.Db)
+                .WithDisplayResolutions(Screen.resolutions.Select(r => (r.width, r.height)));
+            Initialize(catalog, new PlayerPrefsGraphicsSettingsStore(), new GraphicsSettingsApplier(), apply: true);
             if (IsReady)
                 GraphicsSettingsDebugPanel.Install();
         }

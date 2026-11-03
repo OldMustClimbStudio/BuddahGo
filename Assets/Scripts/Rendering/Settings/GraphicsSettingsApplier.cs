@@ -112,8 +112,26 @@ namespace BuddahGo.Rendering.Settings
         public static bool SetsWindowFromCommandLine(string[] arguments) =>
             arguments != null && arguments.Any(a => s_WindowArguments.Contains(a, StringComparer.OrdinalIgnoreCase));
 
-        // Window mode at the display's native resolution (the only resolution level so far). The editor's game view and
-        // a window the command line asked for are not touched.
+        /// <summary>Parses a generated resolution level id ("2560x1440"); the table's <c>native</c> level yields false.</summary>
+        public static bool TryParseResolution(string levelId, out int width, out int height)
+        {
+            width = height = 0;
+            if (string.IsNullOrEmpty(levelId))
+                return false;
+            int x = levelId.IndexOf('x');
+            return x > 0 && int.TryParse(levelId.Substring(0, x), out width) && int.TryParse(levelId.Substring(x + 1), out height) && width > 0 && height > 0;
+        }
+
+        /// <summary>The size a resolved choice asks for: the resolution level's own size, else the display's native size.</summary>
+        public static (int width, int height) ResolveResolution(IReadOnlyDictionary<string, GraphicsOptionLevelRecord> levels, int nativeWidth, int nativeHeight)
+        {
+            if (levels != null && levels.TryGetValue(GraphicsPipelineMapper.Resolution, out var level) && TryParseResolution(level.levelId, out int width, out int height))
+                return (width, height);
+            return (nativeWidth, nativeHeight);
+        }
+
+        // Window mode and resolution: the chosen level's size, or the display's native size for the table's "native" level.
+        // The editor's game view and a window the command line asked for are not touched.
         static void ApplyDisplay(IReadOnlyDictionary<string, GraphicsOptionLevelRecord> levels)
         {
             if (Application.isEditor || SetsWindowFromCommandLine(Environment.GetCommandLineArgs()))
@@ -121,10 +139,11 @@ namespace BuddahGo.Rendering.Settings
             if (!levels.TryGetValue(GraphicsPipelineMapper.WindowMode, out var window) || !Enum.TryParse(window.fullScreenMode, true, out FullScreenMode mode))
                 return;
             var display = Screen.mainWindowDisplayInfo;
-            int width = display.width > 0 ? display.width : Screen.currentResolution.width;
-            int height = display.height > 0 ? display.height : Screen.currentResolution.height;
-            if (Screen.fullScreenMode != mode || Screen.width != width || Screen.height != height)
-                Screen.SetResolution(width, height, mode);
+            var size = ResolveResolution(levels,
+                display.width > 0 ? display.width : Screen.currentResolution.width,
+                display.height > 0 ? display.height : Screen.currentResolution.height);
+            if (Screen.fullScreenMode != mode || Screen.width != size.width || Screen.height != size.height)
+                Screen.SetResolution(size.width, size.height, mode);
         }
 
         LevelOriginal RecordLevel(int quality)

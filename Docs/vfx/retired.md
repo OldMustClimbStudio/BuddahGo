@@ -76,7 +76,7 @@
 ## 4. 看着像旧的，但还在用（不要删）
 
 - `神足通/SG_Acceleration.shadergraph`、`SG_Acceleration 1.shadergraph`、`acceleration_尾迹.jpg`：`VFX_Accel_Release` 里复制过来的拖尾在用；`acceleration_尾迹.jpg` 还被 `一念光明/SG_BlackCurtainTrail.shadergraph` 用。
-- `一念光明/SG_BlackCurtainTrail.shadergraph`：`curtain_hit` 插槽在用。`一念光明/SG_BlackCurtain.shadergraph`：渲染器的黑幕 pass 和两个一念光明技能在用。
+- `一念光明/SG_BlackCurtainTrail.shadergraph`：`curtain_hit` 插槽在用。（`一念光明/SG_BlackCurtain.shadergraph` 原来也在这里，2026-11-03 被 H1 墨眼替换后已删，见 6.5。）
 - `VisualEffectGraph/沙砾.prefab`：角色身上保留的沙砾。`VisualEffectGraph/角色Glow.anim`：角色动画控制器在用。
 - `ShaderGraph/地图/SG_MapEdge.shadergraph`：RaceMap 和空气墙在用。`PreloadShader.shadervariants`：RaceMap 在用。
 - `FeelPrefab/技能Reflection_Local.prefab`、`反噬Reflection_Local.prefab`：本地 Bloom、白平衡、镜头震动，还在用。
@@ -148,7 +148,7 @@ GUID 搜不到引用，但可能被代码按名字加载（`Shader.Find`、`Reso
 
 | 内容 | 为什么留 | 谁在用 / 怎么办 |
 |---|---|---|
-| `PlayerBlackCurtainTrail.cs` | `一念光明/Release/VFX_Curtain_Release.prefab` 的 `BlackCurtainTrail` 上还挂着（用户特意放的） | 换成层控制拖尾后再删，连同 `BuddahRespawn` / `BuddahPredictedMotor.Events` 里的 rebase |
+| `PlayerBlackCurtainTrail.cs` | `一念光明/Release/VFX_Curtain_Release.prefab` 的 `BlackCurtainTrail` 上还挂着（用户特意放的） | 换成层控制拖尾后再删，连同 `BuddahRespawn` / `BuddahPredictedMotor.Events` 里的 rebase。**2026-11-03：那个拖尾已删，脚本 0 个资产引用，改为待删（6.5）** |
 | `Mat_FX_Palm_BufEnso.mat`、`Mat_FX_Palm_Halo.mat`、`FX_Additive_Glow.shader`、`FX_Alpha_Smoke.shader`、`FXCommon.hlsl`、`FXInk.hlsl`、`T_FX_Enso_Mask` / `T_FX_Noise_Packed` / `T_FX_Sutra_Glyph` | `如来神掌/Buff/VFX_Palm_Buff.prefab`（`palm_buff`，等替换）在用；`FXCommon.hlsl` 还被 `FX_InkVolume` 包含 | 如来神掌 Buf 插槽做好后一起退 |
 | `禅定缓流/阵法-完整黑底.png` | `Assets/Plugins/Piloto Studio/Materials/Fire/Character_Fire_Aura_add.mat`、`Character_Fire_Aura_Alpha.mat`（已跟踪的旧包）引用 | 那两个材质无人用；是否连旧包目录一起清由用户定 |
 | 第 5 节的 `SG_Transparent`、`地图/SG_Trail`、`VisualEffectGraph/角色Glow.shadergraph`、`ShaderGraph/一念光明/`、`一念光明/Shader Graphs_SG_BlackCurtain.mat` | 0 引用，但不是这轮重做留下的 | 用户决定 |
@@ -178,3 +178,28 @@ GUID 搜不到引用，但可能被代码按名字加载（`Shader.Find`、`Reso
 - prefab 盘点的 P1（删 16 个不发射的空壳粒子系统）和 P2–P7：会碰 prefab，等用户另定（DefaultHD 空壳节点、`Ground_2` 两个问题未答）。
 - VfxRegistry 的 `followTargetPosition` / `inheritTargetRotation` / `inheritTargetScale` 三列：只在 `Skill.xlsx` 和导出 CSV 里（生成代码里已经没有），改表要走配表流程，且 `Skill.xlsx` 正有别的会话的未提交改动。
 - `PlayerBlackCurtainTrail` 及 `BuddahRespawn` / `BuddahPredictedMotor.Events` 里的清拖尾调用：`VFX_Curtain_Release` 还挂着，等用户换成层控制拖尾（6.3）。
+
+## 6.5 2026-11-03 一念光明旧黑幕退休（H1 墨眼接替）
+
+用户 2026-11-02 试过 H1 墨眼原型后说"可以先退休老的特效了"。新黑幕的设计、取值和验证见 [blackcurtain-opening-research.md](blackcurtain-opening-research.md) 第 7 节；这里只记退下来的东西。删前按 GUID 在 `Assets/`、`ProjectSettings/` 里搜过，剩下的引用只在同批删掉的文件之间。
+
+| 内容 | 状态 | 原来做什么 | 替代 |
+|---|---|---|---|
+| `一念光明/SG_BlackCurtain.shadergraph`、`一念光明/Shader Graphs_SG_BlackCurtain.mat`、`一念光明/Te.png` | 已删 | 旧黑幕的全屏 Shader Graph（扭曲黑洞 + 黑幕 + 飞屑），`Te.png` 只被它用 | `Assets/Rendering/Shaders/FX/FX_CurtainEye.shader`（`FX/CurtainEye`），飞屑按原图的 FlowOffset 算法移植 |
+| `ShaderGraph/一念光明/` 整个目录（重复副本、材质、`Te.png`） | 已删 | 0 引用的重复副本（第 5 节、6.3） | — |
+| `URP-HighFidelity-Renderer` 的 `BlackCurtain`（URP Full Screen Pass Renderer Feature，材质 `SG_BlackCurtain`） | 已删 | 在 BeforeRenderingTransparents 画黑幕 | 同名、同位置的 `BlackCurtainRenderFeature`，只在本机相机的黑幕播放时入队 |
+| `BlackCurtainScreenEffect.cs` 的旧实现（`ApplyOrRefresh`、按名字找材质、`_Expansion` / `_Opacity` / `_ElapsedTime` / `_EffectActive` / `_Center` / `StrengthBlackHole` 写材质，常量 `ExpansionDelaySeconds 0.5` / `MaxBlackHoleStrength 15` / `MaxExpansionProgress 2`） | 已删（同名类改写） | 驱动旧材质 | 同一个组件改为播 H1：曲线、世界层、反噬红色、相机推近（默认关） |
+| `Skill_BlackCurtain` / `Skill_BlackCurtain_Anti` 的 `fullscreenMaterial`、`fullscreenMaterialName`、`fullscreenShaderName`、五个 shader 属性名字段、`centerWorldOffset`；`BlackCurtainPresentation.Settings` 的同名字段与 `ResolveScreenCenter`；`BlackCurtainViewController.Play` 的对应参数 | 已删 | 把材质和属性名一路传给旧组件；中心只在开始时算一次 | 两个技能共用 `一念光明/Eye/CurtainEye_Profile.asset`（`BlackCurtainEyeProfile`），中心每帧跟着施法者的 VisualRoot，偏移 (0, 3.5, 0) 乘体型 |
+| H1 原型的 `CurtainEyeH1Player.cs`、`CurtainEyeH1RenderPass.cs`、`CurtainEyeH1MatchHook.cs`（比赛开关，EditorPrefs `BuddahGo.Proto.CurtainEyeH1.InMatch` 已清）、`Editor/CurtainEyeH1Builder.cs` | 已删（从未入库） | 原型的播放、注入 pass、比赛里顶替旧黑幕、生成资产 | 上面三行的正式代码；世界层 prefab 已移到 `一念光明/Eye/VFX_Curtain_Eye.prefab`（GUID 不变） |
+| `Skill.xlsx` 的 BlackCurtainPresentation 表：`expansionDelaySeconds`、`maxBlackHoleStrength`、`maxExpansionProgress`、`materialPath`、`centerWorldOffset` 五列；`Tools/design-tables/build_tables.py` 第 263–273 行生成它们的代码 | 待删 | 只是文档列（没有记录类读它），记录旧组件的常量和旧 SO 字段 | 改表要走配表流程（openpyxl 回写有损坏风险，见 design-tables/excel-spec.md），留到 PR 审查的统一清除；新值在 eye profile 里 |
+| `一念光明/Proto_H1/`（预览场景 `CurtainEyeH1_Preview.unity`、`CurtainEyeH1Preview.cs`、`Materials/Mat_EyeH1_*`） | 保留，不入库 | 本地预览：直接播正式的 `BlackCurtainScreenEffect` 和 eye profile | 和 `VFXtests.unity` 一样只在本地（README 第 7 节"测试场景不入库"） |
+
+没动：`curtain_hit`、`BlackCurtainViewController` 的边缘 / 隐藏 / 拖尾 / Volume 逻辑、Balanced / Performant 渲染器（它们原来就没有黑幕 pass，现在也没有）。
+
+**同日追加：施法者不看任何拖尾。** 用户 2026-11-03 定规则："施法者看得到发光边缘和所有赛手，但看不到任何人的拖尾；受害者只看得到拖尾。"施法者身上的红色拖尾来自 `curtain_release` 插槽里的 `BlackCurtainTrail`（插槽对所有人播，施法者自己也看得到），不符合这条，已删（prefab 备份在会话 scratchpad）。比赛复测：施法者有边缘、三个赛手都在、没有拖尾；受害者没有边缘、其他赛手隐藏、只有金色拖尾。
+
+| 内容 | 状态 | 引用 / 删前要做的 |
+|---|---|---|
+| `curtain_release` 插槽里的 `BlackCurtainTrail`（TrailRenderer + `PlayerBlackCurtainTrail`） | 已删 | — |
+| `PlayerBlackCurtainTrail.cs` | 待删 | 0 个资产引用。调用点一起删：`BuddahRespawn.cs` 约 273 行（复活清拖尾）、`BuddahPredictedMotor.Events.cs` 约 869 行（瞬移重置拖尾）；`VFXtests.unity` 替身上还挂着，测试场景不入库 |
+| `curtain_release` 插槽本身（`VFX_Curtain_Release.prefab`、VfxRegistry 行、`Skill_BlackCurtain.releaseVfxId`） | 待定 | 现在只剩一个空层，播了也看不到东西。留作以后放释放内容，还是连表行一起退休，由用户定 |

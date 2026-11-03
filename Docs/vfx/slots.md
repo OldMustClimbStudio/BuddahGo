@@ -25,7 +25,7 @@
 | 神足通 释放 | `accel_release` | `神足通/Release/VFX_Accel_Release` | 正向 | 服务器 `PlayVfxAll`；时长 = 配表加速时长（现在 3 秒），窗口整段 | 用户调过；含原来角色身上的加速拖尾。2026-10-29：原来按 10 秒调、窗口前 30%（= 3 秒），比赛里实际只给 3 秒，窗口只剩 0.9 秒；改成参考 3 秒、窗口整段，和调参时看到的一样 |
 | 禅定缓流 释放 | `slow_release` | `禅定缓流/Release/VFX_Slow_Release` | 正向 | 服务器 `PlayVfxAll`；时长 = 配表区域时长（现在 6 秒），窗口整段；锚点 `CasterFollow`（只跟位置和体型，朝向固定为出手时的朝向），`casterOffset.y = 0.62`；区域结束那一刻全部粒子停止发射、按各自寿命自然消失（`particlesDieNaturally`，最长约 5 秒，随 Stretch 伸缩），死完才销毁 | 用户调过。2026-10-29：原来技能 SO 写死 11 秒、窗口前 55%（= 6 秒）手动对齐区域；改成跟配表，参考 6 秒、窗口整段，表现不变。2026-10-30 按用户要求调整（技能调整会话）：① 原来 `CasterAttached` 跟着施法者转，贴地网格整片旋转，改成只跟随（[README 第 4 节](README.md#4-运行时结构设计待实现)）；② 原来窗口结束后固定 1.5 秒就销毁，寿命 2–5 秒的粒子被瞬间切掉，改成自然消失；③ 比赛里地面只在角色 pivot 下 0.30，内容的 `Ying Yang pulse` 在 pivot 下 0.82，10 个粒子系统里 9 个埋在赛道下面看不见（VFXtests 的 `Floor` 在 pivot 下 4.25，所以那里全都看得见）；用层的 `casterOffset.y = 0.62` 整层抬起，最低的地面圈离赛道 0.10，层内相对位置不变。比赛里验证过（本地玩家与 AI 各放一次：区域 6.0 秒、施法者转 160–179° 时特效朝向不变、位置误差 0、结束后约 5 秒粒子死完再销毁、Console 0 错误）；双机联机没跑 |
 | 转向反转 受击 | `reverse_hit` | `转向反转/Hit/VFX_Reverse_Hit` | 反作用（红） | 服务器给每个被反转的玩家播一次；时长 = 反转 10 秒，整段；`particlesDieNaturally`：反转结束那一刻 19 个粒子系统全部停止发射，按各自寿命自然消失 | 用户调过；红色参考值取自这里。2026-10-30 按用户要求改成自然消失（同禅定缓流）。比赛实测（转向反转反噬，播在本地玩家身上）：10.33 秒停止发射，烟、火星、墨浪约 3.5 秒内散完；阴阳符 `yy_1_symbol_alpha_soft` 寿命 12 秒（每 3 秒一发），剩下的 3 个符还挂在玩家上方，到 21.96 秒才死完，插槽 22.34 秒销毁，即反转结束后阴阳符还完整显示最多约 12 秒。用户定"符跟反转一起收"，第一版在反转结束时截短寿命，用户在 VFXtests 看了觉得"一下结束"。第二版按用户要求：技能结束前 1 秒开始消失，消失约 1 秒，和其他特效同步结束。阴阳符放进层的 `endWithWindow`，`endWithWindowSeconds` 1。同时把用户在 VFXtests 实例上对这个符的改动 apply 进 prefab：Simulation Speed 1→5（Start Speed 本来就是 0）、起始旋转 180°、关 3D 旋转。现在一个符实际活 2.4 秒、每 0.6 秒一发，自带淡出只有 0.24 秒。复测：9.47 秒符停止发射并开始淡出（新出生的那个从 0.41 往下，不跳亮），10.47 秒技能结束、其余层停止发射时符正好归零；其余层照旧自然散完，插槽 15.34 秒销毁，Console 0 错误。反转结束后墨浪 `Ink_Shockwave_1_Distorted_alpha`（寿命 5 秒，45% 后开始淡出）还会看得见地淡几秒，插槽因此多留约 5 秒；2026-10-31 用户定"保留自然散完"，不放进 `endWithWindow` |
-| 一念光明 路线拖尾 | `curtain_hit` | `一念光明/Hit/VFX_Curtain_Hit` | 功能性（黑幕里的路线） | `BlackCurtainViewController` 在本地给每个玩家播；时长 = 黑幕 13 秒 | 原角色身上的拖尾原样搬入，玩法信息，不是美术重做对象 |
+| 一念光明 路线拖尾 | `curtain_hit` | `一念光明/Hit/VFX_Curtain_Hit` | 功能性（黑幕里的路线） | `BlackCurtainViewController` 在本地给每个玩家播：赛手被隐藏时，靠拖尾看到所有玩家在哪里（设计如此，不只是自己的）；时长 = 黑幕 13 秒 | 原角色身上的拖尾原样搬入，玩法信息，不是美术重做对象 |
 
 ### 1.1 比赛实测（2026-10-30，单人赛 1 玩家 + 2 AI，High Fidelity）
 
@@ -36,7 +36,7 @@
 | 神足通 | `cast`、`accel_release` | 1 s + 1.5 s；3 s + 1.5 s |
 | 禅定缓流 | `cast`、`slow_release` | 区域 6 s，结束后约 5 s 粒子自然死完（共 11 s） |
 | 转向反转 | `cast`、`reverse_release`（内容空）、两个 AI 身上各一个 `reverse_hit` | 10 s + 自然消失约 5 s（阴阳符在最后 1 秒淡出） |
-| 一念光明 | `cast`、`curtain_release` | 13 s + 1.5 s；施法者看得见赛道边，所以不播 `curtain_hit`（设计如此） |
+| 一念光明 | `cast`、`curtain_release` | 13 s + 1.5 s；施法者看得见赛道边和所有赛手，不看任何拖尾，所以不播 `curtain_hit`（设计如此）。受害者反过来：没有边缘、其他赛手隐藏，只看每个玩家的 `curtain_hit` 拖尾 |
 | 巨大化 | `cast`、`giant_release`（内容空） | 6 s + 1.5 s |
 | 如来神掌 | `cast`、`palm_buff`（旧 prefab）、`palm_release`、墨手子弹 | 正常 |
 | 转向反转 反噬 | 施法者身上 `reverse_hit` | 10 s + 自然消失约 5 s（阴阳符在最后 1 秒淡出） |
@@ -65,7 +65,7 @@
 |---|---|---|---|---|---|
 | 巨大化 释放 | `giant_release` | `巨大化/Release/VFX_Giant_Release` | 正向 | `Skill_Giant.releaseVfxId`；时长 = 变大时长（6 秒） | 内容 |
 | 转向反转 释放 | `reverse_release` | `转向反转/Release/VFX_Reverse_Release` | 正向 | `Skill_ReverseTurn.vfxId`（原来的 `reverse_turn_trap_vfx` 从没播过）；时长 = 反转时长（10 秒） | 内容 |
-| 一念光明 释放 | `curtain_release` | `一念光明/Release/VFX_Curtain_Release` | 正向 | `Skill_BlackCurtain.releaseVfxId`；所有人都播，不受黑幕"谁被影响"的判断限制；时长 = 展开 + 保持 + 淡出（13 秒） | 内容。用户特意放进来的 `BlackCurtainTrail`（层 `BlackCurtainTrail`，带 `PlayerBlackCurtainTrail` 脚本）已应用进 prefab；窗口 0–77%（= 13 秒里的前 10 秒） |
+| 一念光明 释放 | `curtain_release` | `一念光明/Release/VFX_Curtain_Release` | 正向 | `Skill_BlackCurtain.releaseVfxId`；所有人都播，不受黑幕"谁被影响"的判断限制；时长 = 展开 + 保持 + 淡出（13 秒） | 2026-11-03 起没有可见内容：用户定"施法者不看任何拖尾"，原来放在这里的 `BlackCurtainTrail`（带 `PlayerBlackCurtainTrail`）会让施法者看到自己的红色拖尾，已从 prefab 删除；受害者照旧靠 `curtain_hit` 看到包括施法者在内每个人的拖尾。只剩空的 `FX_Curtain_Imp_C_Flash_01` 层（窗口 0–77%）。开场的世界层由屏幕效果自己播（`一念光明/Eye/`，[blackcurtain-opening-research.md](blackcurtain-opening-research.md) 第 8 节）。这个插槽留着还是退休，见 [retired.md](retired.md) 6.5 |
 
 ## 3. 还没有插槽（期望）
 

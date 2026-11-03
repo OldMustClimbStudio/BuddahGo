@@ -90,15 +90,13 @@ namespace BuddahGo.RaceMapZen.Editor
                 go.transform.localScale = m.lossyScale;
                 placed++;
             }
-            // occluder fade: the spans over the track, all torii and the low wall bays at the garden openings
+            // occluder fade: the spans over the track and all torii
             var fade = root.AddComponent<BuddahGo.Rendering.OccluderFade>();
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
             {
                 if (t.parent == null || !groups.ContainsValue(t.parent)) continue;   // instances only
                 string n = t.name;
-                bool span = n.StartsWith("R_Torii") || n.StartsWith("R_Gate") || n.StartsWith("R_Watari_Span");
-                bool lowWall = (n.StartsWith("R_RectWall") || n.StartsWith("R_WallPier")) && t.localScale.y < 5f;   // low bays: height x0.45
-                if (span || lowWall) fade.occluders.Add(t.gameObject);
+                if (n.StartsWith("R_Torii") || n.StartsWith("R_Gate") || n.StartsWith("R_Watari_Span")) fade.occluders.Add(t.gameObject);
             }
             EditorSceneManager.MarkSceneDirty(scene);
             Debug.Log($"[RaceMapZen] occluder fade on {fade.occluders.Count} objects");

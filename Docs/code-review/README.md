@@ -125,7 +125,7 @@ PR #63 那 10 个文件这次没动，计划是 107 → 45，等 PR #63 合并�
 
 - **基线**（`aafad1b7`，在编辑器里通过 MCP 跑）：400/400 通过，0 失败。
 - **清理后**（HEAD `0ac4e1fe`，同一个编辑器）：206/206 通过，0 失败；编辑器重新编译 0 错误。
-- **会进 Play 模式的 3 个用例**（`SoloSessionFlowTests` ×2、`SoloTransportTests` ×1）：两次都没跑出结果。它们进 Play 后会重载域，MCP 就跟丢了测试任务。这 3 个要等编辑器关掉后，用批处理（`-batchmode -nographics -runTests`）补跑。
+- **批处理全量**（`d2876077`，关掉编辑器后跑 `-batchmode -nographics -runTests -testPlatform EditMode`）：**209/209 通过**，0 失败，`error CS` 0 条。包括在共用编辑器里跑不出结果的 3 个进 Play 用例（`SoloSessionFlowTests` ×2、`SoloTransportTests` ×1）：在编辑器里它们进 Play 后会重载域，MCP 就跟丢了测试任务。工作区里用户本地未提交的文件不是这次的内容；批处理改写的 `validation.md` 时间戳已经恢复成跑之前的内容。
 - **每个提交单独编译**：工作区编译只能代表最终状态，所以另外写了一个编译检查器。它用 `git archive` 取出每个提交的 `Assets/Scripts`、`Assets/Tests`、`Assets/Editor`，再用 dotnet 和 Unity 生成的 csproj 编译 `BuddahGo.Runtime/Editor/Tests` 和 `Assembly-CSharp-Editor`。20 个代码和测试提交逐个检查，全部通过。故意放一个编译错误，检查器能报出来。
 - **测试只在最终 HEAD 上跑过**，中间提交没有逐个跑测试。中间提交里的测试代码都编译通过；被删的符号也逐个 grep 过，测试里没有反射引用它们。
 - **没有验证的**：

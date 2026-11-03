@@ -257,3 +257,32 @@ B2 适合用户觉得 A2"太像下午"的情况——它把整个场景往暮色
 - 用 Bash heredoc 往 `.cs` 里写 `"\n"` 会变成真实换行（"Newline in constant"），改用 Write/Edit 工具。
 - 编辑器向 MCP 服务注册需要真正在前台：`AppActivate` 返回 True 但无效，`SetForegroundWindow` 之前先发一个 ALT 键才生效。
 - 编辑模式抓图与 play mode 抓图一致的前提是先 `DynamicGI.UpdateEnvironment()` + 实时探针 `RenderProbe()`（`RaceMapDuskColorStudy.RefreshNow()`）；这次两者本来就一致，但下一次改了天空再抓之前仍要刷新。
+
+## 11. 实现（用户选 C2，2026-11-03）
+
+用户看过第 6 节的三张候选后选了 C2（"C2 最佳"）。已写入资产并分四个小提交：
+
+| 提交 | 内容 |
+|---|---|
+| e3530406 | `RaceMap.unity`：MainLight 滤镜 (1, 0.80, 0.52) → (1, 0.92, 0.82)，2900 K 不变；雾密度 0.0011 → 0.0009，颜色 (0.96, 0.68, 0.40) → **(1.263, 0.967, 0.612)** |
+| e58def96 | `RaceMap.unity`：编辑器保存时顺带清掉的过期序列化字段（`debugLabel`、`resultSceneName`），与本改动无关，单独提交 |
+| ad27da69 | `RaceMap_Sky_Dusk.mat`：horizon exponent 2.4 → 4，zenith (0.16, 0.18, 0.38) → (0.16, 0.20, 0.44)，ground = 雾色的线性值 (1.671, 0.927, 0.333) |
+| a49af48f | `RaceMap_Dusk_Profile.asset`：colorFilter → 白，WhiteBalance 22 / −8 → 10 / −4，saturation 8 → 4，Bloom tint (1, 0.78, 0.55) → (1, 0.90, 0.78)；`Volume_Dark Profile.asset` 同步为 exposure −0.05、contrast 14、saturation 4、WB 10 / −4 |
+
+和第 6 节 C2 候选的区别只有雾色：候选图用的是手估的 (0.93, 0.72, 0.52)，实现时按 README checklist 第 2 步对天空校准（开场镜头 284–292 行天空 vs 298–302 行全雾远沙，32 列平均，每轮乘 (sky/band)^1.2，同时把天空的 ground 颜色设成雾色线性值），10 轮后差 4.8 级（1b 阶段做到 1.6 级；这次收敛慢是因为 ground 颜色跟着雾走、天空下沿也在变）。校准后地平线比候选图更淡、更接近天空，是正确的接缝处理，但观感上"远处发白"比候选图明显——如果用户想要候选图那种更橙的远景，把雾色拉回 (1.05, 0.80, 0.56) 左右并接受地平线有一条暗带即可。
+
+实现后的数值（`c2_after`，编辑器 HDR 抓图，与候选 C2 几乎一致）：
+
+| 视角 | 色度 C\* | b\* | 色相标准差 | CCT | 赛道/路缘 WCAG | Buddha 色度 | Buddha–赛道 ΔE |
+|---|---|---|---|---|---|---|---|
+| 01 起跑格 | 33 → **21** | 24 → 14 | 7° → 16° | 2428 → 3403 K | 5.03 → 5.08 | 42.6 → **26.5** | 10.6 → 10.5 |
+| 02 直道 | 31 → 20 | 23 → 10 | 18° → 43° | 3024 → 4181 K | 2.35 → 2.35 | 37.6 → 22.1 | 23.9 → 23.5 |
+| 03 急弯 | 38 → 22 | 30 → 15 | 7° → 17° | 2766 → 3874 K | 4.11 → 4.22 | 35.9 → 20.4 | 4.3 → 3.5 |
+| 04 开场 | 39 → 23 | 33 → 16 | 8° → 15° | 2845 → 3848 K | 6.13 → 6.12 | 50.8 → 31.2 | 17.3 → 18.8 |
+| 05 结算场 | 33 → 19 | 24 → 12 | 7° → 18° | 2728 → 3993 K | – | 41.5 → 33.0 | 41.0 → 38.8 |
+
+特效（起跑格）：禅定缓流墨池 ΔE 19.5 → 23.0、亮度比 1.79 → 2.03，自身 Lab (32, 17.5, 26.6) → (33, 12.5, 18.8)；通用前摇金光 ΔE 15.3 → 14.4，Δb\* +3.3 → +4.8。
+
+证据：[dusk_c2_compare/all.jpg](dusk_c2_compare/all.jpg)（五视角 before/after）、[dusk_study/c2_before_after_01.gif](dusk_study/c2_before_after_01.gif)、[dusk_study/c2_before_after_04.gif](dusk_study/c2_before_after_04.gif)、[dusk_study/c2_vfx.jpg](dusk_study/c2_vfx.jpg)。
+
+没做的：没有 bake（用户决定）；没在比赛里看；急弯视角 Buddha 对赛道的 ΔE 仍是 3.5（第 8 节）；A2/B2 的数值保留在第 6 节，随时可以换。

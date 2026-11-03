@@ -743,6 +743,13 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   (low warm sun, warm grade, cool shadows). The original `RaceMap_Sky.mat` and `RaceMap_Environment_Profile.asset`
   are unchanged and stay shared with the menu scene (below). Nothing was baked; light probes are still the old bake
   ("no bake for now"). The reflection probe that the silver Buddha uses is realtime.
+  **Re-tuned on 2026-11-03** (candidate C2 of [dusk-color-study.md](dusk-color-study.md), the user's choice): the sun's
+  colour filter went from (1, 0.80, 0.52) to (1, 0.92, 0.82) on the unchanged 2900 K, the fog to density 0.0009 and
+  (1.263, 0.967, 0.612) calibrated against the sky (checklist step 2, 4.8 levels off), the sky's horizon band to
+  exponent 4 with zenith (0.16, 0.20, 0.44) and the ground colour set from the fog, and the dusk profile to a white
+  colour filter, white balance 10 / -4, saturation 4 and Bloom tint (1, 0.90, 0.78); `Volume_Dark` follows it 0.1 EV
+  darker. Before/after: [dusk_c2_compare/all.jpg](dusk_c2_compare/all.jpg). Start-grid chroma 33 -> 21, Buddha chroma
+  42.6 -> 29; the study's A2/B2 looks are the stronger fixes if the warm cast is still too much.
 - **Occluder fade.** `Assets/Scripts/Rendering/OccluderFade.cs` fades the tall objects (torii, gate, watari span) while
   they block the gameplay camera's view of a player.
 - **Players.** `Buddah.prefab` uses the new silver metal `Assets/Material/Skin/SilverSkin.mat`. The prefab was also
@@ -794,6 +801,10 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   colour reaches deep orange without a lower exposure.
 - **Lens flare ghost.** The Oasis flare's ring ghost still crosses the player in the intro at 0.25 intensity. Removing
   it means editing or replacing the flare asset (shared with Oasis).
+- **Dusk colour (2026-11-03 study).** Still open after C2: the Buddha against the lane in the corner view stays at
+  dE 4-6 whatever the grade (lit like the lane; needs a material or contact-shadow measure), the palm-release slot does
+  not draw in edit-mode captures (cause unknown), and the origin of the warm ambient probe L0 (0.285, 0.173, 0.127)
+  was not verified. Details and the A2/B2 alternatives in [dusk-color-study.md](dusk-color-study.md).
 - **Horizon seam at the frame sides.** One fog colour matches the sun-side horizon; toward the edges of the intro frame,
   where the horizon is rosier, a faint seam remains, and the lane's planar reflection mirrors it.
 - **Aliasing.** Specular glitter on the lane and end-field floor and moiré in the far sand come from high-frequency
@@ -854,6 +865,7 @@ Traps that cost time during this work; each applies to any RaceMap or pipeline c
 | `Assets/Editor/Rendering/RaceMapRenderCost.cs` | Before/after frame-time measurement with the pipeline's MSAA |
 | `Tools/rendering/build_racemap_compare.py` | Labelled JPEG side-by-sides |
 | `Tools/rendering/build_fix_evidence.py` | The play-test fix images from the local HDR captures (inputs listed in its docstring) |
+| `Assets/Editor/Rendering/RaceMapDuskColorStudy.cs` | Dusk colour study probe: HDR captures of the five viewpoints with temporary overrides of sun / fog / sky / ambient / probes / post (tokens in the file header), material-id mask, skill VFX on the proxy; nothing saved |
 | `Assets/Editor/Rendering/RaceMapTemporalNoise.cs` | Shimmer sweeps (sub-pixel or race-speed camera motion, one factor per run), clips of the gameplay camera, HDR cost runs |
 | `Tools/rendering/temporal_noise.py`, `Tools/rendering/build_aa_evidence.py` | Flicker scores and the anti-aliasing evidence images |
 | `Assets/Scripts/Rendering/CameraAntialiasingPolicy.cs` | Post AA per quality level on RaceMap's gameplay camera |

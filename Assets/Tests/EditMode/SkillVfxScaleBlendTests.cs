@@ -106,6 +106,35 @@ namespace BuddahGo.Tests
             }
         }
 
+        // The surge marks a change while the window runs; after it (the zone fading out) a change only eases the scale.
+        [Test]
+        public void SurgePlaysOnlyWhileTheWindowRuns()
+        {
+            using (var rig = new SkillVfxTestRig())
+            {
+                SkillVfxPhaseController controller = rig.Slot();
+                SkillVfxLayer layer = rig.Layer(controller.transform, SkillVfxAnchor.CasterFollow);
+                ParticleSystem area = rig.Particles(layer, "Area", 5f);
+                ParticleSystem surge = rig.Particles(layer, "Surge", 1.1f);
+                layer.casterScaling = SkillVfxCasterScaling.Blend;
+                layer.areaSystems = new[] { area };
+                layer.scaleSurge = surge;
+                layer.Initialize(1f, true);
+                layer.FollowCasterScale(1f, 0f);
+
+                layer.Apply(0f, 1f, 0f, 1f, null);
+                layer.FollowCasterScale(4f, 1f);
+                Assert.That(surge.isPlaying, Is.True, "in the window");
+
+                surge.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                layer.FollowCasterScale(4f, 3f);
+                layer.Deactivate();
+                layer.FollowCasterScale(1f, 4f);
+                Assert.That(surge.isPlaying, Is.False, "after the window");
+                Assert.That(layer.FollowCasterScale(1f, 4.4f), Is.EqualTo(2.5f).Within(1e-3f), "the scale still eases");
+            }
+        }
+
         // Through the controller: the layer's ground offset follows the body at once, its scale starts the blend.
         [Test]
         public void ControllerKeepsABlendLayerOnTheGroundWhileItsScaleCatchesUp()

@@ -274,7 +274,8 @@ namespace BuddahGo.VFX
             }
             _handoffActive = true;
             _handoffStart = now;
-            if (scaleSurge != null && _played && _enabledByTier)
+            // Only while the window runs: after it the area is fading out, and a ring over nothing reads as a new effect.
+            if (scaleSurge != null && _active && _enabledByTier)
             {
                 scaleSurge.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
                 scaleSurge.Play(true);

@@ -13,7 +13,6 @@ namespace BuddahGo.VFX.EditorTools
     {
         public struct Skill
         {
-            public string skillId;      // gameplay id (Skill table)
             public string shortName;    // README section 6
             public string folderName;   // Assets/VFX/<技能中文名>
             public string vfxId;
@@ -39,19 +38,19 @@ namespace BuddahGo.VFX.EditorTools
         // offsets start at the caster's pivot and are tuned by hand in VFXtests. All are the normal (not anti) variants.
         public static readonly Skill[] Skills =
         {
-            new Skill { skillId = "giant", shortName = "Giant", folderName = "巨大化", vfxId = "giant_release", windowSeconds = 6f, function = SkillVfxFunction.Flash },
-            new Skill { skillId = "reverseturn", shortName = "Reverse", folderName = "转向反转", vfxId = "reverse_release", windowSeconds = 10f, function = SkillVfxFunction.Flash },
-            new Skill { skillId = "reverseturn", shortName = "Reverse", folderName = "转向反转", vfxId = "reverse_hit", windowSeconds = 10f, function = SkillVfxFunction.Smoke, slot = "Hit" },
-            new Skill { skillId = "slowtrap", shortName = "Slow", folderName = "禅定缓流", vfxId = "slow_release", windowSeconds = 6f, function = SkillVfxFunction.Flash },
-            new Skill { skillId = "blackcurtain", shortName = "Curtain", folderName = "一念光明", vfxId = "curtain_release", windowSeconds = 10f, function = SkillVfxFunction.Flash },
+            new Skill { shortName = "Giant", folderName = "巨大化", vfxId = "giant_release", windowSeconds = 6f, function = SkillVfxFunction.Flash },
+            new Skill { shortName = "Reverse", folderName = "转向反转", vfxId = "reverse_release", windowSeconds = 10f, function = SkillVfxFunction.Flash },
+            new Skill { shortName = "Reverse", folderName = "转向反转", vfxId = "reverse_hit", windowSeconds = 10f, function = SkillVfxFunction.Smoke, slot = "Hit" },
+            new Skill { shortName = "Slow", folderName = "禅定缓流", vfxId = "slow_release", windowSeconds = 6f, function = SkillVfxFunction.Flash },
+            new Skill { shortName = "Curtain", folderName = "一念光明", vfxId = "curtain_release", windowSeconds = 10f, function = SkillVfxFunction.Flash },
             // Played on every player while the curtain is up (BlackCurtainViewController), carries the route trail.
-            new Skill { skillId = "blackcurtain", shortName = "Curtain", folderName = "一念光明", vfxId = "curtain_hit", windowSeconds = 10f, function = SkillVfxFunction.Smoke, slot = "Hit" },
-            new Skill { skillId = "acceleration", shortName = "Accel", folderName = "神足通", vfxId = "accel_release", windowSeconds = 3f, function = SkillVfxFunction.Flash },
+            new Skill { shortName = "Curtain", folderName = "一念光明", vfxId = "curtain_hit", windowSeconds = 10f, function = SkillVfxFunction.Smoke, slot = "Hit" },
+            new Skill { shortName = "Accel", folderName = "神足通", vfxId = "accel_release", windowSeconds = 3f, function = SkillVfxFunction.Flash },
             // Shared wind-ups (user 2026-10-29): played on every player for every skill during the cast confirmation
             // delay (SkillExecutor, 1 s); they replace the character's 技能Particle / 反噬Particle. Cast uses the
             // Yixuan palette, CastAnti the red of the reaction effects (README section 2).
-            new Skill { skillId = "*", shortName = "Common", folderName = "通用前摇", vfxId = "cast", windowSeconds = 1f, function = SkillVfxFunction.Glow, slot = "Cast" },
-            new Skill { skillId = "*_anti", shortName = "Common", folderName = "通用前摇", vfxId = "cast_anti", windowSeconds = 1f, function = SkillVfxFunction.Glow, slot = "Cast", anti = true },
+            new Skill { shortName = "Common", folderName = "通用前摇", vfxId = "cast", windowSeconds = 1f, function = SkillVfxFunction.Glow, slot = "Cast" },
+            new Skill { shortName = "Common", folderName = "通用前摇", vfxId = "cast_anti", windowSeconds = 1f, function = SkillVfxFunction.Glow, slot = "Cast", anti = true },
         };
 
         [MenuItem("Tools/BuddahGo/VFX/Proto/Release Placeholders/Build All And Place In VFXtests")]

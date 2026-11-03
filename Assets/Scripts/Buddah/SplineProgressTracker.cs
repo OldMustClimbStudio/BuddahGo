@@ -40,7 +40,6 @@ public class SplineProgressTracker : NetworkBehaviour
     public float RawProgressDelta01 => rawProgressDelta01;
     public bool WrappedFromStartToEndThisFrame => wrappedFromStartToEndThisFrame;
     public bool WrappedFromEndToStartThisFrame => wrappedFromEndToStartThisFrame;
-    public bool IsClearlyWrongWay => forwardDot < 0f;
 
     private void Awake()
     {

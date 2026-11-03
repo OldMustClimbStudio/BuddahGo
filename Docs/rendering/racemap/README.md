@@ -746,9 +746,12 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   they block the gameplay camera's view of a player.
 - **Players.** `Buddah.prefab` uses the new silver metal `Assets/Material/Skin/SilverSkin.mat`. The prefab was also
   re-serialized by the editor (component order, fields synced with the current scripts).
-- **Menu scene.** `MenuEnvironmentSetting.unity` now uses RaceMap's post profile, camera anti-aliasing, skybox
-  `RaceMap_Sky.mat`, `RaceMap_Lighting.lighting`, ambient, reflections and fog; `MenuEnvironmentImporter.cs` writes the
-  same settings so a rebuild keeps them. Its directional light stays the menu's own.
+- **Menu scene.** `MenuEnvironmentSetting.unity` now uses RaceMap's original (pre-dusk) post profile
+  `RaceMap_Environment_Profile.asset`, camera anti-aliasing, skybox `RaceMap_Sky.mat`, Skybox ambient, reflections and
+  exp2 fog 0.0009; `MenuEnvironmentImporter.cs` writes the same settings so a rebuild keeps them. Its directional light
+  stays the menu's own. Since the dusk change the menu no longer looks like the race. It also assigns RaceMap's own
+  `RaceMap_Lighting.lighting` (not a copy), so an edit to that asset from either scene changes both; whether the menu
+  should follow the dusk look or own its assets is open (below).
 
 ## Known limits and open items (current state)
 
@@ -757,6 +760,8 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   Fidelity's edges without FXAA's softness, URP 14 has none.
 - **Reflections**: SSR and the Deferred keep-alive renderer were removed on 2026-10-28 (the user's decision on review
   M6); a future map with glossy surfaces that are not flat would need SSR back, see the plugin's notes.
+- **Menu lighting assets** (open, user decision): the menu shares RaceMap's pre-dusk sky, post profile and the mutable
+  `RaceMap_Lighting.lighting`. Options: give the menu its own copies, move it to the dusk assets, or keep sharing.
 - **Graphics settings**: spec, model and API only; no menu yet (see [../graphics-settings.md](../graphics-settings.md)).
 
 - **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).

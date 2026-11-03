@@ -2017,9 +2017,11 @@ public static class MenuEnvironmentImporter
                 typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
     }
 
-    // RaceMap's lighting environment, shared so that the menu is lit like the race: the Sunset Sky material, skybox
-    // ambient x1.2, skybox reflections (256 px, 2 bounces, x1), exp2 distance fog and RaceMap's lighting settings asset.
-    // The importer only references RaceMap's assets; RaceMap owns them. Values mirror RaceMap.unity's Lighting window.
+    // The menu keeps RaceMap's original (pre-dusk) lighting environment: the Sunset Sky material RaceMap_Sky.mat, skybox
+    // ambient x1.2, skybox reflections (256 px, 2 bounces, x1) and exp2 fog 0.0009. RaceMap itself has since moved to
+    // RaceMap_Sky_Dusk.mat, Trilight ambient and fog 0.0011 (0.96, 0.68, 0.40), so the two scenes no longer match.
+    // The importer only references RaceMap's assets; RaceMap owns them. Lightmapping.lightingSettings below assigns
+    // RaceMap's own RaceMap_Lighting.lighting rather than a copy, so a change to it in either scene changes both.
     private const string RaceMapSkyPath = "Assets/Scenes/RaceMap/RaceMap_Sky.mat";
     private const string RaceMapLightingSettingsPath = "Assets/Scenes/RaceMap/RaceMap_Lighting.lighting";
 
@@ -2047,8 +2049,9 @@ public static class MenuEnvironmentImporter
         DynamicGI.UpdateEnvironment();
     }
 
-    // RaceMap's post profile, shared so that the menu is graded exactly like the race (ACES, exposure +0.3,
-    // contrast 10, saturation 5, white balance 4 / -3, bloom off). The importer only references it; RaceMap owns it.
+    // RaceMap's original (pre-dusk) post profile (ACES, exposure +0.3, contrast 10, saturation 5, white balance 4 / -3,
+    // bloom off). RaceMap now grades with RaceMap_Dusk_Profile.asset, so the menu no longer matches the race.
+    // The importer only references it; RaceMap owns it.
     private const string RaceMapPostProfilePath = "Assets/Scenes/RaceMap/RaceMap_Environment_Profile.asset";
 
     private static void CreateGlobalVolume()

@@ -19,6 +19,7 @@ namespace BuddahGo.Rendering.Settings
         static GraphicsSettingsApplier s_Applier;
         static IGraphicsSettingsStore s_Store;
         static string s_StartupState;   // the choice applied at startup, which Revert falls back to when nothing is saved
+        static string s_AppliedState;   // the choice last applied (startup, Apply or Revert), for HasPendingChanges
 
         public static event Action Changed;
         public static event Action Applied;
@@ -30,6 +31,8 @@ namespace BuddahGo.Rendering.Settings
         public static string PresetId => s_Model?.PresetId;
         public static string PresetLabelKey => s_Model?.PresetLabelKey;
         public static bool IsCustom => s_Model != null && s_Model.IsCustom;
+        /// <summary>Whether the model differs from the choice last applied (a menu enables Apply / Revert on it).</summary>
+        public static bool HasPendingChanges => s_Model != null && s_Model.ToJson() != s_AppliedState;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Bootstrap()
@@ -68,6 +71,7 @@ namespace BuddahGo.Rendering.Settings
                     }
             }
             s_StartupState = s_Model.ToJson();
+            s_AppliedState = s_StartupState;
             s_Model.Changed += OnModelChanged;
             if (apply)
                 s_Applier?.Apply(s_Model);
@@ -94,6 +98,7 @@ namespace BuddahGo.Rendering.Settings
                 return;
             s_Applier?.Apply(s_Model);
             s_Store?.Write(s_Model.ToJson());
+            s_AppliedState = s_Model.ToJson();
             Applied?.Invoke();
         }
 
@@ -105,6 +110,7 @@ namespace BuddahGo.Rendering.Settings
             if (!s_Model.TryLoadJson(s_Store?.Read()))
                 s_Model.TryLoadJson(s_StartupState);
             s_Applier?.Apply(s_Model);
+            s_AppliedState = s_Model.ToJson();
             Applied?.Invoke();
         }
 

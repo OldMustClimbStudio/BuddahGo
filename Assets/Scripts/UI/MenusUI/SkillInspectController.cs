@@ -92,6 +92,15 @@ namespace SteamMultiplayer.UI
             ForceExitImmediate();
         }
 
+        private void OnDestroy()
+        {
+            if (_inputActions != null)
+            {
+                _inputActions.Dispose();
+                _inputActions = null;
+            }
+        }
+
         public void ForceExitImmediate()
         {
             if (_transitionRoutine != null)

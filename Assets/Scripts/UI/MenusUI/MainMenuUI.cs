@@ -102,6 +102,11 @@ namespace SteamMultiplayer.UI
         {
             Unsubscribe();
             DisableMenuInput();
+            if (_inputActions != null)
+            {
+                _inputActions.Dispose();
+                _inputActions = null;
+            }
         }
 
         public void ShowHome()

@@ -121,6 +121,11 @@ namespace SteamMultiplayer.UI
         {
             UnsubscribeFromManager();
             DisableMenuInput();
+            if (_inputActions != null)
+            {
+                _inputActions.Dispose();
+                _inputActions = null;
+            }
             ClearSpawnedWallItems();
 
             if (confirmButton != null)

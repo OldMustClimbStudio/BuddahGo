@@ -1,9 +1,11 @@
 // Builds the RaceMap zen landscape from the Blender export (Assets/Sources/RaceMapZen):
 //   Models/RaceMapZen_Landscape.fbx  one object per unique mesh ("ZX_<mesh>") at the origin
-//   Data/RaceMapZen_Layout.json      every placement as a Unity world matrix, its group and its Blender material names
+//   Data/RaceMapZen_Layout.json      every placement as a Unity world matrix and its group (its per-instance Blender
+//                                    material names are not read: each sub-mesh's material comes from the FBX)
 // Meshes that already exist as game-ready menu-environment library prefabs are placed from there ("lib:").
 // Blender material names are mapped to the menu-environment URP materials; the few zen-only materials are created
-// under Materials/. Rerunning rebuilds the RaceMapZen_Landscape root in the open scene and the prefabs.
+// under Materials/. Rerunning rebuilds the RaceMapZen_Landscape root in the open scene and the prefabs, and deletes
+// the prefabs under Prefabs/ that the layout no longer places.
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,7 +28,7 @@ namespace BuddahGo.RaceMapZen.Editor
         public const string SceneRootName = "RaceMapZen_Landscape";
 
         [System.Serializable] class Layout { public int version; public List<Instance> instances; }
-        [System.Serializable] class Instance { public string name; public string group; public string src; public float[] m; public string[] mats; }
+        [System.Serializable] class Instance { public string name; public string group; public string src; public float[] m; }
 
         // Blender material name -> project material (menu library name, or a RaceMapZen material created below)
         static readonly Dictionary<string, string> Explicit = new Dictionary<string, string>
@@ -74,7 +76,7 @@ namespace BuddahGo.RaceMapZen.Editor
                 {
                     prefab = it.src.StartsWith("lib:")
                         ? AssetDatabase.LoadAssetAtPath<GameObject>(LibDir + "/" + it.src.Substring(4) + ".prefab")
-                        : BuildMeshPrefab(it.src.Substring(4), fbxChildren, it.mats, unmapped);
+                        : BuildMeshPrefab(it.src.Substring(4), fbxChildren, unmapped);
                     prefabs[it.src] = prefab;
                 }
                 if (prefab == null) { missing++; continue; }
@@ -90,15 +92,14 @@ namespace BuddahGo.RaceMapZen.Editor
                 go.transform.localScale = m.lossyScale;
                 placed++;
             }
-            // occluder fade: the spans over the track, all torii and the low wall bays at the garden openings
+            PruneStalePrefabs(prefabs.Values);
+            // occluder fade: the spans over the track and all torii
             var fade = root.AddComponent<BuddahGo.Rendering.OccluderFade>();
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
             {
                 if (t.parent == null || !groups.ContainsValue(t.parent)) continue;   // instances only
                 string n = t.name;
-                bool span = n.StartsWith("R_Torii") || n.StartsWith("R_Gate") || n.StartsWith("R_Watari_Span");
-                bool lowWall = (n.StartsWith("R_RectWall") || n.StartsWith("R_WallPier")) && t.localScale.y < 5f;   // low bays: height x0.45
-                if (span || lowWall) fade.occluders.Add(t.gameObject);
+                if (n.StartsWith("R_Torii") || n.StartsWith("R_Gate") || n.StartsWith("R_Watari_Span")) fade.occluders.Add(t.gameObject);
             }
             EditorSceneManager.MarkSceneDirty(scene);
             Debug.Log($"[RaceMapZen] occluder fade on {fade.occluders.Count} objects");
@@ -165,20 +166,25 @@ namespace BuddahGo.RaceMapZen.Editor
         {
             var ti = (TextureImporter)AssetImporter.GetAtPath(path);
             if (ti == null) { Debug.LogWarning("[RaceMapZen] missing texture " + path); return; }
-            ti.sRGBTexture = srgb;
-            if (isField)
-            {
-                ti.textureCompression = TextureImporterCompression.Uncompressed; ti.mipmapEnabled = false;
-                ti.wrapMode = TextureWrapMode.Clamp; ti.filterMode = FilterMode.Bilinear; ti.maxTextureSize = 2048;   // uncompressed EXR -> RGBAHalf
-            }
-            else { ti.wrapMode = TextureWrapMode.Repeat; ti.maxTextureSize = 2048; }
+            var wrap = isField ? TextureWrapMode.Clamp : TextureWrapMode.Repeat;
+            bool changed = ti.sRGBTexture != srgb || ti.wrapMode != wrap || ti.maxTextureSize != 2048
+                           || isField && (ti.textureCompression != TextureImporterCompression.Uncompressed || ti.mipmapEnabled || ti.filterMode != FilterMode.Bilinear);
+            if (!changed) return;   // the EXR and the gravel maps are large: reimport only when a setting differs
+            ti.sRGBTexture = srgb; ti.wrapMode = wrap; ti.maxTextureSize = 2048;
+            if (isField) { ti.textureCompression = TextureImporterCompression.Uncompressed; ti.mipmapEnabled = false; ti.filterMode = FilterMode.Bilinear; }   // uncompressed EXR -> RGBAHalf
             ti.SaveAndReimport();
         }
 
         public static void ConfigureModel(string path)
         {
             var imp = (ModelImporter)AssetImporter.GetAtPath(path);
-            bool changed = imp.materialImportMode != ModelImporterMaterialImportMode.ImportStandard || imp.importAnimation || imp.importCameras || imp.importLights;
+            bool changed = imp.materialImportMode != ModelImporterMaterialImportMode.ImportStandard
+                           || imp.materialLocation != ModelImporterMaterialLocation.InPrefab
+                           || imp.importAnimation || imp.animationType != ModelImporterAnimationType.None
+                           || imp.importCameras || imp.importLights
+                           || imp.meshCompression != ModelImporterMeshCompression.Off
+                           || imp.importNormals != ModelImporterNormals.Import
+                           || imp.indexFormat != ModelImporterIndexFormat.Auto;
             imp.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;   // only to read Blender material names per sub-mesh
             imp.materialLocation = ModelImporterMaterialLocation.InPrefab;
             imp.importAnimation = false; imp.animationType = ModelImporterAnimationType.None;
@@ -197,7 +203,7 @@ namespace BuddahGo.RaceMapZen.Editor
             return d;
         }
 
-        static GameObject BuildMeshPrefab(string objName, Dictionary<string, Transform> fbx, string[] blenderMats, HashSet<string> unmapped)
+        static GameObject BuildMeshPrefab(string objName, Dictionary<string, Transform> fbx, HashSet<string> unmapped)
         {
             if (!fbx.TryGetValue(objName, out var src)) { Debug.LogWarning("[RaceMapZen] mesh not in FBX: " + objName); return null; }
             var mf = src.GetComponent<MeshFilter>(); var mr = src.GetComponent<MeshRenderer>();
@@ -217,6 +223,16 @@ namespace BuddahGo.RaceMapZen.Editor
             var prefab = PrefabUtility.SaveAsPrefabAsset(tmp, path);
             Object.DestroyImmediate(tmp);
             return prefab;
+        }
+
+        // prefabs the layout no longer places would stay behind unreferenced (93 had piled up by PR #70)
+        static void PruneStalePrefabs(IEnumerable<GameObject> built)
+        {
+            var keep = new HashSet<string>(built.Where(p => p != null).Select(AssetDatabase.GetAssetPath));
+            var stale = AssetDatabase.FindAssets("t:Prefab", new[] { PrefabDir }).Select(AssetDatabase.GUIDToAssetPath)
+                .Where(p => !keep.Contains(p)).ToList();
+            foreach (var p in stale) AssetDatabase.DeleteAsset(p);
+            if (stale.Count > 0) Debug.Log($"[RaceMapZen] deleted {stale.Count} prefabs no longer in the layout");
         }
 
         static Material Map(string blenderName, HashSet<string> unmapped)

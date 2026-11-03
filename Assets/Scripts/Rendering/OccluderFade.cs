@@ -6,7 +6,7 @@ using UnityEngine.Rendering;
 namespace BuddahGo.Rendering
 {
     // Fades tall scenery that stands between the gameplay camera and the player it follows (RaceMap: the torii, the
-    // gate and the watari span over the track, the low wall bays at the garden openings, the two 塔庭 torii).
+    // gate and the watari span over the track, the two 塔庭 torii).
     // Client-side visuals only: each frame the segment from the main camera to the active virtual camera's Follow target
     // is tested against every occluder's renderer bounds (a little inflated). A blocking occluder swaps its renderers to
     // transparent copies of their materials and fades to `fadedAlpha`; once clear it fades back and gets its original

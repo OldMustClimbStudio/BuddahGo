@@ -731,7 +731,8 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
 
 - **Import.** `Assets/Editor/RaceMapZen/RaceMapZenImporter.cs` builds the single root `RaceMapZen_Landscape` from
   `Assets/Sources/RaceMapZen/` (models, prefabs, materials, `Data/RaceMapZen_Layout.json`). Re-running it replaces
-  that root; it never stacks a second copy. The landscape has no colliders.
+  that root; it never stacks a second copy, and deletes the prefabs the layout no longer places. The landscape has no
+  colliders.
 - **Track.** `Map/RaceMapZen_Track` replaces the old lane model; the old `Assets/Sources/地图/` models and the
   `反转法线空气墙` prefab are deleted. Floor collision and planar reflection moved to the new mesh; its polished-concrete
   material is smoother so the dusk sky and sun read in the reflection.
@@ -746,9 +747,19 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   they block the gameplay camera's view of a player.
 - **Players.** `Buddah.prefab` uses the new silver metal `Assets/Material/Skin/SilverSkin.mat`. The prefab was also
   re-serialized by the editor (component order, fields synced with the current scripts).
-- **Menu scene.** `MenuEnvironmentSetting.unity` now uses RaceMap's post profile, camera anti-aliasing, skybox
-  `RaceMap_Sky.mat`, `RaceMap_Lighting.lighting`, ambient, reflections and fog; `MenuEnvironmentImporter.cs` writes the
-  same settings so a rebuild keeps them. Its directional light stays the menu's own.
+- **Menu scene.** `MenuEnvironmentSetting.unity` now uses RaceMap's original (pre-dusk) post profile
+  `RaceMap_Environment_Profile.asset`, camera anti-aliasing, skybox `RaceMap_Sky.mat`, Skybox ambient, reflections and
+  exp2 fog 0.0009; `MenuEnvironmentImporter.cs` writes the same settings so a rebuild keeps them. Its directional light
+  stays the menu's own. Since the dusk change the menu no longer looks like the race. It also assigns RaceMap's own
+  `RaceMap_Lighting.lighting` (not a copy), so an edit to that asset from either scene changes both; whether the menu
+  should follow the dusk look or own its assets is open (below).
+- **Retired (PR #70 review, 2026-11-03).** 93 prefabs in `Assets/Sources/RaceMapZen/Prefabs/` that the layout no
+  longer places and nothing referenced (53 `Town_Walls_*`, 37 `Town_Buildings_*`, `SM_Arch_PlasterWall_Bay`,
+  `Zen_Trk_SM_Arch_SteppingSlab_A`, `Zen_Trk_SM_Prop_StoneLantern_B`); checked by GUID in every text asset and by
+  name in scripts, with no Resources or Addressables loads.
+  The menu's own sky and post assets, unused since the menu moved to RaceMap's (PR #70):
+  `Assets/Sources/MenuEnvironment/Materials/SKY_MenuEnvironment.mat`, `Data/VP_MenuEnvironment.asset` and
+  `Textures/Baked/T_Sky_MenuEnvironment.png` (only the deleted material used the texture).
 
 ## Known limits and open items (current state)
 
@@ -757,6 +768,8 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   Fidelity's edges without FXAA's softness, URP 14 has none.
 - **Reflections**: SSR and the Deferred keep-alive renderer were removed on 2026-10-28 (the user's decision on review
   M6); a future map with glossy surfaces that are not flat would need SSR back, see the plugin's notes.
+- **Menu lighting assets** (open, user decision): the menu shares RaceMap's pre-dusk sky, post profile and the mutable
+  `RaceMap_Lighting.lighting`. Options: give the menu its own copies, move it to the dusk assets, or keep sharing.
 - **Graphics settings**: spec, model and API only; no menu yet (see [../graphics-settings.md](../graphics-settings.md)).
 
 - **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).

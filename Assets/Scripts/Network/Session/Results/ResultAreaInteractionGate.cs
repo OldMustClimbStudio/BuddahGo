@@ -12,9 +12,6 @@ namespace SteamMultiplayer.Network.Results
         [SerializeField] private bool allowSkillsInResultArea = true;
         [SerializeField] private bool enableDebugLogs;
 
-        public bool AllowMovementInResultArea => allowMovementInResultArea;
-        public bool AllowSkillsInResultArea => allowSkillsInResultArea;
-
         private void Awake()
         {
             if (Instance != null && Instance != this)

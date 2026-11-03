@@ -195,7 +195,6 @@ namespace SteamMultiplayer.Network.Results
                         && raceResultAreaManager.TryGetPlacementTransform(entry.FinalRank - 1, out Vector3 worldPosition, out Quaternion worldRotation))
                     {
                         reporter.TeleportToHiddenResultAreaServer(worldPosition, worldRotation);
-                        raceResultAreaManager.NotifyPlacementApplied(entry.RacerId);
                     }
                     else
                     {

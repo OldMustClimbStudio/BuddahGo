@@ -91,7 +91,6 @@ namespace SteamMultiplayer.Network
         public int StageCountdownSecondsRemaining => _stageCountdownSecondsRemaining.Value;
         public bool IsStageCountdownActive => _stageCountdownActive.Value;
         public bool IsTransitioningToMatch => _transitioningToMatch.Value;
-        public bool AllowDuplicateSkillSelections => _allowDuplicateSkillSelections;
         public string ResolvedMatchSceneName => _resolvedMatchSceneName;
         public string CurrentStagePropertyKey => TryGetCurrentStagePropertyKey(out string propertyKey) ? propertyKey : string.Empty;
 
@@ -139,7 +138,6 @@ namespace SteamMultiplayer.Network
             base.OnStartServer();
             Instance = this;
             ResolvedPropertySelectionCache.Clear();
-            ResolvedPropertySelectionCache.SetMatchScene(_resolvedMatchSceneName);
             if (InstanceFinder.ServerManager != null)
             {
                 InstanceFinder.ServerManager.OnAuthenticationResult += HandleAuthenticationResult;
@@ -331,19 +329,6 @@ namespace SteamMultiplayer.Network
                 return false;
             }
             return TryGetPlayerSkillLoadoutSelection(localPlayerId, out skillIds);
-        }
-
-        public int GetFilledSkillLoadoutSlotCount(int playerId)
-        {
-            if (!TryGetPlayerSkillLoadoutSelection(playerId, out string[] skillIds) || skillIds == null)
-                return 0;
-            int count = 0;
-            for (int i = 0; i < skillIds.Length; i++)
-            {
-                if (!string.IsNullOrWhiteSpace(skillIds[i]))
-                    count++;
-            }
-            return count;
         }
 
         public int GetSelectionCountForOption(string propertyKey, string optionId)
@@ -902,15 +887,6 @@ namespace SteamMultiplayer.Network
         private void UpdateResolvedSelectionCache()
         {
             ResolvedPropertySelectionCache.Clear();
-            ResolvedPropertySelectionCache.SetMatchScene(_resolvedMatchSceneName);
-            for (int i = 0; i < PropertyDefinitions.Count; i++)
-            {
-                string propertyKey = PropertyDefinitions[i].PropertyKey;
-                if (IsSkillLoadoutStage(propertyKey))
-                    continue;
-                if (TryGetResolvedSelectionOptionId(propertyKey, out string optionId))
-                    ResolvedPropertySelectionCache.SetSelection(propertyKey, optionId);
-            }
             for (int i = 0; i < Participants.Count; i++)
             {
                 int playerId = Participants[i].PlayerId;

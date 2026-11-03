@@ -134,16 +134,6 @@ public class PlayerProgressReporter : NetworkBehaviour
     #region Result area server entry points
 
     [Server]
-    public void EnterResultAreaServer(Vector3 worldPosition, Quaternion worldRotation)
-    {
-        if (!IsServerInitialized)
-            return;
-
-        ApplyResultAreaTeleportLocally(worldPosition, worldRotation);
-        SyncResultAreaTeleportObserversRpc(worldPosition, worldRotation);
-    }
-
-    [Server]
     public void BeginPersonalFinishPresentationServer(float dissolveDurationSeconds, int finishOrder, bool forcedByGlobalEnd)
     {
         ApplyPersonalFinishPresentationLocally(dissolveDurationSeconds, finishOrder, forcedByGlobalEnd);
@@ -232,12 +222,6 @@ public class PlayerProgressReporter : NetworkBehaviour
     #endregion
 
     #region Result area RPCs and local presentation
-
-    [ObserversRpc]
-    private void SyncResultAreaTeleportObserversRpc(Vector3 worldPosition, Quaternion worldRotation)
-    {
-        ApplyResultAreaTeleportLocally(worldPosition, worldRotation);
-    }
 
     private void ApplyResultAreaTeleportLocally(Vector3 worldPosition, Quaternion worldRotation)
     {

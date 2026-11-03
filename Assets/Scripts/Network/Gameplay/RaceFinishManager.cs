@@ -16,8 +16,6 @@ public class RaceFinishManager : NetworkBehaviour
     [SerializeField, Min(1)] private int lapsToFinish = RaceRules.DefaultLapsToFinish;
     [SerializeField, Min(0f)] private float postFirstFinishCountdownSeconds = 15f;
     [SerializeField] private bool enableVerboseLogs = true;
-    [SerializeField, Tooltip("Deprecated: result flow no longer loads a separate scene. Kept only for inspector migration.")]
-    private string resultSceneName = "RaceMapEndField";
 
     [Header("Read Only")]
     [SerializeField] private bool hasFirstFinisher;
@@ -35,9 +33,6 @@ public class RaceFinishManager : NetworkBehaviour
 
     public int LapsToFinish => Mathf.Max(1, lapsToFinish);
     public float PostFirstFinishCountdownSeconds => Mathf.Max(0f, postFirstFinishCountdownSeconds);
-    public bool HasFirstFinisher => hasFirstFinisher;
-    public int FirstFinisherClientId => firstFinisherClientId;
-    public float CountdownRemaining => countdownRemaining;
     public bool IsRaceForceEnded => isRaceForceEnded;
     public bool CanUseLocalDebugFinishButton()
     {
@@ -300,7 +295,7 @@ public class RaceFinishManager : NetworkBehaviour
             return;
         }
 
-        DebugLog($"Started in-scene result presentation flow. legacySceneField='{resultSceneName}'.");
+        DebugLog("Started in-scene result presentation flow.");
     }
 
     private string ResolvePlayerNameForClient(int clientId)

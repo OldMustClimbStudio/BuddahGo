@@ -18,20 +18,11 @@ MonoBehaviour:
   castLockSeconds: 14
   obsessionGain: 200
   antiSkillId: blackcurtain_anti
-  fullscreenMaterial: {fileID: -876546973899608171, guid: 542df48691f3a4f4c848f6dd8209b18f,
-    type: 3}
-  fullscreenMaterialName: SG_BlackCurtain
-  fullscreenShaderName: Shader Graphs/SG_BlackCurtain
+  eyeProfile: {fileID: 11400000, guid: e95ec9e98dab1904aa077a98fc453902, type: 2}
   expandDurationSeconds: 1
   holdDurationSeconds: 10
   fadeOutDurationSeconds: 2
   maxOpacity: 1
-  progressProperty: _Expansion
-  opacityProperty: _Opacity
-  elapsedTimeProperty: _ElapsedTime
-  activeProperty: _EffectActive
-  centerProperty: _Center
-  centerWorldOffset: {x: 0, y: 1, z: 0}
   vfxDurationSeconds: 0
   releaseVfxId: curtain_release
   observersFeelEventId: blackcurtain_observers

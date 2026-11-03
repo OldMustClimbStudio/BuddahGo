@@ -165,13 +165,12 @@ namespace BuddahGo.RaceMapZen.Editor
         {
             var ti = (TextureImporter)AssetImporter.GetAtPath(path);
             if (ti == null) { Debug.LogWarning("[RaceMapZen] missing texture " + path); return; }
-            ti.sRGBTexture = srgb;
-            if (isField)
-            {
-                ti.textureCompression = TextureImporterCompression.Uncompressed; ti.mipmapEnabled = false;
-                ti.wrapMode = TextureWrapMode.Clamp; ti.filterMode = FilterMode.Bilinear; ti.maxTextureSize = 2048;   // uncompressed EXR -> RGBAHalf
-            }
-            else { ti.wrapMode = TextureWrapMode.Repeat; ti.maxTextureSize = 2048; }
+            var wrap = isField ? TextureWrapMode.Clamp : TextureWrapMode.Repeat;
+            bool changed = ti.sRGBTexture != srgb || ti.wrapMode != wrap || ti.maxTextureSize != 2048
+                           || isField && (ti.textureCompression != TextureImporterCompression.Uncompressed || ti.mipmapEnabled || ti.filterMode != FilterMode.Bilinear);
+            if (!changed) return;   // the EXR and the gravel maps are large: reimport only when a setting differs
+            ti.sRGBTexture = srgb; ti.wrapMode = wrap; ti.maxTextureSize = 2048;
+            if (isField) { ti.textureCompression = TextureImporterCompression.Uncompressed; ti.mipmapEnabled = false; ti.filterMode = FilterMode.Bilinear; }   // uncompressed EXR -> RGBAHalf
             ti.SaveAndReimport();
         }
 

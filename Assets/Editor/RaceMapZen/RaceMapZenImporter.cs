@@ -1,6 +1,7 @@
 // Builds the RaceMap zen landscape from the Blender export (Assets/Sources/RaceMapZen):
 //   Models/RaceMapZen_Landscape.fbx  one object per unique mesh ("ZX_<mesh>") at the origin
-//   Data/RaceMapZen_Layout.json      every placement as a Unity world matrix, its group and its Blender material names
+//   Data/RaceMapZen_Layout.json      every placement as a Unity world matrix and its group (its per-instance Blender
+//                                    material names are not read: each sub-mesh's material comes from the FBX)
 // Meshes that already exist as game-ready menu-environment library prefabs are placed from there ("lib:").
 // Blender material names are mapped to the menu-environment URP materials; the few zen-only materials are created
 // under Materials/. Rerunning rebuilds the RaceMapZen_Landscape root in the open scene and the prefabs.
@@ -26,7 +27,7 @@ namespace BuddahGo.RaceMapZen.Editor
         public const string SceneRootName = "RaceMapZen_Landscape";
 
         [System.Serializable] class Layout { public int version; public List<Instance> instances; }
-        [System.Serializable] class Instance { public string name; public string group; public string src; public float[] m; public string[] mats; }
+        [System.Serializable] class Instance { public string name; public string group; public string src; public float[] m; }
 
         // Blender material name -> project material (menu library name, or a RaceMapZen material created below)
         static readonly Dictionary<string, string> Explicit = new Dictionary<string, string>
@@ -74,7 +75,7 @@ namespace BuddahGo.RaceMapZen.Editor
                 {
                     prefab = it.src.StartsWith("lib:")
                         ? AssetDatabase.LoadAssetAtPath<GameObject>(LibDir + "/" + it.src.Substring(4) + ".prefab")
-                        : BuildMeshPrefab(it.src.Substring(4), fbxChildren, it.mats, unmapped);
+                        : BuildMeshPrefab(it.src.Substring(4), fbxChildren, unmapped);
                     prefabs[it.src] = prefab;
                 }
                 if (prefab == null) { missing++; continue; }
@@ -200,7 +201,7 @@ namespace BuddahGo.RaceMapZen.Editor
             return d;
         }
 
-        static GameObject BuildMeshPrefab(string objName, Dictionary<string, Transform> fbx, string[] blenderMats, HashSet<string> unmapped)
+        static GameObject BuildMeshPrefab(string objName, Dictionary<string, Transform> fbx, HashSet<string> unmapped)
         {
             if (!fbx.TryGetValue(objName, out var src)) { Debug.LogWarning("[RaceMapZen] mesh not in FBX: " + objName); return null; }
             var mf = src.GetComponent<MeshFilter>(); var mr = src.GetComponent<MeshRenderer>();

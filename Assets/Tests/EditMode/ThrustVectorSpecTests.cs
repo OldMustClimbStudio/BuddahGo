@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using BuddahGo.AI;
+using BuddahGo.Tests;
 using NewBuddah.PredictionV2.Core;
 using NUnit.Framework;
 using UnityEngine;
@@ -141,30 +142,34 @@ public class ThrustVectorSpecTests
         var g=ThrustVectorPlanner.Guide(f.lateralAcceleration,25,f.speed,f.pace,2,0,ThrustVectorPlanner.SpeedMode.Accel,1,false);
         Assert.That(g.Mode,Is.EqualTo(ThrustVectorPlanner.SpeedMode.Brake));Assert.That(g.Theta*Mathf.Rad2Deg,Is.GreaterThanOrEqualTo(119.9999f));
     }
-    [Test] public void F02SideSwitchPassesTangentWithoutTail()
+    [Test] public void F02F03HeadingErrorNeverWrapsAndTheAttitudeKeySettles()
     {
-        var f=JsonUtility.FromJson<HeadingFixture>(File.ReadAllText(FixturePath("heading-side-change.json")));
-        var state=new MotionState{Yaw=f.carErrorDegrees*Mathf.Deg2Rad,YawRate=f.yawRate};float car=f.carErrorDegrees,offset=0;int key=0;bool crossed=false;
-        for(int i=0;i<360;i++) {
-            float phi=ThrustVectorPlanner.HeadingError(ref car,ref offset,f.targetErrorDegrees,false,out bool reanchored,out _);
-            Assert.That(reanchored,Is.False);key=ThrustVectorPlanner.AttitudeKey(phi,state.YawRate,3,1.5f*Mathf.Deg2Rad,.5f*Mathf.Deg2Rad,key);
-            float old=state.Yaw;BuddahMotionModel.Step(ref state,Parameters(),key,Dt);car+=(state.Yaw-old)*Mathf.Rad2Deg;
-            Assert.That(state.Yaw*Mathf.Rad2Deg,Is.InRange(-180f,180f));crossed|=state.Yaw>=0;
-        }
-        Assert.That(crossed,Is.True);Assert.That(state.Yaw*Mathf.Rad2Deg,Is.EqualTo(f.targetErrorDegrees).Within(2));
-    }
-    [Test] public void F03ExternalThreeHundredTurnsForwardSixty()
-    {
-        float car=300,offset=0;float phi=ThrustVectorPlanner.HeadingError(ref car,ref offset,0,true,out bool reanchored,out _);
-        Assert.That(reanchored,Is.True);Assert.That(phi*Mathf.Rad2Deg,Is.EqualTo(60).Within(.001f));
-        var state=new MotionState{Yaw=300*Mathf.Deg2Rad};int key=0;
-        for(int i=0;i<240;i++) {
-            phi=ThrustVectorPlanner.HeadingError(ref car,ref offset,0,false,out _,out _);
-            key=ThrustVectorPlanner.AttitudeKey(phi,state.YawRate,3,1.5f*Mathf.Deg2Rad,.5f*Mathf.Deg2Rad,key);
-            float old=state.Yaw;BuddahMotionModel.Step(ref state,Parameters(),key,Dt);car+=(state.Yaw-old)*Mathf.Rad2Deg;
-            Assert.That(state.Yaw*Mathf.Rad2Deg,Is.GreaterThanOrEqualTo(299.999f));
-        }
-        Assert.That(state.Yaw*Mathf.Rad2Deg,Is.EqualTo(360).Within(2));
+        EveryCase.Parts(
+            ("F02 a side switch passes the tangent without a tail", () =>
+            {
+                var f=JsonUtility.FromJson<HeadingFixture>(File.ReadAllText(FixturePath("heading-side-change.json")));
+                var state=new MotionState{Yaw=f.carErrorDegrees*Mathf.Deg2Rad,YawRate=f.yawRate};float car=f.carErrorDegrees,offset=0;int key=0;bool crossed=false;
+                for(int i=0;i<360;i++) {
+                    float phi=ThrustVectorPlanner.HeadingError(ref car,ref offset,f.targetErrorDegrees,false,out bool reanchored,out _);
+                    Assert.That(reanchored,Is.False);key=ThrustVectorPlanner.AttitudeKey(phi,state.YawRate,3,1.5f*Mathf.Deg2Rad,.5f*Mathf.Deg2Rad,key);
+                    float old=state.Yaw;BuddahMotionModel.Step(ref state,Parameters(),key,Dt);car+=(state.Yaw-old)*Mathf.Rad2Deg;
+                    Assert.That(state.Yaw*Mathf.Rad2Deg,Is.InRange(-180f,180f));crossed|=state.Yaw>=0;
+                }
+                Assert.That(crossed,Is.True);Assert.That(state.Yaw*Mathf.Rad2Deg,Is.EqualTo(f.targetErrorDegrees).Within(2));
+            }),
+            ("F03 an external 300 degrees turns forward 60", () =>
+            {
+                float car=300,offset=0;float phi=ThrustVectorPlanner.HeadingError(ref car,ref offset,0,true,out bool reanchored,out _);
+                Assert.That(reanchored,Is.True);Assert.That(phi*Mathf.Rad2Deg,Is.EqualTo(60).Within(.001f));
+                var state=new MotionState{Yaw=300*Mathf.Deg2Rad};int key=0;
+                for(int i=0;i<240;i++) {
+                    phi=ThrustVectorPlanner.HeadingError(ref car,ref offset,0,false,out _,out _);
+                    key=ThrustVectorPlanner.AttitudeKey(phi,state.YawRate,3,1.5f*Mathf.Deg2Rad,.5f*Mathf.Deg2Rad,key);
+                    float old=state.Yaw;BuddahMotionModel.Step(ref state,Parameters(),key,Dt);car+=(state.Yaw-old)*Mathf.Rad2Deg;
+                    Assert.That(state.Yaw*Mathf.Rad2Deg,Is.GreaterThanOrEqualTo(299.999f));
+                }
+                Assert.That(state.Yaw*Mathf.Rad2Deg,Is.EqualTo(360).Within(2));
+            }));
     }
     [Test] public void F04RecordedTargetSeamRemainsContinuous()
     {
@@ -185,27 +190,30 @@ public class ThrustVectorSpecTests
         public float Length=>10000;
         public LineProjection Project(Vector3 p,int nearSegment,int searchSegments=12)=>new LineProjection(new Vector3(0,0,p.z),Vector3.forward,p.z,p.x,0,80);
     }
-    [TestCase(1f)] [TestCase(-1f)] public void F05StraightOffsetSettlesInEightSeconds(float sign)
+    [Test] public void F05StraightOffsetSettlesInEightSeconds()
     {
-        var p=Design();var line=new StraightLine();var planner=new ThrustVectorPlanner();var parameters=Parameters();parameters.Stats.FinalSteeringSign=sign;
-        var state=new MotionState{Position=new Vector3(10,0,0),Velocity=Vector3.forward*50};var result=new StraightResult{steeringSign=sign,minimumError=10};
-        int key=0;var csv=new StringBuilder(TraceHeader);PlanObservation previous=default;
-        try {
-            for(int tick=0;tick<480;tick++) {
-                float before=state.Position.x;key=planner.Plan(state,parameters,line,p,Dt,key);var o=planner.LastObservation;
-                string violation=Invariants(o,previous,tick>0);if(violation!=null)result.invariantViolations++;
-                if(tick==0){result.firstTheta=o.thrustAngle*Mathf.Rad2Deg;result.firstKey=key;result.firstTowardLine=o.thrustAngle<0;}
-                BuddahMotionModel.Step(ref state,parameters,key,Dt);float increase=state.Position.x-before;
-                result.maximumIncrease=Mathf.Max(result.maximumIncrease,increase);if(increase>0)result.increasingTicks++;
-                result.minimumError=Mathf.Min(result.minimumError,state.Position.x);result.ticks=tick+1;
-                Trace(csv,tick,state,o,state.Position.x,state.Yaw*Mathf.Rad2Deg,state.Position.z,0,0,violation);previous=o;
-            }
-            result.finalError=state.Position.x;result.finalLateralSpeed=state.Velocity.x;result.monotonic=result.maximumIncrease<.02f; // bang-bang attitude chatter may creep by <1.2 m/s
-            result.overshootWithinTwo=result.minimumError>=-2;result.settled=Mathf.Abs(result.finalLateralSpeed)<.5f;
-            string name=FormattableString.Invariant($"design-straight-sign-{sign:F0}");Save(name+".csv",csv.ToString());Save(name+".json",JsonUtility.ToJson(result,true));TestContext.WriteLine(JsonUtility.ToJson(result));
-            CollectionAssert.AreEqual(new[]{true,true,true,true},new[]{result.firstTowardLine,result.monotonic,result.overshootWithinTwo,result.settled},
-                $"toward/monotonic/overshoot<=2/abs(edot)<.5; final e={result.finalError:R}, edot={result.finalLateralSpeed:R}, increasing ticks={result.increasingTicks}");
-        }finally{UnityEngine.Object.DestroyImmediate(p);}
+        EveryCase.Check(new[]{1f,-1f}, sign =>
+        {
+            var p=Design();var line=new StraightLine();var planner=new ThrustVectorPlanner();var parameters=Parameters();parameters.Stats.FinalSteeringSign=sign;
+            var state=new MotionState{Position=new Vector3(10,0,0),Velocity=Vector3.forward*50};var result=new StraightResult{steeringSign=sign,minimumError=10};
+            int key=0;var csv=new StringBuilder(TraceHeader);PlanObservation previous=default;
+            try {
+                for(int tick=0;tick<480;tick++) {
+                    float before=state.Position.x;key=planner.Plan(state,parameters,line,p,Dt,key);var o=planner.LastObservation;
+                    string violation=Invariants(o,previous,tick>0);if(violation!=null)result.invariantViolations++;
+                    if(tick==0){result.firstTheta=o.thrustAngle*Mathf.Rad2Deg;result.firstKey=key;result.firstTowardLine=o.thrustAngle<0;}
+                    BuddahMotionModel.Step(ref state,parameters,key,Dt);float increase=state.Position.x-before;
+                    result.maximumIncrease=Mathf.Max(result.maximumIncrease,increase);if(increase>0)result.increasingTicks++;
+                    result.minimumError=Mathf.Min(result.minimumError,state.Position.x);result.ticks=tick+1;
+                    Trace(csv,tick,state,o,state.Position.x,state.Yaw*Mathf.Rad2Deg,state.Position.z,0,0,violation);previous=o;
+                }
+                result.finalError=state.Position.x;result.finalLateralSpeed=state.Velocity.x;result.monotonic=result.maximumIncrease<.02f; // bang-bang attitude chatter may creep by <1.2 m/s
+                result.overshootWithinTwo=result.minimumError>=-2;result.settled=Mathf.Abs(result.finalLateralSpeed)<.5f;
+                string name=FormattableString.Invariant($"design-straight-sign-{sign:F0}");Save(name+".csv",csv.ToString());Save(name+".json",JsonUtility.ToJson(result,true));TestContext.WriteLine(JsonUtility.ToJson(result));
+                CollectionAssert.AreEqual(new[]{true,true,true,true},new[]{result.firstTowardLine,result.monotonic,result.overshootWithinTwo,result.settled},
+                    $"toward/monotonic/overshoot<=2/abs(edot)<.5; final e={result.finalError:R}, edot={result.finalLateralSpeed:R}, increasing ticks={result.increasingTicks}");
+            }finally{UnityEngine.Object.DestroyImmediate(p);}
+        }, sign => "sign="+sign);
     }
     static SplineRacingLine Circle(float radius,bool rightTurn,int count=300)
     {
@@ -213,27 +221,30 @@ public class ThrustVectorSpecTests
         for(int i=0;i<count;i++){float a=(rightTurn?1:-1)*Mathf.PI*2*i/count;points[i]=new Vector3(radius*Mathf.Sin(a),0,radius*Mathf.Cos(a));}
         return new SplineRacingLine(points,Mathf.PI*2*radius);
     }
-    [TestCase(true)] [TestCase(false)] public void F09CircleKeepsLineAndTurnsTowardCentre(bool rightTurn)
+    [Test] public void F09CircleKeepsLineAndTurnsTowardCentre()
     {
-        var p=Design();var line=Circle(150,rightTurn);var planner=new ThrustVectorPlanner();var parameters=Parameters();
-        var start=line.SampleDistance(0);float speed=Mathf.Sqrt(25f*p.ThrustPaceFactor*150f);
-        // Steady-state drift attitude: a constant-thrust vehicle on a circle at pace holds its heading
-        // asin(v^2 k / a) away from its velocity. A tangent-aligned heading is not a feasible start.
-        float drift=Mathf.Asin(speed*speed/150f/25f)*(rightTurn?1:-1);
-        var state=new MotionState{Position=start.Point,Velocity=start.Tangent*speed,Yaw=Mathf.Atan2(start.Tangent.x,start.Tangent.z)+drift};
-        int key=0,near=0;float maxEarly=0,maxLate=0,firstTheta=0;var csv=new StringBuilder(TraceHeader);PlanObservation previous=default;
-        try {
-            for(int tick=0;tick<300;tick++) {
-                key=planner.Plan(state,parameters,line,p,Dt,key);var o=planner.LastObservation;if(tick==0)firstTheta=o.chosenThetaDegrees;
-                BuddahMotionModel.Step(ref state,parameters,key,Dt);var pr=line.Project(state.Position,near,40);near=pr.Segment;
-                float e=Mathf.Abs(pr.Lateral);if(tick<180)maxEarly=Mathf.Max(maxEarly,e);else maxLate=Mathf.Max(maxLate,e);
-                Trace(csv,tick,state,o,pr.Lateral,0,pr.Distance,0,near,null);previous=o;
-            }
-            Save(FormattableString.Invariant($"design-circle-{(rightTurn?"right":"left")}.csv"),csv.ToString());
-            TestContext.WriteLine($"circle right={rightTurn} firstTheta={firstTheta:R} maxEarly={maxEarly:R} maxLate={maxLate:R}");
-            Assert.That(rightTurn ? firstTheta>0 : firstTheta<0,Is.True,"first thrust angle must point toward the centre; theta="+firstTheta);
-            Assert.That(maxEarly,Is.LessThan(6f),"transient lateral error");Assert.That(maxLate,Is.LessThan(4f),"settled lateral error");
-        }finally{UnityEngine.Object.DestroyImmediate(p);}
+        EveryCase.Check(new[]{true,false}, rightTurn =>
+        {
+            var p=Design();var line=Circle(150,rightTurn);var planner=new ThrustVectorPlanner();var parameters=Parameters();
+            var start=line.SampleDistance(0);float speed=Mathf.Sqrt(25f*p.ThrustPaceFactor*150f);
+            // Steady-state drift attitude: a constant-thrust vehicle on a circle at pace holds its heading
+            // asin(v^2 k / a) away from its velocity. A tangent-aligned heading is not a feasible start.
+            float drift=Mathf.Asin(speed*speed/150f/25f)*(rightTurn?1:-1);
+            var state=new MotionState{Position=start.Point,Velocity=start.Tangent*speed,Yaw=Mathf.Atan2(start.Tangent.x,start.Tangent.z)+drift};
+            int key=0,near=0;float maxEarly=0,maxLate=0,firstTheta=0;var csv=new StringBuilder(TraceHeader);PlanObservation previous=default;
+            try {
+                for(int tick=0;tick<300;tick++) {
+                    key=planner.Plan(state,parameters,line,p,Dt,key);var o=planner.LastObservation;if(tick==0)firstTheta=o.chosenThetaDegrees;
+                    BuddahMotionModel.Step(ref state,parameters,key,Dt);var pr=line.Project(state.Position,near,40);near=pr.Segment;
+                    float e=Mathf.Abs(pr.Lateral);if(tick<180)maxEarly=Mathf.Max(maxEarly,e);else maxLate=Mathf.Max(maxLate,e);
+                    Trace(csv,tick,state,o,pr.Lateral,0,pr.Distance,0,near,null);previous=o;
+                }
+                Save(FormattableString.Invariant($"design-circle-{(rightTurn?"right":"left")}.csv"),csv.ToString());
+                TestContext.WriteLine($"circle right={rightTurn} firstTheta={firstTheta:R} maxEarly={maxEarly:R} maxLate={maxLate:R}");
+                Assert.That(rightTurn ? firstTheta>0 : firstTheta<0,Is.True,"first thrust angle must point toward the centre; theta="+firstTheta);
+                Assert.That(maxEarly,Is.LessThan(6f),"transient lateral error");Assert.That(maxLate,Is.LessThan(4f),"settled lateral error");
+            }finally{UnityEngine.Object.DestroyImmediate(p);}
+        }, rightTurn => "rightTurn="+rightTurn);
     }
     static Run _wallRun;
     static Run WallLap()

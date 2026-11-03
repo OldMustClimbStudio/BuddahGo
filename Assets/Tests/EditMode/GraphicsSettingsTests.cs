@@ -57,79 +57,117 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void TablesDefineACompleteCatalog()
+        public void TablesMatchTheProjectsQualityAssets()
         {
-            var catalog = TableCatalog();
-            Assert.That(catalog.Errors, Is.Empty, string.Join("\n", catalog.Errors));
-            Assert.That(catalog.Presets.Select(p => p.Id), Is.EqualTo(new[] { "low", "medium", "high" }));
-            Assert.That(catalog.DefaultPreset.Id, Is.EqualTo("high"));
-            Assert.That(catalog.Options.Select(o => o.Id), Is.EquivalentTo(new[]
-            {
-                "render_scale", "upscaler", "anti_aliasing", "sharpening", "shadow_quality", "texture_quality",
-                "anisotropic_filtering", "reflections", "ambient_occlusion", "vfx_quality", "frame_rate_cap",
-                "vsync", "window_mode", "resolution",
-            }));
-            var texts = new HashSet<string>(Database().localizedTexts.Select(t => t.key));
-            foreach (var option in catalog.Options)
-            {
-                Assert.That(texts, Does.Contain(option.LabelKey), option.Id);
-                foreach (var level in option.Levels)
-                    Assert.That(texts, Does.Contain(level.LabelKey), option.Id + "/" + level.Id);
-                foreach (var preset in catalog.Presets)
-                    Assert.That(option.Find(preset.DefaultLevel(option.Id)), Is.Not.Null, preset.Id + " default for " + option.Id);
-            }
-            foreach (var preset in catalog.Presets)
-            {
-                Assert.That(texts, Does.Contain(preset.LabelKey));
-                Assert.That(QualitySettings.names, Does.Contain(preset.QualityLevel));
-            }
-            Assert.That(texts, Does.Contain(GraphicsSettingsCatalog.CustomLabelKey));
+            EveryCase.Parts(
+                ("the tables define a complete catalog", () =>
+                {
+                    var catalog = TableCatalog();
+                    Assert.That(catalog.Errors, Is.Empty, string.Join("\n", catalog.Errors));
+                    Assert.That(catalog.Presets.Select(p => p.Id), Is.EqualTo(new[] { "low", "medium", "high" }));
+                    Assert.That(catalog.DefaultPreset.Id, Is.EqualTo("high"));
+                    Assert.That(catalog.Options.Select(o => o.Id), Is.EquivalentTo(new[]
+                    {
+                        "render_scale", "upscaler", "anti_aliasing", "sharpening", "shadow_quality", "texture_quality",
+                        "anisotropic_filtering", "reflections", "ambient_occlusion", "vfx_quality", "frame_rate_cap",
+                        "vsync", "window_mode", "resolution",
+                    }));
+                    var texts = new HashSet<string>(Database().localizedTexts.Select(t => t.key));
+                    foreach (var option in catalog.Options)
+                    {
+                        Assert.That(texts, Does.Contain(option.LabelKey), option.Id);
+                        foreach (var level in option.Levels)
+                            Assert.That(texts, Does.Contain(level.LabelKey), option.Id + "/" + level.Id);
+                        foreach (var preset in catalog.Presets)
+                            Assert.That(option.Find(preset.DefaultLevel(option.Id)), Is.Not.Null, preset.Id + " default for " + option.Id);
+                    }
+                    foreach (var preset in catalog.Presets)
+                    {
+                        Assert.That(texts, Does.Contain(preset.LabelKey));
+                        Assert.That(QualitySettings.names, Does.Contain(preset.QualityLevel));
+                    }
+                    Assert.That(texts, Does.Contain(GraphicsSettingsCatalog.CustomLabelKey));
+                }),
+                ("each preset default reproduces its quality level", () =>
+                {
+                    // The defaults are today's values, so the default preset of each level renders with the real asset (no clone).
+                    var catalog = TableCatalog();
+                    foreach (var preset in catalog.Presets)
+                    {
+                        var model = new GraphicsSettingsModel(catalog);
+                        model.SetPreset(preset.Id);
+                        var asset = QualityPipeline(preset.QualityLevel);
+                        Assert.That(GraphicsPipelineMapper.DiffersFrom(asset, model.Resolve()), Is.False, preset.Id + " vs " + asset.name);
+                    }
+                }),
+                ("occlusion needs its feature and reflections are always available", () =>
+                {
+                    var catalog = TableCatalog();
+                    var low = catalog.FindPreset("low");
+                    var high = catalog.FindPreset("high");
+                    var reflectionsHigh = catalog.FindOption("reflections").Find("high").Values;
+                    var aoHigh = catalog.FindOption("ambient_occlusion").Find("high").Values;
+                    var aoOff = catalog.FindOption("ambient_occlusion").Find("off").Values;
+                    Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "ambient_occlusion", aoHigh), Is.False, "Performant's renderer has no SSAO");
+                    Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "ambient_occlusion", aoOff), Is.True);
+                    Assert.That(GraphicsSettingsApplier.IsLevelAvailable(high, "ambient_occlusion", aoHigh), Is.True);
+                    Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "reflections", reflectionsHigh), Is.True, "planar reflections need no renderer feature");
+                }));
         }
 
         [Test]
-        public void EachPresetDefaultReproducesItsQualityLevel()
+        public void OverridesMakeTheChoiceCustomAndRevertRestoresTheStartupChoice()
         {
-            // The defaults are today's values, so the default preset of each level renders with the real asset (no clone).
-            var catalog = TableCatalog();
-            foreach (var preset in catalog.Presets)
-            {
-                var model = new GraphicsSettingsModel(catalog);
-                model.SetPreset(preset.Id);
-                var asset = QualityPipeline(preset.QualityLevel);
-                Assert.That(GraphicsPipelineMapper.DiffersFrom(asset, model.Resolve()), Is.False, preset.Id + " vs " + asset.name);
-            }
-        }
+            EveryCase.Parts(
+                ("overrides make the choice custom until they match the preset", () =>
+                {
+                    var model = new GraphicsSettingsModel(SmallCatalog());
+                    Assert.That(model.PresetId, Is.EqualTo("high"));
+                    Assert.That(model.Get("anti_aliasing"), Is.EqualTo("msaa8"));
+                    Assert.That(model.IsCustom, Is.False);
+                    Assert.That(model.PresetLabelKey, Is.EqualTo("p.high"));
 
-        [Test]
-        public void OverridesMakeTheChoiceCustomUntilTheyMatchThePreset()
-        {
-            var model = new GraphicsSettingsModel(SmallCatalog());
-            Assert.That(model.PresetId, Is.EqualTo("high"));
-            Assert.That(model.Get("anti_aliasing"), Is.EqualTo("msaa8"));
-            Assert.That(model.IsCustom, Is.False);
-            Assert.That(model.PresetLabelKey, Is.EqualTo("p.high"));
+                    int changes = 0;
+                    model.Changed += () => changes++;
+                    Assert.That(model.Set("anti_aliasing", "taa"), Is.True);
+                    Assert.That(model.IsCustom, Is.True);
+                    Assert.That(model.IsOverridden("anti_aliasing"), Is.True);
+                    Assert.That(model.PresetLabelKey, Is.EqualTo(GraphicsSettingsCatalog.CustomLabelKey));
+                    Assert.That(model.Set("anti_aliasing", "msaa8"), Is.True, "back to the preset default");
+                    Assert.That(model.IsCustom, Is.False);
+                    Assert.That(changes, Is.EqualTo(2));
 
-            int changes = 0;
-            model.Changed += () => changes++;
-            Assert.That(model.Set("anti_aliasing", "taa"), Is.True);
-            Assert.That(model.IsCustom, Is.True);
-            Assert.That(model.IsOverridden("anti_aliasing"), Is.True);
-            Assert.That(model.PresetLabelKey, Is.EqualTo(GraphicsSettingsCatalog.CustomLabelKey));
-            Assert.That(model.Set("anti_aliasing", "msaa8"), Is.True, "back to the preset default");
-            Assert.That(model.IsCustom, Is.False);
-            Assert.That(changes, Is.EqualTo(2));
+                    Assert.That(model.Set("anti_aliasing", "smaa"), Is.False, "unknown level");
+                    Assert.That(model.Set("bloom", "high"), Is.False, "unknown option");
+                    Assert.That(model.SetPreset("ultra"), Is.False, "unknown preset");
 
-            Assert.That(model.Set("anti_aliasing", "smaa"), Is.False, "unknown level");
-            Assert.That(model.Set("bloom", "high"), Is.False, "unknown option");
-            Assert.That(model.SetPreset("ultra"), Is.False, "unknown preset");
-
-            model.Set("frame_rate_cap", "fps60");
-            Assert.That(model.SetPreset("low"), Is.True);
-            Assert.That(model.IsCustom, Is.False, "a preset drops overrides");
-            Assert.That(model.Get("anti_aliasing"), Is.EqualTo("fxaa"));
-            model.Set("frame_rate_cap", "fps60");
-            model.ResetToPreset();
-            Assert.That(model.Get("frame_rate_cap"), Is.EqualTo("fps120"));
+                    model.Set("frame_rate_cap", "fps60");
+                    Assert.That(model.SetPreset("low"), Is.True);
+                    Assert.That(model.IsCustom, Is.False, "a preset drops overrides");
+                    Assert.That(model.Get("anti_aliasing"), Is.EqualTo("fxaa"));
+                    model.Set("frame_rate_cap", "fps60");
+                    model.ResetToPreset();
+                    Assert.That(model.Get("frame_rate_cap"), Is.EqualTo("fps120"));
+                }),
+                ("revert without a saved choice returns to the startup choice", () =>
+                {
+                    var store = new MemoryStore();
+                    try
+                    {
+                        GraphicsSettingsService.Initialize(SmallCatalog(), store, null, apply: false);
+                        string startup = GraphicsSettingsService.PresetId;
+                        GraphicsSettingsService.SetPreset(startup == "low" ? "high" : "low");
+                        GraphicsSettingsService.Set("frame_rate_cap", "fps60");
+                        GraphicsSettingsService.Revert();
+                        Assert.That(GraphicsSettingsService.PresetId, Is.EqualTo(startup));
+                        Assert.That(GraphicsSettingsService.IsCustom, Is.False);
+                        Assert.That(store.Json, Is.Empty, "Revert does not save");
+                    }
+                    finally
+                    {
+                        GraphicsSettingsService.Initialize(null, null, null, apply: false);
+                    }
+                }));
         }
 
         [Test]
@@ -340,104 +378,70 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void VSyncLevelSetsVSyncAndTheCapOnlyAppliesWithoutIt()
+        public void VSyncCapAndReflectionLevelsApplyAndRestore()
         {
-            var catalog = TableCatalog();
-            int startLevel = QualitySettings.GetQualityLevel();
-            var before = QualityLevelValues();
-            int frameRate = Application.targetFrameRate;
-            var vfx = VfxQuality.Current;
-            var applier = new GraphicsSettingsApplier();
-            try
-            {
-                var model = new GraphicsSettingsModel(catalog);
-                model.SetPreset("high");
-                Application.targetFrameRate = 30;
-                applier.Apply(model);
-                Assert.That(QualitySettings.vSyncCount, Is.EqualTo(1));
-                Assert.That(Application.targetFrameRate, Is.EqualTo(30), "with VSync the cap is left alone");
+            EveryCase.Parts(
+                ("the VSync level sets VSync and the cap only applies without it", () =>
+                {
+                    var catalog = TableCatalog();
+                    int startLevel = QualitySettings.GetQualityLevel();
+                    var before = QualityLevelValues();
+                    int frameRate = Application.targetFrameRate;
+                    var vfx = VfxQuality.Current;
+                    var applier = new GraphicsSettingsApplier();
+                    try
+                    {
+                        var model = new GraphicsSettingsModel(catalog);
+                        model.SetPreset("high");
+                        Application.targetFrameRate = 30;
+                        applier.Apply(model);
+                        Assert.That(QualitySettings.vSyncCount, Is.EqualTo(1));
+                        Assert.That(Application.targetFrameRate, Is.EqualTo(30), "with VSync the cap is left alone");
 
-                model.Set("vsync", "off");
-                model.Set("frame_rate_cap", "fps60");
-                applier.Apply(model);
-                Assert.That(QualitySettings.vSyncCount, Is.EqualTo(0));
-                Assert.That(Application.targetFrameRate, Is.EqualTo(60));
-            }
-            finally
-            {
-                applier.RestoreOriginals();
-                Application.targetFrameRate = frameRate;
-                VfxQuality.Set(vfx);
-            }
-            Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(startLevel));
-            Assert.That(QualityLevelValues(), Is.EqualTo(before));
-        }
-
-        [Test]
-        public void RevertWithoutASavedChoiceReturnsToTheStartupChoice()
-        {
-            var store = new MemoryStore();
-            try
-            {
-                GraphicsSettingsService.Initialize(SmallCatalog(), store, null, apply: false);
-                string startup = GraphicsSettingsService.PresetId;
-                GraphicsSettingsService.SetPreset(startup == "low" ? "high" : "low");
-                GraphicsSettingsService.Set("frame_rate_cap", "fps60");
-                GraphicsSettingsService.Revert();
-                Assert.That(GraphicsSettingsService.PresetId, Is.EqualTo(startup));
-                Assert.That(GraphicsSettingsService.IsCustom, Is.False);
-                Assert.That(store.Json, Is.Empty, "Revert does not save");
-            }
-            finally
-            {
-                GraphicsSettingsService.Initialize(null, null, null, apply: false);
-            }
-        }
-
-        [Test]
-        public void OcclusionNeedsItsFeatureAndReflectionsAreAlwaysAvailable()
-        {
-            var catalog = TableCatalog();
-            var low = catalog.FindPreset("low");
-            var high = catalog.FindPreset("high");
-            var reflectionsHigh = catalog.FindOption("reflections").Find("high").Values;
-            var aoHigh = catalog.FindOption("ambient_occlusion").Find("high").Values;
-            var aoOff = catalog.FindOption("ambient_occlusion").Find("off").Values;
-            Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "ambient_occlusion", aoHigh), Is.False, "Performant's renderer has no SSAO");
-            Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "ambient_occlusion", aoOff), Is.True);
-            Assert.That(GraphicsSettingsApplier.IsLevelAvailable(high, "ambient_occlusion", aoHigh), Is.True);
-            Assert.That(GraphicsSettingsApplier.IsLevelAvailable(low, "reflections", reflectionsHigh), Is.True, "planar reflections need no renderer feature");
-        }
-
-        [Test]
-        public void ReflectionLevelsSetThePlanarReflectionScale()
-        {
-            var catalog = TableCatalog();
-            Assert.That(catalog.FindOption("reflections").Levels.Select(l => l.Values.planarScale), Is.EqualTo(new[] { 0f, 0.5f, 1f }));
-            int startLevel = QualitySettings.GetQualityLevel();
-            var before = QualityLevelValues();
-            int frameRate = Application.targetFrameRate;
-            var vfx = VfxQuality.Current;
-            var applier = new GraphicsSettingsApplier();
-            try
-            {
-                var model = new GraphicsSettingsModel(catalog);
-                model.SetPreset("medium");
-                applier.Apply(model);
-                Assert.That(PlanarReflection.SettingsScale, Is.EqualTo(0.5f));
-                model.Set("reflections", "off");
-                applier.Apply(model);
-                Assert.That(PlanarReflection.SettingsScale, Is.EqualTo(0f));
-            }
-            finally
-            {
-                applier.RestoreOriginals();
-                Application.targetFrameRate = frameRate;
-                VfxQuality.Set(vfx);
-            }
-            Assert.That(PlanarReflection.SettingsScale, Is.Null, "restore hands the scale back to the components");
-            Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(startLevel));
-            Assert.That(QualityLevelValues(), Is.EqualTo(before));
+                        model.Set("vsync", "off");
+                        model.Set("frame_rate_cap", "fps60");
+                        applier.Apply(model);
+                        Assert.That(QualitySettings.vSyncCount, Is.EqualTo(0));
+                        Assert.That(Application.targetFrameRate, Is.EqualTo(60));
+                    }
+                    finally
+                    {
+                        applier.RestoreOriginals();
+                        Application.targetFrameRate = frameRate;
+                        VfxQuality.Set(vfx);
+                    }
+                    Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(startLevel));
+                    Assert.That(QualityLevelValues(), Is.EqualTo(before));
+                }),
+                ("reflection levels set the planar reflection scale", () =>
+                {
+                    var catalog = TableCatalog();
+                    Assert.That(catalog.FindOption("reflections").Levels.Select(l => l.Values.planarScale), Is.EqualTo(new[] { 0f, 0.5f, 1f }));
+                    int startLevel = QualitySettings.GetQualityLevel();
+                    var before = QualityLevelValues();
+                    int frameRate = Application.targetFrameRate;
+                    var vfx = VfxQuality.Current;
+                    var applier = new GraphicsSettingsApplier();
+                    try
+                    {
+                        var model = new GraphicsSettingsModel(catalog);
+                        model.SetPreset("medium");
+                        applier.Apply(model);
+                        Assert.That(PlanarReflection.SettingsScale, Is.EqualTo(0.5f));
+                        model.Set("reflections", "off");
+                        applier.Apply(model);
+                        Assert.That(PlanarReflection.SettingsScale, Is.EqualTo(0f));
+                    }
+                    finally
+                    {
+                        applier.RestoreOriginals();
+                        Application.targetFrameRate = frameRate;
+                        VfxQuality.Set(vfx);
+                    }
+                    Assert.That(PlanarReflection.SettingsScale, Is.Null, "restore hands the scale back to the components");
+                    Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(startLevel));
+                    Assert.That(QualityLevelValues(), Is.EqualTo(before));
+                }));
         }
 
         [Test]

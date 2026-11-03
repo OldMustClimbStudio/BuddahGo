@@ -26,59 +26,88 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void ObservedFinalCrossingIsNotOverwrittenByLateOrDuplicateFinish()
+        public void CrossingsAndFinishNeverRegress()
         {
-            var timing = new RaceTiming();
-            timing.Begin(100d);
-            timing.ObserveCompletedLaps(Racer, 1, 110d);
-            timing.ObserveCompletedLaps(Racer, 2, 125d);
-            timing.Finish(Racer, 2, 126d);
-            timing.Finish(Racer, 2, 200d);
-            timing.ObserveCompletedLaps(Racer, 3, 250d);
-            timing.TryGetResult(Racer, out var result);
-            Assert.That(result.Finished, Is.True);
-            Assert.That(result.TotalSeconds, Is.EqualTo(25d));
-            Assert.That(result.LapSeconds, Is.EqualTo(new[] { 10d, 15d }));
+            EveryCase.Parts(
+                ("an observed final crossing is not overwritten by a late or duplicate finish", () =>
+                {
+                    var timing = new RaceTiming();
+                    timing.Begin(100d);
+                    timing.ObserveCompletedLaps(Racer, 1, 110d);
+                    timing.ObserveCompletedLaps(Racer, 2, 125d);
+                    timing.Finish(Racer, 2, 126d);
+                    timing.Finish(Racer, 2, 200d);
+                    timing.ObserveCompletedLaps(Racer, 3, 250d);
+                    timing.TryGetResult(Racer, out var result);
+                    Assert.That(result.Finished, Is.True);
+                    Assert.That(result.TotalSeconds, Is.EqualTo(25d));
+                    Assert.That(result.LapSeconds, Is.EqualTo(new[] { 10d, 15d }));
+                }),
+                ("a finish cannot regress an already recorded lap count", () =>
+                {
+                    var timing = new RaceTiming();
+                    timing.Begin(0d);
+                    timing.ObserveCompletedLaps(Racer, 1, 10d);
+                    timing.ObserveCompletedLaps(Racer, 2, 25d);
+                    timing.Finish(Racer, 1, 30d);
+                    timing.TryGetResult(Racer, out var result);
+                    Assert.That(result.Finished, Is.False);
+                    Assert.That(result.LapSeconds, Is.EqualTo(new[] { 10d, 15d }));
+                }),
+                ("duplicate and regressive lap reports do not move the crossing time", () =>
+                {
+                    var timing = new RaceTiming();
+                    timing.Begin(10d);
+                    timing.ObserveCompletedLaps(Racer, 1, 20d);
+                    timing.ObserveCompletedLaps(Racer, 1, 30d);
+                    timing.ObserveCompletedLaps(Racer, 0, 35d);
+                    timing.ObserveCompletedLaps(Racer, -1, 36d);
+                    timing.Finish(Racer, 2, 40d);
+                    timing.TryGetResult(Racer, out var result);
+                    Assert.That(result.LapSeconds, Is.EqualTo(new[] { 10d, 20d }));
+                }),
+                ("crossing times cannot regress even when after the start", () =>
+                {
+                    var timing = new RaceTiming();
+                    timing.Begin(10d);
+                    timing.ObserveCompletedLaps(Racer, 1, 30d);
+                    timing.ObserveCompletedLaps(Racer, 2, 25d);
+                    timing.Finish(Racer, 1, 25d);
+                    timing.TryGetResult(Racer, out var result);
+                    Assert.That(result.Finished, Is.False);
+                    Assert.That(result.LapSeconds, Is.EqualTo(new[] { 20d }));
+                }));
         }
 
         [Test]
-        public void ZeroCompletedLapsDoNotMoveTheAuthoritativeGoTime()
+        public void ZeroLapObservationsDoNotMoveTheGoTimeAndStayNonNegative()
         {
-            var timing = new RaceTiming();
-            timing.Begin(100d);
-            timing.ObserveCompletedLaps(Racer, 0, 107d);
-            timing.ObserveCompletedLaps(Racer, 1, 120d);
-            timing.Finish(Racer, 2, 130d);
-            timing.TryGetResult(Racer, out var result);
-            Assert.That(result.LapSeconds, Is.EqualTo(new[] { 20d, 10d }));
-            Assert.That(result.TotalSeconds, Is.EqualTo(30d));
-        }
-
-        [Test]
-        public void FinishCannotRegressAnAlreadyRecordedLapCount()
-        {
-            var timing = new RaceTiming();
-            timing.Begin(0d);
-            timing.ObserveCompletedLaps(Racer, 1, 10d);
-            timing.ObserveCompletedLaps(Racer, 2, 25d);
-            timing.Finish(Racer, 1, 30d);
-            timing.TryGetResult(Racer, out var result);
-            Assert.That(result.Finished, Is.False);
-            Assert.That(result.LapSeconds, Is.EqualTo(new[] { 10d, 15d }));
-        }
-
-        [Test]
-        public void DuplicateAndRegressiveLapReportsDoNotMoveCrossingTime()
-        {
-            var timing = new RaceTiming();
-            timing.Begin(10d);
-            timing.ObserveCompletedLaps(Racer, 1, 20d);
-            timing.ObserveCompletedLaps(Racer, 1, 30d);
-            timing.ObserveCompletedLaps(Racer, 0, 35d);
-            timing.ObserveCompletedLaps(Racer, -1, 36d);
-            timing.Finish(Racer, 2, 40d);
-            timing.TryGetResult(Racer, out var result);
-            Assert.That(result.LapSeconds, Is.EqualTo(new[] { 10d, 20d }));
+            EveryCase.Parts(
+                ("zero completed laps do not move the authoritative GO time", () =>
+                {
+                    var timing = new RaceTiming();
+                    timing.Begin(100d);
+                    timing.ObserveCompletedLaps(Racer, 0, 107d);
+                    timing.ObserveCompletedLaps(Racer, 1, 120d);
+                    timing.Finish(Racer, 2, 130d);
+                    timing.TryGetResult(Racer, out var result);
+                    Assert.That(result.LapSeconds, Is.EqualTo(new[] { 20d, 10d }));
+                    Assert.That(result.TotalSeconds, Is.EqualTo(30d));
+                }),
+                ("a zero-lap observation and a same-tick crossing stay non-negative", () =>
+                {
+                    var timing = new RaceTiming();
+                    timing.Begin(10d);
+                    timing.ObserveCompletedLaps(Racer, 0, 10d);
+                    timing.TryGetResult(Racer, out var pending);
+                    Assert.That(pending.LapSeconds, Is.Empty);
+                    Assert.That(pending.TotalSeconds, Is.Zero);
+                    Assert.That(pending.Finished, Is.False);
+                    timing.Finish(Racer, 1, 10d);
+                    timing.TryGetResult(Racer, out var result);
+                    Assert.That(result.LapSeconds, Is.EqualTo(new[] { 0d }));
+                    Assert.That(result.Finished, Is.True);
+                }));
         }
 
         [Test]
@@ -101,34 +130,33 @@ namespace BuddahGo.Tests
             Assert.That(result.LapSeconds, Is.EqualTo(new[] { 10d, 20d, 20d }));
         }
 
-        [TestCase(-1d), TestCase(9d), TestCase(double.NaN)]
-        [TestCase(double.PositiveInfinity), TestCase(double.NegativeInfinity)]
-        public void InvalidObservationAndFinishTimesCannotCreateOrChangeResults(double now)
-        {
-            var timing = new RaceTiming();
-            timing.Begin(10d);
-            timing.ObserveCompletedLaps(Racer, 1, now);
-            timing.Finish(Racer, 1, now);
-            Assert.That(timing.TryGetResult(Racer, out _), Is.False);
-            timing.ObserveCompletedLaps(Racer, 1, 20d);
-            timing.ObserveCompletedLaps(Racer, 2, now);
-            timing.Finish(Racer, 2, now);
-            timing.TryGetResult(Racer, out var result);
-            Assert.That(result.Finished, Is.False);
-            Assert.That(result.LapSeconds, Is.EqualTo(new[] { 10d }));
-        }
-
         [Test]
-        public void CrossingTimesCannotRegressEvenWhenAfterTheStart()
+        public void InvalidTimesAndLapCountsCannotCreateOrChangeResults()
         {
-            var timing = new RaceTiming();
-            timing.Begin(10d);
-            timing.ObserveCompletedLaps(Racer, 1, 30d);
-            timing.ObserveCompletedLaps(Racer, 2, 25d);
-            timing.Finish(Racer, 1, 25d);
-            timing.TryGetResult(Racer, out var result);
-            Assert.That(result.Finished, Is.False);
-            Assert.That(result.LapSeconds, Is.EqualTo(new[] { 20d }));
+            EveryCase.Parts(
+                ("invalid observation and finish times cannot create or change results", () =>
+                    EveryCase.Check(new[] { -1d, 9d, double.NaN, double.PositiveInfinity, double.NegativeInfinity }, now =>
+                    {
+                        var timing = new RaceTiming();
+                        timing.Begin(10d);
+                        timing.ObserveCompletedLaps(Racer, 1, now);
+                        timing.Finish(Racer, 1, now);
+                        Assert.That(timing.TryGetResult(Racer, out _), Is.False);
+                        timing.ObserveCompletedLaps(Racer, 1, 20d);
+                        timing.ObserveCompletedLaps(Racer, 2, now);
+                        timing.Finish(Racer, 2, now);
+                        timing.TryGetResult(Racer, out var result);
+                        Assert.That(result.Finished, Is.False);
+                        Assert.That(result.LapSeconds, Is.EqualTo(new[] { 10d }));
+                    }, now => "now=" + now)),
+                ("an invalid finish lap count cannot finish", () =>
+                    EveryCase.Check(new[] { 0, -1 }, count =>
+                    {
+                        var timing = new RaceTiming();
+                        timing.Begin(0d);
+                        timing.Finish(Racer, count, 10d);
+                        Assert.That(timing.TryGetResult(Racer, out _), Is.False);
+                    }, count => "count=" + count)));
         }
 
         [Test]
@@ -150,60 +178,37 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void ResetAndBeginClearPriorMatchAndRequireAStart()
+        public void ResetAndBeginClearPriorMatchButInvalidBeginKeepsIt()
         {
-            var timing = new RaceTiming();
-            timing.Finish(Racer, 1, 20d);
-            Assert.That(timing.TryGetResult(Racer, out _), Is.False);
-            timing.Begin(0d);
-            timing.Finish(Racer, 1, 20d);
-            timing.Reset();
-            timing.ObserveCompletedLaps(Racer, 1, 30d);
-            Assert.That(timing.TryGetResult(Racer, out _), Is.False);
-            timing.Begin(100d);
-            timing.Finish(Racer, 1, 125d);
-            timing.Begin(200d);
-            Assert.That(timing.TryGetResult(Racer, out _), Is.False);
-            timing.Finish(Racer, 1, 210d);
-            timing.TryGetResult(Racer, out var result);
-            Assert.That(result.TotalSeconds, Is.EqualTo(10d));
-        }
-
-        [TestCase(-1d), TestCase(double.NaN)]
-        [TestCase(double.PositiveInfinity), TestCase(double.NegativeInfinity)]
-        public void InvalidBeginDoesNotClearValidMatch(double now)
-        {
-            var timing = new RaceTiming();
-            timing.Begin(0d);
-            timing.Finish(Racer, 1, 20d);
-            Assert.Throws<ArgumentOutOfRangeException>(() => timing.Begin(now));
-            Assert.That(timing.TryGetResult(Racer, out var result), Is.True);
-            Assert.That(result.TotalSeconds, Is.EqualTo(20d));
-        }
-
-        [TestCase(0), TestCase(-1)]
-        public void InvalidFinishLapCountCannotFinish(int count)
-        {
-            var timing = new RaceTiming();
-            timing.Begin(0d);
-            timing.Finish(Racer, count, 10d);
-            Assert.That(timing.TryGetResult(Racer, out _), Is.False);
-        }
-
-        [Test]
-        public void ZeroLapObservationAndSameTickCrossingStayNonNegative()
-        {
-            var timing = new RaceTiming();
-            timing.Begin(10d);
-            timing.ObserveCompletedLaps(Racer, 0, 10d);
-            timing.TryGetResult(Racer, out var pending);
-            Assert.That(pending.LapSeconds, Is.Empty);
-            Assert.That(pending.TotalSeconds, Is.Zero);
-            Assert.That(pending.Finished, Is.False);
-            timing.Finish(Racer, 1, 10d);
-            timing.TryGetResult(Racer, out var result);
-            Assert.That(result.LapSeconds, Is.EqualTo(new[] { 0d }));
-            Assert.That(result.Finished, Is.True);
+            EveryCase.Parts(
+                ("reset and begin clear the prior match and require a start", () =>
+                {
+                    var timing = new RaceTiming();
+                    timing.Finish(Racer, 1, 20d);
+                    Assert.That(timing.TryGetResult(Racer, out _), Is.False);
+                    timing.Begin(0d);
+                    timing.Finish(Racer, 1, 20d);
+                    timing.Reset();
+                    timing.ObserveCompletedLaps(Racer, 1, 30d);
+                    Assert.That(timing.TryGetResult(Racer, out _), Is.False);
+                    timing.Begin(100d);
+                    timing.Finish(Racer, 1, 125d);
+                    timing.Begin(200d);
+                    Assert.That(timing.TryGetResult(Racer, out _), Is.False);
+                    timing.Finish(Racer, 1, 210d);
+                    timing.TryGetResult(Racer, out var result);
+                    Assert.That(result.TotalSeconds, Is.EqualTo(10d));
+                }),
+                ("an invalid begin does not clear a valid match", () =>
+                    EveryCase.Check(new[] { -1d, double.NaN, double.PositiveInfinity, double.NegativeInfinity }, now =>
+                    {
+                        var timing = new RaceTiming();
+                        timing.Begin(0d);
+                        timing.Finish(Racer, 1, 20d);
+                        Assert.Throws<ArgumentOutOfRangeException>(() => timing.Begin(now));
+                        Assert.That(timing.TryGetResult(Racer, out var result), Is.True);
+                        Assert.That(result.TotalSeconds, Is.EqualTo(20d));
+                    }, now => "now=" + now)));
         }
     }
 }

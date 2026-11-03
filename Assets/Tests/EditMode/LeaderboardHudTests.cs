@@ -35,28 +35,32 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void OnlineSnapshotDisplaysRankLapCompletionAndFinishWithoutTelemetry()
+        public void OnlineStandingsShowRankLapCompletionAndFinishWithoutTelemetry()
         {
-            Render("1. Ada - Lap 4 - 100.0% - Finished #1\n2. Bo - Lap 2 - 48.0%", new List<RankEntry>());
-            Assert.That(_output.text, Does.Contain("1. Ada - Lap 4 - 100.0% - Finished #1"));
-            Assert.That(_output.text, Does.Contain("2. Bo - Lap 2 - 48.0%"));
-            AssertNoDiagnostics();
-        }
-
-        [Test]
-        public void OnlineListFallbackDisplaysCurrentStandingsAndHonorsRowLimit()
-        {
-            typeof(LeaderboardTMPUI).GetField("maxRows", PrivateInstance).SetValue(_view, 1);
-            Render(null, new List<RankEntry>
-            {
-                new RankEntry { DisplayName = "Ada", Lap = 4, FinalCompletionPercent = 100f,
-                    IsFinished = true, FinishOrder = 1 },
-                new RankEntry { DisplayName = "Bo", Lap = 2, FinalCompletionPercent = 48f }
-            });
-            Assert.That(_output.text, Does.Contain("1. Ada - Lap 4 - "));
-            Assert.That(_output.text, Does.Contain("Finished #1"));
-            Assert.That(_output.text, Does.Not.Contain("Bo"));
-            AssertNoDiagnostics();
+            EveryCase.Parts(
+                ("the synchronized snapshot", () =>
+                {
+                    Render("1. Ada - Lap 4 - 100.0% - Finished #1\n2. Bo - Lap 2 - 48.0%", new List<RankEntry>());
+                    Assert.That(_output.text, Does.Contain("1. Ada - Lap 4 - 100.0% - Finished #1"));
+                    Assert.That(_output.text, Does.Contain("2. Bo - Lap 2 - 48.0%"));
+                    AssertNoDiagnostics();
+                }),
+                ("the list fallback honors the row limit", () =>
+                {
+                    Cleanup();
+                    CreateInactiveView();
+                    typeof(LeaderboardTMPUI).GetField("maxRows", PrivateInstance).SetValue(_view, 1);
+                    Render(null, new List<RankEntry>
+                    {
+                        new RankEntry { DisplayName = "Ada", Lap = 4, FinalCompletionPercent = 100f,
+                            IsFinished = true, FinishOrder = 1 },
+                        new RankEntry { DisplayName = "Bo", Lap = 2, FinalCompletionPercent = 48f }
+                    });
+                    Assert.That(_output.text, Does.Contain("1. Ada - Lap 4 - "));
+                    Assert.That(_output.text, Does.Contain("Finished #1"));
+                    Assert.That(_output.text, Does.Not.Contain("Bo"));
+                    AssertNoDiagnostics();
+                }));
         }
 
         [Test]

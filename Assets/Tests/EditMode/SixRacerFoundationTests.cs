@@ -33,57 +33,59 @@ namespace BuddahGo.Tests
             finally { UnityEngine.Object.DestroyImmediate(a);UnityEngine.Object.DestroyImmediate(b);UnityEngine.Object.DestroyImmediate(root); }
         }
         [Test]
-        public void SerializedRaceMapHasSixDistinctSpawnsAndCompleteLayouts()
+        public void SerializedRaceMapHasSixSpawnsCompleteLayoutsAndTheTableLaunchHeight()
         {
-            var scene=EditorSceneManager.OpenScene("Assets/Scenes/RaceMap.unity");
-            var spawner=UnityEngine.Object.FindFirstObjectByType<MatchSpawnManager>();
-            var points=new SerializedObject(spawner).FindProperty("_spawnPoints");
-            Assert.That(points.arraySize,Is.EqualTo(6));
-            for(int i=0;i<6;i++)for(int j=0;j<i;j++)
-                Assert.That(Vector3.Distance(((Component)points.GetArrayElementAtIndex(i).objectReferenceValue).transform.position,
-                    ((Component)points.GetArrayElementAtIndex(j).objectReferenceValue).transform.position),Is.GreaterThan(8f));
-            Assert.That(spawner.GetComponent<RacerRegistry>(),Is.Not.Null);
-            var intro=UnityEngine.Object.FindFirstObjectByType<IntroSequenceManager>();
-            var layouts=new SerializedObject(intro).FindProperty("layouts");
-            for(int count=4;count<=6;count++)
-            {
-                var layout=layouts.GetArrayElementAtIndex(count-1);Assert.That(layout.FindPropertyRelative("playerCount").intValue,Is.EqualTo(count));
-                var slots=layout.FindPropertyRelative("slots");Assert.That(slots.arraySize,Is.EqualTo(count));
-                for(int i=0;i<count;i++)
-                {
-                    var slot=(IntroSlot)slots.GetArrayElementAtIndex(i).objectReferenceValue;
-                    Assert.That(slot.SlotIndex,Is.EqualTo(i));Assert.That(slot.LaunchPoint,Is.Not.Null);Assert.That(slot.ForwardReference,Is.Not.Null);
-                    Assert.That(UnityEngine.Object.FindFirstObjectByType<IntroSplineRegistry>().GetPathById(((SplineIntroPath)slot.IntroPath).SplineId),Is.SameAs(slot.IntroPath));
-                    slot.BindPathToSlot();Assert.That(((SplineIntroPath)slot.IntroPath).TotalLength,Is.GreaterThan(1));
-                    Assert.That(Vector3.Distance(slot.IntroPath.EvaluatePosition(.9999f),slot.GetLaunchPosition()),Is.LessThan(.1f));
-                    for(int j=0;j<i;j++)
-                    {
-                        var other=(IntroSlot)slots.GetArrayElementAtIndex(j).objectReferenceValue;
-                        Assert.That(((SplineIntroPath)other.IntroPath).SplineId,Is.Not.EqualTo(((SplineIntroPath)slot.IntroPath).SplineId));
-                        Assert.That(Vector3.Distance(slot.GetLaunchPosition(),other.GetLaunchPosition()),Is.GreaterThan(8f));
-                    }
-                }
-            }
-            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
-        }
-        [Test]
-        public void TrackSpawnTableKeepsTheSceneSpawnAndLaunchHeight()
-        {
-            // MatchSpawnManager moves the scene's spawn points to Match/TrackSpawn at runtime, so a layout change in the
-            // scene only takes effect if the table follows it. Racers start, ride the intro and launch at one height.
-            var db=AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>("Assets/Data/Config/ProjectConfigDatabase_Main.asset");
-            var rows=db.trackSpawns.Where(r=>r.trackId=="racemap").OrderBy(r=>r.order).ToList();
-            Assert.That(rows.Count,Is.EqualTo(6));
             EditorSceneManager.OpenScene("Assets/Scenes/RaceMap.unity");
             try
             {
-                var points=new SerializedObject(UnityEngine.Object.FindFirstObjectByType<MatchSpawnManager>()).FindProperty("_spawnPoints");
-                foreach(var row in rows)
-                    Assert.That(row.position.y,Is.EqualTo(((Component)points.GetArrayElementAtIndex(row.order).objectReferenceValue).transform.position.y).Within(.01f),"spawn "+row.order);
-                var intro=UnityEngine.Object.FindFirstObjectByType<IntroSequenceManager>();
-                var slots=new SerializedObject(intro).FindProperty("layouts").GetArrayElementAtIndex(5).FindPropertyRelative("slots");
-                for(int i=0;i<slots.arraySize;i++)
-                    Assert.That(((IntroSlot)slots.GetArrayElementAtIndex(i).objectReferenceValue).GetLaunchPosition().y,Is.EqualTo(rows[0].position.y).Within(.01f),"launch "+i);
+                EveryCase.Parts(
+                    // Read-only part first: the layout part below binds the slot paths.
+                    ("the track spawn table keeps the scene spawn and launch height", () =>
+                    {
+                        // MatchSpawnManager moves the scene's spawn points to Match/TrackSpawn at runtime, so a layout change in the
+                        // scene only takes effect if the table follows it. Racers start, ride the intro and launch at one height.
+                        var db=AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>("Assets/Data/Config/ProjectConfigDatabase_Main.asset");
+                        var rows=db.trackSpawns.Where(r=>r.trackId=="racemap").OrderBy(r=>r.order).ToList();
+                        Assert.That(rows.Count,Is.EqualTo(6));
+                        var points=new SerializedObject(UnityEngine.Object.FindFirstObjectByType<MatchSpawnManager>()).FindProperty("_spawnPoints");
+                        foreach(var row in rows)
+                            Assert.That(row.position.y,Is.EqualTo(((Component)points.GetArrayElementAtIndex(row.order).objectReferenceValue).transform.position.y).Within(.01f),"spawn "+row.order);
+                        var intro=UnityEngine.Object.FindFirstObjectByType<IntroSequenceManager>();
+                        var slots=new SerializedObject(intro).FindProperty("layouts").GetArrayElementAtIndex(5).FindPropertyRelative("slots");
+                        for(int i=0;i<slots.arraySize;i++)
+                            Assert.That(((IntroSlot)slots.GetArrayElementAtIndex(i).objectReferenceValue).GetLaunchPosition().y,Is.EqualTo(rows[0].position.y).Within(.01f),"launch "+i);
+                    }),
+                    ("six distinct spawns and complete layouts", () =>
+                    {
+                        var spawner=UnityEngine.Object.FindFirstObjectByType<MatchSpawnManager>();
+                        var points=new SerializedObject(spawner).FindProperty("_spawnPoints");
+                        Assert.That(points.arraySize,Is.EqualTo(6));
+                        for(int i=0;i<6;i++)for(int j=0;j<i;j++)
+                            Assert.That(Vector3.Distance(((Component)points.GetArrayElementAtIndex(i).objectReferenceValue).transform.position,
+                                ((Component)points.GetArrayElementAtIndex(j).objectReferenceValue).transform.position),Is.GreaterThan(8f));
+                        Assert.That(spawner.GetComponent<RacerRegistry>(),Is.Not.Null);
+                        var intro=UnityEngine.Object.FindFirstObjectByType<IntroSequenceManager>();
+                        var layouts=new SerializedObject(intro).FindProperty("layouts");
+                        for(int count=4;count<=6;count++)
+                        {
+                            var layout=layouts.GetArrayElementAtIndex(count-1);Assert.That(layout.FindPropertyRelative("playerCount").intValue,Is.EqualTo(count));
+                            var slots=layout.FindPropertyRelative("slots");Assert.That(slots.arraySize,Is.EqualTo(count));
+                            for(int i=0;i<count;i++)
+                            {
+                                var slot=(IntroSlot)slots.GetArrayElementAtIndex(i).objectReferenceValue;
+                                Assert.That(slot.SlotIndex,Is.EqualTo(i));Assert.That(slot.LaunchPoint,Is.Not.Null);Assert.That(slot.ForwardReference,Is.Not.Null);
+                                Assert.That(UnityEngine.Object.FindFirstObjectByType<IntroSplineRegistry>().GetPathById(((SplineIntroPath)slot.IntroPath).SplineId),Is.SameAs(slot.IntroPath));
+                                slot.BindPathToSlot();Assert.That(((SplineIntroPath)slot.IntroPath).TotalLength,Is.GreaterThan(1));
+                                Assert.That(Vector3.Distance(slot.IntroPath.EvaluatePosition(.9999f),slot.GetLaunchPosition()),Is.LessThan(.1f));
+                                for(int j=0;j<i;j++)
+                                {
+                                    var other=(IntroSlot)slots.GetArrayElementAtIndex(j).objectReferenceValue;
+                                    Assert.That(((SplineIntroPath)other.IntroPath).SplineId,Is.Not.EqualTo(((SplineIntroPath)slot.IntroPath).SplineId));
+                                    Assert.That(Vector3.Distance(slot.GetLaunchPosition(),other.GetLaunchPosition()),Is.GreaterThan(8f));
+                                }
+                            }
+                        }
+                    }));
             }
             finally { EditorSceneManager.NewScene(NewSceneSetup.EmptyScene); }
         }

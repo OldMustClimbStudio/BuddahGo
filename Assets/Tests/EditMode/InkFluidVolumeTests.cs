@@ -29,48 +29,44 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void EveryVolumeSimulatesWhileTheyFitTheBudget()
+        public void BudgetPicksTheNearestUnderTheStrictestLimit()
         {
-            var volumes = new List<InkFluidVolume> { Volume(0f, 3), Volume(500f, 3), Volume(900f, 3) };
-            Assert.That(InkFluidVolume.PickSimulating(volumes, true, Vector3.zero), Is.EqualTo(3));
-            Assert.That(volumes.TrueForAll(v => v.InBudget), Is.True);
-        }
-
-        [Test]
-        public void OverTheBudgetTheNearestSimulate()
-        {
-            var volumes = new List<InkFluidVolume> { Volume(100f, 2), Volume(10f, 2), Volume(50f, 2), Volume(300f, 2) };
-            InkFluidVolume.PickSimulating(volumes, true, Vector3.zero);
-            Assert.That(InBudget(volumes), Is.EqualTo(new[] { false, true, true, false }));
-        }
-
-        // Every palm carries its own simulationBudget; the strictest one applies to all.
-        [Test]
-        public void TheSmallestBudgetApplies()
-        {
-            var volumes = new List<InkFluidVolume> { Volume(100f, 4), Volume(10f, 4), Volume(50f, 1) };
-            Assert.That(InkFluidVolume.PickSimulating(volumes, true, Vector3.zero), Is.EqualTo(1));
-            Assert.That(InBudget(volumes), Is.EqualTo(new[] { false, true, false }));
-        }
-
-        // No main camera (a server, a loading frame): the palms spawned first keep simulating.
-        [Test]
-        public void WithoutACameraTheOldestSimulate()
-        {
-            var volumes = new List<InkFluidVolume> { Volume(900f, 2), Volume(500f, 2), Volume(10f, 2) };
-            InkFluidVolume.PickSimulating(volumes, false, Vector3.zero);
-            Assert.That(InBudget(volumes), Is.EqualTo(new[] { true, true, false }));
-        }
-
-        // A palm that already simulates keeps its grids against a newcomer less than 20 % nearer, so two palms at the
-        // edge of the budget do not swap every frame.
-        [TestCase(85f, true)]
-        [TestCase(75f, false)]
-        public void ASimulatingVolumeKeepsItsGridsUntilANewcomerIsClearlyNearer(float newcomerDistance, bool keeps)
-        {
-            float simulating = InkFluidVolume.RankScore(100f * 100f, true);
-            float newcomer = InkFluidVolume.RankScore(newcomerDistance * newcomerDistance, false);
-            Assert.That(simulating < newcomer, Is.EqualTo(keeps));
+            EveryCase.Parts(
+                ("every volume simulates while they fit the budget", () =>
+                {
+                    var volumes = new List<InkFluidVolume> { Volume(0f, 3), Volume(500f, 3), Volume(900f, 3) };
+                    Assert.That(InkFluidVolume.PickSimulating(volumes, true, Vector3.zero), Is.EqualTo(3));
+                    Assert.That(volumes.TrueForAll(v => v.InBudget), Is.True);
+                }),
+                ("over the budget the nearest simulate", () =>
+                {
+                    var volumes = new List<InkFluidVolume> { Volume(100f, 2), Volume(10f, 2), Volume(50f, 2), Volume(300f, 2) };
+                    InkFluidVolume.PickSimulating(volumes, true, Vector3.zero);
+                    Assert.That(InBudget(volumes), Is.EqualTo(new[] { false, true, true, false }));
+                }),
+                // Every palm carries its own simulationBudget; the strictest one applies to all.
+                ("the smallest budget applies", () =>
+                {
+                    var volumes = new List<InkFluidVolume> { Volume(100f, 4), Volume(10f, 4), Volume(50f, 1) };
+                    Assert.That(InkFluidVolume.PickSimulating(volumes, true, Vector3.zero), Is.EqualTo(1));
+                    Assert.That(InBudget(volumes), Is.EqualTo(new[] { false, true, false }));
+                }),
+                // No main camera (a server, a loading frame): the palms spawned first keep simulating.
+                ("without a camera the oldest simulate", () =>
+                {
+                    var volumes = new List<InkFluidVolume> { Volume(900f, 2), Volume(500f, 2), Volume(10f, 2) };
+                    InkFluidVolume.PickSimulating(volumes, false, Vector3.zero);
+                    Assert.That(InBudget(volumes), Is.EqualTo(new[] { true, true, false }));
+                }),
+                // A palm that already simulates keeps its grids against a newcomer less than 20 % nearer, so two palms
+                // at the edge of the budget do not swap every frame.
+                ("a simulating volume keeps its grids until a newcomer is clearly nearer", () =>
+                    EveryCase.Check(new[] { (newcomerDistance: 85f, keeps: true), (newcomerDistance: 75f, keeps: false) }, c =>
+                    {
+                        float simulating = InkFluidVolume.RankScore(100f * 100f, true);
+                        float newcomer = InkFluidVolume.RankScore(c.newcomerDistance * c.newcomerDistance, false);
+                        Assert.That(simulating < newcomer, Is.EqualTo(c.keeps));
+                    })));
         }
 
         // Without compute shaders a fully wired palm holds no grids, takes nothing from the pool and logs nothing.

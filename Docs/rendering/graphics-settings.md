@@ -2,8 +2,10 @@
 
 Client-side graphics settings for BuddahGo: a preset plus per-option overrides, with tiers per option, defined in the
 design tables and applied at runtime. Status (2026-11-03): the spec, the runtime model, persistence, the URP mapping,
-VSync, window mode, a resolution list from the display, the VFX tier and the API are done; there is no settings menu
-yet, only the F9 panel (any scene, player builds included). The menu binds to `GraphicsSettingsService` (see Binding).
+VSync, window mode, a resolution list from the display, the VFX tier, the API and a first settings panel in the main
+menu are done; the F9 panel stays as the in-race fallback. The menu binds to `GraphicsSettingsService` (see Binding).
+
+![The settings panel](graphics-settings-panel.jpg)
 Re-verified on 2026-11-03 in play mode after the dusk re-tune and the bake: presets switch the quality level and its
 real URP asset, overrides run on a runtime clone, Reset puts the real asset back, and every quality level points at its
 own asset again after play mode (`GraphicsSettingsTests` 10/10).
@@ -110,6 +112,21 @@ during play mode still shows up unless a custom choice is applied.
 **Never networked.** Nothing here touches FishNet, RPCs, prediction or server authority. `vfx_quality` is client-only,
 so effects that carry gameplay information must not depend on it.
 
+## The settings panel (main menu)
+
+`Canvas/MainMenuRoot/SettingsPanel` in `MainMenu.unity`, opened by the home panel's "设置" button (below Quit) through
+`MainMenuUI.ShowSettings`; Escape / Back returns like the other panels. `SettingsPanelUI`
+(`Assets/Scripts/UI/MenusUI/`) builds the content from the catalog when it first opens: a preset row (one button per
+preset, the current one disabled), group headers (`settings.graphics.group.*`) and one row per option with "<" / ">"
+stepping through the levels the preset allows (SSAO is skipped on the low preset); stepping only changes the model
+(the value shows "*" while it differs from the preset) and enables Apply / Revert (`GraphicsSettingsService.HasPendingChanges`);
+Apply applies and saves, Revert reloads the saved choice, Reset puts the preset's defaults back (unapplied until
+Apply), Back drops unapplied changes. The panel is one section, "画面", so other settings (audio, controls) go next
+to it later. The scene objects come from `Assets/Editor/UI/SettingsPanelBuilder.cs`
+(`Tools/BuddahGo/UI/Build Settings Panel`), plain uGUI in the other panels' style with the SoloCJK TMP font; re-run it
+after changing the layout code, it replaces the panel and the button and saves the scene. The font subset was
+regenerated for the labels (see `Assets/Fonts/SoloCJK/README.txt`).
+
 ## Binding (for the settings menu)
 
 ```csharp
@@ -127,15 +144,10 @@ GraphicsSettingsService.Apply();                        // applies and saves; Re
 GraphicsSettingsService.Changed += Refresh;             // model changed; Applied fires after Apply/Revert
 ```
 
-Still to do on the UI side: the menu itself (owned by the UI work, not by `feat/ingame-ui-updates`, which has no
-settings screen; `MainMenuUI` has Home / CreateRoom / BrowseRooms / JoinById / SoloSetup panels and no settings panel,
-so today the only entry is F9); an Apply button, because MSAA and quality-level changes can hitch; greying out
-`upscaler` at 100% and `sharpening` without TAA; a label for the generated resolution levels if the id is not enough;
-checking that
-the new Chinese labels exist in the static font subset `Assets/Fonts/SoloCJK`. On 2026-10-27, 36 characters of the
-`settings.graphics.*` labels, placeholders included, were missing from it
-(义全原双口各垂境屏帧异式恢抗撤染框模渲滤率环窗蔽质贴辨边遮销锐锯阴限预齿); regenerate the subset and rebake its TMP
-atlas as its README describes before the menu shows them.
+Still to do on the UI side: a styled version of the panel (today it is the plain uGUI look of the other main-menu
+panels); greying out `upscaler` at 100% and `sharpening` without TAA; a label for the generated resolution levels if
+the id is not enough; an in-race entry (pause menu) instead of F9. The SoloCJK subset was regenerated on 2026-11-03
+with every `settings.*` label character (539 codepoints); a new label still needs a coverage check first.
 
 ## Not implemented yet
 
@@ -151,12 +163,11 @@ still have an open point. To implement a placeholder: add the typed value column
 
 | Item | State | Placeholder | What it needs |
 |---|---|---|---|
-| Settings menu | not implemented; F9 debug panel stands in | API `GraphicsSettingsService`; labels `settings.graphics.title`, `settings.graphics.action.apply` / `revert` / `reset_to_preset` in `UI/Text` | a screen that binds as in [Binding](#binding-for-the-settings-menu), an Apply button, the font subset; then remove `GraphicsSettingsDebugPanel` |
+| Settings menu | first version in the main menu (2026-11-03); F9 panel kept for races | `SettingsPanelUI` + `SettingsPanelBuilder` | styling, an in-race entry, then remove `GraphicsSettingsDebugPanel` |
 | VSync online | on by default, decided 2026-10-28 | `pending` on `vsync` | check online prediction smoothing at refresh rates that are not a multiple of 60 Hz (`FrameRateLock`'s concern); Solo interpolates by time |
 | Ultra preset | **user decision** | masked `ultra` preset (High Fidelity base) | a default level for every option (`defaultFor` gains `ultra`) |
 | VFX tiers | layer dropping only | `vfx_quality` is applied and `SkillVfxPhaseController` drops slot layers by priority per tier | **user** decides whether the tiers should also change particle counts, resolution or the "reduce other players' effects" option |
 | First-run preset | not implemented | `pending` on the `high` preset | hardware detection; today the preset of the starting quality level is used |
-| Font subset | missing glyphs | — | regenerate `Assets/Fonts/SoloCJK` for the 36 characters listed under Binding |
 | NVIDIA FXAA 3.11 | **user decision** | `pending` on `anti_aliasing` | licence check before using it in place of URP's FXAA |
 
 Not verified yet:

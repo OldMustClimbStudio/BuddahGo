@@ -752,6 +752,10 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   stays the menu's own. Since the dusk change the menu no longer looks like the race. It also assigns RaceMap's own
   `RaceMap_Lighting.lighting` (not a copy), so an edit to that asset from either scene changes both; whether the menu
   should follow the dusk look or own its assets is open (below).
+- **Retired (PR #70 review, 2026-11-03).** 93 prefabs in `Assets/Sources/RaceMapZen/Prefabs/` that the layout no
+  longer places and nothing referenced (53 `Town_Walls_*`, 37 `Town_Buildings_*`, `SM_Arch_PlasterWall_Bay`,
+  `Zen_Trk_SM_Arch_SteppingSlab_A`, `Zen_Trk_SM_Prop_StoneLantern_B`); checked by GUID in every text asset and by
+  name in scripts, with no Resources or Addressables loads.
 
 ## Known limits and open items (current state)
 

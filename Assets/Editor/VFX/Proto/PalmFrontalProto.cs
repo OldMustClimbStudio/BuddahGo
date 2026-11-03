@@ -32,10 +32,20 @@ namespace BuddahGo.VFX.EditorTools
         public static float TimelineSeconds = 10f;
 
         [MenuItem("Tools/BuddahGo/VFX/Proto/Build Frontal Burst Proto")]
-        public static void BuildMenu() { Debug.Log(Build()); }
-
-        public static string Build()
+        public static void BuildMenu()
         {
+            bool overwrite = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null
+                && EditorUtility.DisplayDialog("Build Frontal Burst Proto",
+                    PrefabPath + " already exists and holds hand tuning. Rebuilding it from the pack loses that work. Overwrite it?",
+                    "Overwrite", "Keep");
+            Debug.Log(Build(overwrite));
+        }
+
+        // Builds the prefab only when it is missing (overwrite = false), so hand work applied to it is never lost.
+        public static string Build(bool overwrite)
+        {
+            if (!overwrite && AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null)
+                return "kept " + PrefabPath;
             Directory.CreateDirectory(Folder);
             var frontal = AssetDatabase.LoadAssetAtPath<GameObject>(Pack + "Ying Yang Frontal.prefab");
             if (frontal == null)

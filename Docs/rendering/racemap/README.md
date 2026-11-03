@@ -731,7 +731,8 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
 
 - **Import.** `Assets/Editor/RaceMapZen/RaceMapZenImporter.cs` builds the single root `RaceMapZen_Landscape` from
   `Assets/Sources/RaceMapZen/` (models, prefabs, materials, `Data/RaceMapZen_Layout.json`). Re-running it replaces
-  that root; it never stacks a second copy. The landscape has no colliders.
+  that root; it never stacks a second copy, and deletes the prefabs the layout no longer places. The landscape has no
+  colliders.
 - **Track.** `Map/RaceMapZen_Track` replaces the old lane model; the old `Assets/Sources/地图/` models and the
   `反转法线空气墙` prefab are deleted. Floor collision and planar reflection moved to the new mesh; its polished-concrete
   material is smoother so the dusk sky and sun read in the reflection.

@@ -4,7 +4,8 @@
 //                                    material names are not read: each sub-mesh's material comes from the FBX)
 // Meshes that already exist as game-ready menu-environment library prefabs are placed from there ("lib:").
 // Blender material names are mapped to the menu-environment URP materials; the few zen-only materials are created
-// under Materials/. Rerunning rebuilds the RaceMapZen_Landscape root in the open scene and the prefabs.
+// under Materials/. Rerunning rebuilds the RaceMapZen_Landscape root in the open scene and the prefabs, and deletes
+// the prefabs under Prefabs/ that the layout no longer places.
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -91,6 +92,7 @@ namespace BuddahGo.RaceMapZen.Editor
                 go.transform.localScale = m.lossyScale;
                 placed++;
             }
+            PruneStalePrefabs(prefabs.Values);
             // occluder fade: the spans over the track and all torii
             var fade = root.AddComponent<BuddahGo.Rendering.OccluderFade>();
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
@@ -221,6 +223,16 @@ namespace BuddahGo.RaceMapZen.Editor
             var prefab = PrefabUtility.SaveAsPrefabAsset(tmp, path);
             Object.DestroyImmediate(tmp);
             return prefab;
+        }
+
+        // prefabs the layout no longer places would stay behind unreferenced (93 had piled up by PR #70)
+        static void PruneStalePrefabs(IEnumerable<GameObject> built)
+        {
+            var keep = new HashSet<string>(built.Where(p => p != null).Select(AssetDatabase.GetAssetPath));
+            var stale = AssetDatabase.FindAssets("t:Prefab", new[] { PrefabDir }).Select(AssetDatabase.GUIDToAssetPath)
+                .Where(p => !keep.Contains(p)).ToList();
+            foreach (var p in stale) AssetDatabase.DeleteAsset(p);
+            if (stale.Count > 0) Debug.Log($"[RaceMapZen] deleted {stale.Count} prefabs no longer in the layout");
         }
 
         static Material Map(string blenderName, HashSet<string> unmapped)

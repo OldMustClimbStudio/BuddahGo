@@ -285,17 +285,6 @@ namespace NewBuddah.PredictionV2.Visual
             return cameraFollowRigidbody;
         }
 
-        public float GetVisualScaleMultiplier()
-        {
-            if (visualScaleEffect != null)
-                return Mathf.Max(0.1f, visualScaleEffect.CurrentScaleMultiplier);
-
-            if (predictedMotor != null)
-                return Mathf.Max(0.1f, predictedMotor.CurrentScaleMultiplier);
-
-            return 1f;
-        }
-
         public string GetVisualScaleSource()
         {
             if (visualScaleEffect != null)

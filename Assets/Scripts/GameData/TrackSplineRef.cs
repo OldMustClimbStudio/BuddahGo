@@ -77,6 +77,13 @@ public class TrackSplineRef : MonoBehaviour
         return Mathf.Lerp(l0, l1, u);
     }
 
+    // 方便：直接返回“按米均匀”的完成度
+    public float Progress01AtT(float t)
+    {
+        float d = DistanceAtT(t);
+        return TrackLength > 1e-6f ? d / TrackLength : 0f;
+    }
+
     public float TAtDistance(float distance)
     {
         if (TrackLength <= 1e-6f)

@@ -170,7 +170,7 @@
 | 39 | `Config/Repositories/SkillConfigRepository.cs` [PR#63] | `GetDescription` | 46-52 | S1 T | 若 #63 的技能说明 UI 要用，届时再定 |
 | 40 | `GameData/LapProgress.cs` | `HasStartedLap`、`TotalProgressPercent` | 48、50 | S1 T | |
 | 41 | `GameData/ObsessionFigure.cs` [PR#63] | `DrainPerSecond`、`ExtraRecoveryPerSecond` 属性 | 51、53 | S1 | 字段被配表反射写入、被 Update 使用，保留 |
-| 42 | `GameData/TrackSplineRef.cs` | `Progress01AtT` | 81-85 | S1 T | |
+| 42 | `GameData/TrackSplineRef.cs` | `Progress01AtT` | 81-85 | S1 T | 删于 `1298976f`，合并 PR #72 后又恢复：PR #72 改的 `SplineProgressTrackerTests.SavedRaceMapPositionsDoNotPlateauOrAccumulateCatchup` 用它把录制的第一个位置换算成新样条上的完成度，所以它不再是死代码 |
 | 43 | `Network/Match/PlaceholderPlayerController.cs` | 整个类 | 全文件 | guid 无场景/prefab 引用；唯一引用是 `Assets/Editor/MatchScenePlaceholderSetup.cs:57`（另一子代理范围） | 需与那个 Editor 菜单工具一起删，先和另一子代理对齐 |
 
 **不能删（看起来没人调用但有调用方）**：`BuddahPredictionPerfProbe.AutoInstantiate`（`RuntimeInitializeOnLoadMethod`）、`BuddahPredictionCommandBus.DebugA4FireTestImpulseToOwner`（`ContextMenu` 探针）、`SoloUIBootstrap`（3 个场景挂着）、`BuddahPredictionImpulseDebugBox`（RaceMap 场景挂着，诊断）、`DesignTableOverlay.TrySetField`（公共 API，配表工具可能用，未列入）、`ProjectConfigRecords.cs:39 loadoutId`（配表 schema 字段，由导入器按名写入）、`MatchClockSync._pausedTicks` / `IsPaused`（代码注释写明为 S7 暂停预留）。

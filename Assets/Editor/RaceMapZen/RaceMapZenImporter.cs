@@ -178,7 +178,13 @@ namespace BuddahGo.RaceMapZen.Editor
         public static void ConfigureModel(string path)
         {
             var imp = (ModelImporter)AssetImporter.GetAtPath(path);
-            bool changed = imp.materialImportMode != ModelImporterMaterialImportMode.ImportStandard || imp.importAnimation || imp.importCameras || imp.importLights;
+            bool changed = imp.materialImportMode != ModelImporterMaterialImportMode.ImportStandard
+                           || imp.materialLocation != ModelImporterMaterialLocation.InPrefab
+                           || imp.importAnimation || imp.animationType != ModelImporterAnimationType.None
+                           || imp.importCameras || imp.importLights
+                           || imp.meshCompression != ModelImporterMeshCompression.Off
+                           || imp.importNormals != ModelImporterNormals.Import
+                           || imp.indexFormat != ModelImporterIndexFormat.Auto;
             imp.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;   // only to read Blender material names per sub-mesh
             imp.materialLocation = ModelImporterMaterialLocation.InPrefab;
             imp.importAnimation = false; imp.animationType = ModelImporterAnimationType.None;

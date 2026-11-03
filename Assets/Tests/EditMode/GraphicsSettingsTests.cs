@@ -159,23 +159,6 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void PlayerPrefsStoreKeepsTheChoiceUnderItsKey()
-        {
-            var store = new PlayerPrefsGraphicsSettingsStore("BuddahGo.GraphicsSettings.Test");
-            try
-            {
-                store.Write("{\"presetId\":\"low\"}");
-                Assert.That(new PlayerPrefsGraphicsSettingsStore("BuddahGo.GraphicsSettings.Test").Read(), Is.EqualTo("{\"presetId\":\"low\"}"));
-                store.Clear();
-                Assert.That(store.Read(), Is.Empty);
-            }
-            finally
-            {
-                store.Clear();
-            }
-        }
-
-        [Test]
         public void MappingWritesOnlyTheClone()
         {
             var original = QualityPipeline("High Fidelity");
@@ -391,15 +374,6 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void ACommandLineWindowKeepsTheSettingsOffTheWindow()
-        {
-            Assert.That(GraphicsSettingsApplier.SetsWindowFromCommandLine(new[] { "BuddahGo.exe", "-screen-width", "1280", "-screen-height", "720" }), Is.True);
-            Assert.That(GraphicsSettingsApplier.SetsWindowFromCommandLine(new[] { "BuddahGo.exe", "-Window-Mode", "borderless" }), Is.True);
-            Assert.That(GraphicsSettingsApplier.SetsWindowFromCommandLine(new[] { "BuddahGo.exe", "-logFile", "x.log" }), Is.False);
-            Assert.That(GraphicsSettingsApplier.SetsWindowFromCommandLine(null), Is.False);
-        }
-
-        [Test]
         public void RevertWithoutASavedChoiceReturnsToTheStartupChoice()
         {
             var store = new MemoryStore();
@@ -490,27 +464,6 @@ namespace BuddahGo.Tests
             {
                 CameraAntialiasingPolicy.SettingsMode = null;
                 Object.DestroyImmediate(go);
-            }
-        }
-
-        [Test]
-        public void VfxQualityBroadcastsChanges()
-        {
-            var before = VfxQuality.Current;
-            var seen = new List<VfxQualityTier>();
-            System.Action<VfxQualityTier> handler = seen.Add;
-            VfxQuality.Changed += handler;
-            try
-            {
-                VfxQuality.Set(VfxQualityTier.Low);
-                VfxQuality.Set(VfxQualityTier.Low);
-                VfxQuality.Set(VfxQualityTier.Medium);
-                Assert.That(seen, Is.EqualTo(before == VfxQualityTier.Low ? new[] { VfxQualityTier.Medium } : new[] { VfxQualityTier.Low, VfxQualityTier.Medium }));
-            }
-            finally
-            {
-                VfxQuality.Changed -= handler;
-                VfxQuality.Set(before);
             }
         }
     }

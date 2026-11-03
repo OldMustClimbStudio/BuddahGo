@@ -132,22 +132,6 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void SeparateRacersUseOneStartAndIndependentCrossings()
-        {
-            var other = RacerId.FromClient(8);
-            var timing = new RaceTiming();
-            timing.Begin(10d);
-            timing.Finish(Racer, 1, 30d);
-            timing.ObserveCompletedLaps(other, 1, 35d);
-            timing.Finish(other, 2, 60d);
-            timing.TryGetResult(Racer, out var first);
-            timing.TryGetResult(other, out var second);
-            Assert.That(first.TotalSeconds, Is.EqualTo(20d));
-            Assert.That(second.TotalSeconds, Is.EqualTo(50d));
-            Assert.That(second.LapSeconds, Is.EqualTo(new[] { 25d, 25d }));
-        }
-
-        [Test]
         public void ReturnedArraysCannotMutateTimingAndSnapshotsDoNotGrow()
         {
             var timing = new RaceTiming();

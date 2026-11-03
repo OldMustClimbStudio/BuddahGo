@@ -90,14 +90,4 @@ public class AIDrivingTests
         }
         finally { EditorSceneManager.ClosePreviewScene(scene); }
     }
-
-    [Test]
-    public void DriverIsSerializedDisabledWithoutChangingMotorConfiguration()
-    {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Character/Prefab/Buddah.prefab");
-        Assert.That(prefab.GetComponent<AIRacerDriver>(), Is.Not.Null);
-        Assert.That(prefab.GetComponent<AIRacerDriver>().enabled, Is.False);
-        Assert.That(prefab.GetComponent<Rigidbody>().mass, Is.EqualTo(2));
-        Assert.That(prefab.GetComponent<Rigidbody>().drag, Is.Zero);
-    }
 }

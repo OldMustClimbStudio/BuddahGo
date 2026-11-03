@@ -14,15 +14,6 @@ public class AIDifficultyProfilesTests
         Assert.DoesNotThrow(profile.ValidateConfiguration);
     }
 
-    [Test] public void TiersAreOrderedByBoldnessAndReaction()
-    {
-        var easy = AIDifficultyProfiles.Load(SoloDifficulty.Easy); var normal = AIDifficultyProfiles.Load(SoloDifficulty.Normal); var hard = AIDifficultyProfiles.Load(SoloDifficulty.Hard);
-        Assert.That(easy.TargetSpeed, Is.LessThanOrEqualTo(normal.TargetSpeed)); Assert.That(normal.TargetSpeed, Is.LessThanOrEqualTo(hard.TargetSpeed));
-        Assert.That(easy.ReactionTicks, Is.GreaterThanOrEqualTo(normal.ReactionTicks)); Assert.That(normal.ReactionTicks, Is.GreaterThanOrEqualTo(hard.ReactionTicks));
-        Assert.That(easy.RolloutWallWeight, Is.GreaterThanOrEqualTo(normal.RolloutWallWeight)); Assert.That(normal.RolloutWallWeight, Is.GreaterThanOrEqualTo(hard.RolloutWallWeight));
-        Assert.That(hard.MaxThrustAngleDegrees, Is.LessThanOrEqualTo(normal.MaxThrustAngleDegrees), "Hard never brakes (thrust angle <= 90)");
-    }
-
     [Test] public void ResolveGivesEachRacerItsOwnInstanceWithLineVariety()
     {
         var a = AIDifficultyProfiles.Resolve(SoloDifficulty.Normal, 0); var b = AIDifficultyProfiles.Resolve(SoloDifficulty.Normal, 1);

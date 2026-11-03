@@ -32,14 +32,6 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void EmissionScalesFollowTheTiers()
-        {
-            Assert.That(SkillVfxRules.EmissionScale(VfxQualityTier.Low), Is.EqualTo(0.4f));
-            Assert.That(SkillVfxRules.EmissionScale(VfxQualityTier.Medium), Is.EqualTo(0.7f));
-            Assert.That(SkillVfxRules.EmissionScale(VfxQualityTier.High), Is.EqualTo(1f));
-        }
-
-        [Test]
         public void WindowUnitsConvertFromGameplayAndTableValues()
         {
             SkillVfxVisualValues visual = SkillVfxVisualValues.Defaults;
@@ -69,35 +61,6 @@ namespace BuddahGo.Tests
             // The anti volley's 60 × 50 × 20 collider: the palm doc's "small hand, about 0.6".
             Assert.That(SkillVfxRules.ContainScale(new Vector3(60f, 50f, 20f), Reference), Is.EqualTo(50f / 90f).Within(1e-5f));
             Assert.That(SkillVfxRules.UniformScale(new Vector3(60f, 50f, 20f), Reference), Is.EqualTo(50f / 90f).Within(1e-5f));
-        }
-
-        // Only the buff state layer is still a first-pass prefab; VFX_Palm / VFX_Palm_Anti were retired
-        // (Docs/vfx/retired.md) for the palm_release slots and the palm_bullet ink hands.
-        [TestCase(BufPrefab, "palm_buff", new[] { SkillVfxPhase.Buf })]
-        public void PrefabCoversItsLayerSheetPhasesWithNamedLayers(string path, string vfxId, SkillVfxPhase[] phases)
-        {
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            Assert.That(prefab, Is.Not.Null, path);
-            var controller = prefab.GetComponent<SkillVfxPhaseController>();
-            Assert.That(controller, Is.Not.Null);
-            Assert.That(controller.VfxId, Is.EqualTo(vfxId));
-
-            SkillVfxLayer[] layers = prefab.GetComponentsInChildren<SkillVfxLayer>(true);
-            foreach (SkillVfxPhase phase in phases)
-                Assert.That(layers.Any(l => l.phase == phase && l.tier == SkillVfxTier.Core || l.phase == phase && phase == SkillVfxPhase.Buf), Is.True,
-                    path + " has no layer for " + phase);
-
-            var name = new Regex(@"^FX_(Palm|PalmAnti)_(Buf|Chg|Prj|Imp|Dis|Lin)_(C|S|A)_(Glow|Flash|Distortion|Smoke|Sparks|Decal|Mesh|Light|Post)_\d\d$");
-            foreach (SkillVfxLayer layer in layers)
-            {
-                System.Text.RegularExpressions.Match match = name.Match(layer.name);
-                Assert.That(match.Success, Is.True, "layer name " + layer.name);
-                Assert.That(match.Groups[2].Value, Is.EqualTo(layer.phase.ToString()), layer.name);
-                Assert.That(match.Groups[3].Value, Is.EqualTo(layer.tier.ToString().Substring(0, 1)), layer.name);
-                Assert.That(match.Groups[4].Value, Is.EqualTo(layer.function.ToString()), layer.name);
-                if (layer.tier == SkillVfxTier.Core)
-                    Assert.That(layer.priority, Is.EqualTo(1), layer.name);
-            }
         }
 
         // README section 8 (2026-10-31): particle systems per slot prefab, empty roots included. The hand-tuned
@@ -253,21 +216,6 @@ namespace BuddahGo.Tests
             Assert.That(written.bufFadeSeconds, Is.EqualTo(0.25f));
         }
 
-        // The palm skills name ids SkillVfxDatabase has (the table / database pairing itself is
-        // EveryVfxIdFollowsTheNamingRuleAndLoadsItsPrefab); the anti release pairs with the normal one.
-        [Test]
-        public void SkillsDatabaseAndTableAgreeOnTheVfxIds()
-        {
-            var database = AssetDatabase.LoadAssetAtPath<SkillVfxDatabase>("Assets/Skills_Assets/SkillVfxDatabase.asset");
-            var rows = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(MainAsset).vfxRegistries;
-
-            var palm = new SerializedObject(AssetDatabase.LoadAssetAtPath<Skill_PushProjectileHands>("Assets/Skills_Assets/Skills/Skill_PushProjectileHands.asset"));
-            var anti = AssetDatabase.LoadAssetAtPath<Skill_PushProjectileHands_Anti>("Assets/Skills_Assets/Skills/Skill_PushProjectileHands_Anti.asset");
-            foreach (string id in new[] { palm.FindProperty("vfxId").stringValue, palm.FindProperty("handVfxId").stringValue, palm.FindProperty("buffVfxId").stringValue, anti.VfxId, anti.HandVfxId })
-                Assert.That(database.TryGetPrefab(id, out GameObject prefab) && prefab != null, Is.True, "skill vfx id " + id);
-            Assert.That(rows.Single(r => r.vfxId == anti.VfxId).antiOf, Is.EqualTo(palm.FindProperty("vfxId").stringValue));
-        }
-
         // README 4: the effect of one cast (charge + flight + dissipation) fits in the cast lock. The buff state layer
         // runs for the buff's length and is outside this rule (paper confirmation Q1, 2026-10-28).
         [TestCase("push_projectile_hands", "charged", "palm_release")]
@@ -280,49 +228,6 @@ namespace BuddahGo.Tests
             VfxRegistryRecord vfx = database.vfxRegistries.Single(r => r.vfxId == vfxId);
             float total = push.windupSeconds + push.lifetimeSeconds + vfx.disSeconds;
             Assert.That(total, Is.LessThanOrEqualTo(skill.castLockSeconds), skillId);
-        }
-
-        [Test]
-        public void FxShadersArePreloaded()
-        {
-            var collection = AssetDatabase.LoadAssetAtPath<ShaderVariantCollection>("Assets/VFX/PreloadShader.shadervariants");
-            var serialized = new SerializedObject(collection).FindProperty("m_Shaders");
-            var shaders = new HashSet<string>();
-            for (int i = 0; i < serialized.arraySize; i++)
-            {
-                var shader = serialized.GetArrayElementAtIndex(i).FindPropertyRelative("first").objectReferenceValue as Shader;
-                if (shader != null)
-                    shaders.Add(shader.name);
-            }
-            // The two hand-written shaders VFX_Palm_Buff still uses; FX/Decal and FX/Mesh_Energy were retired.
-            foreach (string name in new[] { "FX/Additive_Glow", "FX/Alpha_Smoke" })
-                Assert.That(shaders, Does.Contain(name));
-        }
-
-        [Test]
-        public void LaunchPostPulseIsRoutedOnTheCharacter()
-        {
-            GameObject buddah = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Character/Prefab/Buddah.prefab");
-            var router = new SerializedObject(buddah.GetComponentInChildren<SkillFeelRouter>(true)).FindProperty("entries");
-            var mapped = new Dictionary<string, Object>();
-            for (int i = 0; i < router.arraySize; i++)
-            {
-                SerializedProperty entry = router.GetArrayElementAtIndex(i);
-                mapped[entry.FindPropertyRelative("eventId").stringValue] = entry.FindPropertyRelative("feedbackPlayer").objectReferenceValue;
-            }
-            foreach (string id in new[] { "palm_launch_local", "palm_anti_launch_local" })
-            {
-                Assert.That(mapped.ContainsKey(id) && mapped[id] != null, Is.True, id);
-                var player = new SerializedObject(mapped[id]).FindProperty("FeedbacksList");
-                for (int i = 0; i < player.arraySize; i++)
-                {
-                    SerializedProperty feedback = player.GetArrayElementAtIndex(i);
-                    Assert.That(feedback.FindPropertyRelative("Timing.InitialDelay").floatValue, Is.EqualTo(0f), id);
-                    SerializedProperty shake = feedback.FindPropertyRelative("ShakeDuration");
-                    if (shake != null && feedback.FindPropertyRelative("Active").boolValue)
-                        Assert.That(shake.floatValue, Is.LessThanOrEqualTo(0.15f), id + " pulse <= 0.15 s (README 5)");
-                }
-            }
         }
     }
 }

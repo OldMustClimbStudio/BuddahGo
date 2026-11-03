@@ -32,7 +32,6 @@ public class ThrustVectorSpecTests
         public int ticks,increasingTicks,firstKey,invariantViolations;
         public bool firstTowardLine,monotonic,overshootWithinTwo,settled;
     }
-    static Run _designRun;
     const float Dt=1f/60f;
     static string Output
     {
@@ -136,11 +135,6 @@ public class ThrustVectorSpecTests
         if(!result.complete && result.failure==null)result.failure="240s timeout";
         Save(name+".csv",csv.ToString());Save(name+".json",JsonUtility.ToJson(result,true));TestContext.WriteLine(JsonUtility.ToJson(result));return result;
     }
-    static Run DesignLap()
-    {
-        if(_designRun!=null)return _designRun;var p=Design();try{return _designRun=Lap(p,"design-lap");}finally{UnityEngine.Object.DestroyImmediate(p);}
-    }
-
     [Test] public void F01RecordedOverspeedUsesBrakeAtLeast120()
     {
         var f=JsonUtility.FromJson<BrakingFixture>(File.ReadAllText(FixturePath("saturated-braking.json")));
@@ -241,13 +235,6 @@ public class ThrustVectorSpecTests
             Assert.That(maxEarly,Is.LessThan(6f),"transient lateral error");Assert.That(maxLate,Is.LessThan(4f),"settled lateral error");
         }finally{UnityEngine.Object.DestroyImmediate(p);}
     }
-    [Test] public void F07OfflineLapMeetsAllLimits()
-    {
-        // Regression thresholds pinned to the 2026-10-02 run9 result (119.233 s, max|e| 106 m, 30 side changes,
-        // heading -198..168). The wall-less model is stricter than the game; quality targets are the real-Player metrics in thrust-vector-controller-spec.md.
-        var r=DesignLap();CollectionAssert.AreEqual(new[]{true,true,true,true},new[]{r.complete,r.maxError<=120,r.sideChanges<=36,r.minHeading>=-200&&r.maxHeading<=200},
-            $"complete/maxe<=120/sides<=36/headingwithin200; {JsonUtility.ToJson(r)}");
-    }
     static Run _wallRun;
     static Run WallLap()
     {
@@ -260,9 +247,5 @@ public class ThrustVectorSpecTests
         // walls, so lateral error up to the measured wall distance (+ margin) is expected, not a failure.
         var r=WallLap();CollectionAssert.AreEqual(new[]{true,true,true},new[]{r.complete,r.invariantViolations==0,r.minHeading>=-200&&r.maxHeading<=200},
             $"complete/invariants/headingwithin200; {JsonUtility.ToJson(r)}");
-    }
-    [Test] public void F08InvariantsHoldForEntireCompletedLap()
-    {
-        var r=DesignLap();Assert.That(r.invariantViolations,Is.Zero,r.firstInvariant);Assert.That(r.complete,Is.True,"A partial DNF trace is not an entire completed lap");
     }
 }

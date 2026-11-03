@@ -320,9 +320,11 @@ public class RaceFinishManager : NetworkBehaviour
             if (reporter == null || !reporter.IsSpawned || reporter.OwnerId != clientId)
                 continue;
 
-            completionTracker = reporter.GetComponent<RaceCompletionTracker>()
-                ?? reporter.GetComponentInParent<RaceCompletionTracker>()
-                ?? reporter.GetComponentInChildren<RaceCompletionTracker>(true);
+            completionTracker = reporter.GetComponent<RaceCompletionTracker>();
+            if (completionTracker == null)
+                completionTracker = reporter.GetComponentInParent<RaceCompletionTracker>();
+            if (completionTracker == null)
+                completionTracker = reporter.GetComponentInChildren<RaceCompletionTracker>(true);
 
             if (completionTracker != null)
                 return true;

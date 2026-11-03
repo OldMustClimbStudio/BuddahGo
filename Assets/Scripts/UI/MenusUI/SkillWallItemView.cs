@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using SteamMultiplayer.Network;
 using TMPro;
 using UnityEngine;
@@ -43,6 +44,8 @@ namespace SteamMultiplayer.UI
 
         private Coroutine _hoverRoutine;
         private Coroutine _moveRoutine;
+        // Per-renderer copies made by Renderer.material; the renderer never destroys them.
+        private readonly List<Material> _instancedMaterials = new List<Material>();
 
         public string SkillId => _skillId;
         public bool IsSelected => _isSelected;
@@ -55,6 +58,17 @@ namespace SteamMultiplayer.UI
         {
             EnsureCurves();
             _inspectableItem = GetComponent<SkillInspectableItem>();
+        }
+
+        private void OnDestroy()
+        {
+            for (int i = 0; i < _instancedMaterials.Count; i++)
+            {
+                if (_instancedMaterials[i] != null)
+                    Destroy(_instancedMaterials[i]);
+            }
+
+            _instancedMaterials.Clear();
         }
 
         public void Initialize(SkillWallSelectionController controller, SelectablePropertyOption option)
@@ -416,10 +430,16 @@ namespace SteamMultiplayer.UI
             for (int i = 0; i < targetRenderers.Length; i++)
             {
                 Renderer targetRenderer = targetRenderers[i];
-                if (targetRenderer == null || targetRenderer.material == null)
+                if (targetRenderer == null)
                     continue;
 
-                targetRenderer.material.color = targetColor;
+                Material material = targetRenderer.material;
+                if (material == null)
+                    continue;
+
+                if (!_instancedMaterials.Contains(material))
+                    _instancedMaterials.Add(material);
+                material.color = targetColor;
             }
         }
 

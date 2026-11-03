@@ -1,6 +1,6 @@
 # 全项目代码审查与清理（2026-11-03）
 
-工作分支是 `refactor/vfx-refactor`（PR #68），在一念光明会话的 `aafad1b7` 之后共 22 个本地提交。没有 push，也没有开 PR。提交前缀统一用 `docs/chore/fix/test(cleanup)`，每个提交只做一件事。如果以后要把清理从 PR #68 拆出去，可以逐个 cherry-pick。
+工作分支是 `refactor/vfx-refactor`（PR #68），提交是一念光明会话的 `aafad1b7` 之后所有带 `(cleanup)` 前缀的本地提交（`git log --oneline aafad1b7.. --grep='(cleanup)'`）。没有 push，也没有开 PR。提交前缀统一用 `docs/chore/fix/test(cleanup)`，每个提交只做一件事。如果以后要把清理从 PR #68 拆出去，可以逐个 cherry-pick。
 
 和 PR #63（`feat/mechanics-update`）改动范围重叠的文件，这次一律只写报告，标 **[PR#63]**，等它合并后再做。配表、场景、prefab 和资产文件都没有改。
 

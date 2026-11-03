@@ -12,7 +12,8 @@
       "DefaultLoadout",
       "ComboInput",
       "ComboBinding",
-      "Obsession"
+      "Obsession",
+      "VfxRegistry"
     ],
     "Movement": [
       "Movement",
@@ -56,7 +57,6 @@
   "presentationOnly": {
     "Skill": [
       "SkillPresentation",
-      "VfxRegistry",
       "FeelEvent",
       "BlackCurtainPresentation",
       "SkillConstant"
@@ -153,6 +153,10 @@
     "Skill/Obsession": [
       "skill",
       "balance"
+    ],
+    "Skill/VfxRegistry": [
+      "skill",
+      "info"
     ],
     "Movement/Movement": [
       "movement",

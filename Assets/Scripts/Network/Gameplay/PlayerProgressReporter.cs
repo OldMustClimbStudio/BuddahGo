@@ -134,16 +134,6 @@ public class PlayerProgressReporter : NetworkBehaviour
     #region Result area server entry points
 
     [Server]
-    public void EnterResultAreaServer(Vector3 worldPosition, Quaternion worldRotation)
-    {
-        if (!IsServerInitialized)
-            return;
-
-        ApplyResultAreaTeleportLocally(worldPosition, worldRotation);
-        SyncResultAreaTeleportObserversRpc(worldPosition, worldRotation);
-    }
-
-    [Server]
     public void BeginPersonalFinishPresentationServer(float dissolveDurationSeconds, int finishOrder, bool forcedByGlobalEnd)
     {
         ApplyPersonalFinishPresentationLocally(dissolveDurationSeconds, finishOrder, forcedByGlobalEnd);
@@ -177,26 +167,29 @@ public class PlayerProgressReporter : NetworkBehaviour
 
     private void ResolveProgressDependencies()
     {
-        _tracker ??= GetComponent<SplineProgressTracker>();
-        _tracker ??= GetComponentInParent<SplineProgressTracker>();
-        _tracker ??= GetComponentInChildren<SplineProgressTracker>(true);
-
-        _lapTracker ??= GetComponent<LapProgress>();
-        _lapTracker ??= GetComponentInParent<LapProgress>();
-        _lapTracker ??= GetComponentInChildren<LapProgress>(true);
-
-        _completionTracker ??= GetComponent<RaceCompletionTracker>();
-        _completionTracker ??= GetComponentInParent<RaceCompletionTracker>();
-        _completionTracker ??= GetComponentInChildren<RaceCompletionTracker>(true);
-        _rigidbody ??= GetComponent<Rigidbody>();
-        _rigidbody ??= GetComponentInParent<Rigidbody>();
-        _rigidbody ??= GetComponentInChildren<Rigidbody>(true);
-        _respawn ??= GetComponent<BuddahRespawn>();
-        _respawn ??= GetComponentInParent<BuddahRespawn>();
-        _respawn ??= GetComponentInChildren<BuddahRespawn>(true);
-        _finishPresentationController ??= GetComponent<PlayerFinishPresentationController>();
+        _tracker = ResolveNearby(_tracker);
+        _lapTracker = ResolveNearby(_lapTracker);
+        _completionTracker = ResolveNearby(_completionTracker);
+        _rigidbody = ResolveNearby(_rigidbody);
+        _respawn = ResolveNearby(_respawn);
+        if (_finishPresentationController == null)
+            _finishPresentationController = GetComponent<PlayerFinishPresentationController>();
         if (_finishPresentationController == null)
             _finishPresentationController = gameObject.AddComponent<PlayerFinishPresentationController>();
+    }
+
+    // Explicit Unity null checks: ?? / ??= miss the editor's fake-null components and destroyed references.
+    private T ResolveNearby<T>(T current) where T : Component
+    {
+        if (current != null)
+            return current;
+
+        T found = GetComponent<T>();
+        if (found == null)
+            found = GetComponentInParent<T>();
+        if (found == null)
+            found = GetComponentInChildren<T>(true);
+        return found;
     }
 
     private IEnumerator RegisterWithLeaderboardWhenReady()
@@ -232,12 +225,6 @@ public class PlayerProgressReporter : NetworkBehaviour
     #endregion
 
     #region Result area RPCs and local presentation
-
-    [ObserversRpc]
-    private void SyncResultAreaTeleportObserversRpc(Vector3 worldPosition, Quaternion worldRotation)
-    {
-        ApplyResultAreaTeleportLocally(worldPosition, worldRotation);
-    }
 
     private void ApplyResultAreaTeleportLocally(Vector3 worldPosition, Quaternion worldRotation)
     {

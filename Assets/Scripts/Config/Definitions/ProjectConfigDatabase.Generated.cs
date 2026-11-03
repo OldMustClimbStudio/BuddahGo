@@ -23,6 +23,8 @@ public partial class ProjectConfigDatabase
     public List<ComboBindingRecord> comboBindings = new List<ComboBindingRecord>();
     [Header("Skill / Obsession")]
     public List<ObsessionRecord> obsessions = new List<ObsessionRecord>();
+    [Header("Skill / VfxRegistry")]
+    public List<VfxRegistryRecord> vfxRegistries = new List<VfxRegistryRecord>();
     [Header("Movement / Movement")]
     public List<MovementRecord> movements = new List<MovementRecord>();
     [Header("Movement / Respawn")]

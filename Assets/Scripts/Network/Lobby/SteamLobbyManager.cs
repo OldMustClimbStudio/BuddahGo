@@ -156,16 +156,8 @@ namespace SteamMultiplayer.Network
         /// <summary>Fired when joining a lobby fails. Arg = reason string.</summary>
         public event Action<string> OnLobbyJoinFailed;
 
-        /// <summary>Fired when another member enters our current lobby.</summary>
-        public event Action<Friend> OnMemberJoined;
-
-        /// <summary>Fired when a member leaves or disconnects from our current lobby.</summary>
-        public event Action<Friend> OnMemberLeft;
-
         /// <summary>Fired after RefreshLobbyList() completes. Arg = discovered lobbies.</summary>
-        public event Action<List<Lobby>> OnLobbyListRefreshed;
         public event Action<List<LobbyListItemData>> OnLobbyListDataRefreshed;
-        public event Action<string> OnDebugLog;
         public event Action<LobbyFlowState, string> OnFlowStateChanged;
 
         /// <summary>
@@ -334,7 +326,7 @@ namespace SteamMultiplayer.Network
 
         /// <summary>
         /// Fetch the list of public lobbies that match the current app version
-        /// and have at least one open slot. Results come back via OnLobbyListRefreshed.
+        /// and have at least one open slot. Results come back via OnLobbyListDataRefreshed.
         /// </summary>
         public void RefreshLobbyList()
         {
@@ -348,47 +340,10 @@ namespace SteamMultiplayer.Network
             RefreshLobbyListAsync();
         }
 
-        public void PublishDebugLog(string message)
-        {
-            if (!string.IsNullOrWhiteSpace(message))
-                OnDebugLog?.Invoke(message);
-        }
-
         public void SetPendingCreateSettings(LobbyVisibility visibility, int maxPlayers)
         {
             PendingVisibility = visibility;
             PendingMaxPlayers = Mathf.Clamp(maxPlayers, 2, 6);
-        }
-
-        public bool UpdateCurrentLobbySettings(LobbyVisibility visibility, int maxPlayers, string lobbyName = null)
-        {
-            if (!IsInLobby || !CurrentLobby.HasValue || !SteamClient.IsValid)
-                return false;
-
-            Lobby lobby = CurrentLobby.Value;
-            int clampedMaxPlayers = Mathf.Clamp(maxPlayers, 2, 6);
-
-            switch (visibility)
-            {
-                case LobbyVisibility.Public: lobby.SetPublic(); break;
-                case LobbyVisibility.FriendsOnly: lobby.SetFriendsOnly(); break;
-                case LobbyVisibility.Private: lobby.SetPrivate(); break;
-            }
-
-            lobby.MaxMembers = clampedMaxPlayers;
-            lobby.SetData(KEY_VISIBILITY, visibility.ToString());
-            lobby.SetData(KEY_MAX_PLAYERS, clampedMaxPlayers.ToString());
-
-            if (!string.IsNullOrWhiteSpace(lobbyName))
-            {
-                lobby.SetData(KEY_LOBBY_NAME, lobbyName);
-            }
-
-            CurrentLobby = lobby;
-            PendingVisibility = visibility;
-            PendingMaxPlayers = clampedMaxPlayers;
-            PublishDebugLog($"Lobby settings updated: visibility={visibility}, maxPlayers={clampedMaxPlayers}");
-            return true;
         }
 
         // ── Private Async Implementations ─────────────────────────────────────
@@ -446,7 +401,6 @@ namespace SteamMultiplayer.Network
                 SetFlowState(LobbyFlowState.Failed, "GameNetworkManager not found.");
             }
 
-            PublishDebugLog($"Lobby created: {lobby.Id.Value}, visibility={visibility}, maxPlayers={maxPlayers}");
             OnLobbyCreated?.Invoke(lobby);
         }
 
@@ -509,7 +463,6 @@ namespace SteamMultiplayer.Network
                 }
             }
 
-            PublishDebugLog($"Joined lobby: {lobby.Id.Value}, visibility={lobby.GetData(KEY_VISIBILITY)}, maxPlayers={lobby.GetData(KEY_MAX_PLAYERS)}");
             OnLobbyJoined?.Invoke(lobby);
         }
 
@@ -528,8 +481,6 @@ namespace SteamMultiplayer.Network
             var list = lobbies != null ? new List<Lobby>(lobbies) : new List<Lobby>();
             List<LobbyListItemData> dtoList = BuildLobbyListItemData(list);
             NetLog.Info($"[Lobby] List refreshed: {list.Count} lobbies found.");
-            PublishDebugLog($"Lobby list refreshed: {list.Count}");
-            OnLobbyListRefreshed?.Invoke(list);
             OnLobbyListDataRefreshed?.Invoke(dtoList);
             SetFlowState(LobbyFlowState.LobbyListReady, $"Lobby list ready: {list.Count} found.");
         }
@@ -576,16 +527,12 @@ namespace SteamMultiplayer.Network
         {
             if (!IsCurrentLobby(lobby)) return;
             NetLog.Info($"[Lobby] {friend.Name} joined.");
-            PublishDebugLog($"+ {friend.Name} joined. steamId={friend.Id.Value}");
-            OnMemberJoined?.Invoke(friend);
         }
 
         private void Steam_OnMemberLeave(Lobby lobby, Friend friend)
         {
             if (!IsCurrentLobby(lobby)) return;
             NetLog.Info($"[Lobby] {friend.Name} left.");
-            PublishDebugLog($"- {friend.Name} left. steamId={friend.Id.Value}");
-            OnMemberLeft?.Invoke(friend);
             HandlePotentialHostLeft(lobby, friend);
         }
 
@@ -593,8 +540,6 @@ namespace SteamMultiplayer.Network
         {
             if (!IsCurrentLobby(lobby)) return;
             NetLog.Info($"[Lobby] {friend.Name} disconnected.");
-            PublishDebugLog($"- {friend.Name} disconnected. steamId={friend.Id.Value}");
-            OnMemberLeft?.Invoke(friend);   // treat disconnect same as leave for UI
             HandlePotentialHostLeft(lobby, friend);
         }
 
@@ -618,7 +563,6 @@ namespace SteamMultiplayer.Network
             if (friend.Id.Value.ToString() != hostIdStr) return;
 
             NetLog.Warn("[Lobby] Host has left. Disconnecting all clients (no host migration implemented).");
-            PublishDebugLog("Host left.");
             SetFlowState(LobbyFlowState.HostLeft, "Host has left the room.");
 
             // Local cleanup
@@ -699,14 +643,12 @@ namespace SteamMultiplayer.Network
         {
             CurrentFlowState = state;
             CurrentFlowMessage = string.IsNullOrWhiteSpace(message) ? state.ToString() : message;
-            PublishDebugLog($"State: {CurrentFlowState} | {CurrentFlowMessage}");
             OnFlowStateChanged?.Invoke(CurrentFlowState, CurrentFlowMessage);
         }
 
         private void FireCreateFailed(string reason)
         {
             NetLog.Error($"[Lobby] Create failed: {reason}");
-            PublishDebugLog($"Create failed: {reason}");
             SetFlowState(LobbyFlowState.Failed, reason);
             OnLobbyCreateFailed?.Invoke(reason);
         }
@@ -714,7 +656,6 @@ namespace SteamMultiplayer.Network
         private void FireJoinFailed(string reason)
         {
             NetLog.Error($"[Lobby] Join failed: {reason}");
-            PublishDebugLog($"Join failed: {reason}");
             SetFlowState(LobbyFlowState.Failed, reason);
             OnLobbyJoinFailed?.Invoke(reason);
         }

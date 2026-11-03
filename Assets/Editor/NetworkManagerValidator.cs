@@ -99,6 +99,10 @@ namespace SteamMultiplayer.Editor
 
         private void ScanAllScenes()
         {
+            // Each scene is opened in Single mode, so unsaved changes in the open scenes would be lost.
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
             _validationResults.Clear();
 
             // Get all scene assets in the project
@@ -144,14 +148,14 @@ namespace SteamMultiplayer.Editor
             foreach (GameObject root in allGameObjects)
             {
                 var gameNetManagers = root.GetComponentsInChildren<SteamMultiplayer.Network.GameNetworkManager>(true);
-                result.hasGameNetworkManager = gameNetManagers.Length > 0;
-                result.gameNetworkManagerCount = gameNetManagers.Length;
+                result.gameNetworkManagerCount += gameNetManagers.Length;
+            }
+            result.hasGameNetworkManager = result.gameNetworkManagerCount > 0;
 
-                // Check if it uses DontDestroyOnLoad (we can't directly check this, but we can note it)
-                if (result.hasGameNetworkManager)
-                {
-                    result.hasDontDestroyOnLoad = true; // Assumption based on code review
-                }
+            // Check if it uses DontDestroyOnLoad (we can't directly check this, but we can note it)
+            if (result.hasGameNetworkManager)
+            {
+                result.hasDontDestroyOnLoad = true; // Assumption based on code review
             }
 
             // Find MatchSpawnManager

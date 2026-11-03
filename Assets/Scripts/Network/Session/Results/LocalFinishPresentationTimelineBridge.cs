@@ -16,8 +16,6 @@ namespace SteamMultiplayer.Network.Results
         [SerializeField] private bool stopOnRaceReset = true;
         [SerializeField] private bool enableDebugLogs;
 
-        public bool IsPlayingLossOfControlTimeline { get; private set; }
-
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -50,7 +48,6 @@ namespace SteamMultiplayer.Network.Results
             }
 
             playableDirector.Play();
-            IsPlayingLossOfControlTimeline = true;
             DebugLog("PlayLossOfControlTimeline");
         }
 
@@ -59,14 +56,7 @@ namespace SteamMultiplayer.Network.Results
             if (playableDirector != null)
                 playableDirector.Stop();
 
-            IsPlayingLossOfControlTimeline = false;
             DebugLog("StopLossOfControlTimeline");
-        }
-
-        public void HandleLossOfControlPresentationFinishedSignal()
-        {
-            IsPlayingLossOfControlTimeline = false;
-            DebugLog("HandleLossOfControlPresentationFinishedSignal");
         }
 
         public void HandleEnteredResultAreaInteractive()

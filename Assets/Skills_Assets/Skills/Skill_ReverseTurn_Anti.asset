@@ -19,7 +19,10 @@ MonoBehaviour:
   obsessionGain: 0
   antiSkillId: 
   invertDurationSeconds: 10
+  vfxDurationSeconds: 0
   vfxStopPlayingBeforeEndSeconds: 0
-  vfxId: reverse_turn_trap_anti_vfx
+  vfxId: reverse_hit
   vfxLocalOffset: {x: 0, y: 0, z: 0}
   vfxLocalEuler: {x: 0, y: 0, z: 0}
+  observersFeelEventId: 
+  observersFeelStopEventId: 

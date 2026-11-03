@@ -1,7 +1,6 @@
 using BuddahGo.Match;
 using System;
 using FishNet;
-using FishNet.Connection;
 using FishNet.Managing.Debugging;
 using FishNet.Managing;
 using FishNet.Managing.Client;
@@ -62,9 +61,6 @@ namespace SteamMultiplayer.Network
 
         /// <summary>Fired when the local client connection state changes.</summary>
         public event Action<LocalConnectionState> OnClientStateChanged;
-
-        /// <summary>Fired when a remote client connects or disconnects (server-side only).</summary>
-        public event Action<NetworkConnection, RemoteConnectionState> OnRemoteClientStateChanged;
 
         // ───────── Unity Lifecycle ─────────
         private void Awake()
@@ -192,7 +188,6 @@ namespace SteamMultiplayer.Network
         {
             RemoteConnectionState state = args.ConnectionState;
             NetLog.Info($"[Server] Remote client {conn.ClientId} → {state}");
-            OnRemoteClientStateChanged?.Invoke(conn, state);
         }
 
         private void EnsureRoomStateManagerSpawned()

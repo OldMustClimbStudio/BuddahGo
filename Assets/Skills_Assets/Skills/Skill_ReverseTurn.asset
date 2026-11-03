@@ -21,6 +21,9 @@ MonoBehaviour:
   invertDurationSeconds: 10
   vfxDurationSeconds: 0
   vfxStopPlayingBeforeEndSeconds: 0
-  vfxId: reverse_turn_trap_vfx
+  vfxId: reverse_release
   vfxLocalOffset: {x: 0, y: 0, z: 0}
   vfxLocalEuler: {x: 0, y: 0, z: 0}
+  hitVfxId: reverse_hit
+  observersFeelEventId: 
+  observersFeelStopEventId: 

@@ -13,14 +13,20 @@ public class Skill_PushProjectileHands : SkillAction
     [Min(0f)] public float projectileForwardOffset = 0f;
     [Tooltip("Extra height offset added on top of the normal projectile spawn point.")]
     [Min(0f)] public float projectileHeightOffset = 0f;
+    [Tooltip("Peak flight speed (Skill/Push charged `speed`); the shape below scales it over the flight.")]
     [Min(0.1f)] public float projectileSpeed = 18f;
     [Min(0.05f)] public float projectileLifetimeSeconds = 1.2f;
+    [Tooltip("Flight speed as a fraction of projectileSpeed over normalised flight time (0 = launch, 1 = end). Range = projectileSpeed x projectileLifetimeSeconds x area under the curve. Default: the shape tuned on the ink palm (Docs/vfx/push-projectile-hands.md, 飞行速度).")]
+    public AnimationCurve projectileSpeedCurve = ChargedProjectileFlight.DefaultSpeedCurve();
     [Min(0f)] public float projectileImpulseStrength = 12f;
     [SerializeField] public Vector3 projectileColliderSize = new Vector3(1.25f, 1.1f, 1.8f);
-    [SerializeField] private bool ignoreSolidWorld = false;
-    [SerializeField] private GameObject chargedProjectileVfxPrefab;
-    [SerializeField] private string chargedProjectileProgressProperty = "Progress";
-    [SerializeField] private GameObject chargedProjectileLaunchEffectPrefab;
+
+    [Header("VFX (vfx_id rows of Skill.xlsx / VfxRegistry, prefabs in SkillVfxDatabase)")]
+    [Tooltip("Fire animation at the caster (Chg while winding up, Imp at launch).")]
+    [SerializeField] private string vfxId = "palm_release";
+    [Tooltip("The bullet: the ink palm that flies the projectile's path.")]
+    [SerializeField] private string handVfxId = "palm_bullet";
+    [SerializeField] private string buffVfxId = "palm_buff";
 
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = string.Empty;
@@ -53,14 +59,12 @@ public class Skill_PushProjectileHands : SkillAction
             projectileColliderSize,
             projectileForwardOffset,
             projectileHeightOffset,
-            chargedProjectileVfxPrefab,
-            chargedProjectileProgressProperty,
             chargedPushCooldownSeconds,
             true,
-            ignoreSolidWorld,
-            delayedPushActionSeconds);
+            delayedPushActionSeconds,
+            projectileSpeedCurve);
 
-        GameLog.Verbose($"[Skill_PushProjectileHands][Server] Enabled charged projectile push buff for {buffDurationSeconds}s, buildup={buildUpSeconds}s, offset=({projectileForwardOffset},{projectileHeightOffset}), speed={projectileSpeed}, lifetime={projectileLifetimeSeconds}, impulse={projectileImpulseStrength}");
+        GameLog.Verbose($"[Skill_PushProjectileHands][Server] Enabled charged projectile push buff for {buffDurationSeconds}s, buildup={buildUpSeconds}s, offset=({projectileForwardOffset},{projectileHeightOffset}), peakSpeed={projectileSpeed}, lifetime={projectileLifetimeSeconds}, range={ChargedProjectileFlight.Range(projectileSpeedCurve, projectileSpeed, projectileLifetimeSeconds):0}, impulse={projectileImpulseStrength}");
     }
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex)
@@ -73,14 +77,16 @@ public class Skill_PushProjectileHands : SkillAction
         {
             handControl.ConfigureProjectilePushModeLocal(
                 buffDurationSeconds,
-                chargedProjectileVfxPrefab,
-                chargedProjectileProgressProperty,
-                chargedProjectileLaunchEffectPrefab,
+                vfxId,
+                projectileColliderSize,
                 projectileForwardOffset,
                 projectileHeightOffset,
                 chargedPushCooldownSeconds,
                 true,
-                delayedPushActionSeconds);
+                delayedPushActionSeconds,
+                projectileSpeedCurve,
+                handVfxId);
+            handControl.PlayProjectilePushBuffVfxLocal(buffVfxId, buffDurationSeconds);
         }
 
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, buffDurationSeconds);
@@ -97,5 +103,16 @@ public class Skill_PushProjectileHands : SkillAction
             return;
 
         caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, buffDurationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve);
+    }
+
+    // Per shot, the fire animation and the bullet run Chg over buildUpSeconds and Prj over projectileLifetimeSeconds
+    // (ChargedHandProjectileRuntime), then dissolve; the buff state runs Buf for buffDurationSeconds.
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        float shotSeconds = buildUpSeconds + projectileLifetimeSeconds;
+        const string shotSource = "Skill/Push charged windupSeconds + lifetimeSeconds → buildUpSeconds + projectileLifetimeSeconds";
+        AddVfxSlot(into, vfxId, 0f, shotSeconds, shotSource);
+        AddVfxSlot(into, handVfxId, 0f, shotSeconds, shotSource);
+        AddVfxSlot(into, buffVfxId, 0f, buffDurationSeconds, "Skill.effectDurationSeconds → buffDurationSeconds");
     }
 }

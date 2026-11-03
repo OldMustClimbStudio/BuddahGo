@@ -21,7 +21,10 @@ MonoBehaviour:
   slowForwardForce: 45
   slowMaxSpeed: 40
   durationSeconds: 6
+  vfxDurationSeconds: 0
   vfxStopPlayingBeforeEndSeconds: 0
-  vfxId: accel_anti_vfx
+  vfxId: 
   vfxLocalOffset: {x: 0, y: 0, z: -2}
   vfxLocalEuler: {x: 0, y: 180, z: 0}
+  observersFeelEventId: acceleration_anti_observers
+  observersFeelStopEventId: 

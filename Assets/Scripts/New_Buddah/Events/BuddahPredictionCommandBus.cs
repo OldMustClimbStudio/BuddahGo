@@ -9,9 +9,9 @@ namespace NewBuddah.PredictionV2.Events
     // See Docs/prediction-refactor-plan/06-command-bus.md for the routing rules and
     // Docs/prediction-refactor-plan/05-event-channel.md for channel mechanics.
     //
-    // Phase 2 scope: bus exists on the Buddah prefab and owns 4 channels + 4 owner-side TryEnqueue
-    // entry points + 4 server->owner Target_ relays + TryClearChannels. No adapter calls into this
-    // bus yet; the motor still uses old paths. Phase 3/4/5/6 cut adapters over.
+    // The bus lives on the Buddah prefab and owns the Impulse channel, its owner-side TryEnqueue entry
+    // point, the server->owner Target_ relay and TryClearChannels. Teleport and handoff go through
+    // the motor's own queues.
     //
     // Phase 4b V2b Step 0: TryEnqueue* signatures take a uint currentTick (server-canonical clock).
     // RPC handlers stamp via cmd.EventTick verbatim — the cmd carries the server's tick across the
@@ -31,19 +31,10 @@ namespace NewBuddah.PredictionV2.Events
         private const uint A4ProbeLogicalId = uint.MaxValue;
 
         private readonly BuddahPredictionEventChannel<ImpulseCmd> _impulse = new(DefaultChannelCapacity);
-        private readonly BuddahPredictionEventChannel<TeleportCmd> _teleport = new(DefaultChannelCapacity);
-        private readonly BuddahPredictionEventChannel<ModifierCmd> _modifier = new(DefaultChannelCapacity);
-        private readonly BuddahPredictionEventChannel<HandoffCmd> _handoff = new(DefaultChannelCapacity);
 
         private static bool s_firstInvokeImpulse;
-        private static bool s_firstInvokeTeleport;
-        private static bool s_firstInvokeModifier;
-        private static bool s_firstInvokeHandoff;
 
         public BuddahPredictionEventChannel<ImpulseCmd> ImpulseChannel => _impulse;
-        public BuddahPredictionEventChannel<TeleportCmd> TeleportChannel => _teleport;
-        public BuddahPredictionEventChannel<ModifierCmd> ModifierChannel => _modifier;
-        public BuddahPredictionEventChannel<HandoffCmd> HandoffChannel => _handoff;
 
         public bool TryEnqueueImpulse(in ImpulseCmd cmd, uint eventTick, uint logicalId)
         {
@@ -53,47 +44,16 @@ namespace NewBuddah.PredictionV2.Events
             return false;
         }
 
-        public bool TryEnqueueTeleport(in TeleportCmd cmd, uint eventTick, uint logicalId)
-        {
-            if (_teleport.TryEnqueue(cmd, eventTick, logicalId, out _))
-                return true;
-            Debug.LogWarning($"{LogPrefix}:DropFull ch=Teleport capacity={_teleport.Capacity}", this);
-            return false;
-        }
-
-        public bool TryEnqueueModifier(in ModifierCmd cmd, uint eventTick, uint logicalId)
-        {
-            if (_modifier.TryEnqueue(cmd, eventTick, logicalId, out _))
-                return true;
-            Debug.LogWarning($"{LogPrefix}:DropFull ch=Modifier capacity={_modifier.Capacity}", this);
-            return false;
-        }
-
-        public bool TryEnqueueHandoff(in HandoffCmd cmd, uint eventTick, uint logicalId)
-        {
-            if (_handoff.TryEnqueue(cmd, eventTick, logicalId, out _))
-                return true;
-            Debug.LogWarning($"{LogPrefix}:DropFull ch=Handoff capacity={_handoff.Capacity}", this);
-            return false;
-        }
-
         public int TryClearChannels(BuddahPredictionChannelMask mask)
         {
             int impulsePre = (mask & BuddahPredictionChannelMask.Impulse) != 0 ? _impulse.Count : 0;
-            int teleportPre = (mask & BuddahPredictionChannelMask.Teleport) != 0 ? _teleport.Count : 0;
-            int modifierPre = (mask & BuddahPredictionChannelMask.Modifier) != 0 ? _modifier.Count : 0;
-            int handoffPre = (mask & BuddahPredictionChannelMask.Handoff) != 0 ? _handoff.Count : 0;
-            int total = impulsePre + teleportPre + modifierPre + handoffPre;
 
             if ((mask & BuddahPredictionChannelMask.Impulse) != 0) _impulse.Clear();
-            if ((mask & BuddahPredictionChannelMask.Teleport) != 0) _teleport.Clear();
-            if ((mask & BuddahPredictionChannelMask.Modifier) != 0) _modifier.Clear();
-            if ((mask & BuddahPredictionChannelMask.Handoff) != 0) _handoff.Clear();
 
             GameLog.Verbose(
-                $"{LogPrefix}:ClearAll mask={mask} total={total} impulse={impulsePre} teleport={teleportPre} modifier={modifierPre} handoff={handoffPre}",
+                $"{LogPrefix}:ClearAll mask={mask} total={impulsePre} impulse={impulsePre}",
                 this);
-            return total;
+            return impulsePre;
         }
 
         // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once.
@@ -119,51 +79,6 @@ namespace NewBuddah.PredictionV2.Events
                 $"{LogPrefix}:Recv ch=Impulse linear={cmd.LinearImpulse} turn={cmd.TurnImpulse} srcType={cmd.SourceType} srcObj={cmd.SourceObjectId} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
                 this);
             TryEnqueueImpulse(cmd, cmd.EventTick, cmd.LogicalId);
-        }
-
-        // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once. See comment above Target_EnqueueImpulse.
-        [TargetRpc(RunLocally = false, ExcludeServer = false)]
-        public void Target_EnqueueTeleport(NetworkConnection target, TeleportCmd cmd)
-        {
-            if (!s_firstInvokeTeleport)
-            {
-                s_firstInvokeTeleport = true;
-                GameLog.Verbose($"{LogPrefix}:FirstInvoke ch=Teleport", this);
-            }
-            GameLog.Verbose(
-                $"{LogPrefix}:Recv ch=Teleport pos={cmd.Pos} rot={cmd.Rot.eulerAngles} prog={cmd.Progress01:F3} src={cmd.Source} flags={cmd.Flags} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
-                this);
-            TryEnqueueTeleport(cmd, cmd.EventTick, cmd.LogicalId);
-        }
-
-        // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once. See comment above Target_EnqueueImpulse.
-        [TargetRpc(RunLocally = false, ExcludeServer = false)]
-        public void Target_EnqueueModifier(NetworkConnection target, ModifierCmd cmd)
-        {
-            if (!s_firstInvokeModifier)
-            {
-                s_firstInvokeModifier = true;
-                GameLog.Verbose($"{LogPrefix}:FirstInvoke ch=Modifier", this);
-            }
-            GameLog.Verbose(
-                $"{LogPrefix}:Recv ch=Modifier kind={cmd.Kind} mag={cmd.Magnitude:F3} dur={cmd.Duration:F3} stack={cmd.StackPolicy} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
-                this);
-            TryEnqueueModifier(cmd, cmd.EventTick, cmd.LogicalId);
-        }
-
-        // ASSUMPTION A4: TargetRpc on ClientHost fires exactly once. See comment above Target_EnqueueImpulse.
-        [TargetRpc(RunLocally = false, ExcludeServer = false)]
-        public void Target_EnqueueHandoff(NetworkConnection target, HandoffCmd cmd)
-        {
-            if (!s_firstInvokeHandoff)
-            {
-                s_firstInvokeHandoff = true;
-                GameLog.Verbose($"{LogPrefix}:FirstInvoke ch=Handoff", this);
-            }
-            GameLog.Verbose(
-                $"{LogPrefix}:Recv ch=Handoff pos={cmd.SnapshotPosition} inherit={cmd.Inherit:F3} blend={cmd.Blend:F3} bypass={cmd.Bypass:F3} suppressTurn={cmd.SuppressTurn:F3} flags={cmd.Flags} eventTick={cmd.EventTick} logicalId={cmd.LogicalId}",
-                this);
-            TryEnqueueHandoff(cmd, cmd.EventTick, cmd.LogicalId);
         }
 
 #if UNITY_EDITOR

@@ -24,16 +24,56 @@ MonoBehaviour:
   delayedPushActionSeconds: 0.9
   projectileForwardOffset: 0
   projectileHeightOffset: 30
-  projectileSpeed: 600
+  projectileSpeed: 890
   projectileLifetimeSeconds: 3
+  projectileSpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.093333334
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.53333336
+      value: 0.3
+      inSlope: -0.90000004
+      outSlope: -0.90000004
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   projectileImpulseStrength: 500
   projectileColliderSize: {x: 60, y: 90, z: 20}
   ignoreSolidWorld: 0
-  chargedProjectileVfxPrefab: {fileID: 7723998844055832870, guid: 5a7021ddd233f424a86a80b8617d8bc8,
-    type: 3}
-  chargedProjectileProgressProperty: Progress
-  chargedProjectileLaunchEffectPrefab: {fileID: 6236616147283731250, guid: 3383cc1a59c868f4db6e83c4d34f77c8,
-    type: 3}
+  vfxId: palm_release
+  handVfxId: palm_bullet
+  buffVfxId: palm_buff
   observersFeelEventId: 
   observersFeelStopEventId: 
   localCasterBuffFovBoost: 30

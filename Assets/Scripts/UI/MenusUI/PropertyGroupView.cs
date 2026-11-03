@@ -20,8 +20,6 @@ namespace SteamMultiplayer.UI
         private SelectablePropertyDefinition _definition;
         private PropertiesSelectionManager _selectionManager;
 
-        public string PropertyKey => _definition.PropertyKey;
-
         public void Bind(SelectablePropertyDefinition definition, PropertiesSelectionManager selectionManager)
         {
             _definition = definition;

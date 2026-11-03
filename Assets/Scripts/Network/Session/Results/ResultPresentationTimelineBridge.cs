@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using Cinemachine;
 using SteamMultiplayer.Network;
@@ -39,18 +38,8 @@ namespace SteamMultiplayer.Network.Results
         public float BlackScreenFullyCoveredDelaySeconds => Mathf.Max(blackScreenStartDelaySeconds, blackScreenFullyCoveredDelaySeconds);
         public float BlackScreenEndDelaySeconds => Mathf.Max(BlackScreenFullyCoveredDelaySeconds, blackScreenEndDelaySeconds);
         public float TimelineFinishedDelaySeconds => Mathf.Max(BlackScreenEndDelaySeconds, timelineFinishedDelaySeconds);
-        public bool UseFallbackTimelineDelays => useFallbackTimelineDelays;
         public bool IsSharedPresentationCameraActive { get; private set; }
         public bool IsPresentationCameraLocked => _presentationCameraLocked;
-        public bool HasBlackScreenStarted => _blackScreenStartedInvoked;
-        public bool HasBlackScreenFullyCovered => _blackScreenReachedInvoked;
-        public bool HasBlackScreenEnded => _blackScreenFinishedInvoked;
-        public bool HasTimelineFinished => _presentationCompleteInvoked;
-
-        public event Action BlackScreenStarted;
-        public event Action BlackScreenFullyCovered;
-        public event Action BlackScreenEnded;
-        public event Action TimelineFinished;
 
         private void Awake()
         {
@@ -99,7 +88,6 @@ namespace SteamMultiplayer.Network.Results
                 return;
 
             _blackScreenStartedInvoked = true;
-            BlackScreenStarted?.Invoke();
             DebugLog("OnBlackScreenStart");
         }
 
@@ -111,7 +99,6 @@ namespace SteamMultiplayer.Network.Results
             _blackScreenReachedInvoked = true;
             _presentationCameraLocked = true;
             SetSharedPresentationCameraActive(true);
-            BlackScreenFullyCovered?.Invoke();
             if (MatchResultPresentationCoordinator.Instance != null
                 && MatchResultPresentationCoordinator.Instance.IsServerInitialized)
             {
@@ -126,7 +113,6 @@ namespace SteamMultiplayer.Network.Results
                 return;
 
             _blackScreenFinishedInvoked = true;
-            BlackScreenEnded?.Invoke();
             DebugLog("OnBlackScreenEnd");
         }
 
@@ -138,7 +124,6 @@ namespace SteamMultiplayer.Network.Results
             _presentationCompleteInvoked = true;
             if (playableDirector != null)
                 playableDirector.Stop();
-            TimelineFinished?.Invoke();
             if (keepSharedCameraDuringResultArea && _presentationCameraLocked)
                 SetSharedPresentationCameraActive(true);
             if (MatchResultPresentationCoordinator.Instance != null
@@ -159,16 +144,6 @@ namespace SteamMultiplayer.Network.Results
         public void HandleTimelineBlackScreenReachedSignal()
         {
             OnBlackScreenFullyCovered();
-        }
-
-        public void HandleTimelineBlackScreenStartSignal()
-        {
-            OnBlackScreenStart();
-        }
-
-        public void HandleTimelineBlackScreenFinishedSignal()
-        {
-            OnBlackScreenEnd();
         }
 
         public void HandleResultPresentationCompleteSignal()

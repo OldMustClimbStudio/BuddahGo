@@ -173,19 +173,26 @@ namespace SteamMultiplayer.Network.Results
             _dissolveRoutine = null;
         }
 
+        // Explicit Unity null check: ?? misses the editor's fake-null result of GetComponent.
+        private T FindOnSelfOrParent<T>() where T : Component
+        {
+            T found = GetComponent<T>();
+            return found != null ? found : GetComponentInParent<T>();
+        }
+
         private void ResolveReferences()
         {
             if (_networkObject == null)
-                _networkObject = GetComponent<NetworkObject>() ?? GetComponentInParent<NetworkObject>();
+                _networkObject = FindOnSelfOrParent<NetworkObject>();
 
             if (_movement == null)
-                _movement = GetComponent<BuddahMovement>() ?? GetComponentInParent<BuddahMovement>();
+                _movement = FindOnSelfOrParent<BuddahMovement>();
 
             if (_rigidbody == null)
-                _rigidbody = GetComponent<Rigidbody>() ?? GetComponentInParent<Rigidbody>();
+                _rigidbody = FindOnSelfOrParent<Rigidbody>();
 
             if (_predictionPresentationBridge == null)
-                _predictionPresentationBridge = GetComponent<BuddahPredictionPresentationBridge>() ?? GetComponentInParent<BuddahPredictionPresentationBridge>();
+                _predictionPresentationBridge = FindOnSelfOrParent<BuddahPredictionPresentationBridge>();
 
             if (_colliders == null || _colliders.Length == 0)
                 _colliders = GetComponentsInChildren<Collider>(includeInactiveRenderers);

@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Collections.Generic;
+using BuddahGo.VFX;
 using UnityEngine;
 using UnityEngine.Playables;
 using UnityEngine.VFX;
@@ -16,6 +18,8 @@ public class VfxStartupWarmup : MonoBehaviour
 
     [Header("Prefab Warmup")]
     [SerializeField] private GameObject[] vfxPrefabs;
+    [Tooltip("Also warms every SkillVfxDatabase prefab whose VFX table row (Skill.xlsx / VfxRegistry) has warmup = true.")]
+    [SerializeField] private SkillVfxDatabase skillVfxDatabase;
     [SerializeField] private Transform warmupAnchor;
     [SerializeField] private float keepAliveSeconds = 0.1f;
 
@@ -67,16 +71,36 @@ public class VfxStartupWarmup : MonoBehaviour
         Debug.Log($"[VfxStartupWarmup] Shader warmup done. collections={warmed}", this);
     }
 
+    private List<GameObject> CollectPrefabs()
+    {
+        var prefabs = new List<GameObject>();
+        if (vfxPrefabs != null)
+            prefabs.AddRange(vfxPrefabs);
+
+        if (skillVfxDatabase != null && skillVfxDatabase.entries != null)
+        {
+            foreach (SkillVfxDatabase.Entry entry in skillVfxDatabase.entries)
+            {
+                if (entry == null || entry.prefab == null || prefabs.Contains(entry.prefab))
+                    continue;
+                if (SkillVfxTable.TryGetRecord(entry.vfxId, out VfxRegistryRecord row) && row.warmup)
+                    prefabs.Add(entry.prefab);
+            }
+        }
+        return prefabs;
+    }
+
     private IEnumerator WarmupPrefabs()
     {
-        if (vfxPrefabs == null || vfxPrefabs.Length == 0)
+        List<GameObject> prefabs = CollectPrefabs();
+        if (prefabs.Count == 0)
             yield break;
 
         int warmed = 0;
         Vector3 pos = warmupAnchor != null ? warmupAnchor.position : transform.position;
         Quaternion rot = warmupAnchor != null ? warmupAnchor.rotation : transform.rotation;
 
-        foreach (var prefab in vfxPrefabs)
+        foreach (var prefab in prefabs)
         {
             if (prefab == null)
                 continue;

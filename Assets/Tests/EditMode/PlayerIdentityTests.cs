@@ -34,29 +34,30 @@ namespace BuddahGo.Tests
             }
         }
 
-        [TestCase(-1, "Player -1")]
-        [TestCase(0, "Player 0")]
-        [TestCase(42, "Player 42")]
-        public void FallbackNamesPreserveClientId(int id, string expected)
-        {
-            Assert.That(PlayerIdentity.FallbackName(id), Is.EqualTo(expected));
-            // Steamworks uses platform-specific DLL names. Reflect this nullable-Lobby boundary
-            // so the pure fallback test does not hardcode one native platform's assembly reference.
-            Type lobbyType = AppDomain.CurrentDomain.GetAssemblies()
-                .Select(a => a.GetType("Steamworks.Data.Lobby")).FirstOrDefault(t => t != null);
-            Assert.That(lobbyType, Is.Not.Null, "Steamworks Lobby type must be loaded.");
-            var resolve = typeof(PlayerIdentity).GetMethod("ResolvePlayerName",
-                new[] { typeof(string), typeof(int), typeof(Nullable<>).MakeGenericType(lobbyType) });
-            Assert.That(resolve, Is.Not.Null, "Resolve the exact nullable-Lobby overload.");
-            Assert.That(resolve.Invoke(null, new object[] { null, id, null }), Is.EqualTo(expected));
-        }
-
         [Test]
-        public void MissingConnectionAndTransportUseExistingSentinels()
+        public void FallbackNamesAndSentinelsCoverMissingIdentity()
         {
-            Assert.That(PlayerIdentity.GetLocalClientId(null), Is.EqualTo(-1));
-            Assert.That(PlayerIdentity.GetSteamIdForConnection(null, null), Is.Empty);
-            Assert.That(PlayerIdentity.GetLocalClientId(new NetworkConnection()), Is.EqualTo(-1));
+            EveryCase.Parts(
+                ("fallback names preserve the client id", () =>
+                    EveryCase.Check(new[] { (id: -1, expected: "Player -1"), (id: 0, expected: "Player 0"), (id: 42, expected: "Player 42") }, c =>
+                    {
+                        Assert.That(PlayerIdentity.FallbackName(c.id), Is.EqualTo(c.expected));
+                        // Steamworks uses platform-specific DLL names. Reflect this nullable-Lobby boundary
+                        // so the pure fallback test does not hardcode one native platform's assembly reference.
+                        Type lobbyType = AppDomain.CurrentDomain.GetAssemblies()
+                            .Select(a => a.GetType("Steamworks.Data.Lobby")).FirstOrDefault(t => t != null);
+                        Assert.That(lobbyType, Is.Not.Null, "Steamworks Lobby type must be loaded.");
+                        var resolve = typeof(PlayerIdentity).GetMethod("ResolvePlayerName",
+                            new[] { typeof(string), typeof(int), typeof(Nullable<>).MakeGenericType(lobbyType) });
+                        Assert.That(resolve, Is.Not.Null, "Resolve the exact nullable-Lobby overload.");
+                        Assert.That(resolve.Invoke(null, new object[] { null, c.id, null }), Is.EqualTo(c.expected));
+                    })),
+                ("a missing connection and transport use the existing sentinels", () =>
+                {
+                    Assert.That(PlayerIdentity.GetLocalClientId(null), Is.EqualTo(-1));
+                    Assert.That(PlayerIdentity.GetSteamIdForConnection(null, null), Is.Empty);
+                    Assert.That(PlayerIdentity.GetLocalClientId(new NetworkConnection()), Is.EqualTo(-1));
+                }));
         }
     }
 

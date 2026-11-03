@@ -9,6 +9,10 @@ public class Skill_Giant_Anti : SkillAction
     [Min(0f)] public float shrinkDurationSeconds = 0.25f;
     [Min(0f)] public float restoreDurationSeconds = 0.25f;
 
+    [Header("VFX")]
+    [Tooltip("Reaction (red) slot played on the caster while shrunk. Empty = none (only the shared cast_anti wind-up).")]
+    [SerializeField] public string releaseVfxId = string.Empty;
+
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = string.Empty;
     [SerializeField] private string observersFeelStopEventId = string.Empty;
@@ -22,6 +26,7 @@ public class Skill_Giant_Anti : SkillAction
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
     {
         ScaleSkillPresentation.ApplyScaleEffect(caster, scaleMultiplier, durationSeconds, shrinkDurationSeconds, restoreDurationSeconds);
+        PlaySlotOnCaster(caster, releaseVfxId, durationSeconds);
 
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, durationSeconds);
         GameLog.Verbose($"[Skill_Giant_Anti][Observers] '{skillId}' triggered (slot {slotIndex})");
@@ -35,4 +40,9 @@ public class Skill_Giant_Anti : SkillAction
         ScaleSkillPresentation.ResetLocalCamera(caster, GetType().Name);
     }
 
+
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, releaseVfxId, 0f, durationSeconds, "Skill.effectDurationSeconds → durationSeconds");
+    }
 }

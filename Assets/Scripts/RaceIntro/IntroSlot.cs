@@ -38,24 +38,10 @@ public class IntroSlot : MonoBehaviour
     public Transform LaunchPoint => launchPoint;
     public Transform ForwardReference => forwardReference;
     public IntroPath IntroPath => introPath;
-    public VisualStyle SlotVisualStyle => visualStyle;
-    public Vector3 RootPositionOffset => rootPositionOffset;
-    public Quaternion RootRotationOffset => Quaternion.Euler(rootEulerOffset);
 
     public Vector3 GetLaunchPosition()
     {
         return launchPoint != null ? launchPoint.position : transform.position;
-    }
-
-    public Vector3 GetLaunchForward()
-    {
-        if (forwardReference != null)
-            return forwardReference.forward.normalized;
-
-        if (launchPoint != null)
-            return launchPoint.forward.normalized;
-
-        return transform.forward.normalized;
     }
 
     public void BindPathToSlot()

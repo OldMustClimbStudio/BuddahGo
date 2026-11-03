@@ -9,9 +9,49 @@ namespace BuddahGo.Tests
         private const double Step = 1d / 60d;
 
         [Test]
-        public void EmptyHistoryDoesNotInventPose()
+        public void BufferEdgeCases()
         {
-            Assert.False(new SoloPresentationTimeline(Step).TrySample(10, out _, out _));
+            EveryCase.Parts(
+                ("an empty history does not invent a pose", () =>
+                    Assert.False(new SoloPresentationTimeline(Step).TrySample(10, out _, out _))),
+                ("a duplicate time replaces the observation but older samples cannot rewind", () =>
+                {
+                    var history = new SoloPresentationTimeline(Step);
+                    history.Record(2, Vector3.zero, Quaternion.identity);
+                    history.Record(2, Vector3.right, Quaternion.identity);
+                    Assert.False(history.Record(1, Vector3.left, Quaternion.identity));
+                    Assert.That(history.Count, Is.EqualTo(1));
+                    history.TrySample(3, out var pose, out _);
+                    Assert.That(pose, Is.EqualTo(Vector3.right));
+                }),
+                ("underflow clamps without extrapolating the launch velocity", () =>
+                {
+                    var history = new SoloPresentationTimeline(Step);
+                    history.Record(1, Vector3.zero, Quaternion.identity);
+                    history.Record(2, Vector3.right * 60, Quaternion.identity);
+                    history.TrySample(4, out var after, out _);
+                    history.TrySample(0, out var before, out _);
+                    Assert.That(after.x, Is.EqualTo(60));
+                    Assert.That(before.x, Is.Zero);
+                }),
+                ("a reset for teleport, control or rematch discards all old motion", () =>
+                {
+                    var history = new SoloPresentationTimeline(Step);
+                    history.Record(10, Vector3.right * 600, Quaternion.identity);
+                    history.Clear();
+                    history.Record(1, Vector3.left, Quaternion.identity);
+                    history.TrySample(1, out var position, out _);
+                    Assert.That(position, Is.EqualTo(Vector3.left));
+                    Assert.That(history.Count, Is.EqualTo(1));
+                }),
+                ("a bounded buffer retains the newest samples", () =>
+                {
+                    var history = new SoloPresentationTimeline(Step, 3);
+                    for (int i = 0; i < 100; i++) history.Record(i, Vector3.right * i, Quaternion.identity);
+                    history.TrySample(-1, out var first, out _);
+                    Assert.That(first.x, Is.EqualTo(97));
+                    Assert.That(history.Count, Is.EqualTo(3));
+                }));
         }
 
         [Test]
@@ -44,62 +84,16 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void DuplicateTimeReplacesObservationButOlderSamplesCannotRewind()
+        public void GoEpochUsesOneFixedBoundaryAndNeverRoundsEarlier()
         {
-            var history = new SoloPresentationTimeline(Step);
-            history.Record(2, Vector3.zero, Quaternion.identity);
-            history.Record(2, Vector3.right, Quaternion.identity);
-            Assert.False(history.Record(1, Vector3.left, Quaternion.identity));
-            Assert.That(history.Count, Is.EqualTo(1));
-            history.TrySample(3, out var pose, out _);
-            Assert.That(pose, Is.EqualTo(Vector3.right));
-        }
-
-        [Test]
-        public void UnderflowClampsWithoutExtrapolatingLaunchVelocity()
-        {
-            var history = new SoloPresentationTimeline(Step);
-            history.Record(1, Vector3.zero, Quaternion.identity);
-            history.Record(2, Vector3.right * 60, Quaternion.identity);
-            history.TrySample(4, out var after, out _);
-            history.TrySample(0, out var before, out _);
-            Assert.That(after.x, Is.EqualTo(60));
-            Assert.That(before.x, Is.Zero);
-        }
-
-        [Test]
-        public void ResetForTeleportControlOrRematchDiscardsAllOldMotion()
-        {
-            var history = new SoloPresentationTimeline(Step);
-            history.Record(10, Vector3.right * 600, Quaternion.identity);
-            history.Clear();
-            history.Record(1, Vector3.left, Quaternion.identity);
-            history.TrySample(1, out var position, out _);
-            Assert.That(position, Is.EqualTo(Vector3.left));
-            Assert.That(history.Count, Is.EqualTo(1));
-        }
-
-        [Test]
-        public void BoundedBufferRetainsNewestSamples()
-        {
-            var history = new SoloPresentationTimeline(Step, 3);
-            for (int i = 0; i < 100; i++) history.Record(i, Vector3.right * i, Quaternion.identity);
-            history.TrySample(-1, out var first, out _);
-            Assert.That(first.x, Is.EqualTo(97));
-            Assert.That(history.Count, Is.EqualTo(3));
-        }
-
-        [TestCase(0.0)]
-        [TestCase(0.001)]
-        [TestCase(0.008)]
-        [TestCase(0.0166)]
-        public void GoEpochUsesOneFixedBoundaryAndNeverRoundsEarlier(double phase)
-        {
-            double localGo = 10 + phase;
-            double aligned = SoloPresentationTimeline.AlignGoToPhysics(2, 102, 110 + phase, 2, Step);
-            Assert.That(aligned, Is.GreaterThanOrEqualTo(localGo - 1e-12));
-            Assert.That(aligned - localGo, Is.LessThan(Step + 1e-12));
-            Assert.That((aligned - 2) / Step, Is.EqualTo(System.Math.Round((aligned - 2) / Step)).Within(1e-10));
+            EveryCase.Check(new[] { 0.0, 0.001, 0.008, 0.0166 }, phase =>
+            {
+                double localGo = 10 + phase;
+                double aligned = SoloPresentationTimeline.AlignGoToPhysics(2, 102, 110 + phase, 2, Step);
+                Assert.That(aligned, Is.GreaterThanOrEqualTo(localGo - 1e-12));
+                Assert.That(aligned - localGo, Is.LessThan(Step + 1e-12));
+                Assert.That((aligned - 2) / Step, Is.EqualTo(System.Math.Round((aligned - 2) / Step)).Within(1e-10));
+            }, phase => "phase=" + phase);
         }
 
         [Test]

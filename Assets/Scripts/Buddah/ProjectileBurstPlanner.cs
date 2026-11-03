@@ -12,15 +12,12 @@ internal struct ProjectileBurstParameters
     internal Vector3 projectileColliderSize;
     internal bool reverseDirection;
     internal bool allowSelfHit;
-    internal bool ignoreSolidWorld;
     internal float hitTurnTorqueImpulse;
     internal float additionalForwardSpawnOffset;
     internal float additionalHeightSpawnOffset;
     internal bool spawnServerHitboxes;
-    internal bool spawnVisuals;
-    internal GameObject visualPrefabOverride;
-    internal string progressPropertyOverride;
     internal string replicatedSkillId;
+    internal AnimationCurve speedCurve;   // flight shape (ChargedProjectileFlight)
 }
 
 internal static class ProjectileBurstPlanner

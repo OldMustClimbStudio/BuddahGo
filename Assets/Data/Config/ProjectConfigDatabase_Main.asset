@@ -222,7 +222,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 5
     castLockSeconds: 3
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 3
   - skillId: slowtrap_anti
@@ -233,7 +233,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 3
     castLockSeconds: 1
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 1
   - skillId: blackcurtain_anti
@@ -244,7 +244,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 16
     castLockSeconds: 14
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 10
   - skillId: giant_anti
@@ -255,7 +255,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 8
     castLockSeconds: 6
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 6
   - skillId: push_projectile_hands_anti
@@ -266,7 +266,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 10
     castLockSeconds: 10
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 0
   - skillId: reverseturn_anti
@@ -277,7 +277,7 @@ MonoBehaviour:
     antiSkillId: 
     cooldownSeconds: 12
     castLockSeconds: 10
-    castConfirmDelaySeconds: 1
+    castConfirmDelaySeconds: 2
     obsessionGain: 0
     effectDurationSeconds: 10
   skillEffectAccelerations:
@@ -359,7 +359,7 @@ MonoBehaviour:
     delayedPushActionSeconds: 0.9
     lifetimeSeconds: 3
     impulseStrength: 500
-    speed: 600
+    speed: 890
     forwardOffset: 0
     heightOffset: 30
     sideOffset: 0
@@ -376,7 +376,7 @@ MonoBehaviour:
     delayedPushActionSeconds: 0
     lifetimeSeconds: 2
     impulseStrength: 600
-    speed: 600
+    speed: 900
     forwardOffset: 100
     heightOffset: 30
     sideOffset: 0
@@ -421,6 +421,189 @@ MonoBehaviour:
     backfireK: 0.008
     backfireMidpointX: 500
     backfireKeepPMaxAtOrAboveX: 1000
+  vfxRegistries:
+  - vfxId: palm_release
+    prefabPath: "Assets/VFX/\u5982\u6765\u795E\u638C/Release/VFX_Palm_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 1
+    impFrames: 4
+    disSeconds: 0.4
+    linSeconds: 0
+    bufFadeSeconds: 0.3
+    trailSeconds: 0.25
+    scaleMultiplier: 1
+    lightSeconds: 0.3
+    lightIntensity: 1
+  - vfxId: palm_bullet
+    prefabPath: "Assets/VFX/\u5982\u6765\u795E\u638C/Bullet/VFX_Palm_Bullet.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: palm_release_anti
+    prefabPath: "Assets/VFX/\u5982\u6765\u795E\u638C/Release/VFX_Palm_Release_Anti.prefab"
+    warmup: 1
+    antiOf: palm_release
+    chgRatio: 1
+    impFrames: 4
+    disSeconds: 0.4
+    linSeconds: 0
+    bufFadeSeconds: 0.3
+    trailSeconds: 0.125
+    scaleMultiplier: 1
+    lightSeconds: 0.3
+    lightIntensity: 1
+  - vfxId: palm_bullet_anti
+    prefabPath: "Assets/VFX/\u5982\u6765\u795E\u638C/Bullet/VFX_Palm_Bullet_Anti.prefab"
+    warmup: 1
+    antiOf: palm_bullet
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: palm_buff
+    prefabPath: "Assets/VFX/\u5982\u6765\u795E\u638C/Buff/VFX_Palm_Buff.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 1
+    impFrames: 4
+    disSeconds: 0.4
+    linSeconds: 0
+    bufFadeSeconds: 0.3
+    trailSeconds: 0.25
+    scaleMultiplier: 1
+    lightSeconds: 0.3
+    lightIntensity: 1
+  - vfxId: accel_release
+    prefabPath: "Assets/VFX/\u795E\u8DB3\u901A/Release/VFX_Accel_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: slow_release
+    prefabPath: "Assets/VFX/\u7985\u5B9A\u7F13\u6D41/Release/VFX_Slow_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: reverse_hit
+    prefabPath: "Assets/VFX/\u8F6C\u5411\u53CD\u8F6C/Hit/VFX_Reverse_Hit.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: curtain_hit
+    prefabPath: "Assets/VFX/\u4E00\u5FF5\u5149\u660E/Hit/VFX_Curtain_Hit.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: cast
+    prefabPath: "Assets/VFX/\u901A\u7528\u524D\u6447/Cast/VFX_Common_Cast.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: cast_anti
+    prefabPath: "Assets/VFX/\u901A\u7528\u524D\u6447/Cast/VFX_Common_Cast_Anti.prefab"
+    warmup: 1
+    antiOf: cast
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: giant_release
+    prefabPath: "Assets/VFX/\u5DE8\u5927\u5316/Release/VFX_Giant_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: reverse_release
+    prefabPath: "Assets/VFX/\u8F6C\u5411\u53CD\u8F6C/Release/VFX_Reverse_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: curtain_release
+    prefabPath: "Assets/VFX/\u4E00\u5FF5\u5149\u660E/Release/VFX_Curtain_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
   movements:
   - profileId: default
     forwardForce: 50

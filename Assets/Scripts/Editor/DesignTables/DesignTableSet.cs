@@ -161,10 +161,6 @@ namespace BuddahGo.DesignTables
             return Find(string.IsNullOrEmpty(refWorkbook) ? currentWorkbook : refWorkbook, refSheet);
         }
 
-        public bool IsExported(DesignSheet sheet)
-        {
-            return ExportTargets.ContainsKey(sheet.Workbook + "/" + sheet.Name);
-        }
 
         /// <summary>Workbooks a sheet depends on through #ref columns (the sheet's own workbook included).</summary>
         public HashSet<string> DependencyWorkbooks(DesignSheet sheet)

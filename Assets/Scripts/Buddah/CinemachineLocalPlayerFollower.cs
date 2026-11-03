@@ -64,12 +64,12 @@ public class CinemachineLocalPlayerFollower : MonoBehaviour
             {
                 localPlayer.SetFollowTargetOverride(
                     spectatorTarget.transform,
-                    spectatorTarget.GetComponent<Rigidbody>() ?? spectatorTarget.GetComponentInParent<Rigidbody>());
+                    FindBody(spectatorTarget));
                 localPlayer.SetPresentationMode(PlayerCamera.CameraPresentationMode.Spectator);
                 localPlayer.GetComponent<BuddahPredictionCameraBridge>()?.ReportFollowTarget(
                     PlayerCamera.CameraPresentationMode.Spectator,
                     spectatorTarget.transform,
-                    spectatorTarget.GetComponent<Rigidbody>() ?? spectatorTarget.GetComponentInParent<Rigidbody>(),
+                    FindBody(spectatorTarget),
                     "CinemachineFollower.Spectator");
             }
             else
@@ -84,7 +84,7 @@ public class CinemachineLocalPlayerFollower : MonoBehaviour
                         ? PlayerCamera.CameraPresentationMode.ResultArea
                         : PlayerCamera.CameraPresentationMode.Normal,
                     localPlayer.transform,
-                    localPlayer.GetComponent<Rigidbody>() ?? localPlayer.GetComponentInParent<Rigidbody>(),
+                    FindBody(localPlayer),
                     "CinemachineFollower.NormalOrResult");
             }
 
@@ -112,8 +112,19 @@ public class CinemachineLocalPlayerFollower : MonoBehaviour
         }
     }
 
+    // Unity objects must not go through ??: in the editor a missing GetComponent result is a fake null that ?? keeps.
+    private static Rigidbody FindBody(Component target)
+    {
+        Rigidbody body = target.GetComponent<Rigidbody>();
+        return body != null ? body : target.GetComponentInParent<Rigidbody>();
+    }
+
     private PlayerCamera FindLocalPlayer()
     {
+        // The owner's camera stays the same for the whole race: search the scene again only once it is gone.
+        if (_currentLocalPlayer != null && _currentLocalPlayer.gameObject.activeInHierarchy && _currentLocalPlayer.IsOwner)
+            return _currentLocalPlayer;
+
         PlayerCamera[] allPlayers = FindObjectsOfType<PlayerCamera>();
 
         foreach (PlayerCamera player in allPlayers)

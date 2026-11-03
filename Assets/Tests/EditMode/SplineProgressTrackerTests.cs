@@ -58,36 +58,46 @@ namespace BuddahGo.Tests
         float Delta(float a, float b) => Mathf.Repeat(a-b+track.TrackLength/2,track.TrackLength)-track.TrackLength/2;
         void AssertConsistent() => Assert.That(Mathf.Abs(Delta(track.DistanceAtT((float)Get(tracker,"_lastT01")),tracker.distanceOnTrack)),Is.LessThan(.02f));
 
-        [TestCase(100f,1)] [TestCase(100f,-1)] [TestCase(1599f,1)] [TestCase(1f,-1)]
-        public void ClampKeepsDistanceParameterAndWrapConsistent(float start, int direction)
+        // Each table case starts from its own fixture, as the separate test cases did.
+        void Fresh() { TearDown(); SetUp(); }
+
+        [Test] public void ClampKeepsDistanceParameterAndWrapConsistent()
         {
-            tracker.SnapToTrackProgress(start/track.TrackLength);
-            float destination = Mathf.Repeat(start+direction*20,track.TrackLength);
-            track.TryEvaluateWorldPoseAtProgress01(destination/track.TrackLength,out var position,out var tangent);
-            Step(position,tangent*direction); // Low speed forces the unchanged 2m step clamp.
-            Assert.That(Delta(tracker.distanceOnTrack,start),Is.EqualTo(direction*2).Within(.01f));
-            AssertConsistent();
-            Assert.That(tracker.WrappedFromEndToStartThisFrame,Is.EqualTo(start>1500&&direction>0));
-            Assert.That(tracker.WrappedFromStartToEndThisFrame,Is.EqualTo(start<2&&direction<0));
-            track.TryEvaluateWorldPoseAtProgress01(tracker.progress01,out _,out var acceptedTangent);
-            Assert.That(tracker.forwardDot,Is.EqualTo(Vector3.Dot(tangent*direction,acceptedTangent)).Within(.005f));
+            EveryCase.Check(new[]{(start:100f,direction:1),(start:100f,direction:-1),(start:1599f,direction:1),(start:1f,direction:-1)}, c =>
+            {
+                Fresh();
+                float start=c.start; int direction=c.direction;
+                tracker.SnapToTrackProgress(start/track.TrackLength);
+                float destination = Mathf.Repeat(start+direction*20,track.TrackLength);
+                track.TryEvaluateWorldPoseAtProgress01(destination/track.TrackLength,out var position,out var tangent);
+                Step(position,tangent*direction); // Low speed forces the unchanged 2m step clamp.
+                Assert.That(Delta(tracker.distanceOnTrack,start),Is.EqualTo(direction*2).Within(.01f));
+                AssertConsistent();
+                Assert.That(tracker.WrappedFromEndToStartThisFrame,Is.EqualTo(start>1500&&direction>0));
+                Assert.That(tracker.WrappedFromStartToEndThisFrame,Is.EqualTo(start<2&&direction<0));
+                track.TryEvaluateWorldPoseAtProgress01(tracker.progress01,out _,out var acceptedTangent);
+                Assert.That(tracker.forwardDot,Is.EqualTo(Vector3.Dot(tangent*direction,acceptedTangent)).Within(.005f));
+            });
         }
 
-        [TestCase(false)] [TestCase(true)]
-        public void RejectedSampleClearsOldWrapAndUpdatesDirection(bool vertical)
+        [Test] public void RejectedSampleClearsOldWrapAndUpdatesDirection()
         {
-            tracker.SnapToTrackProgress(.9995f); tracker.SnapToTrackProgress(.0005f);
-            Assert.True(tracker.WrappedFromEndToStartThisFrame);
-            tracker.SnapToTrackProgress(100/track.TrackLength);
-            // Seed a real reverse wrap, then reject; no repeated crossing event may escape.
-            tracker.SnapToTrackProgress(.0005f); tracker.SnapToTrackProgress(.9995f);
-            float before=tracker.distanceOnTrack;
-            Step(vertical?new Vector3(100,31,0):new Vector3(100,0,-31),Vector3.forward);
-            Assert.That(tracker.distanceOnTrack,Is.EqualTo(before));
-            Assert.That(tracker.PreviousProgress01,Is.EqualTo(tracker.progress01));
-            Assert.That(tracker.RawProgressDelta01,Is.Zero);
-            Assert.False(tracker.WrappedFromEndToStartThisFrame); Assert.False(tracker.WrappedFromStartToEndThisFrame);
-            Assert.That(tracker.forwardDot,Is.LessThan(0)); AssertConsistent();
+            EveryCase.Check(new[]{false,true}, vertical =>
+            {
+                Fresh();
+                tracker.SnapToTrackProgress(.9995f); tracker.SnapToTrackProgress(.0005f);
+                Assert.True(tracker.WrappedFromEndToStartThisFrame);
+                tracker.SnapToTrackProgress(100/track.TrackLength);
+                // Seed a real reverse wrap, then reject; no repeated crossing event may escape.
+                tracker.SnapToTrackProgress(.0005f); tracker.SnapToTrackProgress(.9995f);
+                float before=tracker.distanceOnTrack;
+                Step(vertical?new Vector3(100,31,0):new Vector3(100,0,-31),Vector3.forward);
+                Assert.That(tracker.distanceOnTrack,Is.EqualTo(before));
+                Assert.That(tracker.PreviousProgress01,Is.EqualTo(tracker.progress01));
+                Assert.That(tracker.RawProgressDelta01,Is.Zero);
+                Assert.False(tracker.WrappedFromEndToStartThisFrame); Assert.False(tracker.WrappedFromStartToEndThisFrame);
+                Assert.That(tracker.forwardDot,Is.LessThan(0)); AssertConsistent();
+            }, vertical => "vertical="+vertical);
         }
 
         [Test] public void FirstOutOfCorridorSampleDoesNotSeedProgress()
@@ -98,43 +108,52 @@ namespace BuddahGo.Tests
             Assert.True((bool)Get(tracker,"_hasLast")); Assert.That(tracker.distanceOnTrack,Is.EqualTo(100).Within(.1f));
         }
 
-        [TestCase(20f,false)] [TestCase(60f,false)] [TestCase(60f,true)]
-        public void ParallelOrElevatedGlobalRoadCannotReplaceHistoryBranch(float separation, bool elevated)
+        [Test] public void ContinuousBranchWinsOverCloserRoads()
         {
-            var offset=elevated?Vector3.up*separation:Vector3.forward*separation;
-            Configure(new[]{Vector3.zero,Vector3.right*400,Vector3.right*400+offset,offset});
-            tracker.SnapToTrackProgress(100/track.TrackLength);
-            for(int i=0;i<10;i++) Step(Vector3.right*103+offset,Vector3.right);
-            if(separation>30) Assert.That(tracker.distanceOnTrack,Is.EqualTo(100).Within(.01f),"Selected local candidate also needs a distance check.");
-            else Assert.That(tracker.distanceOnTrack,Is.EqualTo(103).Within(.2f),"Nearby opposite road must not replace the continuous branch.");
-            AssertConsistent();
+            EveryCase.Parts(
+                ("a parallel or elevated global road cannot replace the history branch", () =>
+                    EveryCase.Check(new[]{(separation:20f,elevated:false),(separation:60f,elevated:false),(separation:60f,elevated:true)}, c =>
+                    {
+                        Fresh();
+                        float separation=c.separation;
+                        var offset=c.elevated?Vector3.up*separation:Vector3.forward*separation;
+                        Configure(new[]{Vector3.zero,Vector3.right*400,Vector3.right*400+offset,offset});
+                        tracker.SnapToTrackProgress(100/track.TrackLength);
+                        for(int i=0;i<10;i++) Step(Vector3.right*103+offset,Vector3.right);
+                        if(separation>30) Assert.That(tracker.distanceOnTrack,Is.EqualTo(100).Within(.01f),"Selected local candidate also needs a distance check.");
+                        else Assert.That(tracker.distanceOnTrack,Is.EqualTo(103).Within(.2f),"Nearby opposite road must not replace the continuous branch.");
+                        AssertConsistent();
+                    })),
+                ("a crossing keeps the continuous road instead of a closer distant branch", () =>
+                {
+                    Fresh();
+                    Configure(new[]{new Vector3(-200,0,0),new Vector3(200,0,0),new Vector3(200,0,200),new Vector3(0,0,200),new Vector3(0,0,-200),new Vector3(-200,0,-200)});
+                    tracker.SnapToTrackProgress(195/track.TrackLength);
+                    for(int i=0;i<5;i++) Step(new Vector3(0,0,1),Vector3.right);
+                    Assert.That(tracker.distanceOnTrack,Is.EqualTo(200).Within(.2f)); AssertConsistent();
+                }));
         }
 
-        [Test] public void CrossingKeepsContinuousRoadInsteadOfCloserDistantBranch()
+        [Test] public void TrackerDirectionPreservesSequentialCheckpointGate()
         {
-            Configure(new[]{new Vector3(-200,0,0),new Vector3(200,0,0),new Vector3(200,0,200),new Vector3(0,0,200),new Vector3(0,0,-200),new Vector3(-200,0,-200)});
-            tracker.SnapToTrackProgress(195/track.TrackLength);
-            for(int i=0;i<5;i++) Step(new Vector3(0,0,1),Vector3.right);
-            Assert.That(tracker.distanceOnTrack,Is.EqualTo(200).Within(.2f)); AssertConsistent();
-        }
-
-        [TestCase(1f)] [TestCase(-1f)]
-        public void TrackerDirectionPreservesSequentialCheckpointGate(float direction)
-        {
-            var lap=body.AddComponent<LapProgress>(); Set(lap,"_tracker",tracker);
-            var advance=typeof(LapProgress).GetMethod("TryAdvanceSplineCheckpoints",Flags);
-            // Exercise the existing checkpoint rule with real tracker samples. No lap
-            // counters, trigger crossings, race finish, or owner authority are fabricated.
-            foreach(float gate in new[]{.25f,.5f,.75f})
+            EveryCase.Check(new[]{1f,-1f}, direction =>
             {
-                tracker.SnapToTrackProgress(gate-.0005f);
-                Set(lap,"_lastProgress01",tracker.progress01);
-                track.TryEvaluateWorldPoseAtProgress01(gate+.0005f,out var point,out var tangent);
-                Step(point,tangent*direction);
-                advance.Invoke(lap,new object[]{tracker.progress01,tracker.RawProgressDelta01});
-            }
-            Assert.That(lap.NextCheckpointIndex,Is.EqualTo(direction>0?4:1));
-            Assert.That(lap.CurrentLap,Is.Zero); // These are checkpoint unit tests, not a race.
+                Fresh();
+                var lap=body.AddComponent<LapProgress>(); Set(lap,"_tracker",tracker);
+                var advance=typeof(LapProgress).GetMethod("TryAdvanceSplineCheckpoints",Flags);
+                // Exercise the existing checkpoint rule with real tracker samples. No lap
+                // counters, trigger crossings, race finish, or owner authority are fabricated.
+                foreach(float gate in new[]{.25f,.5f,.75f})
+                {
+                    tracker.SnapToTrackProgress(gate-.0005f);
+                    Set(lap,"_lastProgress01",tracker.progress01);
+                    track.TryEvaluateWorldPoseAtProgress01(gate+.0005f,out var point,out var tangent);
+                    Step(point,tangent*direction);
+                    advance.Invoke(lap,new object[]{tracker.progress01,tracker.RawProgressDelta01});
+                }
+                Assert.That(lap.NextCheckpointIndex,Is.EqualTo(direction>0?4:1));
+                Assert.That(lap.CurrentLap,Is.Zero); // These are checkpoint unit tests, not a race.
+            }, direction => "direction="+direction);
         }
 
         [Serializable] class Replay { public double elapsed; public Vector3 position, velocity; public float yaw, progress; }

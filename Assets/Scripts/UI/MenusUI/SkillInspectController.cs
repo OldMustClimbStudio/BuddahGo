@@ -39,7 +39,7 @@ namespace SteamMultiplayer.UI
         [SerializeField] private MMF_Player exitInspectFeedback;
 
         public SkillInspectState State { get; private set; }
-        public SkillInspectableItem CurrentItem => _currentItem;
+
         public SkillWallItemView CurrentInspectedView => _inspectedView;
 
         private ISkillSelectionFocusProvider _focusProvider;
@@ -84,9 +84,6 @@ namespace SteamMultiplayer.UI
                 ForceExitImmediate();
                 return;
             }
-
-            if (State == SkillInspectState.Entering || State == SkillInspectState.Exiting)
-                return;
         }
 
         private void OnDisable()
@@ -95,26 +92,13 @@ namespace SteamMultiplayer.UI
             ForceExitImmediate();
         }
 
-        public bool RequestToggleInspect(SkillInspectableItem item)
+        private void OnDestroy()
         {
-            if (item == null || !IsSkillStageActive())
-                return false;
-
-            if (State == SkillInspectState.Entering || State == SkillInspectState.Exiting)
-                return false;
-
-            if (State == SkillInspectState.Viewing)
+            if (_inputActions != null)
             {
-                if (item == _currentItem)
-                {
-                    BeginExit();
-                    return true;
-                }
-
-                return false;
+                _inputActions.Dispose();
+                _inputActions = null;
             }
-
-            return BeginEnter(item);
         }
 
         public void ForceExitImmediate()

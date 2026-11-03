@@ -92,14 +92,23 @@ namespace BuddahGo.Rendering.Editor
             var dir = Path.Combine(RaceMapViewpointCapture.OutputRoot, label);
             Directory.CreateDirectory(dir);
             s_Sweep = new Sweep { OutputDir = dir, Jobs = jobs, Warmup = warmup, Frames = frames, PixelStep = pixelStep };
-            s_Sweep.Camera = CreateProbeCamera(gameplay);
-            s_Sweep.Hdr = new RenderTexture(new RenderTextureDescriptor(Width, Height, RenderTextureFormat.DefaultHDR, 24)) { name = "TemporalNoiseHdr" };
-            s_Sweep.Ldr = new RenderTexture(new RenderTextureDescriptor(Width, Height, RenderTextureFormat.ARGB32, 0) { sRGB = true }) { name = "TemporalNoiseLdr" };
-            s_Sweep.Camera.targetTexture = s_Sweep.Hdr;
-            s_Sweep.Proxy = CreatePlayerProxy();
-            // The gameplay camera would render the same scene again every frame; it is re-enabled when the sweep ends.
-            gameplay.enabled = false;
-            s_Sweep.DisabledGameplay = gameplay;
+            try
+            {
+                s_Sweep.Camera = CreateProbeCamera(gameplay);
+                s_Sweep.Hdr = new RenderTexture(new RenderTextureDescriptor(Width, Height, RenderTextureFormat.DefaultHDR, 24)) { name = "TemporalNoiseHdr" };
+                s_Sweep.Ldr = new RenderTexture(new RenderTextureDescriptor(Width, Height, RenderTextureFormat.ARGB32, 0) { sRGB = true }) { name = "TemporalNoiseLdr" };
+                s_Sweep.Camera.targetTexture = s_Sweep.Hdr;
+                s_Sweep.Proxy = CreatePlayerProxy();
+                // The gameplay camera would render the same scene again every frame; it is re-enabled when the sweep ends.
+                gameplay.enabled = false;
+                s_Sweep.DisabledGameplay = gameplay;
+            }
+            catch (Exception e)
+            {
+                // Without this the half-built sweep stays in s_Sweep and every later Begin reports "a sweep is running".
+                End("FAILED: " + e);
+                return "FAILED: " + e.Message;
+            }
 
             RenderPipelineManager.beginCameraRendering += OnBeginCamera;
             RenderPipelineManager.endCameraRendering += OnEndCamera;
@@ -220,10 +229,9 @@ namespace BuddahGo.Rendering.Editor
                 sweep.Camera.targetTexture = null;
                 Object.DestroyImmediate(sweep.Camera.gameObject);
             }
-            if (sweep.Proxy != null)
-                Object.DestroyImmediate(sweep.Proxy);
-            if (sweep.Hdr != null) sweep.Hdr.Release();
-            if (sweep.Ldr != null) sweep.Ldr.Release();
+            DestroyProxy(sweep.Proxy);
+            DestroyRt(sweep.Hdr);
+            DestroyRt(sweep.Ldr);
             sweep.Log.Add(reason);
             s_LastLog = string.Join("\n", sweep.Log);
         }
@@ -331,8 +339,8 @@ namespace BuddahGo.Rendering.Editor
                     }
                     written++;
                 }
-                clip.Hdr.Release();
-                clip.Ldr.Release();
+                DestroyRt(clip.Hdr);
+                DestroyRt(clip.Ldr);
                 s_LastClip = "wrote " + written + " frames to " + clip.Dir;
             }
         }
@@ -384,8 +392,8 @@ namespace BuddahGo.Rendering.Editor
             {
                 camera.targetTexture = null;
                 Object.DestroyImmediate(camera.gameObject);
-                Object.DestroyImmediate(proxy);
-                rt.Release();
+                DestroyProxy(proxy);
+                DestroyRt(rt);
             }
             return string.Join("\n", samples.Select(kv =>
             {
@@ -446,8 +454,8 @@ namespace BuddahGo.Rendering.Editor
             finally
             {
                 camera.targetTexture = previousTarget;
-                hdr.Release();
-                ldr.Release();
+                DestroyRt(hdr);
+                DestroyRt(ldr);
             }
             return "wrote " + string.Join(", ", written) + " to " + dir;
         }
@@ -467,6 +475,25 @@ namespace BuddahGo.Rendering.Editor
             target.antiAliasing = samples;
             target.Create();
             camera.targetTexture = target;
+        }
+
+        static void DestroyRt(RenderTexture rt)
+        {
+            if (rt == null)
+                return;
+            rt.Release();
+            Object.DestroyImmediate(rt);
+        }
+
+        // The baked proxy mesh is not owned by the GameObject, so it goes separately.
+        static void DestroyProxy(GameObject proxy)
+        {
+            if (proxy == null)
+                return;
+            var filter = proxy.GetComponent<MeshFilter>();
+            if (filter != null && filter.sharedMesh != null)
+                Object.DestroyImmediate(filter.sharedMesh);
+            Object.DestroyImmediate(proxy);
         }
 
         static Camera CreateProbeCamera(Camera gameplay)
@@ -710,6 +737,7 @@ namespace BuddahGo.Rendering.Editor
                             var shared = renderer.sharedMaterials;
                             bool changed = false;
                             var replaced = new Material[shared.Length];
+                            var clones = new List<Material>();
                             for (int i = 0; i < shared.Length; i++)
                             {
                                 replaced[i] = shared[i];
@@ -723,13 +751,19 @@ namespace BuddahGo.Rendering.Editor
                                     clone.SetFloat("_NormalMapOn", 0f);
                                     clone.DisableKeyword("_NORMALMAP");
                                     replaced[i] = clone;
+                                    clones.Add(clone);
                                 }
                                 changed = true;
                             }
                             if (!changed)
                                 continue;
                             renderer.sharedMaterials = replaced;
-                            restore.Add(() => renderer.sharedMaterials = shared);
+                            restore.Add(() =>
+                            {
+                                renderer.sharedMaterials = shared;
+                                foreach (var made in clones)
+                                    Object.DestroyImmediate(made);
+                            });
                         }
                         break;
                     }

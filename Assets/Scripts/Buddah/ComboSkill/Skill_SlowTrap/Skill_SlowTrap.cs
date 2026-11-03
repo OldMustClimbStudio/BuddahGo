@@ -27,10 +27,7 @@ public class Skill_SlowTrap : SkillAction
     [Header("VFX (Optional)")]
     [Tooltip("VFX lifetime. 0 = follow zoneDurationSeconds.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
-    [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
-    [SerializeField] public string vfxId = "slow_trap_vfx";
-    [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
-    [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
+    [SerializeField] public string vfxId = "slow_release";
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
@@ -59,7 +56,7 @@ public class Skill_SlowTrap : SkillAction
         var vfx = caster.GetComponent<SkillVfxReplicator>();
         float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, zoneDurationSeconds);
         if (vfx != null)
-            vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
+            vfx.PlayVfxAll(vfxId, actualVfxDuration);
 
         GameLog.Verbose($"[Skill_SlowTrap][Server] TriggerTrap zoneDuration={zoneDurationSeconds}s, slow=({slowForwardForce},{slowMaxSpeed}) for {slowDurationSeconds}s, vfx={actualVfxDuration}s");
     }
@@ -68,5 +65,10 @@ public class Skill_SlowTrap : SkillAction
     {
         GameLog.Verbose($"[Skill_SlowTrap][Observers] '{skillId}' triggered (slot {slotIndex})");
         // VFX replication is sent from server in ExecuteServer().
+    }
+
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, vfxId, vfxDurationSeconds, zoneDurationSeconds, "Skill.effectDurationSeconds → zoneDurationSeconds");
     }
 }

@@ -54,6 +54,11 @@
   "list": "obsessions",
   "tags": "skill,balance"
  },
+ "Skill/VfxRegistry": {
+  "record": "VfxRegistryRecord",
+  "list": "vfxRegistries",
+  "tags": "skill,info"
+ },
  "Movement/Movement": {
   "record": "MovementRecord",
   "list": "movements",

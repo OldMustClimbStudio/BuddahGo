@@ -42,15 +42,10 @@ public class RaceCompletionTracker : NetworkBehaviour
     private float _raceStartGraceTimer;
 
     public int CurrentLap => currentLap;
-    public float CurrentLapProgress01 => currentLapProgress01;
     public float FinalCompletionPercent => finalCompletionPercent;
     public bool IsFinished => isFinished;
     public int FinishOrder => finishOrder;
     public double FinishServerTime => finishServerTime;
-    public bool HasWrongWayLock => hasWrongWayLock;
-    public float WrongWayLockedCompletionPercent => wrongWayLockedCompletionPercent;
-    public int WrongWayLockedLapIndex => wrongWayLockedLapIndex;
-    public float LastLegalLapFloorPercent => lastLegalLapFloorPercent;
 
     private void Awake()
     {
@@ -158,11 +153,6 @@ public class RaceCompletionTracker : NetworkBehaviour
         finishServerTime = serverTime;
         finalCompletionPercent = 100f;
         ClearWrongWayLock();
-    }
-
-    public float GetComparableCompletionValue()
-    {
-        return isFinished ? 100f : finalCompletionPercent;
     }
 
     public void NotifyCorrectionRespawnApplied()

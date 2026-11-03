@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace NewBuddah.PredictionV2.Events
@@ -42,7 +40,6 @@ namespace NewBuddah.PredictionV2.Events
         private readonly Queue<uint> _recentLogicalIdOrder = new();
         private readonly int _capacity;
         private uint _nextSequence;
-        private uint _lastConsumedId;
 
         public BuddahPredictionEventChannel() : this(DefaultCapacity) { }
 
@@ -57,8 +54,6 @@ namespace NewBuddah.PredictionV2.Events
 
         public int Capacity => _capacity;
         public int Count => _pending.Count;
-        public uint NextSequence => _nextSequence;
-        public uint LastConsumedId => _lastConsumedId;
 
         // V2b Step 0 — tick-stamped enqueue. eventTick is the server-canonical clock for this event
         // (set by adapter at server-side cmd construction; transported through TargetRpc; client uses
@@ -123,30 +118,10 @@ namespace NewBuddah.PredictionV2.Events
 
                 _pending.RemoveAt(i);
                 RememberLogicalId(entry.LogicalId);
-                _lastConsumedId = entry.Id;
                 consumed++;
                 // do not increment i: List shifted left
             }
             return consumed;
-        }
-
-        // V2a era. Replay-unsafe (drains exactly once and entries vanish). Retained as a transitional
-        // shim; no callsite remains in V2b Step 0/1 (motor's drains rewritten to ConsumeReady).
-        // Will be deleted at V4 when CombatRouting + legacy fallback is removed.
-        [Obsolete("Use ConsumeReady. TryDequeue is replay-unsafe — see lessons-log L16.")]
-        public bool TryDequeue(out Entry entry)
-        {
-            if (_pending.Count == 0)
-            {
-                entry = default;
-                return false;
-            }
-
-            entry = _pending[0];
-            _pending.RemoveAt(0);
-            _lastConsumedId = entry.Id;
-            RememberLogicalId(entry.LogicalId);
-            return true;
         }
 
         public void Clear()
@@ -154,30 +129,6 @@ namespace NewBuddah.PredictionV2.Events
             _pending.Clear();
             _recentLogicalIds.Clear();
             _recentLogicalIdOrder.Clear();
-        }
-
-        // Phase 4b V4 — DebugOverlay diagnostic. Format: "none" when empty, otherwise
-        // "#<id> @<eventTick> log=<logicalId>" per entry joined by " | ".
-        // Generic-safe: payload-specific data omitted (devs correlate logicalId with adapter logs).
-        public string BuildPendingSummary()
-        {
-            if (_pending.Count == 0)
-                return "none";
-
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < _pending.Count; i++)
-            {
-                Entry entry = _pending[i];
-                if (i > 0)
-                    sb.Append(" | ");
-                sb.Append('#');
-                sb.Append(entry.Id);
-                sb.Append(" @");
-                sb.Append(entry.EventTick);
-                sb.Append(" log=");
-                sb.Append(entry.LogicalId);
-            }
-            return sb.ToString();
         }
 
         private void RememberLogicalId(uint logicalId)

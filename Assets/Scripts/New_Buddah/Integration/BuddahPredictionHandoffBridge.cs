@@ -65,19 +65,6 @@ namespace NewBuddah.PredictionV2.Integration
             return IsPredictionHandoffActive() && predictedMotor.IsAuthoritativeLaunchHandoffPending;
         }
 
-        public bool IsAuthoritativeLaunchHandoffConsumedOrActive()
-        {
-            return IsPredictionHandoffActive() && predictedMotor.IsPredictionLaunchHandoffConsumedOrActive;
-        }
-
-        public PredictionHandoffControlState GetPredictionControlState()
-        {
-            if (!TryGetPredictionControlState(out PredictionHandoffControlState state))
-                return default;
-
-            return state;
-        }
-
         public bool TryGetPredictionControlState(out PredictionHandoffControlState state)
         {
             state = default;

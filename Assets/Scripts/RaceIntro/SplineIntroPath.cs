@@ -84,17 +84,6 @@ public class SplineIntroPath : IntroPath
         return tangent.normalized;
     }
 
-    public float FindNearestT(Vector3 worldPosition)
-    {
-        EnsureCache();
-        if (splineContainer == null)
-            return 0f;
-
-        Vector3 localPoint = splineContainer.transform.InverseTransformPoint(worldPosition);
-        SplineUtility.GetNearestPoint(splineContainer.Spline, localPoint, out _, out float nearestT);
-        return Mathf.Clamp01(nearestT);
-    }
-
     public float DistanceAtT(float t)
     {
         EnsureCache();

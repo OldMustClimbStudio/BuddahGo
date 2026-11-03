@@ -20,6 +20,12 @@ namespace BuddahGo.Match
         // sample right after the FixedUpdate physics step. Each session picks its mode; the online one is the
         // NetworkManager's configured value.
         private readonly PhysicsMode _onlinePhysicsMode;
+        // On a slow frame Unity's FixedUpdate catches up to Time.maximumDeltaTime (project: 0.333 s, 20 steps),
+        // but the TimeManager runs at most Maximum Frame Ticks (NetworkManager > TimeManager: 3) and drops the
+        // rest. In Solo the body then coasted ~17 physics steps with no replicate input while the tick-based race
+        // clock skipped them: a ~20 m jump in 0.1 s of race time. Solo caps the physics catch-up to the same budget.
+        internal const int SoloMaxPhysicsStepsPerFrame = 3;
+        private readonly float _projectMaximumDeltaTime;
         private int _stopRequestedFrame = -1;
         private float _startupDeadline;
         private SoloMatchSettings _failedSoloSettings;
@@ -38,6 +44,7 @@ namespace BuddahGo.Match
         {
             _network = network;
             _onlinePhysicsMode = network != null && network.TimeManager != null ? network.TimeManager.PhysicsMode : PhysicsMode.TimeManager;
+            _projectMaximumDeltaTime = Time.maximumDeltaTime;
         }
 
         public bool StartSoloHost(SoloMatchSettings settings)
@@ -111,6 +118,8 @@ namespace BuddahGo.Match
             MatchRules.Current = rules;
             // Review fix: Solo keeps the Unity FixedUpdate physics step it was qualified on; online uses TimeManager.
             _network?.TimeManager?.SetPhysicsMode(rules.IsSolo ? PhysicsMode.Unity : _onlinePhysicsMode);
+            // After SetPhysicsMode: Unity mode may restore the editor's own fixedDeltaTime.
+            Time.maximumDeltaTime = rules.IsSolo ? Time.fixedDeltaTime * SoloMaxPhysicsStepsPerFrame : _projectMaximumDeltaTime;
             Settings = settings;
             SessionControl.SoloSettings = settings;
         }
@@ -190,6 +199,7 @@ namespace BuddahGo.Match
             Settings = null;
             // Review fix: leave the shared TimeManager in the online mode after a Solo session.
             _network?.TimeManager?.SetPhysicsMode(_onlinePhysicsMode);
+            Time.maximumDeltaTime = _projectMaximumDeltaTime;
             ResetMatchGlobals();
         }
 

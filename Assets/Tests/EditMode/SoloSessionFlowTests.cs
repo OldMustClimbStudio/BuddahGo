@@ -59,7 +59,10 @@ namespace BuddahGo.Tests
             EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");
             yield return new EnterPlayMode();
             yield return null;
+            float projectMaximumDeltaTime = Time.maximumDeltaTime;
             Assert.That(SessionControl.Current.StartSoloHost(new SoloMatchSettings(0, SoloDifficulty.Hard)), Is.True);
+            // Solo physics runs on FixedUpdate; its slow-frame catch-up must not exceed the TimeManager's tick budget.
+            Assert.That(Time.maximumDeltaTime, Is.EqualTo(Time.fixedDeltaTime * SessionLauncher.SoloMaxPhysicsStepsPerFrame).Within(1e-6f));
             float deadline = Time.realtimeSinceStartup + 45f;
             while (Time.realtimeSinceStartup < deadline && (PropertiesSelectionManager.Instance == null ||
                 !PropertiesSelectionManager.Instance.IsClientInitialized || !PropertiesSelectionManager.Instance.IsStageCountdownActive))
@@ -79,6 +82,7 @@ namespace BuddahGo.Tests
             Assert.That(network.ServerManager.Started || network.ClientManager.Started, Is.False);
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.MainMenu));
             Assert.That(SessionControl.Current.LastError, Is.EqualTo("Injected startup failure"));
+            Assert.That(Time.maximumDeltaTime, Is.EqualTo(projectMaximumDeltaTime), "Leaving Solo restores the project's catch-up limit.");
             Assert.That(LocalInputBlock.IsBlocked, Is.False);
             deadline = Time.realtimeSinceStartup + 5f;
             while (Time.realtimeSinceStartup < deadline && GameObject.Find("StartPractice") == null)

@@ -147,7 +147,10 @@ namespace BuddahGo.Tests
                 typeof(TrackSplineRef).GetMethod("Awake",Flags).Invoke(track,null);
                 ApplyPrefabSettings();
                 var rows=File.ReadAllLines(Path.Combine(Application.dataPath, "../Tools/tracker/fixtures/stall-entry.jsonl")).Select(JsonUtility.FromJson<Replay>).ToArray();
-                tracker.SnapToTrackProgress(rows[0].progress);
+                // Start from the first recorded pose on the scene's current spline. The recorded progress values belong
+                // to the spline the replay was captured on; the poses are the unchanged evidence.
+                SplineUtility.GetNearestPoint(track.container.Spline,(float3)track.container.transform.InverseTransformPoint(rows[0].position),out _,out float t0);
+                tracker.SnapToTrackProgress(track.Progress01AtT(t0));
                 float maxLag=0, maxStep=0; int plateau=0;
                 for(int j=1;j<rows.Length;j++)
                 {

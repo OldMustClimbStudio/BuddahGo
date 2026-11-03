@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -121,6 +122,7 @@ namespace BuddahGo.VFX
         static int s_scratchBoundFrame = -1;
         static int s_poolKeep = 8;
         static bool s_hooked;
+        static Scene s_usedScene;
         static readonly Matrix4x4[] s_sweep = new Matrix4x4[8];
         static readonly List<InkFluidVolume> s_rank = new List<InkFluidVolume>();
         static readonly System.Comparison<InkFluidVolume> s_byScore = (a, b) => a.score.CompareTo(b.score);
@@ -147,9 +149,18 @@ namespace BuddahGo.VFX
             if (s_hooked) return;
             s_hooked = true;
             Application.quitting += DestroyShared;
+            SceneManager.sceneUnloaded += DestroySharedWhenIdle;
 #if UNITY_EDITOR
             AssemblyReloadEvents.beforeAssemblyReload += DestroyShared;
 #endif
+        }
+
+        // Leaving the scene the volumes played in (RaceMap, back to the menu or a room) would otherwise keep the scratch
+        // and the pool in GPU memory until the game quits; the next palm re-allocates them once. Other scenes unloading,
+        // such as the selection scene going away after RaceMap's warm-up, keep the warmed pool.
+        static void DestroySharedWhenIdle(Scene unloaded)
+        {
+            if (s_active.Count == 0 && unloaded == s_usedScene) DestroyShared();
         }
 
         // Frees everything static (the scratch set and the pooled state sets). Instances still active lose nothing they
@@ -292,6 +303,7 @@ namespace BuddahGo.VFX
             if (hand == null && transform.parent != null) hand = transform.parent;
             spawnOrder = s_spawnCounter++;
             if (!s_active.Contains(this)) s_active.Add(this);
+            s_usedScene = gameObject.scene;
             wanted = true;
             Allocate();
 #if UNITY_EDITOR

@@ -791,14 +791,17 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   about 0.25 EV darker with the shared profile (exposure +0.05 instead of +0.3); not compensated.
 - **Graphics settings**: spec, model and API only; no menu yet (see [../graphics-settings.md](../graphics-settings.md)).
 
-- **Lightmap bake.** The user asked for a bake on 2026-11-03 (reversing the 10-27 deferral), but the Progressive
-  lightmapper (GPU and CPU) reported `out of memory` on this PC with the system commit charge at 51 of 54 GB, even
-  with only the two old planes in GI; the zen landscape and track also have no lightmap UVs (`uv2` empty), so
-  Contribute GI on them needs Generate Lightmap UVs on the FBX imports first (expect many 2048 atlases at 8
-  texels/unit; use a low Scale in Lightmap). Until then the pre-dusk `LightingData.asset` stays assigned (light
-  probes and ambient from the old sunset bake) and reflections come from the custom probe cubemaps above.
-  A cancelled bake detaches the scene's LightingData (light probes vanish and the whole frame warms up); reassign
-  `Lightmapping.lightingDataAsset` if that happens.
+- **Lightmap bake (done 2026-11-03, later the same day).** Once the machine had memory again the Progressive GPU
+  bake ran in about 40 s: light probes, the two lightmapped planes and the sky reflection from the C2 dusk sun and
+  sky. The first result was all-orange again (start-grid chroma 31: the 2900 K sun bouncing off the planes dominates
+  the probes), so the Trilight ambient went cooler, sky (0.50, 0.62, 0.90) / equator (0.50, 0.50, 0.52) / ground
+  (0.18, 0.16, 0.16), which lands at chroma 24 (old pre-dusk probes: 21). The zen landscape and track still have no
+  lightmap UVs (`uv2` empty) and only reflect; Contribute GI on them needs Generate Lightmap UVs on the FBX imports
+  first (expect many 2048 atlases at 8 texels/unit; use a low Scale in Lightmap). Traps: the lightmapper reports
+  `out of memory` when the system commit charge is near its limit, whatever the scene holds; a cancelled bake
+  detaches the scene's LightingData (light probes vanish, the frame warms up): reassign
+  `Lightmapping.lightingDataAsset`. Options sheet: [dusk_study/bake_options.jpg](dusk_study/bake_options.jpg),
+  before/after [dusk_bake_compare/all.jpg](dusk_bake_compare/all.jpg).
 - **Capture tool** renders without HDR and still assumes the old track height (see How to compare).
 
 - **Not verified by playing a match.** The WhiteBalance and curtain fixes, planar reflections under a real black

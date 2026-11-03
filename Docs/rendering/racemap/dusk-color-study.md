@@ -293,3 +293,20 @@ B2 适合用户觉得 A2"太像下午"的情况——它把整个场景往暮色
 - **RaceMap 反射探针（96f5fbbb）**：`Reflection Probe Lower` 从实时改成 `Lightmapping.BakeReflectionProbe` 烘出的 `ReflectionProbe-Lower.exr`（Custom 模式）；新增 `Reflection Probe EndField`（600 × 120 × 600，中心 (1493, 40, −684)）覆盖原来探针盒子没包到的结算场；景观和赛道的 368 个渲染器标成 Reflection Probe Static。起跑格 Buddha 色度 26.5 → 28.4（探针里多了橙色沙地），直道 / 急弯 Buddha–赛道 ΔE 23.5 → 28.2 / 3.5 → 10.5，结算场 38.8 → 29.5。对比：[dusk_refl_compare/all.jpg](dusk_refl_compare/all.jpg)。
 - **菜单反射探针（be22c51a）**：`Reflection Probe Shrine`，包围整个神社环境 + 10 m，`MenuEnvironmentSetting/ReflectionProbe-Shrine.exr`，导入器重建时会复用。对比：[menu_refl_compare/all.jpg](menu_refl_compare/all.jpg)（主镜头里变化很小，受益的是银色 Buddha 和光滑道具）。
 - **灯光烘焙没有做成**：用户 2026-11-03 要求烘焙，但 Progressive Lightmapper 的 GPU 和 CPU 后端都报 `out of memory`——系统提交内存 51 / 54 GB、可用 0 MB（编辑器进程 7.7–10.7 GB，重启编辑器后也一样），连只烘两块旧平面都失败；另外禅意景观与赛道的 FBX 没有 lightmap UV（`uv2` 为空），要让它们参与 GI 得先在导入设置里开 Generate Lightmap UVs 并给低 Scale in Lightmap。取消烘焙会把场景的 LightingData 引用清掉（光照探针消失、整帧回暖 +10 色度），已用 `Lightmapping.lightingDataAsset` 挂回旧的 bake。需要的条件：关掉其他大内存应用或重启后，在 Lighting 窗口 Generate Lighting；之后把两个 RaceMap 探针改回 Baked（或继续用 Custom）。
+
+## 13. 灯光烘焙（2026-11-03，恢复后再次尝试）
+
+内存恢复后（空闲 20 GB）Progressive GPU 烘焙约 40 s 跑完：光照探针 1480 个、两块旧平面的 lightmap（现在只剩一张图集，Lightmap-1/2 和 ReflectionProbe-1 被删掉）、天空环境反射，全部来自 C2 的太阳和天空。
+
+但直接烘出来的结果整图又回到橙色——起跑格色度 31、CCT 2600 K，就是研究前的数字：2900 K 的太阳打在两块平面上反弹进探针，把环境里仅有的一点冷色全盖掉了（把天空的地面色/天顶改冷再烘，几乎没变化，说明探针的暖来自太阳反弹，不是天空）。于是把 Trilight 环境光梯度改冷再烘：
+
+| 方案 | 环境光 sky / equator / ground | 起跑格色度 | b\* | 色相标准差 | CCT |
+|---|---|---|---|---|---|
+| A 旧 bake 探针（黄昏前的 bake，已认可的 C2 观感） | (0.36, 0.44, 0.60) / (0.66, 0.50, 0.36) / (0.20, 0.15, 0.13) | 21 | 14 | 16° | 3399 K |
+| B 新烘焙·原环境光 | 同上 | 31 | 26 | 3° | 2601 K |
+| C 新烘焙·偏冷 1 | (0.45, 0.55, 0.80) / (0.55, 0.50, 0.48) / (0.20, 0.16, 0.15) | 26 | 20 | 8° | 2861 K |
+| **D 新烘焙·偏冷 2（采用）** | **(0.50, 0.62, 0.90) / (0.50, 0.50, 0.52) / (0.18, 0.16, 0.16)** | **24** | **18** | **13°** | **3030 K** |
+
+采用 D：探针与太阳、天空一致，观感最接近已认可的 A。菜单场景同步用 D 的环境光（导入器也改了）。对比：[dusk_study/bake_options.jpg](dusk_study/bake_options.jpg)、[dusk_bake_compare/all.jpg](dusk_bake_compare/all.jpg)。
+
+仍未做：禅意景观与赛道没有 lightmap UV，所以它们只反射、不参与 GI；要让它们进 GI 得先给 FBX 开 Generate Lightmap UVs（8 texels/unit 下景观会是几十张 2048 图集，要给低 Scale in Lightmap），然后再烘一次。两个 RaceMap 反射探针保持 Custom 模式用自己的 EXR，没有随这次烘焙重做。

@@ -35,8 +35,6 @@ namespace SteamMultiplayer.Network.Results
         public int RemainingSeconds => _remainingSeconds.Value;
         public bool IsDecisionActive => _decisionActive.Value;
         public ResultFinalDecision FinalDecision => _finalDecision.Value;
-        public string NextScenePropertySelection => nextScenePropertySelection;
-        public string ReturnSceneMainMenu => returnSceneMainMenu;
 
         private void Awake()
         {

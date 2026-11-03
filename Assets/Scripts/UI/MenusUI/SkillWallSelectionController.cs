@@ -68,8 +68,10 @@ namespace SteamMultiplayer.UI
         private InputAction _menuSelectAction;
         private int _lastMenuSelectFrame = -1;
 
-        public IReadOnlyList<string> SelectedSkillIds => _selectedSkillIds;
         public bool IsSelectionInputBlocked => _selectionInputBlocked;
+
+        // Read by PropertiesSelectorUI for the 缘起 list of the loadout being built (mechanics update A6).
+        public IReadOnlyList<string> SelectedSkillIds => _selectedSkillIds;
 
         private void Awake()
         {
@@ -122,15 +124,15 @@ namespace SteamMultiplayer.UI
         {
             UnsubscribeFromManager();
             DisableMenuInput();
+            if (_inputActions != null)
+            {
+                _inputActions.Dispose();
+                _inputActions = null;
+            }
             ClearSpawnedWallItems();
 
             if (confirmButton != null)
                 confirmButton.onClick.RemoveListener(HandleConfirmClicked);
-        }
-
-        public void RebuildFromManager()
-        {
-            RebuildWall();
         }
 
         public void BeginStage()
@@ -159,7 +161,7 @@ namespace SteamMultiplayer.UI
             _draftLocked = false;
             _lastOptionsSignature = string.Empty;
 
-            ResetView(clearSpawnedItems: true);
+            ResetView();
 
             if (root != null)
                 root.SetActive(false);
@@ -167,7 +169,7 @@ namespace SteamMultiplayer.UI
             RefreshConfirmButtonState();
         }
 
-        public void ResetView(bool clearSpawnedItems)
+        public void ResetView()
         {
             StopAllSelectionAnimations();
             ClearPendingReservations();
@@ -176,36 +178,14 @@ namespace SteamMultiplayer.UI
             for (int i = 0; i < _selectedSkillIds.Length; i++)
                 _selectedSkillIds[i] = string.Empty;
 
-            if (clearSpawnedItems)
+            for (int i = 0; i < _spawnedItems.Count; i++)
             {
-                for (int i = 0; i < _spawnedItems.Count; i++)
-                {
-                    if (_spawnedItems[i] != null && _spawnedItems[i].View != null)
-                        Destroy(_spawnedItems[i].View.gameObject);
-                }
-
-                _spawnedItems.Clear();
-                _itemsBySkillId.Clear();
+                if (_spawnedItems[i] != null && _spawnedItems[i].View != null)
+                    Destroy(_spawnedItems[i].View.gameObject);
             }
-            else
-            {
-                for (int i = 0; i < _spawnedItems.Count; i++)
-                {
-                    SpawnedSkillItem item = _spawnedItems[i];
-                    if (item == null || item.View == null)
-                        continue;
 
-                    item.CurrentSlotIndex = -1;
-                    item.View.SetSelected(false);
-                    item.View.SetInteractionLocked(false);
-                    item.View.SnapToWallPose();
-                }
-            }
-        }
-
-        public void RebuildWall()
-        {
-            RefreshActiveStageFromManager(forceRebuild: true);
+            _spawnedItems.Clear();
+            _itemsBySkillId.Clear();
         }
 
         public bool RequestSelectSkill(string skillId)
@@ -233,7 +213,6 @@ namespace SteamMultiplayer.UI
             if (emptySlot == null)
             {
                 LogDebug($"Ignored select request because all {SkillLoadout.SlotCount} slots are full.");
-                PlayRejectedSelectionFeedback(item.View);
                 return false;
             }
 
@@ -254,16 +233,6 @@ namespace SteamMultiplayer.UI
             }
 
             RequestSelectSkill(skillId);
-        }
-
-        public void HandleItemInspectRequested(SkillInspectableItem item)
-        {
-            if (item == null)
-                return;
-
-            SkillInspectController inspectController = GetComponentInChildren<SkillInspectController>(true);
-            if (inspectController != null)
-                inspectController.RequestToggleInspect(item);
         }
 
         public void NotifyItemHoverEntered(SkillWallItemView itemView)
@@ -335,35 +304,6 @@ namespace SteamMultiplayer.UI
             RebuildSelectedSkillIdsFromSlots();
             _draftDirty = true;
             RefreshConfirmButtonState();
-            return true;
-        }
-
-        public bool TryReplaceSlot(int slotIndex, string skillId)
-        {
-            if (!CanEditDraft() || !IsValidSlotIndex(slotIndex))
-                return false;
-
-            skillId = (skillId ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(skillId))
-                return false;
-
-            if (!_itemsBySkillId.TryGetValue(skillId, out SpawnedSkillItem item))
-                return false;
-
-            int existingSlotIndex = FindSelectedSlotIndex(skillId);
-            if (existingSlotIndex >= 0 && existingSlotIndex != slotIndex)
-                return false;
-
-            if (existingSlotIndex == slotIndex)
-                return true;
-
-            RemoveSkillFromSlot(slotIndex);
-
-            SkillSelectionSlotAnchor slot = GetSlotByIndex(slotIndex);
-            if (slot == null)
-                return false;
-
-            BeginSelectionIntoSlot(item, slot);
             return true;
         }
 
@@ -954,13 +894,6 @@ namespace SteamMultiplayer.UI
                 StopSelectionAnimation(animatedSkillIds[i]);
         }
 
-        private void PlayRejectedSelectionFeedback(SkillWallItemView itemView)
-        {
-            if (itemView == null)
-                return;
-
-            // Reserved for future bounce/shake feedback when all slots are full.
-        }
 
         private void RefreshConfirmButtonState()
         {

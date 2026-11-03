@@ -1,32 +1,31 @@
-﻿using FishNet.Object;
+﻿using BuddahGo.VFX;
+using FishNet.Object;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Playables;
 
+// Plays the skill VFX slots (Docs/vfx/README.md section 4) on this player. Every effect in SkillVfxDatabase is a
+// slot prefab with a SkillVfxPhaseController; the old attach-and-time path (TimedVfxInstance,
+// SkillVfxAttachmentSettings) was retired with the first-pass effects (Docs/vfx/retired.md).
 public class SkillVfxReplicator : NetworkBehaviour
 {
     [SerializeField] private SkillVfxDatabase vfxDatabase;
 
+    public SkillVfxDatabase Database => vfxDatabase;
+
     [Header("Prewarm")]
     [SerializeField] private bool prewarmOnStart = true;
     [SerializeField] private float prewarmAliveSeconds = 0.05f;
-    [SerializeField] private int revealDelayFrames = 2;
-
-    [Header("Stop")]
-    [Tooltip("StopVfxAll without an explicit linger: seconds a stopped instance lingers (particles fade) before it is destroyed.")]
-    [SerializeField, Min(0f)] private float defaultStopLingerSeconds = 1f;
-
-    private static readonly Vector3 DefaultLocalOffset = Vector3.back * 2f;
-    private static readonly Vector3 DefaultLocalEuler = new Vector3(0f, 180f, 0f);
-    private const float DefaultStopPlayingBeforeEndSeconds = 0f;
 
     private static readonly HashSet<int> PrewarmedPrefabIds = new();
     private bool prewarmStarted;
+    // Slot effects currently playing on this player, one per vfxId.
+    private readonly Dictionary<string, SkillVfxPhaseController> _slots = new();
+    // Slot effects outlast their window by this much so the last particles and trails fade out.
+    private const float SlotTailSeconds = 1.5f;
 
     // Every instance this replicator spawned, parented or not: an unparented instance (SkillVfxFollowTarget, e.g. the
     // slow-trap zone) is not under this transform, so stopping by id cannot search the children.
-    private readonly List<TimedVfxInstance> _spawnedInstances = new();
 
     public override void OnStartClient()
     {
@@ -51,71 +50,90 @@ public class SkillVfxReplicator : NetworkBehaviour
     }
 
     /// <summary>
-    /// Server-side call: play a VFX on ALL clients with custom local transform/timing.
+    /// Server-side call: play a slot effect on this player on ALL clients for the gameplay length.
     /// </summary>
-    public void PlayVfxAll(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler, float stopPlayingBeforeEndSeconds)
+    public void PlayVfxAll(string vfxId, float durationSeconds)
     {
         if (!IsServerInitialized) return;
-        PlayVfxAllObserversRpcCustom(vfxId, durationSeconds, localOffset, localEuler, stopPlayingBeforeEndSeconds);
+        PlayVfxAllObserversRpc(vfxId, durationSeconds);
     }
 
     [ObserversRpc]
     private void PlayVfxAllObserversRpc(string vfxId, float durationSeconds)
     {
-        PlayVfxInternal(vfxId, durationSeconds, DefaultLocalOffset, DefaultLocalEuler, DefaultStopPlayingBeforeEndSeconds);
+        PlaySlot(vfxId, durationSeconds, true);
     }
 
+    // Local only (no RPC): plays a slot effect on this player on this client, e.g. what a local view controller
+    // decides per observer (一念光明's trail). Silently ignores ids whose prefab is missing or not a slot.
+    public void PlaySlotLocal(string vfxId, float durationSeconds)
+    {
+        PlaySlot(vfxId, durationSeconds, false);
+    }
+
+    // Ends a local slot effect early: its layers stop and it fades out over its dissipation.
+    public void StopSlotLocal(string vfxId)
+    {
+        if (_slots.TryGetValue(vfxId, out SkillVfxPhaseController slot) && slot != null)
+            slot.BeginDissipation();
+        _slots.Remove(vfxId);
+    }
+
+    /// <summary>
+    /// Server-side call: end the slot effect on ALL clients now (a slow-trap zone ended early, a 缘起 consumed the
+    /// skill on the server). The RPC name is part of PredictionProtocol's presentation list.
+    /// </summary>
+    public void StopVfxAll(string vfxId)
+    {
+        if (!IsServerInitialized || string.IsNullOrWhiteSpace(vfxId)) return;
+        StopVfxAllObserversRpc(vfxId);
+    }
+
+    // Appended after PlayVfxAllObserversRpc to keep the RPC order.
     [ObserversRpc]
-    private void PlayVfxAllObserversRpcCustom(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler, float stopPlayingBeforeEndSeconds)
+    private void StopVfxAllObserversRpc(string vfxId)
     {
-        PlayVfxInternal(vfxId, durationSeconds, localOffset, localEuler, stopPlayingBeforeEndSeconds);
+        StopSlotLocal(vfxId);
     }
 
-    private void PlayVfxInternal(string vfxId, float durationSeconds, Vector3 localOffset, Vector3 localEuler, float stopPlayingBeforeEndSeconds)
+    // A slot prefab places its own layers on this player (caster anchors), so it is not parented or offset here:
+    // the root stands at the player, the controller gets this player as the caster and runs the release window.
+    // Every client plays it locally; it never touches gameplay. warn: log why nothing played (the RPC path).
+    private void PlaySlot(string vfxId, float durationSeconds, bool warn)
     {
-        if (vfxDatabase == null)
+        GameObject prefab = null;
+        string problem = vfxDatabase == null ? "vfxDatabase is null."
+            : !vfxDatabase.TryGetPrefab(vfxId, out prefab) || prefab == null ? $"Unknown vfxId '{vfxId}'."
+            : prefab.GetComponent<SkillVfxPhaseController>() == null ? $"'{vfxId}' is not a slot prefab (no SkillVfxPhaseController); nothing played."
+            : null;
+        if (problem != null)
         {
-            Debug.LogWarning("[SkillVfxReplicator] vfxDatabase is null.");
+            if (warn)
+                Debug.LogWarning("[SkillVfxReplicator] " + problem);
             return;
         }
 
-        if (!vfxDatabase.TryGetPrefab(vfxId, out var prefab) || prefab == null)
+        if (_slots.TryGetValue(vfxId, out SkillVfxPhaseController previous) && previous != null)
+            Destroy(previous.gameObject);
+
+        GameObject instance = Instantiate(prefab, transform.position, transform.rotation);
+        DisableNetworkComponentsForLocalVfx(instance);
+        var controller = instance.GetComponent<SkillVfxPhaseController>();
+        var executor = GetComponent<SkillExecutor>();
+        controller.Configure(new SkillVfxPhaseController.Context
         {
-            Debug.LogWarning($"[SkillVfxReplicator] Unknown vfxId '{vfxId}'.");
-            return;
-        }
-
-        var existing = FindExisting(vfxId);
-        if (existing != null)
-        {
-            ConfigureAttachment(existing.gameObject, localOffset, localEuler);
-            existing.Refresh(durationSeconds, stopPlayingBeforeEndSeconds);
-            existing.gameObject.SetActive(true);
-            PlayAllEffects(existing.gameObject);
-            return;
-        }
-
-        var vfxObj = Instantiate(prefab);
-        // Configure while inactive to avoid first-frame pop.
-        vfxObj.SetActive(false);
-        ConfigureAttachment(vfxObj, localOffset, localEuler);
-        DisableNetworkComponentsForLocalVfx(vfxId, vfxObj);
-
-        var tag = vfxObj.GetComponent<SkillVfxTag>();
-        if (tag == null) tag = vfxObj.AddComponent<SkillVfxTag>();
-        tag.VfxId = vfxId;
-
-        var timer = vfxObj.GetComponent<TimedVfxInstance>();
-        if (timer == null) timer = vfxObj.AddComponent<TimedVfxInstance>();
-        timer.Refresh(durationSeconds, stopPlayingBeforeEndSeconds);
-        TrackSpawnedInstance(timer);
-
-        SetAllRenderersEnabled(vfxObj, false);
-        vfxObj.SetActive(true);
-        PlayAllEffects(vfxObj);
-        StartCoroutine(EnableRenderersAfterFrames(vfxObj, revealDelayFrames));
+            caster = transform,
+            isLocalCaster = IsOwner,
+            playLocalFeel = executor != null ? executor.PlayFeelLocal : (System.Action<string>)null,
+        });
+        controller.BeginPhase(SkillVfxPhase.Imp, Mathf.Max(0f, durationSeconds));
+        controller.DestroyWhenFinished(SlotTailSeconds);
+        _slots[vfxId] = controller;
     }
 
+    // Instantiates every slot prefab once (renderers off, controller left unconfigured so it stays inert) to load
+    // its materials and particle systems before the first cast. RaceMap's VfxStartupWarmup also plays the table's
+    // warmup rows; this covers local and test scenes without it.
     private IEnumerator PrewarmAllVfx()
     {
         if (vfxDatabase == null || vfxDatabase.entries == null)
@@ -135,14 +153,13 @@ public class SkillVfxReplicator : NetworkBehaviour
             if (!PrewarmedPrefabIds.Add(prefabId))
                 continue;
 
-            var prewarmObj = Instantiate(entry.prefab);
-            prewarmObj.SetActive(false);
-            ConfigureAttachment(prewarmObj, DefaultLocalOffset, DefaultLocalEuler);
-            DisableNetworkComponentsForLocalVfx(entry.vfxId, prewarmObj);
-            SetAllRenderersEnabled(prewarmObj, false);
-
-            prewarmObj.SetActive(true);
-            PlayAllEffects(prewarmObj);
+            var prewarmObj = Instantiate(entry.prefab, transform.position, transform.rotation);
+            DisableNetworkComponentsForLocalVfx(prewarmObj);
+            foreach (var r in prewarmObj.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r != null)
+                    r.enabled = false;
+            }
 
             if (prewarmAliveSeconds > 0f)
                 yield return new WaitForSeconds(prewarmAliveSeconds);
@@ -159,126 +176,10 @@ public class SkillVfxReplicator : NetworkBehaviour
         GameLog.Verbose($"[SkillVfxReplicator] Prewarm finished. warmed={warmedCount}", this);
     }
 
-    /// <summary>
-    /// Server-side call: stop every live instance of <paramref name="vfxId"/> this replicator spawned, on ALL clients
-    /// (a 缘起 consumed the skill). Emission stops now; existing particles linger, then the instance is destroyed.
-    /// </summary>
-    public void StopVfxAll(string vfxId, float lingerSeconds)
-    {
-        if (!IsServerInitialized || string.IsNullOrWhiteSpace(vfxId)) return;
-        StopVfxAllObserversRpc(vfxId, Mathf.Max(0f, lingerSeconds));
-    }
-
-    /// <summary>Server-side call with the replicator's default linger.</summary>
-    public void StopVfxAll(string vfxId)
-    {
-        StopVfxAll(vfxId, defaultStopLingerSeconds);
-    }
-
-    /// <summary>This peer only: stop the live instances of <paramref name="vfxId"/> spawned by this replicator.</summary>
-    public void StopVfxLocal(string vfxId, float lingerSeconds)
-    {
-        if (string.IsNullOrWhiteSpace(vfxId)) return;
-
-        int stopped = 0;
-        for (int i = _spawnedInstances.Count - 1; i >= 0; i--)
-        {
-            TimedVfxInstance instance = _spawnedInstances[i];
-            if (instance == null)
-            {
-                _spawnedInstances.RemoveAt(i);
-                continue;
-            }
-
-            var tag = instance.GetComponent<SkillVfxTag>();
-            if (tag == null || tag.VfxId != vfxId)
-                continue;
-
-            instance.StopNow(lingerSeconds);
-            stopped++;
-        }
-
-        GameLog.Verbose($"[SkillVfxReplicator] Stop '{vfxId}': {stopped} instance(s), linger={lingerSeconds:0.##}s.", this);
-    }
-
-    private void TrackSpawnedInstance(TimedVfxInstance instance)
-    {
-        // Destroyed instances compare equal to null; drop them before adding so the list stays small.
-        _spawnedInstances.RemoveAll(existing => existing == null);
-        if (!_spawnedInstances.Contains(instance))
-            _spawnedInstances.Add(instance);
-    }
-
-    private TimedVfxInstance FindExisting(string vfxId)
-    {
-        var tags = GetComponentsInChildren<SkillVfxTag>(true);
-        foreach (var t in tags)
-        {
-            if (t != null && t.VfxId == vfxId)
-                return t.GetComponent<TimedVfxInstance>();
-        }
-        return null;
-    }
-
-    private void PlayAllParticleSystems(GameObject root)
-    {
-        var systems = root.GetComponentsInChildren<ParticleSystem>(true);
-        foreach (var ps in systems)
-        {
-            if (ps == null) continue;
-            var main = ps.main;
-            if (main.stopAction != ParticleSystemStopAction.None)
-                main.stopAction = ParticleSystemStopAction.None;
-            ps.Clear(true);
-            ps.Play(true);
-        }
-    }
-
-    private void PlayAllPlayableDirectors(GameObject root)
-    {
-        var directors = root.GetComponentsInChildren<PlayableDirector>(true);
-        foreach (var director in directors)
-        {
-            if (director == null) continue;
-            director.time = 0d;
-            director.Evaluate();
-            director.Play();
-        }
-    }
-
-    private void PlayAllEffects(GameObject root)
-    {
-        PlayAllPlayableDirectors(root);
-        PlayAllParticleSystems(root);
-    }
-
-    private void SetAllRenderersEnabled(GameObject root, bool enabled)
-    {
-        var renderers = root.GetComponentsInChildren<Renderer>(true);
-        foreach (var r in renderers)
-        {
-            if (r == null) continue;
-            r.enabled = enabled;
-        }
-    }
-
-    private IEnumerator EnableRenderersAfterFrames(GameObject root, int frames)
-    {
-        int safeFrames = Mathf.Max(1, frames);
-        for (int i = 0; i < safeFrames; i++)
-            yield return null;
-
-        if (root == null) yield break;
-        SetAllRenderersEnabled(root, true);
-    }
-
-    private void DisableNetworkComponentsForLocalVfx(string vfxId, GameObject root)
+    private static void DisableNetworkComponentsForLocalVfx(GameObject root)
     {
         var networkObjects = root.GetComponentsInChildren<NetworkObject>(true);
         var networkBehaviours = root.GetComponentsInChildren<NetworkBehaviour>(true);
-
-        if (networkObjects.Length == 0 && networkBehaviours.Length == 0)
-            return;
 
         foreach (var networkBehaviour in networkBehaviours)
         {
@@ -292,43 +193,4 @@ public class SkillVfxReplicator : NetworkBehaviour
             networkObject.enabled = false;
         }
     }
-
-    private void ConfigureAttachment(GameObject vfxObj, Vector3 localOffset, Vector3 localEuler)
-    {
-        if (vfxObj == null)
-            return;
-
-        var settings = vfxObj.GetComponent<SkillVfxAttachmentSettings>();
-        if (settings == null || settings.InheritTargetRotation)
-        {
-            var follower = vfxObj.GetComponent<SkillVfxFollowTarget>();
-            if (follower != null)
-                Destroy(follower);
-
-            vfxObj.transform.SetParent(transform, false);
-            vfxObj.transform.localPosition = localOffset;
-            vfxObj.transform.localRotation = Quaternion.Euler(localEuler);
-            return;
-        }
-
-        vfxObj.transform.SetParent(null, true);
-        var follow = vfxObj.GetComponent<SkillVfxFollowTarget>();
-        if (follow == null)
-            follow = vfxObj.AddComponent<SkillVfxFollowTarget>();
-
-        follow.Initialize(transform, localOffset, localEuler, settings.InheritTargetRotation, settings.InheritTargetScale);
-    }
-
-    // New RPCs are appended below, after the existing RPC declarations, to preserve their relative order.
-
-    [ObserversRpc]
-    private void StopVfxAllObserversRpc(string vfxId, float lingerSeconds)
-    {
-        StopVfxLocal(vfxId, lingerSeconds);
-    }
-}
-
-public class SkillVfxTag : MonoBehaviour
-{
-    public string VfxId;
 }

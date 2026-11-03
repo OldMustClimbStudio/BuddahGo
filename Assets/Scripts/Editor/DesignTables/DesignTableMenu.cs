@@ -22,7 +22,9 @@ namespace BuddahGo.DesignTables
         [MenuItem("Tools/Design Tables/Validate Only", priority = 12)]
         public static void ValidateOnly()
         {
-            DesignTableExporter.Run(new DesignTableExporter.Options { DryRun = true, Force = true });
+            DesignTableExporter.Result result = DesignTableExporter.Run(new DesignTableExporter.Options { DryRun = true, Force = true });
+            if (result.Database != null)
+                UnityEngine.Object.DestroyImmediate(result.Database);
         }
 
         [MenuItem("Tools/Design Tables/Import Tag/balance", priority = 20)] public static void TagBalance() => ImportTag("balance");

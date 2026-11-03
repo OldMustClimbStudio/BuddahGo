@@ -13,6 +13,10 @@ public class Skill_Giant : SkillAction
     [Min(0.1f)] public float massMultiplier = 1f;
     [Min(0.1f)] public float forwardForceMultiplier = 1f;
 
+    [Header("VFX")]
+    [Tooltip("Release slot played on the caster for the whole scale buff. Empty = none.")]
+    [SerializeField] public string releaseVfxId = "giant_release";
+
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = string.Empty;
     [SerializeField] private string observersFeelStopEventId = string.Empty;
@@ -48,6 +52,7 @@ public class Skill_Giant : SkillAction
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         ScaleSkillPresentation.ApplyScaleEffect(caster, scaleMultiplier, durationSeconds, growDurationSeconds, shrinkDurationSeconds);
+        PlaySlotOnCaster(caster, releaseVfxId, durationSeconds);
 
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, durationSeconds);
         GameLog.Verbose($"[Skill_Giant][Observers] '{skillId}' triggered (slot {slotIndex})");
@@ -77,5 +82,10 @@ public class Skill_Giant : SkillAction
             effect.EndEarly();
 
         GameLog.Verbose($"[Skill_Giant][Observers] '{skillId}' consumed (slot {slotIndex}), shrinking early.");
+    }
+
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, releaseVfxId, 0f, durationSeconds, "Skill.effectDurationSeconds → durationSeconds");
     }
 }

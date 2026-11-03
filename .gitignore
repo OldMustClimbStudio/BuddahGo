@@ -1,4 +1,4 @@
-[Ll]ibrary/
+/[Ll]ibrary/
 !Assets/Adobe/Substance3DForUnity/Connector/Library/
 !Assets/Adobe/Substance3DForUnity/Connector/Library/**
 [Tt]emp/
@@ -28,6 +28,11 @@ Thumbs.db
 
 *.downloading
 *.zip
+
+# Third-party VFX packs: the source stays local; effects use copies listed in Docs/vfx/asset-sources.md
+# (Docs/vfx/README.md section 7). Do not reference these folders from tracked assets.
+Assets/Piloto Studio/
+Assets/Piloto Studio.meta
 
 # Plugin demos/samples that are usually safe to ignore after audit.
 Assets/Plugins/Feel/FeelDemos/
@@ -61,15 +66,10 @@ Assets/Sources/Font.meta
 # Local-only agent settings; .mcp.json is a shared, credential-free loopback config.
 .claude/settings.local.json
 
-# Large raw playtest logs (digests in agent-exchange/console/*.log capture all [D-LOC] data)
-agent-exchange/console/raw/*.log
-agent-exchange/console/raw/*.txt
-agent-exchange/console/raw/_*.py
-
 # Project-local worktrees
 /.worktree/
 
-# Local code-count reports and complete raw playtest captures.
+# Local code-count reports and complete raw playtest captures (digests in agent-exchange/console/*.log capture all [D-LOC] data).
 /.VSCodeCounter/
 /agent-exchange/console/raw/
 
@@ -86,3 +86,42 @@ Assets/Adobe/Substance3DForUnity/Runtime/Plugins/Temp.meta
 /Docs/rendering/racemap/*/*.png
 # The rendering showcase's PNG renders stay local; the docs commit JPEG copies
 /Docs/rendering/showcase/*.png
+
+# Unity template entries the original list lacked
+[Rr]ecordings/
+ExportedObj/
+.consulo/
+.gradle/
+*.suo
+*.tmp
+*.pdb
+*.pdb.meta
+*.mdb
+*.mdb.meta
+*.opendb
+*.VC.db
+*.pidb.meta
+*.apk
+*.aab
+*.app
+sysinfo.txt
+crashlytics-build.properties
+/Assets/Plugins/Editor/JetBrains*
+
+# Metas Unity writes for the ignored .sln / .csproj files inside packages
+/Assets/**/*.csproj.meta
+/Assets/**/*.sln.meta
+
+# Local rendering showcase sandbox (third-party evaluation code incl. a GPL demo; never committed)
+/Assets/Showcase/
+/Assets/Showcase.meta
+
+# Claude Code worktrees
+/.claude/worktrees/
+
+# Python caches from Tools/
+__pycache__/
+*.py[cod]
+
+# Tracked evidence archive that *.zip above would hide
+!/Docs/optimization/evidence/review-round2/r8-editor-csv.zip

@@ -52,7 +52,6 @@ namespace SteamMultiplayer.Network
         public readonly SyncList<RoomPlayerState> Players = new SyncList<RoomPlayerState>();
 
         private readonly SyncVar<bool> _transitioningToPropertiesSelector = new SyncVar<bool>();
-        private readonly SyncVar<string> _playersSummaryText = new SyncVar<string>();
         private readonly SyncVar<bool> _waitingForRacePlayers = new SyncVar<bool>();
         private readonly SyncVar<bool> _raceCountdownActive = new SyncVar<bool>();
         private readonly SyncVar<int> _raceCountdownSecondsRemaining = new SyncVar<int>();
@@ -65,6 +64,9 @@ namespace SteamMultiplayer.Network
         private bool _returningToRoomMenu;
         private Coroutine _clientRaceSceneDiagnosticsRoutine;
         private Coroutine _clientRaceSceneReadyRoutine;
+        private Coroutine _raceCountdownRoutine;
+        // Newest gameplay-live sequence any client reported this race; lets a disconnect re-check the unlock.
+        private int _latestGameplayLiveSequenceIdServer = -1;
         private readonly RaceStartHandshake _raceStartHandshake = new RaceStartHandshake();
         private RoomRoster _roomRoster;
         private RoomRoster Roster => _roomRoster ??= new RoomRoster(Players);
@@ -84,8 +86,6 @@ namespace SteamMultiplayer.Network
         internal int DiagnosticGameplaySequence => _reportedGameplayLiveSequenceId;
 
         public bool IsTransitioningToPropertiesSelector => _transitioningToPropertiesSelector.Value;
-        public string PlayersSummaryText => _playersSummaryText.Value;
-        public bool RequireAllClientsReady => _requireAllClientsReady;
         public bool CanHostStartGame => Players.Count > 0 && (!_requireAllClientsReady || AreAllRequiredPlayersReady());
         public bool IsWaitingForRacePlayers => _waitingForRacePlayers.Value;
         public bool IsRaceCountdownActive => _raceCountdownActive.Value;
@@ -237,7 +237,6 @@ namespace SteamMultiplayer.Network
             }
 
             _transitioningToPropertiesSelector.Value = false;
-            UpdatePlayersSummaryText();
             ResetRaceFlowStateServer();
             _matchSessionPhase.Value = MatchSessionPhase.InRoom;
             _returningToRoomMenu = false;
@@ -260,9 +259,9 @@ namespace SteamMultiplayer.Network
             }
 
             StopAllCoroutines();
+            _raceCountdownRoutine = null;
             Players.Clear();
             _transitioningToPropertiesSelector.Value = false;
-            _playersSummaryText.Value = string.Empty;
             _waitingForRacePlayers.Value = false;
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
@@ -270,6 +269,7 @@ namespace SteamMultiplayer.Network
             _raceStarted.Value = false;
             _gameplayMovementUnlocked.Value = false;
             _authoritativeGoIssued.Value = false;
+            _latestGameplayLiveSequenceIdServer = -1;
             _matchSessionPhase.Value = MatchSessionPhase.InRoom;
             _returningToRoomMenu = false;
         }
@@ -288,14 +288,6 @@ namespace SteamMultiplayer.Network
                 return;
 
             StartGameServerRpc();
-        }
-
-        public void RequestReturnToRoomMenuKeepingSession()
-        {
-            if (!IsClientInitialized)
-                return;
-
-            ReturnToRoomMenuKeepingSessionServerRpc();
         }
 
         public void ReportLocalIntroAssignmentApplied(int sequenceId)
@@ -363,7 +355,6 @@ namespace SteamMultiplayer.Network
 
             player.IsReady = !player.IsReady;
             Players[index] = player;
-            UpdatePlayersSummaryText();
             LogDebug($"Ready toggled for {player.PlayerName}: {player.IsReady}");
         }
 
@@ -394,21 +385,6 @@ namespace SteamMultiplayer.Network
         }
 
         [ServerRpc(RequireOwnership = false)]
-        private void ReturnToRoomMenuKeepingSessionServerRpc(NetworkConnection caller = null)
-        {
-            if (caller == null || !caller.IsAuthenticated)
-                return;
-
-            if (_matchSessionPhase.Value != MatchSessionPhase.InResult)
-            {
-                LogDebug($"Ignored room-return request from player {caller.ClientId} because phase={_matchSessionPhase.Value}");
-                return;
-            }
-
-            ReturnToRoomMenuKeepingSessionServer();
-        }
-
-        [ServerRpc(RequireOwnership = false)]
         private void SubmitDisplayNameServerRpc(string displayName, NetworkConnection caller = null)
         {
             if (caller == null || !caller.IsAuthenticated)
@@ -434,7 +410,6 @@ namespace SteamMultiplayer.Network
 
             player.PlayerName = sanitizedName;
             Players[index] = player;
-            UpdatePlayersSummaryText();
         }
 
         private void HandleAuthenticationResult(NetworkConnection conn, bool authenticated)
@@ -556,7 +531,6 @@ namespace SteamMultiplayer.Network
             RoomPlayerState playerState = BuildRoomPlayerState(conn);
             Roster.Upsert(playerState, conn.ClientId);
 
-            UpdatePlayersSummaryText();
             LogDebug($"Registered room player: {playerState.PlayerName} ({playerState.SteamId})");
         }
 
@@ -569,8 +543,16 @@ namespace SteamMultiplayer.Network
 
             Players.RemoveAt(index);
             _raceStartHandshake.RemovePlayer(playerId);
-            UpdatePlayersSummaryText();
             LogDebug($"Removed room player {playerId}");
+
+            // The leaver may have been the last client the gameplay unlock was waiting on.
+            if (_matchSessionPhase.Value == MatchSessionPhase.InMatch
+                && _authoritativeGoIssued.Value
+                && !_gameplayMovementUnlocked.Value
+                && Players.Count > 0)
+            {
+                TryUnlockGameplayServer(_latestGameplayLiveSequenceIdServer);
+            }
         }
 
         private RoomPlayerState BuildRoomPlayerState(NetworkConnection conn)
@@ -701,6 +683,7 @@ namespace SteamMultiplayer.Network
         private void BeginRacePreparationServer()
         {
             StopAllCoroutines();
+            _raceCountdownRoutine = null;
             _transitioningToPropertiesSelector.Value = false;
             _waitingForRacePlayers.Value = true;
             _raceCountdownActive.Value = false;
@@ -711,6 +694,7 @@ namespace SteamMultiplayer.Network
             _authoritativeGoIssued.Value = false;
             _matchSessionPhase.Value = MatchSessionPhase.InMatch;
             _raceStartHandshake.ResetAllReadiness();
+            _latestGameplayLiveSequenceIdServer = -1;
             GameLog.Verbose($"[SceneDiag][Server] BeginRacePreparationServer scene='{_raceSceneName}' time={Time.unscaledTime:F3}");
             EvaluateRaceStartReadinessServer();
             LogDebug("Race scene loaded. Waiting for all players and spawned characters before countdown.");
@@ -741,12 +725,6 @@ namespace SteamMultiplayer.Network
             _matchSessionPhase.Value = MatchSessionPhase.InResult;
             _returningToRoomMenu = false;
             LogDebug("Entered in-scene result phase. Waiting for host-authoritative return-to-room trigger.");
-        }
-
-        [Server]
-        public void ReturnToRoomMenuKeepingSessionServer()
-        {
-            ReturnToRoomMenuKeepingSessionServer(_mainMenuSceneName);
         }
 
         [Server]
@@ -836,7 +814,6 @@ namespace SteamMultiplayer.Network
             _transitioningToPropertiesSelector.Value = false;
             _matchSessionPhase.Value = MatchSessionPhase.InRoom;
             _returningToRoomMenu = false;
-            UpdatePlayersSummaryText();
             LogDebug("Main menu loaded while keeping the current room session alive.");
         }
 
@@ -850,13 +827,13 @@ namespace SteamMultiplayer.Network
             _gameplayMovementUnlocked.Value = false;
             _authoritativeGoIssued.Value = false;
             _raceStartHandshake.ResetSequenceReadiness();
+            _latestGameplayLiveSequenceIdServer = -1;
         }
 
         [Server]
         private void ResetPlayersReadyStateForRoomReturn()
         {
             Roster.ResetReadyForRoomReturn();
-            UpdatePlayersSummaryText();
         }
 
         [Server]
@@ -881,7 +858,7 @@ namespace SteamMultiplayer.Network
 
             // Only begin countdown after every authenticated connection owns a race-scene player avatar.
             LogDebug("[Race] Countdown start");
-            StartCoroutine(RaceCountdownCoroutine());
+            _raceCountdownRoutine = StartCoroutine(RaceCountdownCoroutine());
         }
 
         [Server]
@@ -896,6 +873,7 @@ namespace SteamMultiplayer.Network
             {
                 if (!AreAllPlayersReadyForRaceServer())
                 {
+                    _raceCountdownRoutine = null;
                     StopRaceCountdownServer();
                     _pregameCountdownCompleted.Value = false;
                     _waitingForRacePlayers.Value = true;
@@ -910,6 +888,7 @@ namespace SteamMultiplayer.Network
                 _raceCountdownSecondsRemaining.Value--;
             }
 
+            _raceCountdownRoutine = null;
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
             _waitingForRacePlayers.Value = false;
@@ -922,6 +901,13 @@ namespace SteamMultiplayer.Network
         [Server]
         private void StopRaceCountdownServer()
         {
+            // Stop the running countdown so a quick stop/restart cannot leave two coroutines decrementing.
+            if (_raceCountdownRoutine != null)
+            {
+                StopCoroutine(_raceCountdownRoutine);
+                _raceCountdownRoutine = null;
+            }
+
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
         }
@@ -1088,12 +1074,20 @@ namespace SteamMultiplayer.Network
                 return;
             GameLog.Verbose($"[GameplayUnlock][Server] Client {caller.ClientId} reported gameplay live for seq={sequenceId}. details={BuildServerRaceReadinessSummary()}");
 
-            if (AreAllClientsGameplayLiveForSequenceServer(sequenceId))
-            {
-                _gameplayMovementUnlocked.Value = true;
-                _raceStarted.Value = true;
-                GameLog.Verbose($"[GameplayUnlock][Server] Gameplay movement unlocked for all players. details={BuildServerRaceReadinessSummary()}");
-            }
+            if (sequenceId > _latestGameplayLiveSequenceIdServer)
+                _latestGameplayLiveSequenceIdServer = sequenceId;
+            TryUnlockGameplayServer(sequenceId);
+        }
+
+        [Server]
+        private void TryUnlockGameplayServer(int sequenceId)
+        {
+            if (!AreAllClientsGameplayLiveForSequenceServer(sequenceId))
+                return;
+
+            _gameplayMovementUnlocked.Value = true;
+            _raceStarted.Value = true;
+            GameLog.Verbose($"[GameplayUnlock][Server] Gameplay movement unlocked for all players. seq={sequenceId} details={BuildServerRaceReadinessSummary()}");
         }
 
         private bool TryReportLocalSequence(int sequenceId, ref int reportedSequenceId)
@@ -1139,12 +1133,6 @@ namespace SteamMultiplayer.Network
         private void NotifyPropertiesSelectorRequestedObserversRpc()
         {
             OnPropertiesSelectorTransitionRequested?.Invoke();
-        }
-
-        [Server]
-        private void UpdatePlayersSummaryText()
-        {
-            _playersSummaryText.Value = Roster.BuildSummary();
         }
 
         internal int GetLocalClientId()

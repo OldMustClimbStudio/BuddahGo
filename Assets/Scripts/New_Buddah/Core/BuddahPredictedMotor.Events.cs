@@ -902,13 +902,6 @@ namespace NewBuddah.PredictionV2.Core
                     blackCurtainTrails[i].NotifyTeleportRebase();
             }
 
-            PlayerAccelerationTrail[] accelerationTrails = GetComponentsInChildren<PlayerAccelerationTrail>(true);
-            for (int i = 0; i < accelerationTrails.Length; i++)
-            {
-                if (accelerationTrails[i] != null)
-                    accelerationTrails[i].NotifyTeleportRebase();
-            }
-
             if (bootstrap != null)
                 bootstrap.DebugState.trailRebasedByTeleport = true;
         }

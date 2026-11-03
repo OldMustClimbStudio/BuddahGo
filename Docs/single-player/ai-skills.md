@@ -55,7 +55,7 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 | `blackcurtain` | 16 | 展开 1 s、保持 10 s、淡出 2 s 的全屏遮挡；施法者可见边线 | 仅本地屏幕（单机 = 真人） |
 | `reverseturn` | 12 | 场上所有其他参赛者转向反转 10 s，不分距离 | 全场 |
 
-冷却从请求时刻加 1 s 前摇起算，反噬也照常进本行冷却。没有全局施法锁：一招执行后即可请求另一个冷却已好的槽，两个技能可以同时生效，成对的技能会触发缘起（AI 的缘起决策见下文）。掌形 buff 期间每次推掌都是一次蓄力发射。
+冷却从请求时刻加前摇起算（普通 1 s；反噬按 `_anti` 行是 2 s，2026-11-03 合入 dev 后），反噬也照常进本行冷却。AI 的时机估计用 `SkillExecutor.ConfirmationSeconds`（表里最长的前摇，即 2 s），所以机会有效期的要求比普通施法实际需要的多 1 s，偏保守。没有全局施法锁：一招执行后即可请求另一个冷却已好的槽，两个技能可以同时生效，成对的技能会触发缘起（AI 的缘起决策见下文）。掌形 buff 期间每次推掌都是一次蓄力发射。
 
 **输入**：玩家单键施法（槽 0/1/2 = Q/E/R 与 1/2/3），手部朝向跟随光标的地面投影，鼠标左/右键推左/右手；按住 W 前进、松开停止推进（2026-10-30，W/↑ 推掌已删除）。AI 不按键：前进经 `AIRacerDriver.TryGetOverride` 的 `drive`，和真人的 W 写进同一个预测输入字段（`BuddahDriveInput.ResolveThrottle`），一直推进到完赛（已定，2026-10-30），驾驶规划 `BuddahMotionModel` 也按满推进力建模，所以这次改动不改变 AI 的驾驶。AI 不再搓招（A7）：决定后下一 tick 直接调用 `SkillExecutor.CastSlotServer`，再经 1 s 施法确认，从决定到效果出现约 1 s + 1 tick（决策前另有难度给定的反应延迟）。掌形 buff 期间 AI 的发射是直接的服务器推掌（`BuddahHandControl.InjectServerPush`，普通推掌冷却 0.4 s）。AI 的手部朝向经 `BuddahHandControl.InjectServerRotation` 以 180°/s 旋转，掌形发射方向 = 车头方向 + 手部 yaw。
 

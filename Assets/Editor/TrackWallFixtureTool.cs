@@ -17,6 +17,12 @@ public static class TrackWallFixtureTool
     {
         string fixtures = Path.Combine(Application.dataPath, "../Tools/ai/fixtures");
         var route = JsonUtility.FromJson<Route>(File.ReadAllText(Path.Combine(fixtures, "spin-entry.json")));
+        // RaceMap replaces the open scenes: offer to save their changes first, and stop if the user cancels.
+        if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+        {
+            Debug.Log("[TrackWallFixtureTool] cancelled: open scenes were not saved");
+            return;
+        }
         EditorSceneManager.OpenScene("Assets/Scenes/RaceMap.unity", OpenSceneMode.Single);
         Physics.SyncTransforms();
         TrackWallProbe.Measure(route.points, out float[] left, out float[] right);

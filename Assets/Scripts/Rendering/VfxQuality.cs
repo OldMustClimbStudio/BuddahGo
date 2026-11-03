@@ -9,8 +9,9 @@ namespace BuddahGo.Rendering
         High = 2,
     }
 
-    // Effects quality chosen in the graphics settings (Graphics/GraphicsOption vfx_quality). A stub until the VFX spec
-    // defines what each tier changes: effects read Current or subscribe to Changed; nothing reacts to it yet.
+    // Effects quality chosen in the graphics settings (Graphics/GraphicsOption vfx_quality). SkillVfxPhaseController
+    // reads Current when an effect starts (SkillVfxRules decides emission and which layers a tier keeps); nothing
+    // subscribes to Changed yet, it is there for a live switch from the menu.
     // Client-local and never networked, so gameplay-relevant effects must not depend on it.
     public static class VfxQuality
     {

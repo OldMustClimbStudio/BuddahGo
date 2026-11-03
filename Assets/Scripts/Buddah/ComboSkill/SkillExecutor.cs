@@ -1,4 +1,5 @@
 using FishNet.Connection;
+using FishNet.Managing.Timing;
 using BuddahGo.Match;
 using FishNet.Object;
 using NewBuddah.PredictionV2.Bootstrap;
@@ -130,19 +131,21 @@ public class SkillExecutor : NetworkBehaviour
     private ISkillCastContinuation _castContinuation;
 
     private const float CastConfirmDelaySeconds = 1f;
-    private const string SkillReflectionSharedFeelEventId = "Skill_Reflection_Shared";
+    // Without an _anti row: the table's 2 s backfire wind-up (Skill.castConfirmDelaySeconds of the _anti rows; PR #68).
+    private const float AntiCastConfirmDelaySeconds = 2f;
     private const string SkillReflectionLocalFeelEventId = "Skill_Reflection_Local";
-    // The former anti feedback is now the unified backfire feedback (confirm window of a backfired cast).
-    private const string BackfireReflectionSharedFeelEventId = "Anti_Reflection_Shared";
+    // The anti feedback is the backfire's confirm-window feedback (owner-side Feel; every peer plays the cast_anti slot).
     private const string BackfireReflectionLocalFeelEventId = "Anti_Reflection_Local";
     private const string BackfireAnimatorTriggerName = "IsAnti";
+    // Shared wind-up slots over the cast confirmation delay (Docs/vfx/README.md section 4).
+    private const string CastVfxId = "cast";
+    private const string CastAntiVfxId = "cast_anti";
 
     [Header("Refs")]
     [SerializeField] private SkillLoadout loadout;
     [SerializeField] private SkillDatabase database;
     [SerializeField] private SkillFeelRouter feelRouter;
     [SerializeField] private Animator characterAnimator;
-    [SerializeField] private PlayerAccelerationTrail accelerationTrailController;
     [SerializeField] private PlayerCamera playerCamera;
     [SerializeField] private BuddahPredictionBootstrap predictionBootstrap;
     [SerializeField] private BuddahPredictionSkillMovementBridge predictionSkillMovementBridge;
@@ -423,7 +426,6 @@ public class SkillExecutor : NetworkBehaviour
     {
         if (IsServerInitialized && RacerAuthority.IsServerControlled(this)) ResetServerControlledSkillState(resetMovementModifiers);
         ResolveCharacterAnimator();
-        ResolveAccelerationTrailController();
         ResolvePlayerCamera();
 
         if (_cameraFovPulseRoutine != null)
@@ -451,7 +453,6 @@ public class SkillExecutor : NetworkBehaviour
         if (scaleEffect != null)
             scaleEffect.CancelAndRestore();
 
-        accelerationTrailController?.ClearTrail();
         playerCamera?.ResetRuntimeEffects();
 
         if (characterAnimator != null)
@@ -604,18 +605,27 @@ public class SkillExecutor : NetworkBehaviour
         return isBackfire;
     }
 
-    // Skill.castConfirmDelaySeconds of the requested row; the constant only applies without a row.
-    private static float ResolveCastConfirmDelay(string skillId)
+    // Skill.castConfirmDelaySeconds of the row that will execute: the requested skill, or its _anti variant for a
+    // backfire (the 2 s backfire wind-up is part of the penalty, user 2026-10-31); the constants only apply without a row.
+    private float ResolveCastConfirmDelay(string skillId, bool isBackfire)
     {
+        string rowId = skillId;
+        if (isBackfire)
+        {
+            SkillAction skill = null;
+            if (database != null) database.TryGet(skillId, out skill);
+            string antiSkillId = ResolveAntiSkillId(skillId, skill);
+            if (!string.IsNullOrWhiteSpace(antiSkillId)) rowId = antiSkillId;
+        }
         if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository skills)
-            && skills.TryGetCastConfirmDelay(skillId, out float seconds))
+            && skills.TryGetCastConfirmDelay(rowId, out float seconds))
             return seconds;
-        return CastConfirmDelaySeconds;
+        return isBackfire ? AntiCastConfirmDelaySeconds : CastConfirmDelaySeconds;
     }
 
     private void QueueCast(int slotIndex, string skillId, SkillAction skill, float now, bool isBackfire)
     {
-        float castDelaySeconds = ResolveCastConfirmDelay(skillId);
+        float castDelaySeconds = ResolveCastConfirmDelay(skillId, isBackfire);
         float triggerAt = now + castDelaySeconds;
 
         // Cooldown always comes from the requested skill, backfire or not.
@@ -839,14 +849,13 @@ public class SkillExecutor : NetworkBehaviour
     private void PlayQueuedCastFeedbackObserversRpc(string skillId, bool isBackfire)
     {
         if (isBackfire)
-        {
             TriggerBackfireAnimationLocal();
-            PlayFeelLocal(BackfireReflectionSharedFeelEventId);
-        }
-        else
-        {
-            PlayFeelLocal(SkillReflectionSharedFeelEventId);
-        }
+
+        // Shared wind-up slot over the cast confirmation delay, on every client (replaces the character's
+        // 技能Particle / 反噬Particle and the 技能 / 反噬Reflection_Shared Feel players; Docs/vfx/README.md section 4).
+        var vfx = GetComponent<SkillVfxReplicator>();
+        if (vfx != null)
+            vfx.PlaySlotLocal(isBackfire ? CastAntiVfxId : CastVfxId, ResolveCastConfirmDelay(skillId, isBackfire));
 
         if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][PreCastFeedback] '{skillId}' backfire={isBackfire}, IsOwner={IsOwner}");
 
@@ -1141,32 +1150,6 @@ public class SkillExecutor : NetworkBehaviour
         characterAnimator = ResolveInHierarchy<Animator>(false);
     }
 
-    internal void ShowAccelerationTrail(float durationSeconds)
-    {
-        ResolveAccelerationTrailController();
-
-        if (accelerationTrailController == null)
-            return;
-
-        accelerationTrailController.ShowForDuration(durationSeconds);
-    }
-
-    public void ShowAccelerationTrailLocal(float durationSeconds)
-    {
-        if (durationSeconds <= 0f)
-            return;
-
-        ShowAccelerationTrail(durationSeconds);
-    }
-
-    private void ResolveAccelerationTrailController()
-    {
-        if (accelerationTrailController != null)
-            return;
-
-        accelerationTrailController = ResolveInHierarchy<PlayerAccelerationTrail>(false);
-    }
-
     private bool IsRaceGameplayBlocked()
     {
         return !ResultAreaInteractionGate.ShouldAllowSkillInput(gameObject);
@@ -1233,14 +1216,6 @@ public class SkillExecutor : NetworkBehaviour
     {
         _cameraFovPulseRoutine = null;
         _cameraFovPulseTag = null;
-    }
-
-    /// <summary>Every peer: the acceleration trail stops emitting now and fades out (a consumed 神足通).</summary>
-    public void EndAccelerationTrailEarlyLocal()
-    {
-        ResolveAccelerationTrailController();
-        if (accelerationTrailController != null)
-            accelerationTrailController.EndEarly();
     }
 
     [TargetRpc]
@@ -1362,19 +1337,23 @@ public class SkillExecutor : NetworkBehaviour
     }
 
     // The anti palm burst (Skill_PushProjectileHands_Anti), restored 2026-10-31; appended last to keep the RPC order.
+    // spawnTick / casterPositionAtSpawn: the server tick its hitboxes were spawned at and where the caster was then;
+    // the visual copies run on the same clock and follow the caster from the same point.
     public void PlayChargedBurstVisualsServer(string skillId, Vector3[] starts, Vector3 direction,
-        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize)
+        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
+        PreciseTick spawnTick, Vector3 casterPositionAtSpawn)
     {
         if (!IsServerInitialized)
             return;
         PlayChargedBurstVisualsObserversRpc(skillId, starts, direction, speed, buildUpSeconds,
-            lifetimeSeconds, localEuler, visualSize);
+            lifetimeSeconds, localEuler, visualSize, spawnTick, casterPositionAtSpawn);
     }
 
     // Appended after the existing RPC declarations to preserve their relative order.
     [ObserversRpc]
     private void PlayChargedBurstVisualsObserversRpc(string skillId, Vector3[] starts, Vector3 direction,
-        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize)
+        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
+        PreciseTick serverSpawnTick, Vector3 casterPositionAtSpawn)
     {
         if (database == null || !database.TryGet(skillId, out SkillAction action)
             || !(action is Skill_PushProjectileHands_Anti skill) || starts == null)
@@ -1384,8 +1363,9 @@ public class SkillExecutor : NetworkBehaviour
         if (handControl == null)
             return;
         handControl.SpawnChargedBurstVisualsAtPositions(starts, direction, speed, buildUpSeconds,
-            lifetimeSeconds, localEuler, visualSize, skill.ChargedProjectileVfxPrefab,
-            skill.ChargedProjectileProgressProperty);
+            lifetimeSeconds, localEuler, visualSize, handControl.ResolveSkillVfxPrefab(skill.VfxId),
+            skill.projectileColliderSize, serverSpawnTick,
+            handControl.ResolveSkillVfxPrefab(skill.HandVfxId), skill.projectileSpeedCurve, casterPositionAtSpawn);
     }
 
     // A backfire's _anti variant on every peer (presentation and owner feel), resolved from this client's SkillDatabase like

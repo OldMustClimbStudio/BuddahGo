@@ -19,40 +19,40 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void SequenceResetRetainsSceneReadinessButClearsSequenceState()
+        public void ResetsAndDisconnectClearOnlyTheirReadiness()
         {
-            var h = Seed(); h.ResetSequenceReadiness();
-            foreach (int player in new[] { 1, 2 })
-            {
-                Assert.That(h.AreSceneManagersReady(player), Is.True);
-                foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
-                    Assert.That(h.IsReadyForSequence(player, 4, stage), Is.False);
-            }
-        }
-
-        [Test]
-        public void DisconnectRemovesOnlyDepartingPlayerFromAllReadiness()
-        {
-            var h = Seed(); h.RemovePlayer(1);
-            Assert.That(h.AreSceneManagersReady(1), Is.False);
-            Assert.That(h.AreSceneManagersReady(2), Is.True);
-            foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
-            {
-                Assert.That(h.IsReadyForSequence(1, 4, stage), Is.False);
-                Assert.That(h.IsReadyForSequence(2, 4, stage), Is.True);
-            }
-        }
-
-        [Test]
-        public void FullResetClearsAllReadiness()
-        {
-            var h = Seed(); h.ResetAllReadiness();
-            foreach (int player in new[] { 1, 2 })
-            {
-                Assert.That(h.AreSceneManagersReady(player), Is.False);
-                foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
-                    Assert.That(h.IsReadyForSequence(player, 4, stage), Is.False);
-            }
+            EveryCase.Parts(
+                ("a sequence reset retains scene readiness but clears sequence state", () =>
+                {
+                    var h = Seed(); h.ResetSequenceReadiness();
+                    foreach (int player in new[] { 1, 2 })
+                    {
+                        Assert.That(h.AreSceneManagersReady(player), Is.True);
+                        foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
+                            Assert.That(h.IsReadyForSequence(player, 4, stage), Is.False);
+                    }
+                }),
+                ("a disconnect removes only the departing player from all readiness", () =>
+                {
+                    var h = Seed(); h.RemovePlayer(1);
+                    Assert.That(h.AreSceneManagersReady(1), Is.False);
+                    Assert.That(h.AreSceneManagersReady(2), Is.True);
+                    foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
+                    {
+                        Assert.That(h.IsReadyForSequence(1, 4, stage), Is.False);
+                        Assert.That(h.IsReadyForSequence(2, 4, stage), Is.True);
+                    }
+                }),
+                ("a full reset clears all readiness", () =>
+                {
+                    var h = Seed(); h.ResetAllReadiness();
+                    foreach (int player in new[] { 1, 2 })
+                    {
+                        Assert.That(h.AreSceneManagersReady(player), Is.False);
+                        foreach (RaceStartHandshake.Stage stage in System.Enum.GetValues(typeof(RaceStartHandshake.Stage)))
+                            Assert.That(h.IsReadyForSequence(player, 4, stage), Is.False);
+                    }
+                }));
         }
 
         [Test]

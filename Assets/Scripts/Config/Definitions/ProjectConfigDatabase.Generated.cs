@@ -25,6 +25,8 @@ public partial class ProjectConfigDatabase
     public List<YuanqiEffectFrostLockRecord> yuanqiEffectFrostLocks = new List<YuanqiEffectFrostLockRecord>();
     [Header("Skill / YuanqiEffectGiantCharge")]
     public List<YuanqiEffectGiantChargeRecord> yuanqiEffectGiantCharges = new List<YuanqiEffectGiantChargeRecord>();
+    [Header("Skill / VfxRegistry")]
+    public List<VfxRegistryRecord> vfxRegistries = new List<VfxRegistryRecord>();
     [Header("Movement / Movement")]
     public List<MovementRecord> movements = new List<MovementRecord>();
     [Header("Movement / Respawn")]

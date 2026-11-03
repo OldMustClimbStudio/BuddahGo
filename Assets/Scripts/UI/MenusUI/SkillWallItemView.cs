@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using SteamMultiplayer.Network;
 using TMPro;
 using UnityEngine;
@@ -30,11 +31,8 @@ namespace SteamMultiplayer.UI
 
         private SkillWallSelectionController _controller;
         private SkillInspectableItem _inspectableItem;
-        private SelectablePropertyOption _optionData;
         private string _skillId = string.Empty;
         private string _displayName = string.Empty;
-        private string _description = string.Empty;
-        private string _previewIconKey = string.Empty;
 
         private Vector3 _wallLocalPosition;
         private Quaternion _wallLocalRotation = Quaternion.identity;
@@ -46,18 +44,14 @@ namespace SteamMultiplayer.UI
 
         private Coroutine _hoverRoutine;
         private Coroutine _moveRoutine;
+        // Per-renderer copies made by Renderer.material; the renderer never destroys them.
+        private readonly List<Material> _instancedMaterials = new List<Material>();
 
         public string SkillId => _skillId;
-        public string DisplayName => _displayName;
-        public string Description => _description;
-        public string PreviewIconKey => _previewIconKey;
         public bool IsSelected => _isSelected;
         public bool IsInFlight => _isInFlight;
         public bool IsHovered => _isHovered;
         public bool IsInteractionLocked => _interactionLocked;
-        public Vector3 WallLocalPosition => _wallLocalPosition;
-        public Quaternion WallLocalRotation => _wallLocalRotation;
-        public SelectablePropertyOption OptionData => _optionData;
         public SkillInspectableItem InspectableItem => _inspectableItem;
 
         private void Awake()
@@ -66,14 +60,22 @@ namespace SteamMultiplayer.UI
             _inspectableItem = GetComponent<SkillInspectableItem>();
         }
 
+        private void OnDestroy()
+        {
+            for (int i = 0; i < _instancedMaterials.Count; i++)
+            {
+                if (_instancedMaterials[i] != null)
+                    Destroy(_instancedMaterials[i]);
+            }
+
+            _instancedMaterials.Clear();
+        }
+
         public void Initialize(SkillWallSelectionController controller, SelectablePropertyOption option)
         {
             _controller = controller;
-            _optionData = option;
             _skillId = (option.OptionId ?? string.Empty).Trim();
             _displayName = string.IsNullOrWhiteSpace(option.DisplayName) ? _skillId : option.DisplayName;
-            _description = option.Description ?? string.Empty;
-            _previewIconKey = option.PreviewIconKey ?? string.Empty;
 
             gameObject.name = $"SkillWallItem_{_skillId}";
             RecordCurrentWallPose();
@@ -428,10 +430,16 @@ namespace SteamMultiplayer.UI
             for (int i = 0; i < targetRenderers.Length; i++)
             {
                 Renderer targetRenderer = targetRenderers[i];
-                if (targetRenderer == null || targetRenderer.material == null)
+                if (targetRenderer == null)
                     continue;
 
-                targetRenderer.material.color = targetColor;
+                Material material = targetRenderer.material;
+                if (material == null)
+                    continue;
+
+                if (!_instancedMaterials.Contains(material))
+                    _instancedMaterials.Add(material);
+                material.color = targetColor;
             }
         }
 

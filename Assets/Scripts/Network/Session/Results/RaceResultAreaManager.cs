@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using FishNet.Object;
 using SteamMultiplayer.Network;
@@ -23,7 +22,6 @@ namespace SteamMultiplayer.Network.Results
         [Header("Debug")]
         [SerializeField] private bool enableDebugLogs = true;
 
-        private readonly HashSet<int> _placedRacerIds = new HashSet<int>();
         private bool _warnedMissingAnchors;
         private bool _warnedOverflowAnchors;
 
@@ -65,7 +63,6 @@ namespace SteamMultiplayer.Network.Results
         public override void OnStopServer()
         {
             base.OnStopServer();
-            _placedRacerIds.Clear();
             _warnedMissingAnchors = false;
             _warnedOverflowAnchors = false;
             if (Instance == this)
@@ -91,21 +88,6 @@ namespace SteamMultiplayer.Network.Results
 
             ResolvePlacementTransform(placementIndex, out worldPosition, out worldRotation);
             return true;
-        }
-
-        [Server]
-        public void NotifyPlacementApplied(int racerId)
-        {
-            if (!IsServerInitialized)
-                return;
-
-            _placedRacerIds.Add(racerId);
-        }
-
-        [Server]
-        public bool HasPlacementApplied(int racerId)
-        {
-            return IsServerInitialized && _placedRacerIds.Contains(racerId);
         }
 
         private void ResolvePlacementTransform(int placementIndex, out Vector3 worldPosition, out Quaternion worldRotation)

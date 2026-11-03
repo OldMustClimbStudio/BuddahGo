@@ -4,28 +4,19 @@ using UnityEngine;
 public class Skill_BlackCurtain_Anti : SkillAction
 {
     [Header("Screen Effect")]
-    [Tooltip("Material used by the URP Full Screen Pass Renderer Feature.")]
-    [SerializeField] private Material fullscreenMaterial;
-    [Tooltip("Optional fallback when fullscreenMaterial is not assigned.")]
-    [SerializeField] private string fullscreenMaterialName = "SG_BlackCurtain";
-    [Tooltip("Optional fallback when material is looked up by shader name.")]
-    [SerializeField] private string fullscreenShaderName = "Shader Graphs/SG_BlackCurtain";
+    [Tooltip("Look of the curtain (H1 墨眼): shader, world layers and opening curves, shared with the other 一念光明 skill.")]
+    [SerializeField] private BlackCurtainEyeProfile eyeProfile;
     [Min(0.05f)] public float expandDurationSeconds = 1.25f;
     [Min(0f)] public float holdDurationSeconds = 0.75f;
     [Min(0f)] public float fadeOutDurationSeconds = 0.35f;
     [Range(0f, 1f)] public float maxOpacity = 1f;
 
-    [Header("Shader Properties")]
-    [SerializeField] private string progressProperty = "_Expansion";
-    [SerializeField] private string opacityProperty = "_Opacity";
-    [SerializeField] private string elapsedTimeProperty = "_ElapsedTime";
-    [SerializeField] private string activeProperty = "_EffectActive";
-    [SerializeField] private string centerProperty = "_Center";
-    [SerializeField] private Vector3 centerWorldOffset = new Vector3(0f, 1f, 0f);
-
     [Header("Duration Override")]
     [Tooltip("Optional duration override used by the observer feel timing. 0 = follow screen effect total duration.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
+    [Header("VFX")]
+    [Tooltip("Reaction (red) slot played on the caster, on every client. Empty = none (only the shared cast_anti wind-up).")]
+    [SerializeField] public string releaseVfxId = string.Empty;
     [Header("Feel (Optional)")]
     [SerializeField] private string observersFeelEventId = "blackcurtain_anti_observers";
     [SerializeField] private string observersFeelStopEventId = string.Empty;
@@ -43,21 +34,15 @@ public class Skill_BlackCurtain_Anti : SkillAction
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
+        PlaySlotOnCaster(caster, releaseVfxId, ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds));
+
         var settings = new BlackCurtainPresentation.Settings
         {
-            fullscreenMaterial = fullscreenMaterial,
-            fullscreenMaterialName = fullscreenMaterialName,
-            fullscreenShaderName = fullscreenShaderName,
+            eyeProfile = eyeProfile,
             expandDurationSeconds = expandDurationSeconds,
             holdDurationSeconds = holdDurationSeconds,
             fadeOutDurationSeconds = fadeOutDurationSeconds,
             maxOpacity = maxOpacity,
-            progressProperty = progressProperty,
-            opacityProperty = opacityProperty,
-            elapsedTimeProperty = elapsedTimeProperty,
-            activeProperty = activeProperty,
-            centerProperty = centerProperty,
-            centerWorldOffset = centerWorldOffset,
         };
         if (!BlackCurtainPresentation.TryPlay(caster, true, localIsCaster, GetType().Name, settings))
             return;
@@ -68,4 +53,10 @@ public class Skill_BlackCurtain_Anti : SkillAction
         GameLog.Verbose($"[Skill_BlackCurtain_Anti][Observers] Local caster affected by '{skillId}' (slot {slotIndex})");
     }
 
+
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, releaseVfxId, vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds,
+            "SkillEffectBlackCurtain.expandDurationSeconds + Skill.effectDurationSeconds → holdDurationSeconds + fadeOutDurationSeconds");
+    }
 }

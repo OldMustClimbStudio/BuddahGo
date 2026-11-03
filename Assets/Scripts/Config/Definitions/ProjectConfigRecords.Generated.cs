@@ -109,9 +109,9 @@ public class SkillEffectGiantRecord
 public class PushRecord
 {
     /// <summary>string#key (key)</summary>
-    [Tooltip("basic=普通推掌（BuddahHandControl.PushBasicMap），charged=如来神掌蓄力弹（SkillDatabase.PushChargedMap → Skill_PushProjectileHands），charged_anti=反噬弹幕（SkillDatabase.PushChargedAntiMap → Skill_PushProjectileHands_Anti）")] public string pushId = string.Empty;
+    [Tooltip("basic=普通推掌（BuddahHandControl），charged=如来神掌蓄力弹（Skill_PushProjectileHands），charged_anti=反噬弹幕（Skill_PushProjectileHands_Anti）")] public string pushId = string.Empty;
     /// <summary>float</summary>
-    [Tooltip("basic：鼠标转手速度上限 °/s，光标目标先平滑再按此限速（BuddahHandControl.rotationSpeedDegPerSec）；方向键回退与 AI 瞄准估算（AISkillCaster 经 HandRotationSpeed）也用它")] public float rotationSpeedDegPerSec = 0f;
+    [Tooltip("basic：手部旋转速度（AI 也读）")] public float rotationSpeedDegPerSec = 0f;
     /// <summary>float</summary>
     [Tooltip("basic=pushWindupSeconds 前摇；charged / charged_anti=buildUpSeconds 蓄力")] public float windupSeconds = 0f;
     /// <summary>float</summary>
@@ -123,7 +123,7 @@ public class PushRecord
     /// <summary>float</summary>
     [Tooltip("basic=pushImpulseStrength；charged=projectileImpulseStrength")] public float impulseStrength = 0f;
     /// <summary>float</summary>
-    [Tooltip("charged：projectileSpeed m/s")] public float speed = 0f;
+    [Tooltip("charged / charged_anti：峰值速度 m/s，飞行中按技能 SO 的 projectileSpeedCurve 形状变化（墨手调出的曲线），射程 = speed × lifetimeSeconds × 曲线面积 0.40：charged 890 × 3 s ≈ 1070；charged_anti 900 × 2 s ≈ 720（和改曲线前 600 线性减速的射程相同）")] public float speed = 0f;
     /// <summary>float</summary>
     [Tooltip("basic=pushForwardOffset；charged=projectileForwardOffset；charged_anti=additionalForwardSpawnOffset")] public float forwardOffset = 0f;
     /// <summary>float</summary>
@@ -232,6 +232,38 @@ public class YuanqiEffectGiantChargeRecord
     [Tooltip("回落秒数，撞击判定也持续这么久（Yuanqi_GiantCharge.burstSeconds → ApplyBurstToOwner 与 BuddahBodyImpact.Arm）")] public float burstSeconds = 0f;
     /// <summary>float#range=0,20</summary>
     [Tooltip("M：撞击冲量 = M × Push.basic.impulseStrength，方向为施法者指向被撞者的水平方向（Yuanqi_GiantCharge.impactImpulseMultiplier）")] public float impactImpulseMultiplier = 0f;
+}
+
+/// <summary>Skill.xlsx / VfxRegistry</summary>
+[Serializable]
+public class VfxRegistryRecord
+{
+    /// <summary>string#key (key)</summary>
+    public string vfxId = string.Empty;
+    /// <summary>string#path</summary>
+    [Tooltip("相对工程路径；EditMode 测试校验与 SkillVfxDatabase 的 prefab 一致")] public string prefabPath = string.Empty;
+    /// <summary>bool</summary>
+    [Tooltip("启动预热：VfxStartupWarmup 预热表里 warmup=true 且 SkillVfxDatabase 有 prefab 的条目")] public bool warmup = false;
+    /// <summary>string</summary>
+    [Tooltip("反噬特效配对的正常特效 vfxId；正常特效留空")] public string antiOf = string.Empty;
+    /// <summary>float</summary>
+    [Tooltip("蓄力层窗口占蓄力时长（玩法值）的比例")] public float chgRatio = 0f;
+    /// <summary>int</summary>
+    [Tooltip("释放闪光帧数（按 60 帧/秒换算）")] public int impFrames = 0;
+    /// <summary>float</summary>
+    [Tooltip("到期消散时长 s")] public float disSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("残留时长 s（≤ 1.5，纯视觉）")] public float linSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("buff 状态层淡入 / 淡出各 s")] public float bufFadeSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("拖尾时长 s：拖尾长度 = 速度 × 该值")] public float trailSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("整体视觉尺寸倍率（主体先按碰撞盒贴合）")] public float scaleMultiplier = 0f;
+    /// <summary>float</summary>
+    [Tooltip("发射点光寿命 s（≤ 0.5）")] public float lightSeconds = 0f;
+    /// <summary>float</summary>
+    [Tooltip("点光强度倍率")] public float lightIntensity = 0f;
 }
 
 /// <summary>Movement.xlsx / Movement</summary>

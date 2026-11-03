@@ -1,189 +1,262 @@
+using System.Collections.Generic;
 using UnityEngine;
 
+// Draws the 一念光明 curtain for the camera it sits on (BlackCurtainViewController adds it): the H1 墨眼 opening over
+// the table's expand time, then the full-black hold and the fade-out. Screen part: FX/CurtainEye, drawn by
+// BlackCurtainRenderFeature while this plays; world part: the profile's world layer, following the caster. The anti
+// skill uses the red palette and the red world layer. Who sees edges, racers and trails stays with the view controller.
 public class BlackCurtainScreenEffect : MonoBehaviour
 {
-    private const string DefaultBlackHoleStrengthProperty = "StrengthBlackHole";
-    private const string AlternateBlackHoleStrengthProperty = "_StrengthBlackHole";
-    private const float MaxBlackHoleStrength = 15f;
-    private const float ExpansionDelaySeconds = 0.5f;
-    private const float MaxExpansionProgress = 2f;
-    private static readonly Vector2 DefaultCenter = new Vector2(0.5f, 0.5f);
+    private static readonly List<BlackCurtainScreenEffect> Playing = new List<BlackCurtainScreenEffect>();
 
-    private Material _fullscreenMaterial;
-
-    private float _expandDuration;
-    private float _holdDuration;
-    private float _fadeOutDuration;
+    private BlackCurtainEyeProfile _profile;
+    private Material _material;
+    private Camera _camera;
+    private Transform _caster;
+    private Transform _scaleReference;
+    private GameObject _world;
+    private float _expand;
+    private float _hold;
+    private float _fade;
     private float _maxOpacity;
-    private float _startedAt = -1f;
-    private bool _isPlaying;
+    private bool _anti;
+    private float _startedAt;
+    private bool _playing;
+    private float _baseFov;
+    private Vector3 _shakeOffset;
 
-    private string _progressProperty = "_Expansion";
-    private string _opacityProperty = "_Opacity";
-    private string _elapsedTimeProperty = "_ElapsedTime";
-    private string _activeProperty = "_EffectActive";
-    private string _centerProperty = "_Center";
-    private string _blackHoleStrengthProperty = DefaultBlackHoleStrengthProperty;
-    private Vector2 _center = DefaultCenter;
+    public bool IsPlaying => _playing;
+    public float Elapsed => _playing ? Time.time - _startedAt : 0f;
+    public float ExpandSeconds => _expand;
+    public float HoldSeconds => _hold;
+    public float FadeSeconds => _fade;
 
-    public void ApplyOrRefresh(
-        Material fullscreenMaterial,
-        string fallbackMaterialName,
-        string fallbackShaderName,
-        float expandDuration,
-        float holdDuration,
-        float fadeOutDuration,
-        float maxOpacity,
-        string progressProperty,
-        string opacityProperty,
-        string elapsedTimeProperty,
-        string activeProperty,
-        string centerProperty,
-        Vector2 center)
+    // The material BlackCurtainRenderFeature draws for this camera; false while no curtain is up.
+    public static bool TryGetMaterial(Camera camera, out Material material)
     {
-        _fullscreenMaterial = ResolveMaterial(fullscreenMaterial, fallbackMaterialName, fallbackShaderName);
-        if (_fullscreenMaterial == null)
+        for (int i = 0; i < Playing.Count; i++)
         {
-            Debug.LogWarning("[BlackCurtainScreenEffect] No fullscreen material found.");
+            if (Playing[i]._camera == camera)
+            {
+                material = Playing[i]._material;
+                return material != null;
+            }
+        }
+        material = null;
+        return false;
+    }
+
+    // caster: where the eye sits (in a race, the smoothed VisualRoot). scaleReference: whose scale grows the eye's
+    // offset (the racer's root, which PlayerScaleEffect scales); null = the caster itself.
+    public void Play(BlackCurtainEyeProfile profile, Transform caster, Transform scaleReference, float expandDuration,
+        float holdDuration, float fadeOutDuration, float maxOpacity, bool anti)
+    {
+        Stop();
+        _camera = GetComponent<Camera>();
+        if (profile == null || profile.shader == null || _camera == null)
+        {
+            Debug.LogWarning("[BlackCurtainScreenEffect] Missing eye profile, shader or camera; no curtain drawn.");
             return;
         }
+        if (_material == null || _material.shader != profile.shader)
+        {
+            if (_material != null)
+                Destroy(_material);
+            _material = new Material(profile.shader) { name = "CurtainEye (instance)", hideFlags = HideFlags.DontSave };
+        }
 
-        _expandDuration = Mathf.Max(0.01f, expandDuration);
-        _holdDuration = Mathf.Max(0f, holdDuration);
-        _fadeOutDuration = Mathf.Max(0f, fadeOutDuration);
+        _profile = profile;
+        _caster = caster;
+        _scaleReference = scaleReference != null ? scaleReference : caster;
+        _expand = Mathf.Max(0.05f, expandDuration);
+        _hold = Mathf.Max(0f, holdDuration);
+        _fade = Mathf.Max(0f, fadeOutDuration);
         _maxOpacity = Mathf.Clamp01(maxOpacity);
-
-        _progressProperty = string.IsNullOrWhiteSpace(progressProperty) ? "_Expansion" : progressProperty;
-        _opacityProperty = string.IsNullOrWhiteSpace(opacityProperty) ? "_Opacity" : opacityProperty;
-        _elapsedTimeProperty = string.IsNullOrWhiteSpace(elapsedTimeProperty) ? "_ElapsedTime" : elapsedTimeProperty;
-        _activeProperty = string.IsNullOrWhiteSpace(activeProperty) ? "_EffectActive" : activeProperty;
-        _centerProperty = string.IsNullOrWhiteSpace(centerProperty) ? "_Center" : centerProperty;
-        _center = center;
-
+        _anti = anti;
+        _baseFov = _camera.fieldOfView;
         _startedAt = Time.time;
-        _isPlaying = true;
-        ApplyMaterialProperties(0f, _maxOpacity, 0f, true, 0f, _center);
+        _playing = true;
+        Playing.Add(this);
+        SpawnWorldLayer(anti ? profile.worldLayerAnti : profile.worldLayer);
+        Apply(0f, 0f);
     }
 
-    private void Awake()
+    public void Stop()
     {
-        DisableEffect();
+        if (_playing && _camera != null && _profile != null && _profile.cameraKick)
+            _camera.fieldOfView = _baseFov;
+        RemoveShake();
+        if (_world != null)
+            Destroy(_world);
+        _world = null;
+        _playing = false;
+        Playing.Remove(this);
     }
 
-    private void Update()
+    private void SpawnWorldLayer(GameObject prefab)
     {
-        if (!_isPlaying || _fullscreenMaterial == null)
+        if (prefab == null || _caster == null)
             return;
-
-        float elapsed = Mathf.Max(0f, Time.time - _startedAt);
-        float totalDuration = _expandDuration + _holdDuration + _fadeOutDuration;
-
-        float delayedExpandElapsed = Mathf.Max(0f, elapsed - ExpansionDelaySeconds);
-        float expandT = Mathf.Clamp01(delayedExpandElapsed / _expandDuration);
-        float blackHoleDuration = ExpansionDelaySeconds + _expandDuration;
-        float progress = expandT * MaxExpansionProgress;
-        float opacity = _maxOpacity;
-        float blackHoleStrength = elapsed < blackHoleDuration
-            ? Mathf.Lerp(0f, MaxBlackHoleStrength, Mathf.Clamp01(elapsed / blackHoleDuration))
-            : 0f;
-        Vector2 center = elapsed < _expandDuration ? _center : DefaultCenter;
-
-        if (_fadeOutDuration > 0f && elapsed > (_expandDuration + _holdDuration))
+        _world = Instantiate(prefab, _caster.position, Quaternion.identity);
+        _world.name = prefab.name;
+        int characterLayer = LayerMask.NameToLayer(BuddahGo.VFX.SkillVfxPhaseController.CharacterLayerName);
+        if (characterLayer >= 0)
         {
-            float fadeElapsed = elapsed - (_expandDuration + _holdDuration);
-            float fadeT = Mathf.Clamp01(fadeElapsed / _fadeOutDuration);
-            opacity = Mathf.Lerp(_maxOpacity, 0f, fadeT);
+            foreach (Transform t in _world.GetComponentsInChildren<Transform>(true))
+                t.gameObject.layer = characterLayer;
         }
-
-        bool active = elapsed < totalDuration;
-        ApplyMaterialProperties(progress, opacity, elapsed, active, blackHoleStrength, center);
-
-        if (!active)
+        float speed = 1f / _expand;
+        foreach (ParticleSystem ps in _world.GetComponentsInChildren<ParticleSystem>(true))
         {
-            _isPlaying = false;
-            DisableEffect();
+            ParticleSystem.MainModule main = ps.main;
+            main.simulationSpeed *= speed;
         }
     }
 
     private void OnDisable()
     {
-        DisableEffect();
+        Stop();
     }
 
     private void OnDestroy()
     {
-        DisableEffect();
+        if (_material != null)
+            Destroy(_material);
     }
 
-    private void DisableEffect()
+    private void Update()
     {
-        if (_fullscreenMaterial == null)
+        RemoveShake();
+    }
+
+    private void LateUpdate()
+    {
+        if (!_playing)
             return;
-
-        ApplyMaterialProperties(0f, 0f, 0f, false, 0f, DefaultCenter);
-    }
-
-    private void ApplyMaterialProperties(float progress, float opacity, float elapsed, bool active, float blackHoleStrength, Vector2 center)
-    {
-        TrySetFloat(_progressProperty, progress);
-        TrySetFloat(_opacityProperty, opacity);
-        TrySetFloat(_elapsedTimeProperty, elapsed);
-        TrySetFloat(_activeProperty, active ? 1f : 0f);
-        ApplyBlackHoleStrength(blackHoleStrength);
-        TrySetVector(_centerProperty, new Vector4(center.x, center.y, 0f, 0f));
-    }
-
-    private void ApplyBlackHoleStrength(float value)
-    {
-        TrySetFloat(_blackHoleStrengthProperty, value);
-
-        if (_blackHoleStrengthProperty != AlternateBlackHoleStrengthProperty)
-            TrySetFloat(AlternateBlackHoleStrengthProperty, value);
-    }
-
-    private void TrySetFloat(string propertyName, float value)
-    {
-        if (_fullscreenMaterial == null || string.IsNullOrWhiteSpace(propertyName) || !_fullscreenMaterial.HasProperty(propertyName))
-            return;
-
-        _fullscreenMaterial.SetFloat(propertyName, value);
-    }
-
-    private void TrySetVector(string propertyName, Vector4 value)
-    {
-        if (_fullscreenMaterial == null || string.IsNullOrWhiteSpace(propertyName) || !_fullscreenMaterial.HasProperty(propertyName))
-            return;
-
-        _fullscreenMaterial.SetVector(propertyName, value);
-    }
-
-    private static Material ResolveMaterial(Material directReference, string fallbackMaterialName, string fallbackShaderName)
-    {
-        if (directReference != null)
-            return directReference;
-
-        Material[] loadedMaterials = Resources.FindObjectsOfTypeAll<Material>();
-
-        if (!string.IsNullOrWhiteSpace(fallbackMaterialName))
+        float elapsed = Time.time - _startedAt;
+        if (elapsed >= _expand + _hold + _fade)
         {
-            for (int i = 0; i < loadedMaterials.Length; i++)
-            {
-                Material material = loadedMaterials[i];
-                if (material != null && material.name == fallbackMaterialName)
-                    return material;
-            }
+            Stop();
+            return;
+        }
+        if (_world != null && _caster != null)
+            _world.transform.position = _caster.position;
+        Apply(elapsed / _expand, elapsed);
+    }
+
+    private void Apply(float p, float elapsed)
+    {
+        Material m = _material;
+        m.SetVector(Ids.Center, ResolveCenter());
+        m.SetFloat(Ids.Aspect, _camera.aspect);
+        m.SetFloat(Ids.Time, Time.time);
+        m.SetFloat(Ids.FlashCap, _profile.flashCap);
+        m.SetFloat(Ids.AntiMode, _anti ? 1f : 0f);
+        m.SetFloat(Ids.MaxOpacity, _maxOpacity);
+
+        if (p >= 1f)
+        {
+            SetEye(m, default);
+            float fadeStart = _expand + _hold;
+            float black = elapsed < fadeStart || _fade <= 0f ? 1f : 1f - Mathf.Clamp01((elapsed - fadeStart) / _fade);
+            m.SetFloat(Ids.Black, black);
+            if (_profile.cameraKick)
+                _camera.fieldOfView = _baseFov;
+            return;
         }
 
-        if (!string.IsNullOrWhiteSpace(fallbackShaderName))
-        {
-            for (int i = 0; i < loadedMaterials.Length; i++)
-            {
-                Material material = loadedMaterials[i];
-                if (material != null && material.shader != null && material.shader.name == fallbackShaderName)
-                    return material;
-            }
-        }
+        m.SetFloat(Ids.Black, 0f);
+        SetEye(m, _profile.Evaluate(p, Time.time));
+        if (_profile.cameraKick)
+            ApplyCameraKick(p);
+    }
 
-        return null;
+    private static void SetEye(Material m, BlackCurtainEyeProfile.EyeParams e)
+    {
+        m.SetFloat(Ids.HoleRadius, e.holeRadius);
+        m.SetFloat(Ids.Lens, e.lens);
+        m.SetFloat(Ids.Twirl, e.twirl);
+        m.SetFloat(Ids.RadialBlur, e.radialBlur);
+        m.SetFloat(Ids.Bulge, e.bulge);
+        m.SetFloat(Ids.Ring, e.ring);
+        m.SetFloat(Ids.RingPhase, e.ringPhase);
+        m.SetFloat(Ids.Spiral, e.spiral);
+        m.SetFloat(Ids.Dispersion, e.dispersion);
+        m.SetFloat(Ids.Edge, e.edge);
+        m.SetFloat(Ids.CoreFlash, e.coreFlash);
+    }
+
+    // Caster on screen; behind the camera it is pushed to the screen edge in its direction.
+    private Vector4 ResolveCenter()
+    {
+        if (_caster == null)
+            return new Vector4(0.5f, 0.5f, 0f, 0f);
+        float scale = _scaleReference != null ? Mathf.Abs(_scaleReference.lossyScale.y) : 1f;
+        Vector3 v = _camera.WorldToViewportPoint(_caster.position + _profile.centerWorldOffset * scale);
+        if (v.z < 0f)
+        {
+            Vector2 dir = new Vector2(0.5f - v.x, 0.5f - v.y);
+            float k = 0.5f / Mathf.Max(Mathf.Abs(dir.x), Mathf.Abs(dir.y), 1e-4f);
+            return new Vector4(0.5f + dir.x * k, 0.5f + dir.y * k, 0f, 0f);
+        }
+        return new Vector4(Mathf.Clamp(v.x, -0.1f, 1.1f), Mathf.Clamp(v.y, -0.1f, 1.1f), 0f, 0f);
+    }
+
+    private void ApplyCameraKick(float p)
+    {
+        float push = Smooth(0.15f, 0.55f, p) * _profile.pushDegrees;
+        float kick = Bell(p, 0.55f, 0.58f, 0.75f) * _profile.pushDegrees * 0.75f;
+        _camera.fieldOfView = _baseFov - push + kick;
+        float amplitude = _profile.shakeAmplitude;
+        float shake = p >= 0.56f && p < 0.7f ? amplitude * (1f - (p - 0.56f) / 0.14f) : 0f;
+        if (shake > 0f)
+        {
+            _shakeOffset = _camera.transform.right * (Mathf.PerlinNoise(Time.time * 40f, 0f) - 0.5f) * 2f * shake
+                         + _camera.transform.up * (Mathf.PerlinNoise(0f, Time.time * 40f) - 0.5f) * 2f * shake;
+            _camera.transform.position += _shakeOffset;
+        }
+    }
+
+    private void RemoveShake()
+    {
+        if (_shakeOffset == Vector3.zero || _camera == null)
+            return;
+        _camera.transform.position -= _shakeOffset;
+        _shakeOffset = Vector3.zero;
+    }
+
+    private static float Smooth(float a, float b, float x)
+    {
+        float t = Mathf.Clamp01((x - a) / (b - a));
+        return t * t * (3f - 2f * t);
+    }
+
+    private static float Bell(float p, float a, float b, float c)
+    {
+        if (p < a || p > c)
+            return 0f;
+        return p < b ? Smooth(a, b, p) : 1f - Smooth(b, c, p);
+    }
+
+    private static class Ids
+    {
+        public static readonly int Center = Shader.PropertyToID("_EyeCenter");
+        public static readonly int Aspect = Shader.PropertyToID("_EyeAspect");
+        public static readonly int Time = Shader.PropertyToID("_EyeTime");
+        public static readonly int HoleRadius = Shader.PropertyToID("_HoleRadius");
+        public static readonly int Lens = Shader.PropertyToID("_Lens");
+        public static readonly int Twirl = Shader.PropertyToID("_Twirl");
+        public static readonly int RadialBlur = Shader.PropertyToID("_RadialBlur");
+        public static readonly int Bulge = Shader.PropertyToID("_Bulge");
+        public static readonly int Ring = Shader.PropertyToID("_Ring");
+        public static readonly int RingPhase = Shader.PropertyToID("_RingPhase");
+        public static readonly int Spiral = Shader.PropertyToID("_Spiral");
+        public static readonly int Dispersion = Shader.PropertyToID("_Dispersion");
+        public static readonly int Edge = Shader.PropertyToID("_Edge");
+        public static readonly int CoreFlash = Shader.PropertyToID("_CoreFlash");
+        public static readonly int Black = Shader.PropertyToID("_Black");
+        public static readonly int FlashCap = Shader.PropertyToID("_FlashCap");
+        public static readonly int AntiMode = Shader.PropertyToID("_AntiMode");
+        public static readonly int MaxOpacity = Shader.PropertyToID("_MaxOpacity");
     }
 }

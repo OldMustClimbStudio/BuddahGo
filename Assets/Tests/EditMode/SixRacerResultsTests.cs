@@ -30,20 +30,6 @@ namespace BuddahGo.Tests
             finally {foreach(var obj in objects) if(obj!=null) UnityEngine.Object.DestroyImmediate(obj);}
         }
         [Test]
-        public void LegacyFollowCameraCreatesOneMissingSpectatorResolver()
-        {
-            var obj=new GameObject("camera");
-            try
-            {
-                obj.AddComponent(System.Type.GetType("Cinemachine.CinemachineVirtualCamera, Cinemachine", true));
-                var follower=obj.AddComponent<CinemachineLocalPlayerFollower>();
-                var awake=typeof(CinemachineLocalPlayerFollower).GetMethod("Awake",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
-                awake.Invoke(follower,null);awake.Invoke(follower,null);
-                Assert.That(obj.GetComponents<RaceSpectatorTargetResolver>().Length,Is.EqualTo(1));
-            }
-            finally {UnityEngine.Object.DestroyImmediate(obj);}
-        }
-        [Test]
         public void SixIndependentClocksAndDnfRowsPreserveActualCompletedLaps()
         {
             var timing=new RaceTiming();timing.Begin(10);

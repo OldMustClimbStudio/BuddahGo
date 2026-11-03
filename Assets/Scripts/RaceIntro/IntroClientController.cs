@@ -104,15 +104,6 @@ public class IntroClientController : MonoBehaviour
         TryApplyPendingAssignments();
     }
 
-    public void CompleteGoSequence(int sequenceId)
-    {
-        if (sequenceId < _activeSequenceId)
-            return;
-
-        ResolveReferences();
-        TryApplyPendingAssignments();
-    }
-
     public void CancelSequence(int sequenceId)
     {
         if (sequenceId < _activeSequenceId)

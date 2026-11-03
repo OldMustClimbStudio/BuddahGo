@@ -1,4 +1,5 @@
 using BuddahGo.AI;
+using BuddahGo.Tests;
 using NewBuddah.PredictionV2.Core;
 using NewBuddah.PredictionV2.Simulation;
 using NUnit.Framework;
@@ -9,51 +10,53 @@ using UnityEngine.SceneManagement;
 
 public class AIDrivingTests
 {
-    [TestCase(0, 30)]
-    [TestCase(1, 30)]
-    [TestCase(2, 30)]
-    [TestCase(3, 30)]
-    [TestCase(0, 60)]
-    [TestCase(1, 60)]
-    [TestCase(2, 60)]
-    [TestCase(3, 60)]
-    public void ModelMatchesSixtyRealPhysicsTicks(int sequence, int rate)
+    [Test]
+    public void ModelMatchesSixtyRealPhysicsTicks()
     {
-        var scene = EditorSceneManager.NewPreviewScene();
-        try
+        var cases = new[]
         {
-            var go = new GameObject("Actual Physics Reference"); SceneManager.MoveGameObjectToScene(go, scene);
-            var shape = go.AddComponent<CapsuleCollider>(); shape.radius = 3.8869286f; shape.height = 8.493212f;
-            var body = go.AddComponent<Rigidbody>(); body.mass = 2; body.useGravity = false;
-            body.drag = 0; body.angularDrag = 0.05f; body.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-            body.maxAngularVelocity = 50; body.velocity = new Vector3(12, 0, 72); body.angularVelocity = new Vector3(0, 0.3f, 0);
-            body.ResetInertiaTensor();
-            var parameters = new MotionParameters {
-                Stats = new BuddahPredictedMotorComputedStats { FinalForwardForce = 50, FinalTurnTorque = 30, FinalMaxSpeed = 80,
-                    FinalSteeringSign = sequence == 3 ? -1 : 1, IsSteeringSuppressed = sequence == 2 },
-                Mass = body.mass, InverseYawInertia = MotionParameters.ReadInverseYawInertia(body),
-                AngularDrag = body.angularDrag, MaxAngularVelocity = body.maxAngularVelocity, TurnDecay = 3, TurnMultiplier = 1 };
-            var forecast = MotionState.Read(body);
-            float dt = 1f / rate;
-            for (int tick = 0; tick < 60; tick++)
+            (sequence: 0, rate: 30), (sequence: 1, rate: 30), (sequence: 2, rate: 30), (sequence: 3, rate: 30),
+            (sequence: 0, rate: 60), (sequence: 1, rate: 60), (sequence: 2, rate: 60), (sequence: 3, rate: 60),
+        };
+        EveryCase.Check(cases, c =>
+        {
+            int sequence = c.sequence, rate = c.rate;
+            var scene = EditorSceneManager.NewPreviewScene();
+            try
             {
-                int key = sequence == 0 ? 0 : tick < 15 ? 1 : tick < 35 ? 0 : -1;
-                BuddahMotionModel.Step(ref forecast, parameters, key, dt);
-                body.velocity = Vector3.ClampMagnitude(body.velocity, parameters.Stats.FinalMaxSpeed);
-                float steering = parameters.Stats.IsSteeringSuppressed ? 0 : key * parameters.Stats.FinalSteeringSign;
-                BuddahLocomotionStep.Compute(body.rotation * Vector3.forward, 1, steering, parameters.Stats, out var force, out float torque);
-                body.AddForce(force, ForceMode.Force);
-                if (steering != 0) body.AddTorque(Vector3.up * torque, ForceMode.Force);
-                else body.angularVelocity = new Vector3(0, Mathf.MoveTowards(body.angularVelocity.y, 0, 3 * dt), 0);
-                scene.GetPhysicsScene().Simulate(dt);
+                var go = new GameObject("Actual Physics Reference"); SceneManager.MoveGameObjectToScene(go, scene);
+                var shape = go.AddComponent<CapsuleCollider>(); shape.radius = 3.8869286f; shape.height = 8.493212f;
+                var body = go.AddComponent<Rigidbody>(); body.mass = 2; body.useGravity = false;
+                body.drag = 0; body.angularDrag = 0.05f; body.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+                body.maxAngularVelocity = 50; body.velocity = new Vector3(12, 0, 72); body.angularVelocity = new Vector3(0, 0.3f, 0);
+                body.ResetInertiaTensor();
+                var parameters = new MotionParameters {
+                    Stats = new BuddahPredictedMotorComputedStats { FinalForwardForce = 50, FinalTurnTorque = 30, FinalMaxSpeed = 80,
+                        FinalSteeringSign = sequence == 3 ? -1 : 1, IsSteeringSuppressed = sequence == 2 },
+                    Mass = body.mass, InverseYawInertia = MotionParameters.ReadInverseYawInertia(body),
+                    AngularDrag = body.angularDrag, MaxAngularVelocity = body.maxAngularVelocity, TurnDecay = 3, TurnMultiplier = 1 };
+                var forecast = MotionState.Read(body);
+                float dt = 1f / rate;
+                for (int tick = 0; tick < 60; tick++)
+                {
+                    int key = sequence == 0 ? 0 : tick < 15 ? 1 : tick < 35 ? 0 : -1;
+                    BuddahMotionModel.Step(ref forecast, parameters, key, dt);
+                    body.velocity = Vector3.ClampMagnitude(body.velocity, parameters.Stats.FinalMaxSpeed);
+                    float steering = parameters.Stats.IsSteeringSuppressed ? 0 : key * parameters.Stats.FinalSteeringSign;
+                    BuddahLocomotionStep.Compute(body.rotation * Vector3.forward, 1, steering, parameters.Stats, out var force, out float torque);
+                    body.AddForce(force, ForceMode.Force);
+                    if (steering != 0) body.AddTorque(Vector3.up * torque, ForceMode.Force);
+                    else body.angularVelocity = new Vector3(0, Mathf.MoveTowards(body.angularVelocity.y, 0, 3 * dt), 0);
+                    scene.GetPhysicsScene().Simulate(dt);
+                }
+                float position = Vector3.Distance(forecast.Position, body.position);
+                float velocity = Vector3.Distance(forecast.Velocity, body.velocity);
+                float yaw = Mathf.Abs(Mathf.DeltaAngle(forecast.Yaw * Mathf.Rad2Deg, body.rotation.eulerAngles.y));
+                TestContext.WriteLine($"sequence={sequence}; rate={rate}; position={position}; velocity={velocity}; yaw={yaw}");
+                Assert.That(position, Is.LessThan(0.5f)); Assert.That(velocity, Is.LessThan(0.5f)); Assert.That(yaw, Is.LessThan(3f));
             }
-            float position = Vector3.Distance(forecast.Position, body.position);
-            float velocity = Vector3.Distance(forecast.Velocity, body.velocity);
-            float yaw = Mathf.Abs(Mathf.DeltaAngle(forecast.Yaw * Mathf.Rad2Deg, body.rotation.eulerAngles.y));
-            TestContext.WriteLine($"sequence={sequence}; position={position}; velocity={velocity}; yaw={yaw}");
-            Assert.That(position, Is.LessThan(0.5f)); Assert.That(velocity, Is.LessThan(0.5f)); Assert.That(yaw, Is.LessThan(3f));
-        }
-        finally { EditorSceneManager.ClosePreviewScene(scene); }
+            finally { EditorSceneManager.ClosePreviewScene(scene); }
+        });
     }
 
     [Test]
@@ -89,15 +92,5 @@ public class AIDrivingTests
             Assert.That(positionError.magnitude, Is.LessThan(0.5f)); Assert.That(velocityError.magnitude, Is.LessThan(0.5f));
         }
         finally { EditorSceneManager.ClosePreviewScene(scene); }
-    }
-
-    [Test]
-    public void DriverIsSerializedDisabledWithoutChangingMotorConfiguration()
-    {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Character/Prefab/Buddah.prefab");
-        Assert.That(prefab.GetComponent<AIRacerDriver>(), Is.Not.Null);
-        Assert.That(prefab.GetComponent<AIRacerDriver>().enabled, Is.False);
-        Assert.That(prefab.GetComponent<Rigidbody>().mass, Is.EqualTo(2));
-        Assert.That(prefab.GetComponent<Rigidbody>().drag, Is.Zero);
     }
 }

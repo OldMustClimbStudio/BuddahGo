@@ -117,38 +117,20 @@ public class BlackCurtainViewController : MonoBehaviour
     public bool IsBlackCurtainActive => _activeUntil > Time.time;
 
     public void Play(
-        Material fullscreenMaterial,
-        string fallbackMaterialName,
-        string fallbackShaderName,
+        BlackCurtainEyeProfile eyeProfile,
+        Transform casterVisual,
+        Transform casterRoot,
         float expandDuration,
         float holdDuration,
         float fadeOutDuration,
         float maxOpacity,
-        string progressProperty,
-        string opacityProperty,
-        string elapsedTimeProperty,
-        string activeProperty,
-        string centerProperty,
-        bool canSeeEdge,
-        Vector2 center)
+        bool isAnti,
+        bool canSeeEdge)
     {
         if (_screenEffect == null)
             return;
 
-        _screenEffect.ApplyOrRefresh(
-            fullscreenMaterial,
-            fallbackMaterialName,
-            fallbackShaderName,
-            expandDuration,
-            holdDuration,
-            fadeOutDuration,
-            maxOpacity,
-            progressProperty,
-            opacityProperty,
-            elapsedTimeProperty,
-            activeProperty,
-            centerProperty,
-            center);
+        _screenEffect.Play(eyeProfile, casterVisual, casterRoot, expandDuration, holdDuration, fadeOutDuration, maxOpacity, isAnti);
 
         float totalDuration = Mathf.Max(0.01f, expandDuration) + Mathf.Max(0f, holdDuration) + Mathf.Max(0f, fadeOutDuration);
         float endsAt = Time.time + totalDuration;
@@ -267,13 +249,21 @@ public class BlackCurtainViewController : MonoBehaviour
         ResetState();
     }
 
+    // Every player's route stays visible in the dark as a trail: the 一念光明 slot effect played on each player on
+    // this client (Docs/vfx/README.md section 4; it replaced the PlayerBlackCurtainTrail on the character).
+    private const string CurtainTrailVfxId = "curtain_hit";
+
     private static void SetTrailsVisible(bool visible, float activeDuration)
     {
-        PlayerBlackCurtainTrail[] trails = FindObjectsByType<PlayerBlackCurtainTrail>(FindObjectsSortMode.None);
-        for (int i = 0; i < trails.Length; i++)
+        SkillVfxReplicator[] players = FindObjectsByType<SkillVfxReplicator>(FindObjectsSortMode.None);
+        for (int i = 0; i < players.Length; i++)
         {
-            if (trails[i] != null)
-                trails[i].SetBlackCurtainVisible(visible, activeDuration);
+            if (players[i] == null)
+                continue;
+            if (visible)
+                players[i].PlaySlotLocal(CurtainTrailVfxId, activeDuration);
+            else
+                players[i].StopSlotLocal(CurtainTrailVfxId);
         }
     }
 

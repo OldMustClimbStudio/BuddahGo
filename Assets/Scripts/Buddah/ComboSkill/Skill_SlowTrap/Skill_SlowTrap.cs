@@ -27,12 +27,7 @@ public class Skill_SlowTrap : SkillAction
     [Header("VFX (Optional)")]
     [Tooltip("VFX lifetime upper bound. 0 = follow zoneDurationSeconds. The zone stops its VFX when it ends (expiry, 缘起 consume, reset), so a longer value never shows a zone that is gone.")]
     [Min(0f)] public float vfxDurationSeconds = 0f;
-    [Min(0f)] public float vfxStopPlayingBeforeEndSeconds = 0f;
-    [SerializeField] public string vfxId = "slow_trap_vfx";
-    [SerializeField] public Vector3 vfxLocalOffset = Vector3.zero;
-    [SerializeField] public Vector3 vfxLocalEuler = Vector3.zero;
-    [Tooltip("The zone ended (expiry, 缘起 consume or server-controlled reset): seconds the stopped zone VFX lingers (particles fade) before it is destroyed.")]
-    [Min(0f)] public float zoneEndVfxLingerSeconds = 1f;
+    [SerializeField] public string vfxId = "slow_release";
 
     public override void ExecuteServer(SkillExecutor caster, int slotIndex)
     {
@@ -57,12 +52,12 @@ public class Skill_SlowTrap : SkillAction
             debugReferenceLocalOffset,
             debugReferenceLocalEuler,
             debugReferenceLocalScale);
-        zone.ConfigureRuntimeHandle(skillId, vfxId, zoneEndVfxLingerSeconds);
+        zone.ConfigureRuntimeHandle(skillId, vfxId);
 
         var vfx = caster.GetComponent<SkillVfxReplicator>();
         float actualVfxDuration = ResolveVfxDuration(vfxDurationSeconds, zoneDurationSeconds);
         if (vfx != null)
-            vfx.PlayVfxAll(vfxId, actualVfxDuration, vfxLocalOffset, vfxLocalEuler, vfxStopPlayingBeforeEndSeconds);
+            vfx.PlayVfxAll(vfxId, actualVfxDuration);
 
         GameLog.Verbose($"[Skill_SlowTrap][Server] TriggerTrap zoneDuration={zoneDurationSeconds}s, slow=({slowForwardForce},{slowMaxSpeed}) for {slowDurationSeconds}s, vfx={actualVfxDuration}s");
     }
@@ -84,4 +79,9 @@ public class Skill_SlowTrap : SkillAction
     }
 
     // Nothing extra on observers: the zone VFX stop is its own SkillVfxReplicator RPC, sent by the zone when it ends.
+
+    public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, vfxId, vfxDurationSeconds, zoneDurationSeconds, "Skill.effectDurationSeconds → zoneDurationSeconds");
+    }
 }

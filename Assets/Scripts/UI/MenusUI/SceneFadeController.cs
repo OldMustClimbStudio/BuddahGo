@@ -34,11 +34,6 @@ namespace SteamMultiplayer.UI
             return controller.PlayFadeInInternal(fallbackDurationSeconds);
         }
 
-        public static void QueueFadeOutOnNextSceneLoad()
-        {
-            _playFadeOutOnNextSceneLoad = true;
-            EnsureInstance();
-        }
 
         public static void HoldBlackOnNextSceneLoad()
         {

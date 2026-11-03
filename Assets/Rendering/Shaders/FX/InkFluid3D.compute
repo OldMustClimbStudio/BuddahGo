@@ -1,0 +1,420 @@
+// InkFluid3D: a 3D "Stable Fluids" (Jos Stam 1999) solver on an axis-aligned world-fixed grid around the 如来神掌 hand
+// (Docs/vfx/palm-mesh-tripo.md section 19). Same pipeline as the 2D InkFluid.compute, in three dimensions:
+// Source (ink + velocity in a thin shell around the hand's whole mesh surface, from its SDF; the shell is swept along
+// the hand's path this step, and the whole-cell re-centre shift is applied here as an integer gather), AdvectVelocity
+// (semi-Lagrangian), Curl, Forces (vorticity confinement + random drift + timeline pull), Divergence, JacobiA/B x N
+// (ping-pong between two fixed pressure textures; most of them on a half-resolution grid: Restrict, JacobiCA/CB,
+// Prolong, then a couple of fine passes), Gradient, AdvectDensity (dissipation + diffusion, and the occupied
+// AABB of the ink for the renderer), Clear, Stats (mass / centroid readback for self-checks). Velocity is in cells / s.
+// Driven by InkFluidVolume. Cost notes: Docs/vfx/push-projectile-hands.md section 15.
+#pragma kernel Source
+#pragma kernel AdvectVelocity
+#pragma kernel Curl
+#pragma kernel Forces
+#pragma kernel Divergence
+#pragma kernel JacobiA
+#pragma kernel JacobiB
+#pragma kernel Gradient
+#pragma kernel AdvectDensity
+#pragma kernel Clear
+#pragma kernel Stats
+#pragma kernel Seed
+#pragma kernel ResetBounds
+#pragma kernel Restrict
+#pragma kernel JacobiCA
+#pragma kernel JacobiCB
+#pragma kernel Prolong
+
+#define SWEEP_MAX 8
+
+Texture3D<float4> _VelocityIn;
+RWTexture3D<float4> _VelocityOut;
+Texture3D<float> _DensityIn;
+RWTexture3D<float> _DensityOut;
+Texture3D<float> _PressureIn;
+RWTexture3D<float> _PressureOut;
+Texture3D<float> _PressureIn2;      // JacobiB: the two pressure textures with their roles swapped
+RWTexture3D<float> _PressureOut2;
+Texture3D<float> _DivergenceIn;
+RWTexture3D<float> _DivergenceOut;
+Texture3D<float> _DivergenceC;          // coarse (half-resolution) pressure solve
+RWTexture3D<float> _DivergenceCOut;
+Texture3D<float> _PressureCIn;
+RWTexture3D<float> _PressureCOut;
+Texture3D<float> _PressureCIn2;
+RWTexture3D<float> _PressureCOut2;
+Texture3D<float4> _CurlIn;
+RWTexture3D<float4> _CurlOut;
+Texture3D<float> _Sdf;
+SamplerState sampler_linear_clamp;
+RWStructuredBuffer<uint> _Stats;        // [0] mass x256, [1..3] moments x16 (cell units), [4] moment weight sum
+RWStructuredBuffer<uint> _Bounds;       // occupied cells: [0..2] min xyz, [3..5] max xyz (min > max = empty)
+
+int3 _Size;
+int3 _SizeC;                // coarse grid (half of _Size, rounded up)
+float _Dt;
+float _Time;
+int3 _Shift;                // whole cells the field moves this step (re-centre), 0 otherwise
+float3 _GridOrigin;         // world position of the grid's min corner
+float _Cell;                // world units per cell
+float4x4 _WorldToHand;      // the hand at the end of the step (Forces: pull / gather gradient, Seed)
+float4x4 _HandToWorld;
+float4x4 _WorldToHandSweep[SWEEP_MAX];   // the hand placed along its path this step (Source: the emission shell is the union)
+int _SweepCount;
+float3 _HandVelocity;       // cells / s, world axes
+float _DragInject;
+float _InjectRate;
+float _InjectTarget;
+float _SurfaceBand;         // hand units
+float _SourceInside;
+float _Sparsity;
+float _SparsityScale;
+float3 _EmitOffset;         // accumulated re-centre cells: keeps the emission patches fixed in the world
+float _Swirl;
+float _InjectVelocity;
+float _Buoyancy;
+float _Vorticity;
+float _Drift;
+float _Pull;
+float _VelDissipation;
+float _DensityDissipation;
+float _Diffusion;
+float3 _VolumeOrigin;
+float3 _VolumeSize;
+float _SdfRange;
+float _GatherSpeed;         // cells / s: while > 0 the ink is carried straight toward the surface shell (gather phase)
+float _SeedInner;           // Seed: shell of hand-space SDF distance [_SeedInner, _SeedOuter] that gets scattered ink
+float _SeedOuter;
+float _SeedDensity;
+float _BoundsMin;           // density counted as occupied for the renderer's AABB
+
+// ---------- helpers ----------
+float Hash3(float3 p)
+{
+    p = frac(p * 0.3183099 + float3(0.1, 0.3, 0.7));
+    p += dot(p, p.yzx + 19.19);
+    return frac((p.x + p.y) * p.z);
+}
+
+float VNoise(float3 p)
+{
+    float3 i = floor(p), f = frac(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float n000 = Hash3(i), n100 = Hash3(i + float3(1, 0, 0)), n010 = Hash3(i + float3(0, 1, 0)), n110 = Hash3(i + float3(1, 1, 0));
+    float n001 = Hash3(i + float3(0, 0, 1)), n101 = Hash3(i + float3(1, 0, 1)), n011 = Hash3(i + float3(0, 1, 1)), n111 = Hash3(i + float3(1, 1, 1));
+    float nx00 = lerp(n000, n100, f.x), nx10 = lerp(n010, n110, f.x), nx01 = lerp(n001, n101, f.x), nx11 = lerp(n011, n111, f.x);
+    return lerp(lerp(nx00, nx10, f.y), lerp(nx01, nx11, f.y), f.z);
+}
+
+// Outside the baked SDF volume the texture only says "far": add the distance to the volume's box so the value keeps
+// growing (and its gradient keeps pointing at the hand) anywhere in the fluid grid.
+float SampleSdf(float3 p)
+{
+    float3 pc = clamp(p, _VolumeOrigin, _VolumeOrigin + _VolumeSize);
+    float3 uv = (pc - _VolumeOrigin) / _VolumeSize;
+    float inside = (_Sdf.SampleLevel(sampler_linear_clamp, uv, 0) - 0.5) * _SdfRange;
+    return inside + length(p - pc);
+}
+
+float3 CellWorld(int3 id) { return _GridOrigin + (float3(id) + 0.5) * _Cell; }
+bool Outside(int3 id) { return any(id < 0) || any(id >= _Size); }
+int3 ClampId(int3 id) { return clamp(id, int3(0, 0, 0), _Size - 1); }
+float3 ToUvw(float3 cellPos) { return cellPos / float3(_Size); }
+
+// ---------- kernels ----------
+[numthreads(8, 8, 4)]
+void Clear(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    _VelocityOut[id] = 0.0;
+    _DensityOut[id] = 0.0;
+}
+
+[numthreads(1, 1, 1)]
+void ResetBounds(uint3 id : SV_DispatchThreadID)
+{
+    _Bounds[0] = 0xFFFFFFFFu; _Bounds[1] = 0xFFFFFFFFu; _Bounds[2] = 0xFFFFFFFFu;
+    _Bounds[3] = 0u; _Bounds[4] = 0u; _Bounds[5] = 0u;
+}
+
+// Ink and velocity in a shell around the hand's mesh surface (|sdf - inside| < band), through sparse world-fixed
+// emission patches so the smoke leaves as separate strands. The hand is evaluated at every pose along its path this
+// step (_WorldToHandSweep): a fast hand paints one continuous trail in a single step instead of needing sub-steps.
+// Also the re-centre: the old field is read a whole number of cells away (an exact copy, 0 outside the box).
+[numthreads(8, 8, 4)]
+void Source(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    int3 c = int3(id);
+    int3 src = c + _Shift;
+    bool srcOff = Outside(src);
+    float d = srcOff ? 0.0 : _DensityIn[src];
+    float3 v = srcOff ? 0.0 : _VelocityIn[src].xyz;
+
+    float3 world = CellWorld(c);
+    float coverage = 0.0;
+    [loop] for (int k = 0; k < _SweepCount; k++)
+    {
+        float3 local = mul(_WorldToHandSweep[k], float4(world, 1.0)).xyz;
+        float sd = SampleSdf(local);
+        coverage = max(coverage, saturate(1.0 - abs(sd - _SourceInside) / max(_SurfaceBand, 0.1)));
+    }
+    float3 cellP = (float3(c) + _EmitOffset) / max(_SparsityScale, 1.0) + floor(_Time * 4.0) * 0.731;
+    float n = VNoise(cellP);
+    float gate = smoothstep(1.0 - _Sparsity - 0.08, 1.0 - _Sparsity + 0.08, n);
+    coverage *= gate;
+
+    if (coverage > 0.0)
+    {
+        d = max(d, lerp(d, _InjectTarget, saturate(coverage * _InjectRate * _Dt)));
+        float3 blockP = floor((float3(c) + _EmitOffset) * 0.5) + floor(_Time * 6.0) * 0.731;
+        float3 dir = normalize(float3(Hash3(blockP + 3.1), Hash3(blockP + 7.7), Hash3(blockP + 11.3)) * 2.0 - 1.0 + 1e-4);
+        float3 inject = dir * _Swirl + float3(0.0, _InjectVelocity, 0.0) + _HandVelocity * _DragInject;
+        v = lerp(v, inject, saturate(coverage * _InjectRate * _Dt));
+    }
+    _DensityOut[id] = d;
+    _VelocityOut[id] = float4(v, 0.0);
+}
+
+[numthreads(8, 8, 4)]
+void AdvectVelocity(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    float3 v = _VelocityIn[id].xyz;
+    float3 back = float3(id) + 0.5 - v * _Dt;
+    float3 sampled = _VelocityIn.SampleLevel(sampler_linear_clamp, ToUvw(back), 0).xyz;
+    bool off = any(back < 0.0) || any(back > float3(_Size));
+    _VelocityOut[id] = float4(off ? 0.0 : sampled * _VelDissipation, 0.0);
+}
+
+[numthreads(8, 8, 4)]
+void Curl(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    int3 c = int3(id);
+    float3 l = _VelocityIn[ClampId(c - int3(1, 0, 0))].xyz, r = _VelocityIn[ClampId(c + int3(1, 0, 0))].xyz;
+    float3 b = _VelocityIn[ClampId(c - int3(0, 1, 0))].xyz, t = _VelocityIn[ClampId(c + int3(0, 1, 0))].xyz;
+    float3 k = _VelocityIn[ClampId(c - int3(0, 0, 1))].xyz, f = _VelocityIn[ClampId(c + int3(0, 0, 1))].xyz;
+    float3 w = 0.5 * float3((t.z - b.z) - (f.y - k.y), (f.x - k.x) - (r.z - l.z), (r.y - l.y) - (t.x - b.x));
+    _CurlOut[id] = float4(w, length(w));
+}
+
+// Vorticity confinement (keeps the filaments), random drift (resting smoke keeps wandering), timeline pull along the
+// SDF gradient (gather / scatter), optional buoyancy. All scaled by density so empty cells stay still.
+[numthreads(8, 8, 4)]
+void Forces(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    int3 c = int3(id);
+    float3 grad = 0.5 * float3(_CurlIn[ClampId(c + int3(1, 0, 0))].w - _CurlIn[ClampId(c - int3(1, 0, 0))].w,
+                               _CurlIn[ClampId(c + int3(0, 1, 0))].w - _CurlIn[ClampId(c - int3(0, 1, 0))].w,
+                               _CurlIn[ClampId(c + int3(0, 0, 1))].w - _CurlIn[ClampId(c - int3(0, 0, 1))].w);
+    float3 N = grad / (length(grad) + 1e-5);
+    float3 w = _CurlIn[id].xyz;
+    float3 confinement = _Vorticity * cross(N, w);
+
+    float d = _DensityIn[id];
+    float3 driftP = floor((float3(c) + _EmitOffset) * 0.06) + floor(_Time * 0.5) * 0.19;
+    float3 drift = float3(Hash3(driftP), Hash3(driftP + 7.3), Hash3(driftP + 13.9)) - 0.5;
+
+    float3 pull = 0.0;
+    if (abs(_Pull) > 1e-4)
+    {
+        float3 local = mul(_WorldToHand, float4(CellWorld(c), 1.0)).xyz;
+        const float e = 1.0;
+        float3 g = float3(SampleSdf(local + float3(e, 0, 0)) - SampleSdf(local - float3(e, 0, 0)),
+                          SampleSdf(local + float3(0, e, 0)) - SampleSdf(local - float3(0, e, 0)),
+                          SampleSdf(local + float3(0, 0, e)) - SampleSdf(local - float3(0, 0, e)));
+        float3 gw = mul((float3x3)_HandToWorld, g);
+        pull = -normalize(gw + 1e-5) * _Pull;     // toward the surface for _Pull > 0
+    }
+    float3 v = _VelocityIn[id].xyz;
+    v += (confinement + float3(0.0, _Buoyancy * d, 0.0) + drift * _Drift * d + pull * d) * _Dt;
+    if (_GatherSpeed > 0.0 && d > 0.001)
+    {
+        // gather: carry the ink straight toward the surface shell (sdf -> _SourceInside) at a set speed, from either side
+        float3 local = mul(_WorldToHand, float4(CellWorld(c), 1.0)).xyz;
+        float sd = SampleSdf(local);
+        const float e = 1.0;
+        float3 g = float3(SampleSdf(local + float3(e, 0, 0)) - SampleSdf(local - float3(e, 0, 0)),
+                          SampleSdf(local + float3(0, e, 0)) - SampleSdf(local - float3(0, e, 0)),
+                          SampleSdf(local + float3(0, 0, e)) - SampleSdf(local - float3(0, 0, e)));
+        float3 gw = normalize(mul((float3x3)_HandToWorld, g) + 1e-5);
+        float dist = sd - _SourceInside;
+        float3 target = -gw * sign(dist) * _GatherSpeed * saturate(abs(dist) / 2.0);   // slows down in the last two units
+        v = lerp(v, target, saturate(_Dt * 10.0));
+    }
+    _VelocityOut[id] = float4(v, 0.0);
+}
+
+// Scatter faint ink clouds in a shell around the hand (gather phase start): clumpy value noise so it reads as separate
+// wisps of smoke in the air, not a uniform fog. In place on the state textures (no scratch, no swap).
+[numthreads(8, 8, 4)]
+void Seed(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    float3 world = CellWorld(int3(id));
+    float3 local = mul(_WorldToHand, float4(world, 1.0)).xyz;
+    float sd = SampleSdf(local);
+    float shell = smoothstep(_SeedInner, _SeedInner + 6.0, sd) * (1.0 - smoothstep(_SeedOuter - 10.0, _SeedOuter, sd));
+    float3 p = (float3(id) + _EmitOffset) * 0.16;
+    float n = VNoise(p) * 0.55 + VNoise(p * 2.3 + 5.3) * 0.3 + VNoise(p * 4.7 + 9.1) * 0.15;
+    float clump = saturate((n - 0.56) * 6.0);     // sparse small wisps, not blobs
+    float d = shell * clump * _SeedDensity;
+    _DensityOut[id] = max(_DensityOut[id], d);
+    _VelocityOut[id] = float4(0.0, 0.0, 0.0, 0.0);
+}
+
+[numthreads(8, 8, 4)]
+void Divergence(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    int3 c = int3(id);
+    float div = 0.5 * ((_VelocityIn[ClampId(c + int3(1, 0, 0))].x - _VelocityIn[ClampId(c - int3(1, 0, 0))].x)
+                     + (_VelocityIn[ClampId(c + int3(0, 1, 0))].y - _VelocityIn[ClampId(c - int3(0, 1, 0))].y)
+                     + (_VelocityIn[ClampId(c + int3(0, 0, 1))].z - _VelocityIn[ClampId(c - int3(0, 0, 1))].z));
+    _DivergenceOut[id] = div;
+    _PressureOut[id] = 0.0;
+}
+
+float JacobiAt(Texture3D<float> P, int3 c)
+{
+    float sum = P[ClampId(c + int3(1, 0, 0))] + P[ClampId(c - int3(1, 0, 0))]
+              + P[ClampId(c + int3(0, 1, 0))] + P[ClampId(c - int3(0, 1, 0))]
+              + P[ClampId(c + int3(0, 0, 1))] + P[ClampId(c - int3(0, 0, 1))];
+    return (sum - _DivergenceIn[c]) / 6.0;
+}
+
+// Two kernels with the pressure textures bound the two ways round, so an iteration costs one Dispatch and no rebinding.
+[numthreads(8, 8, 4)]
+void JacobiA(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    _PressureOut[id] = JacobiAt(_PressureIn, int3(id));
+}
+
+[numthreads(8, 8, 4)]
+void JacobiB(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    _PressureOut2[id] = JacobiAt(_PressureIn2, int3(id));
+}
+
+[numthreads(8, 8, 4)]
+void Gradient(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    int3 c = int3(id);
+    float3 g = 0.5 * float3(_PressureIn[ClampId(c + int3(1, 0, 0))] - _PressureIn[ClampId(c - int3(1, 0, 0))],
+                            _PressureIn[ClampId(c + int3(0, 1, 0))] - _PressureIn[ClampId(c - int3(0, 1, 0))],
+                            _PressureIn[ClampId(c + int3(0, 0, 1))] - _PressureIn[ClampId(c - int3(0, 0, 1))]);
+    float3 v = _VelocityIn[id].xyz - g;
+    // closed box: no flow through the walls
+    if (c.x == 0 || c.x == _Size.x - 1) v.x = 0.0;
+    if (c.y == 0 || c.y == _Size.y - 1) v.y = 0.0;
+    if (c.z == 0 || c.z == _Size.z - 1) v.z = 0.0;
+    _VelocityOut[id] = float4(v, 0.0);
+}
+
+// ---------- coarse pressure (Docs/vfx/push-projectile-hands.md section 15) ----------
+// The Poisson solve converges far faster on a grid of half the resolution (1/8 of the cells per pass, and each pass
+// moves information twice as far). Restrict averages 2x2x2 fine divergences; on the coarse grid the Laplacian has
+// spacing 2, so the right-hand side is 4x the average. Prolong samples the coarse pressure back trilinearly; two fine
+// Jacobi passes then clean up the small scales before Gradient.
+bool OutsideC(int3 id) { return any(id < 0) || any(id >= _SizeC); }
+int3 ClampIdC(int3 id) { return clamp(id, int3(0, 0, 0), _SizeC - 1); }
+
+[numthreads(8, 8, 4)]
+void Restrict(uint3 id : SV_DispatchThreadID)
+{
+    if (OutsideC(int3(id))) return;
+    int3 f = int3(id) * 2;
+    float sum = 0.0;
+    [unroll] for (int z = 0; z < 2; z++) [unroll] for (int y = 0; y < 2; y++) [unroll] for (int x = 0; x < 2; x++)
+        sum += _DivergenceIn[ClampId(f + int3(x, y, z))];
+    _DivergenceCOut[id] = sum * 0.5;      // 4 x the mean of 8
+    _PressureCOut[id] = 0.0;
+}
+
+float JacobiAtC(Texture3D<float> P, int3 c)
+{
+    float sum = P[ClampIdC(c + int3(1, 0, 0))] + P[ClampIdC(c - int3(1, 0, 0))]
+              + P[ClampIdC(c + int3(0, 1, 0))] + P[ClampIdC(c - int3(0, 1, 0))]
+              + P[ClampIdC(c + int3(0, 0, 1))] + P[ClampIdC(c - int3(0, 0, 1))];
+    return (sum - _DivergenceC[c]) / 6.0;
+}
+
+[numthreads(8, 8, 4)]
+void JacobiCA(uint3 id : SV_DispatchThreadID)
+{
+    if (OutsideC(int3(id))) return;
+    _PressureCOut[id] = JacobiAtC(_PressureCIn, int3(id));
+}
+
+[numthreads(8, 8, 4)]
+void JacobiCB(uint3 id : SV_DispatchThreadID)
+{
+    if (OutsideC(int3(id))) return;
+    _PressureCOut2[id] = JacobiAtC(_PressureCIn2, int3(id));
+}
+
+// fine pressure = trilinear coarse pressure (coarse cell c covers fine cells 2c, 2c+1: fine centre i+0.5 maps to coarse (i+0.5)/2)
+[numthreads(8, 8, 4)]
+void Prolong(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    float3 uvw = (float3(id) + 0.5) * 0.5 / float3(_SizeC);
+    _PressureOut[id] = _PressureCIn.SampleLevel(sampler_linear_clamp, uvw, 0);
+}
+
+groupshared uint gsMin[3];
+groupshared uint gsMax[3];
+
+// Last pass of the step: also records the occupied AABB (cells with density >= _BoundsMin), reduced per thread group
+// first so the atomics are one set per group, not per cell. The renderer clips its rays to it.
+[numthreads(8, 8, 4)]
+void AdvectDensity(uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
+{
+    if (gi == 0) { gsMin[0] = gsMin[1] = gsMin[2] = 0xFFFFFFFFu; gsMax[0] = gsMax[1] = gsMax[2] = 0u; }
+    GroupMemoryBarrierWithGroupSync();
+    if (!Outside(int3(id)))
+    {
+        int3 c = int3(id);
+        float3 v = _VelocityIn[id].xyz;
+        float3 back = float3(c) + 0.5 - v * _Dt;
+        bool off = any(back < 0.0) || any(back > float3(_Size));
+        float sampled = off ? 0.0 : _DensityIn.SampleLevel(sampler_linear_clamp, ToUvw(back), 0);
+        float mean = (_DensityIn[ClampId(c + int3(1, 0, 0))] + _DensityIn[ClampId(c - int3(1, 0, 0))]
+                    + _DensityIn[ClampId(c + int3(0, 1, 0))] + _DensityIn[ClampId(c - int3(0, 1, 0))]
+                    + _DensityIn[ClampId(c + int3(0, 0, 1))] + _DensityIn[ClampId(c - int3(0, 0, 1))]) / 6.0;
+        sampled = lerp(sampled, mean, _Diffusion);
+        float d = sampled * _DensityDissipation;
+        _DensityOut[id] = d;
+        if (d >= _BoundsMin)
+        {
+            InterlockedMin(gsMin[0], id.x); InterlockedMin(gsMin[1], id.y); InterlockedMin(gsMin[2], id.z);
+            InterlockedMax(gsMax[0], id.x); InterlockedMax(gsMax[1], id.y); InterlockedMax(gsMax[2], id.z);
+        }
+    }
+    GroupMemoryBarrierWithGroupSync();
+    if (gi == 0 && gsMin[0] != 0xFFFFFFFFu)
+    {
+        InterlockedMin(_Bounds[0], gsMin[0]); InterlockedMin(_Bounds[1], gsMin[1]); InterlockedMin(_Bounds[2], gsMin[2]);
+        InterlockedMax(_Bounds[3], gsMax[0]); InterlockedMax(_Bounds[4], gsMax[1]); InterlockedMax(_Bounds[5], gsMax[2]);
+    }
+}
+
+[numthreads(8, 8, 4)]
+void Stats(uint3 id : SV_DispatchThreadID)
+{
+    if (Outside(int3(id))) return;
+    float d = saturate(_DensityIn[id]);
+    uint m256 = (uint)(d * 256.0);          // mass at 1/256 resolution
+    if (m256 == 0) return;
+    uint m = max((uint)(d * 16.0), 1u);     // coarser weight for the moments (uint range)
+    InterlockedAdd(_Stats[0], m256);
+    InterlockedAdd(_Stats[1], m * id.x);
+    InterlockedAdd(_Stats[2], m * id.y);
+    InterlockedAdd(_Stats[3], m * id.z);
+    InterlockedAdd(_Stats[4], m);
+}

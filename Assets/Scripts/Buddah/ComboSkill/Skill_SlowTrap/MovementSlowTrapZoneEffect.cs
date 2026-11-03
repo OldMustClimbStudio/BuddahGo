@@ -31,19 +31,17 @@ public class MovementSlowTrapZoneEffect : MonoBehaviour, ISkillRuntimeHandle
     // 缘起 handle state (server). The zone VFX instance is unparented, so the replicator stops it by id.
     private string _skillId = "slowtrap";
     private string _vfxId;
-    private float _zoneEndVfxLingerSeconds;
     private bool _ended;
 
     public string SkillId => _skillId;
 
     public bool IsActive => !_ended && this != null && enabled;
 
-    internal void ConfigureRuntimeHandle(string skillId, string vfxId, float zoneEndVfxLingerSeconds)
+    internal void ConfigureRuntimeHandle(string skillId, string vfxId)
     {
         if (!string.IsNullOrWhiteSpace(skillId))
             _skillId = skillId.Trim();
         _vfxId = vfxId;
-        _zoneEndVfxLingerSeconds = Mathf.Max(0f, zoneEndVfxLingerSeconds);
     }
 
     /// <summary>
@@ -72,7 +70,7 @@ public class MovementSlowTrapZoneEffect : MonoBehaviour, ISkillRuntimeHandle
         {
             var vfx = _caster.GetComponent<SkillVfxReplicator>();
             if (vfx != null)
-                vfx.StopVfxAll(_vfxId, _zoneEndVfxLingerSeconds);
+                vfx.StopVfxAll(_vfxId);
         }
 
         enabled = false; // OnDisable destroys the trigger and debug instances

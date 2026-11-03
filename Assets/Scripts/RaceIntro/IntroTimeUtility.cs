@@ -116,11 +116,6 @@ public static class IntroTimeUtility
         return System.Math.Max(0d, System.Math.Min(timelineDurationSeconds, timelineDurationSeconds * normalized));
     }
 
-    public static bool HasReachedIntroStart(IntroSequenceTiming timing, double networkTimeSeconds)
-    {
-        return timing.IsValid && networkTimeSeconds >= timing.IntroStartNetworkTime;
-    }
-
     public static bool HasReachedGo(IntroSequenceTiming timing, double networkTimeSeconds)
     {
         return timing.IsValid && networkTimeSeconds >= timing.GoNetworkTime;

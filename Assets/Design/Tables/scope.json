@@ -13,7 +13,8 @@
       "Obsession",
       "Yuanqi",
       "YuanqiEffectFrostLock",
-      "YuanqiEffectGiantCharge"
+      "YuanqiEffectGiantCharge",
+      "VfxRegistry"
     ],
     "Movement": [
       "Movement",
@@ -57,7 +58,6 @@
   "presentationOnly": {
     "Skill": [
       "SkillPresentation",
-      "VfxRegistry",
       "FeelEvent",
       "BlackCurtainPresentation",
       "SkillConstant"
@@ -158,6 +158,10 @@
     "Skill/YuanqiEffectGiantCharge": [
       "skill",
       "balance"
+    ],
+    "Skill/VfxRegistry": [
+      "skill",
+      "info"
     ],
     "Movement/Movement": [
       "movement",

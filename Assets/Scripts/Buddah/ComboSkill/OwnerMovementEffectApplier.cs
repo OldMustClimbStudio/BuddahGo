@@ -28,9 +28,6 @@ internal sealed class OwnerMovementEffectApplier
                 _owner.PredictionMovementBridge.TryApplyAcceleration(extraForwardForce, extraMaxSpeed, durationSeconds, "SkillExecutor.Target");
             _owner.PlayFeelLocal("acceleration_local");
 
-            if (extraForwardForce > 0f || extraMaxSpeed > 0f)
-                _owner.ShowAccelerationTrail(durationSeconds);
-
             GameLog.Verbose($"{BuddahPredictionBootstrap.LogPrefix} SkillExecutor routed acceleration to PredictionV2 bridge.");
             return;
         }
@@ -54,9 +51,6 @@ internal sealed class OwnerMovementEffectApplier
 
         effect.ApplyOrRefresh(move, extraForwardForce, extraMaxSpeed, durationSeconds);
         _owner.PlayFeelLocal("acceleration_local");
-
-        if (extraForwardForce > 0f || extraMaxSpeed > 0f)
-            _owner.ShowAccelerationTrail(durationSeconds);
 
         GameLog.Verbose($"[SkillExecutor][Target] Accel: +{extraForwardForce} forwardForce, +{extraMaxSpeed} maxSpeed for {durationSeconds}s");
     }

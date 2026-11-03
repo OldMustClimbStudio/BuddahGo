@@ -46,15 +46,12 @@ namespace NewBuddah.PredictionV2.Bootstrap
 
         public BuddahMovementModeSwitcher ModeSwitcher => modeSwitcher;
         public Core.BuddahPredictedMotor PredictedMotor => predictedMotor;
-        public BuddahPredictedMotorConfig PredictedMotorConfig => predictedMotorConfig;
         public BuddahPredictionSkillMovementBridge SkillMovementBridge => skillMovementBridge;
         public BuddahPredictionRespawnBridge RespawnBridge => respawnBridge;
         public BuddahPredictionHandoffBridge HandoffBridge => handoffBridge;
         public BuddahPredictionVisualRootBridge VisualRootBridge => visualRootBridge;
         public BuddahPredictionCameraBridge CameraBridge => cameraBridge;
         public BuddahPredictionPresentationBridge PresentationBridge => presentationBridge;
-        public BuddahPredictionCompatibilityRegistry CompatibilityRegistry => compatibilityRegistry;
-        public BuddahPredictionRuntimeHealthReport RuntimeHealthReport => runtimeHealthReport;
         public BuddahPredictionCommandBus CommandBus => commandBus;
         public BuddahPredictionCombatAdapter CombatAdapter => _combatAdapter;
         public BuddahPredictionDebugSettings DebugSettings => debugSettings;

@@ -8,9 +8,9 @@
 ,giant,skill.giant.name,skill.giant.desc,40,unlocked,giant_anti,8,1,200,6
 ,push_projectile_hands,skill.push_projectile_hands.name,skill.push_projectile_hands.desc,50,unlocked,push_projectile_hands_anti,12,1,300,15
 ,reverseturn,skill.reverseturn.name,skill.reverseturn.desc,60,unlocked,reverseturn_anti,12,1,200,10
-,acceleration_anti,skill.acceleration_anti.name,skill.acceleration_anti.desc,110,hidden,,5,1,,3
-,slowtrap_anti,skill.slowtrap_anti.name,skill.slowtrap_anti.desc,120,hidden,,3,1,,1
-,blackcurtain_anti,skill.blackcurtain_anti.name,skill.blackcurtain_anti.desc,130,hidden,,16,1,,10
-,giant_anti,skill.giant_anti.name,skill.giant_anti.desc,140,hidden,,8,1,,6
-,push_projectile_hands_anti,skill.push_projectile_hands_anti.name,skill.push_projectile_hands_anti.desc,150,hidden,,10,1,,
-,reverseturn_anti,skill.reverseturn_anti.name,skill.reverseturn_anti.desc,160,hidden,,12,1,,10
+,acceleration_anti,skill.acceleration_anti.name,skill.acceleration_anti.desc,110,hidden,,5,2,,3
+,slowtrap_anti,skill.slowtrap_anti.name,skill.slowtrap_anti.desc,120,hidden,,3,2,,1
+,blackcurtain_anti,skill.blackcurtain_anti.name,skill.blackcurtain_anti.desc,130,hidden,,16,2,,10
+,giant_anti,skill.giant_anti.name,skill.giant_anti.desc,140,hidden,,8,2,,6
+,push_projectile_hands_anti,skill.push_projectile_hands_anti.name,skill.push_projectile_hands_anti.desc,150,hidden,,10,2,,
+,reverseturn_anti,skill.reverseturn_anti.name,skill.reverseturn_anti.desc,160,hidden,,12,2,,10

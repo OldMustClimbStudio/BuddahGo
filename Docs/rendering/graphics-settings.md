@@ -1,9 +1,12 @@
 # Graphics settings
 
 Client-side graphics settings for BuddahGo: a preset plus per-option overrides, with tiers per option, defined in the
-design tables and applied at runtime. Status (2026-10-28): the spec, the runtime model, persistence, the URP mapping,
-VSync, window mode and resolution, and the API are done; there is no settings menu yet, only a temporary F9 panel. The
-menu binds to `GraphicsSettingsService` (see Binding).
+design tables and applied at runtime. Status (2026-11-03): the spec, the runtime model, persistence, the URP mapping,
+VSync, window mode, a resolution list from the display, the VFX tier and the API are done; there is no settings menu
+yet, only the F9 panel (any scene, player builds included). The menu binds to `GraphicsSettingsService` (see Binding).
+Re-verified on 2026-11-03 in play mode after the dusk re-tune and the bake: presets switch the quality level and its
+real URP asset, overrides run on a runtime clone, Reset puts the real asset back, and every quality level points at its
+own asset again after play mode (`GraphicsSettingsTests` 10/10).
 **Before working on graphics settings, the settings menu or effect tiers, read [Not implemented yet](#not-implemented-yet):**
 the Ultra preset exists only as a masked placeholder row in `Graphics.xlsx`, and several points wait for the user.
 
@@ -21,8 +24,8 @@ the Ultra preset exists only as a masked placeholder row in `Graphics.xlsx`, and
 | Texture mip limit | `QualitySettings.globalTextureMipmapLimit` | 0 / 0 / 0 | `texture_quality` |
 | Anisotropic filtering | `QualitySettings.anisotropicFiltering` | off / per texture / forced | `anisotropic_filtering` |
 | VSync, frame-rate cap | `QualitySettings.vSyncCount`; `FrameRateLock` (Global/GlobalRule `target_frame_rate` 120) | VSync on; the cap applies with VSync off | `vsync`, `frame_rate_cap` |
-| Window mode, resolution | `Screen.SetResolution` (player only) | borderless, native | `window_mode`, `resolution` |
-| VFX | particles, VFX Graph, Feel | not tiered yet | `vfx_quality` (stub) |
+| Window mode, resolution | `Screen.SetResolution` (player only) | borderless, native | `window_mode`, `resolution` (plus one level per display size, generated at startup) |
+| VFX | skill VFX slot layers (`SkillVfxPhaseController` drops layers by `SkillVfxRules.Keeps(tier, priority, gameplayInfo, function)`) | Low / Medium / High | `vfx_quality` |
 | HDR, colour-grading LUT size, additional-light mode, LOD bias, skin weights | URP asset / QualitySettings | per level | fixed by the preset |
 | ACES tonemapping, grade, fog colour, sky, bloom (skill flashes) | volumes, lighting settings | — | not exposed (art direction) |
 
@@ -64,11 +67,11 @@ Workbook `Assets/Design/Tables/Graphics/Graphics.xlsx` (records generated, datab
 | `anisotropic_filtering` (quality) | off, per_texture, forced | off / per_texture / forced | Disable / Enable / ForceEnable | |
 | `reflections` (effects) | off, medium, high | off / medium / high | planarScale 0 / 0.5 / 1 | planar reflections on floors with a `PlanarReflection` component; off leaves the reflection probe |
 | `ambient_occlusion` (effects) | off, low, high | off / low / high | ssaoEnabled, downsample, normals, samples | not available on low (no SSAO feature) |
-| `vfx_quality` (effects) | low, medium, high | low / medium / high | vfxTier | stub, see VFX hook |
+| `vfx_quality` (effects) | low, medium, high | low / medium / high | vfxTier | read by `SkillVfxPhaseController` since the VFX slot pipeline (PR #68): lower tiers drop slot layers by priority, keeping gameplay-information layers |
 | `vsync` (performance) | off, on | on ×3 | vSyncCount 0 / 1 | on: frame rate follows the display, the cap is ignored |
 | `frame_rate_cap` (performance) | fps60, fps120, fps240 | fps120 ×3 | frameRate | only with VSync off; multiple of the 60 Hz tick; the default must equal Global/GlobalRule `target_frame_rate` |
 | `window_mode` (display) | fullscreen, borderless, windowed | borderless ×3 | fullScreenMode | player only; skipped when the command line sets the window (`-screen-width`, `-screen-height`, `-screen-fullscreen`, `-window-mode`, `-popupwindow`) |
-| `resolution` (display) | native | native ×3 | — | the display's resolution; same skip rule |
+| `resolution` (display) | native, then one level per display size (`1920x1080`, ...) | native ×3 | — / parsed from the level id | `native` follows the display; the sizes come from `Screen.resolutions` at startup (`GraphicsSettingsCatalog.WithDisplayResolutions`), largest first, no label key (the id is shown); a saved size the display no longer offers is dropped; same skip rule |
 
 No option needs a restart. Every preset's pipeline defaults equal its quality level's asset, so choosing a preset
 without overrides uses the real assets (tested: `EachPresetDefaultReproducesItsQualityLevel`). The import rule
@@ -81,15 +84,15 @@ cascade count, do not increase or reach the shadow distance, a planar scale outs
 
 | Type | Role |
 |---|---|
-| `GraphicsSettingsCatalog` | Options, levels, presets and their label keys from the tables; an empty catalog means the layer does nothing |
+| `GraphicsSettingsCatalog` | Options, levels, presets and their label keys from the tables; an empty catalog means the layer does nothing. `WithDisplayResolutions` appends the display's sizes as levels of `resolution` |
 | `GraphicsSettingsModel` | Preset plus overrides; Get / Set / SetPreset / ResetToPreset; "Custom" while any override exists; JSON state |
 | `PlayerPrefsGraphicsSettingsStore` | Saves the JSON under `BuddahGo.GraphicsSettings.v1` on this machine |
-| `GraphicsSettingsApplier` | Applies the choice: quality level, a runtime clone of that level's URP asset (and its renderer data and features) only when a value differs, camera AA and sharpening through `CameraAntialiasingPolicy`, planar reflection scale, texture limit, anisotropic filtering, VSync or the frame-rate cap, window mode and resolution (player only), VFX tier |
+| `GraphicsSettingsApplier` | Applies the choice: quality level, a runtime clone of that level's URP asset (and its renderer data and features) only when a value differs, camera AA and sharpening through `CameraAntialiasingPolicy`, planar reflection scale, texture limit, anisotropic filtering, VSync or the frame-rate cap, window mode and resolution (player only; `ResolveResolution` parses a generated level's size, `native` uses the display), VFX tier. With VSync on `Application.targetFrameRate` is left as it was (Unity ignores it then), so it can show a stale cap in the F9 panel |
 | `GraphicsPipelineMapper` | Option levels -> URP asset fields and SSAO feature settings (internal URP 14 setters and the SSAO settings through their serialized fields) |
 | `GraphicsSettingsService` | Static entry point for the menu; loads and applies the saved choice after the first scene loads |
 | `GraphicsSettingsDebugPanel` | Temporary: F9 in any scene opens an IMGUI panel listing presets and options; each change applies and saves. Remove or limit to development builds when the menu ships |
 | `BuddahGo.Rendering.PlanarReflection` | On a flat floor's renderer: renders the mirrored scene for each game camera and binds it to the `BuddahGo/Lit` material (`_PLANAR_REFLECTION`); `SettingsScale` comes from `reflections` |
-| `BuddahGo.Rendering.VfxQuality` | VFX tier hook: `Current`, `Changed` |
+| `BuddahGo.Rendering.VfxQuality` | VFX tier: `Current`, `Changed`; `SkillVfxPhaseController` reads `Current` when a slot starts |
 
 **Assets are never written.** Values change only on runtime clones (`HideFlags.DontSave`, made and destroyed by
 `GraphicsPipelineMapper.CreateDetachedClone` / `DestroyDetachedClone`), assigned through `QualitySettings.renderPipeline`.
@@ -125,8 +128,10 @@ GraphicsSettingsService.Changed += Refresh;             // model changed; Applie
 ```
 
 Still to do on the UI side: the menu itself (owned by the UI work, not by `feat/ingame-ui-updates`, which has no
-settings screen); a resolution list from `Screen.resolutions` (the table has only `native`); an Apply button, because
-MSAA and quality-level changes can hitch; greying out `upscaler` at 100% and `sharpening` without TAA; checking that
+settings screen; `MainMenuUI` has Home / CreateRoom / BrowseRooms / JoinById / SoloSetup panels and no settings panel,
+so today the only entry is F9); an Apply button, because MSAA and quality-level changes can hitch; greying out
+`upscaler` at 100% and `sharpening` without TAA; a label for the generated resolution levels if the id is not enough;
+checking that
 the new Chinese labels exist in the static font subset `Assets/Fonts/SoloCJK`. On 2026-10-27, 36 characters of the
 `settings.graphics.*` labels, placeholders included, were missing from it
 (义全原双口各垂境屏帧异式恢抗撤染框模渲滤率环窗蔽质贴辨边遮销锐锯阴限预齿); regenerate the subset and rebake its TMP
@@ -147,10 +152,9 @@ still have an open point. To implement a placeholder: add the typed value column
 | Item | State | Placeholder | What it needs |
 |---|---|---|---|
 | Settings menu | not implemented; F9 debug panel stands in | API `GraphicsSettingsService`; labels `settings.graphics.title`, `settings.graphics.action.apply` / `revert` / `reset_to_preset` in `UI/Text` | a screen that binds as in [Binding](#binding-for-the-settings-menu), an Apply button, the font subset; then remove `GraphicsSettingsDebugPanel` |
-| Resolution list | only `native` | `resolution` option with one level | levels built at runtime from `Screen.resolutions` |
 | VSync online | on by default, decided 2026-10-28 | `pending` on `vsync` | check online prediction smoothing at refresh rates that are not a multiple of 60 Hz (`FrameRateLock`'s concern); Solo interpolates by time |
 | Ultra preset | **user decision** | masked `ultra` preset (High Fidelity base) | a default level for every option (`defaultFor` gains `ultra`) |
-| VFX tiers | hook only | `vfx_quality` is applied; `VfxQuality.Current` / `Changed` have no reader | **user** specifies what each tier changes; effects then read the tier |
+| VFX tiers | layer dropping only | `vfx_quality` is applied and `SkillVfxPhaseController` drops slot layers by priority per tier | **user** decides whether the tiers should also change particle counts, resolution or the "reduce other players' effects" option |
 | First-run preset | not implemented | `pending` on the `high` preset | hardware detection; today the preset of the starting quality level is used |
 | Font subset | missing glyphs | — | regenerate `Assets/Fonts/SoloCJK` for the 36 characters listed under Binding |
 | NVIDIA FXAA 3.11 | **user decision** | `pending` on `anti_aliasing` | licence check before using it in place of URP's FXAA |
@@ -182,6 +186,6 @@ Not verified yet:
 
 - **Ultra preset** above High Fidelity (for example a longer shadow distance and a render scale above 100%): possible
   with the clone approach; a masked placeholder row exists.
-- **VFX tiers**: what Low / Medium / High change, and whether to add a "reduce other players' effects" option
-  (Genshin Impact's precedent).
+- **VFX tiers**: today a tier only drops slot layers by priority; whether it should also scale particle counts or
+  add a "reduce other players' effects" option (Genshin Impact's precedent).
 - **First-run preset**: currently the quality level the game starts with; hardware detection is not implemented.

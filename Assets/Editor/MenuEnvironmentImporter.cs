@@ -219,6 +219,7 @@ public static class MenuEnvironmentImporter
         SetupEnvironment(sun);
         CreateGlobalVolume();
         MarkStatic(root.gameObject);
+        CreateReflectionProbe(root);
         SetupEmaInspector(root);
         SetupProtoCameraSwitcher();
         SetupMenuSkinView(PlaceMenuBuddhaSkin());
@@ -2071,6 +2072,48 @@ public static class MenuEnvironmentImporter
         v.priority = 1f;
         v.sharedProfile = profile;
     }
+
+    /// <summary>
+    /// One baked reflection probe over the whole shrine so the menu Buddha's silver skin and the glossy props reflect
+    /// the courtyard and not only the dusk sky (the sky alone turns the silver gold). Box projection, sized to the
+    /// renderers plus a margin.
+    /// </summary>
+    private static void CreateReflectionProbe(Transform root)
+    {
+        const string probeName = "Reflection Probe Shrine";
+        var existing = GameObject.Find(probeName);
+        if (existing != null) UnityEngine.Object.DestroyImmediate(existing);
+        var renderers = root.GetComponentsInChildren<Renderer>(false);
+        if (renderers.Length == 0) return;
+        var bounds = renderers[0].bounds;
+        foreach (Renderer r in renderers) bounds.Encapsulate(r.bounds);
+        var go = new GameObject(probeName);
+        go.transform.SetParent(root, true);
+        go.transform.position = bounds.center;
+        var probe = go.AddComponent<ReflectionProbe>();
+        probe.resolution = 256;
+        probe.hdr = true;
+        probe.boxProjection = true;
+        probe.size = bounds.size + new Vector3(10f, 10f, 10f);
+        probe.importance = 1;
+        probe.cullingMask = -1;
+        // The cubemap is rendered with Lightmapping.BakeReflectionProbe (the probe's Bake button), not by the
+        // lightmapper, and held as a custom texture so it survives without a LightingData asset. Re-bake it after
+        // a layout or lighting change: select the probe, Bake, then keep it in Custom mode with that file.
+        var cube = AssetDatabase.LoadAssetAtPath<Texture>(ShrineProbePath);
+        if (cube != null)
+        {
+            probe.mode = ReflectionProbeMode.Custom;
+            probe.customBakedTexture = cube;
+        }
+        else
+        {
+            probe.mode = ReflectionProbeMode.Baked;
+            Debug.LogWarning($"[MenuEnvironment] {ShrineProbePath} not found; bake the shrine reflection probe and set it as its custom texture.");
+        }
+    }
+
+    private const string ShrineProbePath = "Assets/Scenes/MenuEnvironmentSetting/ReflectionProbe-Shrine.exr";
 
     private static void MarkStatic(GameObject root)
     {

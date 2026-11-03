@@ -68,6 +68,25 @@ namespace BuddahGo.VFX
         public ParticleSystem[] endWithWindow;
         public float endWithWindowSeconds = 1f;
 
+        [Header("Caster scale (Docs/vfx/giant.md)")]
+        [Tooltip("CasterAttached / CasterFollow layers on a caster whose body scale changes (巨大化 ×4, its anti ×0.3). Whole: the layer is scaled with the caster at once. Blend: Area Systems follow over the seconds below with an alpha dip, every other system (authored with ScalingMode Shape) spreads its spawn area and keeps its grain, Scale Surge marks the change.")]
+        public SkillVfxCasterScaling casterScaling = SkillVfxCasterScaling.Whole;
+        [Tooltip("Blend: systems that draw the area itself (ground rings, large smudges, outward pulses). They stay ScalingMode Hierarchy and grow with the layer.")]
+        public ParticleSystem[] areaSystems;
+        [Tooltip("Blend: a one-shot ring (one burst particle, colour-over-lifetime fade) pushed from the old edge to the new one, scaled with the area × Surge Lead. Detached from the layer when the slot is configured.")]
+        public ParticleSystem scaleSurge;
+        [Min(0.01f)] public float scaleUpSeconds = 1f;
+        [Min(0.01f)] public float scaleDownSeconds = 0.8f;
+        [Tooltip("How far the area systems' alpha dips halfway through a blend.")]
+        [Range(0f, 1f)] public float scaleAlphaDip = 0.3f;
+        [Tooltip("Detail particles alive when a blend starts fade out over this many seconds; new ones are born at the new spread. Detail emission pauses while shrinking so none is left outside the smaller area.")]
+        [Min(0f)] public float handoffSeconds = 0.8f;
+        [Tooltip("Detail particles are born at size × area scale ^ this (0 keeps the size, 1 scales it like the area).")]
+        [Range(0f, 1f)] public float detailSizeExponent = 0.3f;
+        [Tooltip("Detail emission follows the area (× scale²) within [1 / this, this].")]
+        [Min(1f)] public float maxDetailEmission = 6f;
+        [Min(1f)] public float surgeLead = 1.075f;
+
         static readonly int FxAlphaId = Shader.PropertyToID("_FxAlpha");
         static readonly int FxProgressId = Shader.PropertyToID("_FxProgress");
         static readonly int FxDissolveId = Shader.PropertyToID("_FxDissolve");
@@ -93,6 +112,24 @@ namespace BuddahGo.VFX
         bool _endingStarted;
         bool _enabledByTier = true;
         bool _played;
+        float _emissionScale = 1f;
+
+        // Caster scale blend state. _areaScale < 0 until the layer is first placed on the caster.
+        bool[] _isArea;
+        ParticleSystem.MinMaxCurve[] _baseStartSize;
+        float _areaScale = -1f;
+        float _blendFrom;
+        float _blendStart;
+        bool _blending;
+        bool _shrinking;
+        bool _handoffActive;
+        float _handoffStart;
+        Vector3 _surgeOffset;
+        Quaternion _surgeRotation;
+        float _surgeBaseScale;
+        // Per particle system: alpha each particle had before this blend touched it (area dip, detail handoff).
+        System.Collections.Generic.Dictionary<uint, byte>[] _blendAlpha;
+        static ParticleSystem.Particle[] s_buffer = new ParticleSystem.Particle[256];
 
         internal bool IsActive => _active;
         internal bool HasStarted => _played;
@@ -101,7 +138,23 @@ namespace BuddahGo.VFX
         internal void Initialize(float emissionScale, bool enabledByTier)
         {
             _enabledByTier = enabledByTier;
+            _emissionScale = emissionScale;
             _block = new MaterialPropertyBlock();
+            bool blend = casterScaling == SkillVfxCasterScaling.Blend;
+            // The surge is driven on its own (its scale leads the area's), so it leaves the layer before the layer's
+            // systems are collected.
+            if (blend && scaleSurge != null && scaleSurge.transform.IsChildOf(transform))
+            {
+                Transform surge = scaleSurge.transform;
+                float layerScale = Mathf.Max(1e-4f, Mathf.Abs(transform.lossyScale.x));
+                _surgeOffset = transform.InverseTransformPoint(surge.position) * layerScale;
+                _surgeRotation = Quaternion.Inverse(transform.rotation) * surge.rotation;
+                _surgeBaseScale = Mathf.Abs(surge.lossyScale.x) / layerScale;
+                surge.SetParent(null, true);
+                ParticleSystem.MainModule surgeMain = scaleSurge.main;
+                surgeMain.playOnAwake = false;
+                scaleSurge.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
             _particles = GetComponentsInChildren<ParticleSystem>(true);
             _renderers = GetComponentsInChildren<Renderer>(true);
             _trail = GetComponent<TrailRenderer>();
@@ -149,9 +202,206 @@ namespace BuddahGo.VFX
                 _baseDuration[i] = main.duration;
             }
 
+            if (blend)
+            {
+                _isArea = new bool[_particles.Length];
+                _baseStartSize = new ParticleSystem.MinMaxCurve[_particles.Length];
+                _blendAlpha = new System.Collections.Generic.Dictionary<uint, byte>[_particles.Length];
+                for (int i = 0; i < _particles.Length; i++)
+                {
+                    _isArea[i] = areaSystems != null && System.Array.IndexOf(areaSystems, _particles[i]) >= 0;
+                    _baseStartSize[i] = _particles[i].main.startSize;
+                    _blendAlpha[i] = new System.Collections.Generic.Dictionary<uint, byte>();
+                }
+            }
+
             for (int i = 0; i < _trails.Length; i++)
                 _trails[i].emitting = false;
             SetVisible(false);
+        }
+
+        // Scale for this layer when the caster's body is at casterScale, at time `now` (SkillVfxPhaseController places
+        // caster-anchored layers with it every frame). Whole returns the caster's scale. Blend: the first placement
+        // takes the caster's scale as it is; a later change starts a blend (surge, handoff) and the area eases there.
+        internal float FollowCasterScale(float casterScale, float now)
+        {
+            if (casterScaling != SkillVfxCasterScaling.Blend || _isArea == null)
+                return casterScale;
+            if (_areaScale < 0f)
+            {
+                _areaScale = casterScale;
+                return _areaScale;
+            }
+
+            bool reversed = _blending && (casterScale < _areaScale) != _shrinking && SkillVfxRules.ScaleChanged(_areaScale, casterScale);
+            if ((!_blending && SkillVfxRules.ScaleChanged(_areaScale, casterScale)) || reversed)
+                StartBlend(casterScale, now);
+
+            float u = 1f;
+            if (_blending)
+            {
+                u = Mathf.Clamp01((now - _blendStart) / (_shrinking ? scaleDownSeconds : scaleUpSeconds));
+                _areaScale = Mathf.Lerp(_blendFrom, casterScale, SkillVfxRules.BlendProgress(u, _shrinking));
+            }
+            else
+            {
+                _areaScale = casterScale;
+            }
+
+            if (_blending && u >= 1f)
+                EndBlend();
+            ApplyBlend(u, now);
+            return _areaScale;
+        }
+
+        void StartBlend(float casterScale, float now)
+        {
+            if (_blending)
+                EndBlend();
+            _blending = true;
+            _shrinking = casterScale < _areaScale;
+            _blendFrom = _areaScale;
+            _blendStart = now;
+            // Detail handoff: the particles alive now fade out; new ones are born at the new spread.
+            FinishHandoff();
+            for (int i = 0; i < _particles.Length; i++)
+            {
+                if (_isArea[i])
+                    continue;
+                int count = Particles(_particles[i]);
+                for (int p = 0; p < count; p++)
+                    _blendAlpha[i][s_buffer[p].randomSeed] = s_buffer[p].startColor.a;
+            }
+            _handoffActive = true;
+            _handoffStart = now;
+            if (scaleSurge != null && _played && _enabledByTier)
+            {
+                scaleSurge.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                scaleSurge.Play(true);
+            }
+        }
+
+        void ApplyBlend(float u, float now)
+        {
+            float dip = SkillVfxRules.BlendAlpha(u, scaleAlphaDip);
+            float handoff = SkillVfxRules.HandoffAlpha(now - _handoffStart, handoffSeconds);
+            float size = SkillVfxRules.DetailSize(_areaScale, detailSizeExponent);
+            float emission = _blending && _shrinking ? 0f : SkillVfxRules.DetailEmission(_areaScale, maxDetailEmission);
+            for (int i = 0; i < _particles.Length; i++)
+            {
+                if (_isArea[i])
+                {
+                    if (!_blending)
+                        continue;
+                    // Area dip: every particle, at the alpha it had the first time this blend saw it.
+                    int count = Particles(_particles[i]);
+                    for (int p = 0; p < count; p++)
+                    {
+                        byte alpha;
+                        if (!_blendAlpha[i].TryGetValue(s_buffer[p].randomSeed, out alpha))
+                            _blendAlpha[i][s_buffer[p].randomSeed] = alpha = s_buffer[p].startColor.a;
+                        SetAlpha(p, alpha * dip);
+                    }
+                    _particles[i].SetParticles(s_buffer, count);
+                    continue;
+                }
+
+                ParticleSystem.MainModule main = _particles[i].main;
+                main.startSize = ScaleCurve(_baseStartSize[i], size);
+                ParticleSystem.EmissionModule rate = _particles[i].emission;
+                rate.rateOverTimeMultiplier = _particleRates[i] * _emissionScale * emission;
+                if (_handoffActive && _blendAlpha[i].Count > 0)
+                {
+                    int count = Particles(_particles[i]);
+                    for (int p = 0; p < count; p++)
+                    {
+                        byte alpha;
+                        if (!_blendAlpha[i].TryGetValue(s_buffer[p].randomSeed, out alpha))
+                            continue;
+                        SetAlpha(p, alpha * handoff);
+                        if (handoff <= 0f)
+                            s_buffer[p].remainingLifetime = 0f;
+                    }
+                    _particles[i].SetParticles(s_buffer, count);
+                }
+            }
+            if (_handoffActive && handoff <= 0f)
+                FinishHandoff();
+
+            if (scaleSurge != null)
+            {
+                scaleSurge.transform.SetPositionAndRotation(transform.position + transform.rotation * (_surgeOffset * _areaScale),
+                    transform.rotation * _surgeRotation);
+                scaleSurge.transform.localScale = Vector3.one * (_surgeBaseScale * _areaScale * surgeLead);
+                scaleSurge.gameObject.layer = gameObject.layer;
+            }
+        }
+
+        // The area dip is lifted: back to each particle's own alpha.
+        void EndBlend()
+        {
+            _blending = false;
+            for (int i = 0; i < _particles.Length; i++)
+            {
+                if (!_isArea[i] || _blendAlpha[i].Count == 0)
+                    continue;
+                int count = Particles(_particles[i]);
+                for (int p = 0; p < count; p++)
+                {
+                    byte alpha;
+                    if (_blendAlpha[i].TryGetValue(s_buffer[p].randomSeed, out alpha))
+                        SetAlpha(p, alpha);
+                }
+                _particles[i].SetParticles(s_buffer, count);
+                _blendAlpha[i].Clear();
+            }
+        }
+
+        // The particles still fading from the last change are gone at once.
+        void FinishHandoff()
+        {
+            if (!_handoffActive)
+                return;
+            _handoffActive = false;
+            for (int i = 0; i < _particles.Length; i++)
+            {
+                if (_isArea[i] || _blendAlpha[i].Count == 0)
+                    continue;
+                int count = Particles(_particles[i]);
+                for (int p = 0; p < count; p++)
+                {
+                    if (_blendAlpha[i].ContainsKey(s_buffer[p].randomSeed))
+                        s_buffer[p].remainingLifetime = 0f;
+                }
+                _particles[i].SetParticles(s_buffer, count);
+                _blendAlpha[i].Clear();
+            }
+        }
+
+        static int Particles(ParticleSystem system)
+        {
+            if (s_buffer.Length < system.particleCount)
+                s_buffer = new ParticleSystem.Particle[Mathf.NextPowerOfTwo(system.particleCount)];
+            return system.GetParticles(s_buffer);
+        }
+
+        static void SetAlpha(int index, float alpha)
+        {
+            Color32 colour = s_buffer[index].startColor;
+            colour.a = (byte)Mathf.Clamp(Mathf.RoundToInt(alpha), 0, 255);
+            s_buffer[index].startColor = colour;
+        }
+
+        void OnDestroy()
+        {
+            // The surge left the layer when it was configured; it goes with the layer.
+            if (scaleSurge != null && !scaleSurge.transform.IsChildOf(transform))
+            {
+                if (Application.isPlaying)
+                    Destroy(scaleSurge.gameObject);
+                else
+                    DestroyImmediate(scaleSurge.gameObject);
+            }
         }
 
         internal void ClearTrails()

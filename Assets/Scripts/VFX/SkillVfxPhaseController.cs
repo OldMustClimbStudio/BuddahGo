@@ -355,7 +355,9 @@ namespace BuddahGo.VFX
             SkillVfxRules.CasterRelativePose(_casterVisual.position, casterScale, facing,
                 layer.casterOffset, layer.casterEuler, out Vector3 position, out Quaternion rotation);
             layer.transform.SetPositionAndRotation(position, rotation);
-            layer.transform.localScale = Vector3.one * casterScale;
+            // The offset follows the body at once (the layer stays on the ground); the layer's own scale follows its
+            // casterScaling (Docs/vfx/giant.md).
+            layer.transform.localScale = Vector3.one * layer.FollowCasterScale(casterScale, Time.time);
         }
 
         // The character's pivot is not at its feet: use the bottom of its collider (the track is flat under a racer).

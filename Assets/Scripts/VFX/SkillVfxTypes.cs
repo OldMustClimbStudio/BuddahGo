@@ -60,6 +60,16 @@ namespace BuddahGo.VFX
         CasterFollow,
     }
 
+    // How a caster-anchored layer follows the caster's body scale (巨大化 ×4, its anti ×0.3; Docs/vfx/giant.md).
+    public enum SkillVfxCasterScaling
+    {
+        // The layer is scaled with the caster at once: every particle's size, spread and motion (a magnifying glass).
+        Whole,
+        // Area systems follow the caster over scaleUpSeconds / scaleDownSeconds with an alpha dip, the other systems
+        // (ScalingMode Shape) only spread their spawn area and keep their grain, and a surge ring marks the change.
+        Blend,
+    }
+
     // How a layer's content follows a window that is longer or shorter than the one it was tuned for (the phase length
     // comes from gameplay, so a design table change moves it). k = live window / window at the reference length.
     public enum SkillVfxTimeScaling
@@ -227,6 +237,53 @@ namespace BuddahGo.VFX
                 return age;
             float alpha = Mathf.Min(gradient.Evaluate(age).a, from.alpha);
             return Mathf.Lerp(from.time, to.time, Mathf.InverseLerp(from.alpha, to.alpha, alpha));
+        }
+
+        // Caster scale blend (SkillVfxCasterScaling.Blend, Docs/vfx/giant.md). A change smaller than this share of the
+        // current scale is not a change (float noise, a body still settling).
+        internal const float ScaleChangeThreshold = 0.02f;
+
+        internal static bool ScaleChanged(float from, float to)
+        {
+            return Mathf.Abs(to - from) > ScaleChangeThreshold * Mathf.Max(Mathf.Abs(from), 1e-3f);
+        }
+
+        // Share of the way from the old scale to the new one at u = elapsed / blend seconds: growing eases out (fast
+        // start behind the surge, slow landing), shrinking eases in and out.
+        internal static float BlendProgress(float u, bool shrinking)
+        {
+            u = Mathf.Clamp01(u);
+            if (shrinking)
+                return u * u * (3f - 2f * u);
+            float rest = 1f - u;
+            return 1f - rest * rest * rest;
+        }
+
+        // Alpha of the area systems during a blend: dips by `depth` halfway, back to 1 at both ends.
+        internal static float BlendAlpha(float u, float depth)
+        {
+            if (u <= 0f || u >= 1f)
+                return 1f;
+            return 1f - Mathf.Clamp01(depth) * Mathf.Sin(Mathf.PI * u);
+        }
+
+        // Detail particles born at area scale s: size × s^exponent (grain kept), emission × s² (density kept) within
+        // [1 / max, max].
+        internal static float DetailSize(float scale, float exponent)
+        {
+            return Mathf.Pow(Mathf.Max(scale, 1e-3f), exponent);
+        }
+
+        internal static float DetailEmission(float scale, float max)
+        {
+            float ceiling = Mathf.Max(1f, max);
+            return Mathf.Clamp(scale * scale, 1f / ceiling, ceiling);
+        }
+
+        // Alpha share left of a particle that was alive when the blend started.
+        internal static float HandoffAlpha(float elapsed, float seconds)
+        {
+            return seconds <= 0f ? 0f : 1f - Mathf.Clamp01(elapsed / seconds);
         }
 
         static float SafeRatio(float value, float reference)

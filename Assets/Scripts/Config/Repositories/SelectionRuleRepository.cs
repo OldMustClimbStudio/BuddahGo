@@ -21,8 +21,6 @@ public class SelectionRuleRepository
         BuildDefaultLoadouts(database.defaultLoadouts);
     }
 
-    public bool HasAnyRules => _rules.Count > 0;
-
     public List<string> GetSkillIdsForPool(string ruleSetId, string modeTag, string mapTag, SkillSelectionPoolType poolType)
     {
         string key = BuildPoolContextKey(ruleSetId, modeTag, mapTag, poolType);

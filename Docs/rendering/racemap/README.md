@@ -845,7 +845,8 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   softness, TAA would cover them but smears at race speed (see Play-test round 2).
 - **Colour grading mode.** All pipeline assets grade in low dynamic range (ACES first, then the grading LUT). HDR
   grading suits ACES better but is a shared-asset change for every scene; not changed.
-- **Balanced and Performant renderers.** Balanced has SSAO; Performant has no renderer features and no
+- **Balanced and Performant renderers.** *(Fixed on 2026-11-05, c7124d10: every level now carries the five gameplay
+  passes and only SSAO differs; the curtain runs at AfterRenderingTransparents. See ARCHITECTURE module 1.)* Balanced has SSAO; Performant has no renderer features and no
   main-light shadows. RenderBuddah, BlackCurtain, RenderMapEdge and RenderTrails exist only on High Fidelity, so those
   effects are missing on the lower levels. Players
   still render (every renderer draws all layers). This predates these phases; Standalone defaults to High Fidelity and

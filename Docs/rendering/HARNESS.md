@@ -7,17 +7,23 @@
 | Any rendering change | [ARCHITECTURE.md](ARCHITECTURE.md): the module's card and the requirements table |
 | Sun, ambient, fog, sky, probes, bake | ARCHITECTURE "Lighting and bake", "Sky and fog", "Bake reproducibility"; re-tuning checklist at the end of [racemap/README.md](racemap/README.md) |
 | Colour look / grade | [racemap/dusk-color-study.md](racemap/dusk-color-study.md) (C2 is the chosen look; A2/B2 are the alternatives) |
-| Pipeline, renderer, quality level, settings panel | [graphics-settings.md](graphics-settings.md) |
+| Pipeline, renderer, renderer features, quality level, settings panel, VFX tiers, restart tags | ARCHITECTURE modules 1 and 11, then [graphics-settings.md](graphics-settings.md) ("Modules", "VFX tiers") |
 | Skill effects | [../vfx/README.md](../vfx/README.md) |
 | A trap you hit | racemap/README "Editor and tooling traps", [../unity-mcp.md](../unity-mcp.md) |
 
 **Invariants** (breaking one needs the user):
-- `Volume`'s profile keeps **WhiteBalance and Bloom** (Feel shakers look them up without null checks).
+- The post profiles keep **WhiteBalance, Bloom and ColorAdjustments** (Feel shakers look them up without null checks).
 - `Volume_Dark` follows the gameplay grade, **0.1 EV darker** (black curtain).
+- **Every quality level's default renderer carries the gameplay passes** `BlackCurtain`, `RenderBuddah`,
+  `RenderMapEdge`, `RenderTrails`, `RenderSkillVfx` (in this order, after SSAO, all at AfterRenderingTransparents) and
+  keeps layers 6-8 out of its transparent pass (`RenderingModules`, `RenderingModulesTests`). Edit them on
+  `URP-HighFidelity-Renderer`, then `Tools/BuddahGo/Rendering/Sync Gameplay Passes`. Only cosmetic features differ per level.
 - **Index 1 of every pipeline's renderer list is `URP-PlanarReflection-Renderer`**; only `PlanarReflection` uses it, by name.
 - Sky colours are **linear**; the fog colour has red > 1 and is **set from code** (`RenderingBake`), never with the
   Lighting window's picker.
-- URP assets are never written at runtime (settings use clones).
+- URP assets are never written at runtime (settings use clones). A new setting that only takes effect after a restart
+  sets `restartRequired` in `Graphics.xlsx` so the panel tags it "需要重启"; check in play mode before claiming either way.
+- Effects that carry gameplay information never depend on `vfx_quality`.
 - User decisions: dusk C2, menu shares the dusk look, baked probes and bake, planar instead of SSR, High Fidelity =
   MSAA 8x + FXAA, VSync on, Buddha's height fixed in the collider only (ARCHITECTURE requirements R1-R11).
 

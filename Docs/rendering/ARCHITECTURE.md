@@ -25,27 +25,31 @@ The rendering exists to serve these. A change that contradicts one needs the use
 | R5 | **High Fidelity defaults to MSAA 8x + FXAA**; SMAA is gone (it crawls on the sand ripples); TAA only without MSAA | 2026-10-28 | AA, settings |
 | R6 | **VSync on by default** (the play test showed tearing); the frame cap applies only with VSync off | 2026-10-28 | settings |
 | R7 | **Buddha's floating is fixed in the collider only**, never by moving the model or the clips (effects are tuned against the animated model) | 2026-10-27 | not rendering code, but a capture or lighting change must not "fix" it visually |
-| R8 | **Feel shakers keep working**: `MMWhiteBalanceShaker_URP` and `MMBloomShaker_URP` on `Volume` need WhiteBalance and Bloom in its profile (no null checks) | phase 1 | post |
+| R8 | **Feel shakers keep working**: Feel's URP shakers on RaceMap's volumes (`MMWhiteBalanceShaker_URP`, `MMBloomShaker_URP`, ColorAdjustments) take their component from the profile in Awake without a null check, so WhiteBalance, Bloom and ColorAdjustments stay in the profiles (`RenderingModulesTests.PostVolumesHoldWhatTheirFeelShakersDrive`) | phase 1 | post |
 | R9 | The **black curtain** keeps tonemapping and grade: `Volume_Dark` follows the gameplay profile, 0.1 EV darker | phase 1 | post, curtain |
-| R10 | The **settings panel really changes quality**, and a setting that needs a restart says so (parallel work: "代码 · 渲染模块化与画质设置生效") | 2026-11-05 | settings |
+| R10 | **Rendering is modular and the settings panel really changes quality**; a setting that needs a restart is tagged "需要重启" like most games (checked in play mode on 2026-11-05: every option applies live, so none is tagged today). **Gameplay passes are on every quality level**: the 一念光明 curtain, racers, edges, trails and skill VFX must look the same in meaning on low, medium and high | 2026-11-05 | renderers, settings, VFX |
 | R11 | **A collaborator's bake matches ours**: one scripted bake, recorded inputs, committed outputs | 2026-11-05 | bake |
 
 Where to record a new decision: add a row here (date, what, which modules), then the module's **Need** line.
 
 ## The frame, in order
 
-What one gameplay frame on High Fidelity does (lower levels drop the marked items):
+What one gameplay frame does, on every quality level unless marked (since c7124d10, 2026-11-05):
 
 1. Shadow map for `MainLight` (the only realtime shadow caster light; off on Performant).
 2. `PlanarReflection` mirror cameras, one per base game camera that sees a receiver from above, with
-   `URP-PlanarReflection-Renderer` (no features, no shadows, no post) into an HDR mip-mapped texture.
+   `URP-PlanarReflection-Renderer` (no features, no shadows, no post) into an HDR mip-mapped texture. The curtain is
+   per camera, so a mirror never draws it.
 3. Opaque pass: `BuddahGo/Lit` (lane and end-field floor sample the planar texture), `ZenGround`, URP Lit, the player's
-   `SilverSkin` (reflects `Reflection Probe Lower` / `EndField`). SSAO (High Fidelity and Balanced).
+   `SilverSkin` (reflects `Reflection Probe Lower` / `EndField`). SSAO (High Fidelity and Balanced only).
 4. Skybox (`BuddahGo/Skybox/Sunset Sky`), exp2 fog applied per shader.
-5. `BlackCurtain` feature at BeforeRenderingTransparents (High Fidelity only).
-6. Transparents. Then at AfterRenderingTransparents (500), High Fidelity only: `RenderBuddah` (layer 6 opaque),
-   `RenderSkillVfx` (layer 6 transparent, the skill VFX slots), `RenderMapEdge` (layer 8), `RenderTrails` (layer 7).
-   High Fidelity's default transparent mask excludes layer 6, so skill VFX are drawn once, by the feature.
+5. Transparent pass for scenery. Every default renderer's transparent mask excludes the gameplay layers `Buddah` (6),
+   `BlackCurtainTrail` (7) and `TrackEdge` (8) (mask 4294966847).
+6. At AfterRenderingTransparents (500), the gameplay passes in this order: `BlackCurtain` (covers the whole map,
+   transparent scenery included, only while 一念光明 plays), `RenderBuddah` (layer 6 opaque racers), `RenderMapEdge`
+   (layer 8, transparent queue), `RenderTrails` (layer 7, transparent queue), `RenderSkillVfx` (layer 6 transparent,
+   the skill VFX slots). Who sees what is `BlackCurtainViewController`'s job: the caster sees edges and racers, a
+   victim sees the red trails and itself, the anti skill swaps them.
 7. Post (one global stack): Bloom, WhiteBalance, ColorAdjustments, ACES tonemapping (LDR grading mode), then FXAA / TAA
    from `CameraAntialiasingPolicy`. Everything above, effects included, is graded.
 
@@ -53,24 +57,35 @@ What one gameplay frame on High Fidelity does (lower levels drop the marked item
 
 ### 1. URP pipelines and renderers
 
-- **Need**: three quality levels the settings presets map onto; the planar mirror needs a feature-less renderer (R4).
+- **Need**: three quality levels the settings presets map onto; the gameplay passes on every level (R10); the planar
+  mirror needs a feature-less renderer (R4).
 - **What / Where** (`Assets/Settings/`, `ProjectSettings/QualitySettings.asset`):
 
-  | Quality level | Pipeline asset | Renderer index 0 | Features on index 0 | HDR | MSAA | Shadows |
-  |---|---|---|---|---|---|---|
-  | Performant | `URP-Performant` | `URP-Performant-Renderer` | none | off | 1 | off |
-  | Balanced | `URP-Balanced` | `URP-Balanced-Renderer` | SSAO | on | 1 | 150 m, 2 cascades |
-  | High Fidelity (Standalone default) | `URP-HighFidelity` | `URP-HighFidelity-Renderer` | RenderBuddah, SSAO, RenderSkillVfx, RenderMapEdge, BlackCurtain, RenderTrails | on | 8 | 220 m, 4 cascades at 10/30/70 m |
+  | Quality level | Pipeline asset | Renderer index 0 | Cosmetic features | Gameplay features | HDR | MSAA | Shadows |
+  |---|---|---|---|---|---|---|---|
+  | Performant | `URP-Performant` | `URP-Performant-Renderer` | none | the five below | off | 1 | off |
+  | Balanced | `URP-Balanced` | `URP-Balanced-Renderer` | SSAO | the five below | on | 1 | 150 m, 2 cascades |
+  | High Fidelity (Standalone default) | `URP-HighFidelity` | `URP-HighFidelity-Renderer` (the reference) | SSAO | the five below | on | 8 | 220 m, 4 cascades at 10/30/70 m |
 
+  Gameplay features, after the cosmetic ones and in this order: `BlackCurtain`, `RenderBuddah`, `RenderMapEdge`,
+  `RenderTrails`, `RenderSkillVfx`, all at AfterRenderingTransparents (frame steps 5-6). Only SSAO differs per level.
   Index 1 of **every** pipeline's renderer list is `URP-PlanarReflection-Renderer`. All grade in LDR mode.
   `TryUltra URP*.asset` and `MapLight.lighting` in the same folder are referenced by no scene ([retired.md](retired.md)).
-- **Truth**: the pipeline and renderer assets. The settings layer never writes them; it uses runtime clones (module 11).
-- **Adjust**: through `Graphics.xlsx` options (module 11), or by editing the asset and re-checking the default-preset test
-  (`EachPresetDefaultReproducesItsQualityLevel`).
-- **Depends on**: renderer features' scripts (`BlackCurtainRenderFeature`, URP `RenderObjects`, SSAO).
-- **Remove it and**: removing or reordering index 1 breaks planar reflections (selected by name, but tests and docs assume
-  index 1). The skill-VFX, edge and trail features exist only on High Fidelity, so those effects differ on lower levels
-  (pre-existing; the parallel modularisation work owns this).
+- **Truth**: the contract is code, `Assets/Scripts/Rendering/RenderingModules.cs` (`BuddahGo.Rendering.RenderingModules`:
+  the gameplay feature names and order, the gameplay layers excluded from the transparent pass), checked by
+  `RenderingModulesTests` and by a startup warning when a level breaks it. The feature settings themselves live on
+  `URP-HighFidelity-Renderer`; `Assets/Editor/Rendering/RendererGameplayPasses.cs`
+  (`Tools/BuddahGo/Rendering/Sync Gameplay Passes`) copies them to the other two renderers. The settings layer never
+  writes the assets; it uses runtime clones (module 11).
+- **Adjust**: edit a gameplay feature on `URP-HighFidelity-Renderer`, then run Sync Gameplay Passes. Cosmetic knobs go
+  through `Graphics.xlsx` (module 11) or the asset, re-checking `EachPresetDefaultReproducesItsQualityLevel`.
+- **Depends on**: renderer features' scripts (`BlackCurtainRenderFeature`, URP `RenderObjects`, SSAO); the layers
+  `Buddah` (6), `BlackCurtainTrail` (7), `TrackEdge` (8).
+- **Remove it and**: removing a gameplay feature from one level makes that level's players miss gameplay information
+  (before 2026-11-05 a 一念光明 victim on low or medium saw no curtain); putting layers 6-8 back into the transparent
+  pass draws them twice and lets them show under the curtain. Removing or reordering index 1 breaks planar reflections
+  (selected by name, but tests and docs assume index 1). Cost of the gameplay passes on Balanced and Performant: within
+  the bench's 0.5 ms noise; the curtain 0.3-0.7 ms while it plays ([graphics-settings.md](graphics-settings.md#modules)).
 
 ### 2. Lighting and bake
 
@@ -126,13 +141,16 @@ What one gameplay frame on High Fidelity does (lower levels drop the marked item
   white, saturation 4, WhiteBalance 10 / -4, Bloom 0.7 / threshold 0.95 / scatter 0.72 / tint (1, 0.90, 0.78).
   `Volume_Dark` (priority 0) with `Volume_Dark Profile.asset`: the same grade 0.1 EV darker. `BlackCurtainViewController`
   (Main Camera) disables `Volume` for the player who sees the track edges during the curtain; `Volume_Dark` stays.
-  `BlackCurtainRenderFeature` darkens the frame (High Fidelity renderer only); `TrackEdgeVisibility` drives
-  `_EdgeVisible` on the `SG_MapEdge` ribbons (Preserve Specular Lighting off, so hidden = invisible).
+  `BlackCurtainRenderFeature` (`Assets/Scripts/Buddah/ComboSkill/Skill_BlackCurtain/`) darkens the frame at
+  AfterRenderingTransparents on every quality level, before the other gameplay passes, so transparent scenery (the
+  landscape's contact-shadow decals) no longer shows through; `TrackEdgeVisibility` drives `_EdgeVisible` on the
+  `SG_MapEdge` ribbons (Preserve Specular Lighting off, so hidden = invisible).
 - **Truth**: the two profile assets. The menu's Global Volume references `RaceMap_Dusk_Profile` (R2).
-- **Adjust**: edit `RaceMap_Dusk_Profile`, then mirror the grade into `Volume_Dark Profile` minus 0.1 EV. Keep WhiteBalance
-  and Bloom components present (values may change; Feel shakes relative to them). Runtime values, no bake.
-- **Remove it and**: removing WhiteBalance or Bloom throws a NullReferenceException every frame after a skill
-  reflection; letting `Volume_Dark` drift makes the curtain drop or change the grade.
+- **Adjust**: edit `RaceMap_Dusk_Profile`, then mirror the grade into `Volume_Dark Profile` minus 0.1 EV. Keep WhiteBalance,
+  Bloom and ColorAdjustments present (values may change; Feel shakes relative to them). Runtime values, no bake.
+- **Remove it and**: removing a component a Feel shaker drives throws a NullReferenceException every frame after a skill
+  reflection (`RenderingModulesTests.PostVolumesHoldWhatTheirFeelShakersDrive` catches it in every build scene);
+  letting `Volume_Dark` drift makes the curtain drop or change the grade.
   `RaceMap_Environment_Profile.asset` (pre-dusk) is used by no scene ([retired.md](retired.md)).
 
 ### 5. `BuddahGo/Lit` and its materials
@@ -198,14 +216,21 @@ What one gameplay frame on High Fidelity does (lower levels drop the marked item
 ### 10. VFX rendering path
 
 - **Need**: skill effects readable over the dusk grade; tiers for the settings (R10).
-- **What**: skill VFX slot prefabs on layer 6 (Buddah) driven by `Assets/Scripts/VFX/SkillVfxPhaseController.cs`, which
-  drops slot layers by priority per tier (`SkillVfxRules.Keeps`, tier from `BuddahGo.Rendering.VfxQuality.Current`).
-  Hand-written FX shaders in `Assets/Rendering/Shaders/FX/` (`FX_Additive_Glow`, `FX_Alpha_Smoke`, `FX_InkVolume`,
-  `FX_InkFluid3D` + `InkFluid3D.compute`, `FX_CurtainEye`, `FXCommon.hlsl`, `FXInk.hlsl`); they all `multi_compile_fog`,
-  additive ones fog toward black. Drawn by `RenderSkillVfx` after transparents on High Fidelity (frame step 6), graded by
-  post like everything else.
-- **Truth / spec**: [../vfx/README.md](../vfx/README.md) (layers, budgets, naming, tiers) and the VFX design table.
-- **Remove it and**: effects lose their draw-order guarantee against the curtain and trails on High Fidelity.
+- **What**: skill VFX slot prefabs on layer 6 (Buddah) driven by `Assets/Scripts/VFX/SkillVfxPhaseController.cs` and
+  `SkillVfxLayer`; `InkFluidVolume` for the ink smoke. Hand-written FX shaders in `Assets/Rendering/Shaders/FX/`
+  (`FX_Additive_Glow`, `FX_Alpha_Smoke`, `FX_InkVolume`, `FX_InkFluid3D` + `InkFluid3D.compute`, `FX_CurtainEye`,
+  `FXCommon.hlsl`, `FXInk.hlsl`); they all `multi_compile_fog`, additive ones fog toward black. Drawn by `RenderSkillVfx`
+  last among the gameplay passes on every quality level (frame step 6), graded by post like everything else.
+- **Tiers** (`vfx_quality`, values in the `vfx*` columns of `Graphics.xlsx` `GraphicsOptionLevel`, read into
+  `BuddahGo.Rendering.VfxQuality.Settings` by `GraphicsSettingsApplier.VfxTierFrom`; `VfxTierSettings.Fallback` without
+  tables), Low / Medium / High: slot layers kept up to priority 1 / 2 / 3; detail particle emission 40 / 70 / 100%
+  (systems with more than 4 particles per cycle; gameplay shapes and zone areas stay at 100%); real-time lights off / on /
+  on; cosmetic trails 0.5 / 0.75 / 1; ink-smoke budget 2 / 4 / 8; ink grid cell scale 1.5 / 1.25 / 1. Read when a slot
+  starts (ink budget every frame); no restart. Effects that carry gameplay information must not depend on the tier.
+- **Truth / spec**: [../vfx/README.md](../vfx/README.md) (layers, budgets, naming) and `Graphics.xlsx` for the tiers
+  ([graphics-settings.md](graphics-settings.md#vfx-tiers)).
+- **Remove it and**: without `RenderSkillVfx` (or with layer 6 back in the transparent pass) effects lose their draw
+  order against the curtain and trails, or draw twice.
 
 ### 11. Graphics settings layer
 
@@ -215,7 +240,14 @@ What one gameplay frame on High Fidelity does (lower levels drop the marked item
   `Assets/Editor/UI/SettingsPanelBuilder.cs`.
 - **Truth**: `Graphics.xlsx` (never the generated asset). Full description: [graphics-settings.md](graphics-settings.md),
   owned by the parallel modularisation session; this file does not repeat it.
+- **Interface** (shared by the menu panel and the F9 panel): `GraphicsSettingsService.IsActive(option)` greys an option
+  out when it is moot (`GraphicsOptionDependencies`: upscaler at 100%, sharpening without TAA, frame cap with VSync on),
+  when the preset allows one level (SSAO on low), or where `GraphicsSettingsApplier.AppliesDisplay` is false (window and
+  resolution in the editor or with a command-line window); `RequiresRestart` / `PendingRestart` drive the "需要重启" tag
+  and the restart notice. Every option's `restartRequired` is false today (all apply live, play-mode check 2026-11-05;
+  window and resolution not checked in a player).
 - **Rule**: URP assets are never written; values go to runtime clones and are restored when play mode ends.
+- **Remove it and**: the game runs on the quality level's real assets (an empty catalog makes the layer do nothing).
 
 ### 12. Menu scene's shared assets
 

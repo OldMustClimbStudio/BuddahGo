@@ -27,7 +27,7 @@ using CastStage = SkillExecutor.CastStage;
 namespace BuddahGo.AI
 {
     // Practice (Solo, 0 AI) verification probe for the mechanics update: Docs/gameplay/README.md §7.1 A1–A6
-    // "训练模式验证". It drives the real Practice flow (host, loadout, skin, intro, GO),
+    // "训练模式验证" and yuanqi-architecture.md §4.10. It drives the real Practice flow (host, loadout, skin, intro, GO),
     // then runs controlled fixtures one by one and writes report.json / report.md / events.jsonl. Fixture tools, all
     // runtime-only and restored: reflection on ObsessionFigure.backfirePMaxPercent / backfireKeepPMaxAtOrAboveX (forced or
     // disabled backfire), SkillExecutor._nextReadyTime / _repeatSurcharge (cooldown and stack reset between scenarios),
@@ -45,6 +45,9 @@ namespace BuddahGo.AI
         public static string Summary { get; private set; } = string.Empty;
 
         private const string Tag = "[MechanicsHarness]";
+        private const string FrostLockId = "frost_lock";
+        private const string GiantChargeId = "giant_charge";
+        private const string GiantPalmId = "giant_palm";
         private const float StagingMetresBeforeFirstDummy = 40f;
         private static readonly string[] DefaultLoadout = { "acceleration", "slowtrap", "giant" };
         private static readonly BindingFlags AnyInstance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -93,6 +96,9 @@ namespace BuddahGo.AI
 
         // Recorders.
         private readonly List<CastRec> _casts = new List<CastRec>();
+        private readonly List<YuanqiRec> _yuanqis = new List<YuanqiRec>();
+        private readonly List<LocalYuanqiRec> _localYuanqis = new List<LocalYuanqiRec>();
+        private readonly List<ImpactRec> _impacts = new List<ImpactRec>();
         private readonly List<UiRec> _uiEvents = new List<UiRec>();
         private readonly List<BackfireRec> _backfireEvents = new List<BackfireRec>();
         private float _obsPrevFrame;
@@ -188,7 +194,7 @@ namespace BuddahGo.AI
         private IEnumerable<Scenario> BuildScenarios()
         {
             string[] noPairCast = { "acceleration", "blackcurtain", "reverseturn" };
-            yield return new Scenario("S0", "spawn: three parked training dummies, identity, 1P intro", 30f, S0Spawn, null, true);
+            yield return new Scenario("S0", "spawn: three parked training dummies, identity, 1P intro, board", 30f, S0Spawn, null, true);
             yield return new Scenario("S1", "skill keys Q / 2 / R through the real input path; W and ↑ neither cast nor push", 40f, S1SkillKeys, _submittedLoadout);
             yield return new Scenario("S2", "mouse aim (rate cap, ground point) and mouse push buttons", 40f, S2MouseAim, _submittedLoadout);
             yield return new Scenario("S3", "cast serialization: one pending cast, two effects at once", 25f, S3Serialization, new[] { "slowtrap", "giant", "blackcurtain" });
@@ -196,8 +202,12 @@ namespace BuddahGo.AI
             yield return new Scenario("S5", "backfire: the skill fails and its _anti variant runs; locks all slots, freezes obsession, x0.85 speed, survives respawn, x0.8 at the end", 50f, S5Backfire, noPairCast);
             yield return new Scenario("S6", "freeze interrupt: cancel + refund; a rolled backfire survives and still runs its _anti variant", 40f, S6FreezeInterrupt, noPairCast);
             yield return new Scenario("S7", "dummies: slow + readout, invert, impulse and 3 s reset", 80f, S7Dummies, new[] { "slowtrap", "reverseturn", "blackcurtain" });
+            yield return new Scenario("S8", "#4 giant_charge, both orders, body impact on a dummy", 120f, S8GiantCharge, new[] { "acceleration", "giant", "blackcurtain" });
+            yield return new Scenario("S9", "#2 frost_lock: radius, freeze time, consume both, once per overlap", 60f, S9FrostLock, new[] { "acceleration", "slowtrap", "blackcurtain" });
+            yield return new Scenario("S10", "#1 giant_palm: charged impulse follows body scale; off when either skill ends", 90f, S10GiantPalm, new[] { "giant", "push_projectile_hands", "blackcurtain" });
             yield return new Scenario("S11", "HUD smoke: key labels, cooldown text, backfire probability text", 30f, S11Hud, _submittedLoadout);
             // S13 runs before S12, which ends the race.
+            yield return new Scenario("S14", "backfire instead of a 缘起: no #4, acceleration not consumed and runs to its end, giant_anti runs, 5 s penalty", 40f, S14BackfireInsteadOfYuanqi, new[] { "acceleration", "giant", "blackcurtain" });
             yield return new Scenario("S13", "drive: no W = no push, W held pushes, release coasts", 30f, S13Drive, null);
             yield return new Scenario("S12", "rankings / results list only the human", 80f, S12Results, null);
         }
@@ -458,6 +468,9 @@ namespace BuddahGo.AI
             }
 
             _exec.ServerCastChanged += OnCast;
+            _exec.YuanqiObserved += OnYuanqiObserved;
+            _exec.YuanqiImpactObserved += OnImpact;
+            _exec.LocalYuanqiTriggered += OnLocalYuanqi;
             _exec.LocalSkillUiTriggered += OnSkillUi;
             _obs.BackfireStateChanged += OnBackfireState;
 
@@ -545,14 +558,11 @@ namespace BuddahGo.AI
 
             SetBaselineBackfire();
             if (loadout != null)
-                _loadout.SetSlotsServer(loadout);
+                _loadout.SetSlotsServer(loadout); // the registry re-registers and the board is cleared
             _hands.ResetSkillInputAndEffects();
             var zone = _human.GetComponent<MovementSlowTrapZoneEffect>();
             if (zone != null)
-            {
-                zone.enabled = false; // OnDisable removes the trigger and debug children
-                Destroy(zone);
-            }
+                zone.Consume("mechanics-harness reset");
             PlaceHuman(_stagingProgress, 0f, true, "mechanics-harness reset");
             _exec.ResetActiveSkillEffectsServer();
             ClearCooldowns();
@@ -675,6 +685,12 @@ namespace BuddahGo.AI
             string[] slots = _loadout.CopySlotSkillIds();
             Check("human loadout as submitted", slots.SequenceEqual(_submittedLoadout), string.Join(",", _submittedLoadout), string.Join(",", slots));
 
+            bool humanBoard = _exec.StateBoard != null && _exec.YuanqiRegistry != null;
+            Check("human has SkillStateBoard + YuanqiRegistry", humanBoard, "both present",
+                "board=" + (_exec.StateBoard != null) + " registry=" + (_exec.YuanqiRegistry != null));
+            bool dummyBoard = _dummies.Any(d => d.Identity.GetComponent<SkillStateBoard>() != null || d.Identity.GetComponent<YuanqiRegistry>() != null);
+            Check("dummies have no board / registry", !dummyBoard, "none", dummyBoard ? "found on a dummy" : "none");
+            Info("registered 缘起 for the submitted loadout", RegisteredIds());
             Info("human base max speed", F(_baseMaxSpeed) + " m/s");
         }
 
@@ -934,8 +950,8 @@ namespace BuddahGo.AI
                 "slot 0 Executed, then slot 1 Accepted", "executed0=" + executed0 + " returned=" + third + "; " + CastsSince(from2, "none"));
             yield return Until(() => HasCast(from2, CastStage.Executed, 1), 2.5f);
 
-            bool activeA = SkillEffectRunning(a), activeB = SkillEffectRunning(b);
-            Check("both skills in effect at once", activeA && activeB, a + " and " + b + " effects running", a + "=" + activeA + " " + b + "=" + activeB);
+            bool activeA = BoardActive(a), activeB = BoardActive(b);
+            Check("both skills in effect at once", activeA && activeB, a + " and " + b + " active on the board", BoardDump());
             int exec0 = _casts.Skip(from).Count(c => c.Stage == CastStage.Executed && c.Slot == 0);
             int exec1 = _casts.Skip(from).Count(c => c.Stage == CastStage.Executed && c.Slot == 1);
             Check("no double execution", exec0 == 1 && exec1 == 1, "one Executed per slot", "slot0=" + exec0 + " slot1=" + exec1);
@@ -1023,8 +1039,9 @@ namespace BuddahGo.AI
             Check("ends as Executed with IsBacklash", exec.Backlash, "IsBacklash = true", "IsBacklash = " + exec.Backlash + " after " + F(exec.T - acceptedRec.T) + " s confirm");
             float gain = exec.ObsAt - DrainAdjusted(exec);
             Check("no obsession gain", Mathf.Abs(gain) < 1f, "Δ ≈ 0 (a normal cast adds " + F(ResolveBaseGain(skill)) + ")", "Δ " + F(gain));
+            bool boardEntry = BoardActive(skill);
             bool accel = AccelActive(_motor);
-            Check("no skill effect", !accel, "no acceleration modifier", "accel=" + accel);
+            Check("no skill effect", !boardEntry && !accel, "no board entry, no acceleration modifier", "board=" + boardEntry + " accel=" + accel);
             // User rule 2026-10-31: the backfire also runs the skill's own _anti variant (acceleration_anti: a self slow on
             // the shared acceleration channel, negative extras).
             bool variant = VariantSlowActive(_motor);
@@ -1086,6 +1103,62 @@ namespace BuddahGo.AI
             Check("BackfireStateChanged raised start and end", raisedTrue && ended, "true, then false", "start=" + raisedTrue + " end=" + ended);
             Info("owner HUD backfire event", _uiEvents.Skip(uiFrom).Any(u => u.Stacks < 0) ? "SurchargeStacks -1 received" : "no -1 event");
         }
+
+        // ---------------------------------------------------------------- S14 backfire instead of a 缘起
+        // User rule 2026-10-31: when the cast that would complete a 缘起 backfires, the pair does not trigger, the skill already
+        // running is not consumed and runs its normal version to its own end, and the backfired skill only runs its own _anti
+        // variant plus the 5 s penalty.
+
+        private IEnumerator S14BackfireInsteadOfYuanqi()
+        {
+            var charge = Registered<Yuanqi_GiantCharge>();
+            Check("giant_charge registered for the loadout", charge != null, GiantChargeId, RegisteredIds());
+            float lockSeconds = _obs.BackfireLockSeconds;
+            float accelSeconds = ResolveEffectSeconds("acceleration");
+            int from = _casts.Count, yuanqiFrom = _yuanqis.Count;
+            _exec.CastSlotServer(0); // acceleration, normal
+            yield return Until(() => HasCast(from, CastStage.Executed, 0), 2.5f);
+            if (!TryCast(from, CastStage.Executed, 0, out CastRec accelExec))
+            {
+                Fail("acceleration executed", "Executed", CastsSince(from, "none"));
+                yield break;
+            }
+            yield return Wait(0.9f);
+
+            int from2 = _casts.Count;
+            bool accepted;
+            ForceBackfireNext();
+            try { accepted = _exec.CastSlotServer(1); } // giant: would complete #4 giant_charge
+            finally { SetBaselineBackfire(); }
+            Check("forced-backfire giant accepted", accepted && HasCast(from2, CastStage.Accepted, 1), "Accepted slot 1", CastsSince(from2, "none"));
+            yield return Until(() => HasCast(from2, CastStage.Executed, 1), 2.5f);
+            if (!TryCast(from2, CastStage.Executed, 1, out CastRec giantExec))
+            {
+                Fail("giant resolves", "Executed after the confirm window", CastsSince(from2, "none"));
+                yield break;
+            }
+            Check("giant ends as a backfire", giantExec.Backlash, "IsBacklash = true", "IsBacklash = " + giantExec.Backlash);
+            bool accelRunning = BoardActive("acceleration") && AccelActive(_motor);
+            Check("acceleration still running when the giant backfires", accelRunning,
+                "board entry live, acceleration buff active", "board=" + BoardActive("acceleration") + " buff=" + AccelActive(_motor) + " at " + F(giantExec.T - accelExec.T) + " s");
+            yield return Wait(0.5f);
+            Check("no 缘起 triggers", !_yuanqis.Skip(yuanqiFrom).Any(), "no YuanqiObserved", YuanqiSince(yuanqiFrom));
+            Check("no burst", !_motor.CurrentComputedStats.IsBurstActive, "IsBurstActive false", "burst=" + _motor.CurrentComputedStats.IsBurstActive);
+            Check("the giant does not grow (no board entry)", !BoardActive("giant"), "no giant board entry", "giant=" + BoardActive("giant"));
+            float scale = _motor.CurrentScaleMultiplier;
+            Check("giant_anti runs: the caster shrinks", scale < 0.99f, "motor scale < 1", F(scale));
+            Check("5 s penalty active", _obs.IsBackfireActive && Mathf.Abs(_obs.BackfireSecondsLeft - (lockSeconds - 0.5f)) <= 0.3f,
+                F(lockSeconds) + " s penalty, about " + F(lockSeconds - 0.5f) + " s left", "active=" + _obs.IsBackfireActive + " left=" + F(_obs.BackfireSecondsLeft) + " s");
+
+            yield return UntilClock(() => !BoardActive("acceleration"), accelSeconds + 1f);
+            float ran = Time.time - accelExec.T;
+            Check("acceleration runs its normal version to its own end", Mathf.Abs(ran - accelSeconds) <= 0.3f,
+                F(accelSeconds) + " s ±0.3 (not consumed)", F(ran) + " s");
+            Check("still no 缘起 after the acceleration ended", !_yuanqis.Skip(yuanqiFrom).Any(), "no YuanqiObserved", YuanqiSince(yuanqiFrom));
+        }
+
+        private static float ResolveEffectSeconds(string skillId)
+            => ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository skills) && skills.TryGet(skillId, out SkillRecord row) ? row.effectDurationSeconds : 0f;
 
         // ---------------------------------------------------------------- S6 freeze interrupt
 
@@ -1177,10 +1250,7 @@ namespace BuddahGo.AI
 
             var zone = _human.GetComponent<MovementSlowTrapZoneEffect>();
             if (zone != null)
-            {
-                zone.enabled = false;
-                Destroy(zone);
-            }
+                zone.Consume("mechanics-harness S7");
             PlaceHuman(_stagingProgress, 0f, true, "mechanics-harness S7 clear");
             foreach (Dummy dummy in _dummies)
                 dummy.Executor.ResetActiveSkillEffectsServer();
@@ -1189,7 +1259,7 @@ namespace BuddahGo.AI
             yield return Until(() => !DummyEffectsActive(pushed), 3f);
             yield return Wait(0.5f);
 
-            float impulseMagnitude = 0.4f * GetF(_hands, "pushImpulseStrength");
+            float impulseMagnitude = 0.4f * _hands.BasicPushImpulseStrength;
             uint impulseIdBefore = pushed.Bootstrap != null ? pushed.Bootstrap.DebugState.lastImpulseEventId : 0u;
             float resetDelay = GetF(pushed.Behaviour, "resetDelaySeconds");
             bool routed = BuddahPredictionRouter.RouteImpulse(pushed.Net, pushed.Tangent * impulseMagnitude, 0f,
@@ -1223,6 +1293,454 @@ namespace BuddahGo.AI
             Check(pushed.Name + " returns home after the last disturbance", resetAt > 0f && delay >= resetDelay - 0.3f && delay <= resetDelay + 0.6f,
                 F(resetDelay) + " s (-0.3 / +0.6)", resetAt > 0f ? F(delay) + " s after the last disturbance (" + F(resetAt - pushedAt) + " s after the push)" : "no reset within 25 s");
             Info(pushed.Name + " readout impulse line", impulseReadout ?? "not seen");
+        }
+
+        // ---------------------------------------------------------------- S8 giant charge
+
+        private IEnumerator S8GiantCharge()
+        {
+            var charge = Registered<Yuanqi_GiantCharge>();
+            Check("giant_charge registered for the loadout", charge != null, GiantChargeId, RegisteredIds());
+            if (charge == null || _dummies.Count < 2)
+            {
+                if (_dummies.Count < 2)
+                    Fail("dummies for the impact", ">= 2", _dummies.Count.ToString(CultureInfo.InvariantCulture));
+                yield break;
+            }
+            float length = TrackSplineRef.Instance.TrackLength;
+            float expectedImpulse = charge.impactImpulseMultiplier * _hands.BasicPushImpulseStrength;
+            Info("burst parameters", "+" + F(charge.burstExtraMaxSpeed) + " m/s over " + F(charge.burstSeconds) + " s, impact " + F(charge.impactImpulseMultiplier)
+                + " x " + F(_hands.BasicPushImpulseStrength) + " = " + F(expectedImpulse));
+            Dummy target = _dummies[1];
+
+            // (a) giant first, then acceleration: the burst starts at the acceleration execution.
+            PlaceHuman(target.HomeProgress - 35f / length, target.Lateral, true, "mechanics-harness giant charge A");
+            yield return Wait(1.2f);
+            int from = _casts.Count, yuanqiFrom = _yuanqis.Count, impactFrom = _impacts.Count;
+            Dictionary<Dummy, uint> impulseIds = SnapshotImpulseIds();
+            _exec.CastSlotServer(1); // giant
+            yield return Until(() => HasCast(from, CastStage.Executed, 1), 2.5f);
+            yield return Wait(0.45f);
+            int from2 = _casts.Count;
+            _exec.CastSlotServer(0); // acceleration
+            yield return Until(() => HasCast(from2, CastStage.Executed, 0), 2.5f);
+            if (!TryCast(from2, CastStage.Executed, 0, out CastRec accelExec))
+            {
+                Fail("A: acceleration executed", "Executed", CastsSince(from2, "none"));
+                yield break;
+            }
+            var samples = new List<BurstSample> { SampleBurst() };
+            while (Time.time - accelExec.T < 1.6f)
+            {
+                yield return null;
+                samples.Add(SampleBurst());
+            }
+            yield return Until(() => _yuanqis.Skip(yuanqiFrom).Any(y => y.Id == GiantChargeId), 0.5f);
+            Check("A: giant_charge triggered (YuanqiObserved)", _yuanqis.Skip(yuanqiFrom).Any(y => y.Id == GiantChargeId), GiantChargeId, YuanqiSince(yuanqiFrom));
+            BurstWindow windowA = EvaluateBurst("A", accelExec, samples, charge);
+            EvaluateImpacts("A", impactFrom, impulseIds, expectedImpulse, accelExec, windowA);
+            var scale = _human.GetComponent<PlayerScaleEffect>();
+            Check("A: giant continues after the burst", BoardActive("giant") && scale != null && scale.CurrentScaleMultiplier > 1.5f,
+                "giant board entry live, scale > 1.5", "giant=" + BoardActive("giant") + " scale=" + (scale != null ? F(scale.CurrentScaleMultiplier) : "n/a"));
+            yield return Until(() => !BoardActive("giant"), 8f);
+
+            // (b) acceleration first, then the giant 1 s into it: acceleration runs ~2 s, then the burst.
+            yield return ResetFixture(null);
+            PlaceHuman(target.HomeProgress - 35f / length, target.Lateral, true, "mechanics-harness giant charge B");
+            yield return Wait(1.2f);
+            from = _casts.Count;
+            yuanqiFrom = _yuanqis.Count;
+            impactFrom = _impacts.Count;
+            impulseIds = SnapshotImpulseIds();
+            _exec.CastSlotServer(0); // acceleration
+            yield return Until(() => HasCast(from, CastStage.Executed, 0), 2.5f);
+            if (!TryCast(from, CastStage.Executed, 0, out CastRec accelB))
+            {
+                Fail("B: acceleration executed", "Executed", CastsSince(from, "none"));
+                yield break;
+            }
+            var before = new List<BurstSample> { SampleBurst() };
+            while (Time.time - accelB.T < 1f)
+            {
+                yield return null;
+                before.Add(SampleBurst());
+            }
+            from2 = _casts.Count;
+            _exec.CastSlotServer(1); // giant
+            float requestedAt = Time.time;
+            while (!HasCast(from2, CastStage.Executed, 1) && Time.time - requestedAt < 2.5f)
+            {
+                yield return null;
+                before.Add(SampleBurst());
+            }
+            if (!TryCast(from2, CastStage.Executed, 1, out CastRec giantB))
+            {
+                Fail("B: giant executed", "Executed", CastsSince(from2, "none"));
+                yield break;
+            }
+            samples = new List<BurstSample> { SampleBurst() };
+            while (Time.time - giantB.T < 1.6f)
+            {
+                yield return null;
+                samples.Add(SampleBurst());
+            }
+
+            float accelExtra = float.NaN;
+            string accelExtraError = null;
+            try { accelExtra = ReadSkillFloat("acceleration", "extraMaxSpeed"); }
+            catch (Exception error) { accelExtraError = error.GetType().Name + ": " + error.Message; }
+            var preBurst = before.Where(s => s.T < giantB.T - 0.05f && s.T > accelB.T + 0.1f).ToList();
+            float preMax = preBurst.Count > 0 ? preBurst.Max(s => s.MaxSpeed) : float.NaN;
+            bool accelHeld = preBurst.Count > 0 && preBurst.All(s => s.Accel);
+            Check("B: acceleration fully applied before the giant", accelHeld && accelExtraError == null && Mathf.Abs(preMax - (_baseMaxSpeed + accelExtra)) <= 2f,
+                "accel active, max speed " + (accelExtraError == null ? F(_baseMaxSpeed + accelExtra) : "base + extraMaxSpeed"),
+                "active all " + preBurst.Count + " samples=" + accelHeld + " max=" + F(preMax)
+                + (accelExtraError != null ? " | cannot read acceleration extraMaxSpeed: " + accelExtraError : string.Empty));
+            var all = before.Concat(samples).OrderBy(s => s.T).ToList();
+            int accelEndIndex = all.FindIndex(s => s.T > accelB.T + 0.1f && !s.Accel);
+            float activeFor = accelEndIndex >= 0 ? all[accelEndIndex].T - accelB.T : float.NaN;
+            float giantDelay = giantB.T - accelB.T;
+            Check("B: acceleration ran its first ~2 s, consumed at the giant execution",
+                accelEndIndex >= 0 && activeFor >= 1.8f && activeFor <= 2.3f && Mathf.Abs(activeFor - giantDelay) <= 0.1f,
+                "≈2 s (giant executed " + F(giantDelay) + " s after acceleration)", F(activeFor) + " s");
+            yield return Until(() => _yuanqis.Skip(yuanqiFrom).Any(y => y.Id == GiantChargeId), 0.5f);
+            Check("B: giant_charge triggered (YuanqiObserved)", _yuanqis.Skip(yuanqiFrom).Any(y => y.Id == GiantChargeId), GiantChargeId, YuanqiSince(yuanqiFrom));
+            BurstWindow windowB = EvaluateBurst("B", giantB, samples, charge);
+            EvaluateImpacts("B", impactFrom, impulseIds, expectedImpulse, giantB, windowB);
+        }
+
+        // Burst timing is measured in network ticks (the burst is BurstUntilTick); Time.time is reported alongside.
+        private BurstWindow EvaluateBurst(string label, CastRec executed, List<BurstSample> samples, Yuanqi_GiantCharge charge)
+        {
+            var window = new BurstWindow { LastSampleTick = samples.Count > 0 ? samples[samples.Count - 1].Tick : executed.Tick };
+            int first = samples.FindIndex(s => s.Burst);
+            float startDelay = first >= 0 ? TickSpan(executed.Tick, samples[first].Tick) : float.NaN;
+            Check(label + ": burst starts at the completing execution", first >= 0 && startDelay <= 0.15f, "<= 0.15 s (network ticks) after Executed",
+                first >= 0 ? F(startDelay) + " s (Time.time " + F(samples[first].T - executed.T) + " s)" : "no burst in " + samples.Count + " samples");
+            if (first < 0)
+                return window;
+            window.Started = true;
+            window.StartTick = samples[first].Tick;
+            float expectedPeak = _baseMaxSpeed + charge.burstExtraMaxSpeed;
+            float peak = samples.Where(s => s.Burst).Max(s => s.MaxSpeed);
+            Check(label + ": burst max speed ≈ base + extra", Mathf.Abs(peak - expectedPeak) <= 8f, F(expectedPeak) + " ±8 m/s",
+                F(peak) + " m/s (BurstSecondsLeft at start " + F(samples[first].BurstLeft) + " s)");
+            int endIndex = samples.FindIndex(first, s => !s.Burst);
+            if (endIndex >= 0)
+            {
+                window.Ended = true;
+                window.EndTick = samples[endIndex].Tick;
+            }
+            float duration = endIndex >= 0 ? TickSpan(samples[first].Tick, samples[endIndex].Tick) : float.NaN;
+            Check(label + ": burst decays over burstSeconds", endIndex >= 0 && Mathf.Abs(duration - charge.burstSeconds) <= 0.15f,
+                F(charge.burstSeconds) + " s ±0.15 in network ticks",
+                endIndex >= 0 ? F(duration) + " s (" + (samples[endIndex].Tick - samples[first].Tick) + " ticks; Time.time " + F(samples[endIndex].T - samples[first].T) + " s)" : "still bursting");
+            BurstSample mid = samples.Where(s => s.Burst).OrderBy(s => Mathf.Abs(s.T - samples[first].T - charge.burstSeconds * 0.5f)).First();
+            Info(label + ": burst shape", "max speed " + F(mid.MaxSpeed) + " at " + F(mid.T - samples[first].T) + " s (ease-out expects ≈"
+                + F(_baseMaxSpeed + charge.burstExtraMaxSpeed * 0.25f) + " at half time); peak planar speed " + F(samples.Max(s => s.Speed)) + " m/s");
+            var during = samples.Skip(first).Take(endIndex >= 0 ? endIndex - first : samples.Count - first).ToList();
+            bool accelDuring = during.Any(s => s.Accel || s.AccelBoard);
+            Check(label + ": acceleration consumed", !accelDuring, "no acceleration modifier or board entry during the burst",
+                accelDuring ? "acceleration still active in " + during.Count(s => s.Accel || s.AccelBoard) + " samples" : "consumed");
+            if (endIndex >= 0)
+            {
+                BurstSample after = samples.Last();
+                Check(label + ": max speed back to base after the burst", Mathf.Abs(after.MaxSpeed - _baseMaxSpeed) <= 1f, F(_baseMaxSpeed) + " m/s", F(after.MaxSpeed) + " m/s");
+            }
+            return window;
+        }
+
+        // Spec: "impact on a dummy during the burst = once". Each impact must arrive between the completing execution
+        // and the burst end plus ~0.1 s of RPC latency (all in network ticks); "once per victim" is still checked over
+        // the whole evaluation window so late duplicates are caught too.
+        private void EvaluateImpacts(string label, int impactFrom, Dictionary<Dummy, uint> impulseIds, float expectedImpulse, CastRec executed, BurstWindow window)
+        {
+            var impacts = _impacts.Skip(impactFrom).Where(i => i.Info.YuanqiId == GiantChargeId).ToList();
+            Check(label + ": body impact on a dummy (YuanqiImpactObserved)", impacts.Count >= 1, ">= 1 impact", impacts.Count + " impact(s)");
+            if (impacts.Count == 0)
+                return;
+            uint windowEnd = (window.Ended ? window.EndTick : window.LastSampleTick) + SecondsToTicks(0.1f);
+            uint startTick = window.Started ? window.StartTick : executed.Tick;
+            var outside = impacts.Where(i => !window.Started || i.Tick < executed.Tick || i.Tick > windowEnd).ToList();
+            Check(label + ": impacts land during the burst", window.Started && outside.Count == 0,
+                "every impact between Executed and the burst end + 0.1 s (network ticks)",
+                (impacts.Count - outside.Count) + " of " + impacts.Count + " inside"
+                + (window.Started ? " (burst " + (window.Ended ? F(TickSpan(window.StartTick, window.EndTick)) + " s" : "did not end in the samples") + ")" : " (no burst seen)")
+                + ": " + string.Join(", ", impacts.Select(i => VictimName(i.Info.VictimObjectId) + " at " + F(TickSpan(startTick, i.Tick), "+0.00;-0.00") + " s from the burst start")));
+            int distinct = impacts.Select(i => i.Info.VictimObjectId).Distinct().Count();
+            Check(label + ": each victim hit once per burst", distinct == impacts.Count, "one impact per victim",
+                string.Join(", ", impacts.Select(i => VictimName(i.Info.VictimObjectId))));
+            bool magnitudes = impacts.All(i => Mathf.Abs(i.Info.Impulse.magnitude - expectedImpulse) <= expectedImpulse * 0.01f);
+            Check(label + ": impact impulse = M x basic push", magnitudes, F(expectedImpulse) + " ±1%", string.Join(", ", impacts.Select(i => F(i.Info.Impulse.magnitude))));
+            var dots = impacts.Select(i =>
+            {
+                Vector3 line = Flat(i.VictimPosition - i.CasterPosition);
+                Vector3 impulse = Flat(i.Info.Impulse);
+                return line.sqrMagnitude > 1e-4f && impulse.sqrMagnitude > 1e-4f ? Vector3.Dot(line.normalized, impulse.normalized) : -2f;
+            }).ToList();
+            Check(label + ": impulse direction caster -> victim (horizontal)", dots.All(d => d >= 0.8f) && impacts.All(i => Mathf.Abs(i.Info.Impulse.y) <= 1e-3f),
+                "dot >= 0.8 with the flat caster->victim line, no vertical part",
+                string.Join(", ", impacts.Select((i, k) => "dot " + F(dots[k]) + " y " + F(i.Info.Impulse.y)
+                    + " vs caster forward " + F(Vector3.Angle(Flat(i.CasterForward), Flat(i.Info.Impulse)), "0") + "°")));
+            var victims = _dummies.Where(d => impacts.Any(i => d.Net != null && i.Info.VictimObjectId == d.Net.ObjectId)).ToList();
+            bool consumed = victims.Count > 0 && victims.All(d => d.Bootstrap != null && impulseIds.TryGetValue(d, out uint id)
+                && d.Bootstrap.DebugState.lastImpulseEventId != id && d.Bootstrap.DebugState.lastImpulseSourceType == BuddahPredictedImpulseSourceType.BodyImpact.ToString());
+            Check(label + ": victim motor consumed a BodyImpact impulse", consumed, "new BodyImpact impulse on each victim",
+                string.Join(", ", victims.Select(d => d.Name + " " + (d.Bootstrap != null ? d.Bootstrap.DebugState.lastImpulseSourceType + " " + F(d.Bootstrap.DebugState.lastImpulseVector.magnitude) : "no bootstrap"))));
+        }
+
+        private BurstSample SampleBurst()
+        {
+            var stats = _motor.CurrentComputedStats;
+            var scale = _human.GetComponent<PlayerScaleEffect>();
+            var body = _human.GetComponent<Rigidbody>();
+            return new BurstSample
+            {
+                T = Time.time,
+                Tick = NowTick(),
+                Burst = stats.IsBurstActive,
+                MaxSpeed = stats.FinalMaxSpeed,
+                BurstLeft = _motor.BurstSecondsLeft,
+                Accel = AccelActive(_motor),
+                AccelBoard = BoardActive("acceleration"),
+                Speed = body != null ? Flat(body.velocity).magnitude : 0f,
+                Scale = scale != null ? scale.CurrentScaleMultiplier : 1f,
+            };
+        }
+
+        private Dictionary<Dummy, uint> SnapshotImpulseIds()
+            => _dummies.ToDictionary(d => d, d => d.Bootstrap != null ? d.Bootstrap.DebugState.lastImpulseEventId : 0u);
+
+        // ---------------------------------------------------------------- S9 frost lock
+
+        private IEnumerator S9FrostLock()
+        {
+            var frost = Registered<Yuanqi_FrostLock>();
+            Check("frost_lock registered for the loadout", frost != null, FrostLockId, RegisteredIds());
+            if (frost == null || _dummies.Count < 2)
+            {
+                if (_dummies.Count < 2)
+                    Fail("dummies for the radius check", ">= 2", _dummies.Count.ToString(CultureInfo.InvariantCulture));
+                yield break;
+            }
+            float seconds = frost.freezeSeconds, radius = frost.radiusMeters;
+            Info("frost lock parameters", "N " + F(seconds) + " s, R " + F(radius) + " m, dummies " + frost.affectsTrainingDummies);
+
+            Vector3 mid = (_dummies[0].Home + _dummies[1].Home) * 0.5f;
+            float progress = ProjectProgress01(mid);
+            PlaceHuman(progress, LateralOf(mid), true, "mechanics-harness frost lock");
+            yield return Wait(1.2f);
+            Info("predicted dummy distances", string.Join(", ", _dummies.Select(d => d.Name + " " + F(Flat(d.Identity.transform.position - _human.transform.position).magnitude) + " m")));
+
+            int from = _casts.Count, yuanqiFrom = _yuanqis.Count, localFrom = _localYuanqis.Count;
+            _exec.CastSlotServer(1); // slowtrap
+            yield return Until(() => HasCast(from, CastStage.Executed, 1), 2.5f);
+            int from2 = _casts.Count;
+            _exec.CastSlotServer(0); // acceleration completes the overlap
+            yield return Until(() => HasCast(from2, CastStage.Executed, 0), 2.5f);
+            TryCast(from2, CastStage.Executed, 0, out CastRec trigger);
+            var frozenAt = _dummies.ToDictionary(d => d, d => d.Motor.IsFrozen ? Time.time : -1f);
+            var leftAt = _dummies.ToDictionary(d => d, d => d.Motor.FreezeSecondsLeft);
+            yield return Until(() => _yuanqis.Skip(yuanqiFrom).Any(y => y.Id == FrostLockId), 0.5f);
+            bool observed = _yuanqis.Skip(yuanqiFrom).Any(y => y.Id == FrostLockId);
+            YuanqiRec rec = _yuanqis.Skip(yuanqiFrom).FirstOrDefault(y => y.Id == FrostLockId);
+            Check("frost_lock triggered (YuanqiObserved)", observed, FrostLockId, YuanqiSince(yuanqiFrom));
+            Check("LocalYuanqiTriggered raised for the caster", _localYuanqis.Skip(localFrom).Any(y => y.Id == FrostLockId), FrostLockId,
+                string.Join(",", _localYuanqis.Skip(localFrom).Select(y => y.Id)));
+            Vector3 center = observed ? rec.Payload.Center : _human.transform.position;
+
+            var rows = new List<string>();
+            bool radiusOk = true, timeOk = true;
+            int inside = 0, outside = 0;
+            foreach (Dummy d in _dummies)
+            {
+                float distance = Flat(d.Identity.transform.position - center).magnitude;
+                bool inRange = distance <= radius;
+                bool frozen = frozenAt[d] > 0f;
+                if (inRange) inside++; else outside++;
+                radiusOk &= frozen == inRange;
+                if (frozen)
+                    timeOk &= leftAt[d] >= seconds - 0.25f && leftAt[d] <= seconds + 0.05f;
+                rows.Add(d.Name + " " + F(distance) + " m frozen=" + frozen + (frozen ? " left=" + F(leftAt[d]) + " s" : string.Empty));
+            }
+            Check("dummies within R frozen, the rest not", radiusOk, "frozen exactly when <= " + F(radius) + " m", string.Join("; ", rows));
+            Check("freeze seconds left ≈ N at the trigger", timeOk && inside > 0, F(seconds) + " s (-0.25 / +0.05)", string.Join("; ", rows));
+            Info("radius coverage", inside + " inside, " + outside + " outside", inside > 0 && outside > 0 ? null : "placement did not cover both sides");
+            if (observed)
+            {
+                var expectedIds = _dummies.Where(d => frozenAt[d] > 0f && d.Net != null).Select(d => d.Net.ObjectId).OrderBy(i => i).ToArray();
+                var payloadIds = (rec.Payload.TargetObjectIds ?? Array.Empty<int>()).OrderBy(i => i).ToArray();
+                Check("payload targets = frozen dummies", payloadIds.SequenceEqual(expectedIds), string.Join(",", expectedIds), string.Join(",", payloadIds));
+            }
+
+            yield return null;
+            bool zoneGone = _human.GetComponent<MovementSlowTrapZoneEffect>() == null;
+            bool accel = AccelActive(_motor);
+            bool boardAccel = BoardActive("acceleration"), boardSlow = BoardActive("slowtrap");
+            Check("both skills consumed", zoneGone && !accel && !boardAccel && !boardSlow, "zone gone, acceleration ended, board entries ended",
+                "zone=" + !zoneGone + " accel=" + accel + " board accel=" + boardAccel + " slowtrap=" + boardSlow);
+
+            // FreezeUntilTick is a network tick: thaw times are measured in ticks (Time.time reported alongside).
+            var thawedAt = new Dictionary<Dummy, uint>();
+            var thawedAtTime = new Dictionary<Dummy, float>();
+            int frozenCount = _dummies.Count(d => frozenAt[d] > 0f);
+            float waitUntil = Time.time + seconds + 2f;
+            uint waitUntilTick = NowTick() + SecondsToTicks(seconds + 2f);
+            while ((Time.time < waitUntil || NowTick() < waitUntilTick) && thawedAt.Count < frozenCount)
+            {
+                yield return null;
+                foreach (Dummy d in _dummies)
+                {
+                    if (frozenAt[d] > 0f && !thawedAt.ContainsKey(d) && !d.Motor.IsFrozen)
+                    {
+                        thawedAt[d] = NowTick();
+                        thawedAtTime[d] = Time.time;
+                    }
+                }
+            }
+            var frozenDummies = _dummies.Where(d => frozenAt[d] > 0f).ToList();
+            var durations = frozenDummies.Select(d => thawedAt.TryGetValue(d, out uint tick) ? TickSpan(trigger.Tick, tick) : float.NaN).ToList();
+            Check("frozen dummies thaw after N", durations.Count > 0 && durations.All(t => !float.IsNaN(t) && Mathf.Abs(t - seconds) <= 0.15f),
+                F(seconds) + " s ±0.15 in network ticks",
+                string.Join(", ", frozenDummies.Select((d, k) => d.Name + " " + F(durations[k])
+                    + (thawedAtTime.TryGetValue(d, out float t) ? " s (Time.time " + F(t - trigger.T) + " s)" : " s"))));
+
+            ClearCooldowns();
+            int yuanqiFrom2 = _yuanqis.Count;
+            int from3 = _casts.Count;
+            _exec.CastSlotServer(0); // acceleration alone
+            yield return Until(() => HasCast(from3, CastStage.Executed, 0), 2.5f);
+            yield return Wait(0.5f);
+            bool retriggered = _yuanqis.Skip(yuanqiFrom2).Any(y => y.Id == FrostLockId);
+            bool anyFrozen = _dummies.Any(d => d.Motor.IsFrozen);
+            Check("acceleration alone does not re-trigger", HasCast(from3, CastStage.Executed, 0) && !retriggered && !anyFrozen,
+                "no frost_lock, no frozen dummy", "executed=" + HasCast(from3, CastStage.Executed, 0) + " triggered=" + retriggered + " frozen=" + anyFrozen);
+
+            int from4 = _casts.Count;
+            _exec.CastSlotServer(1); // a new slowtrap overlaps the running acceleration
+            yield return Until(() => HasCast(from4, CastStage.Executed, 1), 2.5f);
+            yield return Until(() => _yuanqis.Skip(yuanqiFrom2).Any(y => y.Id == FrostLockId), 0.5f);
+            int count = _yuanqis.Skip(yuanqiFrom2).Count(y => y.Id == FrostLockId);
+            bool refrozen = _dummies.Where(d => frozenAt[d] > 0f).All(d => d.Motor.IsFrozen);
+            Check("a new slowtrap + acceleration overlap triggers again", count == 1 && refrozen, "one new frost_lock, in-range dummies frozen again",
+                "triggers=" + count + " refrozen=" + refrozen);
+        }
+
+        // ---------------------------------------------------------------- S10 giant palm
+
+        private IEnumerator S10GiantPalm()
+        {
+            var palm = Registered<Yuanqi_GiantPalm>();
+            Check("giant_palm registered for the loadout", palm != null, GiantPalmId, RegisteredIds());
+            if (palm == null)
+                yield break;
+
+            int from = _casts.Count;
+            _exec.CastSlotServer(1); // push_projectile_hands
+            yield return Until(() => HasCast(from, CastStage.Executed, 1), 2.5f);
+            Check("charged push buff active, impulse not yet scaled", _hands.ProjectileBuffSecondsLeft > 0f && !_hands.ImpulseFollowsScale,
+                "buff > 0 s, ImpulseFollowsScale false", "buff=" + F(_hands.ProjectileBuffSecondsLeft) + " s follows=" + _hands.ImpulseFollowsScale);
+
+            int from2 = _casts.Count;
+            _exec.CastSlotServer(0); // giant completes the pair
+            yield return Until(() => HasCast(from2, CastStage.Executed, 0), 2.5f);
+            yield return Until(() => _hands.ImpulseFollowsScale, 0.5f);
+            Check("ImpulseFollowsScale while giant + push are active", _hands.ImpulseFollowsScale, "true", _hands.ImpulseFollowsScale.ToString());
+            yield return Wait(0.6f);
+
+            var shot = new ShotResult();
+            yield return FireChargedShot(shot);
+            Check("charged impulse = strength x current scale", shot.Found && Mathf.Abs(shot.Impulse - shot.Strength * shot.Scale) <= shot.Strength * shot.Scale * 0.02f,
+                shot.Found ? F(shot.Strength) + " x " + F(shot.Scale) + " = " + F(shot.Strength * shot.Scale) + " ±2%" : "a charged projectile",
+                shot.Found ? F(shot.Impulse) + " (follows=" + shot.Follows + ")" : "no projectile (push accepted=" + shot.Requested + ")");
+
+            yield return UntilClock(() => !BoardActive("giant"), 8f);
+            yield return Until(() => !_hands.ImpulseFollowsScale, 0.5f);
+            Check("ImpulseFollowsScale false after the giant ends", !BoardActive("giant") && !_hands.ImpulseFollowsScale && _hands.ProjectileBuffSecondsLeft > 0f,
+                "giant ended, flag false, push buff still on", "giant=" + BoardActive("giant") + " follows=" + _hands.ImpulseFollowsScale + " buff=" + F(_hands.ProjectileBuffSecondsLeft) + " s");
+            yield return Until(() => _hands.CanPushServer(true), 2f);
+            var shot2 = new ShotResult();
+            yield return FireChargedShot(shot2);
+            Check("charged impulse back to the base strength", shot2.Found && Mathf.Abs(shot2.Impulse - shot2.Strength) <= shot2.Strength * 0.01f,
+                shot2.Found ? F(shot2.Strength) + " ±1%" : "a charged projectile",
+                shot2.Found ? F(shot2.Impulse) + " (scale " + F(shot2.Scale) + ", follows=" + shot2.Follows + ")" : "no projectile (push accepted=" + shot2.Requested + ")");
+
+            // Leg 2, the other order of "after either ends it is false": push_projectile_hands ends first while the
+            // giant still runs. Natural timings, no reflection on the buffs: the giant is requested when the push board
+            // entry has giant/2 + the confirm delay left, so the push ends about halfway through the giant.
+            yield return ResetFixture(null);
+            float giantSeconds = _exec.ResolveEffectDurationSeconds("giant");
+            float pushSeconds = _exec.ResolveEffectDurationSeconds("push_projectile_hands");
+            float giantConfirm = _exec.ConfirmationSecondsForSlot(0); // slot 0 is the giant
+            float requestAtLeft = giantSeconds * 0.5f + giantConfirm;
+            Info("leg 2 timing", "push " + F(pushSeconds) + " s, giant " + F(giantSeconds) + " s, giant confirm " + F(giantConfirm)
+                + " s: giant requested with " + F(requestAtLeft) + " s of push left");
+            if (giantSeconds <= 0f || pushSeconds <= requestAtLeft)
+            {
+                Fail("leg 2: push outlasts the giant request point", "push > giant/2 + confirm, giant > 0", "push " + F(pushSeconds) + " s, giant " + F(giantSeconds) + " s");
+                yield break;
+            }
+            int from3 = _casts.Count;
+            _exec.CastSlotServer(1); // push_projectile_hands
+            yield return Until(() => HasCast(from3, CastStage.Executed, 1), 2.5f);
+            if (!TryBoardEntry("push_projectile_hands", out SkillStateEntry pushEntry))
+            {
+                Fail("leg 2: push_projectile_hands on the board", "board entry after Executed", CastsSince(from3, "none") + "; " + BoardDump());
+                yield break;
+            }
+            yield return UntilClock(() => EntrySecondsLeft(pushEntry) <= requestAtLeft, pushSeconds + 2f);
+            int from4 = _casts.Count;
+            _exec.CastSlotServer(0); // giant completes the pair
+            yield return Until(() => HasCast(from4, CastStage.Executed, 0), 2.5f);
+            yield return Until(() => _hands.ImpulseFollowsScale, 0.5f);
+            bool giantOn = TryBoardEntry("giant", out SkillStateEntry giantEntry);
+            bool pushOn = BoardActive("push_projectile_hands");
+            bool giantOutlasts = giantOn && giantEntry.UntilTick > pushEntry.UntilTick;
+            Check("leg 2: ImpulseFollowsScale while both run (push ends first)", HasCast(from4, CastStage.Executed, 0) && pushOn && giantOutlasts && _hands.ImpulseFollowsScale,
+                "true; both on the board, the giant ends after the push",
+                "follows=" + _hands.ImpulseFollowsScale + " push=" + pushOn + " left " + F(EntrySecondsLeft(pushEntry)) + " s, giant=" + giantOn
+                + (giantOn ? " left " + F(EntrySecondsLeft(giantEntry)) + " s" : string.Empty) + "; " + CastsSince(from4, "none"));
+            yield return UntilClock(() => !BoardActive("push_projectile_hands"), requestAtLeft + 2f);
+            yield return Until(() => !_hands.ImpulseFollowsScale, 0.5f);
+            bool pushEnded = !BoardActive("push_projectile_hands");
+            bool giantStill = BoardActive("giant");
+            Check("leg 2: ImpulseFollowsScale false after the push ends first", pushEnded && giantStill && !_hands.ImpulseFollowsScale,
+                "push ended, giant still on, flag false",
+                "push=" + !pushEnded + " giant=" + giantStill + " follows=" + _hands.ImpulseFollowsScale + " hand buff=" + F(_hands.ProjectileBuffSecondsLeft) + " s");
+        }
+
+        private bool TryBoardEntry(string skillId, out SkillStateEntry entry)
+        {
+            entry = null;
+            return _exec.StateBoard != null && _exec.StateBoard.TryGetActive(skillId, out entry) && entry != null;
+        }
+
+        private float EntrySecondsLeft(SkillStateEntry entry) => entry != null ? Mathf.Max(0f, TickSpan(NowTick(), entry.UntilTick)) : 0f;
+
+        private IEnumerator FireChargedShot(ShotResult result)
+        {
+            var seen = new HashSet<int>(FindObjectsByType<ChargedHandProjectileRuntime>(FindObjectsSortMode.None).Select(p => p.GetInstanceID()));
+            var scale = _human.GetComponent<PlayerScaleEffect>();
+            result.Strength = GetF(_hands, "_projectileImpulseStrengthServer");
+            result.Requested = (bool)Call(_hands, "TryPushServer", new[] { typeof(bool), typeof(float), typeof(Vector3), typeof(bool) },
+                true, _hands.ServerHandYaw, _human.transform.position, false);
+            float started = Time.time;
+            while (Time.time - started < 1f)
+            {
+                yield return null;
+                foreach (ChargedHandProjectileRuntime projectile in FindObjectsByType<ChargedHandProjectileRuntime>(FindObjectsSortMode.None))
+                {
+                    if (projectile == null || !seen.Add(projectile.GetInstanceID()))
+                        continue;
+                    if (GetOrNull<NetworkObject>(projectile, "_attacker") != _human.NetworkObject)
+                        continue; // the observer visual has no attacker
+                    result.Found = true;
+                    result.Impulse = Get<Vector3>(projectile, "_impulse").magnitude;
+                    result.Scale = scale != null ? Mathf.Max(0.1f, scale.CurrentScaleMultiplier) : 1f;
+                    result.Follows = _hands.ImpulseFollowsScale;
+                    yield break;
+                }
+            }
         }
 
         // ---------------------------------------------------------------- S11 HUD
@@ -1519,6 +2037,27 @@ namespace BuddahGo.AI
             return fallback;
         }
 
+        private T Registered<T>() where T : YuanqiAction
+        {
+            YuanqiRegistry registry = _exec.YuanqiRegistry;
+            return registry != null ? registry.Registered.OfType<T>().FirstOrDefault() : null;
+        }
+
+        private string RegisteredIds()
+        {
+            YuanqiRegistry registry = _exec.YuanqiRegistry;
+            return registry != null ? "[" + string.Join(",", registry.Registered.Select(a => a.yuanqiId)) + "]" : "no registry";
+        }
+
+        private bool BoardActive(string skillId) => _exec.StateBoard != null && _exec.StateBoard.TryGetActive(skillId, out _);
+
+        private string BoardDump()
+        {
+            SkillStateBoard board = _exec.StateBoard;
+            return board == null ? "no board" : "[" + string.Join(", ", board.Entries.Select(e => e.ToString() + (e.IsActivated ? "" : " pending"))) + "]";
+        }
+
+        // On the host LocalTick == Tick (FishNet), the clock of the board, the motor deadlines and the backfire end tick.
         private uint NowTick() => _exec != null && _exec.TimeManager != null ? _exec.TimeManager.LocalTick : 0u;
 
         private double TickDelta => _exec != null && _exec.TimeManager != null && _exec.TimeManager.TickDelta > 0d ? _exec.TimeManager.TickDelta : 1d / 60d;
@@ -1547,19 +2086,6 @@ namespace BuddahGo.AI
         {
             var mods = motor.CurrentSkillModifiers;
             return mods.AccelUntilTick > NowTick() && mods.AccelExtraMaxSpeed > 0f;
-        }
-
-        // S3: the running effect of a skill, read from the effect itself (the slow-trap zone, the motor's modifiers).
-        private bool SkillEffectRunning(string skillId)
-        {
-            var mods = _motor.CurrentSkillModifiers;
-            switch (skillId)
-            {
-                case "slowtrap": return _human.GetComponent<MovementSlowTrapZoneEffect>() != null;
-                case "giant": return mods.ScaleUntilTick > NowTick() && mods.ScaleMultiplier > 1f;
-                case "acceleration": return AccelActive(_motor);
-                default: return false;
-            }
         }
 
         private bool IsSlowed(Dummy dummy)
@@ -1622,6 +2148,11 @@ namespace BuddahGo.AI
             return label != null ? label.text : null;
         }
 
+        private string VictimName(int objectId)
+        {
+            Dummy dummy = _dummies.FirstOrDefault(d => d.Net != null && d.Net.ObjectId == objectId);
+            return dummy != null ? dummy.Name : "object " + objectId;
+        }
 
         private float DrainAdjusted(CastRec rec)
             => rec.ObsPrev > 0f ? Mathf.Max(0f, rec.ObsPrev - _obs.DrainPerSecond * rec.Dt) : rec.ObsPrev;
@@ -1686,6 +2217,37 @@ namespace BuddahGo.AI
             Event("cast", cast.Stage + " slot=" + cast.Slot + " skill=" + cast.SkillId + " backlash=" + cast.IsBacklash);
         }
 
+        private void OnYuanqiObserved(string yuanqiId, YuanqiPresentationPayload payload, bool localIsCaster)
+        {
+            _yuanqis.Add(new YuanqiRec { T = Time.time, Id = yuanqiId, Payload = payload, LocalIsCaster = localIsCaster });
+            Event("yuanqi", yuanqiId + " center=" + F(payload.Center) + " targets=" + (payload.TargetObjectIds != null ? payload.TargetObjectIds.Length : 0) + " caster=" + localIsCaster);
+        }
+
+        private void OnLocalYuanqi(string yuanqiId)
+        {
+            _localYuanqis.Add(new LocalYuanqiRec { T = Time.time, Id = yuanqiId });
+            Event("local-yuanqi", yuanqiId);
+        }
+
+        private void OnImpact(YuanqiImpactInfo info)
+        {
+            Dummy dummy = _dummies.FirstOrDefault(d => d.Net != null && d.Net.ObjectId == info.VictimObjectId);
+            Vector3 victim = dummy != null ? dummy.Identity.transform.position : info.Point;
+            if (dummy == null && FishNet.InstanceFinder.ServerManager != null
+                && FishNet.InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(info.VictimObjectId, out NetworkObject other) && other != null)
+                victim = other.transform.position;
+            _impacts.Add(new ImpactRec
+            {
+                T = Time.time,
+                Tick = NowTick(),
+                Info = info,
+                CasterPosition = _human != null ? _human.transform.position : Vector3.zero,
+                CasterForward = _human != null ? _human.transform.forward : Vector3.forward,
+                VictimPosition = victim,
+            });
+            Event("impact", info.YuanqiId + " victim=" + VictimName(info.VictimObjectId) + " impulse=" + F(info.Impulse) + " |" + F(info.Impulse.magnitude) + "|");
+        }
+
         private void OnSkillUi(SkillExecutor.LocalSkillUiEvent ui)
         {
             _uiEvents.Add(new UiRec { T = Time.time, Slot = ui.SlotIndex, Stacks = ui.SurchargeStacks, Cooldown = ui.CooldownSeconds });
@@ -1734,7 +2296,7 @@ namespace BuddahGo.AI
                 yield return null;
         }
 
-        // For tick-defined state (backfire, freeze): times out only after both Time.time and the network
+        // For tick-defined state (backfire, freeze, board entries): times out only after both Time.time and the network
         // tick advanced by timeoutSeconds, so frame hitches cannot end the wait before the ticks got there.
         private IEnumerator UntilClock(Func<bool> condition, float timeoutSeconds)
         {
@@ -1766,6 +2328,11 @@ namespace BuddahGo.AI
             return events.Count > 0 ? string.Join(" ", events) : none;
         }
 
+        private string YuanqiSince(int from)
+        {
+            var events = _yuanqis.Skip(from).Select(y => y.Id).ToList();
+            return events.Count > 0 ? string.Join(",", events) : "none";
+        }
 
         // ---------------------------------------------------------------- report
 
@@ -1853,6 +2420,9 @@ namespace BuddahGo.AI
             if (_exec != null)
             {
                 _exec.ServerCastChanged -= OnCast;
+                _exec.YuanqiObserved -= OnYuanqiObserved;
+                _exec.YuanqiImpactObserved -= OnImpact;
+                _exec.LocalYuanqiTriggered -= OnLocalYuanqi;
                 _exec.LocalSkillUiTriggered -= OnSkillUi;
             }
             if (_obs != null)
@@ -2067,8 +2637,14 @@ namespace BuddahGo.AI
             public int Frames;
         }
 
+        private sealed class ShotResult
+        {
+            public bool Requested, Found, Follows;
+            public float Impulse, Strength, Scale = 1f;
+        }
+
         // T (Time.time) for Time.time mechanics (cooldowns, surcharge window, confirm delay, dummy reset, impact arm
-        // window); Tick for tick-defined ones (backfire penalty, freeze).
+        // window); Tick for tick-defined ones (backfire penalty, burst, freeze, board entries).
         private struct CastRec
         {
             public float T, ObsAt, ObsPrev, Dt;
@@ -2077,6 +2653,28 @@ namespace BuddahGo.AI
             public int Slot;
             public string Skill;
             public bool Backlash;
+        }
+
+        private struct YuanqiRec
+        {
+            public float T;
+            public string Id;
+            public YuanqiPresentationPayload Payload;
+            public bool LocalIsCaster;
+        }
+
+        private struct LocalYuanqiRec
+        {
+            public float T;
+            public string Id;
+        }
+
+        private struct ImpactRec
+        {
+            public float T;
+            public uint Tick;
+            public YuanqiImpactInfo Info;
+            public Vector3 CasterPosition, CasterForward, VictimPosition;
         }
 
         private struct UiRec
@@ -2090,6 +2688,20 @@ namespace BuddahGo.AI
             public float T, Obs;
             public uint Tick;
             public bool Active;
+        }
+
+        private struct BurstSample
+        {
+            public float T, MaxSpeed, BurstLeft, Speed, Scale;
+            public uint Tick;
+            public bool Burst, Accel, AccelBoard;
+        }
+
+        // Burst as sampled: StartTick = first bursting sample, EndTick = first sample after it that is not bursting.
+        private struct BurstWindow
+        {
+            public bool Started, Ended;
+            public uint StartTick, EndTick, LastSampleTick;
         }
 
         [Serializable] private sealed class CheckRow { public string Scenario, Check, Expected, Measured, Result, Note; public float T; }

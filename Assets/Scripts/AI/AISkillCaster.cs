@@ -29,15 +29,23 @@ namespace BuddahGo.AI
         private RaceCompletionTracker _completion;
         private ObsessionFigure _obsession;
         private SkillPerceptionState _perception;
+        private SkillLoadout _loadout;
         private TimeManager _time;
         private AISkillWorld _world;
         private AISkillTuning _tuning;
+        private AIYuanqiPlanner _planner;
+        // Planner callbacks, bound once so a decision allocates no delegates.
+        private Func<int, float> _slotReadyIn;
+        private Func<string, float> _effectDuration, _obsessionGain;
+        private Func<float, float> _backfirePercent;
         private readonly AISkillKind[] _kinds = new AISkillKind[3];
+        // Estimated cooldown end (Time.time) per slot, from the Accepted events: the executor does not expose it.
+        private readonly float[] _slotReadyAt = new float[3];
         private System.Random _decisionRandom;
         private int _racerId, _index, _targetId = -1, _shotsThisBuff;
         private uint _nextDecision, _lastDecision, _nextShot, _situationSince;
         private AISkillSituation _situation, _pendingSituation;
-        private bool _subscribed, _hadBuff, _finishedCleaned, _hasSituation;
+        private bool _subscribed, _hadBuff, _finishedCleaned, _hasSituation, _plannerDirty = true;
         private float _reactionSeconds;
         private long _inputTicksThisTick;
 
@@ -46,7 +54,7 @@ namespace BuddahGo.AI
         {
             _world = world; Personality = personality; Difficulty = difficulty; _tuning = tuning;
             _index = racerIndex; _racerId = RacerId.ForAI(racerIndex).Value;
-            _executor = GetComponent<SkillExecutor>();
+            _executor = GetComponent<SkillExecutor>(); _loadout = GetComponent<SkillLoadout>();
             _hands = GetComponent<BuddahHandControl>(); _motor = GetComponent<BuddahPredictedMotor>();
             _completion = GetComponent<RaceCompletionTracker>(); _obsession = GetComponent<ObsessionFigure>();
             _perception = GetComponent<SkillPerceptionState>();
@@ -59,6 +67,9 @@ namespace BuddahGo.AI
             Telemetry.Bind(_racerId, personality, difficulty, _obsession, _time);
             _driver = GetComponent<AIRacerDriver>();
             _driver.ConfigureSkillPerception(difficulty, _perception);
+            _slotReadyIn = SlotReadyInSeconds; _effectDuration = _executor.ResolveEffectDurationSeconds;
+            _obsessionGain = ObsessionGain; _backfirePercent = _obsession.GetBackfireProbabilityPercent;
+            _plannerDirty = true;
             enabled = true;
             Subscribe();
         }
@@ -83,6 +94,7 @@ namespace BuddahGo.AI
             _time.OnTick += OnTick;
             _executor.ServerCastChanged += OnCast;
             _executor.ActiveEffectsReset += OnEffectsReset;
+            if (_loadout != null) _loadout.ServerSlotsChanged += OnLoadoutChanged;
         }
         private void OnDisable()
         {
@@ -90,8 +102,10 @@ namespace BuddahGo.AI
             Cancel("disabled");
             if (_time != null) _time.OnTick -= OnTick;
             if (_executor != null) { _executor.ServerCastChanged -= OnCast; _executor.ActiveEffectsReset -= OnEffectsReset; }
+            if (_loadout != null) _loadout.ServerSlotsChanged -= OnLoadoutChanged;
             _subscribed = false;
         }
+        private void OnLoadoutChanged() => _plannerDirty = true;
 
         private void OnTick()
         {
@@ -160,29 +174,92 @@ namespace BuddahGo.AI
             float elapsed = _lastDecision == 0 ? Difficulty.DecisionSeconds : Mathf.Min(_tuning.MaxElapsedSeconds, (tick - _lastDecision) * delta);
             _lastDecision = tick; _nextDecision = tick + AISkillCommitment.SecondsToTicks(Difficulty.DecisionSeconds, delta);
             UpdateSituation(AISkillDecision.Situation(frame, self, _tuning), tick, delta);
+            if (_plannerDirty || _planner == null) BuildPlanner();
             float age = (tick - frame.Tick) * delta;
             float probability = _obsession.GetBackfireProbabilityPercent(_obsession.Current) * .01f;
+            var board = _executor.StateBoard != null ? _executor.StateBoard.Entries : null;
+            bool yuanqiDecisions = _planner != null && _planner.Pairs.Count > 0 && Personality.YuanqiAffinity > 0f;
             float best = float.NegativeInfinity; int chosen = -1;
+            float chosenTempo = Personality.TempoSeconds, chosenPatience = Personality.Patience;
             AISkillOpportunity opportunity = default;
             for (int slot = 0; slot < 3; slot++)
             {
                 if (!_executor.IsSlotReadyServer(slot)) { Emit("candidate", "cooldown-or-lock", slot); continue; }
                 // No combo keys and no key retries: the request lands next tick, then this skill's own confirm delay.
-                float required = _executor.ConfirmationSecondsForSlot(slot) + delta * 2f;
+                float confirm = _executor.ConfirmationSecondsForSlot(slot);
+                float required = confirm + delta * 2f;
                 var candidate = AISkillDecision.Evaluate(_kinds[slot], frame, self, _tuning, Personality.Target, _hands.ServerHandYaw, _hands.HandRotationSpeed);
+                // 缘起 (建议（实现采用）): a follow-up lands the second skill inside the first one's window; a setup is the
+                // first skill of a pair whose second can follow in time. Both scale the value, never the risk.
+                float valueMultiplier = 1f, tempo = Personality.TempoSeconds, patience = Personality.Patience;
+                string yuanqi = null;
+                if (yuanqiDecisions)
+                {
+                    if (_planner.TryGetFollowUp(slot, board, tick, delta, confirm, _tuning.YuanqiLateWindowSeconds, out var followUp))
+                    {
+                        // Utility subtracts `required` (confirm + 2 ticks) itself, so the candidate carries the time the first
+                        // skill is still active at execution (RemainingSeconds), not the request deadline (ValidSeconds =
+                        // remaining − confirm): otherwise the confirm is subtracted twice and a late follow-up (#2, #4,
+                        // remaining ≤ confirm + late window) could never pass the gate. The window is measured at this tick
+                        // while the frame is `age` old: validity − age must equal the window.
+                        candidate = new AISkillOpportunity(Mathf.Max(candidate.Score, _tuning.YuanqiFollowUpScore), followUp.RemainingSeconds + age,
+                            candidate.TargetId, candidate.ImpairedTarget, candidate.StateSeconds);
+                        valueMultiplier = _tuning.YuanqiFollowUpMultiplier * Personality.YuanqiAffinity;
+                        // Patience 0 and a short tempo: the window is under a second and must not be sampled away.
+                        tempo = _tuning.YuanqiFollowUpTempoSeconds; patience = 0f; yuanqi = "follow-up";
+                    }
+                    else if (_planner.IsSetup(slot, _slotReadyIn, _effectDuration, confirm, out var pair))
+                    {
+                        // Both gains together (已定): the second cast rolls after the first skill's gain; if it would
+                        // stop on risk, the first skill is scored as an ordinary cast.
+                        float second = AIYuanqiPlanner.SecondBackfireProbability(pair, _obsession.Current, _obsessionGain, _backfirePercent);
+                        if (AIYuanqiPlanner.SetupBonusAllowed(second, Difficulty.StopProbability))
+                        { valueMultiplier = _tuning.YuanqiSetupMultiplier * Personality.YuanqiAffinity; yuanqi = "setup"; }
+                        else yuanqi = "setup-risk";
+                    }
+                }
                 float noise = 1f + ((float)_decisionRandom.NextDouble() * 2f - 1f) * Difficulty.DecisionNoise;
-                float utility = AISkillDecision.Utility(_kinds[slot], candidate, _situation, Personality, Difficulty, _tuning, probability, required, age, noise);
+                float utility = AISkillDecision.Utility(_kinds[slot], candidate, _situation, Personality, Difficulty, _tuning, probability, required, age, noise, valueMultiplier);
+                if (yuanqi != null) Emit("yuanqi", yuanqi, slot, candidate, utility);
                 Emit("candidate", candidate.Score <= 0f ? "no-opportunity" : candidate.ValidSeconds - age < required ? "validity" : float.IsNegativeInfinity(utility) ? "risk-stop" : "scored", slot, candidate, utility);
-                if (utility > best) { best = utility; chosen = slot; opportunity = candidate; }
+                if (utility > best) { best = utility; chosen = slot; opportunity = candidate; chosenTempo = tempo; chosenPatience = patience; }
             }
             _reactionSeconds = SampleReaction();
             if (chosen < 0) return;
-            if (_decisionRandom.NextDouble() >= AISkillDecision.CastProbability(best, Personality.Patience, elapsed, Personality.TempoSeconds))
+            if (_decisionRandom.NextDouble() >= AISkillDecision.CastProbability(best, chosenPatience, elapsed, chosenTempo))
             { Emit("decision", "sample-wait", chosen, opportunity, best); return; }
             _targetId = opportunity.TargetId;
             uint deadline = tick + AISkillCommitment.SecondsToTicks(opportunity.ValidSeconds - age, delta);
             Commitment.Begin(chosen, tick, deadline);
             Emit("decision", "committed", chosen, opportunity, best);
+        }
+
+        // The pairs this loadout can trigger: the registry's per-racer instances come from the same
+        // SkillDatabase.GetYuanqis() + YuanqiCatalog.ForLoadout the server triggers with, so both agree.
+        private void BuildPlanner()
+        {
+            _plannerDirty = false;
+            var registry = _executor.YuanqiRegistry;
+            string[] loadout = _loadout != null && _loadout.IsServerInitialized ? _loadout.CopySlotSkillIds() : Personality.Loadout;
+            _planner = AIYuanqiPlanner.Build(loadout, registry != null ? registry.Registered : null, _effectDuration);
+        }
+        private float SlotReadyInSeconds(int slot)
+        {
+            if (slot < 0 || slot >= _slotReadyAt.Length) return float.PositiveInfinity;
+            return _executor.IsSlotReadyServer(slot) ? 0f : Mathf.Max(0f, _slotReadyAt[slot] - Time.time);
+        }
+        private static float CooldownSeconds(string skillId)
+        {
+            var database = HudSkillDatabase.Resolve();
+            if (database != null) { database.TryGet(skillId, out SkillAction skill); return database.GetCooldownSeconds(skillId, skill); }
+            return ProjectConfigRuntime.TryGetSkillConfigRepository(out var skills) && skills.TryGetCooldown(skillId, out float seconds) ? seconds : 0f;
+        }
+        // SkillDatabase.GetObsessionGain: the base gain of the table row (the same-skill surcharge is not estimated).
+        private static float ObsessionGain(string skillId)
+        {
+            var database = HudSkillDatabase.Resolve();
+            if (database != null) { database.TryGet(skillId, out SkillAction skill); return database.GetObsessionGain(skillId, skill); }
+            return ProjectConfigRuntime.TryGetSkillConfigRepository(out var skills) && skills.TryGetObsessionGain(skillId, out float gain) ? gain : 0f;
         }
 
         private bool Aim(AISkillSnapshot frame, int self, uint tick, float delta)
@@ -224,6 +301,7 @@ namespace BuddahGo.AI
                 case SkillExecutor.CastStage.Requested: Telemetry.Requests++; break;
                 case SkillExecutor.CastStage.Accepted:
                     Telemetry.Accepted++; Commitment.Accepted();
+                    if (cast.Slot >= 0 && cast.Slot < _slotReadyAt.Length) _slotReadyAt[cast.Slot] = Time.time + _executor.ConfirmationSecondsForSlot(cast.Slot) + CooldownSeconds(cast.SkillId);
                     break;
                 case SkillExecutor.CastStage.Executed:
                     Telemetry.Executed++; if (cast.IsBacklash) Telemetry.Backlashes++;

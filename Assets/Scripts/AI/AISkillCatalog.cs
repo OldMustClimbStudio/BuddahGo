@@ -23,6 +23,8 @@ namespace BuddahGo.AI
         public AITargetPreference Target;
         public float ImpairedTargetMultiplier = 1f;
         public int HandsShots;
+        // 建议（实现采用）: scales the 缘起 setup / follow-up value (AISkillCaster.Decide); 0 = no 缘起 decisions.
+        public float YuanqiAffinity = 1f;
     }
 
     [Serializable]
@@ -64,6 +66,12 @@ namespace BuddahGo.AI
         // Unified backfire (A7, 建议（实现采用）): the risk term of AISkillDecision.Utility is
         // RiskWeight × P(backfire) × BackfireCost for every skill (Obsession.backfireLockSeconds lock, 5 s since 2026-10-31; ×0.85 max speed; ×0.8 obsession at the end; plus the skill's own _anti variant).
         public float BackfireCost = 1f;
+        // 缘起 decision parameters (A7, 建议（实现采用）; AIYuanqiPlanner + AISkillCaster.Decide).
+        public float YuanqiSetupMultiplier = 1.2f;        // value multiplier of the first skill of a pair whose second can follow in time
+        public float YuanqiFollowUpScore = .8f;          // minimum opportunity score of a follow-up candidate
+        public float YuanqiFollowUpMultiplier = 1.5f;    // value multiplier of a follow-up candidate
+        public float YuanqiFollowUpTempoSeconds = .3f;   // sampling tempo of a follow-up (patience 0, so the window is not missed)
+        public float YuanqiLateWindowSeconds = .6f;      // a consumed first skill is followed up only within confirm + this before it ends
         // Indexed by AISkillKind: do not stack while the same global effect is visible (Reverse, Curtain).
         public bool[] BlockWhenGlobalVisible = { false, false, false, false, true, true };
         // Opportunity predicate constants (AI/SkillOpportunity); defaults equal the former literals.
@@ -127,6 +135,7 @@ namespace BuddahGo.AI
                     p.Loadout = new[] { row.slot0SkillId, row.slot1SkillId, row.slot2SkillId };
                     p.Patience = row.patience; p.TempoSeconds = row.tempoSeconds; p.HandsShots = row.handsShots;
                     p.ImpairedTargetMultiplier = row.impairedTargetMultiplier;
+                    p.YuanqiAffinity = row.yuanqiAffinity;
                     if (Enum.TryParse(row.target, true, out AITargetPreference target)) p.Target = target;
                     // Weights are indexed by AISkillKind; only loadout skills are ever cast, so the three slot weights fill the array.
                     p.Weights = new float[SkillIds.Length];
@@ -197,7 +206,7 @@ namespace BuddahGo.AI
                 foreach (float value in p.Weights) Range(value, 0f, 1.5f);
                 foreach (float value in p.SituationBias) Range(value, 0f, 1.5f);
                 Range(p.Patience, 0f, .6f); Range(p.TempoSeconds, .5f, 4f);
-                Range(p.ImpairedTargetMultiplier, 1f, 2f);
+                Range(p.ImpairedTargetMultiplier, 1f, 2f); Range(p.YuanqiAffinity, 0f, 1.5f);
                 if (!Enum.IsDefined(typeof(AITargetPreference), p.Target) || p.HandsShots < 0 || p.HandsShots > 6)
                     throw new ArgumentException("Invalid target preference or hand shot limit.");
             }
@@ -221,6 +230,8 @@ namespace BuddahGo.AI
             Range(Tuning.LaneWidth, 1f, 100f); Range(Tuning.StraightCurvature, .00001f, .1f); Range(Tuning.CornerCurvature, Tuning.StraightCurvature, 1f);
             Range(Tuning.AimHorizonSeconds, .1f, 5f); Range(Tuning.SpeedDropFraction, .01f, 1f);
             Range(Tuning.BackfireCost, 0f, 3f);
+            Range(Tuning.YuanqiSetupMultiplier, 0f, 3f); Range(Tuning.YuanqiFollowUpScore, 0f, 1f); Range(Tuning.YuanqiFollowUpMultiplier, 0f, 3f);
+            Range(Tuning.YuanqiFollowUpTempoSeconds, .05f, 4f); Range(Tuning.YuanqiLateWindowSeconds, 0f, 5f);
         }
 
         private static void Range(float value, float min, float max)

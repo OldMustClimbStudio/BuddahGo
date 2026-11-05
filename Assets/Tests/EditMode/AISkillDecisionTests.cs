@@ -157,6 +157,39 @@ public class AISkillDecisionTests
                 float trap = AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Chasing, _catalog.Personalities[0], d, _catalog.Tuning, .2f, 2, 0);
                 float trapSafe = AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Chasing, _catalog.Personalities[0], d, _catalog.Tuning, 0f, 2, 0);
                 Assert.That(trapSafe - trap, Is.EqualTo(safe - risky).Within(.0001f), "Every skill pays the same risk.");
+            }),
+            ("a late 缘起 follow-up passes the validity gate as Decide builds it", () =>
+            {
+                // A7 缘起 follow-up (建议（实现采用）): the planner already subtracts the confirm from the window, and Utility
+                // subtracts required = confirm + 2 ticks itself, so Decide must hand it the time the first skill is still
+                // active at execution (RemainingSeconds). #2 frost_lock, 神足通 active with 1.5 s left (late window), confirm 1 s.
+                const float delta = 1f / 60f, confirm = 1f, age = .1f, required = confirm + delta * 2f;
+                var frost = ScriptableObject.CreateInstance<Yuanqi_FrostLock>();
+                try
+                {
+                    frost.yuanqiId = "frost_lock"; frost.skillA = "acceleration"; frost.skillB = "slowtrap"; frost.consumeA = frost.consumeB = true; frost.mode = YuanqiMode.Instant;
+                    var planner = AIYuanqiPlanner.Build(new[] { "slowtrap", "acceleration", "giant" }, new[] { frost }, id => id == "slowtrap" ? 6f : 3f);
+                    var board = new[] { new SkillStateEntry { EntryId = 1, SkillId = "acceleration", Slot = 1, StartTick = 0, UntilTick = 190 + 90, IsActivated = true, IsEnded = false } };
+                    Assert.That(planner.TryGetFollowUp(0, board, 190, delta, confirm, .6f, out var followUp), Is.True);
+                    Assert.That(followUp.ValidSeconds, Is.EqualTo(.5f).Within(.001f)); Assert.That(followUp.RemainingSeconds, Is.EqualTo(1.5f).Within(.001f));
+                    var p = _catalog.Personalities[0]; var d = _catalog.ForDifficulty(SoloDifficulty.Normal);
+                    var candidate = new AISkillOpportunity(Mathf.Max(0f, _catalog.Tuning.YuanqiFollowUpScore), followUp.RemainingSeconds + age);
+                    float utility = AISkillDecision.Utility(AISkillKind.SlowTrap, candidate, AISkillSituation.Pursued, p, d, _catalog.Tuning, 0f, required, age);
+                    Assert.That(float.IsNegativeInfinity(utility), Is.False, "a late follow-up must be castable, not rejected on validity");
+                    Assert.That(utility, Is.GreaterThan(0f));
+                    // The request deadline alone (remaining − confirm) would subtract the confirm twice and never pass the gate.
+                    var deadlineOnly = new AISkillOpportunity(candidate.Score, followUp.ValidSeconds + age);
+                    Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.SlowTrap, deadlineOnly, AISkillSituation.Pursued, p, d, _catalog.Tuning, 0f, required, age)), Is.True);
+                }
+                finally { Object.DestroyImmediate(frost); }
+            }),
+            ("the 缘起 value multiplier scales the value but not the risk", () =>
+            {
+                var p = _catalog.Personalities[1]; var d = _catalog.ForDifficulty(SoloDifficulty.Hard); var opportunity = new AISkillOpportunity(1, 6);
+                float plain = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p, d, _catalog.Tuning, .2f, 2, 0);
+                float boosted = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p, d, _catalog.Tuning, .2f, 2, 0, 1f, 1.5f);
+                float risk = d.RiskWeight * .2f * _catalog.Tuning.BackfireCost;
+                Assert.That(boosted, Is.EqualTo((plain + risk) * 1.5f - risk).Within(.0001f));
             }));
     }
     private static float ClassifyImpaired(NewBuddah.PredictionV2.Core.BuddahPredictedModifierState m, uint tick, out bool accelerating, out bool slowed)

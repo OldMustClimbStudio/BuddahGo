@@ -103,8 +103,20 @@ namespace BuddahGo.Rendering.Settings
             ApplyDisplay(levels);
 
             if (levels.TryGetValue(GraphicsPipelineMapper.VfxQuality, out var vfx) && Enum.TryParse(vfx.vfxTier, true, out VfxQualityTier tier))
-                VfxQuality.Set(tier);
+                VfxQuality.Set(tier, VfxTierFrom(vfx));
         }
+
+        /// <summary>A vfx_quality row's values (Graphics.xlsx vfx* columns), clamped to what the readers accept.</summary>
+        public static VfxTierSettings VfxTierFrom(GraphicsOptionLevelRecord level) => new VfxTierSettings
+        {
+            KeepPriority = Mathf.Clamp(level.vfxKeepPriority, 1, 3),
+            EmissionScale = Mathf.Clamp(level.vfxEmissionScale, 0.05f, 1f),
+            GameplayEmissionScale = Mathf.Clamp(level.vfxGameplayEmissionScale, 0.7f, 1f),
+            RealtimeLights = level.vfxRealtimeLights,
+            TrailScale = Mathf.Clamp(level.vfxTrailScale, 0.1f, 1f),
+            InkFluidBudget = Mathf.Max(0, level.vfxInkBudget),
+            InkFluidCellScale = Mathf.Clamp(level.vfxInkCellScale, 1f, 4f),
+        };
 
         static readonly string[] s_WindowArguments = { "-screen-width", "-screen-height", "-screen-fullscreen", "-window-mode", "-popupwindow" };
 
@@ -112,19 +124,41 @@ namespace BuddahGo.Rendering.Settings
         public static bool SetsWindowFromCommandLine(string[] arguments) =>
             arguments != null && arguments.Any(a => s_WindowArguments.Contains(a, StringComparer.OrdinalIgnoreCase));
 
-        // Window mode at the display's native resolution (the only resolution level so far). The editor's game view and
-        // a window the command line asked for are not touched.
+        /// <summary>Parses a generated resolution level id ("2560x1440"); the table's <c>native</c> level yields false.</summary>
+        public static bool TryParseResolution(string levelId, out int width, out int height)
+        {
+            width = height = 0;
+            if (string.IsNullOrEmpty(levelId))
+                return false;
+            int x = levelId.IndexOf('x');
+            return x > 0 && int.TryParse(levelId.Substring(0, x), out width) && int.TryParse(levelId.Substring(x + 1), out height) && width > 0 && height > 0;
+        }
+
+        /// <summary>The size a resolved choice asks for: the resolution level's own size, else the display's native size.</summary>
+        public static (int width, int height) ResolveResolution(IReadOnlyDictionary<string, GraphicsOptionLevelRecord> levels, int nativeWidth, int nativeHeight)
+        {
+            if (levels != null && levels.TryGetValue(GraphicsPipelineMapper.Resolution, out var level) && TryParseResolution(level.levelId, out int width, out int height))
+                return (width, height);
+            return (nativeWidth, nativeHeight);
+        }
+
+        // Window mode and resolution: the chosen level's size, or the display's native size for the table's "native" level.
+        // The editor's game view and a window the command line asked for are not touched.
+        /// <summary>Whether window mode and resolution are applied here: in a player whose command line does not set the window.</summary>
+        public static bool AppliesDisplay => !Application.isEditor && !SetsWindowFromCommandLine(Environment.GetCommandLineArgs());
+
         static void ApplyDisplay(IReadOnlyDictionary<string, GraphicsOptionLevelRecord> levels)
         {
-            if (Application.isEditor || SetsWindowFromCommandLine(Environment.GetCommandLineArgs()))
+            if (!AppliesDisplay)
                 return;
             if (!levels.TryGetValue(GraphicsPipelineMapper.WindowMode, out var window) || !Enum.TryParse(window.fullScreenMode, true, out FullScreenMode mode))
                 return;
             var display = Screen.mainWindowDisplayInfo;
-            int width = display.width > 0 ? display.width : Screen.currentResolution.width;
-            int height = display.height > 0 ? display.height : Screen.currentResolution.height;
-            if (Screen.fullScreenMode != mode || Screen.width != width || Screen.height != height)
-                Screen.SetResolution(width, height, mode);
+            var size = ResolveResolution(levels,
+                display.width > 0 ? display.width : Screen.currentResolution.width,
+                display.height > 0 ? display.height : Screen.currentResolution.height);
+            if (Screen.fullScreenMode != mode || Screen.width != size.width || Screen.height != size.height)
+                Screen.SetResolution(size.width, size.height, mode);
         }
 
         LevelOriginal RecordLevel(int quality)

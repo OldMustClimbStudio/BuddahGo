@@ -56,6 +56,43 @@ namespace BuddahGo.Rendering.Settings
         }
 
         public Option FindOption(string optionId) => Options.FirstOrDefault(o => o.Id == optionId);
+
+        /// <summary>Level id of the <c>resolution</c> option for a display size, e.g. "1920x1080".</summary>
+        public static string ResolutionLevelId(int width, int height) => width + "x" + height;
+
+        /// <summary>
+        /// Returns a catalog whose <c>resolution</c> option lists, after the table's own levels (<c>native</c>), one
+        /// level per distinct display size, largest first. The table cannot know the player's display, so the menu gets
+        /// these at startup from <c>Screen.resolutions</c>; the level id carries the size and the applier parses it. The
+        /// table levels keep their label keys; a generated level has none and shows its id. A saved choice naming a
+        /// size the display no longer offers is dropped like any stale level.
+        /// </summary>
+        public GraphicsSettingsCatalog WithDisplayResolutions(IEnumerable<(int width, int height)> resolutions)
+        {
+            var option = FindOption(GraphicsPipelineMapper.Resolution);
+            if (option == null || resolutions == null)
+                return this;
+            var sizes = resolutions.Where(r => r.width > 0 && r.height > 0).Distinct()
+                .OrderByDescending(r => (long)r.width * r.height).ThenByDescending(r => r.width).ToList();
+            var levels = option.Levels.ToList();
+            foreach (var size in sizes)
+            {
+                string id = ResolutionLevelId(size.width, size.height);
+                if (levels.Any(l => l.Id == id))
+                    continue;
+                levels.Add(new Level
+                {
+                    Id = id,
+                    LabelKey = string.Empty,
+                    SortOrder = levels.Count,
+                    Values = new GraphicsOptionLevelRecord { optionId = option.Id, levelId = id, sortOrder = levels.Count, labelKey = string.Empty },
+                });
+            }
+            var options = Options.Select(o => o == option
+                ? new Option { Id = o.Id, LabelKey = o.LabelKey, GroupId = o.GroupId, SortOrder = o.SortOrder, RestartRequired = o.RestartRequired, Levels = levels }
+                : o).ToList();
+            return new GraphicsSettingsCatalog(options, Presets.ToList(), Errors.ToList());
+        }
         public Preset FindPreset(string presetId) => Presets.FirstOrDefault(p => p.Id == presetId);
         public Preset DefaultPreset => Presets.FirstOrDefault(p => p.IsDefault) ?? Presets.LastOrDefault();
 

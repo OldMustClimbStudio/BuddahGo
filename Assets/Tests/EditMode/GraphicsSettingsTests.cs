@@ -197,6 +197,32 @@ namespace BuddahGo.Tests
         }
 
         [Test]
+        public void DisplayResolutionsBecomeLevelsAfterNative()
+        {
+            var catalog = TableCatalog().WithDisplayResolutions(new[] { (1280, 720), (2560, 1440), (1920, 1080), (2560, 1440), (0, 0) });
+            var option = catalog.FindOption("resolution");
+            Assert.That(option, Is.Not.Null);
+            Assert.That(option.Levels.Select(l => l.Id), Is.EqualTo(new[] { "native", "2560x1440", "1920x1080", "1280x720" }), "table level first, then sizes largest first, duplicates and empty sizes dropped");
+            Assert.That(option.Levels.Select(l => l.SortOrder), Is.Ordered);
+            foreach (var preset in catalog.Presets)
+                Assert.That(preset.DefaultLevel("resolution"), Is.EqualTo("native"), preset.Id);
+
+            var model = new GraphicsSettingsModel(catalog);
+            model.SetPreset("high");
+            Assert.That(GraphicsSettingsApplier.ResolveResolution(model.Resolve(), 3840, 2160), Is.EqualTo((3840, 2160)), "native follows the display");
+            Assert.That(model.Set("resolution", "1920x1080"), Is.True);
+            Assert.That(model.IsCustom, Is.True);
+            Assert.That(GraphicsSettingsApplier.ResolveResolution(model.Resolve(), 3840, 2160), Is.EqualTo((1920, 1080)));
+
+            var restored = new GraphicsSettingsModel(TableCatalog().WithDisplayResolutions(new[] { (1280, 720) }));
+            Assert.That(restored.TryLoadJson(model.ToJson()), Is.True);
+            Assert.That(restored.Get("resolution"), Is.EqualTo("native"), "a size the display no longer offers is dropped");
+            Assert.That(GraphicsSettingsApplier.TryParseResolution("native", out _, out _), Is.False);
+            Assert.That(GraphicsSettingsApplier.TryParseResolution("1x", out _, out _), Is.False);
+            Assert.That(GraphicsSettingsCatalog.ResolutionLevelId(2560, 1440), Is.EqualTo("2560x1440"));
+        }
+
+        [Test]
         public void MappingWritesOnlyTheClone()
         {
             var original = QualityPipeline("High Fidelity");

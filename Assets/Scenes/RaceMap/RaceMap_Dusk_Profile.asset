@@ -70,7 +70,7 @@ MonoBehaviour:
     m_Value: 65472
   tint:
     m_OverrideState: 1
-    m_Value: {r: 1, g: 0.78, b: 0.55, a: 1}
+    m_Value: {r: 1, g: 0.9, b: 0.78, a: 1}
   highQualityFiltering:
     m_OverrideState: 0
     m_Value: 0
@@ -108,13 +108,13 @@ MonoBehaviour:
     m_Value: 14
   colorFilter:
     m_OverrideState: 1
-    m_Value: {r: 1, g: 0.94, b: 0.84, a: 1}
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
   hueShift:
     m_OverrideState: 0
     m_Value: 0
   saturation:
     m_OverrideState: 1
-    m_Value: 8
+    m_Value: 4
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -132,8 +132,6 @@ MonoBehaviour:
   - {fileID: -5946139529583952198}
   - {fileID: -8294302769129317045}
   - {fileID: 9068532620716437751}
-  - {fileID: 0}
-  - {fileID: 0}
 --- !u!114 &9068532620716437751
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -149,7 +147,7 @@ MonoBehaviour:
   active: 1
   temperature:
     m_OverrideState: 1
-    m_Value: 22
+    m_Value: 10
   tint:
     m_OverrideState: 1
-    m_Value: -8
+    m_Value: -4

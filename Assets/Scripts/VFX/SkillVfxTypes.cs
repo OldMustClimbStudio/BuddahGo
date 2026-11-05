@@ -132,31 +132,50 @@ namespace BuddahGo.VFX
             rotation = yaw * Quaternion.Euler(euler);
         }
 
-        // README section 8: Low keeps priority 1 at 40 % emission, Medium 1-2 at 70 %, High everything. Layers that carry
-        // gameplay information are never dropped. Low also turns every real-time light off.
-        internal static bool Keeps(VfxQualityTier tier, int priority, bool gameplayInfo, SkillVfxFunction function)
+        // README section 8 and Graphics.xlsx (vfx_quality): a tier keeps layers up to its priority at its emission;
+        // layers that carry gameplay information are never dropped. Low (fallback and table) turns real-time lights off.
+        internal static bool Keeps(VfxTierSettings tier, int priority, bool gameplayInfo, SkillVfxFunction function)
         {
-            if (function == SkillVfxFunction.Light && tier == VfxQualityTier.Low)
+            if (function == SkillVfxFunction.Light && !tier.RealtimeLights)
                 return false;
-            if (gameplayInfo)
-                return true;
-            switch (tier)
-            {
-                case VfxQualityTier.Low: return priority <= 1;
-                case VfxQualityTier.Medium: return priority <= 2;
-                default: return true;
-            }
+            return gameplayInfo || priority <= tier.KeepPriority;
         }
 
-        internal static float EmissionScale(VfxQualityTier tier)
+        internal static bool Keeps(VfxQualityTier tier, int priority, bool gameplayInfo, SkillVfxFunction function) =>
+            Keeps(VfxTierSettings.Fallback(tier), priority, gameplayInfo, function);
+
+        // Emission of a kept layer's shape systems: gameplay layers have their own scale so they stay readable on Low.
+        internal static float EmissionScale(VfxTierSettings tier, bool gameplayInfo) =>
+            Mathf.Clamp(gameplayInfo ? tier.GameplayEmissionScale : tier.EmissionScale, 0.05f, 1f);
+
+        // Emission of a layer's detail systems (many small particles): the tier's scale on every layer, gameplay or not.
+        internal static float DetailEmissionScale(VfxTierSettings tier) => Mathf.Clamp(tier.EmissionScale, 0.05f, 1f);
+
+        // README section 8: the pack draws an effect's shape with systems of 1-3 large sprites and its detail (sparks,
+        // flecks, embers) with systems of tens of particles. A system whose bursts and rate add up to more than this
+        // many particles per cycle is detail; thinning it keeps the shape readable.
+        internal const float DetailParticleThreshold = 4f;
+
+        internal static float ParticlesPerCycle(float burstCount, float ratePerSecond, float duration) =>
+            burstCount + Mathf.Max(0f, ratePerSecond) * Mathf.Max(0f, duration);
+
+        internal static bool IsDetailSystem(ParticleSystem system)
         {
-            switch (tier)
+            ParticleSystem.EmissionModule emission = system.emission;
+            if (!emission.enabled)
+                return false;
+            float bursts = 0f;
+            for (int b = 0; b < emission.burstCount; b++)
             {
-                case VfxQualityTier.Low: return 0.4f;
-                case VfxQualityTier.Medium: return 0.7f;
-                default: return 1f;
+                ParticleSystem.Burst burst = emission.GetBurst(b);
+                bursts += burst.count.constantMax * Mathf.Max(1, burst.cycleCount);
             }
+            return ParticlesPerCycle(bursts, emission.rateOverTimeMultiplier, system.main.duration) > DetailParticleThreshold;
         }
+
+        // Length of a layer's own trail: cosmetic layers follow the tier, gameplay layers keep the table's length.
+        internal static float TrailSeconds(VfxTierSettings tier, bool gameplayInfo, float trailSeconds) =>
+            gameplayInfo ? trailSeconds : trailSeconds * Mathf.Clamp(tier.TrailScale, 0.1f, 1f);
 
         // Seconds from the phase start for a start/end number in the given unit. phaseSeconds already includes chg_ratio
         // for the charge phase.

@@ -13,6 +13,7 @@ namespace SteamMultiplayer.UI
         private MainMenuUI _menu;
         private TMP_Text _status;
         private Button _start;
+        private Button _practice;
         private Button _back;
         private SoloDifficulty _difficulty;
         private bool _requested;
@@ -42,12 +43,19 @@ namespace SteamMultiplayer.UI
             }
             _status = SoloUIFactory.Label(card, "Status", string.Empty, new Vector2(0f, -112f),
                 new Vector2(600f, 72f), font, 21f);
-            _start = SoloUIFactory.Button(card, "StartPractice", "开始单人赛", new Vector2(-145f, -200f),
-                new Vector2(260f, 60f), font);
-            _back = SoloUIFactory.Button(card, "Back", "返回", new Vector2(145f, -200f), new Vector2(260f, 60f), font);
-            _start.onClick.AddListener(StartPractice);
+            // "StartPractice" is the historical object name of the Solo race button (SoloSessionFlowTests finds it).
+            _start = SoloUIFactory.Button(card, "StartPractice", "开始单人赛", new Vector2(-220f, -200f),
+                new Vector2(210f, 60f), font);
+            // Practice = the same Solo host with 0 AI; SoloMatchRules maps it to the Match/ModeRule Practice row
+            // (training dummies, ends on the human's finish). The label stays Latin, like the results title
+            // "Practice 完成": the BuddahGoSoloCJK subset has no glyphs for 训练模式 / 木桩 yet.
+            _practice = SoloUIFactory.Button(card, "StartTraining", "Practice (0 AI)", new Vector2(0f, -200f),
+                new Vector2(210f, 60f), font);
+            _back = SoloUIFactory.Button(card, "Back", "返回", new Vector2(220f, -200f), new Vector2(210f, 60f), font);
+            _start.onClick.AddListener(() => StartMatch(ConfiguredAICount()));
+            _practice.onClick.AddListener(() => StartMatch(0));
             _back.onClick.AddListener(() => _menu.ShowHome());
-            SoloUIFactory.Navigate(_difficultyButtons[0], _difficultyButtons[1], _difficultyButtons[2], _start, _back);
+            SoloUIFactory.Navigate(_difficultyButtons[0], _difficultyButtons[1], _difficultyButtons[2], _start, _practice, _back);
             RefreshDifficulty();
         }
 
@@ -92,14 +100,14 @@ namespace SteamMultiplayer.UI
                     ((int)_difficulty == i ? "● " : string.Empty) + DifficultyLabels[i];
         }
 
-        private void StartPractice()
+        private void StartMatch(int aiCount)
         {
             if (_requested) return;
             var session = SessionControl.Current;
             if (session == null) { _status.text = "初始化尚未完成，请稍后重试。"; return; }
             PlayerPrefs.SetInt(DifficultyKey, (int)_difficulty);
             PlayerPrefs.Save();
-            if (!session.StartSoloHost(new SoloMatchSettings(ConfiguredAICount(), _difficulty)))
+            if (!session.StartSoloHost(new SoloMatchSettings(aiCount, _difficulty)))
             {
                 _status.text = string.IsNullOrEmpty(session.LastError) ? "启动失败，请重试。" : session.LastError;
                 return;
@@ -124,6 +132,7 @@ namespace SteamMultiplayer.UI
         private void RefreshControls()
         {
             _start.interactable = !_requested && SessionControl.Current != null;
+            _practice.interactable = _start.interactable;
             _back.interactable = !_requested;
             foreach (var button in _difficultyButtons) button.interactable = !_requested;
         }

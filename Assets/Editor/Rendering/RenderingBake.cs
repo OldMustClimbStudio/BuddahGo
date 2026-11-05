@@ -76,7 +76,6 @@ namespace BuddahGo.Rendering.Editor
         {
             yield return ("bakedGI", s.bakedGI, true);
             yield return ("realtimeGI", s.realtimeGI, false);
-            yield return ("realtimeEnvironmentLighting", s.realtimeEnvironmentLighting, true);
             yield return ("autoGenerate", s.autoGenerate, false);
             yield return ("lightmapper", s.lightmapper, LightingSettings.Lightmapper.ProgressiveGPU);
             yield return ("mixedBakeMode", s.mixedBakeMode, MixedLightingMode.IndirectOnly);
@@ -210,9 +209,15 @@ namespace BuddahGo.Rendering.Editor
                 AssetDatabase.SaveAssets();
                 manifest.outputs = Outputs(bakeStart);
                 manifest.totalSeconds = Math.Round(sw.Elapsed.TotalSeconds, 1);
-                manifest.result = "baked";
+                // Seen on 2026-11-05: the bake could not write ReflectionProbe-0.exr.meta ("Cannot open file for write")
+                // and the sky reflection re-imported as a 2D texture. Every reflection cubemap must import as a Cubemap.
+                var notCube = Directory.GetFiles("Assets/Scenes/RaceMap", "ReflectionProbe-*.exr")
+                    .Concat(MenuProbes.Select(p => p.file)).Select(f => f.Replace('\\', '/'))
+                    .Where(f => !(AssetDatabase.LoadMainAssetAtPath(f) is Cubemap)).ToList();
+                manifest.result = notCube.Count == 0 ? "baked" : "baked, but not imported as cubemaps (restore their .meta from git and reimport): " + string.Join(", ", notCube);
                 manifest.lightmapperMessages = messages;
                 WriteManifest(manifest);
+                if (notCube.Count > 0) return "BAKED WITH PROBLEMS: " + manifest.result;
                 return "BAKED in " + manifest.totalSeconds + " s on " + manifest.machine.gpu + " (" + manifest.lightmapper + "), inputs " +
                        manifest.inputsHash.Substring(0, 12) + ", " + manifest.outputs.Count + " output files. Manifest: " + ManifestPath +
                        (messages.Count > 0 ? "\nLightmapper messages:\n  " + string.Join("\n  ", messages.Take(20)) : "");
@@ -229,7 +234,7 @@ namespace BuddahGo.Rendering.Editor
         {
             string result = BakeAll(Environment.GetCommandLineArgs().Contains("-regenerateLightProbes"), false);
             Debug.Log("[RenderingBake] " + result);
-            EditorApplication.Exit(result.StartsWith("BAKED", StringComparison.Ordinal) ? 0 : 1);
+            EditorApplication.Exit(result.StartsWith("BAKED in", StringComparison.Ordinal) ? 0 : 1);
         }
 
         /// <summary>Writes the recorded shared environment into the active scene's RenderSettings and lighting settings.</summary>
@@ -437,7 +442,7 @@ namespace BuddahGo.Rendering.Editor
 
         static void Report(string result)
         {
-            if (result.StartsWith("OK", StringComparison.Ordinal) || result.StartsWith("BAKED", StringComparison.Ordinal)) Debug.Log("[RenderingBake] " + result);
+            if (result.StartsWith("OK", StringComparison.Ordinal) || result.StartsWith("BAKED in", StringComparison.Ordinal)) Debug.Log("[RenderingBake] " + result);
             else Debug.LogWarning("[RenderingBake] " + result);
         }
 

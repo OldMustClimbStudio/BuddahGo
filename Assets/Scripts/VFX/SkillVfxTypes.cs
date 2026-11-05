@@ -173,8 +173,6 @@ namespace BuddahGo.VFX
             return ParticlesPerCycle(bursts, emission.rateOverTimeMultiplier, system.main.duration) > DetailParticleThreshold;
         }
 
-        internal static float EmissionScale(VfxQualityTier tier) => EmissionScale(VfxTierSettings.Fallback(tier), false);
-
         // Length of a layer's own trail: cosmetic layers follow the tier, gameplay layers keep the table's length.
         internal static float TrailSeconds(VfxTierSettings tier, bool gameplayInfo, float trailSeconds) =>
             gameplayInfo ? trailSeconds : trailSeconds * Mathf.Clamp(tier.TrailScale, 0.1f, 1f);

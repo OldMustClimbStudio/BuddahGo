@@ -9,12 +9,13 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 | 施法路径 | `AISkillCaster.Decide` 选定槽位 → `AISkillCommitment`（Decided → 下一 tick 像真人按键一样请求 → WaitingConfirm → Resolved，没有按键步骤）→ `SkillExecutor.CastSlotServer`。和 owner RPC 同一个施法门：施法串行、本槽冷却、同招加价、统一反噬都在 `SkillExecutor` 里，AI 没有自己的规则 | 已定 |
 | 已接受的施法 | 机会过期（`opportunity-expired`）不再撤回已被服务器接受、正在前摇的施法（真人也撤不回，撤回又不退冷却）；完赛、离开比赛阶段、`CastingEnabled` 关闭、开场交接、效果重置这些原因照旧取消待确认的普通施法；已判定的反噬谁也取消不了 | 建议（实现采用） |
 | 拒绝原因 | 服务器拒绝请求时承诺取消，原因带上拒绝它的那道门：`rejected-pending` / `rejected-backfirelocked` / `rejected-frozen` / `rejected-cooldown`（`SkillExecutor.ResolveCastBlockServer`）；门是开的却被拒，是 AI 专用的入口检查（同类全局效果已可见），记 `rejected-global-visible` | 建议（实现采用） |
-| 反噬风险 | （2026-10-31：反噬是该技能自己的 `_anti` 变体 + 5 秒惩罚；用户定先保持下面的统一代价，不把变体代价加回来，试玩后再调。）统一反噬后代价与技能无关：`u = v − riskWeight × P(反噬) × backfireCost`，`P(反噬) ≥ stopProbability` 直接不放（所有技能一个阈值）。`AI/SkillTuning.backfireCost` 1；`AI/SkillDifficulty.stopProbability` Easy 1.01（从不停手）/ Normal 0.7 / Hard 0.45，沿用原 `severeStopProbability`；`backlashSeverity`、`mildStopProbability`、`severeSeverityThreshold` 删除 | 建议（实现采用） |
-| `AISkillWorld` 快照 | `AISkillWorld.Classify`：反噬惩罚的 ×0.85 限速（`MaxSpeedPenaltyUntilTick`）记为 `Slowed` 并计入受损秒数；突进（`BurstUntilTick`，缘起 PR 里的缘起才会施加）记为 `Accelerating`；缩小不再算受损（统一反噬后没有缩小来源） | 建议（实现采用） |
+| 反噬风险 | （2026-10-31：反噬是该技能自己的 `_anti` 变体 + 5 秒惩罚；用户定先保持下面的统一代价，不把变体代价加回来，试玩后再调。）统一反噬后代价与技能无关：`u = v × 缘起倍率 − riskWeight × P(反噬) × backfireCost`，`P(反噬) ≥ stopProbability` 直接不放（所有技能一个阈值）。`AI/SkillTuning.backfireCost` 1；`AI/SkillDifficulty.stopProbability` Easy 1.01（从不停手）/ Normal 0.7 / Hard 0.45，沿用原 `severeStopProbability`；`backlashSeverity`、`mildStopProbability`、`severeSeverityThreshold` 删除 | 建议（实现采用） |
+| `AISkillWorld` 快照 | `AISkillWorld.Classify`：反噬惩罚的 ×0.85 限速（`MaxSpeedPenaltyUntilTick`）记为 `Slowed` 并计入受损秒数；#4 突进（`BurstUntilTick`）记为 `Accelerating`；缩小不再算受损（统一反噬后没有缩小来源） | 建议（实现采用） |
+| 缘起决策 | `AIYuanqiPlanner`，见下文“8. 缘起决策”。只用已实现的三对（#1、#2、#4），读 `YuanqiRegistry.Registered`（服务器按配装登记的同一份 `SkillDatabase.GetYuanqis()` + `YuanqiCatalog.ForLoadout`）。规则：先放会被消耗的那招，在它结束前至少 1 秒请求另一招，两招执念合计估风险（已定）；具体倍率、窗口、节奏是建议值 | 已定（规则）/ 建议（实现采用）（数值） |
 | 掌形瞄准 | 仍经 `BuddahHandControl.InjectServerRotation`（180°/s，`Push.basic.rotationSpeedDegPerSec`）；发射改为直接 `InjectServerPush(true)`（不再注入搓招键），间隔按 `ServerPushCooldown`。瞄准容差 ±20° / ±12° / ±6° 没有重调：真人改鼠标瞄准后命中率的变化要用户试玩数据，见玩法深化 §8 | 待定（容差） |
 | 反噬矩阵 | `AISkillEffectHarness` 的反噬用例按 [玩法 §6.2](../gameplay/README.md) 的反噬（统一惩罚 + 该技能自己的 `_anti` 变体）：样本多记 `BackfireLeft`、`MaxSpeedPenalty`；`Tools/ai/analyze_skill_matrix.py` 的反噬期望是施法者身上有惩罚（`backfire`）和变体效果：神足通 `slow`、缓流 `root` + `acceleration`、金身 `small`、逆姻缘只反转自己、一念光明只遮自己、如来神掌向后发射 5 发反向弹幕（目标摆在施法者身后 25 m）；施法者身上不许出现普通技能自己的效果，五个自身变体不许影响任何对手；18 s 内恢复（2 s 反噬前摇 + 最长 10 s 的变体）。2026-11-06 按变体改写，此前（2026-10-28 A7 起）期望是统一惩罚、不放变体 | 建议（实现采用） |
 | 退役 | `ComboSkillInput`（类、prefab 组件、`SkillExecutor` 的订阅）、`Skill/ComboInput`、`Skill/ComboBinding`、`__enums__` 的 `ComboToken`、`AI/SkillDifficulty.keyMistakeProbability`、`AI/SkillTuning.keyMinSeconds / keyMaxSeconds / maxComboRetries / severeSeverityThreshold / scaleShrunkThreshold`、`AI/SkillOpportunity.backlashSeverity`、校验规则 `KeyMaxBelowComboWindow`、`AISkillTelemetry.Keys`、harness 结果里的 `ComboFailures / Keys` | 已定 |
-| 新增参数 | `AI/SkillTuning`：`backfireCost` 1。`Assets/Resources/AI/SkillPersonalities.json` 同步，只作无表时的兜底 | 建议（实现采用） |
+| 新增参数 | `AI/SkillTuning`：`backfireCost` 1、`yuanqiSetupMultiplier` 1.2、`yuanqiFollowUpScore` 0.8、`yuanqiFollowUpMultiplier` 1.5、`yuanqiFollowUpTempoSeconds` 0.3、`yuanqiLateWindowSeconds` 0.6；`AI/Personality.yuanqiAffinity` 五个人格都是 1（0 = 不做缘起决策）。`Assets/Resources/AI/SkillPersonalities.json` 同步，只作无表时的兜底 | 建议（实现采用） |
 | 验证 | 无窗口 EditMode `BuddahGo.Tests` 577/577（A7 前 559）；无窗口导表 0 错误；单人赛（5 个 AI，`AISkillRaceHarness`）见本文末尾“A7 单人赛验证” | — |
 
 **实施授权与最新决定（2026-10-03）：** 本规格现已进入完整实现；下文“仅文档／暂不实现”描述的是设计讨论时点，已由用户本次开始指令覆盖。用户确认当前单机必定六人，五个人格全部出场、固定三槽，重开沿用。显示名仍暂用稳定 ID 对应的 P1–P5 行为占位名。普通档风险及距离、节奏等数值仍是配置化建议默认值；初始执念、恢复和反转增益保持现值。实际进度与验证以 [实施记录](../archive/single-player/ai-skill-implementation-2026-10-03.md) 为准。
@@ -54,7 +55,7 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 | `blackcurtain` | 16 | 展开 1 s、保持 10 s、淡出 2 s 的全屏遮挡；施法者可见边线 | 仅本地屏幕（单机 = 真人） |
 | `reverseturn` | 12 | 场上所有其他参赛者转向反转 10 s，不分距离 | 全场 |
 
-冷却从请求时刻加前摇起算（普通 1 s；反噬按 `_anti` 行是 2 s，2026-11-03 合入 dev 后），反噬也照常进本行冷却。AI 的时机估计用 `SkillExecutor.ConfirmationSecondsForSlot`，取本槽技能自己那一行的前摇（现在都是 1 s）。反噬行的 2 s 不计入：反噬的施法本来就用不上这次机会。没有全局施法锁：一招执行后即可请求另一个冷却已好的槽，两个技能可以同时生效。掌形 buff 期间每次推掌都是一次蓄力发射。
+冷却从请求时刻加前摇起算（普通 1 s；反噬按 `_anti` 行是 2 s，2026-11-03 合入 dev 后），反噬也照常进本行冷却。AI 的时机估计用 `SkillExecutor.ConfirmationSecondsForSlot`，取本槽技能自己那一行的前摇（现在都是 1 s）。反噬行的 2 s 不计入：反噬的施法本来就用不上这次机会。没有全局施法锁：一招执行后即可请求另一个冷却已好的槽，两个技能可以同时生效，成对的技能会触发缘起（AI 的缘起决策见下文）。掌形 buff 期间每次推掌都是一次蓄力发射。
 
 **输入**：玩家单键施法（槽 0/1/2 = Q/E/R 与 1/2/3），手部朝向跟随光标的地面投影，鼠标左/右键推左/右手；按住 W 前进、松开停止推进（2026-10-30，W/↑ 推掌已删除）。AI 不按键：前进经 `AIRacerDriver.TryGetOverride` 的 `drive`，和真人的 W 写进同一个预测输入字段（`BuddahDriveInput.ResolveThrottle`），一直推进到完赛（已定，2026-10-30），驾驶规划 `BuddahMotionModel` 也按满推进力建模，所以这次改动不改变 AI 的驾驶。AI 不再搓招（A7）：决定后下一 tick 直接调用 `SkillExecutor.CastSlotServer`，再经 1 s 施法确认，从决定到效果出现约 1 s + 1 tick（决策前另有难度给定的反应延迟）。掌形 buff 期间 AI 的发射是直接的服务器推掌（`BuddahHandControl.InjectServerPush`，普通推掌冷却 0.4 s）。AI 的手部朝向经 `BuddahHandControl.InjectServerRotation` 以 180°/s 旋转，掌形发射方向 = 车头方向 + 手部 yaw。
 
@@ -64,7 +65,7 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 
 1. **读权威、不读未来、不读隐藏。** AI 可读服务器上所有参赛者的位置、赛道进度、速度、状态标志（定身、反转、缩放、推掌保护等）与自己的执念／反噬概率；不读他人的冷却、反噬抽签结果或任何未来信息。
 2. **延迟与噪声是难度，不是物理。** 观察到决定之间有反应延迟，决策有噪声，瞄准有容差，黑幕带来感知受损（A7 之前还有搓招的按键失误，已随搓招退役）。这些都只作用于 AI 的输入与决策，运动规则与技能效果不变。
-3. **人格与难度正交。** 难度拥有风险权重、停手阈值、反应延迟、瞄准容差、适应时间、感知受损参数；人格拥有配装、槽位、价值权重、耐心阈值、局势偏置、目标偏好、掌形发射上限。两者相乘，不互相覆盖。
+3. **人格与难度正交。** 难度拥有风险权重、停手阈值、反应延迟、瞄准容差、适应时间、感知受损参数；人格拥有配装、槽位、价值权重、耐心阈值、局势偏置、目标偏好、掌形发射上限、缘起倾向（`yuanqiAffinity`）。两者相乘，不互相覆盖。
 4. **机会要有有效期。** 每个机会谓词同时给出"预计还成立多久"，低于决定到生效的延迟就不算机会。
 5. **不改驾驶、不改作用范围、不针对真人。** 人格不改线追人、不故意落后套利；全局技能仍是全局技能。
 6. **可见即可用。** 已经在生效的全局效果（反转、黑幕）屏幕上看得见，AI 可以据此不叠加；这不属于隐藏信息。
@@ -95,11 +96,11 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 
 - 价值 `v = w[人格][技能] × o × 局势偏置[人格][领先/落后/车群]`。
 - 风险 `r = P(反噬) × backfireCost`，`P(反噬)` 直接调用 `ObsessionFigure.GetBackfireProbabilityPercent(当前执念)`，就是真实规则。统一反噬（A7）后代价与技能无关：`AI/SkillTuning.backfireCost`，建议（实现采用）1。A7 之前每个技能一个严重度（加速 1.0、反转 0.9、巨大化 0.5、黑幕 0.4、掌形 0.3、缓流 0.1），已删除。
-- 净值 `u = v − λ[难度] × r`。停手阈值只剩一个：`P(反噬) ≥ stopProbability[难度]` 直接不放（Easy 1.01 从不停手、Normal 0.7、Hard 0.45，沿用原来的严重技能阈值）。
+- 净值 `u = v × 缘起倍率 − λ[难度] × r`（缘起倍率见“8. 缘起决策”，普通施法为 1）。停手阈值只剩一个：`P(反噬) ≥ stopProbability[难度]` 直接不放（Easy 1.01 从不停手、Normal 0.7、Hard 0.45，沿用原来的严重技能阈值）。
 
 ### 5. 节奏抽样
 
-不是"净值过阈值就立刻放"，而是每轮决策以 `p = 1 − exp(−max(0, u − θ[人格]) × Δt / τ[人格])` 的概率出手。`θ` 是耐心阈值，`τ` 是节奏常数。这样同一机会持续存在时出手时间自然分散，冷却一到就放和长期不放都不会发生；五个 AI 的决策相位按索引交错。
+不是"净值过阈值就立刻放"，而是每轮决策以 `p = 1 − exp(−max(0, u − θ[人格]) × Δt / τ[人格])` 的概率出手。`θ` 是耐心阈值，`τ` 是节奏常数。这样同一机会持续存在时出手时间自然分散，冷却一到就放和长期不放都不会发生；五个 AI 的决策相位按索引交错。缘起跟进例外：窗口不到一秒，抽样用 `yuanqiFollowUpTempoSeconds`（0.3 s）和耐心 0，见“8. 缘起决策”。
 
 ### 6. 动作承诺状态机
 
@@ -118,9 +119,16 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 - **反转适应**（Q5）：`AIRacerDriver` 维护一个"认知转向符号"。真实符号翻转后，认知符号保持旧值 `adaptTicks[难度]` 再翻转；效果结束时同样延迟 `readaptTicks[难度]`。规划器用认知符号而不是 `FinalSteeringSign`。期间 AI 实际按错方向键，是真实误操作。
 - **感知受损**（黑幕）：服务器为每个 AI 维护"视野受损至 tick"。黑幕由所有非施法者获得（`SkillPerceptionState.ApplyCurtain`；2026-10-26 起没有反噬黑幕），持续时间与屏幕效果一致。受损期间对驾驶 profile 施加临时乘数（前视时间、次优失误率、反应 tick）并延长技能决策的反应延迟。这样黑幕对 AI 与对真人都有意义，Q4 才成立。
 
-### 8. 缘起决策
+### 8. 缘起决策（A7，建议（实现采用））
 
-缘起和 AI 的缘起决策在叠在本 PR 之上的单独 PR（分支 `feat/yuanqi`）里设计和实现，本分支不含。
+规则是已定的（玩法深化 §5.1、§7.1 A7）：没有顺序规则，但先放会被消耗的那招能先享受完它；第二招有 1 s 前摇，要在先放那招结束前至少 1 s 请求；两招的执念合计要按反噬概率估风险。`AIYuanqiPlanner` 是纯逻辑（EditMode 测试 `AIYuanqiPlannerTests`），`AISkillCaster.Decide` 每轮对每个槽问它：
+
+- **配装有哪些对**：`Build(配装, YuanqiRegistry.Registered, 主效果时长)`。五个预设里守位型（缓流、加速、巨大化）有 #2 禅足冰封和 #4 金足破阵，车群型（巨大化、掌形、缓流）有 #1 金身巨掌，追猎、干扰、机会型没有。
+- **先后**：只消耗一招的对（#4），被消耗的神足通先放；两招都消耗（#2）或都不消耗（#1）时，主效果长的先放（#2 缓流 6 s 先于神足通 3 s，#1 掌形 15 s 先于金身 6 s，重叠最长），相同则 `skillA` 先。
+- **跟进**：某对的另一招在状态板上生效中、剩余 ≥ 前摇 + 1 tick，这个槽就是跟进候选，有效期 = 剩余时间（请求下一 tick 发出、前摇后执行，仍落在窗口里）。先放的那招会被这一对消耗时（#2、#4 的神足通）只在剩余 ≤ 前摇 + `yuanqiLateWindowSeconds`（1 + 0.6 s）时才跟进（晚打，先享受加速）；不消耗时（#1）立刻跟进。跟进候选的机会分取 `max(自身谓词, yuanqiFollowUpScore 0.8)`，价值乘 `yuanqiFollowUpMultiplier 1.5 × yuanqiAffinity`，抽样用 `yuanqiFollowUpTempoSeconds 0.3` 和耐心 0。
+- **起手**：这个槽是某对先放的那招，且另一招的冷却会在它效果结束前至少 1 s 就绪（冷却剩余按 Accepted 事件估算）；再估第二招的反噬概率 `P2 = P(当前执念 + 第一招的 obsessionGain)`，`P2 < stopProbability` 才给起手加成（价值乘 `yuanqiSetupMultiplier 1.2 × yuanqiAffinity`），否则按普通施法评估（日志 `yuanqi setup-risk`）。
+- **不做的**：不为没设计的对补内容；不改任何谓词的作用范围；`yuanqiAffinity` 0 就完全不做缘起决策。
+- 日志：`Telemetry.Emit` kind `yuanqi`，reason `setup` / `follow-up` / `setup-risk`；单人赛 harness 按 racer 记缘起触发次数（`SkillExecutor.YuanqiObserved`）。
 
 ## 难度映射（建议默认值，待调校）
 
@@ -146,7 +154,7 @@ A7 之前的“每键搓招失误率”15% / 6% / 1% 已随搓招退役。简单
 - **零分配。** 快照、候选、日志结构复用数组与结构体；每个 AI 的 `System.Random` 由 `NoiseSeed` 派生并固定，保证可复现。
 - **tick 定时。** 决策间隔、请求时刻、瞄准、适应、感知受损全部用服务器 tick，为 S7 Pause 预留；不新增 `Time.time` 依赖。
 - **退化路径。** 若预算超出，先拉长决策间隔与快照间隔，不降低门控与合法性校验，不绕过施法门。
-- **测量方法。** `AITuningHarness --ai-profiles` 增加施法开关与同场对照（施法关／开），报告每帧 `AI.Skill`、每 AI 施法次数、反噬次数、取消次数、按情境的分布；无观察者时不产生分配。
+- **测量方法。** `AITuningHarness --ai-profiles` 增加施法开关与同场对照（施法关／开），报告每帧 `AI.Skill`、每 AI 施法次数、反噬次数、取消次数、缘起触发次数、按情境的分布；无观察者时不产生分配。
 - **玩法层面的浪费控制。** 有效期不足不放；可见全局效果生效中不叠加同类；自己处于定身／复活／起步交接时不开始新决策（已接受的施法照常完成，与玩家一致）；掌形瞄准进行中不决策。
 
 ## 接入接缝
@@ -165,13 +173,13 @@ A7 之前的“每键搓招失误率”15% / 6% / 1% 已随搓招退役。简单
 
 以下是后续实现草案，不是本轮执行任务。用户再次要求开始实现后的顺序：先合入 `f9c56d8` 基线 → 人格配装解析与校验 → 共享快照与谓词（EditMode）→ 服务器按键注入与承诺状态机 → 公共权威施法 → 掌形瞄准器 → 反转适应与感知受损 → 五 AI 实战与可试玩构建。
 
-每次决策写一条 Verbose 日志：tick、RacerId、人格 ID、难度、候选技能与机会分、目标、执念与 P(反噬)、净值、是否出手、未出手原因（门控／阈值／抽样／有效期）。A3 报告按人格汇总：施法次数、反噬次数、取消次数、按情境（领先／落后／车群）与目标状态的分布、`AI.Skill` 耗时（搓招失败次数已随搓招退役）。
+每次决策写一条 Verbose 日志：tick、RacerId、人格 ID、难度、候选技能与机会分、目标、执念与 P(反噬)、净值、是否出手、未出手原因（门控／阈值／抽样／有效期）。A3 报告按人格汇总：施法次数、反噬次数、取消次数、缘起触发次数、按情境（领先／落后／车群）与目标状态的分布、`AI.Skill` 耗时（搓招失败次数已随搓招退役）。
 
 验证分别记录：规则与独立状态测试；六种技能普通／反噬的适用对象与实际效果；受扰后恢复和生命周期清理；五个 AI 带技能的自然比赛及实际完赛／DNF 原因；可试玩构建。施法请求、接受、实际执行、投射物命中和效果恢复分开记录。尚未发生的用户试玩保持未验证。
 
 ## A7 单人赛验证（2026-10-28）
 
-`AISkillRaceHarness.Begin(dir, SoloDifficulty.Normal)`，编辑器 Play 模式从 MainMenu 启动，五个产品 AI、真人不操作；原始数据在 `Logs/a7/solo-1`（`Logs/` 不入库），下面只记汇总。它是 A3 式的自然比赛观察，不是用户试玩，手感和数值一律未验证。本节和下一节的单人赛都跑在缘起拆到缘起 PR（`feat/yuanqi`）之前的代码上，里面的缘起次数是当时的记录；现在的 harness 不再统计缘起。
+`AISkillRaceHarness.Begin(dir, SoloDifficulty.Normal)`，编辑器 Play 模式从 MainMenu 启动，五个产品 AI、真人不操作；原始数据在 `Logs/a7/solo-1`（`Logs/` 不入库），下面只记汇总。它是 A3 式的自然比赛观察，不是用户试玩，手感和数值一律未验证。
 
 | 看的点 | 结果 |
 |---|---|

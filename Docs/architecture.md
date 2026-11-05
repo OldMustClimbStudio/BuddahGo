@@ -5,13 +5,13 @@
 | 连接与房间 | `Network/Core/`、`Network/Room/` | `GameNetworkManager`、`RoomStateManager` |
 | 大厅与选择 | `Network/Lobby/`、`Network/Session/PropertySelection/` | `SteamLobbyManager`、`PropertiesSelectionManager` |
 | 预测运动 | `New_Buddah/` | `BuddahPredictedMotor`、reconcile 数据与相关 bridge |
-| 技能 | `Buddah/ComboSkill/`、`GameData/ObsessionFigure.cs` | `SkillExecutor` 负责施法入口、施法门与统一反噬；`ObsessionFigure` 负责执念与反噬惩罚 |
+| 技能 | `Buddah/ComboSkill/`（缘起在其下 `Yuanqi/`）、`GameData/ObsessionFigure.cs` | `SkillExecutor` 负责施法入口、施法门与统一反噬；`ObsessionFigure` 负责执念与反噬惩罚；`SkillStateBoard` / `YuanqiRegistry` 负责缘起（仅服务器） |
 | 配置 | `Config/` | `ProjectConfigRuntime` 和 repositories |
 | 比赛与结算 | `RaceIntro/`、`Network/Gameplay/`、`Network/Session/Results/` | 入场、进度、终点和投票各自的 controller/manager |
 | 表现 | `UI/`、预测表现与相机 bridge、`Buddah/RacerSkillPresentationState.cs` | 读取游戏状态和表现事件，更新 UI、VFX、相机 |
 | 会话与比赛契约 | `Match/`、`Match/Contracts/`、`Match/UI/` | `SessionLauncher` 启停会话；`MatchRules`、`MatchServices`、`RacerDirectory` 为每局静态入口，由 `SessionLauncher.ResetMatchGlobals` 统一清理；参赛者身份见[下文](#参赛者身份与权限) |
 | 训练木桩 | `Match/TrainingDummy/`，由 `Network/Match/MatchSpawnManager` 生成 | `TrainingDummy` 原地停车与复位（仅服务器），`TrainingDummyReadout` 显示头顶读数 |
-| AI 对手 | `AI/`；诊断 harness 在 `AI/Diagnostics/`，仅 Editor/Development 编译 | `AIRacerDriver` 通过 `ISteeringOverride` 驾驭；`AISkillCaster` 直接调用共享的 `SkillExecutor.CastSlotServer`（和 owner RPC 同一个施法门，A7），掌形瞄准经 `BuddahHandControl.InjectServerRotation` / `InjectServerPush`；`AISkillWorld` 提供每局共享快照 |
+| AI 对手 | `AI/`；诊断 harness 在 `AI/Diagnostics/`，仅 Editor/Development 编译 | `AIRacerDriver` 通过 `ISteeringOverride` 驾驭；`AISkillCaster` 直接调用共享的 `SkillExecutor.CastSlotServer`（和 owner RPC 同一个施法门，A7），掌形瞄准经 `BuddahHandControl.InjectServerRotation` / `InjectServerPush`；`AIYuanqiPlanner` 做缘起起手 / 跟进决策（建议（实现采用））；`AISkillWorld` 提供每局共享快照 |
 
 ## 关键边界
 
@@ -30,7 +30,7 @@
 服务器 AI：AISkillCaster.Decide（AISkillCommitment：决定后下一 tick 请求）→ AISkillCaster.Request
   → 两条路进入同一个 SkillExecutor.CastSlotServer
   → 施法门 → 在请求这一刻掷反噬骰 → QueueCast：本槽进冷却，播放确认前摇
-  → 前摇结束：正常 → ExecuteServer、执念入账、CastObserversRpc
+  → 前摇结束：正常 → ExecuteServer、执念入账、CastObserversRpc、写技能状态板（可能触发缘起）
               反噬 → 技能不执行，开始统一反噬惩罚
 ```
 
@@ -44,7 +44,15 @@
 
 ### 缘起
 
-缘起（技能组合）在叠在本 PR 之上的单独 PR（分支 `feat/yuanqi`）里设计和实现，本分支不含。缘起要用的预测修饰已在本分支：冻结 `Freeze`（`SkillExecutor.ApplyFreezeToOwner`）、突进 `Burst`（`ApplyBurstToOwner`）和提前结束修饰的 `EndModifier`（`EndAccelerationForOwner` / `EndScaleForOwner`），规则见[玩法深化 A5](gameplay/README.md#a5-缘起)。
+缘起是两招之外的第三方粘合，状态只在服务器、不同步。规则见[玩法深化 §5](gameplay/README.md#5-缘起技能组合)，每一对的内容见[缘起技能设计](gameplay/yuanqi.md)，模块设计见[缘起架构设计](gameplay/yuanqi-architecture.md)。
+
+- `SkillExecutor.OnStartServer` 给每个 racer（训练木桩除外）运行时挂上 `SkillStateBoard`（技能状态板）和 `YuanqiRegistry`（开局登记与触发），两者都是普通 MonoBehaviour。
+- 登记：`YuanqiRegistry.RegisterForLoadout` 用 `YuanqiCatalog.ForLoadout` 从 `SkillDatabase.yuanqis` 挑出两招都在本配装里的对，为这个 racer 各实例化一份；`SkillLoadout.ServerSlotsChanged` 时重新登记。配装之外的组合不检测。
+- 写板：每次正常执行之后（在 `CastObserversRpc` 之后；反噬不写），`SkillExecutor` 按 `SkillAction.GetActiveWindow` 写一条记录，附上 `SkillAction.CreateRuntimeHandle` 返回的 `ISkillRuntimeHandle`。记录随 `TimeManager.OnTick` 过期。
+- 触发：注册表监听状态板的 `Activated` 事件，不每帧轮询。另一招也在生效、且这次重叠还没触发过，就调用该对的 `OnTriggerServer`，再按配表的消耗标记消耗技能；持续型的对在任一招结束时收到 `OnEndServer`。
+- 依赖方向：`SkillExecutor` 不认识任何一对。每一对是一个 `YuanqiAction` 子类（`Yuanqi/Pairs/Yuanqi_*.cs`）加一个资产（`Assets/Skills_Assets/Yuanqi/`），列在 `SkillDatabase.yuanqis`，由 `Skill/Yuanqi` 表的一行配置（有参数时另有 `Skill/YuanqiEffect<对>` 家族表），见 [ADR 0006](adr/0006-yuanqi-pairs-are-third-party-modules-registered-per-loadout.md)。每一对只通过 `ISkillRuntimeHandle`（以及 `IScaleRuntimeHandle`、`IHandsImpulseScale`）动技能，通过 `SkillExecutor.ApplyXToOwner` 动运动，通过 `BuddahPredictionRouter.RouteImpulse` 发冲量，画面只走观察者 RPC。
+- 表现：`SkillExecutor` 的 `YuanqiObserversRpc`、`SkillConsumedObserversRpc` 和 `YuanqiImpactObserversRpc` 在每个端分别触发 `YuanqiObserved`、`SkillAction.ExecuteConsumedObservers` 和 `YuanqiImpactObserved`；施法者的 owner 端另有 `LocalYuanqiTriggered`，HUD 用它弹提示。
+- 清理：服务器侧的每条重置路径都调用 `ResetYuanqiStateServer`，清空状态板和进行中的缘起：服务器控制 racer 的重置、真人的 `ResetActiveSkillEffectsServer`、真人复活 teleport 在服务器被消费时，以及停服。
 
 ### 表现接口
 
@@ -52,6 +60,7 @@
 
 - `ObsessionFigure.BackfireStateChanged`：反噬开始和结束，每个端都会触发。
 - `RacerSkillPresentationState`：每个端给每个 racer 运行时挂上，提供 `FrozenChanged` / `BurstChanged` 与剩余时间。
+- `SkillExecutor.YuanqiObserved` / `YuanqiImpactObserved`：缘起触发与每次突进撞击。
 - `BuddahHandControl.TryGetAimGroundPoint`：owner 端当前帧的光标地面点；`IsInsideMouseAimDeadRadius` 判断它是否在死区内，`BuddahHandControl.LocalOwner` 是本机 owner 的手部组件。占位图标 `AimGroundIndicator`（`UI/InGameUI/`，由 `RaceMapUIBootstrap` 运行时挂到 HUD）读这三个入口，在瞄准点画圆环加十字，等手部朝向指引设计后替换，见[玩法深化 A6](gameplay/README.md#a6-hud)。
 
 不需要美术的动作层已经实现：冻结期间角色 Animator 定格，手部停转。
@@ -59,7 +68,7 @@
 ## 参赛者身份与权限
 
 - `RacerIdentity`（`Match/Contracts/`）在 spawn 前分配 racer id：真人等于 client id，AI 为 `RacerId.AIBase`（10000）加序号。id 已分配的 racer 在 `OnStartNetwork` 注册进 `RacerDirectory`。
-- 训练木桩用同一个 racer prefab，由 `AssignTrainingDummyBeforeSpawn` 标记 `IsTrainingDummy`，id 保持未分配（−1），所以不进 `RacerDirectory`、排名、完赛、结算、落后补偿和开场布局。按场上 `SkillExecutor` 找目标的技能（如逆姻缘）仍会命中它。
+- 训练木桩用同一个 racer prefab，由 `AssignTrainingDummyBeforeSpawn` 标记 `IsTrainingDummy`，id 保持未分配（−1），所以不进 `RacerDirectory`、排名、完赛、结算、落后补偿和开场布局。按场上 `SkillExecutor` 找目标的技能（如逆姻缘）和缘起仍会命中它（缘起由各对决定：禅足冰封看 `affectsTrainingDummies`，现为 true）；它自己没有状态板和缘起登记。
 - `RacerAuthority` 回答“哪个进程驱动这个 racer”：
 
 | 判断 | 何时为真 | 用于 |

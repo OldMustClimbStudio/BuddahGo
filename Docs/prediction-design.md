@@ -43,6 +43,7 @@
 - 解析顺序：基础值 → 体型 → 加法加成（加速、定身后加速、突进）→ 反噬减速倍率 → 定身/冻结归零 → 下限 0。
 - 重置：服务器控制 racer（AI、木桩）的技能重置 `ResetActiveSkillModifiers` 清掉定身与定身后加速、加速、体型、反转、冻结和突进，保留推掌宽限、转向抑制、房间旁路和反噬减速；带 `ResetModifiers` 的 teleport（复活）清空全部状态，只留下反噬减速（`PreservePersistentOnReset`）。所以反噬减速总是持续到自己的期限。
 - 纯客户端 reconcile 回放时，modifier 按正在回放的 tick 解析：`BuddahTickMath.ModifierResolveTick` 在客户端回放中返回 `PredictionManager.ClientReplayTick`，其余情况返回 `LocalTick`。回放中 `LocalTick` 不动，用它会让 Burst 的逐 tick 衰减和所有期限都按“现在”计算。冲量消费和开场状态仍用 live tick。
+- 新增一条修饰期限的改动清单（状态字段、命令、马达分支、解析、tick 平移、bridge、配表登记、协议版本）见[缘起架构设计附录 A](gameplay/yuanqi-architecture.md)。
 
 ## 表现与生命周期
 

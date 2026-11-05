@@ -13,7 +13,8 @@
 | 单机模式（AI、离线流程）：现状、规格与事实 | [single-player/HANDOFF.md](single-player/HANDOFF.md) |
 | 策划配表：Excel 工作簿、导入器、规范与筛查清单 | [design-tables/README.md](design-tables/README.md) |
 | 技能特效：分层规范、流程、插槽、预算与档位；每个技能一篇专题 | [vfx/README.md](vfx/README.md) |
-| 玩法深化：执念与反噬、单键施法与鼠标瞄准、W 推进、训练木桩（A5 缘起在 PR #75 `feat/yuanqi`；联机验证未做） | [gameplay/README.md](gameplay/README.md) |
+| 玩法深化：缘起、执念与反噬、单键施法与鼠标瞄准、W 推进、训练木桩（联机验证未做） | [gameplay/README.md](gameplay/README.md) |
+| 缘起：每一对的设计；模块边界、配表扩展与禅足冰封的构筑 | [gameplay/yuanqi.md](gameplay/yuanqi.md) · [gameplay/yuanqi-architecture.md](gameplay/yuanqi-architecture.md) |
 | 训练模式验证：各场景的实测值与重跑方法（只覆盖本机 host） | [gameplay/practice-verification.md](gameplay/practice-verification.md) |
 | 玩法改动的退役清单：删了什么、在哪个提交、哪些有意保留 | [gameplay/retired.md](gameplay/retired.md) |
 | 渲染入口：改动前读什么、不变量、抓图—烘焙—对比流程 | [rendering/HARNESS.md](rendering/HARNESS.md) · [rendering/ARCHITECTURE.md](rendering/ARCHITECTURE.md) |

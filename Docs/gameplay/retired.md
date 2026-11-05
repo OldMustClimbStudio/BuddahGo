@@ -68,7 +68,7 @@
 | `UI/Text` 的 12 个 `skill.*_anti.name / .desc` | 已恢复 | 同上，见 4.1 | 6cf32706；2026-10-31 恢复（7a078eed），见第 8 节 |
 | `Skill/VfxRegistry` 的 `accel_anti_vfx`、`reverse_turn_trap_anti_vfx` | 已恢复 | 库中本来就没有条目，见 4.1 | 6cf32706；2026-10-31 恢复（7a078eed），见第 8 节 |
 | `Skill/Obsession.repeatWindowSeconds` 注释“SkillExecutor 每槽记层数” | 已改 | 同招加价按技能 id 记层数（`SkillRepeatSurcharge`） | bbda0a20 |
-| `Skill/Yuanqi.retriggerPolicy` 注释“YuanqiRegistry 读 SO.retriggerPolicy” | 已改 | 代码不按值分支，一次重叠只触发一次是 `YuanqiPairTable` 固定的（`Skill/Yuanqi` 已随缘起移到缘起 PR `feat/yuanqi`） | bbda0a20 |
+| `Skill/Yuanqi.retriggerPolicy` 注释“YuanqiRegistry 读 SO.retriggerPolicy” | 已改 | 代码不按值分支，一次重叠只触发一次是 `YuanqiPairTable` 固定的 | bbda0a20 |
 | `Skill/SkillPresentation.vfxDurationSeconds` 注释“slowtrap 的 11 = 区域 10 s + 1 s 余韵” | 已改 | 区域现在 6 秒，11 只是上限，区域结束时特效随之停止 | bbda0a20 |
 | `Skill/Skill.skillId` 注释里“枚举里保留的 *_anti 值” | 已改 | 枚举值已删 | 6cf32706；枚举值恢复后注释沿用现在的写法 |
 | `Global/InputBinding.status` 注释与 `__meta__` 说明里的“W/↑ 推掌是废弃内容” | 已改 | A8 已删 | bbda0a20 |
@@ -120,7 +120,7 @@
 
 ## 7. 和 PR #68 合并时怎么对齐
 
-> **已执行（2026-11-03）。** PR #68 先以 c34d0d11 squash 进 dev，本分支随后合入 dev，按下面的原则处理：`_anti` 类、资产和三个反噬 VFX id 两边都保留；`cast` / `cast_anti` 通用前摇插槽接到 `PlayQueuedCastFeedbackObserversRpc`，反噬前摇取 `_anti` 行的 2 秒；旧特效路径（`PlayerAccelerationTrail`、`TimedVfxInstance`、`SkillVfxTag` / `SkillVfxFollowTarget` / `SkillVfxAttachmentSettings`、`SkillVfxReplicator` 的 `StopVfxLocal(id, linger)`、技能 SO 上的 `vfxLocalOffset / vfxLocalEuler / vfxStopPlayingBeforeEndSeconds / consumedVfxLingerSeconds / zoneEndVfxLingerSeconds`）随 dev 退役，缘起消耗和缓流区域结束改调插槽管线的 `StopSlotLocal` / `StopVfxAll`（`StopVfxAllObserversRpc` 名字不变，`PredictionProtocol` 的表现列表仍对；缘起拆出后 `StopVfxAll` 与这条 RPC 随缘起移到缘起 PR `feat/yuanqi`）；配表按 CSV 镜像先合并再重建 `Skill.xlsx`，`castLockSeconds` 没有回来，`Skill/VfxRegistry` 按 dev 转为导出表；两边的 `Docs/gameplay/retired.md` 合成本文件（dev 的记录在最后一节）。验证见 PR #63 描述。
+> **已执行（2026-11-03）。** PR #68 先以 c34d0d11 squash 进 dev，本分支随后合入 dev，按下面的原则处理：`_anti` 类、资产和三个反噬 VFX id 两边都保留；`cast` / `cast_anti` 通用前摇插槽接到 `PlayQueuedCastFeedbackObserversRpc`，反噬前摇取 `_anti` 行的 2 秒；旧特效路径（`PlayerAccelerationTrail`、`TimedVfxInstance`、`SkillVfxTag` / `SkillVfxFollowTarget` / `SkillVfxAttachmentSettings`、`SkillVfxReplicator` 的 `StopVfxLocal(id, linger)`、技能 SO 上的 `vfxLocalOffset / vfxLocalEuler / vfxStopPlayingBeforeEndSeconds / consumedVfxLingerSeconds / zoneEndVfxLingerSeconds`）随 dev 退役，缘起消耗和缓流区域结束改调插槽管线的 `StopSlotLocal` / `StopVfxAll`（`StopVfxAllObserversRpc` 名字不变，`PredictionProtocol` 的表现列表仍对）；配表按 CSV 镜像先合并再重建 `Skill.xlsx`，`castLockSeconds` 没有回来，`Skill/VfxRegistry` 按 dev 转为导出表；两边的 `Docs/gameplay/retired.md` 合成本文件（dev 的记录在最后一节）。验证见 PR #63 描述。
 
 PR #68（`refactor/vfx-refactor` → dev）从 dev 9629c317 切出，那时 dev 还有六个反噬变体。它改过的文件里有下面这些引用了 `_anti` 技能、`antiSkillId` 或这批 id（2026-10-31 在 `origin/refactor/vfx-refactor` 4c81b6fa 上用 `git grep` 查，只列 #68 相对 merge-base 改过的文件）。#63 和 #68 谁后进 dev，谁处理冲突。
 
@@ -162,7 +162,7 @@ PR #68（`refactor/vfx-refactor` → dev）从 dev 9629c317 切出，那时 dev 
 1. 反噬本身就是该技能的 `_anti` 变体；统一惩罚改为 5 秒持续时间惩罚（`Skill/Obsession.backfireLockSeconds` 10 → 5，8f375ac0）：三槽全锁、执念冻结、极速 ×0.85 和变体自带的减速相乘、结束时执念 ×0.8。
 2. 变体按自己的时长结束，和惩罚互不影响。
 3. 反噬判定后在前摇里被禁锢，变体照常放出，和惩罚同时开始。
-4. 变体与缘起的规则随缘起 PR（分支 `feat/yuanqi`）加入。
+4. 变体不进技能状态板，不能触发也不能参与缘起；本应触发缘起时反噬，缘起不触发，正在生效的那一招按普通版本跑完（训练模式 S14 覆盖）。
 5. 复活时变体效果按普通技能效果的复位规则清掉，惩罚照旧持续。
 6. AI 先保持统一 `backfireCost`，不加回按技能的严重度，试玩后再调。
 7. “反作用”由变体取代。

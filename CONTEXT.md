@@ -64,7 +64,7 @@ A computer-controlled Buddah that races in a Solo Match, casts skills with its o
 _Avoid_: bot, NPC, CPU
 
 **Training Dummy**:
-A parked, ownerless Buddah that only Practice spawns as a target for skills and pushes: three of them, 15 m apart along the first straight past the start line, left, centre and right. It is not a Racer: it stays parked and never casts, and its RacerId stays unassigned, so it never runs laps or timing or appears in the ranking and results. Normal physics, impulses and skill effects such as slows, inversion and freezes act on it, and an overhead readout shows the effects currently on it. Once displaced, it returns to its spawn point 3 s after the last skill effect, impulse or contact with a moving body.
+A parked, ownerless Buddah that only Practice spawns as a target for skills, pushes and skill synergies (缘起, see [GLOSSARY.md](GLOSSARY.md)): three of them, 15 m apart along the first straight past the start line, left, centre and right. It is not a Racer: it stays parked and never casts, and its RacerId stays unassigned, so it never runs laps or timing or appears in the ranking and results. Normal physics, impulses and skill effects such as slows, inversion and freezes act on it, and an overhead readout shows the effects currently on it. Once displaced, it returns to its spawn point 3 s after the last skill effect, impulse or contact with a moving body.
 _Avoid_: bot, target AI, NPC
 
 ### AI Behaviour

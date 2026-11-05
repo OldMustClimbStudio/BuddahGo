@@ -7,6 +7,8 @@ in `Buddah.prefab`; old serialized overrides cannot restore the removed renderin
 This implements the authorized screen-only change from
 [PR #50](https://github.com/OldMustClimbStudio/BuddahGo/pull/50#discussion_r4146561530).
 
+> **已被取代（2026-10-31）：** `ComboSkillInput` 和它的 `debugHud` 字段已随 A7（2026-10-28）删除，这里的兼容字段只剩预测侧的 `enableOnScreenDebug`，见 [玩法深化](gameplay/README.md)。
+
 ## Configure the retained logs
 
 | Consumer | Setting and behavior |

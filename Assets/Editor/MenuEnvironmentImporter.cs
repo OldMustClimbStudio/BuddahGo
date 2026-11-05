@@ -2022,41 +2022,14 @@ public static class MenuEnvironmentImporter
                 typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
     }
 
-    // The menu shares RaceMap's dusk environment (the user's decision, 2026-11-03): the Sunset Sky material
-    // RaceMap_Sky_Dusk.mat, RaceMap's Trilight ambient, skybox reflections (256 px, 2 bounces, x1) and RaceMap's exp2 fog
-    // 0.0009 (1.263, 0.967, 0.612), calibrated against that sky (Docs/rendering/racemap/dusk-color-study.md section 11).
-    // The importer only references RaceMap's assets; RaceMap owns them, and a re-tune there changes the menu too.
-    // Lightmapping.lightingSettings below assigns RaceMap's own RaceMap_Lighting.lighting rather than a copy.
-    private const string RaceMapSkyPath = "Assets/Scenes/RaceMap/RaceMap_Sky_Dusk.mat";
-    private const string RaceMapLightingSettingsPath = "Assets/Scenes/RaceMap/RaceMap_Lighting.lighting";
-
+    // The menu shares RaceMap's dusk environment (the user's decision, 2026-11-03): sky RaceMap_Sky_Dusk.mat, RaceMap's
+    // Trilight ambient, skybox reflections, exp2 fog and RaceMap's own RaceMap_Lighting.lighting (not a copy).
+    // The values live in one place, RenderingBake (Assets/Editor/Rendering/), which the scripted bake also writes, so a
+    // re-tune there changes the race and the menu together. Only the sun is the menu's own.
     private static void SetupEnvironment(Light sun)
     {
-        var sky = AssetDatabase.LoadAssetAtPath<Material>(RaceMapSkyPath);
-        if (sky == null) Debug.LogError($"[MenuEnvironment] Sky material not found at {RaceMapSkyPath}.");
-        var lightingSettings = AssetDatabase.LoadAssetAtPath<LightingSettings>(RaceMapLightingSettingsPath);
-        if (lightingSettings == null) Debug.LogError($"[MenuEnvironment] Lighting settings not found at {RaceMapLightingSettingsPath}.");
-        else Lightmapping.lightingSettings = lightingSettings;
-
-        RenderSettings.skybox = sky;
         RenderSettings.sun = sun;
-        RenderSettings.ambientMode = AmbientMode.Trilight;
-        // Cooler gradient than the first dusk version (0.36/0.44/0.6, 0.66/0.5/0.36, 0.2/0.15/0.13): with the
-        // 2900 K sun the baked light probes went all-orange, this keeps a blue fill (study section 13).
-        RenderSettings.ambientSkyColor = new Color(0.50f, 0.62f, 0.90f);
-        RenderSettings.ambientEquatorColor = new Color(0.50f, 0.50f, 0.52f);
-        RenderSettings.ambientGroundColor = new Color(0.18f, 0.16f, 0.16f);
-        RenderSettings.ambientIntensity = 1.2f;
-        RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
-        RenderSettings.defaultReflectionResolution = 256;
-        RenderSettings.reflectionBounces = 2;
-        RenderSettings.reflectionIntensity = 1f;
-        RenderSettings.fog = true;
-        RenderSettings.fogMode = FogMode.ExponentialSquared;
-        RenderSettings.fogDensity = 0.0009f;
-        RenderSettings.fogColor = new Color(1.263f, 0.967f, 0.612f);
-        RenderSettings.subtractiveShadowColor = new Color(0.1792453f, 0.1792453f, 0.1792453f);
-        DynamicGI.UpdateEnvironment();
+        BuddahGo.Rendering.Editor.RenderingBake.ApplyEnvironment();
     }
 
     // RaceMap's dusk post profile (ACES, exposure +0.05, contrast 14, saturation 4, white balance 10 / -4, warm bloom),

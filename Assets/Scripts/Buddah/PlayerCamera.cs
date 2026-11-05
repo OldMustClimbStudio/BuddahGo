@@ -203,6 +203,9 @@ public class PlayerCamera : NetworkBehaviour
         _runtimeFovOffset = fovOffset;
     }
 
+    /// <summary>The skill FOV offset currently applied (an early settle starts from it).</summary>
+    public float RuntimeFieldOfViewOffset => _runtimeFovOffset;
+
     public void DampenRuntimeOffset(Vector3 targetOffset, float smoothTime)
     {
         float safeSmoothTime = Mathf.Max(0.001f, smoothTime);

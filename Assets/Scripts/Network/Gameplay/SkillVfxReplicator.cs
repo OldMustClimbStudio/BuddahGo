@@ -24,6 +24,9 @@ public class SkillVfxReplicator : NetworkBehaviour
     // Slot effects outlast their window by this much so the last particles and trails fade out.
     private const float SlotTailSeconds = 1.5f;
 
+    // Every instance this replicator spawned, parented or not: an unparented instance (SkillVfxFollowTarget, e.g. the
+    // slow-trap zone) is not under this transform, so stopping by id cannot search the children.
+
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -74,6 +77,23 @@ public class SkillVfxReplicator : NetworkBehaviour
         if (_slots.TryGetValue(vfxId, out SkillVfxPhaseController slot) && slot != null)
             slot.BeginDissipation();
         _slots.Remove(vfxId);
+    }
+
+    /// <summary>
+    /// Server-side call: end the slot effect on ALL clients now (a slow-trap zone ended early, a 缘起 consumed the
+    /// skill on the server). The RPC name is part of PredictionProtocol's presentation list.
+    /// </summary>
+    public void StopVfxAll(string vfxId)
+    {
+        if (!IsServerInitialized || string.IsNullOrWhiteSpace(vfxId)) return;
+        StopVfxAllObserversRpc(vfxId);
+    }
+
+    // Appended after PlayVfxAllObserversRpc to keep the RPC order.
+    [ObserversRpc]
+    private void StopVfxAllObserversRpc(string vfxId)
+    {
+        StopSlotLocal(vfxId);
     }
 
     // A slot prefab places its own layers on this player (caster anchors), so it is not parented or offset here:

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
@@ -17,6 +18,12 @@ public class SkillLoadout : NetworkBehaviour
 
     // slotIndex -> skillId
     public readonly SyncList<string> SlotSkillIds = new SyncList<string>();
+
+    /// <summary>
+    /// Server: the slots were (re)written by SetSlotsServer (also reached from TryApplyResolvedSelectionServer),
+    /// SetSlotServer or ApplyDefaultSkillsServer. SkillExecutor re-registers the racer's 缘起 on it.
+    /// </summary>
+    public event Action ServerSlotsChanged;
 
     public override void OnStartServer()
     {
@@ -60,6 +67,7 @@ public class SkillLoadout : NetworkBehaviour
         }
 
         LogFinalLoadout("SetSlotsServer");
+        ServerSlotsChanged?.Invoke();
     }
 
     [Server]
@@ -71,6 +79,7 @@ public class SkillLoadout : NetworkBehaviour
         EnsureSlotCountServer();
         SlotSkillIds[slotIndex] = skillId ?? string.Empty;
         GameLog.Verbose($"[SkillLoadout][Server] Set slot {slotIndex} -> '{SlotSkillIds[slotIndex]}'");
+        ServerSlotsChanged?.Invoke();
     }
 
     [Server]
@@ -93,6 +102,13 @@ public class SkillLoadout : NetworkBehaviour
 
     [Server]
     public void ApplyDefaultSkillsServer()
+    {
+        ApplyDefaultSkillSlotsServer();
+        ServerSlotsChanged?.Invoke();
+    }
+
+    [Server]
+    private void ApplyDefaultSkillSlotsServer()
     {
         EnsureSlotCountServer();
 

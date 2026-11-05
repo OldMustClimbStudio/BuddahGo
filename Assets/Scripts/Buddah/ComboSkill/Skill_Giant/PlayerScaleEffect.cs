@@ -3,7 +3,7 @@ using NewBuddah.PredictionV2.Bootstrap;
 
 public class PlayerScaleEffect : MonoBehaviour
 {
-    private const float MinScaleMultiplier = 0.1f;
+    internal const float MinScaleMultiplier = 0.1f;
 
     private BuddahMovement _move;
     private Rigidbody _rb;
@@ -50,6 +50,19 @@ public class PlayerScaleEffect : MonoBehaviour
         _targetScaleMultiplier = targetMultiplier;
         _timeLeft = Mathf.Max(_timeLeft, Mathf.Max(0.05f, durationSeconds));
         StartTransition(_targetScaleMultiplier, _enterDuration);
+    }
+
+    /// <summary>
+    /// 缘起 consumed the skill: leave the hold now and run the normal shrink (restore duration), exactly like a
+    /// natural expiry. CancelAndRestore is the instant variant used by resets.
+    /// </summary>
+    public void EndEarly()
+    {
+        if (!_initialized || _timeLeft <= 0f)
+            return;
+
+        _timeLeft = 0f;
+        StartTransition(1f, _restoreDuration);
     }
 
     public void CancelAndRestore()

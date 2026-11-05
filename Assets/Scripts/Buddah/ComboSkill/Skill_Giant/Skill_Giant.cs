@@ -66,6 +66,24 @@ public class Skill_Giant : SkillAction
         ScaleSkillPresentation.ResetLocalCamera(caster, GetType().Name);
     }
 
+    public override ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster)
+    {
+        return caster != null ? new GiantRuntimeHandle(caster, skillId, durationSeconds) : null;
+    }
+
+    // 缘起 consumed the giant form: every peer runs the normal shrink now (the motor scale already ended).
+    public override void ExecuteConsumedObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
+    {
+        if (caster == null)
+            return;
+
+        var effect = caster.GetComponent<PlayerScaleEffect>();
+        if (effect != null)
+            effect.EndEarly();
+
+        GameLog.Verbose($"[Skill_Giant][Observers] '{skillId}' consumed (slot {slotIndex}), shrinking early.");
+    }
+
     public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
     {
         AddVfxSlot(into, releaseVfxId, 0f, durationSeconds, "Skill.effectDurationSeconds → durationSeconds");

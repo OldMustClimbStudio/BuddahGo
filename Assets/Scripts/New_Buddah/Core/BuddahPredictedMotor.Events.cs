@@ -614,6 +614,7 @@ namespace NewBuddah.PredictionV2.Core
 
             if (_skillExecutor != null && (IsOwner || RacerAuthority.IsServerControlled(this)))
                 _skillExecutor.ResetActiveSkillEffectsForOwner(eventData.ResetModifiers);
+            if (_skillExecutor != null && IsServerInitialized && eventData.ResetModifiers && !RacerAuthority.IsServerControlled(this)) _skillExecutor.ResetYuanqiStateServer("respawn"); // 缘起 board is server-only; a Human Player's respawn never reaches the server-controlled reset
 
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, currentTick);
             SyncModifierDebugState(currentTick);

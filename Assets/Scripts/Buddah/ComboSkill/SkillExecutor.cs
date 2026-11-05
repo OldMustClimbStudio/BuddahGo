@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 
 public class SkillExecutor : NetworkBehaviour
 {
@@ -67,6 +68,16 @@ public class SkillExecutor : NetworkBehaviour
 
     public event Action<LocalSkillUiEvent> LocalSkillUiTriggered;
 
+    /// <summary>
+    /// Every client (host included): a 缘起 of this racer triggered (yuanqiId, payload, localIsCaster). Raised from the
+    /// 缘起 ObserversRpc after YuanqiAction.PlayObservers, also when this client's SkillDatabase lacks the id. The
+    /// presentation hook for artists: the payload carries the centre, radius, seconds, direction and target ids.
+    /// </summary>
+    public event Action<string, YuanqiPresentationPayload, bool> YuanqiObserved;
+
+    /// <summary>Every client (host included): this racer's 缘起 body hit a victim (金足破阵 impact), one per victim per burst.</summary>
+    public event Action<YuanqiImpactInfo> YuanqiImpactObserved;
+
     public enum CastStage { Requested, Rejected, Accepted, Executed, Cancelled }
     public readonly struct CastEvent
     {
@@ -81,6 +92,8 @@ public class SkillExecutor : NetworkBehaviour
     }
     public event Action<CastEvent> ServerCastChanged;
     public event Action ActiveEffectsReset;
+    /// <summary>Owner-side: one of this racer's 缘起 triggered (yuanqiId), for the HUD toast.</summary>
+    public event Action<string> LocalYuanqiTriggered;
     public bool HasPendingCast => _pendingCast != null;
     /// <summary>
     /// Server AI timing estimate: the normal cast delay of the skill in this slot (its own Skill row). A backfire's
@@ -142,6 +155,8 @@ public class SkillExecutor : NetworkBehaviour
 
     private readonly Dictionary<string, int> _feelStopTokens = new();
     private Coroutine _cameraFovPulseRoutine;
+    // Which skill owns the shared FOV pulse slot (null = untagged); a 缘起 consume settles only its own boost.
+    private string _cameraFovPulseTag;
     // Per-slot cooldown end in server Time.time. There is no global lock between skills.
     private float[] _nextReadyTime;
     private readonly SkillRepeatSurcharge _repeatSurcharge = new SkillRepeatSurcharge();
@@ -151,6 +166,16 @@ public class SkillExecutor : NetworkBehaviour
     private OwnerMovementEffectApplier MovementEffects => _movementEffects ??= new OwnerMovementEffectApplier(this);
     internal BuddahPredictionSkillMovementBridge PredictionMovementBridge => predictionSkillMovementBridge;
 
+    // 缘起 (server only; training dummies never get them): which skills are 生效中, and the pairs this loadout can trigger.
+    // This class only writes board entries and resets; it knows no pair.
+    private SkillStateBoard _stateBoard;
+    private YuanqiRegistry _yuanqiRegistry;
+    /// <summary>Server: this racer's skill state board (null on clients and training dummies).</summary>
+    public SkillStateBoard StateBoard => _stateBoard;
+    /// <summary>Server: this racer's 缘起 registry (null on clients and training dummies).</summary>
+    public YuanqiRegistry YuanqiRegistry => _yuanqiRegistry;
+
+    // Every peer, every racer: freeze / burst presentation events and the frozen Animator hold (plain MonoBehaviour).
     private RacerSkillPresentationState _presentationState;
     /// <summary>Every peer: this racer's freeze / burst presentation state (null before the network starts).</summary>
     public RacerSkillPresentationState PresentationState => _presentationState;
@@ -203,12 +228,73 @@ public class SkillExecutor : NetworkBehaviour
         base.OnStartServer();
         ResolveObsessionFigure();
         if (loadout == null) loadout = GetComponent<SkillLoadout>();
+        SetUpYuanqiServer();
     }
 
     public override void OnStopServer()
     {
         DropPendingCastServer(SkillPendingCancelSource.Teardown);
+        TearDownYuanqiServer();
         base.OnStopServer();
+    }
+
+    // Every racer except a training dummy (it never casts, but stays a valid 缘起 target). Plain MonoBehaviours added
+    // at runtime: no new NetworkBehaviour on the prefab.
+    private void SetUpYuanqiServer()
+    {
+        if (TryGetComponent(out RacerIdentity identity) && identity.IsTrainingDummy)
+            return;
+
+        if (_stateBoard == null && !TryGetComponent(out _stateBoard))
+            _stateBoard = gameObject.AddComponent<SkillStateBoard>();
+        _stateBoard.Bind(TimeManager);
+
+        if (_yuanqiRegistry == null && !TryGetComponent(out _yuanqiRegistry))
+            _yuanqiRegistry = gameObject.AddComponent<YuanqiRegistry>();
+        _yuanqiRegistry.Bind(this, _stateBoard, database);
+
+        if (loadout != null)
+        {
+            loadout.ServerSlotsChanged -= OnLoadoutSlotsChangedServer;
+            loadout.ServerSlotsChanged += OnLoadoutSlotsChangedServer;
+        }
+        // The loadout may have been set before this subscription (SkillLoadout.OnStartServer runs in the same Spawn).
+        RegisterYuanqiForLoadoutServer();
+    }
+
+    private void TearDownYuanqiServer()
+    {
+        if (loadout != null)
+            loadout.ServerSlotsChanged -= OnLoadoutSlotsChangedServer;
+        ResetYuanqiStateServer("server stop");
+        if (_stateBoard != null)
+            _stateBoard.Unbind();
+    }
+
+    private void OnLoadoutSlotsChangedServer() => RegisterYuanqiForLoadoutServer();
+
+    private void RegisterYuanqiForLoadoutServer()
+    {
+        if (_yuanqiRegistry == null || loadout == null)
+            return;
+        // A loadout change mid-race (diagnostic harnesses) starts from a clean board.
+        if (_stateBoard != null)
+            _stateBoard.Clear("loadout changed");
+        _yuanqiRegistry.RegisterForLoadout(loadout.CopySlotSkillIds());
+    }
+
+    /// <summary>
+    /// Server: ends every board entry and running 缘起 and forgets which overlaps already triggered. Called by every
+    /// server-side reset: the server-controlled reset, ResetActiveSkillEffectsServer for a Human Player, the motor when a
+    /// Human Player's modifier-resetting teleport (respawn) is consumed on the server, and server stop.
+    /// Running skill effects are not touched here.
+    /// </summary>
+    internal void ResetYuanqiStateServer(string reason)
+    {
+        if (_stateBoard != null)
+            _stateBoard.Clear(reason);
+        if (_yuanqiRegistry != null)
+            _yuanqiRegistry.ResetServer(reason);
     }
 
     public override void OnStartClient()
@@ -307,6 +393,8 @@ public class SkillExecutor : NetworkBehaviour
         // Server-controlled racers (AI, training dummies) have no owner connection, so their server-side skill
         // state is cleared here. Human Players keep the original owner-targeted reset; their skill rules are unchanged.
         if (RacerAuthority.IsServerControlled(this)) { ResetActiveSkillEffectsForOwner(); return; }
+        // The 缘起 board is server-only, so the owner TargetRpc below cannot clear it.
+        ResetYuanqiStateServer("reset");
         NetworkConnection conn = Owner;
         if (conn == null || !conn.IsValid)
             return;
@@ -320,6 +408,7 @@ public class SkillExecutor : NetworkBehaviour
     // backfire is kept too: like a Human Player's, it still ends in the penalty when its confirm window ends.
     private void ResetServerControlledSkillState(bool resetMovementModifiers)
     {
+        ResetYuanqiStateServer("server-controlled reset");
         CancelPendingCastServer();
         GetComponent<BuddahHandControl>()?.ResetSkillInputAndEffects();
         GetComponent<SkillPerceptionState>()?.Clear();
@@ -329,8 +418,10 @@ public class SkillExecutor : NetworkBehaviour
             // Keeps the backfire max-speed penalty (motor rule), like the respawn teleport reset.
             _motor?.ResetActiveSkillModifiers();
         }
+        // Consume, not a bare Destroy: the zone VFX is unparented (it follows the racer to its respawn point), so only
+        // the zone's own stop RPC removes it on every peer. The board was already cleared above.
         var trap = GetComponent<MovementSlowTrapZoneEffect>();
-        if (trap != null) { trap.enabled = false; Destroy(trap); }
+        if (trap != null) trap.Consume("server-controlled reset");
         ActiveEffectsReset?.Invoke();
     }
 
@@ -345,6 +436,7 @@ public class SkillExecutor : NetworkBehaviour
             StopCoroutine(_cameraFovPulseRoutine);
             _cameraFovPulseRoutine = null;
         }
+        _cameraFovPulseTag = null;
 
         _feelStopTokens.Clear();
 
@@ -605,12 +697,90 @@ public class SkillExecutor : NetworkBehaviour
         _obs?.AddServer(cast.ObsessionGain);
         _repeatSurcharge.CommitExecution(cast.SkillId, cast.SurchargeStacks, cast.CooldownEndTime);
         CastObserversRpc(cast.Slot, cast.SkillId, cast.SurchargeStacks, ServerTickForHud());
+        // After CastObserversRpc: a 缘起 may trigger and consume right here, and its end presentation must reach the
+        // clients after the start presentation (trail, FOV) it ends.
+        BeginSkillStateServer(cast.Slot, cast.SkillId, cast.Skill);
         ServerCastChanged?.Invoke(new CastEvent(CastStage.Executed, cast.Slot, cast.SkillId));
+    }
+
+    // One generic board write per normal execution (a backfire never gets here). No per-skill branches: the window
+    // and the handle come from the SkillAction.
+    private void BeginSkillStateServer(int slotIndex, string skillId, SkillAction skill)
+    {
+        if (_stateBoard == null || skill == null)
+            return;
+        try
+        {
+            SkillActiveWindow window = skill.GetActiveWindow(this);
+            if (window.DurationSeconds <= 0f)
+                return;
+            _stateBoard.Begin(skillId, slotIndex, window, skill.CreateRuntimeHandle(this));
+        }
+        catch (Exception exception)
+        {
+            // Never skip the Executed event (AI commitments wait for it) because a 缘起 failed.
+            Debug.LogException(exception, this);
+        }
+    }
+
+    /// <summary>Table Skill.effectDurationSeconds; without a table row the SO primary duration field; else 0.</summary>
+    public float ResolveEffectDurationSeconds(string skillId)
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+            return 0f;
+
+        if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository skills)
+            && skills.TryGet(skillId, out SkillRecord record) && record != null && record.effectDurationSeconds > 0f)
+            return record.effectDurationSeconds;
+
+        if (database == null || !database.TryGet(skillId, out SkillAction skill) || skill == null)
+            return 0f;
+        string fieldName = SkillDatabase.EffectDurationField(skill);
+        FieldInfo field = fieldName != null ? skill.GetType().GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance) : null;
+        return field != null && field.FieldType == typeof(float) ? Mathf.Max(0f, (float)field.GetValue(skill)) : 0f;
+    }
+
+    /// <summary>Server: the slot of the skill's live board entry, else its first loadout slot, else -1.</summary>
+    internal int ResolveActiveSlot(string skillId)
+    {
+        if (_stateBoard != null && _stateBoard.TryGetActive(skillId, out SkillStateEntry entry))
+            return entry.Slot;
+        if (loadout != null)
+            for (int i = 0; i < SkillLoadout.SlotCount; i++)
+                if (string.Equals(loadout.GetSkillId(i), skillId, StringComparison.Ordinal))
+                    return i;
+        return -1;
+    }
+
+    /// <summary>Server: plays a consumed skill's early-end presentation on every peer (SkillAction.ExecuteConsumedObservers).</summary>
+    public void PlaySkillConsumedObservers(string skillId, int slot)
+    {
+        if (!IsServerInitialized || string.IsNullOrWhiteSpace(skillId)) return;
+        SkillConsumedObserversRpc(skillId, slot);
+    }
+
+    /// <summary>
+    /// Server: plays a 缘起 trigger on every peer (YuanqiAction.PlayObservers, then YuanqiObserved); the owner also
+    /// raises LocalYuanqiTriggered.
+    /// </summary>
+    public void PlayYuanqiObservers(string yuanqiId, YuanqiPresentationPayload payload)
+    {
+        if (!IsServerInitialized || string.IsNullOrWhiteSpace(yuanqiId)) return;
+        if (payload.TargetObjectIds == null)
+            payload.TargetObjectIds = Array.Empty<int>();
+        YuanqiObserversRpc(yuanqiId, payload);
+    }
+
+    /// <summary>Server: one 缘起 body impact on <paramref name="victimObjectId"/>; every peer raises YuanqiImpactObserved.</summary>
+    public void PlayYuanqiImpactObservers(string yuanqiId, int victimObjectId, Vector3 point, Vector3 impulse)
+    {
+        if (!IsServerInitialized) return;
+        YuanqiImpactObserversRpc(yuanqiId ?? string.Empty, victimObjectId, point, impulse);
     }
 
     // The backfired cast fails: no ExecuteServer, no obsession gain, no surcharge stack, no skill presentation.
     // Its cooldown stays spent. The penalty (all skills locked, obsession frozen, max speed x0.85, x0.8 at the end)
-    // starts now, when the confirm window ends. Running buffs are not interrupted.
+    // starts now, when the confirm window ends. Running buffs and 缘起 are not interrupted.
     private void ExecuteBackfireServer(QueuedCast cast)
     {
         if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Server] BACKFIRE '{cast.SkillId}' (slot {cast.Slot}): skill fails, penalty begins.");
@@ -633,8 +803,8 @@ public class SkillExecutor : NetworkBehaviour
     }
 
     // User rule 2026-10-31: a backfire applies the unified penalty and always runs the requested skill's own _anti variant
-    // (restored as on dev). The variant runs once on the server, right after the penalty starts; it adds no
-    // obsession and has no cooldown of its own (the slot keeps the requested skill's cooldown).
+    // (restored as on dev). The variant runs once on the server, right after the penalty starts; it never goes on the 缘起
+    // state board, adds no obsession and has no cooldown of its own (the slot keeps the requested skill's cooldown).
     private void RunBackfireVariantServer(QueuedCast cast)
     {
         string antiSkillId = ResolveAntiSkillId(cast.SkillId, cast.Skill);
@@ -842,7 +1012,11 @@ public class SkillExecutor : NetworkBehaviour
         GetComponent<BuddahHandControl>()?.CancelPendingServerInput();
     }
 
-    /// <summary>Server: ends the acceleration modifier now (shared slot: also ends a slow-trap debuff).</summary>
+    /// <summary>
+    /// Server: ends the acceleration buff now. Prediction path: EndModifier(Acceleration) clears only a positive buff, so
+    /// a slow-trap debuff in the shared slot (negative extras, last writer wins) keeps running to its deadline.
+    /// Legacy fallback (prediction off): MovementAccelerationEffect.CancelAndRestore drops whatever is merged, slows included.
+    /// </summary>
     public void EndAccelerationForOwner()
     {
         if (!IsServerInitialized) return;
@@ -1000,7 +1174,8 @@ public class SkillExecutor : NetworkBehaviour
         StartCoroutine(PlayFeelStopAfterDelay(stopEventId, durationSeconds, key, nextToken));
     }
 
-    public void PlayCameraFovBoostLocal(float fovOffset, float rampInSeconds, float durationSeconds, float settleSeconds, AnimationCurve rampInCurve = null, AnimationCurve settleCurve = null)
+    /// <param name="slotTag">Optional owner of the shared FOV pulse slot (the skill id); see SettleCameraFovBoostEarlyLocal.</param>
+    public void PlayCameraFovBoostLocal(float fovOffset, float rampInSeconds, float durationSeconds, float settleSeconds, AnimationCurve rampInCurve = null, AnimationCurve settleCurve = null, string slotTag = null)
     {
         ResolvePlayerCamera();
 
@@ -1010,7 +1185,40 @@ public class SkillExecutor : NetworkBehaviour
         if (_cameraFovPulseRoutine != null)
             StopCoroutine(_cameraFovPulseRoutine);
 
+        _cameraFovPulseTag = slotTag;
         _cameraFovPulseRoutine = StartCoroutine(PlayCameraFovBoostRoutine(fovOffset, rampInSeconds, durationSeconds, settleSeconds, rampInCurve, settleCurve));
+    }
+
+    /// <summary>
+    /// Owner: a 缘起 consumed the skill tagged <paramref name="slotTag"/>. Its FOV boost leaves the hold now and settles
+    /// from the current offset, but only while that skill still owns the pulse slot (a later skill's boost is kept).
+    /// </summary>
+    public void SettleCameraFovBoostEarlyLocal(string slotTag, float settleSeconds, AnimationCurve settleCurve = null)
+    {
+        if (_cameraFovPulseRoutine == null || string.IsNullOrEmpty(slotTag) || !string.Equals(_cameraFovPulseTag, slotTag, StringComparison.Ordinal))
+            return;
+
+        ResolvePlayerCamera();
+        StopCoroutine(_cameraFovPulseRoutine);
+        _cameraFovPulseRoutine = null;
+        _cameraFovPulseTag = null;
+        if (playerCamera == null)
+            return;
+
+        if (settleSeconds <= 0f)
+        {
+            playerCamera.SetRuntimeFieldOfViewOffset(0f);
+            return;
+        }
+
+        float fromOffset = playerCamera.RuntimeFieldOfViewOffset;
+        _cameraFovPulseRoutine = StartCoroutine(SkillCameraFov.RunSettle(() => playerCamera, ClearCameraFovPulse, fromOffset, settleSeconds, settleCurve));
+    }
+
+    private void ClearCameraFovPulse()
+    {
+        _cameraFovPulseRoutine = null;
+        _cameraFovPulseTag = null;
     }
 
     [TargetRpc]
@@ -1031,7 +1239,7 @@ public class SkillExecutor : NetworkBehaviour
 
     private IEnumerator PlayCameraFovBoostRoutine(float fovOffset, float rampInSeconds, float durationSeconds, float settleSeconds, AnimationCurve rampInCurve, AnimationCurve settleCurve)
     {
-        return SkillCameraFov.Run(() => playerCamera, () => _cameraFovPulseRoutine = null,
+        return SkillCameraFov.Run(() => playerCamera, ClearCameraFovPulse,
             fovOffset, rampInSeconds, durationSeconds, settleSeconds, rampInCurve, settleCurve);
     }
 
@@ -1082,6 +1290,55 @@ public class SkillExecutor : NetworkBehaviour
     {
         LocalSkillUiTriggered?.Invoke(CreateSkillUiEvent(slotIndex, cooldownSeconds, LocalSkillUiEvent.StacksClearedByBackfire, serverTick));
     }
+
+    // 缘起 consumed a skill: its early-end presentation, resolved from this client's SkillDatabase like CastObserversRpc.
+    [ObserversRpc]
+    private void SkillConsumedObserversRpc(string skillId, int slotIndex)
+    {
+        if (database == null) return;
+        if (!database.TryGet(skillId, out SkillAction skill) || skill == null) return;
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Observers] '{skillId}' consumed (slot {slotIndex}), IsOwner={IsOwner}");
+        skill.ExecuteConsumedObservers(this, slotIndex, IsOwner);
+    }
+
+    // 缘起 triggered: the pair's presentation, resolved from this client's SkillDatabase by id. Owner: HUD toast event.
+    [ObserversRpc]
+    private void YuanqiObserversRpc(string yuanqiId, YuanqiPresentationPayload payload)
+    {
+        if (database != null && database.TryGetYuanqi(yuanqiId, out YuanqiAction action) && action != null)
+        {
+            GameLog.Verbose($"[Yuanqi][Observers] '{yuanqiId}' on {name}, IsOwner={IsOwner}, targets={(payload.TargetObjectIds != null ? payload.TargetObjectIds.Length : 0)}");
+            // A failing visual must not swallow the owner's HUD event below.
+            try { action.PlayObservers(this, payload, IsOwner); }
+            catch (Exception exception) { Debug.LogException(exception, this); }
+        }
+        else
+        {
+            Debug.LogWarning($"[Yuanqi][Observers] Unknown yuanqiId '{yuanqiId}' in the client SkillDatabase.");
+        }
+
+        // The presentation interface (artists' VFX); a failing listener must not swallow the owner's HUD event.
+        try { YuanqiObserved?.Invoke(yuanqiId, payload, IsOwner); }
+        catch (Exception exception) { Debug.LogException(exception, this); }
+
+        if (IsOwner)
+            LocalYuanqiTriggered?.Invoke(yuanqiId);
+    }
+
+    // 缘起 body impact (BuddahBodyImpact, server): presentation only, every peer.
+    [ObserversRpc]
+    private void YuanqiImpactObserversRpc(string yuanqiId, int victimObjectId, Vector3 point, Vector3 impulse)
+    {
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Yuanqi][Observers] '{yuanqiId}' impact by {name} on object {victimObjectId}, impulse={impulse}");
+        YuanqiImpactObserved?.Invoke(new YuanqiImpactInfo
+        {
+            YuanqiId = yuanqiId,
+            VictimObjectId = victimObjectId,
+            Point = point,
+            Impulse = impulse,
+        });
+    }
+
     // The anti palm burst (Skill_PushProjectileHands_Anti), restored 2026-10-31; appended last to keep the RPC order.
     // spawnTick / casterPositionAtSpawn: the server tick its hitboxes were spawned at and where the caster was then;
     // the visual copies run on the same clock and follow the caster from the same point.

@@ -29,6 +29,7 @@ The rendering exists to serve these. A change that contradicts one needs the use
 | R9 | The **black curtain** keeps tonemapping and grade: `Volume_Dark` follows the gameplay profile, 0.1 EV darker | phase 1 | post, curtain |
 | R10 | **Rendering is modular and the settings panel really changes quality**; a setting that needs a restart is tagged "需要重启" like most games (checked in play mode on 2026-11-05: every option applies live, so none is tagged today). **Gameplay passes are on every quality level**: the 一念光明 curtain, racers, edges, trails and skill VFX must look the same in meaning on low, medium and high | 2026-11-05 | renderers, settings, VFX |
 | R11 | **A collaborator's bake matches ours**: one scripted bake, recorded inputs, committed outputs | 2026-11-05 | bake |
+| R12 | **Every bake output is in Git LFS**, `LightingData.asset` included (it was a plain-Git binary of about 0.9 MB that changes on every bake); `.gitattributes` routes every `LightingData.asset` there | 2026-11-05 | bake |
 
 Where to record a new decision: add a row here (date, what, which modules), then the module's **Need** line.
 
@@ -107,7 +108,8 @@ What one gameplay frame does, on every quality level unless marked (since c7124d
   - Reflections: sky reflection `ReflectionProbe-0.exr` (from the bake, via LightingData); `Reflection Probe Lower`
     (whole map) and `Reflection Probe EndField` (600 x 120 x 600 at (1493, 40, -684)) are **Custom** mode holding
     `ReflectionProbe-Lower.exr` / `-EndField.exr`, 256 px HDR, rendered by `Lightmapping.BakeReflectionProbe`.
-  - `LightingData.asset` (binary, plain Git, about 0.9 MB) holds probes, lightmap and sky-reflection references.
+  - `LightingData.asset` (binary, about 0.9 MB, Git LFS since 2026-11-05) holds probes, lightmap and sky-reflection
+    references.
 - **Where**: `Assets/Scenes/RaceMap.unity` (sun, RenderSettings, probes), `Assets/Scenes/RaceMap/` (bake outputs and
   settings), `Assets/Editor/Rendering/RenderingBake.cs`, `RaceMapLightProbeLayout.cs`.
 - **Truth**: **`RenderingBake`** for the shared environment (ambient, fog, sky, reflection settings) and the recorded
@@ -298,9 +300,11 @@ them; commit the JPEG comparison sheets.
 Batch mode: `Unity -batchmode -projectPath . -executeMethod BuddahGo.Rendering.Editor.RenderingBake.BakeAllBatch`
 (exit 0 when baked; `-regenerateLightProbes` optional). Not tested yet.
 
-**Committed** (outputs go in the same commit as the input change and the manifest): `LightingData.asset` (plain Git,
-binary), `Lightmap-0_comp_light.exr` and `_comp_dir.png` (LFS), `ReflectionProbe-0.exr`, `-Lower.exr`, `-EndField.exr`,
-`ReflectionProbe-Shrine.exr` (LFS), both scenes, `bake-manifest.json`. A collaborator who only plays or edits other
+**Committed** (outputs go in the same commit as the input change and the manifest): `LightingData.asset`,
+`Lightmap-0_comp_light.exr` and `_comp_dir.png`, `ReflectionProbe-0.exr`, `-Lower.exr`, `-EndField.exr`,
+`ReflectionProbe-Shrine.exr` (all in Git LFS; `LightingData.asset` since 2026-11-05, R12), both scenes,
+`bake-manifest.json`. A fresh clone or worktree needs `git lfs pull` before Unity opens it, or the scenes load LFS
+pointer text as lighting data. A collaborator who only plays or edits other
 things never bakes; they get the committed result. Rebake only when an input changes, and only one person per change.
 
 **What is and is not identical across bakes** — see [Measured tolerance](#measured-tolerance) for numbers:

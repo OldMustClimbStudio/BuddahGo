@@ -8,8 +8,8 @@ reviewed batch with a full test run. Before deleting, re-check references (searc
 
 | Asset | Why it is retired | References found (2026-11-05) | State |
 |---|---|---|---|
-| `Assets/Scenes/RaceMap/Lightmap-4_comp_*` … `Lightmap-228_comp_*` (225 indices x `_comp_light.exr` + `_comp_dir.png`, plus metas: 900 files, LFS) | Leftovers of the project's first import (8c2d4579, 2026-03-15); every later bake writes `Lightmap-0..n` of its own and deleted only its own previous files (9dc20717 removed 1 and 2) | none by text GUID; the current LightingData uses `Lightmap-0` only (to confirm in the manifest after the next bake) | to delete |
-| `Assets/Scenes/RaceMap/ReflectionProbe-2.exr` | Output of an old bake, no probe renders into it | none by text GUID | to delete after the manifest confirms |
+| `Assets/Scenes/RaceMap/Lightmap-4_comp_*` … `Lightmap-228_comp_*` (225 indices x `_comp_light.exr` + `_comp_dir.png`, plus metas: 900 files, LFS) | Leftovers of the project's first import (8c2d4579, 2026-03-15); every later bake writes `Lightmap-0..n` of its own and deleted only its own previous files (9dc20717 removed 1 and 2) | none by text GUID; the scripted bake of 2026-11-05 writes one lightmap, `Lightmap-0` (bake manifest: `lightmaps: 1`) | to delete |
+| `Assets/Scenes/RaceMap/ReflectionProbe-2.exr` | Output of an old bake, no probe renders into it | none by text GUID; the 2026-11-05 bake writes `ReflectionProbe-0` (sky) and the two custom probes only | to delete |
 | `Assets/Scenes/RaceMap/RaceMap_Sky.mat` | Pre-dusk sky; RaceMap and the menu use `RaceMap_Sky_Dusk.mat` | none | to delete |
 | `Assets/Scenes/RaceMap/RaceMap_Environment_Profile.asset` | Pre-dusk post profile; replaced by `RaceMap_Dusk_Profile.asset` | none | to delete |
 | `Assets/Settings/MapLight.lighting` | Lighting settings from before `RaceMap_Lighting.lighting` | none | to delete |

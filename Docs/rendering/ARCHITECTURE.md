@@ -313,6 +313,11 @@ things never bakes; they get the committed result. Rebake only when an input cha
 - Machine traps: the lightmapper reports "out of memory" when the system commit charge is near its limit, whatever the
   scene holds (close memory-heavy programs); if the GPU lightmapper falls back to CPU, the manifest's messages show it.
   A cancelled bake detaches LightingData (probes vanish): reassign `Lightmapping.lightingDataAsset`, do not save.
+- Meta-file trap (seen 2026-11-05, first verification bake): the bake could not write `ReflectionProbe-0.exr.meta`
+  ("Cannot open file … for write", the file was briefly held by another process) and the sky reflection re-imported as a
+  2D texture with default settings. The tool now reports "BAKED WITH PROBLEMS" when any reflection EXR does not import
+  as a Cubemap; fix it with `git checkout -- <file>.exr.meta`, reimport the EXR, and check `git status` shows no `.meta`
+  change before committing. The second bake did not hit it.
 - After a scripted scene reopen the editor shows the sky reflection wrongly until a bake or a play-mode round trip:
   capture only after either.
 
@@ -323,8 +328,24 @@ tolerance below; otherwise look at the sheet's difference column before committi
 
 ### Measured tolerance
 
-To be filled by the verification bake (same machine, RTX 4070 Laptop): committed bake vs tool bake, and tool bake vs
-tool bake.
+Verification bake on 2026-11-05: RTX 4070 Laptop, Progressive GPU, Unity 2022.3.55f1c1, git 42c5d6bd, inputs hash
+`3e84c5b3…`, bake 28-38 s in total. Captures are HDR, five viewpoints, 1920x1080, compared in 8-bit sRGB levels
+(`capture_diff.py`). Sheet: [racemap/bake_repro_compare/all.jpg](racemap/bake_repro_compare/all.jpg) (committed | tool
+bake | difference x8).
+
+| Comparison | Output files (SHA-256) | Captures: mean / pixels > 8 levels / max, per view |
+|---|---|---|
+| Capture repeated, nothing changed (noise floor) | — | 0.43-0.49 / 0% / 2 |
+| Tool bake 1 vs tool bake 2, same machine | `LightingData.asset`, `Lightmap-0_comp_light.exr`, `ReflectionProbe-Lower.exr`, `ReflectionProbe-Shrine.exr` differ every run; `Lightmap-0_comp_dir.png`, `ReflectionProbe-0.exr` (sky), `ReflectionProbe-EndField.exr` identical | **0 / 0% / 0** on every view: the byte differences do not reach the screen |
+| Committed bake (2026-11-03, by hand) vs tool bake | all differ except the directional map and the sky reflection | 0.06-0.17 / 0.00-0.47% / 26-38, **only on the silver Buddha** (and a few rock pixels in the corner view): its custom probes were re-rendered after c7124d10 took the gameplay layers out of the transparent pass; lightmap- and probe-lit surfaces stay within 2 |
+
+**Tolerance to accept a rebake with unchanged inputs**: per view mean ≤ 0.5 levels, at most 1% of pixels over 8 levels,
+and those only on reflective surfaces (Buddha, the lane's reflections). Anything wider, or any change of the
+probe-lit ground or ambient, means an input changed: check the manifest's inputs hash and `applied` lists first.
+**Across machines** this was not measured (one machine available). Expect the lightmap and probe bytes to differ more
+(another GPU or driver, or the CPU fallback), still within the tolerance above for this scene, because the lightmapped area
+is small (the sand plane) and the bake's visible products are the light probes and cubemaps. A collaborator's first
+bake should be compared against the committed one with the loop above before it is committed.
 
 ## Where things are recorded
 

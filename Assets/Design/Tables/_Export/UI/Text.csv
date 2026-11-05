@@ -26,6 +26,12 @@
 ,skill.push_projectile_hands_anti.desc,如来神掌的反噬变体,,技能描述,Skill.descriptionKey
 ,skill.reverseturn_anti.name,逆姻缘（噬）,,技能显示名,Skill.displayNameKey
 ,skill.reverseturn_anti.desc,逆姻缘的反噬变体,,技能描述,Skill.descriptionKey
+,yuanqi.giant_palm.name,金身巨掌,,缘起显示名,Yuanqi.displayNameKey
+,yuanqi.giant_palm.desc,金身期间神掌随体型放大，推力一起变大,,缘起描述,Yuanqi.descriptionKey
+,yuanqi.frost_lock.name,禅足冰封,,缘起显示名,Yuanqi.displayNameKey
+,yuanqi.frost_lock.desc,冻住周围的对手，两招都被消耗,,缘起描述,Yuanqi.descriptionKey
+,yuanqi.giant_charge.name,金足破阵,,缘起显示名,Yuanqi.displayNameKey
+,yuanqi.giant_charge.desc,金身向前突进撞开对手，神足通被消耗,,缘起描述,Yuanqi.descriptionKey
 ,ai.personality.keeper.name,P1 守位型,,AI 人格显示名,AISkillPersonality.DisplayName
 ,ai.personality.hunter.name,P2 追猎型,,AI 人格显示名,AISkillPersonality.DisplayName
 ,ai.personality.brawler.name,P3 车群型,,AI 人格显示名,AISkillPersonality.DisplayName

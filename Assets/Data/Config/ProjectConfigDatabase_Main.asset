@@ -390,6 +390,47 @@ MonoBehaviour:
     backfireLockSeconds: 5
     backfireMaxSpeedMultiplier: 0.85
     backfireEndKeepRatio: 0.8
+  yuanqis:
+  - yuanqiId: giant_palm
+    displayNameKey: yuanqi.giant_palm.name
+    descriptionKey: yuanqi.giant_palm.desc
+    skillA: giant
+    skillB: push_projectile_hands
+    consumeA: 0
+    consumeB: 0
+    mode: Sustained
+    retriggerPolicy: OncePerOverlap
+    isEnabled: 1
+  - yuanqiId: frost_lock
+    displayNameKey: yuanqi.frost_lock.name
+    descriptionKey: yuanqi.frost_lock.desc
+    skillA: acceleration
+    skillB: slowtrap
+    consumeA: 1
+    consumeB: 1
+    mode: Instant
+    retriggerPolicy: OncePerOverlap
+    isEnabled: 1
+  - yuanqiId: giant_charge
+    displayNameKey: yuanqi.giant_charge.name
+    descriptionKey: yuanqi.giant_charge.desc
+    skillA: acceleration
+    skillB: giant
+    consumeA: 1
+    consumeB: 0
+    mode: Instant
+    retriggerPolicy: OncePerOverlap
+    isEnabled: 1
+  yuanqiEffectFrostLocks:
+  - yuanqiId: frost_lock
+    freezeSeconds: 1.5
+    radiusMeters: 12
+    affectsTrainingDummies: 1
+  yuanqiEffectGiantCharges:
+  - yuanqiId: giant_charge
+    burstExtraMaxSpeed: 60
+    burstSeconds: 0.8
+    impactImpulseMultiplier: 3
   vfxRegistries:
   - vfxId: palm_release
     prefabPath: "Assets/VFX/\u5982\u6765\u795E\u638C/Release/VFX_Palm_Release.prefab"
@@ -775,6 +816,7 @@ MonoBehaviour:
     target: Behind
     impairedTargetMultiplier: 1
     handsShots: 0
+    yuanqiAffinity: 1
   - personalityId: hunter
     displayNameKey: ai.personality.hunter.name
     slot0SkillId: push_projectile_hands
@@ -788,6 +830,7 @@ MonoBehaviour:
     target: Ahead
     impairedTargetMultiplier: 1
     handsShots: 4
+    yuanqiAffinity: 1
   - personalityId: brawler
     displayNameKey: ai.personality.brawler.name
     slot0SkillId: giant
@@ -801,6 +844,7 @@ MonoBehaviour:
     target: PackCentre
     impairedTargetMultiplier: 1
     handsShots: 3
+    yuanqiAffinity: 1
   - personalityId: trickster
     displayNameKey: ai.personality.trickster.name
     slot0SkillId: reverseturn
@@ -814,6 +858,7 @@ MonoBehaviour:
     target: EnteringCorner
     impairedTargetMultiplier: 1
     handsShots: 0
+    yuanqiAffinity: 1
   - personalityId: opportunist
     displayNameKey: ai.personality.opportunist.name
     slot0SkillId: acceleration
@@ -827,6 +872,7 @@ MonoBehaviour:
     target: Impaired
     impairedTargetMultiplier: 1.6
     handsShots: 2
+    yuanqiAffinity: 1
   personalitySituationBiases:
   - personalityId: keeper
     situation: Pursued
@@ -1005,6 +1051,11 @@ MonoBehaviour:
     maxWindowSeconds: 6
     minRelativeSpeed: 0.1
     maxElapsedSeconds: 1
+    yuanqiSetupMultiplier: 1.2
+    yuanqiFollowUpScore: 0.8
+    yuanqiFollowUpMultiplier: 1.5
+    yuanqiFollowUpTempoSeconds: 0.3
+    yuanqiLateWindowSeconds: 0.6
   rosters:
   - slotIndex: 0
     personalityId: keeper
@@ -1273,6 +1324,18 @@ MonoBehaviour:
     zh: "\u9006\u59FB\u7F18\uFF08\u566C\uFF09"
   - key: skill.reverseturn_anti.desc
     zh: "\u9006\u59FB\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: yuanqi.giant_palm.name
+    zh: "\u91D1\u8EAB\u5DE8\u638C"
+  - key: yuanqi.giant_palm.desc
+    zh: "\u91D1\u8EAB\u671F\u95F4\u795E\u638C\u968F\u4F53\u578B\u653E\u5927\uFF0C\u63A8\u529B\u4E00\u8D77\u53D8\u5927"
+  - key: yuanqi.frost_lock.name
+    zh: "\u7985\u8DB3\u51B0\u5C01"
+  - key: yuanqi.frost_lock.desc
+    zh: "\u51BB\u4F4F\u5468\u56F4\u7684\u5BF9\u624B\uFF0C\u4E24\u62DB\u90FD\u88AB\u6D88\u8017"
+  - key: yuanqi.giant_charge.name
+    zh: "\u91D1\u8DB3\u7834\u9635"
+  - key: yuanqi.giant_charge.desc
+    zh: "\u91D1\u8EAB\u5411\u524D\u7A81\u8FDB\u649E\u5F00\u5BF9\u624B\uFF0C\u795E\u8DB3\u901A\u88AB\u6D88\u8017"
   - key: ai.personality.keeper.name
     zh: "P1 \u5B88\u4F4D\u578B"
   - key: ai.personality.hunter.name

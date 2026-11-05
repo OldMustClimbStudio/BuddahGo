@@ -481,6 +481,60 @@
             "backfireEndKeepRatio": 0.800000011920929
         }
     ],
+    "yuanqis": [
+        {
+            "yuanqiId": "giant_palm",
+            "displayNameKey": "yuanqi.giant_palm.name",
+            "descriptionKey": "yuanqi.giant_palm.desc",
+            "skillA": "giant",
+            "skillB": "push_projectile_hands",
+            "consumeA": false,
+            "consumeB": false,
+            "mode": "Sustained",
+            "retriggerPolicy": "OncePerOverlap",
+            "isEnabled": true
+        },
+        {
+            "yuanqiId": "frost_lock",
+            "displayNameKey": "yuanqi.frost_lock.name",
+            "descriptionKey": "yuanqi.frost_lock.desc",
+            "skillA": "acceleration",
+            "skillB": "slowtrap",
+            "consumeA": true,
+            "consumeB": true,
+            "mode": "Instant",
+            "retriggerPolicy": "OncePerOverlap",
+            "isEnabled": true
+        },
+        {
+            "yuanqiId": "giant_charge",
+            "displayNameKey": "yuanqi.giant_charge.name",
+            "descriptionKey": "yuanqi.giant_charge.desc",
+            "skillA": "acceleration",
+            "skillB": "giant",
+            "consumeA": true,
+            "consumeB": false,
+            "mode": "Instant",
+            "retriggerPolicy": "OncePerOverlap",
+            "isEnabled": true
+        }
+    ],
+    "yuanqiEffectFrostLocks": [
+        {
+            "yuanqiId": "frost_lock",
+            "freezeSeconds": 1.5,
+            "radiusMeters": 12.0,
+            "affectsTrainingDummies": true
+        }
+    ],
+    "yuanqiEffectGiantCharges": [
+        {
+            "yuanqiId": "giant_charge",
+            "burstExtraMaxSpeed": 60.0,
+            "burstSeconds": 0.800000011920929,
+            "impactImpulseMultiplier": 3.0
+        }
+    ],
     "vfxRegistries": [
         {
             "vfxId": "palm_release",
@@ -922,7 +976,8 @@
             "tempoSeconds": 1.5,
             "target": "Behind",
             "impairedTargetMultiplier": 1.0,
-            "handsShots": 0
+            "handsShots": 0,
+            "yuanqiAffinity": 1.0
         },
         {
             "personalityId": "hunter",
@@ -937,7 +992,8 @@
             "tempoSeconds": 1.2000000476837159,
             "target": "Ahead",
             "impairedTargetMultiplier": 1.0,
-            "handsShots": 4
+            "handsShots": 4,
+            "yuanqiAffinity": 1.0
         },
         {
             "personalityId": "brawler",
@@ -952,7 +1008,8 @@
             "tempoSeconds": 1.0,
             "target": "PackCentre",
             "impairedTargetMultiplier": 1.0,
-            "handsShots": 3
+            "handsShots": 3,
+            "yuanqiAffinity": 1.0
         },
         {
             "personalityId": "trickster",
@@ -967,7 +1024,8 @@
             "tempoSeconds": 2.0,
             "target": "EnteringCorner",
             "impairedTargetMultiplier": 1.0,
-            "handsShots": 0
+            "handsShots": 0,
+            "yuanqiAffinity": 1.0
         },
         {
             "personalityId": "opportunist",
@@ -982,7 +1040,8 @@
             "tempoSeconds": 1.5,
             "target": "Impaired",
             "impairedTargetMultiplier": 1.600000023841858,
-            "handsShots": 2
+            "handsShots": 2,
+            "yuanqiAffinity": 1.0
         }
     ],
     "personalitySituationBiases": [
@@ -1227,7 +1286,12 @@
             "backfireCost": 1.0,
             "maxWindowSeconds": 6.0,
             "minRelativeSpeed": 0.10000000149011612,
-            "maxElapsedSeconds": 1.0
+            "maxElapsedSeconds": 1.0,
+            "yuanqiSetupMultiplier": 1.2000000476837159,
+            "yuanqiFollowUpScore": 0.800000011920929,
+            "yuanqiFollowUpMultiplier": 1.5,
+            "yuanqiFollowUpTempoSeconds": 0.30000001192092898,
+            "yuanqiLateWindowSeconds": 0.6000000238418579
         }
     ],
     "rosters": [
@@ -1692,6 +1756,30 @@
         {
             "key": "skill.reverseturn_anti.desc",
             "zh": "逆姻缘的反噬变体"
+        },
+        {
+            "key": "yuanqi.giant_palm.name",
+            "zh": "金身巨掌"
+        },
+        {
+            "key": "yuanqi.giant_palm.desc",
+            "zh": "金身期间神掌随体型放大，推力一起变大"
+        },
+        {
+            "key": "yuanqi.frost_lock.name",
+            "zh": "禅足冰封"
+        },
+        {
+            "key": "yuanqi.frost_lock.desc",
+            "zh": "冻住周围的对手，两招都被消耗"
+        },
+        {
+            "key": "yuanqi.giant_charge.name",
+            "zh": "金足破阵"
+        },
+        {
+            "key": "yuanqi.giant_charge.desc",
+            "zh": "金身向前突进撞开对手，神足通被消耗"
         },
         {
             "key": "ai.personality.keeper.name",

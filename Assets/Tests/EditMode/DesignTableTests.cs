@@ -106,9 +106,13 @@ namespace BuddahGo.Tests
                     Assert.IsTrue(set.ExportTargets.ContainsKey("UI/Text"));
                     Assert.IsFalse(set.ExportTargets.ContainsKey("Skill/SkillPresentation"), "presentation sheets are not exported");
 
-                    // Phase B (mechanics update): no cast lock column. The per-skill *_anti variants were
+                    // Phase B (mechanics update): 缘起 sheets and enums, no cast lock column. The per-skill *_anti variants were
                     // retired in phase B and restored on 2026-10-31 (unified penalty plus the skill's own variant): their rows and
                     // antiSkillId are back as they were on dev.
+                    foreach (string sheet in new[] { "Yuanqi", "YuanqiEffectFrostLock", "YuanqiEffectGiantCharge" })
+                        Assert.IsTrue(set.ExportTargets.ContainsKey("Skill/" + sheet), "Skill/" + sheet + " is exported");
+                    foreach (string enumName in new[] { "YuanqiId", "YuanqiMode", "YuanqiRetrigger" })
+                        Assert.IsTrue(set.Enums.ContainsKey(enumName), enumName + " registry");
                     foreach (string command in new[] { "Freeze", "EndModifier", "Burst", "MaxSpeedMultiplier" })
                         Assert.IsTrue(set.Enums["ModifierCommandType"].Contains(command), "ModifierCommandType." + command);
                     Assert.IsNotNull(set.Find("Skill", "Skill").FindColumn("antiSkillId"), "antiSkillId restored with the variants");
@@ -165,6 +169,7 @@ namespace BuddahGo.Tests
                         Assert.AreEqual(5, db.personalities.Count);
                         Assert.AreEqual(Cell(set, "AI", "Personality", "personalityId", "keeper", "slot0Weight"), db.personalities.Find(p => p.personalityId == "keeper").slot0Weight, "weights live on the loadout slots");
                         Assert.AreEqual(Cell(set, "AI", "SkillTuning", "profileId", "default", "backfireCost"), db.skillTunings[0].backfireCost, "SkillGlobal became a one-row SkillTuning; backfireCost is the unified backfire cost (A7)");
+                        Assert.AreEqual(Cell(set, "AI", "SkillTuning", "profileId", "default", "yuanqiFollowUpScore"), db.skillTunings[0].yuanqiFollowUpScore, "缘起 decision parameters live on SkillTuning (A7)");
                         Assert.IsNull(typeof(SkillTuningRecord).GetField("keyMaxSeconds"), "SkillTuning.keyMaxSeconds retired with the combo keys (A7)");
                         Assert.IsNull(typeof(SkillTuningRecord).GetField("maxComboRetries"), "SkillTuning.maxComboRetries retired with the combo keys (A7)");
                         Assert.AreEqual((int)Cell(set, "AI", "SkillDifficulty", "difficulty", "Normal", "impairedDrivingReactionTicks"), db.skillDifficulties.Find(d => d.difficulty == "Normal").impairedDrivingReactionTicks, "driving impairment split from skill impairment");
@@ -173,12 +178,21 @@ namespace BuddahGo.Tests
                         Assert.IsNull(typeof(SkillDifficultyRecord).GetField("keyMistakeProbability"), "SkillDifficulty.keyMistakeProbability retired with the combo keys (A7)");
                         Assert.IsNull(typeof(SkillDifficultyRecord).GetField("mildStopProbability"), "SkillDifficulty.mildStopProbability retired with the per-skill backlash severity (A7)");
                         Assert.IsNull(typeof(SkillOpportunityRecord).GetField("backlashSeverity"), "SkillOpportunity.backlashSeverity retired with the unified backfire (A7)");
+                        foreach (PersonalityRecord personality in db.personalities)
+                            Assert.AreEqual(Cell(set, "AI", "Personality", "personalityId", personality.personalityId, "yuanqiAffinity"), personality.yuanqiAffinity, personality.personalityId + ".yuanqiAffinity");
                         Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "maxValue"), db.obsessions[0].maxValue);
                         Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "repeatWindowSeconds"), db.obsessions[0].repeatWindowSeconds);
                         Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "repeatGainMultiplier"), db.obsessions[0].repeatGainMultiplier);
                         Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "backfireLockSeconds"), db.obsessions[0].backfireLockSeconds);
                         Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "backfireMaxSpeedMultiplier"), db.obsessions[0].backfireMaxSpeedMultiplier);
                         Assert.AreEqual(Cell(set, "Skill", "Obsession", "profileId", "default", "backfireEndKeepRatio"), db.obsessions[0].backfireEndKeepRatio);
+                        CollectionAssert.AreEquivalent(Keys(set, "Skill", "Yuanqi", "yuanqiId"), db.yuanqis.ConvertAll(y => y.yuanqiId), "one YuanqiRecord per Skill/Yuanqi row");
+                        YuanqiRecord frostLock = db.yuanqis.Find(y => y.yuanqiId == "frost_lock");
+                        Assert.IsNotNull(frostLock, "frost_lock row");
+                        Assert.AreEqual("yuanqi.frost_lock.name", frostLock.displayNameKey);
+                        Assert.IsNotNull(db.localizedTexts.Find(t => t.key == frostLock.displayNameKey), "缘起 names live in UI/Text");
+                        Assert.AreEqual(Cell(set, "Skill", "YuanqiEffectFrostLock", "yuanqiId", "frost_lock", "freezeSeconds"), db.yuanqiEffectFrostLocks.Find(r => r.yuanqiId == "frost_lock").freezeSeconds);
+                        Assert.AreEqual(Cell(set, "Skill", "YuanqiEffectGiantCharge", "yuanqiId", "giant_charge", "impactImpulseMultiplier"), db.yuanqiEffectGiantCharges.Find(r => r.yuanqiId == "giant_charge").impactImpulseMultiplier);
                         Assert.AreEqual(3, db.modeRules.Count);
                         Assert.AreEqual((int)Cell(set, "Match", "ModeRule", "modeId", "Practice", "trainingDummyCount"), db.modeRules.Find(m => m.modeId == "Practice").trainingDummyCount, "training dummies live on the Practice row");
                         Assert.AreEqual("Normal", db.modeRules.Find(m => m.modeId == "Solo").defaultDifficulty, "RacerNaming.defaultDifficulty moved onto ModeRule");
@@ -241,10 +255,56 @@ namespace BuddahGo.Tests
             return issues.Exists(i => i.Severity == severity && i.Location == location);
         }
 
+        private static readonly string[] YuanqiVars = { "yuanqiId", "skillA", "skillB", "consumeA", "consumeB", "mode", "retriggerPolicy", "isEnabled" };
+        private static readonly string[] YuanqiTypes = { "enum:YuanqiId#key", "enum:SkillId#ref=Skill.skillId", "enum:SkillId#ref=Skill.skillId", "bool", "bool", "enum:YuanqiMode", "enum:YuanqiRetrigger", "bool" };
+
         [Test]
         public void ValidationReportsBadCellsAndMissingDomainCells()
         {
             EveryCase.Parts(
+                ("domain rules reject invalid 缘起 rows", () =>
+                {
+                    DesignSheet yuanqi = Probe("Skill", "Yuanqi", YuanqiVars, YuanqiTypes,
+                        new[] { "ok", "acceleration", "slowtrap", "true", "true", "Instant", "OncePerOverlap", "true" },
+                        new[] { "self", "giant", "giant", "false", "false", "Instant", "OncePerOverlap", "true" },
+                        new[] { "dup", "slowtrap", "acceleration", "false", "false", "Instant", "OncePerOverlap", "true" },
+                        new[] { "held", "giant", "push_projectile_hands", "true", "false", "Sustained", "OncePerOverlap", "true" },
+                        new[] { "blank", "blackcurtain", "reverseturn", "", "false", "", "", "" },
+                        new[] { "noskilla", "", "giant", "false", "false", "Instant", "OncePerOverlap", "true" },
+                        new[] { "noskillb", "reverseturn", "", "false", "false", "Instant", "OncePerOverlap", "true" },
+                        new[] { "numeric", "slowtrap", "giant", "true", "false", "1", "OncePerOverlap", "true" },
+                        new[] { "numericok", "blackcurtain", "giant", "true", "false", "0", "OncePerOverlap", "true" });
+                    List<Issue> issues = DomainIssues(yuanqi);
+                    string all = string.Join("\n", issues);
+                    Assert.IsFalse(issues.Exists(i => i.Location.StartsWith("Skill.xlsx/Yuanqi!") && i.Location.EndsWith("5")), "valid row has no issue:\n" + all);
+                    Assert.IsTrue(HasIssue(issues, IssueSeverity.Error, "Skill.xlsx/Yuanqi!D6"), "skillB equals skillA:\n" + all);
+                    Assert.IsTrue(HasIssue(issues, IssueSeverity.Error, "Skill.xlsx/Yuanqi!B7"), "same unordered pair twice:\n" + all);
+                    Assert.IsTrue(HasIssue(issues, IssueSeverity.Error, "Skill.xlsx/Yuanqi!E8"), "Sustained pair consumes skillA:\n" + all);
+                    Assert.IsFalse(HasIssue(issues, IssueSeverity.Error, "Skill.xlsx/Yuanqi!F8"), "consumeB false is fine:\n" + all);
+                    foreach (string cell in new[] { "E9", "G9", "H9", "I9" })
+                        Assert.IsTrue(HasIssue(issues, IssueSeverity.Error, "Skill.xlsx/Yuanqi!" + cell), "blank " + cell + " (bool reads false, enum keeps the SO value):\n" + all);
+                    Assert.IsFalse(HasIssue(issues, IssueSeverity.Error, "Skill.xlsx/Yuanqi!F9"), "filled consumeB:\n" + all);
+                    Assert.IsTrue(HasIssue(issues, IssueSeverity.Error, "Skill.xlsx/Yuanqi!C10"), "blank skillA drops the pair silently:\n" + all);
+                    Assert.IsTrue(HasIssue(issues, IssueSeverity.Error, "Skill.xlsx/Yuanqi!D11"), "blank skillB drops the pair silently:\n" + all);
+                    Assert.IsTrue(HasIssue(issues, IssueSeverity.Error, "Skill.xlsx/Yuanqi!E12"), "mode 1 imports as Sustained, which cannot consume:\n" + all);
+                    Assert.IsFalse(issues.Exists(i => i.Location.StartsWith("Skill.xlsx/Yuanqi!") && i.Location.EndsWith("13")), "mode 0 is Instant, which may consume:\n" + all);
+                }),
+                ("domain rules warn when three skills trigger each other pairwise", () =>
+                {
+                    string[] ab = { "ab", "acceleration", "slowtrap", "false", "false", "Instant", "OncePerOverlap", "true" };
+                    string[] bc = { "bc", "slowtrap", "giant", "false", "false", "Instant", "OncePerOverlap", "true" };
+                    string[] caOn = { "ca", "giant", "acceleration", "false", "false", "Instant", "OncePerOverlap", "true" };
+                    string[] caOff = { "ca", "giant", "acceleration", "false", "false", "Instant", "OncePerOverlap", "false" };
+                    List<Issue> triangle = DomainIssues(Probe("Skill", "Yuanqi", YuanqiVars, YuanqiTypes, ab, bc, caOn));
+                    Issue warning = triangle.Find(i => i.Severity == IssueSeverity.Warning && i.Location.StartsWith("Skill.xlsx/Yuanqi"));
+                    Assert.IsNotNull(warning, string.Join("\n", triangle));
+                    StringAssert.Contains("acceleration", warning.Message);
+                    StringAssert.Contains("giant", warning.Message);
+                    StringAssert.Contains("slowtrap", warning.Message);
+                    Assert.IsFalse(triangle.Exists(i => i.Severity == IssueSeverity.Error), string.Join("\n", triangle));
+                    List<Issue> disabled = DomainIssues(Probe("Skill", "Yuanqi", YuanqiVars, YuanqiTypes, ab, bc, caOff));
+                    Assert.IsFalse(disabled.Exists(i => i.Location.StartsWith("Skill.xlsx/Yuanqi")), "a disabled pair breaks the triangle: " + string.Join("\n", disabled));
+                }),
                 ("domain rules require the backfire and surcharge cells", () =>
                 {
                     DesignSheet obsession = Probe("Skill", "Obsession",

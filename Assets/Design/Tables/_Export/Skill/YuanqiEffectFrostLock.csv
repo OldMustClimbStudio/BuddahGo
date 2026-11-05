@@ -1,0 +1,5 @@
+##var,yuanqiId,freezeSeconds,radiusMeters,affectsTrainingDummies
+##type,enum:YuanqiId#key#ref=Yuanqi.yuanqiId,"float#range=0,10","float#range=0,100",bool
+##group,,,,
+##comment,每对一行；SkillDatabase 在 Play 首次查表时按同名字段写入 Yuanqi_FrostLock SO（DesignTableOverlay.Apply）,N：范围内每个目标被禁锢的秒数（Yuanqi_FrostLock.freezeSeconds → SkillExecutor.ApplyFreezeToOwner）,R：以施法者为中心的水平半径 m，缓流区域半径 7.5 m 可作参照（Yuanqi_FrostLock.radiusMeters）,训练木桩也被冻住，训练模式验证靠它（Yuanqi_FrostLock.affectsTrainingDummies）；留空等于 false
+,frost_lock,1.5,12,true

@@ -873,7 +873,7 @@ public class GraphicsOptionRecord
     /// <summary>string#ref=UI/Text.key</summary>
     [Tooltip("显示名文案 key")] public string labelKey = string.Empty;
     /// <summary>bool</summary>
-    [Tooltip("改后是否需要重启游戏才生效；面板在选项名旁显示\"需要重启\"，应用后提示\"部分设置将在重启游戏后生效\"。2026-11-05 逐项在 Play 模式实测，全部即时生效")] public bool restartRequired = false;
+    [Tooltip("改后是否需要重启游戏才生效；为 true 时面板在选项名旁显示\"需要重启\"，应用后提示\"标有“需要重启”的设置将在重启游戏后生效\"。2026-11-05 逐项在 Play 模式实测（贴图质量看渲染画面），全部即时生效，所以都是 false")] public bool restartRequired = false;
 }
 
 /// <summary>Graphics.xlsx / GraphicsOptionLevel</summary>

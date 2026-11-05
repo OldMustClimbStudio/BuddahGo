@@ -248,6 +248,9 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.pushGraceActive = _computedStats.IsPushGraceActive;
             bootstrap.DebugState.suppressSteeringActive = _computedStats.IsSteeringSuppressed;
             bootstrap.DebugState.roomBypassActive = _computedStats.IsRoomBypassActive;
+            bootstrap.DebugState.frozen = _computedStats.IsFrozen;
+            bootstrap.DebugState.burstActive = _computedStats.IsBurstActive;
+            bootstrap.DebugState.maxSpeedPenaltyActive = _computedStats.IsMaxSpeedPenaltyActive;
             bootstrap.DebugState.scaleMultiplier = _computedStats.ScaleMultiplier;
             bootstrap.DebugState.finalForwardForce = _computedStats.FinalForwardForce;
             bootstrap.DebugState.finalMaxSpeed = _computedStats.FinalMaxSpeed;
@@ -261,6 +264,14 @@ namespace NewBuddah.PredictionV2.Core
             bootstrap.DebugState.pushGraceUntilTick = _modifierState.PushGraceUntilTick;
             bootstrap.DebugState.suppressSteeringUntilTick = _modifierState.SuppressSteeringUntilTick;
             bootstrap.DebugState.roomBypassUntilTick = _modifierState.RoomBypassUntilTick;
+            bootstrap.DebugState.freezeUntilTick = _modifierState.FreezeUntilTick;
+            bootstrap.DebugState.burstUntilTick = _modifierState.BurstUntilTick;
+            bootstrap.DebugState.burstDurationTicks = _modifierState.BurstDurationTicks;
+            bootstrap.DebugState.burstExtraMaxSpeed = _modifierState.BurstExtraMaxSpeed;
+            bootstrap.DebugState.maxSpeedPenaltyUntilTick = _modifierState.MaxSpeedPenaltyUntilTick;
+            bootstrap.DebugState.maxSpeedPenaltyMultiplier = _computedStats.IsMaxSpeedPenaltyActive
+                ? BuddahPredictedModifierStateOps.ClampMaxSpeedMultiplier(_modifierState.MaxSpeedPenaltyMultiplier)
+                : 1f;
             var impulseChannelDbg = bootstrap.CommandBus != null ? bootstrap.CommandBus.ImpulseChannel : null;
             bootstrap.DebugState.pendingImpulseCount = impulseChannelDbg != null ? impulseChannelDbg.Count : 0;
             UpdateHandoffDebug(tick);

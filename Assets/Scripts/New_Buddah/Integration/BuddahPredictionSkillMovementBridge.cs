@@ -42,5 +42,25 @@ namespace NewBuddah.PredictionV2.Integration
         {
             return modifierBridge != null && modifierBridge.TryApply(BuddahPredictedModifierCommandData.CreateScale(scaleMultiplier, durationSeconds, massMultiplier, forwardForceMultiplier, source));
         }
+
+        public bool TryApplyFreeze(float seconds, string source)
+        {
+            return modifierBridge != null && modifierBridge.TryApply(BuddahPredictedModifierCommandData.CreateFreeze(seconds, source));
+        }
+
+        public bool TryEndModifier(BuddahPredictedModifierCommandType target, string source)
+        {
+            return modifierBridge != null && modifierBridge.TryApply(BuddahPredictedModifierCommandData.CreateEndModifier(target, source));
+        }
+
+        public bool TryApplyBurst(float extraMaxSpeed, float seconds, string source)
+        {
+            return modifierBridge != null && modifierBridge.TryApply(BuddahPredictedModifierCommandData.CreateBurst(extraMaxSpeed, seconds, source));
+        }
+
+        public bool TryApplyMaxSpeedMultiplier(float multiplier, float seconds, string source)
+        {
+            return modifierBridge != null && modifierBridge.TryApply(BuddahPredictedModifierCommandData.CreateMaxSpeedMultiplier(multiplier, seconds, source));
+        }
     }
 }

@@ -263,15 +263,18 @@ Not verified yet:
 ## Adding an option
 
 1. Add a row to `Graphics/GraphicsOption` (`optionId`, `groupId`, `labelKey`, `restartRequired`) and its levels to
-   `GraphicsOptionLevel`, with `defaultFor` naming each preset exactly once across the option's levels. Add the label keys
-   to `UI/Text`.
+   `GraphicsOptionLevel`, with `defaultFor` naming each preset exactly once across the option's levels, and a `summary`
+   saying what each level changes. Keep the rows in the panel's order (group, then `sortOrder`). Add the label keys to
+   `UI/Text` and check them against the SoloCJK font subset.
 2. If the option needs values no column holds, add typed columns to `GraphicsOptionLevel` (each option reads only its
    own columns), then run `python Tools/design-tables/gen_records.py .` and let Unity recompile and import.
 3. Apply it: an option id constant in `GraphicsPipelineMapper` and its handling there (URP asset or renderer feature, on
    the clone) or in `GraphicsSettingsApplier.Apply` (QualitySettings, camera, other systems). Values that differ from the
    asset must make `DiffersFrom` return true.
-4. Extend `GraphicsSettingsAreComplete` for its values, and `GraphicsSettingsTests` (the default-preset test catches a
-   default that does not match the quality level).
+4. Extend `GraphicsSettingsAreComplete` for its values, `GraphicsTableTests.Columns` (which columns the option owns;
+   a column without an owner fails), and `GraphicsSettingsTests` (the default-preset test catches a default that does
+   not match the quality level). Set `restartRequired` only after checking in play mode that the option does not
+   apply live (`GraphicsSettingsRulesTests.RestartOptions`).
 5. Check the build: a toggle must be on in at least one shipped URP asset and off in another, or URP strips the variants
    it needs (FSR in a player build is not verified yet).
 

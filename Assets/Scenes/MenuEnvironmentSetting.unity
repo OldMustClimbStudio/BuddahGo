@@ -15,18 +15,18 @@ RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 9
   m_Fog: 1
-  m_FogColor: {r: 1.036835, g: 0.813274, b: 0.510614, a: 1}
+  m_FogColor: {r: 1.263, g: 0.967, b: 0.612, a: 1}
   m_FogMode: 3
   m_FogDensity: 0.0009
   m_LinearFogStart: 18
   m_LinearFogEnd: 210
-  m_AmbientSkyColor: {r: 0.62, g: 0.66, b: 0.78, a: 1}
-  m_AmbientEquatorColor: {r: 0.78, g: 0.69, b: 0.68, a: 1}
-  m_AmbientGroundColor: {r: 0.3, g: 0.27, b: 0.26, a: 1}
+  m_AmbientSkyColor: {r: 0.5, g: 0.62, b: 0.9, a: 1}
+  m_AmbientEquatorColor: {r: 0.5, g: 0.5, b: 0.52, a: 1}
+  m_AmbientGroundColor: {r: 0.18, g: 0.16, b: 0.16, a: 1}
   m_AmbientIntensity: 1.2
-  m_AmbientMode: 0
+  m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.1792453, g: 0.1792453, b: 0.1792453, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 5b175773fe5e0954dbcde76fc45f4955, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 6f04b901ac1f35c4f8f3f6e4953f77ea, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -12642,6 +12642,7 @@ Transform:
   - {fileID: 1878884069}
   - {fileID: 468140147}
   - {fileID: 1442669830}
+  - {fileID: 2016804728}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &607844466
@@ -14490,7 +14491,7 @@ MonoBehaviour:
   priority: 1
   blendDistance: 0
   weight: 1
-  sharedProfile: {fileID: 11400000, guid: 3effc84ca5ca4904d89fb9b093e2efe5, type: 2}
+  sharedProfile: {fileID: 11400000, guid: 2a31d5bc68ebad1498230b2a9611b556, type: 2}
 --- !u!4 &680131630
 Transform:
   m_ObjectHideFlags: 0
@@ -38216,7 +38217,7 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 1, g: 0.72, b: 0.5, a: 1}
+  m_Color: {r: 1, g: 0.92, b: 0.82, a: 1}
   m_Intensity: 1.4
   m_Range: 10
   m_SpotAngle: 30
@@ -38260,8 +38261,8 @@ Light:
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
-  m_ColorTemperature: 6570
-  m_UseColorTemperature: 0
+  m_ColorTemperature: 2900
+  m_UseColorTemperature: 1
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
@@ -41785,6 +41786,72 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1926684077}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2016804727
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2016804728}
+  - component: {fileID: 2016804729}
+  m_Layer: 0
+  m_Name: Reflection Probe Shrine
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2016804728
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016804727}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 4.379115, y: -15.470081, z: -3.280653}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 607202532}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!215 &2016804729
+ReflectionProbe:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016804727}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Type: 0
+  m_Mode: 2
+  m_RefreshMode: 0
+  m_TimeSlicingMode: 0
+  m_Resolution: 256
+  m_UpdateFrequency: 0
+  m_BoxSize: {x: 48.103577, y: 59.940163, z: 49.828182}
+  m_BoxOffset: {x: 0, y: 0, z: 0}
+  m_NearClip: 0.3
+  m_FarClip: 1000
+  m_ShadowDistance: 100
+  m_ClearFlags: 1
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IntensityMultiplier: 1
+  m_BlendDistance: 1
+  m_HDR: 1
+  m_BoxProjection: 1
+  m_RenderDynamicObjects: 0
+  m_UseOcclusionCulling: 1
+  m_Importance: 1
+  m_CustomBakedTexture: {fileID: 8900000, guid: 80a7bf2de0052434185a3f6fa8e3cedd,
+    type: 3}
 --- !u!1001 &2019906837
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -27,7 +27,7 @@ Material:
     m_Floats:
     - _Exposure: 1.1
     - _GroundBlend: 12
-    - _HorizonExponent: 2.4
+    - _HorizonExponent: 4
     - _SunDiskSize: 2.4
     - _SunDiskSoftness: 0.3
     - _SunGlowPower: 14
@@ -35,10 +35,10 @@ Material:
     - _SunHaloPower: 3
     - _SunSpread: 3
     m_Colors:
-    - _GroundColor: {r: 0.55, g: 0.3, b: 0.16, a: 1}
+    - _GroundColor: {r: 1.6714269, g: 0.92656577, b: 0.3327332, a: 1}
     - _HorizonColor: {r: 0.98, g: 0.55, b: 0.28, a: 1}
     - _HorizonSunColor: {r: 1.7, g: 0.58, b: 0.16, a: 1}
     - _SunDiskColor: {r: 3, g: 1.25, b: 0.35, a: 1}
     - _SunGlowColor: {r: 1.1, g: 0.38, b: 0.08, a: 1}
-    - _ZenithColor: {r: 0.16, g: 0.18, b: 0.38, a: 1}
+    - _ZenithColor: {r: 0.16, g: 0.2, b: 0.44, a: 1}
   m_BuildTextureStacks: []

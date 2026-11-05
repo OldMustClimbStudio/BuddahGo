@@ -2,11 +2,13 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-// Draws the 一念光明 curtain (FX/CurtainEye) for a camera while its BlackCurtainScreenEffect plays. It takes the
-// curtain's slot, BeforeRenderingTransparents, and feature passes sort ahead of the renderer's own passes at the same
-// event, so everything the curtain lets through still draws over it: the glowing edge ribbons and BlackCurtainTrail
-// (transparent pass), racers and skill effects (RenderBuddah / RenderSkillVfx). One slot later it covers the edges and
-// the caster's route trail.
+// Draws the 一念光明 curtain (FX/CurtainEye) for a camera while its BlackCurtainScreenEffect plays. It runs after the
+// renderer's own opaque and transparent passes, so it covers the whole map, transparent scenery included (the
+// landscape's contact-shadow decals used to show through when it ran before the transparent pass). What a player may
+// still see is drawn after it by the gameplay passes that follow it at the same event (RenderingModules.GameplayFeatures,
+// in that order): racers (RenderBuddah), the track edges (RenderMapEdge, layer TrackEdge, which the view controller
+// shows only to whoever should see them), the route trails (RenderTrails, layer BlackCurtainTrail) and skill effects
+// (RenderSkillVfx). Those layers are kept out of the renderer's transparent pass so they draw once, after the curtain.
 public class BlackCurtainRenderFeature : ScriptableRendererFeature
 {
     private Pass _pass;
@@ -36,7 +38,7 @@ public class BlackCurtainRenderFeature : ScriptableRendererFeature
 
         public Pass()
         {
-            renderPassEvent = RenderPassEvent.BeforeRenderingTransparents;
+            renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
             profilingSampler = new ProfilingSampler("BlackCurtain");
         }
 

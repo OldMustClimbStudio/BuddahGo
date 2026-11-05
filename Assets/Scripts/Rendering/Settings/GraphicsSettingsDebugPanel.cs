@@ -106,8 +106,12 @@ namespace BuddahGo.Rendering.Settings
                 if (levels.Count == 0)
                     continue;
                 int index = Mathf.Max(0, levels.FindIndex(l => l.Id == GraphicsSettingsService.Get(option.Id)));
+                // Same rules as the menu (GraphicsSettingsService.IsActive / RequiresRestart): greyed when moot.
+                bool active = GraphicsSettingsService.IsActive(option.Id);
+                GUI.enabled = active;
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(Text(option.LabelKey, option.Id), GUILayout.Width(170f));
+                string name = Text(option.LabelKey, option.Id) + (option.RestartRequired ? "（" + Text("settings.graphics.tag.restart", "需要重启") + "）" : string.Empty);
+                GUILayout.Label(name, GUILayout.Width(170f));
                 int next = index;
                 if (GUILayout.Button("<", GUILayout.Width(32f)))
                     next = (index + levels.Count - 1) % levels.Count;
@@ -116,6 +120,7 @@ namespace BuddahGo.Rendering.Settings
                 if (GUILayout.Button(">", GUILayout.Width(32f)))
                     next = (index + 1) % levels.Count;
                 GUILayout.EndHorizontal();
+                GUI.enabled = true;
                 if (next != index)
                 {
                     GraphicsSettingsService.Set(option.Id, levels[next].Id);
@@ -123,7 +128,9 @@ namespace BuddahGo.Rendering.Settings
                 }
             }
             GUILayout.EndScrollView();
-            GUILayout.Label("* 与预设不同。改动立即生效并保存在本机。");
+            GUILayout.Label("* 与预设不同。改动立即生效并保存在本机。灰色的选项在当前组合下不起作用。");
+            if (GraphicsSettingsService.PendingRestart.Count > 0)
+                GUILayout.Label(Text("settings.graphics.status.restart", "标有“需要重启”的设置将在重启游戏后生效"));
             GUILayout.EndArea();
         }
 

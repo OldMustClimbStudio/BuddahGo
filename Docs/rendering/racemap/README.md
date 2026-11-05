@@ -4,6 +4,11 @@ Branch `feat/racemap-rendering` (named `refactor/vfx-optimization` until 2026-10
 [OldMustClimbStudio/BuddahGo#65](https://github.com/OldMustClimbStudio/BuddahGo/pull/65) (continues #64, closed by the
 rename) · Unity 2022.3.55f1c1 · URP 14.0.11 · started 2026-10-25.
 This note tracks the phased move of the showcase look into the shipped map `Assets/Scenes/RaceMap.unity`.
+**It is the history.** The current architecture (every module, its requirement, single source of truth and
+dependencies) and the scripted bake are in [../ARCHITECTURE.md](../ARCHITECTURE.md); agents start at
+[../HARNESS.md](../HARNESS.md). Later rounds continued on `feat/racemap-zen-landscape` (PR #70) and
+`feat/racemap-rendering-update` (PR #73). Values in the phase sections below are what each phase set, not necessarily
+today's.
 The showcase that preceded it is documented in [../showcase/README.md](../showcase/README.md) (its Unity project
 stays local; only the note and images are in the repository).
 
@@ -30,10 +35,10 @@ Most changes are scoped to `Assets/Scenes/RaceMap*`. These are shared and reach 
 | `SG_MapEdge` shader graph: Preserve Specular Lighting off, emission no longer multiplied by `_EdgeVisible` (play-test fix) | only RaceMap's edge ribbons use it (the air-wall prefab `反转法线空气墙` also does, but no scene places it) | HDR captures, High Fidelity and Balanced |
 | Buddha collider refitted to the animated model (play-test fix): `Movement/Movement` `colliderCenter` y +0.998, prefab capsule and `RollbackHurtbox` with it, prefab `fotou` 0.2515, `Movement/Respawn` `heightOffset` 3 -> 2.002 | every racer, player and AI, in every scene; the body origin rests 0.998 m lower inside an unchanged world-space capsule | autopilot Solo lap, design-table tests |
 | RaceMap gameplay camera: post AA from `CameraAntialiasingPolicy` (FXAA on top of 8x MSAA on High Fidelity since 2026-10-28, TAA on Balanced, FXAA on Performant) instead of SMAA | RaceMap only; no pipeline or renderer asset changed | shimmer sweeps with real MSAA, race clips, cost runs |
-| `URP-PlanarReflection-Renderer` (no features) appended to all three pipeline assets (index 1 on Performant, 2 on Balanced and High Fidelity) | only `PlanarReflection` cameras select it, by name; the renderer lists grow by one | editor, player build |
+| `URP-PlanarReflection-Renderer` (no features) appended to all three pipeline assets (index 1 on every pipeline since the Deferred keep-alive renderer was removed the same day; at first index 2 on Balanced and High Fidelity) | only `PlanarReflection` cameras select it, by name; the renderer lists grow by one | editor, player build |
 | `BuddahGo/Lit`: `_PLANAR_REFLECTION` material keyword and `PlanarReflection` component | only `RaceMap_Lane` enables it (lane top and end-field floor) | freeze-frame comparisons, cost runs |
 | Graphics settings now also set VSync (on by default), window mode (borderless) and resolution (native) | every scene; window and resolution only in a player whose command line does not set them | EditMode tests |
-| Graphics settings layer (`Assets/Scripts/Rendering/Settings/`, spec in `Graphics.xlsx`; temporary F9 panel): loads the saved choice after the first scene loads and applies it | every scene; with no saved choice or a preset without overrides it changes nothing, otherwise it uses runtime clones of the URP assets and restores `QualitySettings` when play mode ends ([../graphics-settings.md](../graphics-settings.md)) | EditMode tests, play-mode check |
+| Graphics settings layer (`Assets/Scripts/Rendering/Settings/`, spec in `Graphics.xlsx`; settings panel in the main menu since 2026-11-03, F9 panel kept for races): loads the saved choice after the first scene loads and applies it | every scene; with no saved choice or a preset without overrides it changes nothing, otherwise it uses runtime clones of the URP assets and restores `QualitySettings` when play mode ends ([../graphics-settings.md](../graphics-settings.md)) | EditMode tests, play-mode check |
 
 Each pipeline asset lists its default renderer at index 0 and `URP-PlanarReflection-Renderer` at index 1, which only
 `PlanarReflection`'s mirror cameras select, by name. No other camera selects a renderer by index
@@ -441,6 +446,11 @@ step. Scripts that set the toggle floats call `BuddahGoLitShaderGUI.CarryOverKey
 | `RaceMap_Curb` | `Map_subsMarble 1_graph_0_material` (specular workflow) | the curb strips `Map/2` | 1 / 1 / 1 / 0 |
 | `RaceMap_Sand` | `Desert_Sand 1_graph_0_material` | the sand plane `沙地` (static, lightmapped) | 1 / 1 / 1 / 0 |
 
+**Current use (2026-11-05), not phase 3's:** since the zen landscape (PR #70) the track is `Map/RaceMapZen_Track` with
+`Assets/Sources/RaceMapZen/Materials/RaceMapZen_Lane.mat` (`BuddahGo/Lit`, planar). `RaceMap_Lane` is left on
+`EndField/Floor`, `RaceMap_Sand` on `沙地`, and `RaceMap_Curb` only in a prefab-instance override; `地图_2/15` and
+`Map/2` no longer exist. See ARCHITECTURE module 5.
+
 The originals stay untouched: the Substance plugin's graph assets (`MapSubstances/*_graph_0/graph_0.asset`) reference
 them and may regenerate them. The copies keep the Substance textures, so a re-rendered graph still updates them.
 
@@ -743,11 +753,28 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   (low warm sun, warm grade, cool shadows). The original `RaceMap_Sky.mat` and `RaceMap_Environment_Profile.asset`
   are unchanged and stay shared with the menu scene (below). Nothing was baked; light probes are still the old bake
   ("no bake for now"). The reflection probe that the silver Buddha uses is realtime.
+  **Re-tuned on 2026-11-03** (candidate C2 of [dusk-color-study.md](dusk-color-study.md), the user's choice): the sun's
+  colour filter went from (1, 0.80, 0.52) to (1, 0.92, 0.82) on the unchanged 2900 K, the fog to density 0.0009 and
+  (1.263, 0.967, 0.612) calibrated against the sky (checklist step 2, 4.8 levels off), the sky's horizon band to
+  exponent 4 with zenith (0.16, 0.20, 0.44) and the ground colour set from the fog, and the dusk profile to a white
+  colour filter, white balance 10 / -4, saturation 4 and Bloom tint (1, 0.90, 0.78); `Volume_Dark` follows it 0.1 EV
+  darker. Before/after: [dusk_c2_compare/all.jpg](dusk_c2_compare/all.jpg). Start-grid chroma 33 -> 21, Buddha chroma
+  42.6 -> 29; the study's A2/B2 looks are the stronger fixes if the warm cast is still too much.
+  **Reflections (2026-11-03, after the C2 re-tune):** `Reflection Probe Lower` is no longer realtime; its cubemap
+  `RaceMap/ReflectionProbe-Lower.exr` (256 px HDR) was rendered with `Lightmapping.BakeReflectionProbe` and the probe
+  holds it in Custom mode, and a second probe `Reflection Probe EndField` (600 x 120 x 600 at (1493, 40, -684),
+  `ReflectionProbe-EndField.exr`) covers the results field the old box missed. The zen landscape and track are
+  Reflection Probe Static so the probes see them. Re-render both after a sky, sun or layout change (select the probe,
+  Bake, keep Custom mode with the file). The menu scene shares all of this and has its own `Reflection Probe Shrine`
+  (`MenuEnvironmentSetting/ReflectionProbe-Shrine.exr`, recreated by `MenuEnvironmentImporter`).
+  Before/after: [dusk_refl_compare/all.jpg](dusk_refl_compare/all.jpg), [menu_dusk_compare/all.jpg](menu_dusk_compare/all.jpg),
+  [menu_refl_compare/all.jpg](menu_refl_compare/all.jpg).
 - **Occluder fade.** `Assets/Scripts/Rendering/OccluderFade.cs` fades the tall objects (torii, gate, watari span) while
   they block the gameplay camera's view of a player.
 - **Players.** `Buddah.prefab` uses the new silver metal `Assets/Material/Skin/SilverSkin.mat`. The prefab was also
   re-serialized by the editor (component order, fields synced with the current scripts).
-- **Menu scene.** `MenuEnvironmentSetting.unity` now uses RaceMap's original (pre-dusk) post profile
+- **Menu scene.** *(Superseded on 2026-11-03: the menu now shares the dusk look, see "Menu lighting assets" under
+  Known limits and ARCHITECTURE module 12.)* `MenuEnvironmentSetting.unity` now uses RaceMap's original (pre-dusk) post profile
   `RaceMap_Environment_Profile.asset`, camera anti-aliasing, skybox `RaceMap_Sky.mat`, Skybox ambient, reflections and
   exp2 fog 0.0009; `MenuEnvironmentImporter.cs` writes the same settings so a rebuild keeps them. Its directional light
   stays the menu's own. Since the dusk change the menu no longer looks like the race. It also assigns RaceMap's own
@@ -768,11 +795,24 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   Fidelity's edges without FXAA's softness, URP 14 has none.
 - **Reflections**: SSR and the Deferred keep-alive renderer were removed on 2026-10-28 (the user's decision on review
   M6); a future map with glossy surfaces that are not flat would need SSR back, see the plugin's notes.
-- **Menu lighting assets** (open, user decision): the menu shares RaceMap's pre-dusk sky, post profile and the mutable
-  `RaceMap_Lighting.lighting`. Options: give the menu its own copies, move it to the dusk assets, or keep sharing.
-- **Graphics settings**: spec, model and API only; no menu yet (see [../graphics-settings.md](../graphics-settings.md)).
+- **Menu lighting assets** (decided 2026-11-03): the menu follows the dusk look. It references RaceMap's
+  `RaceMap_Sky_Dusk.mat`, `RaceMap_Dusk_Profile.asset`, Trilight ambient, fog and sun colour treatment (its own sun
+  direction and intensity), written by `MenuEnvironmentImporter`. The pre-dusk `RaceMap_Sky.mat` and
+  `RaceMap_Environment_Profile.asset` are referenced by no scene any more (retire in a later pass). The menu got
+  about 0.25 EV darker with the shared profile (exposure +0.05 instead of +0.3); not compensated.
+- **Graphics settings**: spec, model, API and a first main-menu panel (2026-11-03); see [../graphics-settings.md](../graphics-settings.md).
 
-- **Lightmap bake deferred** until the whole map is finished (see [No bake for now](#no-bake-for-now-user-decision-2026-10-27)).
+- **Lightmap bake (done 2026-11-03, later the same day).** Once the machine had memory again the Progressive GPU
+  bake ran in about 40 s: light probes, the two lightmapped planes and the sky reflection from the C2 dusk sun and
+  sky. The first result was all-orange again (start-grid chroma 31: the 2900 K sun bouncing off the planes dominates
+  the probes), so the Trilight ambient went cooler, sky (0.50, 0.62, 0.90) / equator (0.50, 0.50, 0.52) / ground
+  (0.18, 0.16, 0.16), which lands at chroma 24 (old pre-dusk probes: 21). The zen landscape and track still have no
+  lightmap UVs (`uv2` empty) and only reflect; Contribute GI on them needs Generate Lightmap UVs on the FBX imports
+  first (expect many 2048 atlases at 8 texels/unit; use a low Scale in Lightmap). Traps: the lightmapper reports
+  `out of memory` when the system commit charge is near its limit, whatever the scene holds; a cancelled bake
+  detaches the scene's LightingData (light probes vanish, the frame warms up): reassign
+  `Lightmapping.lightingDataAsset`. Options sheet: [dusk_study/bake_options.jpg](dusk_study/bake_options.jpg),
+  before/after [dusk_bake_compare/all.jpg](dusk_bake_compare/all.jpg).
 - **Capture tool** renders without HDR and still assumes the old track height (see How to compare).
 
 - **Not verified by playing a match.** The WhiteBalance and curtain fixes, planar reflections under a real black
@@ -794,6 +834,10 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   colour reaches deep orange without a lower exposure.
 - **Lens flare ghost.** The Oasis flare's ring ghost still crosses the player in the intro at 0.25 intensity. Removing
   it means editing or replacing the flare asset (shared with Oasis).
+- **Dusk colour (2026-11-03 study).** Still open after C2: the Buddha against the lane in the corner view stays at
+  dE 4-6 whatever the grade (lit like the lane; needs a material or contact-shadow measure), the palm-release slot does
+  not draw in edit-mode captures (cause unknown), and the origin of the warm ambient probe L0 (0.285, 0.173, 0.127)
+  was not verified. Details and the A2/B2 alternatives in [dusk-color-study.md](dusk-color-study.md).
 - **Horizon seam at the frame sides.** One fog colour matches the sun-side horizon; toward the edges of the intro frame,
   where the horizon is rosier, a faint seam remains, and the lane's planar reflection mirrors it.
 - **Aliasing.** Specular glitter on the lane and end-field floor and moiré in the far sand come from high-frequency
@@ -801,7 +845,8 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   softness, TAA would cover them but smears at race speed (see Play-test round 2).
 - **Colour grading mode.** All pipeline assets grade in low dynamic range (ACES first, then the grading LUT). HDR
   grading suits ACES better but is a shared-asset change for every scene; not changed.
-- **Balanced and Performant renderers.** Balanced has SSAO; Performant has no renderer features and no
+- **Balanced and Performant renderers.** *(Fixed on 2026-11-05, c7124d10: every level now carries the five gameplay
+  passes and only SSAO differs; the curtain runs at AfterRenderingTransparents. See ARCHITECTURE module 1.)* Balanced has SSAO; Performant has no renderer features and no
   main-light shadows. RenderBuddah, BlackCurtain, RenderMapEdge and RenderTrails exist only on High Fidelity, so those
   effects are missing on the lower levels. Players
   still render (every renderer draws all layers). This predates these phases; Standalone defaults to High Fidelity and
@@ -821,7 +866,8 @@ itself, the air walls, the spline, checkpoints and spawns kept their gameplay se
   glow without a shadow, which suits an emissive edge.
 - The lightmapper reports one object with overlapping UVs (pre-existing; the lightmapped planes use UV0).
 - `Assets/Scenes/RaceMap/` still holds about 900 stale `Lightmap-*` files and `ReflectionProbe-2.exr` from older bakes;
-  only `Lightmap-0..2` and `ReflectionProbe-0/1` are referenced. Not cleaned up.
+  only `Lightmap-0..2` and `ReflectionProbe-0/1` are referenced. Not cleaned up. (Since bake 9dc20717 only
+  `Lightmap-0` and `ReflectionProbe-0` are bake outputs; the rest is listed in [../retired.md](../retired.md).)
 
 ## Editor and tooling traps
 
@@ -854,6 +900,7 @@ Traps that cost time during this work; each applies to any RaceMap or pipeline c
 | `Assets/Editor/Rendering/RaceMapRenderCost.cs` | Before/after frame-time measurement with the pipeline's MSAA |
 | `Tools/rendering/build_racemap_compare.py` | Labelled JPEG side-by-sides |
 | `Tools/rendering/build_fix_evidence.py` | The play-test fix images from the local HDR captures (inputs listed in its docstring) |
+| `Assets/Editor/Rendering/RaceMapDuskColorStudy.cs` | Dusk colour study probe: HDR captures of the five viewpoints with temporary overrides of sun / fog / sky / ambient / probes / post (tokens in the file header), material-id mask, skill VFX on the proxy; nothing saved |
 | `Assets/Editor/Rendering/RaceMapTemporalNoise.cs` | Shimmer sweeps (sub-pixel or race-speed camera motion, one factor per run), clips of the gameplay camera, HDR cost runs |
 | `Tools/rendering/temporal_noise.py`, `Tools/rendering/build_aa_evidence.py` | Flicker scores and the anti-aliasing evidence images |
 | `Assets/Scripts/Rendering/CameraAntialiasingPolicy.cs` | Post AA per quality level on RaceMap's gameplay camera |
@@ -862,20 +909,24 @@ Traps that cost time during this work; each applies to any RaceMap or pipeline c
 | `Assets/Scripts/Rendering/PlanarReflection.cs`, `Assets/Settings/URP-PlanarReflection-Renderer.asset` | Planar reflections for flat floors and the feature-less renderer their mirror cameras use |
 | `Assets/Scripts/Rendering/Settings/` | Graphics settings, including the temporary F9 panel ([../graphics-settings.md](../graphics-settings.md)) |
 | `Assets/Rendering/Shaders/BuddahGoLit.shader` (+ 3 `.hlsl`) | The project's hand-written Lit (phase 3) |
+| `Assets/Editor/Rendering/RenderingBake.cs` | The scripted, recorded bake of RaceMap and the menu, its Verify and the bake manifest (2026-11-05, ARCHITECTURE "Bake reproducibility") |
+| `Tools/rendering/capture_diff.py` | Per-view difference statistics of two capture folders and a before / after / difference sheet |
 
 ## Re-tuning checklist
 
-1. Sun direction, filter colour, colour temperature or intensity, sky material, ambient intensity, lighting
-   settings: rebake (`Lightmapping.BakeAsync`, about 100 s) and save the scene; otherwise probe-lit objects keep the
-   old ambient and the lane keeps the old sky reflection.
+1. Sun direction, filter colour, colour temperature or intensity, sky material, ambient, lighting settings: record the
+   value in `RenderingBake` (the sun also in the scene), then `BuddahGo/Rendering/Bake/Bake RaceMap + Menu` (about 40 s
+   plus the probes; it saves both scenes and writes the manifest); otherwise probe-lit objects keep the old ambient and
+   the lane keeps the old sky reflection. (Before 2026-11-05: `Lightmapping.BakeAsync` by hand.)
 2. Sky colours are linear values; the fog colour is linearised. After a sky change: rebake, capture
    `04_intro_shot1` after the bake, then iterate the fog colour until rows 284-292 (sky) match rows 298-302 (fully
    fogged far sand), each averaged over the 32 columns x = 40, 100, ..., 1900 (multiply each channel by
    (sky / band)^1.2 and re-capture; two or three steps converge). Set the sky's below-horizon colour to
    `RenderSettings.fogColor.linear`, rebake once more and recapture. The fog's red channel is above 1 and the Lighting
-   window's LDR colour picker clamps it on a manual edit, so set it from code.
+   window's LDR colour picker clamps it on a manual edit, so set it from code (`RenderingBake.FogColor`, written to
+   both scenes by the bake).
 3. Track spline or walls changed: run `Generate RaceMap Light Probes`, then rebake.
-4. Post profiles: keep WhiteBalance and Bloom in `RaceMap_Environment_Profile` (Feel shakers), keep `Volume_Dark`'s
+4. Post profiles: keep WhiteBalance and Bloom in `RaceMap_Dusk_Profile` (`RaceMap_Environment_Profile` until the dusk; Feel shakers), keep `Volume_Dark`'s
    tonemapping and grade in step with it, 0.1 EV darker (black curtain).
 5. Reflections are planar (`PlanarReflection` on the lane and the end-field floor): if the track's floor moves, the
    plane follows the receivers' bounds; a floor that is not flat needs SSR back (plugin notes).

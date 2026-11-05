@@ -21,7 +21,8 @@
 | 玩法深化：执念与反噬、单键施法与鼠标瞄准、W 推进、训练木桩（阶段 A1–A8 和 B 已实现，A5 缘起在缘起 PR `feat/yuanqi`；联机验证未做） | [gameplay/README.md](gameplay/README.md) |
 | 训练模式验证记录：11 个场景（S0–S7、S11–S13）的实测值与重跑方法（2026-10-26 起，2026-10-30 A8 加了 S13；只覆盖本机 host） | [gameplay/practice-verification.md](gameplay/practice-verification.md) |
 | 机制更新退役记录：搓招、全局施法锁、`_anti` 变体、W/↑ 推掌、旧起跑交接退役后删了什么、在哪个提交、哪些有意保留 | [gameplay/retired.md](gameplay/retired.md) |
-| RaceMap 渲染：日落光照、手写天空、平面反射（原 SSR）、阴影距离、`BuddahGo/Lit`、复调清单与编辑器陷阱 | [rendering/racemap/README.md](rendering/racemap/README.md) |
+| 渲染入口：改动前读什么、不变量、抓图—烘焙—对比流程；完整架构与可复现烘焙 | [rendering/HARNESS.md](rendering/HARNESS.md) · [rendering/ARCHITECTURE.md](rendering/ARCHITECTURE.md) · [rendering/README.md](rendering/README.md) |
+| RaceMap 渲染历史：日落光照、手写天空、平面反射（原 SSR）、阴影距离、`BuddahGo/Lit`、复调清单与编辑器陷阱 | [rendering/racemap/README.md](rendering/racemap/README.md) |
 | 渲染 shader 开源库调研与效果对比样板间（样板间工程仅在本地） | [rendering/shader-repo-survey.md](rendering/shader-repo-survey.md) · [rendering/showcase/README.md](rendering/showcase/README.md) |
 | 画质设置：选项与档位规格（配表 `Graphics.xlsx`）、运行时模型与接口、菜单接入点、未实现与占位清单 | [rendering/graphics-settings.md](rendering/graphics-settings.md) |
 

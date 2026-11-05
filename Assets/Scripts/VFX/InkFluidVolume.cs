@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BuddahGo.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
@@ -253,7 +254,7 @@ namespace BuddahGo.VFX
         // eye (no main camera) the oldest volumes keep simulating.
         internal static int PickSimulating(List<InkFluidVolume> volumes, bool hasEye, Vector3 eye)
         {
-            int budget = int.MaxValue;
+            int budget = TierBudget(VfxQuality.Settings);
             foreach (var v in volumes) budget = Mathf.Min(budget, Mathf.Max(v.simulationBudget, 0));
             if (volumes.Count <= budget) { foreach (var v in volumes) v.wanted = true; return budget; }
             s_rank.Clear();
@@ -266,6 +267,20 @@ namespace BuddahGo.VFX
             s_rank.Sort(s_byScore);
             for (int i = 0; i < s_rank.Count; i++) s_rank[i].wanted = i < budget;
             return budget;
+        }
+
+        // The VFX tier's cap on simulations (Graphics.xlsx vfxInkBudget); a negative cap means none. It is read every
+        // frame, so a settings change takes effect at once: palms beyond it stop smoking and return their grids.
+        internal static int TierBudget(VfxTierSettings tier) => tier.InkFluidBudget < 0 ? int.MaxValue : tier.InkFluidBudget;
+
+        // The grid a tier gives an authored grid: the same box with cells InkFluidCellScale times larger, each axis
+        // rounded up to the 8 / 8 / 4 thread-group multiples, never below the minimum OnValidate allows.
+        internal static void TierGrid(Vector3Int authoredResolution, float authoredCellSize, float cellScale, out Vector3Int resolution, out float cellSize)
+        {
+            float scale = Mathf.Clamp(cellScale, 1f, 4f);
+            int Axis(int cells, int multiple, int min) => Mathf.Max(min, Mathf.CeilToInt(cells / scale / multiple) * multiple);
+            resolution = new Vector3Int(Axis(authoredResolution.x, 8, 8), Axis(authoredResolution.y, 8, 8), Axis(authoredResolution.z, 4, 4));
+            cellSize = authoredCellSize * scale;
         }
 
         // Lower ranks first. A volume already simulating counts as 20% nearer (0.8 squared), so it keeps its grids
@@ -298,8 +313,22 @@ namespace BuddahGo.VFX
         public Vector3 BoxMin => anchorCentre - BoxSize * 0.5f;
         public Vector3 BoxSize => new Vector3(resolution.x, resolution.y, resolution.z) * Mathf.Max(cellSize, 0.01f);
 
+        // The prefab's grid, kept so each spawn takes the current tier's grid from it (play mode only: in edit mode the
+        // component is being tuned and its fields are the asset's).
+        Vector3Int authoredResolution;
+        float authoredCellSize;
+        bool authoredKept;
+
+        void ApplyTierGrid()
+        {
+            if (!Application.isPlaying) return;
+            if (!authoredKept) { authoredResolution = resolution; authoredCellSize = cellSize; authoredKept = true; }
+            TierGrid(authoredResolution, authoredCellSize, VfxQuality.Settings.InkFluidCellScale, out resolution, out cellSize);
+        }
+
         void OnEnable()
         {
+            ApplyTierGrid();
             if (hand == null && transform.parent != null) hand = transform.parent;
             spawnOrder = s_spawnCounter++;
             if (!s_active.Contains(this)) s_active.Add(this);

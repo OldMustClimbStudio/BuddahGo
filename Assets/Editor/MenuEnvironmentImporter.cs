@@ -219,6 +219,7 @@ public static class MenuEnvironmentImporter
         SetupEnvironment(sun);
         CreateGlobalVolume();
         MarkStatic(root.gameObject);
+        CreateReflectionProbe(root);
         SetupEmaInspector(root);
         SetupProtoCameraSwitcher();
         SetupMenuSkinView(PlaceMenuBuddhaSkin());
@@ -801,9 +802,13 @@ public static class MenuEnvironmentImporter
     {
         if (sun != null)
         {
-            // Low dusk sun: long shadows, warm rim on the roofs, the scene sits mostly in soft shade.
+            // Low dusk sun: long shadows, warm rim on the roofs, the scene sits mostly in soft shade. Colour as
+            // RaceMap's MainLight after the C2 re-tune (2900 K with the (1, 0.92, 0.82) filter); the intensity stays
+            // the menu's own.
             sun.transform.rotation = Quaternion.LookRotation(new Vector3(-0.42f, -0.30f, -0.86f).normalized, Vector3.up);
-            sun.color = new Color(1f, 0.72f, 0.50f);
+            sun.useColorTemperature = true;
+            sun.colorTemperature = 2900f;
+            sun.color = new Color(1f, 0.92f, 0.82f);
             sun.intensity = 1.4f;
             sun.shadows = LightShadows.Soft;
             sun.shadowStrength = 0.85f;
@@ -2017,42 +2022,19 @@ public static class MenuEnvironmentImporter
                 typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
     }
 
-    // The menu keeps RaceMap's original (pre-dusk) lighting environment: the Sunset Sky material RaceMap_Sky.mat, skybox
-    // ambient x1.2, skybox reflections (256 px, 2 bounces, x1) and exp2 fog 0.0009. RaceMap itself has since moved to
-    // RaceMap_Sky_Dusk.mat, Trilight ambient and fog 0.0011 (0.96, 0.68, 0.40), so the two scenes no longer match.
-    // The importer only references RaceMap's assets; RaceMap owns them. Lightmapping.lightingSettings below assigns
-    // RaceMap's own RaceMap_Lighting.lighting rather than a copy, so a change to it in either scene changes both.
-    private const string RaceMapSkyPath = "Assets/Scenes/RaceMap/RaceMap_Sky.mat";
-    private const string RaceMapLightingSettingsPath = "Assets/Scenes/RaceMap/RaceMap_Lighting.lighting";
-
+    // The menu shares RaceMap's dusk environment (the user's decision, 2026-11-03): sky RaceMap_Sky_Dusk.mat, RaceMap's
+    // Trilight ambient, skybox reflections, exp2 fog and RaceMap's own RaceMap_Lighting.lighting (not a copy).
+    // The values live in one place, RenderingBake (Assets/Editor/Rendering/), which the scripted bake also writes, so a
+    // re-tune there changes the race and the menu together. Only the sun is the menu's own.
     private static void SetupEnvironment(Light sun)
     {
-        var sky = AssetDatabase.LoadAssetAtPath<Material>(RaceMapSkyPath);
-        if (sky == null) Debug.LogError($"[MenuEnvironment] Sky material not found at {RaceMapSkyPath}.");
-        var lightingSettings = AssetDatabase.LoadAssetAtPath<LightingSettings>(RaceMapLightingSettingsPath);
-        if (lightingSettings == null) Debug.LogError($"[MenuEnvironment] Lighting settings not found at {RaceMapLightingSettingsPath}.");
-        else Lightmapping.lightingSettings = lightingSettings;
-
-        RenderSettings.skybox = sky;
         RenderSettings.sun = sun;
-        RenderSettings.ambientMode = AmbientMode.Skybox;
-        RenderSettings.ambientIntensity = 1.2f;
-        RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
-        RenderSettings.defaultReflectionResolution = 256;
-        RenderSettings.reflectionBounces = 2;
-        RenderSettings.reflectionIntensity = 1f;
-        RenderSettings.fog = true;
-        RenderSettings.fogMode = FogMode.ExponentialSquared;
-        RenderSettings.fogDensity = 0.0009f;
-        RenderSettings.fogColor = new Color(1.036835f, 0.813274f, 0.510614f);
-        RenderSettings.subtractiveShadowColor = new Color(0.1792453f, 0.1792453f, 0.1792453f);
-        DynamicGI.UpdateEnvironment();
+        BuddahGo.Rendering.Editor.RenderingBake.ApplyEnvironment();
     }
 
-    // RaceMap's original (pre-dusk) post profile (ACES, exposure +0.3, contrast 10, saturation 5, white balance 4 / -3,
-    // bloom off). RaceMap now grades with RaceMap_Dusk_Profile.asset, so the menu no longer matches the race.
-    // The importer only references it; RaceMap owns it.
-    private const string RaceMapPostProfilePath = "Assets/Scenes/RaceMap/RaceMap_Environment_Profile.asset";
+    // RaceMap's dusk post profile (ACES, exposure +0.05, contrast 14, saturation 4, white balance 10 / -4, warm bloom),
+    // shared with the race since 2026-11-03. The importer only references it; RaceMap owns it.
+    private const string RaceMapPostProfilePath = "Assets/Scenes/RaceMap/RaceMap_Dusk_Profile.asset";
 
     private static void CreateGlobalVolume()
     {
@@ -2065,6 +2047,48 @@ public static class MenuEnvironmentImporter
         v.priority = 1f;
         v.sharedProfile = profile;
     }
+
+    /// <summary>
+    /// One baked reflection probe over the whole shrine so the menu Buddha's silver skin and the glossy props reflect
+    /// the courtyard and not only the dusk sky (the sky alone turns the silver gold). Box projection, sized to the
+    /// renderers plus a margin.
+    /// </summary>
+    private static void CreateReflectionProbe(Transform root)
+    {
+        const string probeName = "Reflection Probe Shrine";
+        var existing = GameObject.Find(probeName);
+        if (existing != null) UnityEngine.Object.DestroyImmediate(existing);
+        var renderers = root.GetComponentsInChildren<Renderer>(false);
+        if (renderers.Length == 0) return;
+        var bounds = renderers[0].bounds;
+        foreach (Renderer r in renderers) bounds.Encapsulate(r.bounds);
+        var go = new GameObject(probeName);
+        go.transform.SetParent(root, true);
+        go.transform.position = bounds.center;
+        var probe = go.AddComponent<ReflectionProbe>();
+        probe.resolution = 256;
+        probe.hdr = true;
+        probe.boxProjection = true;
+        probe.size = bounds.size + new Vector3(10f, 10f, 10f);
+        probe.importance = 1;
+        probe.cullingMask = -1;
+        // The cubemap is rendered with Lightmapping.BakeReflectionProbe (the probe's Bake button), not by the
+        // lightmapper, and held as a custom texture so it survives without a LightingData asset. Re-bake it after
+        // a layout or lighting change: select the probe, Bake, then keep it in Custom mode with that file.
+        var cube = AssetDatabase.LoadAssetAtPath<Texture>(ShrineProbePath);
+        if (cube != null)
+        {
+            probe.mode = ReflectionProbeMode.Custom;
+            probe.customBakedTexture = cube;
+        }
+        else
+        {
+            probe.mode = ReflectionProbeMode.Baked;
+            Debug.LogWarning($"[MenuEnvironment] {ShrineProbePath} not found; bake the shrine reflection probe and set it as its custom texture.");
+        }
+    }
+
+    private const string ShrineProbePath = "Assets/Scenes/MenuEnvironmentSetting/ReflectionProbe-Shrine.exr";
 
     private static void MarkStatic(GameObject root)
     {

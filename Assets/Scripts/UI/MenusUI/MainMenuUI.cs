@@ -15,7 +15,8 @@ namespace SteamMultiplayer.UI
             CreateRoom,
             BrowseRooms,
             JoinById,
-            SoloSetup
+            SoloSetup,
+            Settings
         }
 
         [Header("Panels")]
@@ -25,6 +26,7 @@ namespace SteamMultiplayer.UI
         [SerializeField] private GameObject browseRoomsPanel;
         [SerializeField] private GameObject joinByIdPanel;
         [SerializeField] private GameObject roomPanelRoot;
+        [SerializeField] private GameObject settingsPanel;   // built by Assets/Editor/UI/SettingsPanelBuilder.cs
 
         [Header("Behavior")]
         [SerializeField] private bool allowEscapeBack = true;
@@ -55,6 +57,9 @@ namespace SteamMultiplayer.UI
         }
 
         public void ShowSoloSetup() => ShowPanel(MenuPanel.SoloSetup, true);
+
+        /// <summary>The settings panel (graphics today); works offline, so no online check.</summary>
+        public void ShowSettings() => ShowPanel(MenuPanel.Settings, true);
 
         private void TryRestoreFailedSoloSetup()
         {
@@ -161,6 +166,7 @@ namespace SteamMultiplayer.UI
             SetPanelActive(browseRoomsPanel, panel == MenuPanel.BrowseRooms);
             SetPanelActive(joinByIdPanel, panel == MenuPanel.JoinById);
             SetPanelActive(_soloSetupPanel, panel == MenuPanel.SoloSetup);
+            SetPanelActive(settingsPanel, panel == MenuPanel.Settings);
             RefreshRootVisibility();
         }
 

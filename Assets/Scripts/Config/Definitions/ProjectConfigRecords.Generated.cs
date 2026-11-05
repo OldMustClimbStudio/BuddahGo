@@ -849,13 +849,13 @@ public class GraphicsOptionRecord
     /// <summary>string#key (key)</summary>
     [Tooltip("选项 id，snake_case；代码按 id 应用对应的档位列")] public string optionId = string.Empty;
     /// <summary>int</summary>
-    [Tooltip("界面排序（组内）")] public int sortOrder = 0;
+    [Tooltip("组内排序：面板在一个分组里按它从小到大列出选项")] public int sortOrder = 0;
     /// <summary>string</summary>
-    [Tooltip("分组：display / quality / effects / performance")] public string groupId = string.Empty;
+    [Tooltip("分组：display / quality / effects / performance，面板按这个顺序显示分组（顺序写在代码里，SettingsPanelUI 与 F9 面板）")] public string groupId = string.Empty;
     /// <summary>string#ref=UI/Text.key</summary>
     [Tooltip("显示名文案 key")] public string labelKey = string.Empty;
     /// <summary>bool</summary>
-    [Tooltip("改后是否需要重启游戏才生效（目前全部即时生效）")] public bool restartRequired = false;
+    [Tooltip("改后是否需要重启游戏才生效；为 true 时面板在选项名旁显示\"需要重启\"，应用后提示\"标有“需要重启”的设置将在重启游戏后生效\"。2026-11-05 逐项在 Play 模式实测（贴图质量看渲染画面），全部即时生效，所以都是 false")] public bool restartRequired = false;
 }
 
 /// <summary>Graphics.xlsx / GraphicsOptionLevel</summary>
@@ -863,7 +863,7 @@ public class GraphicsOptionRecord
 public class GraphicsOptionLevelRecord
 {
     /// <summary>string#key#ref=GraphicsOption.optionId (key)</summary>
-    [Tooltip("所属选项；每个选项只读自己的那几列，其余列留空")] public string optionId = string.Empty;
+    [Tooltip("所属选项；每个选项只读自己的那几列（列注释的前缀就是读它的选项），其余列留空")] public string optionId = string.Empty;
     /// <summary>string#key (key)</summary>
     [Tooltip("档位 id，snake_case")] public string levelId = string.Empty;
     /// <summary>int</summary>
@@ -916,4 +916,18 @@ public class GraphicsOptionLevelRecord
     [Tooltip("window_mode：ExclusiveFullScreen / FullScreenWindow / MaximizedWindow / Windowed")] public string fullScreenMode = string.Empty;
     /// <summary>int#range=0,2</summary>
     [Tooltip("vsync：0 关，1 每次刷新一帧")] public int vSyncCount = 0;
+    /// <summary>int#range=1,3</summary>
+    [Tooltip("vfx_quality：保留的特效层最高优先级（1 只留核心，3 全部）；携带玩法信息的层永远保留（2026-11 的 14 个插槽都只有一个玩法层，档位靠细节系统发射量、拖尾、实时光和墨烟体现）")] public int vfxKeepPriority = 0;
+    /// <summary>float#range=0.1,1</summary>
+    [Tooltip("vfx_quality：细节粒子系统（每周期发射超过 4 个粒子：火星、碎屑、烟团、竹叶）在所有层上的发射量倍率，装饰层的全部系统也用它；减速区等的 areaSystems 不算细节")] public float vfxEmissionScale = 0f;
+    /// <summary>float#range=0.7,1</summary>
+    [Tooltip("vfx_quality：携带玩法信息的层里形体系统（每周期至多 4 个大面片，承载特效形状）的发射量倍率；低档也要看得清，下限 0.7")] public float vfxGameplayEmissionScale = 0f;
+    /// <summary>bool</summary>
+    [Tooltip("vfx_quality：带实时光的特效层是否播放")] public bool vfxRealtimeLights = false;
+    /// <summary>float#range=0.25,1</summary>
+    [Tooltip("vfx_quality：装饰层自带拖尾的长度倍率；玩法层与角色路线拖尾不变")] public float vfxTrailScale = 0f;
+    /// <summary>int#range=0,16</summary>
+    [Tooltip("vfx_quality：如来神掌墨烟同时模拟的上限（离相机最近的先模拟，其余只画墨手本体不冒烟）")] public int vfxInkBudget = 0;
+    /// <summary>float#range=1,2</summary>
+    [Tooltip("vfx_quality：墨烟网格的格子放大倍数，盒子大小不变、每轴格数除以它（1.5 约省 2/3 模拟开销）")] public float vfxInkCellScale = 0f;
 }

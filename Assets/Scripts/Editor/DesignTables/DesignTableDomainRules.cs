@@ -244,6 +244,11 @@ namespace BuddahGo.DesignTables
                         break;
                     case "vfx_quality":
                         Check("vfxTier", OneOf(Value("vfxTier"), "Low", "Medium", "High"), "vfxTier must be Low, Medium or High");
+                        // A blank cell reads as 0 (no emission, no trail), so every tier column must be filled
+                        // (VfxQuality / GraphicsSettingsApplier.VfxTierFrom read them).
+                        foreach (string column in new[] { "vfxKeepPriority", "vfxEmissionScale", "vfxGameplayEmissionScale", "vfxRealtimeLights", "vfxTrailScale", "vfxInkBudget", "vfxInkCellScale" })
+                            if (levels.FindColumn(column) != null)
+                                Check(column, !string.IsNullOrEmpty(Value(column)), column + " must be filled on every vfx_quality level");
                         break;
                 }
             }

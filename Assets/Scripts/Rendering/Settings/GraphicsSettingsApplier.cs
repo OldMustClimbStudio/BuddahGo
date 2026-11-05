@@ -103,8 +103,20 @@ namespace BuddahGo.Rendering.Settings
             ApplyDisplay(levels);
 
             if (levels.TryGetValue(GraphicsPipelineMapper.VfxQuality, out var vfx) && Enum.TryParse(vfx.vfxTier, true, out VfxQualityTier tier))
-                VfxQuality.Set(tier);
+                VfxQuality.Set(tier, VfxTierFrom(vfx));
         }
+
+        /// <summary>A vfx_quality row's values (Graphics.xlsx vfx* columns), clamped to what the readers accept.</summary>
+        public static VfxTierSettings VfxTierFrom(GraphicsOptionLevelRecord level) => new VfxTierSettings
+        {
+            KeepPriority = Mathf.Clamp(level.vfxKeepPriority, 1, 3),
+            EmissionScale = Mathf.Clamp(level.vfxEmissionScale, 0.05f, 1f),
+            GameplayEmissionScale = Mathf.Clamp(level.vfxGameplayEmissionScale, 0.7f, 1f),
+            RealtimeLights = level.vfxRealtimeLights,
+            TrailScale = Mathf.Clamp(level.vfxTrailScale, 0.1f, 1f),
+            InkFluidBudget = Mathf.Max(0, level.vfxInkBudget),
+            InkFluidCellScale = Mathf.Clamp(level.vfxInkCellScale, 1f, 4f),
+        };
 
         static readonly string[] s_WindowArguments = { "-screen-width", "-screen-height", "-screen-fullscreen", "-window-mode", "-popupwindow" };
 

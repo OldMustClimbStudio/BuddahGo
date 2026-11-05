@@ -84,8 +84,7 @@ namespace BuddahGo.VFX
 
             MoveToCharacterLayer(transform);
 
-            VfxQualityTier tier = VfxQuality.Current;
-            float emission = SkillVfxRules.EmissionScale(tier);
+            VfxTierSettings tier = VfxQuality.Settings;
             _layers = GetComponentsInChildren<SkillVfxLayer>(true);
             for (int i = 0; i < _layers.Length; i++)
             {
@@ -95,8 +94,8 @@ namespace BuddahGo.VFX
                     keep = false;
                 if (layer.burstShared && context.burstIndex == 0)
                     layer.transform.position += context.burstCenterOffsetWorld;
-                layer.Initialize(emission, keep);
-                layer.SetTrailSeconds(_visual.trailSeconds);
+                layer.Initialize(SkillVfxRules.EmissionScale(tier, layer.gameplayInfo), SkillVfxRules.DetailEmissionScale(tier), keep);
+                layer.SetTrailSeconds(SkillVfxRules.TrailSeconds(tier, layer.gameplayInfo, _visual.trailSeconds));
                 if (!keep)
                     layer.gameObject.SetActive(false);
             }

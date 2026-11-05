@@ -112,7 +112,7 @@ namespace BuddahGo.VFX
         bool _endingStarted;
         bool _enabledByTier = true;
         bool _played;
-        float _emissionScale = 1f;
+        float[] _systemEmission;
 
         // Caster scale blend state. _areaScale < 0 until the layer is first placed on the caster.
         bool[] _isArea;
@@ -135,10 +135,14 @@ namespace BuddahGo.VFX
         internal bool HasStarted => _played;
         internal bool EnabledByTier => _enabledByTier;
 
-        internal void Initialize(float emissionScale, bool enabledByTier)
+        internal void Initialize(float emissionScale, bool enabledByTier) => Initialize(emissionScale, emissionScale, enabledByTier);
+
+        // shapeScale: systems that draw a few large sprites (they carry the effect's shape, SkillVfxRules.IsDetailSystem
+        // false); detailScale: systems that emit many small particles (sparks, flecks, dust). The VFX tier scales the
+        // detail systems of every layer and keeps the shape of gameplay layers whole.
+        internal void Initialize(float shapeScale, float detailScale, bool enabledByTier)
         {
             _enabledByTier = enabledByTier;
-            _emissionScale = emissionScale;
             _block = new MaterialPropertyBlock();
             bool blend = casterScaling == SkillVfxCasterScaling.Blend;
             // The surge is driven on its own (its scale leads the area's), so it leaves the layer before the layer's
@@ -181,9 +185,14 @@ namespace BuddahGo.VFX
             _baseStartDelay = new ParticleSystem.MinMaxCurve[_particles.Length];
             _baseDuration = new float[_particles.Length];
             _baseBursts = new ParticleSystem.Burst[_particles.Length][];
+            _systemEmission = new float[_particles.Length];
             for (int i = 0; i < _particles.Length; i++)
             {
                 ParticleSystem.EmissionModule emission = _particles[i].emission;
+                // The area systems of a scaling zone draw the zone itself, so they always count as shape.
+                bool area = areaSystems != null && System.Array.IndexOf(areaSystems, _particles[i]) >= 0;
+                float emissionScale = !area && SkillVfxRules.IsDetailSystem(_particles[i]) ? detailScale : shapeScale;
+                _systemEmission[i] = emissionScale;
                 _particleRates[i] = emission.rateOverTimeMultiplier;
                 emission.rateOverTimeMultiplier = _particleRates[i] * emissionScale;
                 _baseBursts[i] = new ParticleSystem.Burst[emission.burstCount];
@@ -310,7 +319,7 @@ namespace BuddahGo.VFX
                 ParticleSystem.MainModule main = _particles[i].main;
                 main.startSize = ScaleCurve(_baseStartSize[i], size);
                 ParticleSystem.EmissionModule rate = _particles[i].emission;
-                rate.rateOverTimeMultiplier = _particleRates[i] * _emissionScale * emission;
+                rate.rateOverTimeMultiplier = _particleRates[i] * _systemEmission[i] * emission;
                 if (_handoffActive && _blendAlpha[i].Count > 0)
                 {
                     int count = Particles(_particles[i]);

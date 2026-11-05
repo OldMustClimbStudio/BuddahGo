@@ -198,7 +198,7 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
 
 同次盘点的另两项待用户定：所有粒子系统的 `maxParticles` 都还是默认 1000，按 maxParticles 加总每个有粒子的插槽都过 600，按发射量粗估实际峰值每个插槽都不到 50；37 个渲染器勾着接收阴影、6 个勾着投影（`palm_bullet` 的根（已禁用）和 `Volume`、神足通的两条拖尾、一念光明的 `BlackCurtainTrail`）。这两项测试暂时只查 `palm_buff`。
 
-档位：现有 `vfx_quality` 三档（Low / Medium / High，钩子 `VfxQuality.Current` 已有读者）对应优先级：Low 只留优先级 1 且发射量 40%，Medium 留 1–2 且 70%，High 全量。用户计划之后另开一档"特效质量"，越低省略越多层，规则相同。**距离分级**：离相机远于 `far_threshold_m` 的别人的特效自动省略 Accent、墨池与贴花，只保留携带玩法信息的主体与拖尾；本地玩家自己的永远全量。阈值与档位联动，开"特效质量"档时一并实现。
+档位：`vfx_quality` 三档（Low / Medium / High）的数值在 `Graphics.xlsx` 的 vfx* 列，说明与实测见 [graphics-settings.md 的 VFX tiers](../rendering/graphics-settings.md#vfx-tiers)（2026-11-05）：按优先级保留层（Low 1、Medium 1–2、High 全部，玩法层永远保留）；因为现有插槽都只有一个玩法层，档位同时作用在层内的细节粒子系统（每周期超过 4 个粒子的火星、碎屑、烟团）上，发射量 40% / 70% / 100%，形体系统（1–4 个大面片）与减速区的 areaSystems 不减；Low 关实时光；装饰层拖尾 0.5 / 0.75 / 1；墨烟同时模拟 2 / 4 / 8 只、网格格子 1.5 / 1.25 / 1 倍。用户计划之后另开一档"特效质量"，越低省略越多层，规则相同。**距离分级**：离相机远于 `far_threshold_m` 的别人的特效自动省略 Accent、墨池与贴花，只保留携带玩法信息的主体与拖尾；本地玩家自己的永远全量。阈值与档位联动，开"特效质量"档时一并实现。
 
 验证方法：编辑器内用现有的 `RaceMapRenderCost` 一类测量（同机同会话对比），Rendering Debugger 看 overdraw；数字写进各技能文档。
 

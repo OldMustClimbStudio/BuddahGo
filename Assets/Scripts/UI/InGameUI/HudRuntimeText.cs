@@ -43,6 +43,10 @@ internal static class HudGlyphCoverage
     internal static string Resolve(TMP_FontAsset font, HudLabel label)
         => HudText.PickCovered(DesignTableOverlay.Text(label.Key, label.Preferred), label.Ascii, text => Covers(font, text));
 
+    /// <summary>A name (skill / 缘起 display name) when the font covers it, else its id.</summary>
+    internal static string NameOrId(TMP_FontAsset font, string displayName, string id)
+        => HudText.PickCovered(displayName, id, text => Covers(font, text));
+
     internal static int GlobalFallbackCount()
     {
         if (TMP_Settings.instance == null)
@@ -134,5 +138,50 @@ internal static class HudRuntimeText
         bool visible = value.Length > 0;
         if (target.gameObject.activeSelf != visible)
             target.gameObject.SetActive(visible);
+    }
+}
+
+/// <summary>
+/// The SkillDatabase asset for HUD lookups (缘起 names, skill names). HUD components have no serialized reference
+/// (no prefab edits in A6), so this finds the loaded asset: racers (SkillExecutor, SkillLoadout) and the selection
+/// manager reference it, so it is in memory wherever the HUD needs it.
+/// </summary>
+internal static class HudSkillDatabase
+{
+    private static SkillDatabase _cached;
+
+    internal static SkillDatabase Resolve()
+    {
+        if (_cached != null)
+            return _cached;
+        SkillDatabase[] loaded = Resources.FindObjectsOfTypeAll<SkillDatabase>();
+        for (int i = 0; i < loaded.Length; i++)
+        {
+            if (loaded[i] == null)
+                continue;
+            // Prefer the asset that lists 缘起 pairs (the project has one database; tests may create empty ones).
+            if (_cached == null || (_cached.yuanqis.Count == 0 && loaded[i].yuanqis.Count > 0))
+                _cached = loaded[i];
+        }
+        return _cached;
+    }
+
+    /// <summary>The skill's display name (table text, else the SO name, else the id) when the font covers it, else the id.</summary>
+    internal static string SkillName(SkillDatabase database, TMP_FontAsset font, string skillId)
+    {
+        string id = (skillId ?? string.Empty).Trim();
+        if (database == null || id.Length == 0)
+            return id;
+        database.TryGet(id, out SkillAction skill);
+        return HudGlyphCoverage.NameOrId(font, database.GetResolvedDisplayName(id, skill), id);
+    }
+
+    /// <summary>The 缘起 display name (yuanqi.&lt;id&gt;.name, else displayName) when the font covers it, else the id.</summary>
+    internal static string YuanqiName(SkillDatabase database, TMP_FontAsset font, string yuanqiId)
+    {
+        string id = (yuanqiId ?? string.Empty).Trim();
+        if (database == null || id.Length == 0)
+            return id;
+        return HudGlyphCoverage.NameOrId(font, database.GetYuanqiDisplayName(id), id);
     }
 }

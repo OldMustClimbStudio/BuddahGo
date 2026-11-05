@@ -146,6 +146,30 @@ namespace BuddahGo.Tests
         }
 
         [Test]
+        public void YuanqiPresentationIsLeftToTheObservers()
+        {
+            EveryCase.Parts(
+                ("frost lock draws nothing itself", () =>
+                {
+                    // Interfaces only (2026-10-26): the placeholder ice visuals are gone; observers use SkillExecutor.YuanqiObserved.
+                    var method = typeof(Yuanqi_FrostLock).GetMethod(nameof(YuanqiAction.PlayObservers));
+                    Assert.IsNotNull(method);
+                    Assert.AreEqual(typeof(YuanqiAction), method.DeclaringType);
+                }),
+                ("the giant charge caster FOV kick is modest and spans the burst", () =>
+                {
+                    var charge = UnityEngine.ScriptableObject.CreateInstance<Yuanqi_GiantCharge>();
+                    try
+                    {
+                        Assert.That(charge.casterFovKickDegrees, Is.GreaterThan(0f).And.LessThanOrEqualTo(10f));
+                        Assert.That(charge.casterFovKickHoldSeconds + charge.casterFovKickSettleSeconds,
+                            Is.EqualTo(charge.burstSeconds).Within(1e-4f), "the kick settles when the burst has decayed");
+                    }
+                    finally { UnityEngine.Object.DestroyImmediate(charge); }
+                }));
+        }
+
+        [Test]
         public void SkillUiEventIsAnchoredOnTheServerClock()
         {
             EveryCase.Parts(

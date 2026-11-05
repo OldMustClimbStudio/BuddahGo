@@ -70,6 +70,9 @@ namespace SteamMultiplayer.UI
 
         public bool IsSelectionInputBlocked => _selectionInputBlocked;
 
+        // Read by PropertiesSelectorUI for the 缘起 list of the loadout being built (mechanics update A6).
+        public IReadOnlyList<string> SelectedSkillIds => _selectedSkillIds;
+
         private void Awake()
         {
             ClearLocalSelectionState();

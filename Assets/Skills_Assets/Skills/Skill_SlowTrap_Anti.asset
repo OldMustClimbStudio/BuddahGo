@@ -15,7 +15,6 @@ MonoBehaviour:
   skillId: slowtrap_anti
   displayName: "\u7985\u5B9A\u7F13\u6D41\uFF08\u566C\uFF09"
   cooldownSeconds: 3
-  castLockSeconds: 1
   obsessionGain: 0
   antiSkillId: 
   rootDurationSeconds: 1

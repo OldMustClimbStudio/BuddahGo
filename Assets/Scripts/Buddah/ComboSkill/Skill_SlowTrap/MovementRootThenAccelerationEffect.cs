@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Local (owner-client) movement effect: force root for a short time, then apply acceleration buff.
-/// Intended for anti/backfire behavior.
+/// Legacy (prediction off) path only; ApplyRootThenAccelerationToOwner and the legacy freeze use it.
 /// </summary>
 public class MovementRootThenAccelerationEffect : MonoBehaviour
 {

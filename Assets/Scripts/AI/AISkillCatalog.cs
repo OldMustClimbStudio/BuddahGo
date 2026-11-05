@@ -30,12 +30,12 @@ namespace BuddahGo.AI
     {
         public SoloDifficulty Difficulty;
         public float RiskWeight;
-        public float SevereStopProbability = 1.01f;
-        public float MildStopProbability = 1.01f;
+        // One stop threshold for every skill (A7, 建议（实现采用）): the backfire penalty is the same whichever skill
+        // backfires, so a backfire probability at or above this refuses every cast (AISkillDecision.Utility).
+        public float StopProbability = 1.01f;
         public float DecisionSeconds;
         public float ReactionMinSeconds;
         public float ReactionMaxSeconds;
-        public float KeyMistakeProbability;
         public float AimToleranceDegrees;
         public float AdaptSeconds;
         public float ReadaptSeconds;
@@ -59,11 +59,11 @@ namespace BuddahGo.AI
         public float LaneWidth = 14f;
         public float StraightCurvature = .0035f;
         public float CornerCurvature = .006f;
-        public float KeyMinSeconds = .2f;
-        public float KeyMaxSeconds = .3f;
         public float AimHorizonSeconds = 2f;
         public float SpeedDropFraction = .2f;
-        public float[] BacklashSeverity = { 1f, .1f, .5f, .3f, .9f, .4f };
+        // Unified backfire (A7, 建议（实现采用）): the risk term of AISkillDecision.Utility is
+        // RiskWeight × P(backfire) × BackfireCost for every skill (Obsession.backfireLockSeconds lock, 5 s since 2026-10-31; ×0.85 max speed; ×0.8 obsession at the end; plus the skill's own _anti variant).
+        public float BackfireCost = 1f;
         // Indexed by AISkillKind: do not stack while the same global effect is visible (Reverse, Curtain).
         public bool[] BlockWhenGlobalVisible = { false, false, false, false, true, true };
         // Opportunity predicate constants (AI/SkillOpportunity); defaults equal the former literals.
@@ -77,8 +77,7 @@ namespace BuddahGo.AI
         public float StraightLookaheadSeconds = 10f, CornerLookaheadSeconds = 2f, CornerValidityBase = 2f, CornerValidityScale = 2f;
         public float TargetBonusImpaired = 2f, TargetBonusAhead = 1f, TargetBonusBehind = 1f, TargetBonusPackCentrePerNeighbour = .25f;
         public int PackMinNeighbours = 2;
-        public float SevereSeverityThreshold = .5f, MaxWindowSeconds = 6f, MinRelativeSpeed = .1f, MaxElapsedSeconds = 1f;
-        public int MaxComboRetries = 1;
+        public float MaxWindowSeconds = 6f, MinRelativeSpeed = .1f, MaxElapsedSeconds = 1f;
     }
 
     [Serializable]
@@ -152,7 +151,6 @@ namespace BuddahGo.AI
                     if (o == null) continue;
                     int k = Array.IndexOf(SkillIds, o.skillId);
                     if (k < 0) continue;
-                    if (Tuning.BacklashSeverity != null && k < Tuning.BacklashSeverity.Length) Tuning.BacklashSeverity[k] = o.backlashSeverity;
                     if (Tuning.BlockWhenGlobalVisible != null && k < Tuning.BlockWhenGlobalVisible.Length) Tuning.BlockWhenGlobalVisible[k] = o.blockWhenGlobalVisible;
                     // Each skill reads only its own columns, and those cells are the values (0 included); the
                     // columns a skill does not use stay blank in the sheet and are never read for it.
@@ -208,22 +206,21 @@ namespace BuddahGo.AI
             {
                 if (d == null || !tiers.Add(d.Difficulty) || !Enum.IsDefined(typeof(SoloDifficulty), d.Difficulty))
                     throw new ArgumentException("Duplicate or missing AI skill difficulty.");
-                Range(d.RiskWeight, 0f, 2f); Range(d.SevereStopProbability, 0f, 1.01f); Range(d.MildStopProbability, 0f, 1.01f);
+                Range(d.RiskWeight, 0f, 2f); Range(d.StopProbability, 0f, 1.01f);
                 Range(d.DecisionSeconds, .1f, 2f); Range(d.ReactionMinSeconds, 0f, 1f); Range(d.ReactionMaxSeconds, d.ReactionMinSeconds, 1.5f);
-                Range(d.KeyMistakeProbability, 0f, 1f); Range(d.AimToleranceDegrees, 1f, 45f);
+                Range(d.AimToleranceDegrees, 1f, 45f);
                 Range(d.AdaptSeconds, 0f, 5f); Range(d.ReadaptSeconds, 0f, 5f);
                 Range(d.ImpairedLookaheadMultiplier, .1f, 1f); Range(d.ImpairedMistakeAddition, 0f, 1f);
                 Range(d.DecisionNoise, 0f, .5f);
                 if (d.ImpairedReactionTicks < 0 || d.ImpairedReactionTicks > 30) throw new ArgumentException("Invalid impairment delay.");
                 if (d.ImpairedDrivingReactionTicks < 0 || d.ImpairedDrivingReactionTicks > 30) throw new ArgumentException("Invalid driving impairment delay.");
             }
-            Range(Tuning.SnapshotSeconds, .05f, .5f); Range(Tuning.KeyMinSeconds, .05f, .3f); Range(Tuning.KeyMaxSeconds, Tuning.KeyMinSeconds, .34f);
+            Range(Tuning.SnapshotSeconds, .05f, .5f);
             Range(Tuning.SituationHysteresisSeconds, 0f, 5f); Range(Tuning.NearDistance, 1f, 500f); Range(Tuning.FarDistance, Tuning.NearDistance, 2000f);
             Range(Tuning.TrapDistance, 1f, 500f); Range(Tuning.ContactDistance, 1f, 100f); Range(Tuning.HandsDistance, 1f, 1800f);
             Range(Tuning.LaneWidth, 1f, 100f); Range(Tuning.StraightCurvature, .00001f, .1f); Range(Tuning.CornerCurvature, Tuning.StraightCurvature, 1f);
             Range(Tuning.AimHorizonSeconds, .1f, 5f); Range(Tuning.SpeedDropFraction, .01f, 1f);
-            if (Tuning.BacklashSeverity == null || Tuning.BacklashSeverity.Length != 6) throw new ArgumentException("Missing backlash severities.");
-            foreach (float value in Tuning.BacklashSeverity) Range(value, 0f, 1f);
+            Range(Tuning.BackfireCost, 0f, 3f);
         }
 
         private static void Range(float value, float min, float max)

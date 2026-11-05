@@ -35,10 +35,9 @@ namespace BuddahGo.AI
         private LapProgress _lap;
         private SplineProgressTracker _progress;
         private AITestObstacleScope _obstacles;
-        private ComboSkillInput _skills;
         private readonly SoloHarnessFlow _flow = new SoloHarnessFlow();
         private MeasurementSettings _measurement;
-        private bool _skillWasEnabled, _go, _stalled, _wrongWay;
+        private bool _go, _stalled, _wrongWay;
         [SerializeField] private bool _finished, _restored;
         private int _sampleId, _collisions, _teleports, _lastCheckpoint, _lastLap, _runtimeErrors, _aiCount;
         // Frame-time window GO+2..11 s (the 2026-10-02 performance comparison window), written to perf.csv.
@@ -196,13 +195,14 @@ namespace BuddahGo.AI
             if (_motor == null || TrackSplineRef.Instance == null) return;
             _obstacles ??= new AITestObstacleScope(Event);
             _obstacles.Disable();
-            if (_aiCount == 0 && racers.Length != 1) throw new InvalidOperationException("A1 requires exactly one racer.");
+            // Practice (0 AI) also spawns training dummies from the racer prefab; they are track props, not racers.
+            int racerCount = racers.Count(item => !item.TryGetComponent(out RacerIdentity identity) || !identity.IsTrainingDummy);
+            if (_aiCount == 0 && racerCount != 1) throw new InvalidOperationException("A1 requires exactly one racer.");
+            RemoveTrainingDummies(racers);
             _driver = _motor.GetComponent<AIRacerDriver>();
             if (_driver == null) throw new InvalidOperationException("Prefab has no AIRacerDriver.");
             _body = _motor.GetComponent<Rigidbody>(); _lap = _motor.GetComponent<LapProgress>();
             _progress = _motor.GetComponent<SplineProgressTracker>();
-            _skills = _motor.GetComponent<ComboSkillInput>();
-            if (_skills != null) { _skillWasEnabled = _skills.enabled; _skills.enabled = false; }
             _driver.Profile = Profile; _driver.enabled = true; _driver.Contact += Collision;
             _driver.ModelCompared += ModelCompared;
             _driver.PlanObserved += PlanObserved;
@@ -213,6 +213,20 @@ namespace BuddahGo.AI
             Event("configuration", JsonUtility.ToJson(Profile));
             Event("body", $"mass={_body.mass}; inertia={_body.inertiaTensor}; inertiaRotation={_body.inertiaTensorRotation}; angularDrag={_body.angularDrag}; maxAngular={_body.maxAngularVelocity}; tickDelta={_motor.TimeManager.TickDelta}; owner={_motor.OwnerId}");
             File.WriteAllText(Path.Combine(OutputDirectory, "configuration.json"), JsonUtility.ToJson(Profile, true));
+        }
+
+        // A1/A2 measure clean driving like the disabled DebugBox obstacles: the Practice training dummies parked on the
+        // first straight would be hit every lap. The harness host is the server; MatchSpawnManager keeps its dummy
+        // count, so the despawned dummies are not spawned again this run (they would die with the scene anyway).
+        private void RemoveTrainingDummies(BuddahPredictedMotor[] racers)
+        {
+            foreach (var item in racers)
+            {
+                if (item == null || !item.IsSpawned || !item.IsServerInitialized
+                    || !item.TryGetComponent(out RacerIdentity identity) || !identity.IsTrainingDummy) continue;
+                Event("training-dummy-removed", item.name + "; A1/A2 measure clean driving");
+                FishNet.InstanceFinder.ServerManager.Despawn(item.NetworkObject);
+            }
         }
 
         // Server AI opponents (ownerless) use the same loaded profile, so a five-AI window measures the
@@ -395,7 +409,6 @@ namespace BuddahGo.AI
             _restored = true;
             Application.logMessageReceived -= OnLog;
             if (_driver != null) { _driver.PlanObserved -= PlanObserved; _driver.Contact -= Collision; _driver.ModelCompared -= ModelCompared; _driver.enabled = false; }
-            if (_skills != null) _skills.enabled = _skillWasEnabled;
             _obstacles?.Dispose();
             _measurement.Restore();
             _plans?.Dispose(); _plans = null;

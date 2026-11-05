@@ -16,6 +16,10 @@ namespace SteamMultiplayer.UI
     /// drops unapplied changes. Rows are built from the catalog at runtime, so a new table row or display size shows
     /// up without a scene change; labels come from UI/Text through the catalog's label keys (a generated resolution
     /// level has none and shows its id). Future sections (audio, controls) go next to the graphics section.
+    /// Options that do not take effect with the current choice (upscaler at 100 %, sharpening without TAA, the frame
+    /// cap with VSync on, SSAO without the feature, window and resolution in the editor) are dimmed and cannot be
+    /// stepped; options marked restartRequired carry a "需要重启" tag, and after Apply a changed one shows the restart
+    /// notice until the next start (GraphicsSettingsService.IsActive / PendingRestart, shared with the F9 panel).
     /// The scene objects are created by Assets/Editor/UI/SettingsPanelBuilder.cs.
     /// </summary>
     public class SettingsPanelUI : MonoBehaviour
@@ -43,7 +47,11 @@ namespace SteamMultiplayer.UI
             public string OptionId;
             public TMP_Text Value;
             public Button Previous, Next;
+            public CanvasGroup Group;
         }
+
+        // Rows of options that do not take effect (GraphicsSettingsService.IsActive) are dimmed to this alpha.
+        const float InactiveAlpha = 0.4f;
 
         readonly List<Row> _rows = new List<Row>();
         readonly List<(string presetId, Button button, TMP_Text label)> _presetButtons = new List<(string, Button, TMP_Text)>();
@@ -126,7 +134,8 @@ namespace SteamMultiplayer.UI
                 };
                 var label = texts.FirstOrDefault(t => t.name == "Label");
                 if (label != null)
-                    label.text = Text(option.LabelKey, option.Id);
+                    label.text = Text(option.LabelKey, option.Id) + (option.RestartRequired ? RestartTag() : string.Empty);
+                entry.Group = row.TryGetComponent(out CanvasGroup group) ? group : row.AddComponent<CanvasGroup>();
                 string optionId = option.Id;
                 if (entry.Previous != null) entry.Previous.onClick.AddListener(() => Step(optionId, -1));
                 if (entry.Next != null) entry.Next.onClick.AddListener(() => Step(optionId, 1));
@@ -167,7 +176,9 @@ namespace SteamMultiplayer.UI
             {
                 var option = GraphicsSettingsService.Catalog.FindOption(row.OptionId);
                 var level = option?.Find(GraphicsSettingsService.Get(row.OptionId));
-                bool steppable = option != null && option.Levels.Count(l => GraphicsSettingsService.IsAvailable(row.OptionId, l.Id)) > 1;
+                bool steppable = GraphicsSettingsService.IsActive(row.OptionId);
+                if (row.Group != null)
+                    row.Group.alpha = steppable ? 1f : InactiveAlpha;
                 if (row.Value != null)
                     row.Value.text = (level != null ? Text(level.LabelKey, level.Id) : "-") + (GraphicsSettingsService.IsOverridden(row.OptionId) ? " *" : string.Empty);
                 if (row.Previous != null) row.Previous.interactable = steppable;
@@ -177,9 +188,15 @@ namespace SteamMultiplayer.UI
             if (applyButton != null) applyButton.interactable = pending;
             if (revertButton != null) revertButton.interactable = pending;
             if (statusLabel != null)
-                statusLabel.text = pending
+            {
+                string status = pending
                     ? Text("settings.graphics.status.pending", "有未应用的改动")
                     : Text("settings.graphics.status.applied", "* 与预设不同。改动在点击 应用 后生效并保存在本机。");
+                // After Apply, a change to a restart-only option waits for the next start (the usual banner).
+                if (GraphicsSettingsService.PendingRestart.Count > 0)
+                    status = Text("settings.graphics.status.restart", "标有“需要重启”的设置将在重启游戏后生效") + "\n" + status;
+                statusLabel.text = status;
+            }
         }
 
         void OnApply() => GraphicsSettingsService.Apply();
@@ -198,6 +215,8 @@ namespace SteamMultiplayer.UI
             if (mainMenu != null)
                 mainMenu.GoBack();
         }
+
+        static string RestartTag() => "  <size=75%><color=#D08A3A>" + Text("settings.graphics.tag.restart", "需要重启") + "</color></size>";
 
         static string Text(string key, string fallback) => string.IsNullOrEmpty(key) ? fallback : DesignTableOverlay.Text(key, fallback);
     }

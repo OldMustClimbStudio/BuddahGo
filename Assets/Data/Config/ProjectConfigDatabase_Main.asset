@@ -2012,6 +2012,16 @@ MonoBehaviour:
     groupId: display
     labelKey: settings.graphics.option.upscaler
     restartRequired: 0
+  - optionId: window_mode
+    sortOrder: 2
+    groupId: display
+    labelKey: settings.graphics.option.window_mode
+    restartRequired: 0
+  - optionId: resolution
+    sortOrder: 3
+    groupId: display
+    labelKey: settings.graphics.option.resolution
+    restartRequired: 0
   - optionId: anti_aliasing
     sortOrder: 0
     groupId: quality
@@ -2052,25 +2062,15 @@ MonoBehaviour:
     groupId: effects
     labelKey: settings.graphics.option.vfx_quality
     restartRequired: 0
-  - optionId: frame_rate_cap
+  - optionId: vsync
     sortOrder: 0
     groupId: performance
-    labelKey: settings.graphics.option.frame_rate_cap
+    labelKey: settings.graphics.option.vsync
     restartRequired: 0
-  - optionId: window_mode
-    sortOrder: 2
-    groupId: display
-    labelKey: settings.graphics.option.window_mode
-    restartRequired: 0
-  - optionId: resolution
-    sortOrder: 3
-    groupId: display
-    labelKey: settings.graphics.option.resolution
-    restartRequired: 0
-  - optionId: vsync
+  - optionId: frame_rate_cap
     sortOrder: 1
     groupId: performance
-    labelKey: settings.graphics.option.vsync
+    labelKey: settings.graphics.option.frame_rate_cap
     restartRequired: 0
   graphicsOptionLevels:
   - optionId: render_scale
@@ -2324,6 +2324,148 @@ MonoBehaviour:
     defaultFor: []
     renderScale: 0
     upscalingFilter: FSR
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
+    vfxKeepPriority: 0
+    vfxEmissionScale: 0
+    vfxGameplayEmissionScale: 0
+    vfxRealtimeLights: 0
+    vfxTrailScale: 0
+    vfxInkBudget: 0
+    vfxInkCellScale: 0
+  - optionId: window_mode
+    levelId: fullscreen
+    sortOrder: 0
+    labelKey: settings.graphics.level.window_mode.fullscreen
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: ExclusiveFullScreen
+    vSyncCount: 0
+    vfxKeepPriority: 0
+    vfxEmissionScale: 0
+    vfxGameplayEmissionScale: 0
+    vfxRealtimeLights: 0
+    vfxTrailScale: 0
+    vfxInkBudget: 0
+    vfxInkCellScale: 0
+  - optionId: window_mode
+    levelId: borderless
+    sortOrder: 1
+    labelKey: settings.graphics.level.window_mode.borderless
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: FullScreenWindow
+    vSyncCount: 0
+    vfxKeepPriority: 0
+    vfxEmissionScale: 0
+    vfxGameplayEmissionScale: 0
+    vfxRealtimeLights: 0
+    vfxTrailScale: 0
+    vfxInkBudget: 0
+    vfxInkCellScale: 0
+  - optionId: window_mode
+    levelId: windowed
+    sortOrder: 2
+    labelKey: settings.graphics.level.window_mode.windowed
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: Windowed
+    vSyncCount: 0
+    vfxKeepPriority: 0
+    vfxEmissionScale: 0
+    vfxGameplayEmissionScale: 0
+    vfxRealtimeLights: 0
+    vfxTrailScale: 0
+    vfxInkBudget: 0
+    vfxInkCellScale: 0
+  - optionId: resolution
+    levelId: native
+    sortOrder: 0
+    labelKey: settings.graphics.level.resolution.native
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: 
     msaaSamples: 0
     postAntialiasing: 
     taaSharpening: 0
@@ -3365,6 +3507,77 @@ MonoBehaviour:
     vfxTrailScale: 1
     vfxInkBudget: 8
     vfxInkCellScale: 1
+  - optionId: vsync
+    levelId: off
+    sortOrder: 0
+    labelKey: settings.graphics.level.off
+    defaultFor: []
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 0
+    vfxKeepPriority: 0
+    vfxEmissionScale: 0
+    vfxGameplayEmissionScale: 0
+    vfxRealtimeLights: 0
+    vfxTrailScale: 0
+    vfxInkBudget: 0
+    vfxInkCellScale: 0
+  - optionId: vsync
+    levelId: on
+    sortOrder: 1
+    labelKey: settings.graphics.level.on
+    defaultFor:
+    - low
+    - medium
+    - high
+    renderScale: 0
+    upscalingFilter: 
+    msaaSamples: 0
+    postAntialiasing: 
+    taaSharpening: 0
+    shadowsEnabled: 0
+    shadowDistance: 0
+    shadowCascadeCount: 0
+    shadowCascadeSplitsMeters: []
+    shadowResolution: 0
+    softShadows: 0
+    planarScale: 0
+    ssaoEnabled: 0
+    ssaoDownsample: 0
+    ssaoNormals: 0
+    ssaoSamples: 
+    textureMipmapLimit: 0
+    anisotropicFiltering: 
+    frameRate: 0
+    vfxTier: 
+    fullScreenMode: 
+    vSyncCount: 1
+    vfxKeepPriority: 0
+    vfxEmissionScale: 0
+    vfxGameplayEmissionScale: 0
+    vfxRealtimeLights: 0
+    vfxTrailScale: 0
+    vfxInkBudget: 0
+    vfxInkCellScale: 0
   - optionId: frame_rate_cap
     levelId: fps60
     sortOrder: 0
@@ -3463,219 +3676,6 @@ MonoBehaviour:
     vfxTier: 
     fullScreenMode: 
     vSyncCount: 0
-    vfxKeepPriority: 0
-    vfxEmissionScale: 0
-    vfxGameplayEmissionScale: 0
-    vfxRealtimeLights: 0
-    vfxTrailScale: 0
-    vfxInkBudget: 0
-    vfxInkCellScale: 0
-  - optionId: window_mode
-    levelId: fullscreen
-    sortOrder: 0
-    labelKey: settings.graphics.level.window_mode.fullscreen
-    defaultFor: []
-    renderScale: 0
-    upscalingFilter: 
-    msaaSamples: 0
-    postAntialiasing: 
-    taaSharpening: 0
-    shadowsEnabled: 0
-    shadowDistance: 0
-    shadowCascadeCount: 0
-    shadowCascadeSplitsMeters: []
-    shadowResolution: 0
-    softShadows: 0
-    planarScale: 0
-    ssaoEnabled: 0
-    ssaoDownsample: 0
-    ssaoNormals: 0
-    ssaoSamples: 
-    textureMipmapLimit: 0
-    anisotropicFiltering: 
-    frameRate: 0
-    vfxTier: 
-    fullScreenMode: ExclusiveFullScreen
-    vSyncCount: 0
-    vfxKeepPriority: 0
-    vfxEmissionScale: 0
-    vfxGameplayEmissionScale: 0
-    vfxRealtimeLights: 0
-    vfxTrailScale: 0
-    vfxInkBudget: 0
-    vfxInkCellScale: 0
-  - optionId: window_mode
-    levelId: borderless
-    sortOrder: 1
-    labelKey: settings.graphics.level.window_mode.borderless
-    defaultFor:
-    - low
-    - medium
-    - high
-    renderScale: 0
-    upscalingFilter: 
-    msaaSamples: 0
-    postAntialiasing: 
-    taaSharpening: 0
-    shadowsEnabled: 0
-    shadowDistance: 0
-    shadowCascadeCount: 0
-    shadowCascadeSplitsMeters: []
-    shadowResolution: 0
-    softShadows: 0
-    planarScale: 0
-    ssaoEnabled: 0
-    ssaoDownsample: 0
-    ssaoNormals: 0
-    ssaoSamples: 
-    textureMipmapLimit: 0
-    anisotropicFiltering: 
-    frameRate: 0
-    vfxTier: 
-    fullScreenMode: FullScreenWindow
-    vSyncCount: 0
-    vfxKeepPriority: 0
-    vfxEmissionScale: 0
-    vfxGameplayEmissionScale: 0
-    vfxRealtimeLights: 0
-    vfxTrailScale: 0
-    vfxInkBudget: 0
-    vfxInkCellScale: 0
-  - optionId: window_mode
-    levelId: windowed
-    sortOrder: 2
-    labelKey: settings.graphics.level.window_mode.windowed
-    defaultFor: []
-    renderScale: 0
-    upscalingFilter: 
-    msaaSamples: 0
-    postAntialiasing: 
-    taaSharpening: 0
-    shadowsEnabled: 0
-    shadowDistance: 0
-    shadowCascadeCount: 0
-    shadowCascadeSplitsMeters: []
-    shadowResolution: 0
-    softShadows: 0
-    planarScale: 0
-    ssaoEnabled: 0
-    ssaoDownsample: 0
-    ssaoNormals: 0
-    ssaoSamples: 
-    textureMipmapLimit: 0
-    anisotropicFiltering: 
-    frameRate: 0
-    vfxTier: 
-    fullScreenMode: Windowed
-    vSyncCount: 0
-    vfxKeepPriority: 0
-    vfxEmissionScale: 0
-    vfxGameplayEmissionScale: 0
-    vfxRealtimeLights: 0
-    vfxTrailScale: 0
-    vfxInkBudget: 0
-    vfxInkCellScale: 0
-  - optionId: resolution
-    levelId: native
-    sortOrder: 0
-    labelKey: settings.graphics.level.resolution.native
-    defaultFor:
-    - low
-    - medium
-    - high
-    renderScale: 0
-    upscalingFilter: 
-    msaaSamples: 0
-    postAntialiasing: 
-    taaSharpening: 0
-    shadowsEnabled: 0
-    shadowDistance: 0
-    shadowCascadeCount: 0
-    shadowCascadeSplitsMeters: []
-    shadowResolution: 0
-    softShadows: 0
-    planarScale: 0
-    ssaoEnabled: 0
-    ssaoDownsample: 0
-    ssaoNormals: 0
-    ssaoSamples: 
-    textureMipmapLimit: 0
-    anisotropicFiltering: 
-    frameRate: 0
-    vfxTier: 
-    fullScreenMode: 
-    vSyncCount: 0
-    vfxKeepPriority: 0
-    vfxEmissionScale: 0
-    vfxGameplayEmissionScale: 0
-    vfxRealtimeLights: 0
-    vfxTrailScale: 0
-    vfxInkBudget: 0
-    vfxInkCellScale: 0
-  - optionId: vsync
-    levelId: off
-    sortOrder: 0
-    labelKey: settings.graphics.level.off
-    defaultFor: []
-    renderScale: 0
-    upscalingFilter: 
-    msaaSamples: 0
-    postAntialiasing: 
-    taaSharpening: 0
-    shadowsEnabled: 0
-    shadowDistance: 0
-    shadowCascadeCount: 0
-    shadowCascadeSplitsMeters: []
-    shadowResolution: 0
-    softShadows: 0
-    planarScale: 0
-    ssaoEnabled: 0
-    ssaoDownsample: 0
-    ssaoNormals: 0
-    ssaoSamples: 
-    textureMipmapLimit: 0
-    anisotropicFiltering: 
-    frameRate: 0
-    vfxTier: 
-    fullScreenMode: 
-    vSyncCount: 0
-    vfxKeepPriority: 0
-    vfxEmissionScale: 0
-    vfxGameplayEmissionScale: 0
-    vfxRealtimeLights: 0
-    vfxTrailScale: 0
-    vfxInkBudget: 0
-    vfxInkCellScale: 0
-  - optionId: vsync
-    levelId: on
-    sortOrder: 1
-    labelKey: settings.graphics.level.on
-    defaultFor:
-    - low
-    - medium
-    - high
-    renderScale: 0
-    upscalingFilter: 
-    msaaSamples: 0
-    postAntialiasing: 
-    taaSharpening: 0
-    shadowsEnabled: 0
-    shadowDistance: 0
-    shadowCascadeCount: 0
-    shadowCascadeSplitsMeters: []
-    shadowResolution: 0
-    softShadows: 0
-    planarScale: 0
-    ssaoEnabled: 0
-    ssaoDownsample: 0
-    ssaoNormals: 0
-    ssaoSamples: 
-    textureMipmapLimit: 0
-    anisotropicFiltering: 
-    frameRate: 0
-    vfxTier: 
-    fullScreenMode: 
-    vSyncCount: 1
     vfxKeepPriority: 0
     vfxEmissionScale: 0
     vfxGameplayEmissionScale: 0

@@ -867,9 +867,9 @@ public class GraphicsOptionRecord
     /// <summary>string#key (key)</summary>
     [Tooltip("选项 id，snake_case；代码按 id 应用对应的档位列")] public string optionId = string.Empty;
     /// <summary>int</summary>
-    [Tooltip("界面排序（组内）")] public int sortOrder = 0;
+    [Tooltip("组内排序：面板在一个分组里按它从小到大列出选项")] public int sortOrder = 0;
     /// <summary>string</summary>
-    [Tooltip("分组：display / quality / effects / performance")] public string groupId = string.Empty;
+    [Tooltip("分组：display / quality / effects / performance，面板按这个顺序显示分组（顺序写在代码里，SettingsPanelUI 与 F9 面板）")] public string groupId = string.Empty;
     /// <summary>string#ref=UI/Text.key</summary>
     [Tooltip("显示名文案 key")] public string labelKey = string.Empty;
     /// <summary>bool</summary>
@@ -881,7 +881,7 @@ public class GraphicsOptionRecord
 public class GraphicsOptionLevelRecord
 {
     /// <summary>string#key#ref=GraphicsOption.optionId (key)</summary>
-    [Tooltip("所属选项；每个选项只读自己的那几列，其余列留空")] public string optionId = string.Empty;
+    [Tooltip("所属选项；每个选项只读自己的那几列（列注释的前缀就是读它的选项），其余列留空")] public string optionId = string.Empty;
     /// <summary>string#key (key)</summary>
     [Tooltip("档位 id，snake_case")] public string levelId = string.Empty;
     /// <summary>int</summary>

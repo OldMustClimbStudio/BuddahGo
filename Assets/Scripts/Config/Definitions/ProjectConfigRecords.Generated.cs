@@ -25,7 +25,7 @@ public class SkillRecord
     /// <summary>float#range=0,120</summary>
     [Tooltip("施法锁定")] public float castLockSeconds = 0f;
     /// <summary>float#range=0,5</summary>
-    [Tooltip("施法前摇；反噬行按本行生效（原 GlobalRule anti_cast_confirm_delay_seconds）")] public float castConfirmDelaySeconds = 0f;
+    [Tooltip("施法前摇；反噬行按本行生效（原 GlobalRule anti_cast_confirm_delay_seconds）。反噬行固定 2 s：必需的惩罚设计（2026-10-31 用户定，反噬前摇更长、cast_anti 特效完整播出），不是调试值，不要改回 1")] public float castConfirmDelaySeconds = 0f;
     /// <summary>float#range=0,1000</summary>
     [Tooltip("施法增加的执念；反噬按原技能取值，反噬行必须留空")] public float obsessionGain = 0f;
     /// <summary>float#range=0,120</summary>
@@ -125,7 +125,7 @@ public class PushRecord
     /// <summary>float</summary>
     [Tooltip("basic=pushImpulseStrength；charged=projectileImpulseStrength")] public float impulseStrength = 0f;
     /// <summary>float</summary>
-    [Tooltip("charged：projectileSpeed m/s")] public float speed = 0f;
+    [Tooltip("charged / charged_anti：峰值速度 m/s，飞行中按技能 SO 的 projectileSpeedCurve 形状变化（墨手调出的曲线），射程 = speed × lifetimeSeconds × 曲线面积 0.40：charged 890 × 3 s ≈ 1070；charged_anti 900 × 2 s ≈ 720（和改曲线前 600 线性减速的射程相同）")] public float speed = 0f;
     /// <summary>float</summary>
     [Tooltip("basic=pushForwardOffset；charged=projectileForwardOffset；charged_anti=additionalForwardSpawnOffset")] public float forwardOffset = 0f;
     /// <summary>float</summary>
@@ -873,7 +873,7 @@ public class GraphicsOptionRecord
     /// <summary>string#ref=UI/Text.key</summary>
     [Tooltip("显示名文案 key")] public string labelKey = string.Empty;
     /// <summary>bool</summary>
-    [Tooltip("改后是否需要重启游戏才生效（目前全部即时生效）")] public bool restartRequired = false;
+    [Tooltip("改后是否需要重启游戏才生效；面板在选项名旁显示\"需要重启\"，应用后提示\"部分设置将在重启游戏后生效\"。2026-11-05 逐项在 Play 模式实测，全部即时生效")] public bool restartRequired = false;
 }
 
 /// <summary>Graphics.xlsx / GraphicsOptionLevel</summary>
@@ -934,4 +934,18 @@ public class GraphicsOptionLevelRecord
     [Tooltip("window_mode：ExclusiveFullScreen / FullScreenWindow / MaximizedWindow / Windowed")] public string fullScreenMode = string.Empty;
     /// <summary>int#range=0,2</summary>
     [Tooltip("vsync：0 关，1 每次刷新一帧")] public int vSyncCount = 0;
+    /// <summary>int#range=1,3</summary>
+    [Tooltip("vfx_quality：保留的特效层最高优先级（1 只留核心，3 全部）；携带玩法信息的层永远保留（2026-11 的 14 个插槽都只有一个玩法层，档位靠细节系统发射量、拖尾、实时光和墨烟体现）")] public int vfxKeepPriority = 0;
+    /// <summary>float#range=0.1,1</summary>
+    [Tooltip("vfx_quality：细节粒子系统（每周期发射超过 4 个粒子：火星、碎屑、烟团、竹叶）在所有层上的发射量倍率，装饰层的全部系统也用它；减速区等的 areaSystems 不算细节")] public float vfxEmissionScale = 0f;
+    /// <summary>float#range=0.7,1</summary>
+    [Tooltip("vfx_quality：携带玩法信息的层里形体系统（每周期至多 4 个大面片，承载特效形状）的发射量倍率；低档也要看得清，下限 0.7")] public float vfxGameplayEmissionScale = 0f;
+    /// <summary>bool</summary>
+    [Tooltip("vfx_quality：带实时光的特效层是否播放")] public bool vfxRealtimeLights = false;
+    /// <summary>float#range=0.25,1</summary>
+    [Tooltip("vfx_quality：装饰层自带拖尾的长度倍率；玩法层与角色路线拖尾不变")] public float vfxTrailScale = 0f;
+    /// <summary>int#range=0,16</summary>
+    [Tooltip("vfx_quality：如来神掌墨烟同时模拟的上限（离相机最近的先模拟，其余只画墨手本体不冒烟）")] public int vfxInkBudget = 0;
+    /// <summary>float#range=1,2</summary>
+    [Tooltip("vfx_quality：墨烟网格的格子放大倍数，盒子大小不变、每轴格数除以它（1.5 约省 2/3 模拟开销）")] public float vfxInkCellScale = 0f;
 }

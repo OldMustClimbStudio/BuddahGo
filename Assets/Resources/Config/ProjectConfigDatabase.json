@@ -3004,6 +3004,26 @@
         {
             "key": "settings.graphics.level.anti_aliasing.msaa8_fxaa",
             "zh": "MSAA 8x + FXAA"
+        },
+        {
+            "key": "settings.graphics.tag.restart",
+            "zh": "需要重启"
+        },
+        {
+            "key": "settings.graphics.tag.inactive",
+            "zh": "不生效"
+        },
+        {
+            "key": "settings.graphics.status.restart",
+            "zh": "标有“需要重启”的设置将在重启游戏后生效"
+        },
+        {
+            "key": "settings.graphics.status.pending",
+            "zh": "有未应用的改动"
+        },
+        {
+            "key": "settings.graphics.status.applied",
+            "zh": "* 与预设不同。改动在点击 应用 后生效并保存在本机。"
         }
     ],
     "menuOptions": [
@@ -3201,7 +3221,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "render_scale",
@@ -3230,7 +3257,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "render_scale",
@@ -3259,7 +3293,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "render_scale",
@@ -3288,7 +3329,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "render_scale",
@@ -3317,7 +3365,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "render_scale",
@@ -3350,7 +3405,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "upscaler",
@@ -3383,7 +3445,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "upscaler",
@@ -3412,7 +3481,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anti_aliasing",
@@ -3441,7 +3517,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anti_aliasing",
@@ -3472,7 +3555,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anti_aliasing",
@@ -3503,7 +3593,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anti_aliasing",
@@ -3532,7 +3629,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anti_aliasing",
@@ -3561,7 +3665,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anti_aliasing",
@@ -3590,7 +3701,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anti_aliasing",
@@ -3621,7 +3739,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "sharpening",
@@ -3654,7 +3779,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "sharpening",
@@ -3683,7 +3815,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "sharpening",
@@ -3712,7 +3851,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "shadow_quality",
@@ -3743,7 +3889,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "shadow_quality",
@@ -3772,7 +3925,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "shadow_quality",
@@ -3805,7 +3965,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "shadow_quality",
@@ -3840,7 +4007,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "texture_quality",
@@ -3869,7 +4043,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "texture_quality",
@@ -3898,7 +4079,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "texture_quality",
@@ -3931,7 +4119,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anisotropic_filtering",
@@ -3962,7 +4157,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anisotropic_filtering",
@@ -3993,7 +4195,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "anisotropic_filtering",
@@ -4024,7 +4233,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "reflections",
@@ -4055,7 +4271,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "reflections",
@@ -4086,7 +4309,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "reflections",
@@ -4117,7 +4347,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "ambient_occlusion",
@@ -4148,7 +4385,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "ambient_occlusion",
@@ -4179,7 +4423,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "ambient_occlusion",
@@ -4210,7 +4461,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "vfx_quality",
@@ -4241,7 +4499,14 @@
             "frameRate": 0,
             "vfxTier": "Low",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 1,
+            "vfxEmissionScale": 0.4000000059604645,
+            "vfxGameplayEmissionScale": 1.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.5,
+            "vfxInkBudget": 2,
+            "vfxInkCellScale": 1.5
         },
         {
             "optionId": "vfx_quality",
@@ -4272,7 +4537,14 @@
             "frameRate": 0,
             "vfxTier": "Medium",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 2,
+            "vfxEmissionScale": 0.699999988079071,
+            "vfxGameplayEmissionScale": 1.0,
+            "vfxRealtimeLights": true,
+            "vfxTrailScale": 0.75,
+            "vfxInkBudget": 4,
+            "vfxInkCellScale": 1.25
         },
         {
             "optionId": "vfx_quality",
@@ -4303,7 +4575,14 @@
             "frameRate": 0,
             "vfxTier": "High",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 3,
+            "vfxEmissionScale": 1.0,
+            "vfxGameplayEmissionScale": 1.0,
+            "vfxRealtimeLights": true,
+            "vfxTrailScale": 1.0,
+            "vfxInkBudget": 8,
+            "vfxInkCellScale": 1.0
         },
         {
             "optionId": "frame_rate_cap",
@@ -4332,7 +4611,14 @@
             "frameRate": 60,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "frame_rate_cap",
@@ -4365,7 +4651,14 @@
             "frameRate": 120,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "frame_rate_cap",
@@ -4394,7 +4687,14 @@
             "frameRate": 240,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "window_mode",
@@ -4423,7 +4723,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "ExclusiveFullScreen",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "window_mode",
@@ -4456,7 +4763,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "FullScreenWindow",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "window_mode",
@@ -4485,7 +4799,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "Windowed",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "resolution",
@@ -4518,7 +4839,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "vsync",
@@ -4547,7 +4875,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 0
+            "vSyncCount": 0,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         },
         {
             "optionId": "vsync",
@@ -4580,7 +4915,14 @@
             "frameRate": 0,
             "vfxTier": "",
             "fullScreenMode": "",
-            "vSyncCount": 1
+            "vSyncCount": 1,
+            "vfxKeepPriority": 0,
+            "vfxEmissionScale": 0.0,
+            "vfxGameplayEmissionScale": 0.0,
+            "vfxRealtimeLights": false,
+            "vfxTrailScale": 0.0,
+            "vfxInkBudget": 0,
+            "vfxInkCellScale": 0.0
         }
     ]
 }

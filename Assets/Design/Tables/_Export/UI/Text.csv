@@ -343,3 +343,8 @@
 ,settings.graphics.level.resolution.native,原生,Native,画质设置,"Graphics/GraphicsOption, GraphicsOptionLevel, GraphicsPreset"
 ,settings.graphics.level.on,开,On,画质设置,"Graphics/GraphicsOption, GraphicsOptionLevel, GraphicsPreset"
 ,settings.graphics.level.anti_aliasing.msaa8_fxaa,MSAA 8x + FXAA,MSAA 8x + FXAA,画质设置,"Graphics/GraphicsOption, GraphicsOptionLevel, GraphicsPreset"
+,settings.graphics.tag.restart,需要重启,Restart required,画质设置：选项名旁的标记（restartRequired）,"Graphics/GraphicsOption, GraphicsOptionLevel, GraphicsPreset"
+,settings.graphics.tag.inactive,不生效,No effect,画质设置：依赖的选项没开时（如 TAA 锐化在没有 TAA 时）,"Graphics/GraphicsOption, GraphicsOptionLevel, GraphicsPreset"
+,settings.graphics.status.restart,标有“需要重启”的设置将在重启游戏后生效,Some settings take effect after restarting the game,画质设置：应用了需要重启的改动后（字体子集没有“部”，所以不用“部分设置”）,"Graphics/GraphicsOption, GraphicsOptionLevel, GraphicsPreset"
+,settings.graphics.status.pending,有未应用的改动,Unapplied changes,画质设置,"Graphics/GraphicsOption, GraphicsOptionLevel, GraphicsPreset"
+,settings.graphics.status.applied,* 与预设不同。改动在点击 应用 后生效并保存在本机。,* differs from the preset. Changes take effect on Apply and are saved on this machine.,画质设置,"Graphics/GraphicsOption, GraphicsOptionLevel, GraphicsPreset"

@@ -1,0 +1,105 @@
+{
+    "result": "baked",
+    "startedUtc": "2026-11-05T19:38:31.8625574Z",
+    "totalSeconds": 28.5,
+    "unityVersion": "2022.3.55f1c1",
+    "gitHead": "42c5d6bddde45cda36767630550083779c2510ea",
+    "machine": {
+        "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+        "gpuApi": "Direct3D 11.0 [level 11.1]",
+        "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+        "os": "Windows 11  (10.0.26200) 64bit",
+        "gpuMemoryMB": 7948,
+        "cpuThreads": 22,
+        "systemMemoryMB": 32276
+    },
+    "lightmapper": "ProgressiveGPU",
+    "regeneratedLightProbes": false,
+    "forced": false,
+    "inputsHash": "3e84c5b307ddecac9c37156f38a116c2c6b1193bce7a70fa61d0dae28332b257",
+    "lightingSettings": [
+        "bakedGI = true",
+        "realtimeGI = false",
+        "autoGenerate = false",
+        "lightmapper = ProgressiveGPU",
+        "mixedBakeMode = IndirectOnly",
+        "directSampleCount = 32",
+        "indirectSampleCount = 256",
+        "environmentSampleCount = 128",
+        "maxBounces = 2",
+        "lightProbeSampleCountMultiplier = 8",
+        "lightmapResolution = 8",
+        "lightmapMaxSize = 2048",
+        "lightmapPadding = 2",
+        "ao = false",
+        "albedoBoost = 1",
+        "indirectScale = 1",
+        "lightmapParameters = Assets/Scenes/RaceMap/RaceMap_LightmapParameters.giparams",
+        "directionalityMode = Single, Dual",
+        "lightmapCompression = HighQuality",
+        "filteringMode = Advanced",
+        "denoiserTypeDirect / Indirect / AO = OpenImage / OpenImage / OpenImage",
+        "environmentImportanceSampling = True"
+    ],
+    "raceMap": {
+        "scene": "Assets/Scenes/RaceMap.unity",
+        "bakeSeconds": 22.2,
+        "lightProbes": 1480,
+        "lightmaps": 1,
+        "applied": [],
+        "problems": [],
+        "notes": [
+            "Reflection Probe Lower rendered into Assets/Scenes/RaceMap/ReflectionProbe-Lower.exr",
+            "Reflection Probe EndField rendered into Assets/Scenes/RaceMap/ReflectionProbe-EndField.exr"
+        ]
+    },
+    "menu": {
+        "scene": "Assets/Scenes/MenuEnvironmentSetting.unity",
+        "bakeSeconds": 0.0,
+        "lightProbes": 0,
+        "lightmaps": 0,
+        "applied": [],
+        "problems": [],
+        "notes": [
+            "Reflection Probe Shrine rendered into Assets/Scenes/MenuEnvironmentSetting/ReflectionProbe-Shrine.exr"
+        ]
+    },
+    "outputs": [
+        {
+            "path": "Assets/Scenes/RaceMap/LightingData.asset",
+            "sha256": "5f00f2fadcf5dfab096466afb435244e356373b9c515e6d5dfe7f2201563dcdb",
+            "bytes": 901024
+        },
+        {
+            "path": "Assets/Scenes/RaceMap/Lightmap-0_comp_dir.png",
+            "sha256": "8690a74cf16ea18b8ac9b5fd6cb00993cf9bf9591841c0c4489c8e17b0997c20",
+            "bytes": 273248
+        },
+        {
+            "path": "Assets/Scenes/RaceMap/Lightmap-0_comp_light.exr",
+            "sha256": "a3eda2cc43d3eb89e498842968d7dffbc27ae32550826870cfec72d661f91206",
+            "bytes": 2611360
+        },
+        {
+            "path": "Assets/Scenes/RaceMap/ReflectionProbe-0.exr",
+            "sha256": "37610f7eac04b57c1df31d03ebc1749e9098fcfe649203453de168577cdd1739",
+            "bytes": 421376
+        },
+        {
+            "path": "Assets/Scenes/RaceMap/ReflectionProbe-EndField.exr",
+            "sha256": "46e8688a49ca2127afe61fed99f2e0ef336accc1691b54e3396627727f6627e7",
+            "bytes": 803692
+        },
+        {
+            "path": "Assets/Scenes/RaceMap/ReflectionProbe-Lower.exr",
+            "sha256": "c73901d2e8d598104556977ca4b616b4494de072a118b7c2e5c0ecfc3e240944",
+            "bytes": 1166163
+        },
+        {
+            "path": "Assets/Scenes/MenuEnvironmentSetting/ReflectionProbe-Shrine.exr",
+            "sha256": "eccec983cbe1ec48f5027f1634115b807df9148bfb9ff85ca37d021adee9607e",
+            "bytes": 1001635
+        }
+    ],
+    "lightmapperMessages": []
+}

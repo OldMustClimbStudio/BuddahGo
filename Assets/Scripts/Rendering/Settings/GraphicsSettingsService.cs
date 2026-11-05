@@ -91,6 +91,51 @@ namespace BuddahGo.Rendering.Settings
             return level != null && GraphicsSettingsApplier.IsLevelAvailable(s_Model.Preset, optionId, level.Values);
         }
 
+        /// <summary>
+        /// Whether an option takes effect with the current choice: false when another option makes it moot
+        /// (<see cref="GraphicsOptionDependencies"/>) or when the preset allows only one of its levels (SSAO without the
+        /// feature). The menu and the F9 panel grey such an option out.
+        /// </summary>
+        public static bool IsActive(string optionId)
+        {
+            var option = s_Model?.Catalog.FindOption(optionId);
+            if (option == null)
+                return false;
+            if (GraphicsOptionDependencies.InactiveBecause(s_Model.Resolve(), optionId) != null)
+                return false;
+            // The applier leaves the window alone in the editor and when the command line sets it.
+            if ((optionId == GraphicsPipelineMapper.WindowMode || optionId == GraphicsPipelineMapper.Resolution) && !GraphicsSettingsApplier.AppliesDisplay)
+                return false;
+            return option.Levels.Count(l => GraphicsSettingsApplier.IsLevelAvailable(s_Model.Preset, optionId, l.Values)) > 1;
+        }
+
+        /// <summary>Whether an option is marked as taking effect only after a restart (GraphicsOption.restartRequired).</summary>
+        public static bool RequiresRestart(string optionId) => s_Model?.Catalog.FindOption(optionId)?.RestartRequired ?? false;
+
+        /// <summary>
+        /// Restart-only options whose applied level differs from the one the game started with; the menu shows the
+        /// restart notice while any exists. Empty after a restart, since the saved choice is then the startup choice.
+        /// </summary>
+        public static IReadOnlyList<string> PendingRestart => s_Model == null
+            ? (IReadOnlyList<string>)Array.Empty<string>()
+            : RestartDifferences(s_Model.Catalog, s_StartupState, s_AppliedState);
+
+        /// <summary>Options marked restartRequired whose level differs between two saved states.</summary>
+        public static List<string> RestartDifferences(GraphicsSettingsCatalog catalog, string fromJson, string toJson)
+        {
+            var result = new List<string>();
+            if (catalog == null || fromJson == toJson)
+                return result;
+            var from = new GraphicsSettingsModel(catalog);
+            var to = new GraphicsSettingsModel(catalog);
+            if (!from.TryLoadJson(fromJson) || !to.TryLoadJson(toJson))
+                return result;
+            foreach (var option in catalog.Options)
+                if (option.RestartRequired && from.Get(option.Id) != to.Get(option.Id))
+                    result.Add(option.Id);
+            return result;
+        }
+
         /// <summary>Applies the current choice and saves it.</summary>
         public static void Apply()
         {

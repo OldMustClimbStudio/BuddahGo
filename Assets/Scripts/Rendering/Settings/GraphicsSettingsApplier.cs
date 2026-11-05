@@ -144,9 +144,12 @@ namespace BuddahGo.Rendering.Settings
 
         // Window mode and resolution: the chosen level's size, or the display's native size for the table's "native" level.
         // The editor's game view and a window the command line asked for are not touched.
+        /// <summary>Whether window mode and resolution are applied here: in a player whose command line does not set the window.</summary>
+        public static bool AppliesDisplay => !Application.isEditor && !SetsWindowFromCommandLine(Environment.GetCommandLineArgs());
+
         static void ApplyDisplay(IReadOnlyDictionary<string, GraphicsOptionLevelRecord> levels)
         {
-            if (Application.isEditor || SetsWindowFromCommandLine(Environment.GetCommandLineArgs()))
+            if (!AppliesDisplay)
                 return;
             if (!levels.TryGetValue(GraphicsPipelineMapper.WindowMode, out var window) || !Enum.TryParse(window.fullScreenMode, true, out FullScreenMode mode))
                 return;

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-/// <summary>Lookup over Skill.xlsx / Skill rows (identity, cooldown / lock / cast delay, obsession gain, anti id).</summary>
+/// <summary>Lookup over Skill.xlsx / Skill rows (identity, cooldown / cast delay, obsession gain, primary duration, anti id).</summary>
 public class SkillConfigRepository
 {
     private readonly Dictionary<string, SkillRecord> _byId = new Dictionary<string, SkillRecord>(StringComparer.Ordinal);
@@ -19,15 +19,10 @@ public class SkillConfigRepository
                 continue;
 
             _byId.Add(skillId, record);
-            if (record.castConfirmDelaySeconds > MaxCastConfirmDelaySeconds)
-                MaxCastConfirmDelaySeconds = record.castConfirmDelaySeconds;
         }
     }
 
     public IReadOnlyDictionary<string, SkillRecord> Skills => _byId;
-
-    /// <summary>Largest castConfirmDelaySeconds over all rows (0 without rows); used for timing estimates.</summary>
-    public float MaxCastConfirmDelaySeconds { get; private set; }
 
     public bool TryGet(string skillId, out SkillRecord record)
     {
@@ -66,17 +61,7 @@ public class SkillConfigRepository
         return true;
     }
 
-    public bool TryGetCastLock(string skillId, out float value)
-    {
-        value = 0f;
-        if (!TryGet(skillId, out SkillRecord record))
-            return false;
-
-        value = record.castLockSeconds;
-        return true;
-    }
-
-    /// <summary>Cast confirmation delay of the executed skill (normal or anti row). False when the row has no positive value.</summary>
+    /// <summary>Cast confirmation delay of the skill. False when the row has no positive value.</summary>
     public bool TryGetCastConfirmDelay(string skillId, out float value)
     {
         value = 0f;

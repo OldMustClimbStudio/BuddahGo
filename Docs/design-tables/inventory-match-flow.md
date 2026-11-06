@@ -2,6 +2,8 @@
 
 筛查日期 2026-10-12，基线 dev 9ff6338。本文件只做盘点，不含实现。总览与跨域结论见 [README.md](README.md)。
 
+> 2026-10-26 玩法深化之后（代码 0dbc551），下列基线说法不再完整，原文保留：表 1 的 `IMatchRules` 多了 `SpawnTrainingDummies`（Online 为 false，Solo 为 `_aiCount == 0`，即 Practice），训练木桩配置见表 1 末尾；「排除（工程参数）」一节的 `PredictionProtocol.Version` 现为 2（`Network/PredictionProtocol.cs`，`Global/StructuralConstant.prediction_protocol_version` 同步为 2）。
+
 范围：`Assets/Scripts/Match/**`、`Assets/Scripts/Network/**`、`Assets/Scripts/RaceIntro/**`，三个场景 `MainMenu.unity`、`PropertySelection.unity`、`RaceMap.unity` 中本项目组件的序列化值。路径相对 `Assets/Scripts/`。
 
 ## 结论先行
@@ -39,6 +41,7 @@
 - 默认模式：`MatchRules.cs:7`、`:13` 的 `Reset()` 都是 `new OnlineMatchRules()`。模式选择在 `SessionLauncher.StartSoloHost`(46)、`StartOnlineHost`(52)、`StartOnlineClient`(60)。
 - Practice 入口无法到达：`SoloSetupPanel.StartPractice`(87) 固定传 `RacerId.MaxAI`。
 - `RaceEndPolicy.ShouldEnd`（`Match/RaceEndPolicy.cs:11-18`）：人类到达 → 全员到达 → 首个到达后倒计时满。倒计时秒数来自 RaceFinishManager（表 2）。
+- 2026-10-26 玩法深化阶段 B：训练木桩（README A1）的配置并入 `Match/ModeRule`，五列 `trainingDummyCount`（Practice 3）、`trainingDummySpacingMeters`（15）、`trainingDummyStartOffsetMeters`（90）、`trainingDummyLateralOffsetMeters`（10）、`trainingDummyResetDelaySeconds`（3），Online / Solo 的数量填 0。数量、间距、复位秒数是玩法 README A1 的已定值，起点距离与横向距离是建议（实现采用）。`MatchSpawnManager.Awake` 只读 Practice 行（`TrainingDummyModeRuleMap`），是否生成仍由 `IMatchRules.SpawnTrainingDummies` 决定；墙距、探测高度等摆放工程值留在组件上；`TrainingDummy` 组件的 `disturbedContactSpeed` 0.5、`displacedDistance` 1、`displacedYawDegrees` 10、`impulseDisplaySeconds` 2 和头顶读数（`TrainingDummyReadout`）的显示字段没有进表（是否入表按决定 4 待确认；复位秒数由 `MatchSpawnManager` 生成时传入）。数量大于 0 时其余四格必填（`DesignTableDomainRules.TrainingDummyCellsAreFilled`）。
 
 ## 表 2：TrackDefinition / RaceRules（按赛道，目前只有 RaceMap）
 

@@ -2,6 +2,8 @@
 
 2026-10-29 · 分支 `refactor/vfx-refactor` · 通用规范见 [README.md](README.md)，技能设计见 [push-projectile-hands.md](push-projectile-hands.md)。本文只记录白模资产怎么来的、参数是什么、怎么再生成一版；它是不是最终主体由用户在设计会话里决定。
 
+图片：文中直接链接的图保留在 `palm-mesh-tripo/`；只按文件名提到的迭代截图已于 2026-11-05 移出仓库，见 [cc7bc106](https://github.com/OldMustClimbStudio/BuddahGo/tree/cc7bc106/Docs/vfx/palm-mesh-tripo)。
+
 ## 1. 结果（v1，待用户看图确认）
 
 | 项 | 值 |

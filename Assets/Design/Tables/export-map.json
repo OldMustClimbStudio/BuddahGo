@@ -39,16 +39,6 @@
   "list": "defaultLoadouts",
   "tags": "skill,info"
  },
- "Skill/ComboInput": {
-  "record": "ComboInputRecord",
-  "list": "comboInputs",
-  "tags": "skill,balance"
- },
- "Skill/ComboBinding": {
-  "record": "ComboBindingRecord",
-  "list": "comboBindings",
-  "tags": "skill,info"
- },
  "Skill/Obsession": {
   "record": "ObsessionRecord",
   "list": "obsessions",

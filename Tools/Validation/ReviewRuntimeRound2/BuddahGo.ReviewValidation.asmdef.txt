@@ -1,1 +1,0 @@
-{"name":"BuddahGo.ReviewValidation","references":["BuddahGo.Runtime","FishNet.Runtime","Unity.InputSystem","Unity.Timeline"],"includePlatforms":["Editor"],"autoReferenced":true}

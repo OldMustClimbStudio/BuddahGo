@@ -24,7 +24,7 @@
 **发现**：
 - `Assets/Scripts` 下 13 个顶层目录里，有 12 个互相依赖，连成一个大循环。只要切断 13 处向上的引用，就能分出 Config、Foundation、Contracts、Rendering、AI 这几个没有循环的层。
 - 技能 SO 上约 117 个字段和表格重复，其中 15 个值和表格不一致，比如神足通的冷却在 SO 上是 12/10/10，表里是 5/3/3。
-- `SkillExecutor` 在缺表行时，反噬前摇的回退值仍是 1 秒，但表里已经定成 2 秒。
+- `SkillExecutor` 在缺表行时，反噬前摇的回退值仍是 1 秒，但表里已经定成 2 秒。（已处理：PR #63 合入 dev 时把 `AntiCastConfirmDelaySeconds` 改为 2，反噬前摇取 `_anti` 行，2026-11-03。）
 - ModeRule 有 4 列没有任何读取方。
 - 游戏专用的编辑器工具分散在两个 Editor 程序集里，测试只能访问其中一个。
 

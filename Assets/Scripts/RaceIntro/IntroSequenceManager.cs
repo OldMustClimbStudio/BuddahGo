@@ -513,7 +513,36 @@ public class IntroSequenceManager : NetworkBehaviour
             movement.gameObject.AddComponent<RaceBodyIntroStateController>();
         }
 
-        return FindObjectsByType<RaceBodyIntroStateController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        RaceBodyIntroStateController[] bodies = FindObjectsByType<RaceBodyIntroStateController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        // Practice training dummies are parked track props, not racers: the layout stays sized to the racers
+        // (1P in Practice), and dummies are never assigned a slot, flown along an intro spline or launched at GO.
+        int kept = 0;
+        for (int i = 0; i < bodies.Length; i++)
+        {
+            if (!IsTrainingDummy(bodies[i]))
+                bodies[kept++] = bodies[i];
+        }
+
+        if (kept != bodies.Length)
+            Array.Resize(ref bodies, kept);
+        return bodies;
+    }
+
+    private static bool IsTrainingDummy(RaceBodyIntroStateController body)
+    {
+        return body != null && body.TryGetComponent(out BuddahGo.Match.RacerIdentity identity) && identity.IsTrainingDummy;
+    }
+
+    // Launch position of a slot in the layout used for this many racers (Practice: Layout_1P, Slot 0). Solo never
+    // shuffles slots, so the human's launch point is slots[0]. MatchSpawnManager places the training dummies from it.
+    internal bool TryGetLaunchPosition(int racerCount, int slotIndex, out Vector3 position)
+    {
+        position = default;
+        IntroLayout layout = ResolveLayout(racerCount);
+        if (layout == null || layout.slots == null || slotIndex < 0 || slotIndex >= layout.slots.Length || layout.slots[slotIndex] == null)
+            return false;
+        position = layout.slots[slotIndex].GetLaunchPosition();
+        return true;
     }
 
     private static int CompareBodiesForDeterminism(RaceBodyIntroStateController a, RaceBodyIntroStateController b)

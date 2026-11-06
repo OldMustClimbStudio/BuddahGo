@@ -180,7 +180,6 @@
             "unlockState": "unlocked",
             "antiSkillId": "acceleration_anti",
             "cooldownSeconds": 5.0,
-            "castLockSeconds": 3.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 300.0,
             "effectDurationSeconds": 3.0
@@ -193,7 +192,6 @@
             "unlockState": "unlocked",
             "antiSkillId": "slowtrap_anti",
             "cooldownSeconds": 8.0,
-            "castLockSeconds": 6.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 300.0,
             "effectDurationSeconds": 6.0
@@ -206,7 +204,6 @@
             "unlockState": "unlocked",
             "antiSkillId": "blackcurtain_anti",
             "cooldownSeconds": 16.0,
-            "castLockSeconds": 14.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 200.0,
             "effectDurationSeconds": 10.0
@@ -219,7 +216,6 @@
             "unlockState": "unlocked",
             "antiSkillId": "giant_anti",
             "cooldownSeconds": 8.0,
-            "castLockSeconds": 6.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 200.0,
             "effectDurationSeconds": 6.0
@@ -232,7 +228,6 @@
             "unlockState": "unlocked",
             "antiSkillId": "push_projectile_hands_anti",
             "cooldownSeconds": 12.0,
-            "castLockSeconds": 10.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 300.0,
             "effectDurationSeconds": 15.0
@@ -245,7 +240,6 @@
             "unlockState": "unlocked",
             "antiSkillId": "reverseturn_anti",
             "cooldownSeconds": 12.0,
-            "castLockSeconds": 10.0,
             "castConfirmDelaySeconds": 1.0,
             "obsessionGain": 200.0,
             "effectDurationSeconds": 10.0
@@ -254,11 +248,10 @@
             "skillId": "acceleration_anti",
             "displayNameKey": "skill.acceleration_anti.name",
             "descriptionKey": "skill.acceleration_anti.desc",
-            "sortOrder": 110,
+            "sortOrder": 0,
             "unlockState": "hidden",
             "antiSkillId": "",
-            "cooldownSeconds": 5.0,
-            "castLockSeconds": 3.0,
+            "cooldownSeconds": 0.0,
             "castConfirmDelaySeconds": 2.0,
             "obsessionGain": 0.0,
             "effectDurationSeconds": 3.0
@@ -267,11 +260,10 @@
             "skillId": "slowtrap_anti",
             "displayNameKey": "skill.slowtrap_anti.name",
             "descriptionKey": "skill.slowtrap_anti.desc",
-            "sortOrder": 120,
+            "sortOrder": 0,
             "unlockState": "hidden",
             "antiSkillId": "",
-            "cooldownSeconds": 3.0,
-            "castLockSeconds": 1.0,
+            "cooldownSeconds": 0.0,
             "castConfirmDelaySeconds": 2.0,
             "obsessionGain": 0.0,
             "effectDurationSeconds": 1.0
@@ -280,11 +272,10 @@
             "skillId": "blackcurtain_anti",
             "displayNameKey": "skill.blackcurtain_anti.name",
             "descriptionKey": "skill.blackcurtain_anti.desc",
-            "sortOrder": 130,
+            "sortOrder": 0,
             "unlockState": "hidden",
             "antiSkillId": "",
-            "cooldownSeconds": 16.0,
-            "castLockSeconds": 14.0,
+            "cooldownSeconds": 0.0,
             "castConfirmDelaySeconds": 2.0,
             "obsessionGain": 0.0,
             "effectDurationSeconds": 10.0
@@ -293,11 +284,10 @@
             "skillId": "giant_anti",
             "displayNameKey": "skill.giant_anti.name",
             "descriptionKey": "skill.giant_anti.desc",
-            "sortOrder": 140,
+            "sortOrder": 0,
             "unlockState": "hidden",
             "antiSkillId": "",
-            "cooldownSeconds": 8.0,
-            "castLockSeconds": 6.0,
+            "cooldownSeconds": 0.0,
             "castConfirmDelaySeconds": 2.0,
             "obsessionGain": 0.0,
             "effectDurationSeconds": 6.0
@@ -306,11 +296,10 @@
             "skillId": "push_projectile_hands_anti",
             "displayNameKey": "skill.push_projectile_hands_anti.name",
             "descriptionKey": "skill.push_projectile_hands_anti.desc",
-            "sortOrder": 150,
+            "sortOrder": 0,
             "unlockState": "hidden",
             "antiSkillId": "",
-            "cooldownSeconds": 10.0,
-            "castLockSeconds": 10.0,
+            "cooldownSeconds": 0.0,
             "castConfirmDelaySeconds": 2.0,
             "obsessionGain": 0.0,
             "effectDurationSeconds": 0.0
@@ -319,11 +308,10 @@
             "skillId": "reverseturn_anti",
             "displayNameKey": "skill.reverseturn_anti.name",
             "descriptionKey": "skill.reverseturn_anti.desc",
-            "sortOrder": 160,
+            "sortOrder": 0,
             "unlockState": "hidden",
             "antiSkillId": "",
-            "cooldownSeconds": 12.0,
-            "castLockSeconds": 10.0,
+            "cooldownSeconds": 0.0,
             "castConfirmDelaySeconds": 2.0,
             "obsessionGain": 0.0,
             "effectDurationSeconds": 10.0
@@ -474,43 +462,6 @@
             "hitTurnTorqueImpulse": 50.0
         }
     ],
-    "comboInputs": [
-        {
-            "profileId": "default",
-            "inputWindowSeconds": 0.3499999940395355,
-            "maxBuffer": 6
-        }
-    ],
-    "comboBindings": [
-        {
-            "slotIndex": 0,
-            "name": "Skill_1",
-            "sequence": [
-                "W",
-                "Up",
-                "W"
-            ]
-        },
-        {
-            "slotIndex": 1,
-            "name": "Skill_2",
-            "sequence": [
-                "Up",
-                "W",
-                "Up"
-            ]
-        },
-        {
-            "slotIndex": 2,
-            "name": "Skill_3",
-            "sequence": [
-                "W",
-                "W",
-                "Up",
-                "Up"
-            ]
-        }
-    ],
     "obsessions": [
         {
             "profileId": "default",
@@ -522,7 +473,12 @@
             "backfirePMaxPercent": 95.0,
             "backfireK": 0.00800000037997961,
             "backfireMidpointX": 500.0,
-            "backfireKeepPMaxAtOrAboveX": 1000.0
+            "backfireKeepPMaxAtOrAboveX": 1000.0,
+            "repeatWindowSeconds": 5.0,
+            "repeatGainMultiplier": 1.149999976158142,
+            "backfireLockSeconds": 5.0,
+            "backfireMaxSpeedMultiplier": 0.8500000238418579,
+            "backfireEndKeepRatio": 0.800000011920929
         }
     ],
     "vfxRegistries": [
@@ -758,8 +714,8 @@
             },
             "pushGraceSeconds": 0.25,
             "pushExtraMaxSpeed": 6.0,
-            "launchInheritSeconds": 0.20000000298023225,
-            "launchBlendSeconds": 0.3199999928474426,
+            "launchInheritSeconds": 0.0,
+            "launchBlendSeconds": 0.0,
             "handoffGroundSnapMaxDistance": 1.5,
             "handoffGroundProbeHeight": 3.0,
             "velocitySampleDeltaSeconds": 0.019999999552965165
@@ -906,12 +862,10 @@
         {
             "difficulty": "Easy",
             "riskWeight": 0.0,
-            "severeStopProbability": 1.0099999904632569,
-            "mildStopProbability": 1.0099999904632569,
+            "stopProbability": 1.0099999904632569,
             "decisionSeconds": 0.30000001192092898,
             "reactionMinSeconds": 0.6000000238418579,
             "reactionMaxSeconds": 1.0,
-            "keyMistakeProbability": 0.15000000596046449,
             "aimToleranceDegrees": 20.0,
             "adaptSeconds": 2.0,
             "readaptSeconds": 1.0,
@@ -924,12 +878,10 @@
         {
             "difficulty": "Normal",
             "riskWeight": 0.5,
-            "severeStopProbability": 0.699999988079071,
-            "mildStopProbability": 1.0099999904632569,
+            "stopProbability": 0.699999988079071,
             "decisionSeconds": 0.25,
             "reactionMinSeconds": 0.30000001192092898,
             "reactionMaxSeconds": 0.5,
-            "keyMistakeProbability": 0.05999999865889549,
             "aimToleranceDegrees": 12.0,
             "adaptSeconds": 1.0,
             "readaptSeconds": 0.6000000238418579,
@@ -942,12 +894,10 @@
         {
             "difficulty": "Hard",
             "riskWeight": 1.0,
-            "severeStopProbability": 0.44999998807907107,
-            "mildStopProbability": 0.6499999761581421,
+            "stopProbability": 0.44999998807907107,
             "decisionSeconds": 0.20000000298023225,
             "reactionMinSeconds": 0.10000000149011612,
             "reactionMaxSeconds": 0.20000000298023225,
-            "keyMistakeProbability": 0.009999999776482582,
             "aimToleranceDegrees": 6.0,
             "adaptSeconds": 0.4000000059604645,
             "readaptSeconds": 0.30000001192092898,
@@ -1165,7 +1115,6 @@
     "skillOpportunities": [
         {
             "skillId": "acceleration",
-            "backlashSeverity": 1.0,
             "blockWhenGlobalVisible": false,
             "minStraightSeconds": 3.0,
             "scoreBase": 0.0,
@@ -1180,7 +1129,6 @@
         },
         {
             "skillId": "slowtrap",
-            "backlashSeverity": 0.10000000149011612,
             "blockWhenGlobalVisible": false,
             "minStraightSeconds": 0.0,
             "scoreBase": 0.30000001192092898,
@@ -1195,7 +1143,6 @@
         },
         {
             "skillId": "giant",
-            "backlashSeverity": 0.5,
             "blockWhenGlobalVisible": false,
             "minStraightSeconds": 0.0,
             "scoreBase": 0.0,
@@ -1210,7 +1157,6 @@
         },
         {
             "skillId": "push_projectile_hands",
-            "backlashSeverity": 0.30000001192092898,
             "blockWhenGlobalVisible": false,
             "minStraightSeconds": 0.0,
             "scoreBase": 0.3499999940395355,
@@ -1225,7 +1171,6 @@
         },
         {
             "skillId": "reverseturn",
-            "backlashSeverity": 0.8999999761581421,
             "blockWhenGlobalVisible": true,
             "minStraightSeconds": 0.0,
             "scoreBase": 0.0,
@@ -1240,7 +1185,6 @@
         },
         {
             "skillId": "blackcurtain",
-            "backlashSeverity": 0.4000000059604645,
             "blockWhenGlobalVisible": true,
             "minStraightSeconds": 0.0,
             "scoreBase": 0.0,
@@ -1267,8 +1211,6 @@
             "laneWidth": 14.0,
             "straightCurvature": 0.0035000001080334188,
             "cornerCurvature": 0.006000000052154064,
-            "keyMinSeconds": 0.20000000298023225,
-            "keyMaxSeconds": 0.30000001192092898,
             "aimHorizonSeconds": 2.0,
             "speedDropFraction": 0.20000000298023225,
             "speedDropImpairSeconds": 0.5,
@@ -1282,11 +1224,10 @@
             "targetBonusBehind": 1.0,
             "targetBonusPackCentrePerNeighbour": 0.25,
             "packMinNeighbours": 2,
-            "severeSeverityThreshold": 0.5,
+            "backfireCost": 1.0,
             "maxWindowSeconds": 6.0,
             "minRelativeSpeed": 0.10000000149011612,
-            "maxElapsedSeconds": 1.0,
-            "maxComboRetries": 1
+            "maxElapsedSeconds": 1.0
         }
     ],
     "rosters": [
@@ -1339,7 +1280,12 @@
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
             "aiCount": 0,
-            "defaultDifficulty": ""
+            "defaultDifficulty": "",
+            "trainingDummyCount": 0,
+            "trainingDummySpacingMeters": 0.0,
+            "trainingDummyStartOffsetMeters": 0.0,
+            "trainingDummyLateralOffsetMeters": 0.0,
+            "trainingDummyResetDelaySeconds": 0.0
         },
         {
             "modeId": "Solo",
@@ -1363,7 +1309,12 @@
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
             "aiCount": 5,
-            "defaultDifficulty": "Normal"
+            "defaultDifficulty": "Normal",
+            "trainingDummyCount": 0,
+            "trainingDummySpacingMeters": 0.0,
+            "trainingDummyStartOffsetMeters": 0.0,
+            "trainingDummyLateralOffsetMeters": 0.0,
+            "trainingDummyResetDelaySeconds": 0.0
         },
         {
             "modeId": "Practice",
@@ -1387,7 +1338,12 @@
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
             "aiCount": 0,
-            "defaultDifficulty": "Normal"
+            "defaultDifficulty": "Normal",
+            "trainingDummyCount": 3,
+            "trainingDummySpacingMeters": 15.0,
+            "trainingDummyStartOffsetMeters": 90.0,
+            "trainingDummyLateralOffsetMeters": 10.0,
+            "trainingDummyResetDelaySeconds": 3.0
         }
     ],
     "tracks": [

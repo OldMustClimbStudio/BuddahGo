@@ -55,6 +55,8 @@ namespace BuddahGo.VFX.EditorTools
             "Assets/VFX/一念光明/Eye/VFX_Curtain_Eye_Anti.prefab",
             "Assets/VFX/神足通/Release/VFX_Accel_Release.prefab",
             "Assets/VFX/金足破阵/Release/VFX_GiantCharge_Release.prefab",
+            "Assets/VFX/禅足冰封/Release/VFX_FrostLock_Release.prefab",
+            "Assets/VFX/禅足冰封/Hit/VFX_FrostLock_Hit.prefab",
             "Assets/VFX/通用前摇/Cast/VFX_Common_Cast.prefab",
             "Assets/VFX/通用前摇/Cast/VFX_Common_Cast_Anti.prefab",
         };
@@ -126,6 +128,11 @@ namespace BuddahGo.VFX.EditorTools
             // 3. Point our prefabs and every copy at the copies.
             var rewrite = new List<string>(prefabs);
             rewrite.AddRange(registry.entries.Select(e => e.copy));
+            // Our own materials built for a slot (禅足冰封's Mat_FX_FrostLock_*) can use pack textures too.
+            foreach (string path in prefabs)
+                foreach (string dep in AssetDatabase.GetDependencies(path, true))
+                    if (dep.StartsWith("Assets/VFX/") && !dep.StartsWith(CopyRoot) && dep.EndsWith(".mat"))
+                        rewrite.Add(dep);
             int rewritten = 0;
             foreach (string path in rewrite.Distinct())
                 if (RewriteGuids(path, remap))

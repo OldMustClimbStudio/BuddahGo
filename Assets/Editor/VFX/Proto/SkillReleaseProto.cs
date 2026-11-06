@@ -49,6 +49,11 @@ namespace BuddahGo.VFX.EditorTools
             // 缘起 #4 (Yuanqi_GiantCharge.vfxId): rear blast + ink route for the burst (YuanqiEffectGiantCharge.burstSeconds).
             // Docs/vfx/yuanqi-giant-charge.md. Both layers are laid once at the trigger (CasterRelative), set by hand.
             new Skill { shortName = "GiantCharge", folderName = "金足破阵", vfxId = "giant_charge_release", windowSeconds = 0.8f, function = SkillVfxFunction.Flash },
+            // 缘起 #2 (Yuanqi_FrostLock.vfxId): the frozen ground at the caster, and the ice block on every frozen racer
+            // (FrozenIceShell), both for the freeze (YuanqiEffectFrostLock.freezeSeconds). Docs/vfx/yuanqi-frost-lock.md;
+            // content built by FrostLockProto.
+            new Skill { shortName = "FrostLock", folderName = "禅足冰封", vfxId = "frost_lock_release", windowSeconds = 1.5f, function = SkillVfxFunction.Decal },
+            new Skill { shortName = "FrostLock", folderName = "禅足冰封", vfxId = "frost_lock_hit", windowSeconds = 1.5f, function = SkillVfxFunction.Mesh, slot = "Hit" },
             // Shared wind-ups (user 2026-10-29): played on every player for every skill during the cast confirmation
             // delay (SkillExecutor, 1 s); they replace the character's 技能Particle / 反噬Particle. Cast uses the
             // Yixuan palette, CastAnti the red of the reaction effects (README section 2).

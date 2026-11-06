@@ -54,6 +54,7 @@ namespace BuddahGo.VFX.EditorTools
             "Assets/VFX/一念光明/Eye/VFX_Curtain_Eye.prefab",
             "Assets/VFX/一念光明/Eye/VFX_Curtain_Eye_Anti.prefab",
             "Assets/VFX/神足通/Release/VFX_Accel_Release.prefab",
+            "Assets/VFX/金足破阵/Release/VFX_GiantCharge_Release.prefab",
             "Assets/VFX/通用前摇/Cast/VFX_Common_Cast.prefab",
             "Assets/VFX/通用前摇/Cast/VFX_Common_Cast_Anti.prefab",
         };

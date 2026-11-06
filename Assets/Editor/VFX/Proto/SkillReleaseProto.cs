@@ -46,6 +46,9 @@ namespace BuddahGo.VFX.EditorTools
             // Played on every player while the curtain is up (BlackCurtainViewController), carries the route trail.
             new Skill { shortName = "Curtain", folderName = "一念光明", vfxId = "curtain_hit", windowSeconds = 10f, function = SkillVfxFunction.Smoke, slot = "Hit" },
             new Skill { shortName = "Accel", folderName = "神足通", vfxId = "accel_release", windowSeconds = 3f, function = SkillVfxFunction.Flash },
+            // 缘起 #4 (Yuanqi_GiantCharge.vfxId): rear blast + ink route for the burst (YuanqiEffectGiantCharge.burstSeconds).
+            // Docs/vfx/yuanqi-giant-charge.md. Both layers are laid once at the trigger (CasterRelative), set by hand.
+            new Skill { shortName = "GiantCharge", folderName = "金足破阵", vfxId = "giant_charge_release", windowSeconds = 0.8f, function = SkillVfxFunction.Flash },
             // Shared wind-ups (user 2026-10-29): played on every player for every skill during the cast confirmation
             // delay (SkillExecutor, 1 s); they replace the character's 技能Particle / 反噬Particle. Cast uses the
             // Yixuan palette, CastAnti the red of the reaction effects (README section 2).

@@ -57,7 +57,7 @@ PR #63 中途 review 修了反噬结束的结算顺序（施法闸门先结算�
 
 ## 重跑方法
 
-1. 在本 worktree 打开编辑器，打开 `Assets/Scenes/MainMenu.unity`，进入 Play，停在主菜单。
+1. 在本 worktree 打开编辑器，打开 `Assets/Scenes/MenuEnvironmentSetting.unity`，进入 Play，停在主菜单。harness 把请求的配装写进菜单的保存选择（`LocalMatchSelection`），开局后还原玩家自己的选择。
 2. 菜单 `Tools/Mechanics/Run Practice Verification`，或用 Unity MCP 的 `execute_code` 执行：
 
    ```csharp

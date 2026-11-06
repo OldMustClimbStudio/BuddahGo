@@ -9,6 +9,7 @@ using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using FishNet.Transporting;
 using SteamMultiplayer.Network.Results;
+using SteamMultiplayer.UI;
 using Steamworks;
 using Steamworks.Data;
 using UnityEngine;
@@ -34,24 +35,30 @@ namespace SteamMultiplayer.Network
         /* 简介：此脚本用于管理房间内的玩家状态、准备状态、游戏开始流程等核心逻辑。
             作为一个网络对象，RoomStateManager在服务器上维护房间的核心数据，并通过同步变量和同步列表将状态更新传递给所有客户端。
             客户端可以通过调用RequestToggleReady和RequestStartGame等方法来与服务器交互，改变自己的准备状态或请求开始游戏。
-            服务器会根据当前的玩家状态和设置来决定是否允许游戏开始，并在满足条件时加载属性选择场景和比赛场景。
+            服务器会根据当前的玩家状态和设置来决定是否允许游戏开始；开局时按房间里每人在菜单选的技能、皮肤和房主选的地图直接加载比赛场景。
             */
         public static RoomStateManager Instance { get; private set; }
 
-        [Header("Properties Selector")]
-        [SerializeField] private string _propertiesSelectorSceneName = SceneNames.PropertySelection;
+        [Header("Room")]
         [SerializeField] private bool _requireAllClientsReady = true;
         [SerializeField] private bool _enableDebugLogs = false;
 
+        [Header("Match Selection")]
+        [Tooltip("Validates the skill loadouts players pick in the menu and fills empty slots.")]
+        [SerializeField] private SkillDatabase _skillDatabase;
+        [Tooltip("Seconds of fade to black before the race scene loads.")]
+        [SerializeField, Min(0f)] private float _matchTransitionFadeSeconds = 1f;
+
         [Header("Race Flow")]
+        [Tooltip("Race scene when the selection catalog has no map for the room's map id.")]
         [SerializeField] private string _raceSceneName = SceneNames.RaceMap;
         [SerializeField] private string _resultSceneName = "RaceMapEndField";
-        [SerializeField] private string _mainMenuSceneName = SceneNames.MainMenu;
+        private static string MainMenuSceneName => SceneNames.MainMenu;
         [SerializeField] private int _pregameCountdownSeconds = 15;
 
         public readonly SyncList<RoomPlayerState> Players = new SyncList<RoomPlayerState>();
 
-        private readonly SyncVar<bool> _transitioningToPropertiesSelector = new SyncVar<bool>();
+        private readonly SyncVar<bool> _transitioningToMatch = new SyncVar<bool>();
         private readonly SyncVar<bool> _waitingForRacePlayers = new SyncVar<bool>();
         private readonly SyncVar<bool> _raceCountdownActive = new SyncVar<bool>();
         private readonly SyncVar<int> _raceCountdownSecondsRemaining = new SyncVar<int>();
@@ -60,8 +67,15 @@ namespace SteamMultiplayer.Network
         private readonly SyncVar<bool> _gameplayMovementUnlocked = new SyncVar<bool>();
         private readonly SyncVar<bool> _authoritativeGoIssued = new SyncVar<bool>();
         private readonly SyncVar<MatchSessionPhase> _matchSessionPhase = new SyncVar<MatchSessionPhase>();
+        // Room-level map (SelectionCatalog id), set by the host from the menu.
+        private readonly SyncVar<string> _mapId = new SyncVar<string>();
+        // Scene of the match in progress; empty outside a match (falls back to _raceSceneName).
+        private readonly SyncVar<string> _matchSceneName = new SyncVar<string>();
+        private MatchLoadoutResolver _loadoutResolver;
+        private MatchLoadoutResolver LoadoutResolver => _loadoutResolver ??= new MatchLoadoutResolver(_skillDatabase);
         private float _nextRaceReadinessPollTime;
         private bool _returningToRoomMenu;
+        private bool _rematchPending;
         private Coroutine _clientRaceSceneDiagnosticsRoutine;
         private Coroutine _clientRaceSceneReadyRoutine;
         private Coroutine _raceCountdownRoutine;
@@ -79,13 +93,16 @@ namespace SteamMultiplayer.Network
         private bool _lastLoggedAuthoritativeGoIssued;
         private bool _lastLoggedGameplayMovementUnlocked;
 
-        internal string DiagnosticRaceSceneName => _raceSceneName;
+        internal string DiagnosticRaceSceneName => RaceSceneName;
         internal bool DiagnosticManagersReported => _reportedRaceSceneManagersReadyLocal;
         internal int DiagnosticAssignmentSequence => _reportedIntroAssignmentSequenceId;
         internal int DiagnosticVisualSequence => _reportedIntroVisualSequenceId;
         internal int DiagnosticGameplaySequence => _reportedGameplayLiveSequenceId;
 
-        public bool IsTransitioningToPropertiesSelector => _transitioningToPropertiesSelector.Value;
+        private string RaceSceneName => string.IsNullOrWhiteSpace(_matchSceneName.Value) ? _raceSceneName : _matchSceneName.Value;
+        /// <summary>The room's map (SelectionCatalog id); only the host can change it.</summary>
+        public string MapId => _mapId.Value;
+        public bool IsTransitioningToMatch => _transitioningToMatch.Value;
         public bool CanHostStartGame => Players.Count > 0 && (!_requireAllClientsReady || AreAllRequiredPlayersReady());
         public bool IsWaitingForRacePlayers => _waitingForRacePlayers.Value;
         public bool IsRaceCountdownActive => _raceCountdownActive.Value;
@@ -95,7 +112,7 @@ namespace SteamMultiplayer.Network
         public bool IsGameplayMovementUnlocked => _gameplayMovementUnlocked.Value;
         public bool IsAuthoritativeGoIssued => _authoritativeGoIssued.Value;
         public MatchSessionPhase CurrentMatchSessionPhase => _matchSessionPhase.Value;
-        public bool IsRaceSceneLoadedLocally => !string.IsNullOrWhiteSpace(_raceSceneName) && UnitySceneManager.GetSceneByName(_raceSceneName).isLoaded;
+        public bool IsRaceSceneLoadedLocally => !string.IsNullOrWhiteSpace(RaceSceneName) && UnitySceneManager.GetSceneByName(RaceSceneName).isLoaded;
         public bool IsMatchPhaseActive => _matchSessionPhase.Value == MatchSessionPhase.InMatch;
         public bool IsResultPhaseActive => _matchSessionPhase.Value == MatchSessionPhase.InResult;
 
@@ -130,7 +147,7 @@ namespace SteamMultiplayer.Network
             return $"non-race-phase-{_matchSessionPhase.Value}";
         }
 
-        public event Action OnPropertiesSelectorTransitionRequested;
+        public event Action OnMatchTransitionRequested;
 
         private void Update()
         {
@@ -170,6 +187,8 @@ namespace SteamMultiplayer.Network
                 AddOrUpdatePlayer(ClientManager.Connection);
 
             SubmitLocalDisplayName();
+            SubmitLocalSelection();
+            LocalMatchSelection.Changed += SubmitLocalSelection;
             if (IsServerInitialized && MatchRules.Current.AutoStartRoom)
                 StartCoroutine(StartSoloAfterInitialScenes());
 
@@ -180,6 +199,7 @@ namespace SteamMultiplayer.Network
         public override void OnStopClient()
         {
             base.OnStopClient();
+            LocalMatchSelection.Changed -= SubmitLocalSelection;
 
             if (InstanceFinder.SceneManager != null)
                 InstanceFinder.SceneManager.OnLoadEnd -= HandleClientSceneLoadEnd;
@@ -236,10 +256,13 @@ namespace SteamMultiplayer.Network
                 InstanceFinder.SceneManager.OnClientPresenceChangeEnd += HandleClientPresenceChangeEnd;
             }
 
-            _transitioningToPropertiesSelector.Value = false;
+            _transitioningToMatch.Value = false;
             ResetRaceFlowStateServer();
             _matchSessionPhase.Value = MatchSessionPhase.InRoom;
             _returningToRoomMenu = false;
+            // The server runs in the host's process: the host's menu pick is the room's map.
+            _mapId.Value = NormalizeMapId(LocalMatchSelection.MapId);
+            _matchSceneName.Value = string.Empty;
         }
 
         public override void OnStopServer()
@@ -261,7 +284,7 @@ namespace SteamMultiplayer.Network
             StopAllCoroutines();
             _raceCountdownRoutine = null;
             Players.Clear();
-            _transitioningToPropertiesSelector.Value = false;
+            _transitioningToMatch.Value = false;
             _waitingForRacePlayers.Value = false;
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
@@ -381,7 +404,76 @@ namespace SteamMultiplayer.Network
                 return;
             }
 
-            TransitionToPropertiesSelector();
+            TransitionToMatchServer();
+        }
+
+        // Each client sends its menu pick when it joins and whenever it changes; the host also sends the room's map.
+        private void SubmitLocalSelection()
+        {
+            if (!IsClientInitialized)
+                return;
+
+            string[] skills = LocalMatchSelection.Skills;
+            SubmitSelectionServerRpc(skills[0], skills[1], skills[2], LocalMatchSelection.SkinId);
+            if (IsServerInitialized)
+                SetMapServerRpc(LocalMatchSelection.MapId);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        private void SubmitSelectionServerRpc(string skill0, string skill1, string skill2, string skinId, NetworkConnection caller = null)
+        {
+            if (caller == null || !caller.IsAuthenticated)
+                return;
+
+            int index = FindPlayerIndex(caller.ClientId);
+            if (index < 0)
+            {
+                AddOrUpdatePlayer(caller);
+                index = FindPlayerIndex(caller.ClientId);
+            }
+
+            if (index < 0)
+                return;
+
+            RoomPlayerState player = Players[index];
+            if (LoadoutResolver.TryNormalize(new[] { skill0, skill1, skill2 }, out string[] skills, out string error))
+                player.SetSkills(skills);
+            else
+                Debug.LogWarning($"[RoomStateManager] Rejected skill loadout from player {caller.ClientId}: {error}");
+
+            player.SkinId = NormalizeSkinId(skinId);
+            if (!player.Equals(Players[index]))
+                Players[index] = player;
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        private void SetMapServerRpc(string mapId, NetworkConnection caller = null)
+        {
+            if (caller == null || !caller.IsAuthenticated)
+                return;
+
+            int index = FindPlayerIndex(caller.ClientId);
+            if (index < 0 || !Players[index].IsHost)
+                return;
+
+            if (_matchSessionPhase.Value != MatchSessionPhase.InRoom && _matchSessionPhase.Value != MatchSessionPhase.InResult)
+                return;
+
+            string normalized = NormalizeMapId(mapId);
+            if (_mapId.Value != normalized)
+                _mapId.Value = normalized;
+        }
+
+        private static string NormalizeSkinId(string skinId)
+        {
+            SelectionCatalog catalog = SelectionCatalog.Current;
+            return catalog != null ? catalog.NormalizeSkinId(skinId) : string.Empty;
+        }
+
+        private static string NormalizeMapId(string mapId)
+        {
+            SelectionCatalog catalog = SelectionCatalog.Current;
+            return catalog != null ? catalog.NormalizeMapId(mapId) : string.Empty;
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -443,14 +535,16 @@ namespace SteamMultiplayer.Network
 
             GameLog.Verbose($"[SceneDiag][Server] OnLoadEnd scenes={FormatSceneNames(args.LoadedScenes)} time={Time.unscaledTime:F3}");
 
-            if (ContainsScene(args.LoadedScenes, _mainMenuSceneName))
+            if (ContainsScene(args.LoadedScenes, MainMenuSceneName))
             {
                 CompleteReturnToRoomMenuServer();
+                if (_rematchPending)
+                {
+                    _rematchPending = false;
+                    TransitionToMatchServer(screenAlreadyBlack: true);
+                }
                 return;
             }
-
-            if (ContainsScene(args.LoadedScenes, _propertiesSelectorSceneName))
-                ValidatePropertiesSelectionManagerServer();
 
             if (ContainsScene(args.LoadedScenes, _resultSceneName))
             {
@@ -488,26 +582,6 @@ namespace SteamMultiplayer.Network
             _clientRaceSceneReadyRoutine = StartCoroutine(WaitForLocalRaceSceneManagersAndReportReady());
         }
 
-        [Server]
-        private void ValidatePropertiesSelectionManagerServer()
-        {
-            PropertiesSelectionManager manager = PropertiesSelectionManager.Instance;
-            if (manager == null)
-            {
-                Debug.LogWarning("[RoomStateManager] PropertySelection scene loaded but PropertiesSelectionManager.Instance is null on server.");
-                return;
-            }
-
-            bool isSpawned = manager.NetworkObject != null && manager.NetworkObject.IsSpawned;
-            if (!isSpawned)
-            {
-                Debug.LogWarning("[RoomStateManager] PropertiesSelectionManager exists but NetworkObject is not spawned on server.");
-                return;
-            }
-
-            LogDebug($"PropertiesSelectionManager validated on server. spawned={isSpawned}, scene={manager.gameObject.scene.name}");
-        }
-
         private void HandleClientPresenceChangeEnd(ClientPresenceChangeEventArgs args)
         {
             if (!IsServerInitialized)
@@ -516,7 +590,7 @@ namespace SteamMultiplayer.Network
             if (_matchSessionPhase.Value != MatchSessionPhase.InMatch)
                 return;
 
-            if (!string.Equals(args.Scene.name, _raceSceneName, StringComparison.Ordinal))
+            if (!string.Equals(args.Scene.name, RaceSceneName, StringComparison.Ordinal))
                 return;
 
             EvaluateRaceStartReadinessServer();
@@ -561,7 +635,7 @@ namespace SteamMultiplayer.Network
             bool isHost = IsHostConnection(conn, steamId);
             bool wasReady = TryGetPlayer(conn.ClientId, out RoomPlayerState existing) && existing.IsReady;
 
-            return new RoomPlayerState
+            RoomPlayerState playerState = new RoomPlayerState
             {
                 PlayerId = conn.ClientId,
                 SteamId = steamId,
@@ -569,6 +643,8 @@ namespace SteamMultiplayer.Network
                 IsHost = isHost,
                 IsReady = isHost ? true : wasReady
             };
+            playerState.CopySelectionFrom(existing);
+            return playerState;
         }
 
         private string GetSteamIdForConnection(NetworkConnection conn)
@@ -617,12 +693,12 @@ namespace SteamMultiplayer.Network
         [Server]
         public void TryStartSoloMatchServer()
         {
-            if (!MatchRules.Current.AutoStartRoom || _transitioningToPropertiesSelector.Value
+            if (!MatchRules.Current.AutoStartRoom || _transitioningToMatch.Value
                 || _matchSessionPhase.Value != MatchSessionPhase.InRoom) return;
             NetworkConnection local = ClientManager.Connection;
             if (!local.IsValid || !local.LoadedStartScenes(true)) return;
             if (!TryGetPlayer(local.ClientId, out RoomPlayerState player) || !player.IsHost) return;
-            TransitionToPropertiesSelector();
+            TransitionToMatchServer();
         }
 
         private void SubmitLocalDisplayName()
@@ -651,31 +727,76 @@ namespace SteamMultiplayer.Network
             return Roster.FindPlayerIndex(playerId);
         }
 
+        // Straight from the room into the race: every player's menu pick goes into the selection cache
+        // (MatchSpawnManager applies it on spawn) and the room's map decides the scene.
         [Server]
-        private void TransitionToPropertiesSelector()
+        private void TransitionToMatchServer(bool screenAlreadyBlack = false)
         {
-            if (_transitioningToPropertiesSelector.Value)
+            if (_transitioningToMatch.Value)
                 return;
 
-            ResetRaceFlowStateServer();
-            _matchSessionPhase.Value = MatchSessionPhase.TransitioningToProperties;
-            _transitioningToPropertiesSelector.Value = true;
-            OnPropertiesSelectorTransitionRequested?.Invoke();
-            NotifyPropertiesSelectorRequestedObserversRpc();
-
-            if (!string.IsNullOrWhiteSpace(_propertiesSelectorSceneName) && InstanceFinder.SceneManager != null)
+            if (InstanceFinder.SceneManager == null)
             {
-                SceneLoadData sceneLoadData = new SceneLoadData(_propertiesSelectorSceneName)
-                {
-                    ReplaceScenes = ReplaceOption.All
-                };
-
-                InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
-                LogDebug($"Loading Properties Selector scene: {_propertiesSelectorSceneName}");
+                Debug.LogWarning("[RoomStateManager] SceneManager missing. Cannot start the match.");
+                return;
             }
-            else
+
+            ResetRaceFlowStateServer();
+            ResolveMatchSelectionServer();
+            string sceneName = ResolveMatchSceneName();
+            _matchSceneName.Value = sceneName;
+            _matchSessionPhase.Value = MatchSessionPhase.TransitioningToMatch;
+            _transitioningToMatch.Value = true;
+            OnMatchTransitionRequested?.Invoke();
+
+            float fadeSeconds = screenAlreadyBlack ? 0f : _matchTransitionFadeSeconds;
+            NotifyMatchTransitionObserversRpc(fadeSeconds);
+            StartCoroutine(LoadSceneAfterFade(sceneName, fadeSeconds));
+        }
+
+        [Server]
+        private IEnumerator LoadSceneAfterFade(string sceneName, float fadeSeconds)
+        {
+            if (fadeSeconds > 0f)
+                yield return new WaitForSecondsRealtime(fadeSeconds);
+
+            InstanceFinder.SceneManager.LoadGlobalScenes(new SceneLoadData(sceneName) { ReplaceScenes = ReplaceOption.All });
+            LogDebug($"Loading scene '{sceneName}' (map '{_mapId.Value}').");
+        }
+
+        [Server]
+        private string ResolveMatchSceneName()
+        {
+            SelectionCatalog catalog = SelectionCatalog.Current;
+            return catalog != null ? catalog.SceneOf(_mapId.Value, _raceSceneName) : _raceSceneName;
+        }
+
+        // Fills every player's loadout (empty or invalid slots take fallback skills) and writes the cache.
+        // The host's own pick is read from its PlayerPrefs directly: its RPC may not have landed yet when Solo auto-starts.
+        [Server]
+        private void ResolveMatchSelectionServer()
+        {
+            ResolvedPropertySelectionCache.Clear();
+            NetworkConnection local = ClientManager != null ? ClientManager.Connection : null;
+            int localClientId = local != null && local.IsValid ? local.ClientId : -1;
+
+            for (int i = 0; i < Players.Count; i++)
             {
-                LogDebug("Properties Selector scene name is empty or SceneManager missing.");
+                RoomPlayerState player = Players[i];
+                if (player.PlayerId == localClientId)
+                {
+                    if (LoadoutResolver.TryNormalize(LocalMatchSelection.Skills, out string[] localSkills, out _))
+                        player.SetSkills(localSkills);
+                    player.SkinId = NormalizeSkinId(LocalMatchSelection.SkinId);
+                }
+
+                string[] skills = LoadoutResolver.Complete(player.SkillIds);
+                player.SetSkills(skills);
+                if (!player.Equals(Players[i]))
+                    Players[i] = player;
+
+                ResolvedPropertySelectionCache.SetPlayerSkillLoadout(player.PlayerId, skills);
+                GameLog.Verbose($"[RoomStateManager] Match loadout for player {player.PlayerId}: '{skills[0]}', '{skills[1]}', '{skills[2]}', skin '{player.SkinId}'.");
             }
         }
 
@@ -684,7 +805,7 @@ namespace SteamMultiplayer.Network
         {
             StopAllCoroutines();
             _raceCountdownRoutine = null;
-            _transitioningToPropertiesSelector.Value = false;
+            _transitioningToMatch.Value = false;
             _waitingForRacePlayers.Value = true;
             _raceCountdownActive.Value = false;
             _raceCountdownSecondsRemaining.Value = 0;
@@ -695,7 +816,7 @@ namespace SteamMultiplayer.Network
             _matchSessionPhase.Value = MatchSessionPhase.InMatch;
             _raceStartHandshake.ResetAllReadiness();
             _latestGameplayLiveSequenceIdServer = -1;
-            GameLog.Verbose($"[SceneDiag][Server] BeginRacePreparationServer scene='{_raceSceneName}' time={Time.unscaledTime:F3}");
+            GameLog.Verbose($"[SceneDiag][Server] BeginRacePreparationServer scene='{RaceSceneName}' time={Time.unscaledTime:F3}");
             EvaluateRaceStartReadinessServer();
             LogDebug("Race scene loaded. Waiting for all players and spawned characters before countdown.");
         }
@@ -743,7 +864,7 @@ namespace SteamMultiplayer.Network
             _matchSessionPhase.Value = MatchSessionPhase.ReturningToRoom;
             CleanupMatchSessionButKeepRoomServer();
 
-            string sceneName = string.IsNullOrWhiteSpace(targetMainMenuSceneName) ? _mainMenuSceneName : targetMainMenuSceneName;
+            string sceneName = string.IsNullOrWhiteSpace(targetMainMenuSceneName) ? MainMenuSceneName : targetMainMenuSceneName;
             if (string.IsNullOrWhiteSpace(sceneName) || InstanceFinder.SceneManager == null)
             {
                 Debug.LogWarning("[RoomStateManager] Main menu scene name is empty or SceneManager is missing. Cannot return room to menu.");
@@ -761,41 +882,32 @@ namespace SteamMultiplayer.Network
             LogDebug($"Returning all players to main menu scene '{sceneName}' while keeping room session alive.");
         }
 
+        // FishNet does not reload a scene that is already loaded, so a rematch passes through the menu scene
+        // behind a held black screen and starts the race again from there (HandleSceneLoadEnd).
         [Server]
-        public void StartNextGameFromResultServer(string targetPropertySelectionSceneName)
+        public void StartNextGameFromResultServer()
         {
             if (!IsServerInitialized)
                 return;
 
-            if (_returningToRoomMenu)
+            if (_returningToRoomMenu || _rematchPending)
             {
-                Debug.LogWarning("[RoomStateManager] StartNextGameFromResultServer ignored because a return-to-room flow is already in progress.");
+                Debug.LogWarning("[RoomStateManager] StartNextGameFromResultServer ignored because a scene change is already in progress.");
                 return;
             }
 
-            string sceneName = string.IsNullOrWhiteSpace(targetPropertySelectionSceneName)
-                ? _propertiesSelectorSceneName
-                : targetPropertySelectionSceneName;
-
-            if (string.IsNullOrWhiteSpace(sceneName) || InstanceFinder.SceneManager == null)
+            if (string.IsNullOrWhiteSpace(MainMenuSceneName) || InstanceFinder.SceneManager == null)
             {
-                Debug.LogWarning("[RoomStateManager] Property selection scene name is empty or SceneManager is missing. Cannot start next game.");
+                Debug.LogWarning("[RoomStateManager] Main menu scene name is empty or SceneManager is missing. Cannot start next game.");
                 return;
             }
 
             CleanupMatchSessionButKeepRoomServer();
-            _transitioningToPropertiesSelector.Value = true;
-            _matchSessionPhase.Value = MatchSessionPhase.TransitioningToProperties;
-            OnPropertiesSelectorTransitionRequested?.Invoke();
-            NotifyPropertiesSelectorRequestedObserversRpc();
-
-            SceneLoadData sceneLoadData = new SceneLoadData(sceneName)
-            {
-                ReplaceScenes = ReplaceOption.All
-            };
-
-            InstanceFinder.SceneManager.LoadGlobalScenes(sceneLoadData);
-            LogDebug($"Starting next game from result scene by loading property selection scene '{sceneName}'.");
+            _rematchPending = true;
+            _matchSessionPhase.Value = MatchSessionPhase.TransitioningToMatch;
+            NotifyMatchTransitionObserversRpc(_matchTransitionFadeSeconds);
+            StartCoroutine(LoadSceneAfterFade(MainMenuSceneName, _matchTransitionFadeSeconds));
+            LogDebug("Rematch: passing through the menu scene before reloading the race.");
         }
 
         [Server]
@@ -811,9 +923,10 @@ namespace SteamMultiplayer.Network
         private void CompleteReturnToRoomMenuServer()
         {
             ResetRaceFlowStateServer();
-            _transitioningToPropertiesSelector.Value = false;
+            _transitioningToMatch.Value = false;
             _matchSessionPhase.Value = MatchSessionPhase.InRoom;
             _returningToRoomMenu = false;
+            _matchSceneName.Value = string.Empty;
             LogDebug("Main menu loaded while keeping the current room session alive.");
         }
 
@@ -928,10 +1041,10 @@ namespace SteamMultiplayer.Network
         [Server]
         private bool ShouldMonitorRaceFlowServer()
         {
-            if (!IsServerInitialized || string.IsNullOrWhiteSpace(_raceSceneName))
+            if (!IsServerInitialized || string.IsNullOrWhiteSpace(RaceSceneName))
                 return false;
 
-            return UnitySceneManager.GetSceneByName(_raceSceneName).isLoaded;
+            return UnitySceneManager.GetSceneByName(RaceSceneName).isLoaded;
         }
 
         [Server]
@@ -951,18 +1064,18 @@ namespace SteamMultiplayer.Network
                 return false;
             }
 
-            UnityEngine.SceneManagement.Scene raceScene = UnitySceneManager.GetSceneByName(_raceSceneName);
+            UnityEngine.SceneManagement.Scene raceScene = UnitySceneManager.GetSceneByName(RaceSceneName);
             if (!raceScene.isLoaded)
             {
                 if (_enableDebugLogs && NetDebug.EnableVerboseLog)
-                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: scene '{_raceSceneName}' not loaded on server. details={BuildServerRaceReadinessSummary()}");
+                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: scene '{RaceSceneName}' not loaded on server. details={BuildServerRaceReadinessSummary()}");
                 return false;
             }
 
             if (!InstanceFinder.SceneManager.SceneConnections.TryGetValue(raceScene, out HashSet<NetworkConnection> sceneConnections))
             {
                 if (_enableDebugLogs && NetDebug.EnableVerboseLog)
-                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: no SceneConnections entry for '{_raceSceneName}'. details={BuildServerRaceReadinessSummary()}");
+                    LogSceneDiag($"[SceneDiag][Server] Race readiness false: no SceneConnections entry for '{RaceSceneName}'. details={BuildServerRaceReadinessSummary()}");
                 return false;
             }
 
@@ -986,7 +1099,7 @@ namespace SteamMultiplayer.Network
                 if (!HasOwnedRacePlayer(conn))
                 {
                     if (_enableDebugLogs && NetDebug.EnableVerboseLog)
-                        LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} has no owned race player in '{_raceSceneName}'. details={BuildServerRaceReadinessSummary()}");
+                        LogSceneDiag($"[SceneDiag][Server] Race readiness false: player {playerState.PlayerId} has no owned race player in '{RaceSceneName}'. details={BuildServerRaceReadinessSummary()}");
                     return false;
                 }
 
@@ -1016,7 +1129,7 @@ namespace SteamMultiplayer.Network
                 if (networkObject == null || !networkObject.IsSpawned)
                     continue;
 
-                if (!string.Equals(networkObject.gameObject.scene.name, _raceSceneName, StringComparison.Ordinal))
+                if (!string.Equals(networkObject.gameObject.scene.name, RaceSceneName, StringComparison.Ordinal))
                     continue;
 
                 // Tight readiness gate: only treat real player-avatar objects as race ready.
@@ -1112,7 +1225,7 @@ namespace SteamMultiplayer.Network
 
         private bool ContainsRaceScene(UnityEngine.SceneManagement.Scene[] loadedScenes)
         {
-            return ContainsScene(loadedScenes, _raceSceneName);
+            return ContainsScene(loadedScenes, RaceSceneName);
         }
 
         private static bool ContainsScene(UnityEngine.SceneManagement.Scene[] loadedScenes, string sceneName)
@@ -1130,9 +1243,14 @@ namespace SteamMultiplayer.Network
         }
 
         [ObserversRpc]
-        private void NotifyPropertiesSelectorRequestedObserversRpc()
+        private void NotifyMatchTransitionObserversRpc(float fadeSeconds)
         {
-            OnPropertiesSelectorTransitionRequested?.Invoke();
+            if (!IsServerInitialized)
+                OnMatchTransitionRequested?.Invoke();
+
+            // Black from here until the race intro releases it (IntroSequenceManager).
+            SceneFadeController.HoldBlackOnNextSceneLoad();
+            SceneFadeController.PlayFadeInBeforeSceneLoad(fadeSeconds);
         }
 
         internal int GetLocalClientId()
@@ -1273,7 +1391,7 @@ namespace SteamMultiplayer.Network
     public enum MatchSessionPhase
     {
         InRoom,
-        TransitioningToProperties,
+        TransitioningToMatch,
         InMatch,
         TransitioningToResult,
         InResult,

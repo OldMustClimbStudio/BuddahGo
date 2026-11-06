@@ -1262,8 +1262,6 @@
             "modeId": "Online",
             "autoStartRoom": false,
             "requiresReady": true,
-            "selectionTimeoutEnabled": true,
-            "skipMapVote": false,
             "voteOnResults": true,
             "resultDecisionTimeoutEnabled": true,
             "returnTarget": "Room",
@@ -1276,7 +1274,6 @@
             "showOpponentsOnMinimap": false,
             "defaultPlayerNameKey": "",
             "pregameCountdownSeconds": 18,
-            "selectionStageSeconds": 60,
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
             "aiCount": 0,
@@ -1291,8 +1288,6 @@
             "modeId": "Solo",
             "autoStartRoom": true,
             "requiresReady": false,
-            "selectionTimeoutEnabled": false,
-            "skipMapVote": true,
             "voteOnResults": false,
             "resultDecisionTimeoutEnabled": false,
             "returnTarget": "MainMenuHome",
@@ -1305,7 +1300,6 @@
             "showOpponentsOnMinimap": false,
             "defaultPlayerNameKey": "match.default_player_name",
             "pregameCountdownSeconds": 18,
-            "selectionStageSeconds": 60,
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
             "aiCount": 5,
@@ -1320,8 +1314,6 @@
             "modeId": "Practice",
             "autoStartRoom": true,
             "requiresReady": false,
-            "selectionTimeoutEnabled": false,
-            "skipMapVote": true,
             "voteOnResults": false,
             "resultDecisionTimeoutEnabled": false,
             "returnTarget": "MainMenuHome",
@@ -1334,7 +1326,6 @@
             "showOpponentsOnMinimap": false,
             "defaultPlayerNameKey": "match.default_player_name",
             "pregameCountdownSeconds": 18,
-            "selectionStageSeconds": 60,
             "postFirstFinishCountdownSeconds": 15.0,
             "resultDecisionSeconds": 60,
             "aiCount": 0,
@@ -1577,14 +1568,6 @@
             "maxPlayerNameLength": 32
         }
     ],
-    "selectionStages": [
-        {
-            "stageKey": "skill_loadout",
-            "displayNameKey": "selection.stage.skill_loadout",
-            "selectionMode": "Multi"
-        }
-    ],
-    "selectionOptions": [],
     "intros": [
         {
             "profileId": "default",
@@ -1720,66 +1703,6 @@
         {
             "key": "lobby.default_room_name",
             "zh": "My Room"
-        },
-        {
-            "key": "selection.stage.map",
-            "zh": "Map Selection"
-        },
-        {
-            "key": "selection.stage.skill_loadout",
-            "zh": "Skill Loadout Selection"
-        },
-        {
-            "key": "selection.stage.skin",
-            "zh": "Skin Selection"
-        },
-        {
-            "key": "selection.option.map_a.name",
-            "zh": "Map A"
-        },
-        {
-            "key": "selection.option.map_a.desc",
-            "zh": "Default placeholder map A."
-        },
-        {
-            "key": "selection.option.map_b.name",
-            "zh": "Map B"
-        },
-        {
-            "key": "selection.option.map_b.desc",
-            "zh": "Default placeholder map B."
-        },
-        {
-            "key": "selection.option.map_c.name",
-            "zh": "Map C"
-        },
-        {
-            "key": "selection.option.map_c.desc",
-            "zh": "Default placeholder map C."
-        },
-        {
-            "key": "selection.option.skin_a.name",
-            "zh": "Skin A"
-        },
-        {
-            "key": "selection.option.skin_a.desc",
-            "zh": "Default placeholder skin A."
-        },
-        {
-            "key": "selection.option.skin_b.name",
-            "zh": "Skin B"
-        },
-        {
-            "key": "selection.option.skin_b.desc",
-            "zh": "Default placeholder skin B."
-        },
-        {
-            "key": "selection.option.skin_c.name",
-            "zh": "Skin C"
-        },
-        {
-            "key": "selection.option.skin_c.desc",
-            "zh": "Default placeholder skin C."
         },
         {
             "key": "racer.ai_fallback_prefix",

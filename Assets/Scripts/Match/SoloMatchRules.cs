@@ -16,8 +16,6 @@ namespace BuddahGo.Match
         public bool IsSolo => true;
         public bool AutoStartRoom => R?.autoStartRoom ?? true;
         public bool RequiresReady => R?.requiresReady ?? false;
-        public bool SelectionTimeoutEnabled => R?.selectionTimeoutEnabled ?? false;
-        public bool SkipMapVote => R?.skipMapVote ?? true;
         public bool VoteOnResults => R?.voteOnResults ?? false;
         public bool ResultDecisionTimeoutEnabled => R?.resultDecisionTimeoutEnabled ?? false;
         public MatchReturnTarget ReturnTarget => R != null && R.returnTarget == "Room" ? MatchReturnTarget.Room : MatchReturnTarget.MainMenuHome;

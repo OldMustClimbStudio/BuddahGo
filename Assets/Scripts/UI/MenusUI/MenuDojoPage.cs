@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
 using BuddahGo.Match;
+using SteamMultiplayer.Network;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -10,11 +12,11 @@ namespace SteamMultiplayer.UI
     /// <summary>
     /// The online pages of the menu environment ("一笔" design, v0.2 mockups 06 and 07).
     /// Door page, at the closed hall door (道场), over deep edge gradients: "联机道场" at the top left, and a vertical menu
-    /// on the door's lower right panel — 创建房间 (presses the room's create button: the doors open and the view cuts to
-    /// the hall) and 加入房间, which swaps the menu for the join panel in the same place: a four-character room number
-    /// typed straight from the keyboard (letters and digits; Backspace deletes) and the list of open rooms (↑ / ↓ or the
-    /// pointer chooses one). Enter joins by the number when it is complete, else the chosen room: a notice shows it and
-    /// JoinRequested hands it to the network (the rooms listed are examples until the network lists them). Esc in the join panel goes back to the menu; in the menu it glides back to the main
+    /// on the door's lower right panel — 创建房间 (creates a public Steam lobby, then the doors open and the view cuts to
+    /// the hall; without Steam the hall opens offline and races solo) and 加入房间, which swaps the menu for the join panel
+    /// in the same place: a four-character room number typed straight from the keyboard (letters and digits; Backspace
+    /// deletes) and the public rooms Steam lists (↑ / ↓ or the pointer chooses one). Enter joins by the number when it is
+    /// complete, else the chosen room (MenuRoomSession). Esc in the join panel goes back to the menu; in the menu it glides back to the main
     /// menu. The selected menu item lifts with a vermilion dot, an ink stroke under it and its description below.
     /// Lobby page, inside the hall, over deep top and bottom gradients: an ensō and the room's name at the top left, and at the top right "房号 · 公开 · n / 六", a label over every seat
     /// (● 你 房主 or a guest's name; empty seats show nothing) that follows the seat on screen and fades as players come and go, the sand
@@ -23,9 +25,13 @@ namespace SteamMultiplayer.UI
     /// click; the current one has its ink on the baseline), a line over it says "玩家 + n 位 AI", and the empty seats show
     /// the AI's names, dimmed. Enter or a click on the tag starts the solo race (SessionControl.StartSoloHost, with those
     /// names): the tag reads 正在进入 with a turning ensō, and a failure is written over the tag. With guests the tag reads
-    /// 开始修行 with "玩家 + n 位道友" over it; a start shows 正在进入 for a moment and raises StartOnlineRequested. Esc leaves the room unless the sand table is being looked at; with guests in the room the confirm dialog asks first (解散 / 留下).
+    /// 开始修行 for the host (enabled once every guest is ready) and 准备 / 取消准备 for a guest. Seats show the room's
+    /// players (RoomStateManager) with their ready state. The sand table's label names the room's map; while the
+    /// table is looked at the host switches maps with ← →. Esc leaves the room unless the sand table is being looked at;
+    /// the host leaving with guests in the room is asked first (解散 / 留下). Back from a match while still in the room
+    /// (the Steam lobby is kept), the menu skips its opening and walks straight into the hall.
     /// Seat labels sit on a dark backing. The bell rope's pull hint is built in the same style (the builder hands it to the
-    /// rope). Hides the TEMP door panel, the TEMP rope hint, the TEMP leave button and player count (the TEMP 模拟加入 / 模拟退出 stay for testing).
+    /// rope). Hides the TEMP door panel, the TEMP rope hint and the TEMP leave button.
     /// Built by Assets/Editor/UI/MenuTitleHomeBuilder.cs.
     /// </summary>
     [DisallowMultipleComponent]
@@ -153,15 +159,13 @@ namespace SteamMultiplayer.UI
         }
 
         private readonly List<Seat> _seats = new List<Seat>();
-        private int _guestCount;
         private float _startHover;
 
-        /// <summary>
-        /// Hooks for the network: a join from the join panel (the room number, or the chosen room's name with an empty
-        /// number), and the host starting the race with guests. The page only shows the request; whoever listens does it.
-        /// </summary>
-        public static event System.Action<string, string> JoinRequested;
-        public static event System.Action StartOnlineRequested;
+        private readonly MenuRoomSession _session = new MenuRoomSession();
+        private bool _awaitingLobby;
+        private float _orphanT;
+        private bool _sandWasActive;
+        private List<LobbyListItemData> _listedShown = new List<LobbyListItemData>();
 
         /// <summary>One of the online pages is up (the menu hides its proto panel then).</summary>
         public bool IsShown => DoorShown || LobbyShown;
@@ -206,7 +210,7 @@ namespace SteamMultiplayer.UI
         private bool _soloRequested;
         private string _soloError = "";
         private float _soloT, _diffInkX, _diffInkW;
-        // With guests: the tag shows 正在进入 for a moment after a start (the race itself comes from StartOnlineRequested).
+        // With guests: the tag shows 正在进入 from the host's start until the room moves into the race.
         private float _onlineStartT;
         [System.NonSerialized] private float[] _itemsSoloX;
 
@@ -217,15 +221,32 @@ namespace SteamMultiplayer.UI
             return solo != null ? Mathf.Clamp(solo.aiCount, 0, RacerId.MaxAI) : RacerId.MaxAI;
         }
 
-        private int TakenCount()
+        private int TakenCount() => _session.PlayerCount;
+
+        /// <summary>Match/ModeRule (Solo) defaultDifficulty until the player has picked one.</summary>
+        private static SoloDifficulty DefaultDifficulty()
         {
-            int n = 0;
-            if (lobby != null) for (int i = 0; i < lobby.Capacity; i++) if (lobby.IsTaken(i)) n++;
-            return n;
+            ModeRuleRecord solo = DesignTableOverlay.ModeRule("Solo");
+            return solo != null && System.Enum.TryParse(solo.defaultDifficulty, true, out SoloDifficulty d) ? d : SoloDifficulty.Normal;
         }
 
-        /// <summary>The host is alone: the room races solo against AI.</summary>
-        private bool IsSolo => lobby != null && TakenCount() <= 1;
+        /// <summary>The UI/MenuOption row marked isDefault in a group (new rooms' max_players and visibility).</summary>
+        private static string MenuOptionDefault(string group, string fallback)
+        {
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null || db.menuOptions == null) return fallback;
+            foreach (MenuOptionRecord option in db.menuOptions)
+                if (option != null && option.optionGroup == group && option.isDefault && !string.IsNullOrWhiteSpace(option.value)) return option.value;
+            return fallback;
+        }
+
+        /// <summary>
+        /// Offline, or the host alone in an online room: the room races solo against AI. A guest never races solo, and
+        /// while a joined room's roster has not arrived yet (Connecting) nothing can be started.
+        /// </summary>
+        private bool IsSolo => !_session.InLobby || (_session.IsOnline && _session.IsHost && _session.PlayerCount <= 1);
+
+        private bool Connecting => _session.InLobby && !_session.IsOnline;
 
         /// <summary>The AI names in seat order: the empty seats after the host's, as many as the race has AI.</summary>
         private List<string> SoloNames()
@@ -243,16 +264,11 @@ namespace SteamMultiplayer.UI
         private void StartSolo(bool practice = false)
         {
             if (_soloRequested) return;
-            ISessionControl session = SessionControl.Current;
-            if (session == null) { _soloError = "初始化尚未完成，请稍后重试"; return; }
             PlayerPrefs.SetInt(DifficultyKey, (int)_difficulty);
             PlayerPrefs.Save();
             _soloError = "";
-            if (!session.StartSoloHost(practice ? new SoloMatchSettings(0, _difficulty) : new SoloMatchSettings(SoloAICount(), _difficulty, SoloNames())))
-            {
-                _soloError = string.IsNullOrEmpty(session.LastError) ? "启动失败，请重试" : session.LastError;
-                return;
-            }
+            var settings = practice ? new SoloMatchSettings(0, _difficulty) : new SoloMatchSettings(SoloAICount(), _difficulty, SoloNames());
+            if (!_session.StartSolo(settings, out string error)) { _soloError = error; return; }
             _soloRequested = true;
         }
 
@@ -294,10 +310,14 @@ namespace SteamMultiplayer.UI
                 difficultyInk.anchoredPosition = new Vector2(_diffInkX, difficultyInk.anchoredPosition.y);
                 difficultyInk.sizeDelta = new Vector2(_diffInkW, difficultyInk.sizeDelta.y);
             }
-            bool starting = solo ? _soloRequested : _onlineStartT > 0f;
-            if (startLabel != null) startLabel.text = starting ? "正在进入" : solo ? "单人修行" : "开始修行";
+            bool starting = solo ? _soloRequested : _onlineStartT > 0f || _session.IsStartingMatch;
+            bool guestReady = _session.TryGetLocalPlayer(out RoomPlayerState me) && me.IsReady;
+            if (startLabel != null)
+                startLabel.text = Connecting ? "正在连接" : starting ? "正在进入" : solo ? "单人修行" : _session.IsHost ? "开始修行" : guestReady ? "取消准备" : "准备";
             if (startNote != null)
-                startNote.text = !solo ? (starting ? "" : "玩家 + " + Numeral(TakenCount() - 1) + " 位道友")
+                startNote.text = Connecting ? "" : !solo ? (starting ? ""
+                                          : !_session.IsHost ? (guestReady ? "等房主开局" : "准备好了就按 Enter")
+                                          : "玩家 + " + Numeral(TakenCount() - 1) + " 位道友" + (_session.CanHostStart ? "" : "　<color=#F4EFE6AA>等道友准备</color>"))
                                : !string.IsNullOrEmpty(_soloError) ? "<color=#B8352A>" + _soloError + "</color>"
                                : _soloRequested ? ""
                                : _practiceHover ? "不带 AI　场上立着木桩"
@@ -315,7 +335,7 @@ namespace SteamMultiplayer.UI
 
         private void Awake()
         {
-            _difficulty = (SoloDifficulty)Mathf.Clamp(PlayerPrefs.GetInt(DifficultyKey, (int)SoloDifficulty.Normal), 0, 2);
+            _difficulty = (SoloDifficulty)Mathf.Clamp(PlayerPrefs.GetInt(DifficultyKey, (int)DefaultDifficulty()), 0, 2);
             _canvasRect = transform as RectTransform;
             doorPage.alpha = 0f;
             lobbyPage.alpha = 0f;
@@ -325,11 +345,7 @@ namespace SteamMultiplayer.UI
             if (notice != null) notice.alpha = 0f;
             if (doorDescription != null) doorDescription.text = doorItems.Length > 0 ? doorItems[0].description : "";
             if (joinPanel != null) joinPanel.alpha = 0f;
-            foreach (JoinRoom r in rooms)
-            {
-                if (r.nameText != null) r.nameText.text = r.name;
-                if (r.infoText != null) r.infoText.text = Numeral(r.players) + " / " + Numeral(r.capacity);
-            }
+            ShowListedRooms();
         }
 
         private void Start()
@@ -347,6 +363,17 @@ namespace SteamMultiplayer.UI
                 for (int i = 0; i < lobby.Capacity; i++) _seats.Add(MakeSeat(i));
             if (lobby != null) lobby.Changed += OnLobbyChanged;
             if (roomView != null) roomView.Entered += OnEntered;
+            _session.Entered += OnSessionEntered;
+            _session.Exited += OnSessionExited;
+            _session.Failed += OnSessionFailed;
+            _session.ListChanged += ShowListedRooms;
+            _session.Tick();
+            // A solo start that failed after the menu unloaded comes back here with its error.
+            ISessionControl control = SessionControl.Current;
+            if (control != null && control.TakeFailedSoloSettings() != null)
+                _soloError = string.IsNullOrEmpty(control.LastError) ? "启动失败，请重试" : control.LastError;
+            // Back from a match with the room kept: straight into the hall.
+            if (_session.InLobby) StartCoroutine(ReturnToHall());
         }
 
         private void OnDestroy()
@@ -354,11 +381,136 @@ namespace SteamMultiplayer.UI
             SetTyping(false);
             if (lobby != null) lobby.Changed -= OnLobbyChanged;
             if (roomView != null) roomView.Entered -= OnEntered;
+            _session.Entered -= OnSessionEntered;
+            _session.Exited -= OnSessionExited;
+            _session.Failed -= OnSessionFailed;
+            _session.ListChanged -= ShowListedRooms;
+            _session.Dispose();
+        }
+
+        // ---------- network ----------
+
+        private IEnumerator ReturnToHall()
+        {
+            MenuTitleHome title = FindFirstObjectByType<MenuTitleHome>();
+            if (title != null)
+            {
+                title.SkipIntro();
+                while (!title.IsHome) yield return null;
+            }
+            if (director != null && !director.InRoomView)
+            {
+                director.PlayToRoom();
+                while (director.IsMoving || !director.InRoomView)
+                {
+                    if (!_session.InLobby) yield break;
+                    yield return null;
+                }
+            }
+            if (roomView != null && !roomView.IsInside && _session.InLobby) roomView.Enter();
+        }
+
+        private void CreateRoom()
+        {
+            if (_awaitingLobby) return;
+            if (!_session.CanGoOnline)
+            {
+                // No Steam: the hall still opens and races solo.
+                Notice(_session.OfflineReason);
+                if (roomView != null) roomView.Enter();
+                return;
+            }
+            _awaitingLobby = true;
+            Notice("正在开门");
+            int seats = lobby != null ? lobby.Capacity : 6;
+            int capacity = int.TryParse(MenuOptionDefault("max_players", seats.ToString()), out int max) ? Mathf.Clamp(max, 2, seats) : seats;
+            LobbyVisibility visibility = System.Enum.TryParse(MenuOptionDefault("visibility", "Public"), true, out LobbyVisibility v) ? v : LobbyVisibility.Public;
+            _session.CreateRoom(roomName, capacity, visibility);
+        }
+
+        private void OnSessionEntered()
+        {
+            _awaitingLobby = false;
+            if (_joinOpen) CloseJoin();
+            if (roomView != null && !roomView.IsInside) roomView.Enter();
+        }
+
+        private void OnSessionExited(string message)
+        {
+            _awaitingLobby = false;
+            _onlineStartT = 0f;
+            if (roomView != null && roomView.IsInside) roomView.Leave();
+            if (!string.IsNullOrEmpty(message)) Notice(message);
+        }
+
+        private void OnSessionFailed(string message)
+        {
+            _awaitingLobby = false;
+            Notice(message);
+        }
+
+        /// <summary>The seats follow the room's head count; offline the host sits alone.</summary>
+        private void SyncSeats()
+        {
+            if (lobby == null || lobby.HostSpot < 0) return;
+            int want = Mathf.Min(_session.PlayerCount, lobby.Capacity);
+            while (lobby.PlayerCount < want && lobby.Join() >= 0) { }
+            while (lobby.PlayerCount > want && lobby.Leave() >= 0) { }
+        }
+
+        /// <summary>A lobby joined but its connection failed: leave it and say why.</summary>
+        private void WatchConnection(float dt)
+        {
+            ISessionControl control = SessionControl.Current;
+            bool orphan = _session.InLobby && !_session.IsOnline && roomView != null && roomView.IsInside
+                          && control != null && !control.IsStarting;
+            _orphanT = orphan ? _orphanT + dt : 0f;
+            if (_orphanT < 1.5f) return;
+            _orphanT = 0f;
+            string error = control.LastError;
+            _session.Leave();
+            Notice(string.IsNullOrEmpty(error) ? "连接失败，请重试" : error);
+        }
+
+        private static string MapName(string mapId)
+        {
+            SelectionCatalog catalog = SelectionCatalog.Current;
+            if (catalog == null) return "";
+            return catalog.TryGetMap(catalog.NormalizeMapId(mapId), out SelectionCatalog.Map map) ? map.displayName : "";
+        }
+
+        /// <summary>Looking at the sand table: the host switches the room's map with ← → (A / D).</summary>
+        private void HandleSandTable()
+        {
+            bool active = sandTable != null && sandTable.IsActive;
+            bool entered = active && !_sandWasActive;
+            _sandWasActive = active;
+            if (!active) return;
+            SelectionCatalog catalog = SelectionCatalog.Current;
+            int count = catalog != null ? catalog.Maps.Count : 0;
+            if (entered)
+                Notice("地图　" + MapName(_session.MapId) + (_session.IsHost && count > 1 ? "　← → 换图" : ""));
+            Keyboard kb = Keyboard.current;
+            if (kb == null) return;
+            int step = (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame ? -1 : 0)
+                     + (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame ? 1 : 0);
+            if (step == 0) return;
+            if (!_session.IsHost) { Notice("地图由房主选择"); return; }
+            if (count <= 1) { Notice("眼下只有「" + MapName(_session.MapId) + "」一张地图"); return; }
+            int current = 0;
+            for (int i = 0; i < count; i++) if (catalog.Maps[i].id == catalog.NormalizeMapId(_session.MapId)) current = i;
+            SelectionCatalog.Map next = catalog.Maps[(current + step + count) % count];
+            LocalMatchSelection.SetMap(next.id);
+            Notice("地图　" + next.displayName);
         }
 
         private void Update()
         {
             float dt = Time.unscaledDeltaTime;
+            _session.Tick();
+            SyncSeats();
+            WatchConnection(dt);
+            HandleSandTable();
             // The lobby gives way to the confirm dialog (one focus, mockup 10).
             bool door = DoorShown, inside = LobbyShown && !MenuConfirmDialog.IsOpen;
             doorPage.alpha = Mathf.MoveTowards(doorPage.alpha, door ? 1f : 0f, dt / 0.3f);
@@ -461,8 +613,8 @@ namespace SteamMultiplayer.UI
             DoorItem item = doorItems[_selected];
             if (item.comingSoon) return;
             if (item.opensJoin) OpenJoin();
-            else if (item.target != null && item.target.IsActive() && item.target.interactable) item.target.onClick.Invoke();
-            else if (item.target == null) Notice(item.text.text + "　尚未接入联机");
+            else if (item.target != null) CreateRoom();
+            else Notice(item.text.text + "　尚未开放");
         }
 
         // ---------- join panel ----------
@@ -474,7 +626,31 @@ namespace SteamMultiplayer.UI
             _code = "";
             _roomSelected = -1;
             SetTyping(true);
+            if (_session.CanGoOnline) _session.RefreshList();
+            else Notice(_session.OfflineReason);
         }
+
+        /// <summary>The rows show the rooms Steam listed (as many as there are rows); the rest are hidden.</summary>
+        private void ShowListedRooms()
+        {
+            _listedShown = new List<LobbyListItemData>(_session.Listed);
+            for (int i = 0; i < rooms.Length; i++)
+            {
+                JoinRoom r = rooms[i];
+                bool shown = i < _listedShown.Count;
+                if (r.row != null) r.row.gameObject.SetActive(shown);
+                if (!shown) continue;
+                LobbyListItemData room = _listedShown[i];
+                r.name = string.IsNullOrWhiteSpace(room.LobbyName) ? "无名禅院" : room.LobbyName;
+                r.players = room.CurrentPlayers;
+                r.capacity = room.MaxPlayers;
+                if (r.nameText != null) r.nameText.text = r.name;
+                if (r.infoText != null) r.infoText.text = Numeral(r.players) + " / " + Numeral(r.capacity);
+            }
+            if (_roomSelected >= VisibleRooms) _roomSelected = -1;
+        }
+
+        private int VisibleRooms => Mathf.Min(rooms.Length, _listedShown.Count);
 
         private void CloseJoin()
         {
@@ -531,7 +707,7 @@ namespace SteamMultiplayer.UI
                 Vector2 at = mouse.position.ReadValue();
                 bool moved = mouse.delta.ReadValue().sqrMagnitude > 0f;
                 bool click = mouse.leftButton.wasPressedThisFrame;
-                for (int i = 0; i < rooms.Length; i++)
+                for (int i = 0; i < VisibleRooms; i++)
                 {
                     if (!MenuHit.Contains(rooms[i].row, at, 4f)) continue;
                     if (moved) _roomSelected = i;
@@ -540,11 +716,22 @@ namespace SteamMultiplayer.UI
                 if (click && MenuHit.Contains(codeField, at, 8f)) _roomSelected = -1;
                 if (click && MenuHit.Contains(doorBack != null ? doorBack.rectTransform : null, at, 10f)) back = true;
             }
-            if (move != 0) _roomSelected = Mathf.Clamp(_roomSelected + move, -1, rooms.Length - 1);
+            if (move != 0) _roomSelected = Mathf.Clamp(_roomSelected + move, -1, VisibleRooms - 1);
             if (back) { CloseJoin(); return; }
-            if (!submit) return;
-            if (_roomSelected < 0 && _code.Length == codeCells.Length) { Notice("正在叩门　房号 " + _code); JoinRequested?.Invoke(_code, ""); }
-            else if (_roomSelected >= 0) { Notice("正在叩门　「" + rooms[_roomSelected].name + "」"); JoinRequested?.Invoke("", rooms[_roomSelected].name); }
+            if (!submit || _awaitingLobby) return;
+            if (!_session.CanGoOnline) { Notice(_session.OfflineReason); return; }
+            if (_roomSelected < 0 && _code.Length == codeCells.Length)
+            {
+                Notice("正在叩门　房号 " + _code);
+                _awaitingLobby = true;
+                _session.JoinByCode(_code);
+            }
+            else if (_roomSelected >= 0 && _roomSelected < _listedShown.Count)
+            {
+                Notice("正在叩门　「" + rooms[_roomSelected].name + "」");
+                _awaitingLobby = true;
+                _session.JoinListed(_listedShown[_roomSelected]);
+            }
             else Notice("输入四位房号，或从列表里挑一个房间");
         }
 
@@ -600,10 +787,6 @@ namespace SteamMultiplayer.UI
 
         private void OnEntered()
         {
-            const string letters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-            var code = new char[4];
-            for (int i = 0; i < code.Length; i++) code[i] = letters[Random.Range(0, letters.Length)];
-            _roomCode = new string(code);
             _openedFrame = Time.frameCount;
             OnLobbyChanged();
         }
@@ -611,10 +794,46 @@ namespace SteamMultiplayer.UI
         private void OnLobbyChanged()
         {
             if (lobby == null) return;
-            int count = 0;
-            for (int i = 0; i < lobby.Capacity; i++) if (lobby.IsTaken(i)) count++;
-            if (roomTitle != null) roomTitle.text = roomName;
-            if (roomInfo != null) roomInfo.text = "房号 " + _roomCode + "　公开　" + Numeral(count) + " / " + Numeral(lobby.Capacity);
+            bool online = _session.InLobby;
+            _roomCode = online ? _session.RoomCode : "";
+            int capacity = online && _session.Capacity > 0 ? _session.Capacity : lobby.Capacity;
+            string visibility = !online ? "单机"
+                              : _session.Visibility == LobbyVisibility.FriendsOnly ? "好友"
+                              : _session.Visibility == LobbyVisibility.Private ? "私密" : "公开";
+            if (roomTitle != null) roomTitle.text = online && !string.IsNullOrWhiteSpace(_session.RoomName) ? _session.RoomName : roomName;
+            if (roomInfo != null)
+                roomInfo.text = (online ? "房号 " + _roomCode + "　" : "") + visibility + "　" + Numeral(_session.PlayerCount) + " / " + Numeral(capacity);
+        }
+
+        /// <summary>
+        /// Who sits on seat i: the host on the host's seat, the other players on the other taken seats in seat order.
+        /// Offline the host's seat is 你 房主.
+        /// </summary>
+        private string SeatLabel(int i)
+        {
+            int host = lobby.HostSpot;
+            if (!_session.IsOnline) return i == host ? HostLabel : null;
+            IReadOnlyList<RoomPlayerState> players = _session.Players;
+            RoomPlayerState? player = null;
+            if (i == host)
+            {
+                foreach (RoomPlayerState p in players) if (p.IsHost) { player = p; break; }
+            }
+            else
+            {
+                int order = 0;
+                for (int k = 0; k < i; k++) if (k != host && lobby.IsTaken(k)) order++;
+                foreach (RoomPlayerState p in players)
+                {
+                    if (p.IsHost) continue;
+                    if (order-- == 0) { player = p; break; }
+                }
+            }
+            if (player == null) return null;
+            RoomPlayerState who = player.Value;
+            string name = _session.IsLocal(who) ? "你" : string.IsNullOrWhiteSpace(who.PlayerName) ? "道友" : who.PlayerName;
+            string state = who.IsHost ? "房主" : who.IsReady ? "已准备" : "未准备";
+            return name + "　<size=80%><color=#F4EFE6AA>" + state + "</color></size>";
         }
 
         private const string HostLabel = "你　<size=80%><color=#F4EFE6AA>房主</color></size>";
@@ -675,6 +894,12 @@ namespace SteamMultiplayer.UI
             if (seatLabels != null && seatLabels.GetComponent<CanvasGroup>() is CanvasGroup names) names.alpha = _namesT;
             if (sandLabel != null && sandLabel.GetComponent<TextMeshProUGUI>() is TextMeshProUGUI sand) sand.alpha = 0.8f * _namesT;
             UpdateSolo(dt);
+            OnLobbyChanged();
+            if (sandLabel != null && sandLabel.GetComponent<TextMeshProUGUI>() is TextMeshProUGUI sandText)
+            {
+                string map = MapName(_session.MapId);
+                sandText.text = string.IsNullOrEmpty(map) ? "沙盘" : "沙盘　<size=80%>" + map + "</size>";
+            }
             // Solo: the empty seats show this race's AI, dimmer than the players and without the dot.
             bool solo = IsSolo;
             List<string> aiNames = solo ? SoloNames() : null;
@@ -684,13 +909,8 @@ namespace SteamMultiplayer.UI
                 Seat seat = _seats[i];
                 Transform spot = lobby.SpotAt(i);
                 bool taken = lobby.IsTaken(i);
-                // Names follow who sits where: the host is 你; a guest gets the next name when they take a seat (named
-                // here, once the host is known, since the host's seat is taken before the lobby marks it as the host's).
-                int host = lobby.HostSpot;
-                if (host < 0) _guestCount = 0;
-                if (!taken) seat.name = null;
-                else if (i == host) seat.name = HostLabel;
-                else if (seat.name == null && host >= 0) seat.name = guestNames.Length > 0 ? guestNames[_guestCount++ % guestNames.Length] : "道友";
+                // Names follow who sits where (the room's roster; offline only the host).
+                seat.name = taken ? SeatLabel(i) : null;
                 // Taken seats show their player; empty seats show nothing, or an AI when solo. A change fades through.
                 string label = taken ? seat.name ?? ""
                              : aiNames != null && ai < aiNames.Count ? "<alpha=#A6>" + aiNames[ai++] : "";
@@ -737,7 +957,7 @@ namespace SteamMultiplayer.UI
             {
                 bool hover = MenuHit.Contains(item.rectTransform, at, 12f);
                 item.alpha = Mathf.MoveTowards(item.alpha, hover ? 1f : 0.8f, dt / 0.12f);
-                if (click && hover) Notice(item.text + "　尚未接入房间流程");
+                if (click && hover) Notice("进房前在主页的「" + item.text + "」里选好");
             }
             bool solo = IsSolo;
             bool start = kb != null && (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame);
@@ -768,22 +988,34 @@ namespace SteamMultiplayer.UI
                 _practiceHover = MenuHit.Contains(practiceItem.rectTransform, at, 10f);
                 if ((click && _practiceHover) || (kb != null && kb.pKey.wasPressedThisFrame)) { StartSolo(true); start = false; }
             }
+            if (start && Connecting) start = false;
             if (start && solo) StartSolo();
-            else if (start && StartOnlineRequested == null) Notice("联机开局尚未接入");
-            else if (start && _onlineStartT <= 0f)
+            else if (start && !_session.IsHost) _session.ToggleReady();
+            else if (start && _onlineStartT <= 0f && !_session.IsStartingMatch)
             {
-                _onlineStartT = 1.5f;
-                StartOnlineRequested?.Invoke();
+                if (!_session.CanHostStart) Notice("等道友都准备好再开局");
+                else
+                {
+                    _onlineStartT = 1.5f;
+                    _session.StartMatch();
+                }
             }
-            if (_soloRequested || _onlineStartT > 0f) leave = false; // the race is starting: stay
+            if (_soloRequested || _onlineStartT > 0f || _session.IsStartingMatch) leave = false; // the race is starting: stay
             if (leave && roomView != null)
             {
-                // The host leaving with guests in the room breaks it up: ask first. Alone, the room just closes.
-                if (!solo && MenuConfirmDialog.Instance != null)
+                // The host leaving with guests in the room breaks it up: ask first. Alone or a guest, just leave.
+                if (!solo && _session.IsHost && MenuConfirmDialog.Instance != null)
                     MenuConfirmDialog.Instance.Show("离开房间", "你是房主，离开后房间会解散，道友们也会回到殿门。", "解散",
-                        () => { if (roomView != null) roomView.Leave(); }, "留下");
-                else roomView.Leave();
+                        LeaveRoom, "留下");
+                else LeaveRoom();
             }
+        }
+
+        // Online the lobby is left and the hall closes when Steam confirms (OnSessionExited); offline it just closes.
+        private void LeaveRoom()
+        {
+            if (_session.InLobby) _session.Leave();
+            else if (roomView != null) roomView.Leave();
         }
     }
 }

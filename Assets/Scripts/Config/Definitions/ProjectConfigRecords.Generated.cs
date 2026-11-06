@@ -567,10 +567,6 @@ public class ModeRuleRecord
     /// <summary>bool</summary>
     [Tooltip("RoomStateManager 每局开始时读取：是否所有客户端准备后主机才能开始")] public bool requiresReady = false;
     /// <summary>bool</summary>
-    public bool selectionTimeoutEnabled = false;
-    /// <summary>bool</summary>
-    public bool skipMapVote = false;
-    /// <summary>bool</summary>
     public bool voteOnResults = false;
     /// <summary>bool</summary>
     public bool resultDecisionTimeoutEnabled = false;
@@ -594,8 +590,6 @@ public class ModeRuleRecord
     public string defaultPlayerNameKey = string.Empty;
     /// <summary>int</summary>
     [Tooltip("RoomStateManager prefab")] public int pregameCountdownSeconds = 0;
-    /// <summary>int</summary>
-    [Tooltip("PropertiesSelectionManager 场景")] public int selectionStageSeconds = 0;
     /// <summary>float</summary>
     [Tooltip("RaceFinishManager 场景")] public float postFirstFinishCountdownSeconds = 0f;
     /// <summary>int</summary>
@@ -748,36 +742,6 @@ public class LobbyRecord
     [Tooltip("SessionLauncher.cs:81")] public float hostStartTimeoutSeconds = 0f;
     /// <summary>int</summary>
     [Tooltip("RoomStateManager 玩家名截断长度")] public int maxPlayerNameLength = 0;
-}
-
-/// <summary>Match.xlsx / SelectionStage</summary>
-[Serializable]
-public class SelectionStageRecord
-{
-    /// <summary>string#key (key)</summary>
-    [Tooltip("map / skill_loadout / skin；map 与 skin 行以 ## 屏蔽：占位阶段，代码兜底，有真实地图/皮肤后取消屏蔽")] public string stageKey = string.Empty;
-    /// <summary>string#ref=UI/Text.key</summary>
-    public string displayNameKey = string.Empty;
-    /// <summary>enum:PropertySelectionMode</summary>
-    [Tooltip("Vote / HostOnly / Single / Multi")] public string selectionMode = string.Empty;
-}
-
-/// <summary>Match.xlsx / SelectionOption</summary>
-[Serializable]
-public class SelectionOptionRecord
-{
-    /// <summary>string#key#ref=SelectionStage.stageKey (key)</summary>
-    public string stageKey = string.Empty;
-    /// <summary>string#key (key)</summary>
-    public string optionId = string.Empty;
-    /// <summary>string#ref=UI/Text.key</summary>
-    public string displayNameKey = string.Empty;
-    /// <summary>string#ref=UI/Text.key</summary>
-    public string descriptionKey = string.Empty;
-    /// <summary>string</summary>
-    [Tooltip("SelectablePropertyOption.PreviewIconKey")] public string iconKey = string.Empty;
-    /// <summary>bool</summary>
-    [Tooltip("SelectablePropertyOption.IsUnlocked")] public bool unlocked = false;
 }
 
 /// <summary>Match.xlsx / Intro</summary>

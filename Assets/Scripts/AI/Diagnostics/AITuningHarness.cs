@@ -77,8 +77,8 @@ namespace BuddahGo.AI
         {
             if (!Application.isPlaying) throw new InvalidOperationException("A1 requires Play mode.");
             if (FindFirstObjectByType<AITuningHarness>() != null) throw new InvalidOperationException("A1 already running.");
-            if (SceneManager.GetActiveScene().name != "MainMenu" || MatchServices.Clock != null)
-                throw new InvalidOperationException("Start A1 from an idle MainMenu.");
+            if (SceneManager.GetActiveScene().name != SceneNames.MainMenu || MatchServices.Clock != null)
+                throw new InvalidOperationException("Start A1 from an idle menu.");
             if (!Path.IsPathRooted(directory)) throw new ArgumentException("Use an absolute private evidence directory.");
             if (plannedLaps != 1 && plannedLaps != 3) throw new ArgumentOutOfRangeException(nameof(plannedLaps));
             if (Directory.Exists(directory) && Directory.EnumerateFileSystemEntries(directory).Any())
@@ -111,7 +111,7 @@ namespace BuddahGo.AI
                 if (Time.realtimeSinceStartupAsDouble - _createdAt > (_plannedLaps == 3 ? 900 : 420)) { Complete(false, "run-timeout"); return; }
                 // The product requires a legal loadout; it is recorded, and skill input is disabled before GO.
                 bool idle = _flow.Stage == 0;
-                bool selected = _flow.Advance(_aiCount, Difficulty, ids => Event("loadout-not-cast", string.Join(",", ids)));
+                bool selected = _flow.Advance(new SoloMatchSettings(_aiCount, Difficulty), null, ids => Event("loadout-not-cast", string.Join(",", ids)));
                 if (idle && _flow.Stage > 0) Status = "selection";
                 if (selected && _driver == null) Attach();
                 if (_driver == null) return;

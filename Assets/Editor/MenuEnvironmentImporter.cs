@@ -1657,7 +1657,7 @@ public static class MenuEnvironmentImporter
         panelRect.SetParent(canvas.transform, false);
         panelRect.anchorMin = Vector2.zero; panelRect.anchorMax = Vector2.one;
         panelRect.offsetMin = panelRect.offsetMax = Vector2.zero;
-        // Placeholders: the lobby flow (CreateRoomUI / RoomJoinUI) is not hooked up yet.
+        // Placeholders; the Dojo page (MenuDojoPage) drives the real room flow and hides these.
         var create = CreateTempButton(panelRect, "TEMP_CreateRoomButton", "创建房间", new Vector2(-64f, 272f));
         CreateTempButton(panelRect, "TEMP_JoinRoomButton", "加入房间", new Vector2(-64f, 168f));
         var back = CreateTempButton(panelRect, "TEMP_RoomBackButton", "返回", new Vector2(-64f, 64f));
@@ -1729,20 +1729,9 @@ public static class MenuEnvironmentImporter
         for (int i = 1; i <= LobbySlotCount; i++)
             if (GameObject.Find(LobbySlotPrefix + i) is GameObject slot) slots.Add(slot.transform);
 
-        var rect = insidePanel.GetComponent<RectTransform>();
-        var join = CreateTempButton(rect, "TEMP_LobbyJoinButton", "模拟加入", new Vector2(-64f, 272f));
-        var leave = CreateTempButton(rect, "TEMP_LobbyLeaveButton", "模拟退出", new Vector2(-64f, 168f));
-        var countArea = new GameObject("TEMP_LobbyCount", typeof(RectTransform)).GetComponent<RectTransform>();
-        countArea.SetParent(rect, false);
-        countArea.anchorMin = countArea.anchorMax = countArea.pivot = new Vector2(1f, 0f);
-        countArea.anchoredPosition = new Vector2(-64f, 364f);
-        countArea.sizeDelta = new Vector2(260f, 48f);
-        CreateLabel(countArea, "玩家 0/6", 30f, 0f);
-        var count = countArea.GetComponentInChildren<UnityEngine.UI.Text>();
-
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MenuBuddhaSkinPath);
         var lobby = cam.gameObject.AddComponent<SteamMultiplayer.UI.MenuLobby>();
-        lobby.Configure(slots.ToArray(), prefab, join, leave, count, cam.GetComponent<SteamMultiplayer.UI.MenuRoomView>());
+        lobby.Configure(slots.ToArray(), prefab, cam.GetComponent<SteamMultiplayer.UI.MenuRoomView>());
         EditorUtility.SetDirty(lobby);
         foreach (Transform slot in slots) CreateLobbyPreview(slot, prefab);
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using BuddahGo.Match;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -137,9 +138,13 @@ namespace SteamMultiplayer.UI
 
         private void Start()
         {
-            for (int i = 0; i < slots.Length && i < initialLoadout.Length; i++)
+            // The saved pick (LocalMatchSelection) wins over the scene's starting loadout; every change is saved
+            // and reaches the room from there.
+            string[] start = LocalMatchSelection.HasSkills ? LocalMatchSelection.Skills : initialLoadout;
+            LoadoutChanged += LocalMatchSelection.SetSkills;
+            for (int i = 0; i < slots.Length && i < start.Length; i++)
             {
-                State s = _states.Find(x => x.ema.skillId == initialLoadout[i]);
+                State s = _states.Find(x => x.ema.skillId == start[i]);
                 if (s == null || s.slot >= 0) continue;
                 Assign(s, i);
                 Place(s, slots[i].position, slots[i].rotation);

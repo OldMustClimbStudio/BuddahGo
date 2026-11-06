@@ -155,18 +155,11 @@ namespace BuddahGo.AI
             var button = (Button)typeof(SoloResultsView).GetField("_rematch", Private).GetValue(view);
             Check("real rematch button available", button != null && button.interactable);
             button.onClick.Invoke();
-            yield return WaitFor(() => PropertiesSelectionManager.Instance != null && PropertiesSelectionManager.Instance.IsClientInitialized
-                && PropertiesSelectionManager.Instance.CurrentStagePropertyKey == PropertiesSelectionManager.SkillLoadoutStageKey, 20f);
-            var selection = PropertiesSelectionManager.Instance;
+            // A rematch passes through the menu scene and loads the race again with the same menu pick.
+            yield return WaitFor(() => RacerDirectory.Current != null && RacerDirectory.Current.All.Count == 6 && oldRacers.All(r => r == null), 40f);
             File.WriteAllLines(Path.Combine(_directory, "spawned-after-rematch.txt"), FishNet.InstanceFinder.ServerManager.Objects.Spawned
                 .Select(pair => pair.Key + ":" + (pair.Value == null ? "DESTROYED" : pair.Value.name)));
             Check("rematch leaves no destroyed server objects", FishNet.InstanceFinder.ServerManager.Objects.Spawned.Values.All(value => value != null));
-            if (selection == null) throw new InvalidOperationException("Rematch did not reach property selection.");
-            selection.SubmitSkillLoadoutSelection(new[] { "acceleration", "slowtrap", "blackcurtain" });
-            yield return WaitFor(() => selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkinStageKey);
-            var options = selection.GetOptionsForProperty(PropertiesSelectionManager.SkinStageKey);
-            selection.SubmitPlayerSelection(PropertiesSelectionManager.SkinStageKey, options[0].OptionId);
-            yield return WaitFor(() => RacerDirectory.Current != null && RacerDirectory.Current.All.Count == 6 && oldRacers.All(r => r == null), 25f);
             if (RacerDirectory.Current == null || RacerDirectory.Current.All.Count != 6)
                 throw new InvalidOperationException("Rematch failed to spawn six new racers; inspect scene-load and despawn evidence.");
             var fresh = RacerDirectory.Current.All.OrderBy(r => r.Id.Value).ToArray();
@@ -204,7 +197,7 @@ namespace BuddahGo.AI
             Check("Escape opens real quit dialog", quit != null && quit.IsBlocked);
             var confirm = (Button)typeof(QuitConfirmDialog).GetField("_confirm", Private).GetValue(quit);
             confirm.onClick.Invoke();
-            yield return WaitFor(() => SceneManager.GetActiveScene().name == "MainMenu" && !FishNet.InstanceFinder.IsServerStarted, 20f);
+            yield return WaitFor(() => SceneManager.GetActiveScene().name == SceneNames.MainMenu && !FishNet.InstanceFinder.IsServerStarted, 20f);
             Check("Home releases session and racers", !FishNet.InstanceFinder.IsServerStarted && !FishNet.InstanceFinder.IsClientStarted
                 && MatchServices.Clock == null && (RacerDirectory.Current == null || RacerDirectory.Current.All.Count == 0));
             Check("active effects leave no runtime objects", FindObjectsByType<SkillExecutor>(FindObjectsSortMode.None).Length == 0

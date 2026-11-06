@@ -134,16 +134,6 @@
   "list": "lobbies",
   "tags": "match,info"
  },
- "Match/SelectionStage": {
-  "record": "SelectionStageRecord",
-  "list": "selectionStages",
-  "tags": "match,info"
- },
- "Match/SelectionOption": {
-  "record": "SelectionOptionRecord",
-  "list": "selectionOptions",
-  "tags": "match,info"
- },
  "Match/Intro": {
   "record": "IntroRecord",
   "list": "intros",

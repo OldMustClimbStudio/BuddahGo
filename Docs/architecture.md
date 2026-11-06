@@ -3,7 +3,7 @@
 | 系统 | 主要代码位置（相对 `Assets/Scripts/`） | 状态负责人 |
 |---|---|---|
 | 连接与房间 | `Network/Core/`、`Network/Room/` | `GameNetworkManager`、`RoomStateManager` |
-| 大厅与选择 | `Network/Lobby/`、`Network/Session/PropertySelection/` | `SteamLobbyManager`、`PropertiesSelectionManager` |
+| 大厅与选择 | `Network/Lobby/`、`Network/Session/MatchSelection/`、`Match/Selection/`、`UI/MenusUI/`（新菜单） | `SteamLobbyManager`（房间、房号）；每人的技能 / 皮肤和房间地图在 `RoomStateManager`（`RoomPlayerState`、`MapId`）；本机的选择存在 `LocalMatchSelection`，皮肤 / 地图目录是 `SelectionCatalog` |
 | 预测运动 | `New_Buddah/` | `BuddahPredictedMotor`、reconcile 数据与相关 bridge |
 | 技能 | `Buddah/ComboSkill/`、`GameData/ObsessionFigure.cs` | `SkillExecutor` 负责施法入口、施法门与统一反噬；`ObsessionFigure` 负责执念与反噬惩罚 |
 | 配置 | `Config/` | `ProjectConfigRuntime` 和 repositories |
@@ -84,19 +84,20 @@
 ## 一场比赛的链路
 
 ```text
-SteamLobbyManager 创建/加入大厅
+菜单（MenuEnvironmentSetting）：技能页 / 皮肤页 / 沙盘选好 → LocalMatchSelection（PlayerPrefs）
+  → 道场：SteamLobbyManager 创建/加入大厅（四位房号）
   → GameNetworkManager 启动连接并绑定网络管理器
-  → RoomStateManager 进入选择场景
-  → PropertiesSelectionManager 校验属性、配装与 ready 状态
-  → RoomStateManager 加载赛道，IntroSequenceManager 协调开场
+  → RoomStateManager 收各人的选择（SubmitSelectionServerRpc，MatchLoadoutResolver 校验）与房主的地图，客人准备
+  → 房主开局：RoomStateManager 补全配装写入 ResolvedPropertySelectionCache，淡出后直接加载地图场景
+  → MatchSpawnManager 按 cache 装配技能，RacerSkinApplier 按名单换皮肤，IntroSequenceManager 协调开场
   → 预测运动与 SkillExecutor 驱动比赛
   → RaceCompletionTracker / RaceFinishManager 记录进度与完成顺序
   → 结算展示，ResultDecisionManager 收集下一局/返回投票
-  → RoomStateManager 执行场景转换
+  → RoomStateManager 执行场景转换（再来一局先经过菜单场景再进赛道：FishNet 不会重载已加载的场景；回房间则停在菜单的殿内）
 ```
 
-单机对局（Solo）复用同一条链路：`SessionLauncher` 在 Yak（本机 loopback transport）上启动本机 host 取代大厅，单人房间自动进入选择场景，结算以“再来一局 / 返回”按钮取代投票。设计与实现入口见 [single-player/HANDOFF.md](single-player/HANDOFF.md)。
+单机对局（Solo）复用同一条链路：`SessionLauncher` 在 Yak（本机 loopback transport）上启动本机 host 取代大厅，单人房间自动开局、直接进赛道，结算以“再来一局 / 返回”按钮取代投票。房主独自在联机房间里点“单人修行”时，`SessionLauncher.QueueSoloAfterStop` 先关房间再开单人局，不经过菜单重载。设计与实现入口见 [single-player/HANDOFF.md](single-player/HANDOFF.md)。
 
-训练模式（Practice）是 0 个 AI 的 Solo：`SoloMatchRules` 改读 `Match/ModeRule` 的 Practice 行，玩家完赛即结束，`SpawnTrainingDummies` 为真。`MatchSpawnManager` 在起跑后的第一段直道上生成 3 个木桩（数量、间距、偏移和复位秒数来自 Practice 行；RaceMap 上在起跑线后约 53、68、83 米，间隔 15 米，左、中、右各一）。木桩不驾驶、不施法；被推离生成点后，最后一次受到技能效果、冲量或与运动物体接触 3 秒后传回。主菜单没有单独的训练模式入口：单人面板按 `Match/ModeRule` Solo 行的 `aiCount`（现为 5）开局，该值为 0 时开出的就是训练模式；不改表时用代码 `SessionControl.Current.StartSoloHost(new SoloMatchSettings(0, …))` 启动，`MechanicsPracticeHarness` 就是这样做的。
+训练模式（Practice）是 0 个 AI 的 Solo：`SoloMatchRules` 改读 `Match/ModeRule` 的 Practice 行，玩家完赛即结束，`SpawnTrainingDummies` 为真。`MatchSpawnManager` 在起跑后的第一段直道上生成 3 个木桩（数量、间距、偏移和复位秒数来自 Practice 行；RaceMap 上在起跑线后约 53、68、83 米，间隔 15 米，左、中、右各一）。木桩不驾驶、不施法；被推离生成点后，最后一次受到技能效果、冲量或与运动物体接触 3 秒后传回。道场殿内房主独自时有“练习”入口（点击或 P），开 0 个 AI 的单人局；代码里是 `SessionControl.Current.StartSoloHost(new SoloMatchSettings(0, …))`，`MechanicsPracticeHarness` 也这样启动。
 
 网络细节见 [networking.md](networking.md)，运动设计见 [prediction-design.md](prediction-design.md)。

@@ -47,6 +47,19 @@ namespace BuddahGo.Tests
             }
         }
 
+        // Docs/vfx/slots.md, "白屏": on GPUs that keep Inf / NaN in the HDR target (Intel, likely AMD), one bad pixel
+        // spreads through Bloom into a screen-filling glow with a black hole; Stop NaN zeroes them before post.
+        [Test]
+        public void RaceCameraStopsNaNBeforePost()
+        {
+            string text = File.ReadAllText("Assets/Scenes/RaceMap.unity");
+            var cameraData = new Regex(@"m_RenderPostProcessing: (\d)\s*\n(?:\s+m_\w+: [^\n]*\n)*?\s+m_StopNaN: (\d)");
+            var matches = cameraData.Matches(text).Cast<System.Text.RegularExpressions.Match>()
+                .Where(m => m.Groups[1].Value == "1").ToList();
+            Assert.That(matches, Is.Not.Empty, "RaceMap has a camera that renders post");
+            Assert.That(matches.All(m => m.Groups[2].Value == "1"), "every RaceMap camera that renders post has Stop NaN on");
+        }
+
         [Test]
         public void PostVolumesHoldWhatTheirFeelShakersDrive()
         {

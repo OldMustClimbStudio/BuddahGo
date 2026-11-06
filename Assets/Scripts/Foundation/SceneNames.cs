@@ -1,6 +1,5 @@
 public static class SceneNames
 {
-    public const string MainMenu = "MainMenu";
-    public const string PropertySelection = "PropertySelection";
+    public const string MainMenu = "MenuEnvironmentSetting";
     public const string RaceMap = "RaceMap";
 }

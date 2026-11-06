@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BuddahGo.Match;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -27,6 +28,7 @@ namespace SteamMultiplayer.UI
             public Material material;
             [Tooltip("Calligraphy of the name for the big name (white on transparent). Empty: the name is set in type.")]
             public Sprite nameArt;
+            [System.NonSerialized] public string id;
             [System.NonSerialized] public TextMeshProUGUI label;
             [System.NonSerialized] public Image dot;
         }
@@ -83,6 +85,7 @@ namespace SteamMultiplayer.UI
         private void Awake()
         {
             group.alpha = 0f;
+            LoadFromCatalog();
             for (int i = 0; i < skins.Length; i++) MakeItem(skins[i]);
             selected = Mathf.Clamp(selected, 0, Mathf.Max(0, skins.Length - 1));
             _offset = selected;
@@ -98,6 +101,30 @@ namespace SteamMultiplayer.UI
                 g.blocksRaycasts = false;
             }
             Apply();
+        }
+
+        // The skins come from the SelectionCatalog the race also reads; the page opens on the saved pick.
+        // A catalog skin without a material is the model's own material.
+        private void LoadFromCatalog()
+        {
+            SelectionCatalog catalog = SelectionCatalog.Current;
+            if (catalog == null || catalog.Skins.Count == 0) return;
+            Material own = null;
+            if (model != null)
+            {
+                model.GetComponentsInChildren(true, _renderers);
+                foreach (Renderer r in _renderers)
+                    if (r.name != "HoverOutline" && r.sharedMaterial != null) { own = r.sharedMaterial; break; }
+            }
+            var list = new List<Skin>();
+            foreach (SelectionCatalog.Skin entry in catalog.Skins)
+            {
+                if (entry == null) continue;
+                list.Add(new Skin { id = entry.id, name = entry.displayName, line = entry.line, material = entry.material != null ? entry.material : own, nameArt = entry.nameArt });
+            }
+            skins = list.ToArray();
+            int saved = catalog.IndexOfSkin(LocalMatchSelection.SkinId);
+            selected = saved >= 0 ? saved : 0;
         }
 
         private void MakeItem(Skin skin)
@@ -239,6 +266,7 @@ namespace SteamMultiplayer.UI
             if (i == selected) return;
             selected = i;
             Apply();
+            if (!string.IsNullOrEmpty(skins[i].id)) LocalMatchSelection.SetSkin(skins[i].id);
         }
 
         /// <summary>Puts the chosen skin's material on the model.</summary>

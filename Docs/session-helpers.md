@@ -10,7 +10,7 @@
 |---|---|---|
 | [RoomRoster](../Assets/Scripts/Network/Room/RoomRoster.cs) | `RoomStateManager` 的名单查询、写回、ready 复位与摘要 | 直接引用 `Players` 的 `IList<RoomPlayerState>`，没有名单副本；网络状态仍由 manager 持有。 |
 | [RaceStartHandshake](../Assets/Scripts/Network/Room/RaceStartHandshake.cs) | `RoomStateManager` 的场景 manager ready 与 Assignment / Visual / Gameplay 序号记录；`RoomDiagnostics` 读取摘要 | 七个集合均为私有；使用按 `Stage` 操作的语义 API。RPC、SyncTypes 和场景推进仍在 manager。 |
-| [LoadoutRules](../Assets/Scripts/Network/Session/PropertySelection/LoadoutRules.cs) | `PropertiesSelectionManager` 的提交校验、完整性判断与自动补全候选选择 | 合法选项与重复策略由调用方传入；计时器、选择记录、cache 和阶段推进仍在 manager。 |
+| [LoadoutRules](../Assets/Scripts/Network/Session/MatchSelection/LoadoutRules.cs) | `MatchLoadoutResolver`（`RoomStateManager` 用它校验菜单提交的配装、开局前补全空槽）的提交校验与自动补全候选选择 | 合法选项与重复策略由调用方传入；名单、cache 和开局推进仍在 `RoomStateManager`。 |
 | [PlayerIdentity](../Assets/Scripts/Foundation/PlayerIdentity.cs) | 房间、配装和结算调用方共用身份查询与姓名回退 | 不启动 Steam 或连接；读取调用方提供的 transport、connection 和可选 lobby。 |
 
 前三个 helper 为 Runtime 内部类型。`PlayerIdentity` 保留公共静态入口；测试通过 friend assembly 访问内部 helper，不需要扩大其可见性。
@@ -27,7 +27,7 @@
 
 `ValidateSubmission()` 先检查数组非空且长度等于槽位数，然后按槽位原地 Trim，将 null 转为空字符串。空槽允许提交，但 `HasCompleteSelection()` 会把空槽判为未完成。遇到非法或不允许重复的技能时立即返回 false：此前及当前槽位已规范化，后续槽位保留原值。例如 `[" a ", " bad ", " c "]` 在第二项非法时变为 `["a", "bad", " c "]`。
 
-`PropertiesSelectionManager` 按选项列表 → 数据库 fallback → 本地 fallback 的顺序构建候选并去重。选项 id 保留原字符串，fallback 才 Trim；不要把两者统一规范化。`FindNextAutoFillSkillId()` 按候选顺序选择，在禁止重复时跳过已使用项，无候选时返回空字符串。重复策略继续通过原位置的 getter 求值。
+`MatchLoadoutResolver` 按选项列表 → 数据库 fallback → 本地 fallback 的顺序构建候选并去重。非法、未解锁或重复的槽位在开局时由候选补上。选项 id 保留原字符串，fallback 才 Trim；不要把两者统一规范化。`FindNextAutoFillSkillId()` 按候选顺序选择，在禁止重复时跳过已使用项，无候选时返回空字符串。重复策略继续通过原位置的 getter 求值。
 
 ## 身份回退
 

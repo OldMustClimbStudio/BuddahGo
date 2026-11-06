@@ -160,6 +160,15 @@ namespace SteamMultiplayer.UI
             targetCamera = cam; switcher = sw; director = dir; skinView = skin; inspector = insp; mouseLook = look; highlighter = hover; protoPanel = proto;
         }
 
+        /// <summary>The opening is over and the home menu is up.</summary>
+        public bool IsHome => _home;
+
+        /// <summary>Finishes the opening quickly (back from a match into the room).</summary>
+        public void SkipIntro()
+        {
+            if (!_home) _skip = true;
+        }
+
         public void SetSkillPage(MenuSkillPage page) => skillPage = page;
 
         public void SetDojoPage(MenuDojoPage page) => dojoPage = page;

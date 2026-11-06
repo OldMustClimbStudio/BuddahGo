@@ -10,7 +10,7 @@
 
 **VFXtests 与比赛的高度差**：VFXtests 的 `Floor` 在 Player pivot 下 4.25，比赛赛道只在 pivot 下约 0.30（角色体型 1 倍）。贴地内容在 VFXtests 里放到 pivot 下 0.3 以下也看得见，比赛里会埋进赛道；贴地层的高度按比赛的 0.30 定。
 
-更新于 2026-11-03（禅定缓流的体型适配；其余内容为 2026-10-30）。
+更新于 2026-11-06（1.2 节白屏；禅定缓流的体型适配为 2026-11-03；其余内容为 2026-10-30）。
 
 ## 1. 已有内容并已接线
 
@@ -56,6 +56,25 @@
 玩法时长和特效时长读的是同一个字段，Console 0 错误。第一次尝试中途出现 FishNet Yak 传输层 NullReferenceException、录制脚本丢失（像是 Play 中发生了脚本重载），原因没查；重跑一切正常。
 
 **未决（用户定）**：禅定缓流在比赛里看起来是一大片黑。内容和 VFXtests 完全一样（11 个场景实例对 prefab 0 覆盖），shader 是 Unlit；差别来自环境：区域大多铺在深紫色赛道上（VFXtests 是浅米色地面，半透明的黑墨在那里显棕色），加上比赛的后期（关掉后期会明显变亮偏橄榄色）。另外比赛里插槽从空开始，约 4 秒才长满到 VFXtests 截图那样（6 秒区域的大半时间不满）。
+
+### 1.2 白屏：Inf / NaN 像素被 Bloom 铺满（2026-11-06）
+
+**现象**：双人联机赛，本地玩家已到终点，同时放过神足通和如来神掌，别人的电脑上整屏白金色椭圆光，正中一块黑墨团（用户截图）；开发机从没出现过。
+
+**原因**：HDR 画面里出现了 Inf / NaN 像素。比赛相机（RaceMap `Main Camera`）没开 URP 的 Stop NaN，Bloom 把 Inf 摊到整个屏幕，形成白色椭圆；NaN 加上 Bloom 仍是 NaN，显示成黑块。截图里白光盖住了一切，只有那一块是纯黑，说明那里是 NaN，不是墨。
+- 复现：开发版 build 里的探针（`Assets/Scripts/AI/Diagnostics/VfxNanProbe.cs`，见下）在赛手和相机之间放一块输出 Inf（环）和 NaN（其余，Inf×0）的面片。Intel Arc 上，Stop NaN 关时和截图一样：白色椭圆加中间黑块；开了以后白屏消失，只剩坏像素本身的一个小黑块。NVIDIA RTX 4070（开发机）把 Inf 写成 HDR 缓冲的最大有限值，Stop NaN 只抓到 NaN（黑块），白光还在。对比图：`Logs/vfx-whiteout/whiteout_before_after.png`（git 忽略，在 PR 说明里）。
+- **Inf 是哪里来的还没找到**。本机两块显卡上用真实技能代码连放 6 轮神足通 + 如来神掌并出掌（探针默认模式），每 0.1 秒扫原始 HDR 帧：0 个 NaN、0 个 Inf，最亮约 7000（太阳在赛道上的高光）；技能特效自己最亮也到不了这个数。插槽层的淡入淡出、时长缩放、墨手流体的步长和 Bloom 的 Feel 震动（每次施法 Bloom 强度相对 +5、1 秒，结束后回到 0.7，重叠不会累加）都查过，都有界。
+- **"着色器没预热"的假设不成立**：D3D11 的 player 里着色器是预编译好的，没预热只会在第一次用时卡一下，不会画错；变体被裁掉的话所有电脑（包括开发机）都会一样缺。现在的预热集合 `Assets/VFX/PreloadShader.shadervariants` 只有 `FX/Additive_Glow`（无关键字、`_FX_POLAR`）和 `FX/Alpha_Smoke` 的无雾变体，比赛用的是雾 Exp2 变体，Piloto `UberFXSG` 也不在里面：首次施放可能卡一帧，与白屏无关。
+- "面片离相机太近"也排除了：比赛相机离赛手约 100 米、高约 64 米；观战（到终点后跟着对手）也是同样的距离。`palm_buff` 的两块面片在赛手脚边，画面里很小。另外 `palm_buff` 的实际内容：9 米金色经文环（`Mat_FX_Palm_Halo`）贯穿整个 15 秒 buff、不朝相机；12 米墨色圆相（`Mat_FX_Palm_BufEnso`）只有 0.4 秒、朝相机。
+
+**修复**：RaceMap `Main Camera` 打开 Stop NaN，后期开始前把 NaN / Inf 像素置黑，一个坏像素就只是一个黑点。没有坏像素的画面不变（编辑器同一帧开关对比，逐像素差 ≤ 3，即胶片噪点）。代价：每帧一次全屏 pass。测试：`RenderingModulesTests.RaceCameraStopsNaNBeforePost`。
+
+**未决**：
+1. 找到产生 Inf 的东西：要那台电脑的显卡型号和 `%USERPROFILE%\AppData\LocalLow\OMCStudio\BuddahGo\Player.log`，最好在那台电脑上跑一次探针。
+2. 显卡把 Inf 写成最大有限值时（NVIDIA 的做法），Stop NaN 抓不到，只能靠降低 Bloom 的 `clamp`（默认 65472，`RaceMap_Dusk_Profile` 没覆盖）。clamp 1000 能把坏像素的光收在它附近，但低于约 7000 会压暗黄昏太阳在赛道上的反光（R1 的观感）。**用户 2026-11-06 定：只开 Stop NaN，clamp 保持默认**，不再作为待办。
+
+**探针用法**（只在开发版 build 和编辑器里编译，不带参数时什么都不做）：用 `ThrustVectorAcceptanceBuild.Build` 出开发版（`THRUST_BUILD_RELEASE` 不设为 1），然后
+`BuddahGoProbe.exe -force-device-index <显卡序号> -screen-fullscreen 0 -screen-width 1280 -screen-height 720 --vfx-nan-probe <空目录> [--vfx-nan-cycles 6] [--vfx-nan-skills acceleration,push_projectile_hands] [--vfx-nan-plant]`。它从菜单开一局 A1 单人赛（本地赛手由 AI 驾驶，1 个 AI 对手），每 8 秒让本地赛手放一次技能并出一掌，每 0.1 秒把比赛相机渲染成原始 HDR 和带后期的图，`probe.log` 记 NaN / Inf / 最大值 / 白色占比，坏帧存图；`--vfx-nan-plant` 改为每轮放上面那块 Inf / NaN 面片，偶数轮关、奇数轮开 Stop NaN，各截一张 Game 视图。
 
 ## 2. 已接线、内容还空着
 

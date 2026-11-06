@@ -244,7 +244,7 @@ namespace SteamMultiplayer.UI
         private static string Key(string key) => "<sprite name=\"key_" + key + "\" tint=1>";
 
         /// <summary>
-        /// 操作 rows: the race's keys (InputSystem_Actions → Player; the skills' combos are on the skill page), a hairline,
+        /// 操作 rows: the race's keys (InputSystem_Actions → Player, Docs/gameplay/README.md §3 键位), a hairline,
         /// then the menu's keys (style guide 8). Read only: chosen like the other rows, never stepped.
         /// </summary>
         private void BuildControls()
@@ -256,10 +256,11 @@ namespace SteamMultiplayer.UI
             _controlsContent.anchoredPosition = Vector2.zero;
             var race = new[]
             {
+                ("forward", "前进", Key("w")),
                 ("steer", "转向", Key("a") + " " + Key("d")),
-                ("hand", "转动佛手", Key("left") + " " + Key("right")),
-                ("push", "推掌", Key("w") + " / " + Key("up")),
-                ("skill", "施展技能", "按出一槽的搓招"),
+                ("aim", "瞄准佛手", "鼠标"),
+                ("push", "推掌", Key("mouse_left") + " " + Key("mouse_right")),
+                ("skill", "施展技能", Key("q") + Key("e") + Key("r") + " / 1 2 3"),
             };
             var menu = new[]
             {
@@ -525,7 +526,7 @@ namespace SteamMultiplayer.UI
             }
             if (_tab == ControlsTab)
             {
-                if (note != null) note.text = "施展技能：比赛中依次按出一槽的按键，键位见技能页";
+                if (note != null) note.text = "施展技能：比赛中按下一槽的键（Q / E / R 或 1 / 2 / 3）";
                 if (applyHint != null) applyHint.alpha = 0.3f;
                 return;
             }

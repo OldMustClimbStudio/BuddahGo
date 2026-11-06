@@ -399,7 +399,7 @@ namespace SteamMultiplayer.UI
             }
             if (description != null)
                 description.text = art != null && !string.IsNullOrEmpty(art.description) ? art.description : Text("skill." + id + ".desc", "");
-            if (backfire != null) backfire.text = art != null && !string.IsNullOrEmpty(art.backfire) ? "<color=#B8352A>反噬</color>　" + art.backfire : "";
+            if (backfire != null) backfire.text = art != null && !string.IsNullOrEmpty(art.backfire) ? "<color=#B8352A>反噬</color>　" + art.backfire + BackfirePenalty() : "";
             if (stats != null) stats.text = Stats(id);
         }
 
@@ -413,6 +413,17 @@ namespace SteamMultiplayer.UI
             string text = "冷却 " + Seconds(row.cooldownSeconds) + " 秒";
             if (row.effectDurationSeconds > 0f) text += "　持续 " + Seconds(row.effectDurationSeconds) + " 秒";
             return text;
+        }
+
+        /// <summary>
+        /// The unified backfire penalty that follows every skill's own backfire (Obsession.backfireLockSeconds: all slots
+        /// locked, top speed lowered); empty when the table has no row.
+        /// </summary>
+        private static string BackfirePenalty()
+        {
+            var db = DesignTableOverlay.Db;
+            ObsessionRecord row = db != null && db.obsessions != null ? db.obsessions.Find(r => r.profileId == "default") : null;
+            return row != null && row.backfireLockSeconds > 0f ? "，随后 " + Seconds(row.backfireLockSeconds) + " 秒技能全锁、限速降低" : "";
         }
 
         private static string Seconds(float s) => Mathf.Approximately(s, Mathf.Round(s)) ? Mathf.RoundToInt(s).ToString() : s.ToString("0.#");

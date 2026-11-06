@@ -497,7 +497,7 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 - **撞击**：`Yuanqi_GiantCharge` 在施法者身上挂 `BuddahBodyImpact`（服务器）并 `Arm(M × BuddahHandControl.BasicPushImpulseStrength, burstSeconds, yuanqiId)`。在 `OnCollisionEnter / Stay` 里，只有窗口未过且施法者马达 `IsBurstActive` 时，向碰到的 Buddah（任何带 `SkillExecutor` 的对象，木桩也算）发 `BuddahPredictionRouter.RouteImpulse`（来源 `BodyImpact`），方向是从施法者指向被撞者的水平方向（已定，Q9）；同一次 `Arm` 每个受害者只撞一次（`BuddahBodyImpactRule`）。被冻住的受害者推不动。每次撞击记 `SkillCombatEvents` 的 `hit / body-impact`，并经 `PlayYuanqiImpactObservers` 发表现事件。
 - **收尾**：突进前调 `ctx.ConsumeConfigured`，表行 `consumeA = true / consumeB = false` 决定只消耗神足通（与两招在表里的先后无关，见 3.6），所以突进从基础上限起步，不是基础 + 加速；金身不动。`Yuanqi_GiantCharge` 不需要 `OnEndServer`。
 - **句柄改写**：不需要改写金身参数，撞击倍率由缘起模块自己持有。
-- **表现**：载荷带突进方向；施法者自己的相机有一次短 FOV 抖动（见 4.7）。
+- **表现**：载荷带突进方向；施法者自己的相机有一次短 FOV 抖动（见 4.7）；`YuanqiAction.vfxId`（`giant_charge_release`）在 `PlayObservers` 里每一端本地播插槽，长度 = `burstSeconds`（2026-11-06，[../vfx/yuanqi-giant-charge.md](../vfx/yuanqi-giant-charge.md) 第 5 节）。
 
 ### 5.2 #1 金身巨掌
 

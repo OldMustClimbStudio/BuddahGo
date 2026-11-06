@@ -1,6 +1,6 @@
 # 金足破阵（缘起 #4）特效
 
-> - **这是什么**：缘起「金足破阵」（神足通 + 法相金身，`Yuanqi_GiantCharge`）的特效方向记录。2026-11-06 用户和特效设计会话讨论定的方向，加上还没定、要到编辑器里对着看的项。还没有插槽、没有原型、没有代码。
+> - **这是什么**：缘起「金足破阵」（神足通 + 法相金身，`Yuanqi_GiantCharge`）的特效方向记录。2026-11-06 用户和特效设计会话讨论定的方向，加上还没定、要到编辑器里对着看的项。2026-11-06 做了第一版插槽并接上缘起（第 5 节）；待定项交给用户在 VFXtests 里自己调。
 > - **机制以哪里为准**：玩法见 [../gameplay/yuanqi.md](../gameplay/yuanqi.md)（#4），构筑和表现接口见 [../gameplay/yuanqi-architecture.md](../gameplay/yuanqi-architecture.md) 第 4.7、5.1 节。本文只写画面。
 > - **Notion**：「技能 Combo 缘起机制」里这一条的视觉写的还是「后续决定」，没有同步过去。
 
@@ -34,7 +34,7 @@
 除了第 5 项，都要在编辑器里把素材放到巨人体型、比赛视角下看过再定。驱动 Unity 前先问用户，并且要等编辑器没人在用。
 
 1. **线怎么出现**：瞬间出现（像盖印），还是 0.1–0.15 秒内一笔画出（毛笔拉开）。画得慢会被 140 的速度追上，所以最多 0.15 秒。
-2. **线上留什么**：主体是 Pulses 的脉冲组（贴地墨冲面片、往前的流线、白色碎点）。循环组原本 6 秒，超过残留上限 1.5 秒（README 第 3.3 节），墨山 / 墨树 / 竹林剪影里留哪一样、截多短要定。竹叶是绿的，按正向色板换成金或墨。
+2. **线上留什么**：主体是 Pulses 的脉冲组（贴地墨冲面片、往前的流线、白色碎点）。（2026-11-06 看贴图更正：包里的 `Tree_pulse_floor` 不是墨树，是带白边的长方形墨块，正好当墨路的底；墨山是 `yy_3_symbol`，竹林是 `bamboo_pulse`。）循环组原本 6 秒，超过残留上限 1.5 秒（README 第 3.3 节），墨山 / 墨树 / 竹林剪影里留哪一样、截多短要定。竹叶是绿的，按正向色板换成金或墨。
 3. **颜色**：Pulses 黑墨重，铺在深紫赛道上可能读成一块黑（禅定缓流已经出现过，[slots.md 1.1](slots.md)），白边和流线要提亮多少。还要和禅定缓流的地面墨区分开，避免对手误以为是减速区：靠长条形状、朝前的流线和不超过 1.5 秒的寿命。
 4. **尺寸与朝向**：
    - 线的长度和宽度按路线来定（约 80 单位，宽度跟巨人身宽），不跟体型整体 ×4；Pulses 原尺寸二十多个包单位长，叠上 ×4 会大得离谱。长度固定成名义距离，还是按实际起步速度算（Q15 时变短），待定。
@@ -49,3 +49,29 @@
 - 路线层按出手时摆一次、之后留在原地（`CasterRelative`）可以做"一次画好"；`CasterRelative` 不支持 `Blend`（[giant.md](giant.md) 第 5 节），尺寸要另外按路线定。
 - `feat/yuanqi` 上目前只有禅足冰封有程序化占位（`Yuanqi/Presentation/FrostPlaceholder.cs`、`FrostGroundPlaceholder.cs`，2026-11-06），金足破阵没有；挂接方式可以参考它。
 - 先复用后新增（[retired.md](retired.md)）：起手复用 `accel_release` 的冲击波内容，路线复用包里的 Frontal Pulses。
+
+## 5. 第一版（2026-11-06，实现会话）
+
+用户看了第 3 节前五项的对比 GIF 后说："放在 vfx test 里面 后续我来调整。你做好预览"。所以第一版按下面的默认值做好、接上缘起，待定项由用户在 VFXtests 里调，不再由会话拍板。第 6 项（撞点标记）没做。
+
+**插槽**：`giant_charge_release` → `金足破阵/Release/VFX_GiantCharge_Release`（README 第 6 节命名），`Yuanqi_GiantCharge.vfxId` 填它，`PlayObservers` 在每一端经 `SkillVfxReplicator.PlaySlotLocal` 播，长度 = `burstSeconds`（0.8 s）。两层都是 `CasterRelative`（出手时摆一次、留在原地）+ `casterScaling = None`（新加的选项：层保持作者尺寸，只有偏移跟体型），`Stretch`，`particlesDieNaturally`，贴地 `casterOffset.y = -0.3`。
+
+| 层 | 内容（复用） | 默认值 |
+|---|---|---|
+| `FX_GiantCharge_Imp_C_Flash_01` 后喷 | `accel_release` 的 Ying Yang Burst Shockwave；它原本就是锥口朝后（在胸前炸开、往身后扫） | 尺寸 40（神足通在 ×4 身上是 32，即 ×1.25），放在巨人身后 16、离地 13；包根节点的隐形 5 s 粒子关掉 |
+| `FX_GiantCharge_Imp_C_Decal_01` 墨路 | Frontal Pulses 的 Pulses 组（墨冲、白色流线、条纹、墨溅、碎点）+ Loop 组里的墨块 | Pulses 沿突进方向拉到约 80 m、宽约 25 m，2.5 倍速（白色前沿约 0.12 s 扫完，一笔画出）；墨块 4 倍速（6 s 寿命 → 1.5 s）；只发一次（包里每 1–1.5 s 重复） |
+
+共 19 个粒子系统（包里组节点上的空发射器已去掉），`SkillVfxTests` 的上限按 19 登记；README 第 8 节的预算由用户定。
+
+**怎么改、怎么看**：`Tools/BuddahGo/VFX/Proto/金足破阵/Rebuild Slot Content (pack + accel blast)`（`GiantChargeProto`，默认值在文件头）按包重新生成内容，需要本地导入包；`.../Place Preview In VFXtests` 在 VFXtests 放 ×4 的 Player、一个可手调的插槽实例、`Cam_Race`（游戏镜头规则：跟随偏移 ×体型、FOV 30）和 `PreviewDash`（`SkillVfxPreviewDash`：按 140 → 80 的突进曲线直线冲、循环；`bodyScaleAtTrigger` 改 1 就是先放神足通的顺序）。手调后用 `Release Placeholders/Write Release Pose` 写回 prefab，入库前跑 `Copy Used Pack Assets Into Project`。
+
+**看对比时发现的事实**（GIF 在共享笔记 `jinzu-pozhen-gifs/`，Play 实拍帧在本机 `Logs/yuanqi-gif/charge-*`）：
+
+- **比赛镜头离得很远**：`PlayerCamera` 的跟随偏移随体型放大（`cameraDistanceScaleFactor = 1`），金身 ×4 时镜头在约 390 m 外、FOV 30，巨人只有画面高度的一小块。所有尺寸、亮度都要在这个距离下判断。
+- **先放神足通的顺序**：触发那一刻体型还是 ×1、镜头还在近处，按 ×4 做的后喷会占满画面（实拍 B 第 0.08 s），之后镜头随体型拉远。后喷要不要随体型（`Whole`）或者缩小，交给用户调。
+- **镜头在身后时**（起跑直道），身前的线大半被巨人身体挡住；镜头在前方时（弯道）线看得清楚，但直线会冲出弯道。
+- **余韵大多在施法者镜头之外**：突进 1.2 s 后整条线已经在镜头身后，余韵主要给后面的人看。
+- **提亮不能靠 startColor**：粒子顶点色是 0–1，乘 1.8 在白色上不起作用；要提亮得改材质（三色映射或强度）。
+- **喷两次（第 3 节第 5 项）**：训练模式 S8 实拍（缘起特效接上前后各一次），先放金身时神足通一生效就被消耗，`accel_release` 自己的冲击波没有出现，只有通用前摇的光柱；接上后只看到缘起的后喷，没有叠两次。
+
+**没验证的**：联机（各端都由 `PlayObservers` 本地播，没有新 RPC）；AI 触发金足破阵时的画面；金身反噬缩小 ×0.3 的体型下这个缘起不会触发，所以不看。

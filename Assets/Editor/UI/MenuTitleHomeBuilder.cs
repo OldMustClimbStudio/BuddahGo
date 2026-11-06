@@ -26,14 +26,6 @@ public static class MenuTitleHomeBuilder
     private const string GradeProfilePath = "Assets/UI/MainMenu/MenuGrade_Profile.asset";
     // Skins offered in the skin close-up: the model's own material first, then the skin materials in the project.
     // Names confirmed by the user on 2026-11-06. art: Assets/UI/MainMenu/Art/skin_name_<art>.png (asset A16).
-    private static readonly (string name, string line, string material, string art)[] SkinList =
-    {
-        ("白玉", "温润如玉　静而不争", null, "baiyu"),
-        ("银身", "通体银辉　映照四方", "Assets/Material/Skin/SilverSkin.mat", "yinshen"),
-        ("雪岩", "雪色岩纹　沉稳如山", "Assets/Sources/Skin_Subs/kashmir_white_granite_graph_0/kashmir_white_granite_graph_0_material.mat", "xueyan"),
-        ("织石", "石纹交错　细密如锦", "Assets/Sources/Skin_Subs/kashmir_white_granite_knit_tiles_graph_0/kashmir_white_granite_knit_tiles_graph_0_material.mat", "zhishi"),
-        ("赭红", "赭红石脉　暗藏火色", "Assets/Sources/Skin_Subs/marmor_luculleum_marble_graph_0/marmor_luculleum_marble_graph_0_material.mat", "zhehong"),
-    };
     private const string HokoraName = "SM_Arch_Hokora_A__TerraceWest";
     // The slots sit on the front of the hokora's wooden base: measured on the hokora mesh, its carved panel is 0.099 m
     // in front of the hokora's centre (along its facing), spans 0.92–1.04 m in height and ±0.2 m across, between two
@@ -924,18 +916,8 @@ public static class MenuTitleHomeBuilder
         TextMeshProUGUI back = HintBar(root, font, new[] { ("Back", "esc", "返回") })[0];
 
         GameObject turntable = GameObject.Find("SkinTurntable");
-        Renderer modelRenderer = turntable != null ? turntable.GetComponentInChildren<Renderer>() : null;
+        // The skins themselves come from Resources/Match/SelectionCatalog at runtime (shared with the race).
         var skins = new List<MenuSkinPage.Skin>();
-        foreach (var (name, text, path, art) in SkinList)
-        {
-            Material m = path != null ? AssetDatabase.LoadAssetAtPath<Material>(path) : modelRenderer != null ? modelRenderer.sharedMaterial : null;
-            if (m == null) { Debug.LogWarning("[MenuTitleHome] Skin " + name + " has no material (" + path + ")."); continue; }
-            skins.Add(new MenuSkinPage.Skin
-            {
-                name = name, line = text, material = m,
-                nameArt = AssetDatabase.LoadAssetAtPath<Sprite>(ArtDir + "skin_name_" + art + ".png"),
-            });
-        }
 
         var page = rootGo.AddComponent<MenuSkinPage>();
         page.Configure(rootGo.GetComponent<CanvasGroup>(), cam != null ? cam.GetComponent<MenuSkinView>() : null,

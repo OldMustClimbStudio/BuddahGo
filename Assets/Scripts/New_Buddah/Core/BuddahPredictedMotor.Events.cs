@@ -636,10 +636,7 @@ namespace NewBuddah.PredictionV2.Core
             ConsumePendingLaunchHandoffEvent(tick);
             if (_lastConsumedLaunchHandoffEventId == before)
                 return false;
-            // Consume resets the body with Sleep/Wake. The normal motor tick restores
-            // inherited velocity later in RunInputs; this pre-physics path must restore
-            // that same consumed snapshot now, before the first Unity integration.
-            SetPredictionVelocitiesSafely(_handoffState.SnapshotVelocity, _handoffState.SnapshotAngularVelocity);
+            // Consume already left the snapshot velocity on the body (BuddahHandoffBodyPlacement).
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, tick);
             // The handoff cannot bypass a live movement restriction before the next motor tick.
             if (_computedStats.IsRooted || !(_movementGateBridge.IsMovementAllowed(gameObject)

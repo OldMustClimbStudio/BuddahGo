@@ -1,6 +1,6 @@
 # AI 技能人格设计复核（2026-10-03）
 
-状态：设计复核，仅文档。基线源码 `e95c63c`（`docs/ai-skill-personalities` 工作树）。本次对照运行时代码与资产复核 [AI 技能使用设计](ai-skills.md) 与 [五种人格草案](ai-personalities.md)，列出与设计前提冲突的事实、设计层面的漏洞，以及据此对两份文档所做的修订。不改生产代码、场景、资源，不运行 Unity。
+状态：设计复核，仅文档。基线源码 `e95c63c`（`docs/ai-skill-personalities` 工作树）。本次对照运行时代码与资产复核 [AI 技能使用设计](../../single-player/ai-skills.md) 与 [五种人格草案](../../single-player/ai-personalities.md)，列出与设计前提冲突的事实、设计层面的漏洞，以及据此对两份文档所做的修订。不改生产代码、场景、资源，不运行 Unity。
 
 复核读取的来源：`SkillExecutor`、`ComboSkillInput`、`BuddahHandControl`、`ObsessionFigure`、`SkillLoadout`、`LoadoutRules`、`AIRacerDriver`、`AIDifficultyProfile(s)`、`ThrustVectorPlanner`、`BuddahMotionModel`、`LeaderboardManager`、`PlayerProgressReporter`、`MatchSpawnManager`、六个技能及其反噬的 `Skill_*` 脚本与 `Assets/Skills_Assets/Skills/*.asset`、`Assets/Data/Config/ProjectConfigDatabase_Main.asset`、`Assets/Character/Prefab/Buddah.prefab`、`Tools/ai/difficulty-*.json`，以及 feat/single-player-mode 上的 `f9c56d8`。数值均来自上述文件在本基线的实际值；资产数值可随调校变化，设计只依赖量级关系。
 
@@ -114,9 +114,9 @@
 
 ## 三、本次文档改动
 
-- 重写 [ai-skills.md](ai-skills.md)：保留 Q1–Q5 已确认决策；新增运行时事实、设计原则、决策管线、难度映射建议默认值、优化层、接缝清单（四个 owner 门槛入口与服务器等价路径）、依赖来源更新（`f9c56d8`）。
-- 重写 [ai-personalities.md](ai-personalities.md)：博弈前提修正；参数化人格模型；六个技能的共享机会谓词；五个预设的触发、槽位、领先／落后行为、弱点与可观察特征；重开与命名规则；可测量的区分度验证。
-- [GLOSSARY.md](../../GLOSSARY.md)：补充决策快照、机会谓词、风险权重、动作承诺、感知受损、开局静默期。
+- 重写 [ai-skills.md](../../single-player/ai-skills.md)：保留 Q1–Q5 已确认决策；新增运行时事实、设计原则、决策管线、难度映射建议默认值、优化层、接缝清单（四个 owner 门槛入口与服务器等价路径）、依赖来源更新（`f9c56d8`）。
+- 重写 [ai-personalities.md](../../single-player/ai-personalities.md)：博弈前提修正；参数化人格模型；六个技能的共享机会谓词；五个预设的触发、槽位、领先／落后行为、弱点与可观察特征；重开与命名规则；可测量的区分度验证。
+- [GLOSSARY.md](../../../GLOSSARY.md)：补充决策快照、机会谓词、风险权重、动作承诺、感知受损、开局静默期。
 - 索引、HANDOFF、progress、design §5.4 加入指向本复核的条目。
 
 ## 四、仍需用户决定的事项

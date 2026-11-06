@@ -1,4 +1,4 @@
-**2026-10-03 AI 技能人格已实现，用户试玩待确认：** 用户已授权完整实现最新人格规格，覆盖旧“仅文档、等待开始”的限制；沿用 f0f123b 之后的实现分支 / PR #59。用户确认单机固定玩家 + 五种人格，固定三槽与 Rematch 配装。当前功能、建议默认值与真实验证边界见 [实施记录](ai-skill-implementation-2026-10-03.md)；规格见 [AI 技能](ai-skills.md)、[五人格](ai-personalities.md) 与 [设计复核](ai-skill-design-review-2026-10-03.md)。已验收驾驶不重新调参，历史测试不替代本次技能验收。
+**2026-10-03 AI 技能人格已实现，用户试玩待确认：** 用户已授权完整实现最新人格规格，覆盖旧“仅文档、等待开始”的限制；沿用 f0f123b 之后的实现分支 / PR #59。用户确认单机固定玩家 + 五种人格，固定三槽与 Rematch 配装。当前功能、建议默认值与真实验证边界见 [实施记录](../archive/single-player/ai-skill-implementation-2026-10-03.md)；规格见 [AI 技能](ai-skills.md)、[五人格](ai-personalities.md) 与 [设计复核](../archive/single-player/ai-skill-design-review-2026-10-03.md)。已验收驾驶不重新调参，历史测试不替代本次技能验收。
 
 # 单机模式设计
 
@@ -344,7 +344,7 @@ StopSession() 的顺序：ClientManager.StopConnection() → ServerManager.StopC
 
 ### 5.4 AI 技能（S3b / S5）
 
-2026-10-03 用户已授权完整实施，并暂定当前产品单机固定玩家 + 五种技能人格（设置面板不提供 AI 数量切换），Rematch 保留人格、名字和固定三槽。CONTEXT 中 0–5 个 AI 与 Practice 的定义保留为能力描述；诊断工具可以使用更少参赛者。旧随机配装方案由固定人格配置替代。详见 [技能管线](ai-skills.md)、[五人格配置](ai-personalities.md)、[实施与验证](ai-skill-implementation-2026-10-03.md)。
+2026-10-03 用户已授权完整实施，并暂定当前产品单机固定玩家 + 五种技能人格（设置面板不提供 AI 数量切换），Rematch 保留人格、名字和固定三槽。CONTEXT 中 0–5 个 AI 与 Practice 的定义保留为能力描述；诊断工具可以使用更少参赛者。旧随机配装方案由固定人格配置替代。详见 [技能管线](ai-skills.md)、[五人格配置](ai-personalities.md)、[实施与验证](../archive/single-player/ai-skill-implementation-2026-10-03.md)。
 
 - `AI/SkillPersonalities.json` 定义配装/槽位、价值与局势权重、目标偏好、耐心和掌形发射上限；难度另行定义风险、反应、按键失误、瞄准和感知受损。初始执念由 1000 调为 0（用户 2026-10-04，玩家与 AI 共享），恢复系数与反噬规则保持现值；反转技能的执念增益由 0 调为 200（配置仓库与技能资产同步），这是平衡实验，不是已确认的 DNF 成因（见实现复核 R3），其余共享技能数值不变。
 - 服务器共用固定容量延迟快照与赛道曲率表；每车独立随机流、局势滞回、机会有效期、风险取舍与概率节奏。人格不改物理、赛车线，也不针对真人或故意落后。

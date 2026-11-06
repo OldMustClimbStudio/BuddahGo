@@ -1,8 +1,8 @@
 # AI 圈速、轨迹与技能测试计划
 
-**2026-10-03 AI 跑线算法里程碑：推力矢量控制器 + 墙走廊 + 三档难度（同 PR59，已提交 `559d57c`）。** V5 beam search 被 `ThrustVectorPlanner` 取代：闭式引导锚点 + 两段式闭环 rollout 选择 + 时间最优姿态层，pace 用摩擦圆；赛车线携带射线测得的左右墙距，rollout 把墙建模为无摩擦导轨（游戏不设刹车正是因为墙）。Hard 禁刹（夹角 ≤ 90°）同场三圈 81.5–83.8 s、Normal 92.8–94.4 s、Easy 114.7–118.9 s（历史 V5 单跑 118.1 s、A2 三圈 116.5 s、spin-fix 126.0 s）；无整圈旋转；五 AI 帧时中位 5.8–7.2 ms（beam 65 ms，Development 构建）。难度经 `MatchSpawnManager.SpawnSoloAI` → `AIDifficultyProfiles.Resolve` 接入产品路径，资产 `Assets/Resources/AI/{Easy,Normal,Hard}.asset` 由 `Tools/ai/difficulty-*.json` 生成；每车随机性（速度偏差、走线偏置、夹角摆动、次优失误、反应抖动）使同档 AI 不再同线。版本比较改用同场比赛（`AITuningHarness --ai-profiles`，`race-results.json`）。完整 EditMode 342 项 0 失败；正式构建 0 错误。**用户已验收。** 未做：车车碰撞建模、IL2CPP、技能与排名/结算（另有进行中改动）；beam 与 Legacy 等价测试已于 2026-10-04 退休（`20401e5`）。规格见 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md)，全部真机与比赛数据见 [thrust-vector-controller-2026-10-02.md](thrust-vector-controller-2026-10-02.md)，原始分析见 [review-planning-cost-68e4d70.md](review-planning-cost-68e4d70.md)。
+**2026-10-03 AI 跑线算法里程碑：推力矢量控制器 + 墙走廊 + 三档难度（同 PR59，已提交 `559d57c`）。** V5 beam search 被 `ThrustVectorPlanner` 取代：闭式引导锚点 + 两段式闭环 rollout 选择 + 时间最优姿态层，pace 用摩擦圆；赛车线携带射线测得的左右墙距，rollout 把墙建模为无摩擦导轨（游戏不设刹车正是因为墙）。Hard 禁刹（夹角 ≤ 90°）同场三圈 81.5–83.8 s、Normal 92.8–94.4 s、Easy 114.7–118.9 s（历史 V5 单跑 118.1 s、A2 三圈 116.5 s、spin-fix 126.0 s）；无整圈旋转；五 AI 帧时中位 5.8–7.2 ms（beam 65 ms，Development 构建）。难度经 `MatchSpawnManager.SpawnSoloAI` → `AIDifficultyProfiles.Resolve` 接入产品路径，资产 `Assets/Resources/AI/{Easy,Normal,Hard}.asset` 由 `Tools/ai/difficulty-*.json` 生成；每车随机性（速度偏差、走线偏置、夹角摆动、次优失误、反应抖动）使同档 AI 不再同线。版本比较改用同场比赛（`AITuningHarness --ai-profiles`，`race-results.json`）。完整 EditMode 342 项 0 失败；正式构建 0 错误。**用户已验收。** 未做：车车碰撞建模、IL2CPP、技能与排名/结算（另有进行中改动）；beam 与 Legacy 等价测试已于 2026-10-04 退休（`20401e5`）。规格见 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md)，全部真机与比赛数据见 [thrust-vector-controller-2026-10-02.md](../archive/single-player/thrust-vector-controller-2026-10-02.md)，原始分析见 [review-planning-cost-68e4d70.md](../archive/single-player/review-planning-cost-68e4d70.md)。
 
-**当前 A2 交付（2026-10-02）**：A2 已自然完成同一场三圈：116.650 / 115.667 / 117.283 秒，平均 116.533 秒；终场停驶、ResultInteractive 和五盒恢复已核对。V1–V5 调参预算已用完，固定 V5；90 秒目标与稳定干净圈仍未达到。A3/A4 未开始。 详见 [A2 实现与证据](a2-results.md)。以下 A1/Practice 检查点保留历史来源边界。
+**当前 A2 交付（2026-10-02）**：A2 已自然完成同一场三圈：116.650 / 115.667 / 117.283 秒，平均 116.533 秒；终场停驶、ResultInteractive 和五盒恢复已核对。V1–V5 调参预算已用完，固定 V5；90 秒目标与稳定干净圈仍未达到。A3/A4 未开始。 详见 [A2 实现与证据](../archive/single-player/a2-results.md)。以下 A1/Practice 检查点保留历史来源边界。
 
 本文件同时保留阶段要求和待实现提案。A1 已由 `354f10a` 实现，run04 有 124.917 秒自然一圈证据；本次 A2 三圈及急弯调优结果见顶部。具体证据与来源边界见 [progress.md](progress.md)；其余建议、表格不代表全部已实现或验收通过。阶段要求见 [phases.md](phases.md)，玩法与控制约束见 [design.md](design.md)，实际状态见 [progress.md](progress.md)。
 
@@ -18,7 +18,7 @@
 | 用户逐项技能试玩 | 用户在对应构建中的反馈及待解决问题 | 用户初步反馈技能都能用；普通/反噬、对手效果和完整生命周期的逐项覆盖尚未全部确认 |
 | AI 开始信号 | 用户明确允许开始 AI 的原话/日期与适用范围 | 2026-10-01 23:51 UTC 已收到，明确从 A1 开始并继续 PR #59；原话见 progress.md |
 
-选择页历史检查点已复核替代材质、摘要隐藏、六技能添加/移除/替换、确认/皮肤选择及退出重进，并修正验证 720p 控件越界；这不等于鼠标命中测试、六技能效果验收或用户已试玩。Practice 整体验收仍未完成；23:51 的明确指令已授权从 A1 开始，不把授权视为验收通过；选择页/采样证据见 [历史验证报告](validation-2026-10-01.md)，本地 handoff 已验证范围见 [呈现时间契约](solo-presentation-timeline.md)，后续 `9e428c1` 的技能本地通过范围及对手效果/画面缺口见 [技能验收](skill-acceptance.md)。
+选择页历史检查点已复核替代材质、摘要隐藏、六技能添加/移除/替换、确认/皮肤选择及退出重进，并修正验证 720p 控件越界；这不等于鼠标命中测试、六技能效果验收或用户已试玩。Practice 整体验收仍未完成；23:51 的明确指令已授权从 A1 开始，不把授权视为验收通过；选择页/采样证据见 [历史验证报告](../archive/single-player/validation-2026-10-01.md)，本地 handoff 已验证范围见 [呈现时间契约](solo-presentation-timeline.md)，后续 `9e428c1` 的技能本地通过范围及对手效果/画面缺口见 [技能验收](../archive/single-player/skill-acceptance.md)。
 
 Practice 功能实现完成且必要编译/基础检查通过后，主任务交付可运行构建、操作方法和实际技能清单，供用户逐项试玩；不等待 strict14 或完整 benchmark 才交付。清单从该构建的技能配置生成，包含实际技能 ID、名称和普通/反噬变体，不仅依赖设计中的示例名称。每项记录：配装、操作及触发条件、预期表现、实际表现、用户结论、问题引用。没有对手而无法验证的命中效果标“缺少目标，未验证”；不能写通过，也不为了测试提前生成 AI。23:51 已另行收到明确 AI 开始信号，现可从 A1 开工；初步反馈本身仍不等于全部技能验收。
 

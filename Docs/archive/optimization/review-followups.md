@@ -32,7 +32,7 @@ SlowTrap 旧矩阵的 root/force 恢复结论限定 server/host；纯 client 时
 
 ## PR #54
 
-补全旧 modifier clock 的 importer meta，随后在 #57 与 BuddahTickMath 统一时删除旧 helper/meta。后续 `97a186f` 将 reconcile 的 modifier/handoff 映射改为快照 `ServerStateTick` / `ClientStateTick` 配对；合成边界测试覆盖接收时钟回退、合法 deadline 延长及历史 replay。现行契约见 [预测设计](../prediction-design.md#reconcile-快照与本地期限)，不再沿用“映射算法未改”的首轮结论，也不将测试输入当作实测数据。
+补全旧 modifier clock 的 importer meta，随后在 #57 与 BuddahTickMath 统一时删除旧 helper/meta。后续 `97a186f` 将 reconcile 的 modifier/handoff 映射改为快照 `ServerStateTick` / `ClientStateTick` 配对；合成边界测试覆盖接收时钟回退、合法 deadline 延长及历史 replay。现行契约见 [预测设计](../../prediction-design.md#reconcile-快照与本地期限)，不再沿用“映射算法未改”的首轮结论，也不将测试输入当作实测数据。
 
 ## PR #55
 
@@ -44,7 +44,7 @@ Handshake 集合私有化，提供按 Stage 操作的语义 API，更新 RSM/Roo
 
 ## PR #57
 
-N10 纯 client reconcile 工作副本统一平移六个 handoff tick，区分零事件/阶段边界与 deadline 零哨兵；owner GetTick 不重复平移，server/host 不平移。`97a186f` 使用快照配对而非接收时钟。`c853768` 令纯 client 冲量按历史 ServerReplayTick 判断 replay 消费资格，前向与 server/host 分支保留原时钟。两种时钟用途及测试入口统一见 [预测设计](../prediction-design.md)。迟到客户端完整 12/20 tick 呈现仍需协议决策，不随时钟修复标完成。
+N10 纯 client reconcile 工作副本统一平移六个 handoff tick，区分零事件/阶段边界与 deadline 零哨兵；owner GetTick 不重复平移，server/host 不平移。`97a186f` 使用快照配对而非接收时钟。`c853768` 令纯 client 冲量按历史 ServerReplayTick 判断 replay 消费资格，前向与 server/host 分支保留原时钟。两种时钟用途及测试入口统一见 [预测设计](../../prediction-design.md)。迟到客户端完整 12/20 tick 呈现仍需协议决策，不随时钟修复标完成。
 
 ## PR #58
 

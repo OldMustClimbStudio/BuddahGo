@@ -1,6 +1,6 @@
 # 预测系统核心设计
 
-当前实现位于 `Assets/Scripts/New_Buddah/`。本文说明模拟、回放与表现的边界及已实现的时钟契约；阶段实测结果和未完成验收见[公开运行记录](optimization/review-runtime-round2.md)。
+当前实现位于 `Assets/Scripts/New_Buddah/`。本文说明模拟、回放与表现的边界及已实现的时钟契约；阶段实测结果和未完成验收见[公开运行记录](archive/optimization/review-runtime-round2.md)。
 
 ## 模拟与回放
 
@@ -25,7 +25,7 @@
 - 容量溢出、重复事件和过期事件需要明确处理，关键效果不能悄悄丢失。
 - 开场、复活和结算交接需要考虑 owner/server/旁观者。请求成功返回只代表当前步骤被接受，不能证明 RPC 返回链路已完成。
 - 模式切换清理旧输入、队列和控制标记，防止 Legacy 与预测运动同时驱动角色。
-- 开场交接：本地 GO 到 motor 消费权威 handoff 之间，`RaceBodyIntroStateController` 继续沿 spline 末端切线驱动 kinematic 刚体和渲染采样（上限 `maxGoOvershootSeconds + maxHandoffPendingOvershootSeconds`），motor 在此期间不写刚体；Solo 物理时钟路径不外推。消费时 `ConsumePendingLaunchHandoffEvent` 把根落到碰撞体静止高度（`BuddahHandoffGroundSnap`），owner 与 server 同一路径。来龙去脉见 [联机修复](online-repair/progress.md) 与 [交接连续性](handoff-continuity/findings.md)。
+- 开场交接：本地 GO 到 motor 消费权威 handoff 之间，`RaceBodyIntroStateController` 继续沿 spline 末端切线驱动 kinematic 刚体和渲染采样（上限 `maxGoOvershootSeconds + maxHandoffPendingOvershootSeconds`），motor 在此期间不写刚体；Solo 物理时钟路径不外推。消费时 `ConsumePendingLaunchHandoffEvent` 把根落到碰撞体静止高度（`BuddahHandoffGroundSnap`），owner 与 server 同一路径。来龙去脉见 [联机修复](archive/online-repair/progress.md) 与 [交接连续性](archive/handoff-continuity/findings.md)。
 
 ## 表现与生命周期
 
@@ -61,6 +61,6 @@
 
 ## 诊断与验收边界
 
-预测/技能输入的屏幕 debug 已移除绘制入口，普通 HUD 和日志保留原有构建门控。采样开关、复现命令和已公开 R8 范围见[诊断日志说明](diagnostic-log-sampling-r8.md)。
+预测/技能输入的屏幕 debug 已移除绘制入口，普通 HUD 和日志保留原有构建门控。采样开关、复现命令和已公开 R8 范围见[诊断日志说明](archive/diagnostic-log-sampling-r8.md)。
 
 时钟修复不保证迟到客户端完整呈现配置的 Inherit/Blend 12/20 tick：完整呈现与权威结束时刻如何协调仍需协议决策。高速视觉接受也仍由用户决定。公开运行记录中的历史 75/75 及旧会话观测只证明对应版本，不作为快照配对提交的实测结果；未公开日志、实测数值和视频不在本文中补录。

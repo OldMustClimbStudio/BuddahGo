@@ -8,7 +8,7 @@ These are two real Unity Editor processes, not helper-only tests or cross-machin
 
 The measurements and 75/75 result below describe the published sessions before
 `97a186f` changed reconcile mapping to the snapshot tick pair. They remain historical
-evidence for those versions. The [current clock contract](../prediction-design.md#reconcile-快照与本地期限)
+evidence for those versions. The [current clock contract](../../prediction-design.md#reconcile-快照与本地期限)
 and synthetic regression tests describe the later code; no new private run data or
 media is added here. Full late-client 12/20-tick presentation and user visual acceptance
 remain unresolved.

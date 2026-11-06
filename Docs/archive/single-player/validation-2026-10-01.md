@@ -1,6 +1,6 @@
 # S1 选择页与新采样复核（2026-10-01）
 
-**历史检查点，游戏源码 `9cca08e`。** 本文保留该次运行的结果；其中 handoff 单帧停留已由后续 `cb4a9ad` 修复并验证，最新结论见 [Solo 呈现时间契约](solo-presentation-timeline.md)。此处 Development 窗口也不代表新源码或完整 V12 通过。
+**历史检查点，游戏源码 `9cca08e`。** 本文保留该次运行的结果；其中 handoff 单帧停留已由后续 `cb4a9ad` 修复并验证，最新结论见 [Solo 呈现时间契约](../../single-player/solo-presentation-timeline.md)。此处 Development 窗口也不代表新源码或完整 V12 通过。
 
 S1 仍为 **doing，尚非 user-ready**。本次运行的已提交游戏源码为 `9cca08e`；仅完成选择页、相关 handoff 回归及独立 Development 性能窗口。strict14、V3 精度留给下一短 session；AI 和联机测试均未启动。
 

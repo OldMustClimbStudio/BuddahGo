@@ -6,7 +6,7 @@
 - 证据在 [audit-report.md](audit-report.md)。
 - 进度的唯一来源是 [progress.md](progress.md)。
 
-仓库通用规则仍以 [harness.md](../../harness.md) 和 [CONTRIBUTING.md](../../CONTRIBUTING.md) 为准；本文只补充这次任务特有的内容。
+仓库通用规则仍以 [harness.md](../../../harness.md) 和 [CONTRIBUTING.md](../../../CONTRIBUTING.md) 为准；本文只补充这次任务特有的内容。
 
 ## 开工前（每次会话）
 
@@ -54,7 +54,7 @@
 
 ## 环境
 
-- **Unity 版本**：2022.3.55f1c1。编译和读 Console 可以用 Unity MCP，见 [Docs/unity-mcp.md](../unity-mcp.md)。
+- **Unity 版本**：2022.3.55f1c1。编译和读 Console 可以用 Unity MCP，见 [Docs/unity-mcp.md](../../unity-mcp.md)。
 - **联机测试**：沿用团队已有的做法，host 用 Development Build、client 用 Editor（或 ParrelSync 克隆）。`agent-exchange/console/*phase4b*` 中的日志就是这样采集的，可以作为日志格式参考。
 - **确定性判据（R7）**：在 Standalone 宏里保留 `BUDDAH_PREDICTION_SHADOW`，看 `[D-LOC HEARTBEAT]` 行里的 `loc-div/tel-div/mod-div/hof-div`。
 - **性能判据（R8）**：看 PerfProbe 的 GC.Alloc 和 VisualShakeProbe 的 `pos-davg-mean`。二者都依赖对应的宏，并且在 Editor 或 Development Build 中运行。

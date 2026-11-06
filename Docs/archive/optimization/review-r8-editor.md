@@ -75,4 +75,4 @@ All 18 Editor logs contain a completed-capture marker and have no matches for co
 errors or the scanned common managed-exception patterns; this does not mean warning-free
 logs. [Log audit](evidence/review-round2/r8-log-audit.json) records the check per endpoint.
 
-The exact probe and driver are archived in [ReviewR8Editor](../../Tools/Performance/ReviewR8Editor/README.md). Both are opt-in validation files; neither is included in production gameplay. Re-extract CSVs/metadata and run the archived `summarize-r8-editor.py <directory>` to reproduce numeric metrics. File-time window estimates should use the included analysis metadata if extraction changes mtimes.
+The exact probe and driver are archived in [ReviewR8Editor](../../../Tools/Performance/ReviewR8Editor/README.md). Both are opt-in validation files; neither is included in production gameplay. Re-extract CSVs/metadata and run the archived `summarize-r8-editor.py <directory>` to reproduce numeric metrics. File-time window estimates should use the included analysis metadata if extraction changes mtimes.

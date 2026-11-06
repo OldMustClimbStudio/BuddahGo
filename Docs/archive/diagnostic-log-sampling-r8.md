@@ -11,8 +11,8 @@ This implements the authorized screen-only change from
 
 | Consumer | Setting and behavior |
 | --- | --- |
-| Prediction console mirror | [BuddahPredictionDebugOverlay](../Assets/Scripts/New_Buddah/Debug/BuddahPredictionDebugOverlay.cs): `mirrorSummaryToConsole` enables sampling; `consoleMirrorIntervalSeconds` defaults to 0.5 seconds and is clamped to at least 0.1 seconds. Initialized client non-owners are filtered out. |
-| Runtime health/compatibility report | [BuddahPredictionBootstrap](../Assets/Scripts/New_Buddah/Bootstrap/BuddahPredictionBootstrap.cs): in Editor/Development, `HasHealthLogConsumer` is true when either non-null `debugSettings` has `enableVerboseLogs` enabled, or global `NetDebug.EnableVerboseLog` is enabled. [HealthReport](../Assets/Scripts/New_Buddah/Validation/BuddahPredictionRuntimeHealthReport.cs) samples at most every 0.5 seconds. |
+| Prediction console mirror | [BuddahPredictionDebugOverlay](../../Assets/Scripts/New_Buddah/Debug/BuddahPredictionDebugOverlay.cs): `mirrorSummaryToConsole` enables sampling; `consoleMirrorIntervalSeconds` defaults to 0.5 seconds and is clamped to at least 0.1 seconds. Initialized client non-owners are filtered out. |
+| Runtime health/compatibility report | [BuddahPredictionBootstrap](../../Assets/Scripts/New_Buddah/Bootstrap/BuddahPredictionBootstrap.cs): in Editor/Development, `HasHealthLogConsumer` is true when either non-null `debugSettings` has `enableVerboseLogs` enabled, or global `NetDebug.EnableVerboseLog` is enabled. [HealthReport](../../Assets/Scripts/New_Buddah/Validation/BuddahPredictionRuntimeHealthReport.cs) samples at most every 0.5 seconds. |
 | Release build | Mirror/health `LateUpdate` callbacks are absent. Conditional attributes strip diagnostic captures, refresh calls and Verbose calls/arguments. Release does not regain a Verbose channel. |
 
 The mirror alone is not a health-string consumer. With no health consumer, registry
@@ -22,26 +22,26 @@ The prefab retains `mirrorSummaryToConsole: 1` and a 0.5-second interval.
 
 ## Sampling contract
 
-- [BuddahPredictionLogSnapshot](../Assets/Scripts/New_Buddah/Debug/BuddahPredictionLogSnapshot.cs)
+- [BuddahPredictionLogSnapshot](../../Assets/Scripts/New_Buddah/Debug/BuddahPredictionLogSnapshot.cs)
   captures diagnostic scalars at the original replicate/reconcile event sites. Reconcile
   tick, speed and deltas stay tied to that reconcile even if later replicates update
   live state. Replicate writer reasons are captured without concatenation. Before an
   event exists its summary is `n/a`.
 - Formatting occurs when the mirror samples in `LateUpdate`, after Update writers.
-  [BuddahDiagnosticLogSampling](../Assets/Scripts/New_Buddah/Debug/BuddahDiagnosticLogSampling.cs)
+  [BuddahDiagnosticLogSampling](../../Assets/Scripts/New_Buddah/Debug/BuddahDiagnosticLogSampling.cs)
   advances the sample time even when text is unchanged; deduplication must not resume
   formatting every frame after a quiet interval. Unchanged summaries emit no new line.
 - Removed modifier/pending-impulse UI strings have no remaining consumer. Gameplay
   state, scalar diagnostics, event log sites and the prediction component GUID remain
   intact. Timing/state correctness is separate from this logging policy; see the
-  [prediction clock contracts](prediction-design.md).
+  [prediction clock contracts](../prediction-design.md).
 
 ## Checks and reproduction
 
-[PredictionDiagnosticSamplingTests](../Assets/Tests/EditMode/PredictionDiagnosticSamplingTests.cs)
+[PredictionDiagnosticSamplingTests](../../Assets/Tests/EditMode/PredictionDiagnosticSamplingTests.cs)
 covers consumer/build gates, sample intervals, interval clamping, independently captured
 replicate/reconcile values and Release argument stripping.
-[PredictionDiagnosticWiringTests](../Assets/Tests/EditMode/PredictionDiagnosticWiringTests.cs)
+[PredictionDiagnosticWiringTests](../../Assets/Tests/EditMode/PredictionDiagnosticWiringTests.cs)
 covers health-consumer wiring, absence of both `OnGUI` methods, and prefab screen flags
 with the console mirror retained.
 
@@ -55,7 +55,7 @@ compilation, the installed Unity Mono runtime and an existing Unity NUnit assemb
   -OutputDirectory '<unique output directory>'
 ```
 
-The [runner](../Tools/Validation/Run-DiagnosticSamplingChecks.ps1) varies Editor,
+The [runner](../../Tools/Validation/Run-DiagnosticSamplingChecks.ps1) varies Editor,
 Development and Release symbols and also checks allocations of the capture methods.
 Those checks are not a Player build, FishNet post-processing, or scene performance test.
 For the actual Unity wiring tests, use a disposable project after it is available for
@@ -82,7 +82,7 @@ measurement record: three source cells, three fresh host/client pairs per cell,
 It distinguishes existing P2 changes (A to B) from the log-only increment (B to C), retains
 all per-run variation and limits the conclusions to that Editor workload.
 
-Use the archived [ReviewR8Editor instructions](../Tools/Performance/ReviewR8Editor/README.md)
+Use the archived [ReviewR8Editor instructions](../../Tools/Performance/ReviewR8Editor/README.md)
 for exact probe/driver setup and replaying the published analysis. Preserve identical
 source/settings on both peers, use distinct output directories and avoid concurrent
 tests, builds or recording. Main Thread includes Editor work and waits; GC per frame

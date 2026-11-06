@@ -18,7 +18,7 @@
 | 验收口径与不变项 | [acceptance.md](acceptance.md) |
 | 记录进度、决策、新发现 | [progress.md](progress.md) |
 
-仓库规则以 [harness.md](../../harness.md)、[CONTRIBUTING.md](../../CONTRIBUTING.md) 为准；预测系统契约见 [prediction-design.md](../prediction-design.md)。
+仓库规则以 [harness.md](../../../harness.md)、[CONTRIBUTING.md](../../../CONTRIBUTING.md) 为准；预测系统契约见 [prediction-design.md](../../prediction-design.md)。
 
 ## 工作顺序
 

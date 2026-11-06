@@ -84,7 +84,7 @@
 
 ## 六、更优算法：推力矢量引导 + 时间最优姿态控制
 
-> **2026-10-02 起，本节的逐次修正已被 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md) 取代。** 本节保留为推导与修正记录；实现、校准、验收以规格文档为准。规格之外的规则改动先写进规格再实现。
+> **2026-10-02 起，本节的逐次修正已被 [thrust-vector-controller-spec.md](../../single-player/thrust-vector-controller-spec.md) 取代。** 本节保留为推导与修正记录；实现、校准、验收以规格文档为准。规格之外的规则改动先写进规格再实现。
 
 ### 结构
 
@@ -275,4 +275,4 @@ deadband 取 1–2°，加一点迟滞避免抖动。这就是整个"规划"。�
 
 ## 收尾（2026-10-03）
 
-本 review 的方向已完整执行并由用户验收：beam search 被推力矢量控制器取代，五 AI 帧时从 65 ms 降到 6–7 ms，Hard 圈速 82 s。两处本文判断需要修正：第四节的硬墙假设最终未单独验证（新控制器不存在该边界）；第六节最初的闭式引导低估了 1 s 姿态滞后，实施中改为 rollout 选择；更根本的是本文把墙当障碍，而游戏设计中墙是刹车（见规格第十一节）。本文保留为推导记录，实施以 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md) 为准。
+本 review 的方向已完整执行并由用户验收：beam search 被推力矢量控制器取代，五 AI 帧时从 65 ms 降到 6–7 ms，Hard 圈速 82 s。两处本文判断需要修正：第四节的硬墙假设最终未单独验证（新控制器不存在该边界）；第六节最初的闭式引导低估了 1 s 姿态滞后，实施中改为 rollout 选择；更根本的是本文把墙当障碍，而游戏设计中墙是刹车（见规格第十一节）。本文保留为推导记录，实施以 [thrust-vector-controller-spec.md](../../single-player/thrust-vector-controller-spec.md) 为准。

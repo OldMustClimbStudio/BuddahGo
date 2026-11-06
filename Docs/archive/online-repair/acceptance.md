@@ -69,7 +69,7 @@
 ### 收尾
 
 - 四个视角 × 两档延迟 × 真实 Steam 会话各跑一遍 P0 的全部项目，与基线对比写入 progress.md。
-- 更新 [networking.md](../networking.md) 与 [prediction-design.md](../prediction-design.md) 中与 Physics Mode、事件回放和视觉参考系相关的约束。
+- 更新 [networking.md](../../networking.md) 与 [prediction-design.md](../../prediction-design.md) 中与 Physics Mode、事件回放和视觉参考系相关的约束。
 
 ## 需要团队决定
 

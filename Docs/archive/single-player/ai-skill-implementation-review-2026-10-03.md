@@ -2,13 +2,13 @@
 
 状态：代码与证据复核。同日修正见实施记录末尾"复核后修正"：R1 撤回（用户已暂定固定六人）、R3 的成因归因有误（见下文更正）、其余项已修正；修正后未重新验证，等待用户测试。对象是 feat/single-player-mode 上的 `5afe638`（feat: implement five Solo AI skill personalities）及其 [实施记录](ai-skill-implementation-2026-10-03.md)。本复核只读代码、资产、场景差异与记录，没有运行 Unity、测试或构建；原始运行数据在实施者的私有证据目录，无法独立核对，以下凡引用数字均来自实施记录。
 
-结论先行：决策管线、承诺状态机、服务器按键注入、掌形瞄准、反转适应与黑幕感知受损都按 [技能管线规格](ai-skills.md) 落地，EditMode 覆盖面合理；但有一项产品范围变更、一项共享代码的玩家规则变更和一项平衡结果需要用户决定或返工，另有几处小修。
+结论先行：决策管线、承诺状态机、服务器按键注入、掌形瞄准、反转适应与黑幕感知受损都按 [技能管线规格](../../single-player/ai-skills.md) 落地，EditMode 覆盖面合理；但有一项产品范围变更、一项共享代码的玩家规则变更和一项平衡结果需要用户决定或返工，另有几处小修。
 
 ## 一、需要用户决定或返工
 
 ### R1 Practice（0 AI）从设置面板被移除（已撤回：用户本轮已暂定固定六人）
 
-`SoloSetupPanel` 删除了 AI 数量切换与 `SoloMatch.AICount` 偏好，开始按钮固定 `new SoloMatchSettings(RacerId.MaxAI, _difficulty)`。实施记录写"用户确认单机固定六人"。这与 [CONTEXT.md](../../CONTEXT.md) 的 Solo Match（0–5 个 AI）与 Practice（0 个 AI、只显示时间）定义、design §5.7（首次默认 3 个 AI）以及 phases 中已交付并经用户试玩的 Practice 里程碑相矛盾，而 CONTEXT／GLOSSARY／phases 没有同步更新。
+`SoloSetupPanel` 删除了 AI 数量切换与 `SoloMatch.AICount` 偏好，开始按钮固定 `new SoloMatchSettings(RacerId.MaxAI, _difficulty)`。实施记录写"用户确认单机固定六人"。这与 [CONTEXT.md](../../../CONTEXT.md) 的 Solo Match（0–5 个 AI）与 Practice（0 个 AI、只显示时间）定义、design §5.7（首次默认 3 个 AI）以及 phases 中已交付并经用户试玩的 Practice 里程碑相矛盾，而 CONTEXT／GLOSSARY／phases 没有同步更新。
 
 - 若"固定六人"是用户的决定：需同步 CONTEXT.md 的 Solo Match／Practice 条目、design §5.7、phases 的 Practice 条目，并明确 Practice 是否仍然存在（0 AI 练习是否还需要）。
 - 若不是：恢复 0／5 切换（或 0–5），`SpawnSoloAI` 的 `count == 0 → return` 已能支持 0 AI。
@@ -50,7 +50,7 @@
 - `AISkillWorld` 一次快照五车共用、曲率前缀和 O(1)、固定容量历史、无场景查询；决策按 tick 相位与帧级门控交错。`MatchSpawnManager` 在 RaceMap 场景内，Rematch 重载场景时世界随之重建，`??=` 可接受。
 - 反转适应用认知符号替换规划输入，物理与效果时长不变；受损 profile 为独立实例，不改资产，不改每车基础 profile（有测试）。
 - 黑幕通过 `SkillPerceptionState.ApplyCurtain` 给全部参赛者写服务器状态，真人放的黑幕也会让 AI 受损，Q4 对称成立。
-- 权重、局势偏置与严重度数组的索引顺序与 `AISkillKind`／`AISkillSituation` 一致，`SkillPersonalities.json` 五个预设与 [人格配置](ai-personalities.md) 表一致。
+- 权重、局势偏置与严重度数组的索引顺序与 `AISkillKind`／`AISkillSituation` 一致，`SkillPersonalities.json` 五个预设与 [人格配置](../../single-player/ai-personalities.md) 表一致。
 - `5afe638` 已推送到 origin。
 
 ## 四、验证边界

@@ -16,18 +16,18 @@ EXP-0、EXP-1 / §1 与开场交接残余修复已完成并经用户双端实测
 | 验收阈值与回归矩阵 | [acceptance.md](acceptance.md) |
 | 记录进度、基线、决策、新发现（唯一来源） | [progress.md](progress.md) |
 
-仓库规则以 [harness.md](../../harness.md)、[CONTRIBUTING.md](../../CONTRIBUTING.md) 为准。预测系统的既有契约见 [prediction-design.md](../prediction-design.md)，FishNet 要点见 [networking.md](../networking.md)。
+仓库规则以 [harness.md](../../../harness.md)、[CONTRIBUTING.md](../../../CONTRIBUTING.md) 为准。预测系统的既有契约见 [prediction-design.md](../../prediction-design.md)，FishNet 要点见 [networking.md](../../networking.md)。
 
 ## 环境
 
-- Unity 2022.3.55f1c1，FishNet 4.7.1（`Assets/FishNet/package.json`）。编译与 Console 可用 Unity MCP（[unity-mcp.md](../unity-mcp.md)）。
+- Unity 2022.3.55f1c1，FishNet 4.7.1（`Assets/FishNet/package.json`）。编译与 Console 可用 Unity MCP（[unity-mcp.md](../../unity-mcp.md)）。
 - 两端测试：host 用 Development Build、client 用 Editor 或 ParrelSync 克隆。两端 Assets 必须一致。
 - 延迟模拟：`Assets/Scenes/MainMenu.unity` 的 NetworkManager → TransportManager → `_latencySimulator`（`_enabled`、`_latency` 毫秒、`_simulateHost: 1`）。连接前设置；两端都设。
 - 日志开关（Editor / Development 才编译进来，Release 无 Verbose）：
   - `Buddah.prefab` → BuddahPredictionBootstrap → Debug Settings：`enableVerboseLogs`、`dumpReconcile`、`dumpReplicate`。
   - 全局：`NetDebug.EnableVerboseLog = true`。
   - Standalone 保留宏 `BUDDAH_PREDICTION_SHADOW` 可看 `[D-LOC HEARTBEAT]`。
-- 严格测量可复用归档的运行夹具 [Tools/Validation/ReviewRuntimeRound2](../../Tools/Validation/ReviewRuntimeRound2/README.md)：它在 postTick/postReplay 记录每个 motor 的刚体位置，`summarize-runtime-stream.py` 输出 GO 后 1 秒的 `transformCorrection` 统计。它依赖一个观察探针补丁，仅用于一次性 worktree，不进入正式提交。
+- 严格测量可复用归档的运行夹具 [Tools/Validation/ReviewRuntimeRound2](../../../Tools/Validation/ReviewRuntimeRound2/README.md)：它在 postTick/postReplay 记录每个 motor 的刚体位置，`summarize-runtime-stream.py` 输出 GO 后 1 秒的 `transformCorrection` 统计。它依赖一个观察探针补丁，仅用于一次性 worktree，不进入正式提交。
 
 ## 工作顺序
 

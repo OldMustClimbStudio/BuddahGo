@@ -117,6 +117,6 @@
 
 ## 收尾
 
-- 更新 [networking.md](../networking.md)："预测要求 TimeManager Physics Mode"写入常见问题表；[prediction-design.md](../prediction-design.md)：事件消费的回放安全规则、回放时钟选择表加入 handoff/teleport 行。
+- 更新 [networking.md](../../networking.md)："预测要求 TimeManager Physics Mode"写入常见问题表；[prediction-design.md](../../prediction-design.md)：事件消费的回放安全规则、回放时钟选择表加入 handoff/teleport 行。
 - 删除所有 `[EXP-n]` 探针提交（或把 `[ReconcileDelta]` 保留在 `dumpReconcile` 门控下）。
 - PR 描述列出每节的实测数字与未执行项。

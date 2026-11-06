@@ -18,7 +18,7 @@
 ## 名单与握手
 
 - `RoomRoster.AreAllRequiredPlayersReady()` 对空名单返回 false；有名单时只要求非 host 玩家 ready。`ResetReadyForRoomReturn()` 将 host 设为 ready、其他玩家设为未 ready，仅把有变化的项写回列表。
-- `ResetAllReadiness()` 清空全部七个集合；`ResetSequenceReadiness()` 保留场景 manager ready，清空三个阶段的 ready 和序号记录。`RemovePlayer(id)` 仅从全部集合移除该玩家。manager 各入口的重置矩阵见 [P4 验证记录](optimization/p4-validation.md#p4-1-预检与重置矩阵)。
+- `ResetAllReadiness()` 清空全部七个集合；`ResetSequenceReadiness()` 保留场景 manager ready，清空三个阶段的 ready 和序号记录。`RemovePlayer(id)` 仅从全部集合移除该玩家。manager 各入口的重置矩阵见 [P4 验证记录](archive/optimization/p4-validation.md#p4-1-预检与重置矩阵)。
 - `TryMarkLocalSequence()` 拒绝未初始化 client、负序号和同序号重复报告；不同序号可报告，包括比上次小的序号。它不要求序号单调递增。
 - `AreAllReadyForSequence()` 要求 server 已初始化、序号非负，并逐一匹配当前名单的记录。满足前两个条件时，空名单返回 true；这与房间名单的 ready 判断不同。名单外的旧记录不影响该查询。
 - `RecordReadySequence()` 只记录 ready 和序号，不校验调用者。`RoomStateManager.TryRecordReadySequenceServer()` 保留非空且已认证 caller 的检查；`RoomDiagnostics` 通过计数和序号查询读取状态。
@@ -43,4 +43,4 @@
 - [LoadoutRulesTests](../Assets/Tests/EditMode/LoadoutRulesTests.cs)：空槽、重复策略、失败时部分规范化、数组长度及候选顺序。
 - [PlayerIdentityTests](../Assets/Tests/EditMode/PlayerIdentityTests.cs)：姓名回退、空连接和 transport 地址转发；测试 transport 不启动 socket 或 Steam。
 
-这三个测试类在 `95e57a0` 所记录的最终堆叠 61/61 EditMode 结果中分别通过 5、6、5 项，见 [审查修复验证](optimization/review-fixes-validation.md#最终堆叠验证与发布收尾)。这是该提交的既有结果。它不覆盖真实双端开赛、Steam/跨机流程、完整碰撞矩阵或性能验收，也不将 `RoomRoster` 声称为独立 EditMode 测试类。
+这三个测试类在 `95e57a0` 所记录的最终堆叠 61/61 EditMode 结果中分别通过 5、6、5 项，见 [审查修复验证](archive/optimization/review-fixes-validation.md#最终堆叠验证与发布收尾)。这是该提交的既有结果。它不覆盖真实双端开赛、Steam/跨机流程、完整碰撞矩阵或性能验收，也不将 `RoomRoster` 声称为独立 EditMode 测试类。

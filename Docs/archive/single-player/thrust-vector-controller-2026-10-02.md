@@ -276,7 +276,7 @@ A1模型检查96/97=98.969072%，高于参考293/297=98.653199%，但不是相�
 
 新增观察字段记录 e_v、目标坐标、限幅后目标、共同偏移、恢复/倒车/近期碰撞和实际 remaining。CSV 同时保留 pre-step 原始 ω、φ、remaining 与 post-step 的独立累计相对偏航。独立累计偏航始终由真实模型 yaw 增量减路线转角累加，不受内部归零或恢复重置。
 
-冻结测试专用 `ThrustVectorRevisionFiveFixture.cs` 精确重放得到 [target-seam-revision-five.json](../../Tools/ai/fixtures/target-seam-revision-five.json)，未从四舍五入 CSV 重建状态：
+冻结测试专用 `ThrustVectorRevisionFiveFixture.cs` 精确重放得到 [target-seam-revision-five.json](../../../Tools/ai/fixtures/target-seam-revision-five.json)，未从四舍五入 CSV 重建状态：
 
 | pre-step tick / 秒 | e_v (°) | θ (°) | 第五次 e_target (°) | 第五次 φ (°) | 第六次 e_target (°) | 第六次 φ (°) | ω (rad/s) | 旧输入→新输入 |
 |---|---:|---:|---:|---:|---:|---:|---:|---|
@@ -380,7 +380,7 @@ A1模型检查96/97=98.969072%，高于参考293/297=98.653199%，但不是相�
 
 ## 2026-10-02 21:33 UTC：唯一规格实现与第1步验收阻塞
 
-已完整读取并实施用户21:19更新的 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md)，SHA256 `4f8b3e2dbb339f46a772e713c1920b6f28014daa9f9ec42658ac3093c7e6f047`。这份规格取代旧review逐次规则；两遍计算及模式/恢复切换的φ跳变例外均已按批准版本实现。实际HEAD仍为`68e4d705c0d1fbf63aa598c976aebb758be9c6ff`。本节是规格门槛阻塞报告，**不是“fixture全过+网格完成”交付节点**。
+已完整读取并实施用户21:19更新的 [thrust-vector-controller-spec.md](../../single-player/thrust-vector-controller-spec.md)，SHA256 `4f8b3e2dbb339f46a772e713c1920b6f28014daa9f9ec42658ac3093c7e6f047`。这份规格取代旧review逐次规则；两遍计算及模式/恢复切换的φ跳变例外均已按批准版本实现。实际HEAD仍为`68e4d705c0d1fbf63aa598c976aebb758be9c6ff`。本节是规格门槛阻塞报告，**不是“fixture全过+网格完成”交付节点**。
 
 ### 实现范围
 
@@ -482,7 +482,7 @@ Unity输出`spec-fixtures-v1.xml`：**34项，30通过、4失败**。其中既�
 
 ## 2026-10-02 接手实现：rollout 选择层与真机结果
 
-实现过程、离线轮次与关键发现见 [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md) 第十节。本节只记真机。构建：`Assets/Editor/ThrustVectorAcceptanceBuild.cs` 的 Development Windows x64（0 errors / 21 warnings），输出 `C:/Users/dwh88/Documents/Codex/2026-10-02/claude-thrust/build`。运行：`AITuningHarness` 经 `--ai-a1-output`/`--ai-a2-output`，新增 `--ai-count N`；1280×720 窗口，60 fps cap，vSync 0。profile：`Tools/ai/thrust-vector-design.json`（新控制器）与 `Tools/ai/normal.json`（V5 beam）。每次运行的 summary/configuration/events/perf 副本在 `Tools/ai/thrust-vector/rollout-2026-10-02/player/<name>/`，完整 trajectory/plans 在构建目录的 `runs/<name>/`。
+实现过程、离线轮次与关键发现见 [thrust-vector-controller-spec.md](../../single-player/thrust-vector-controller-spec.md) 第十节。本节只记真机。构建：`Assets/Editor/ThrustVectorAcceptanceBuild.cs` 的 Development Windows x64（0 errors / 21 warnings），输出 `C:/Users/dwh88/Documents/Codex/2026-10-02/claude-thrust/build`。运行：`AITuningHarness` 经 `--ai-a1-output`/`--ai-a2-output`，新增 `--ai-count N`；1280×720 窗口，60 fps cap，vSync 0。profile：`Tools/ai/thrust-vector-design.json`（新控制器）与 `Tools/ai/normal.json`（V5 beam）。每次运行的 summary/configuration/events/perf 副本在 `Tools/ai/thrust-vector/rollout-2026-10-02/player/<name>/`，完整 trajectory/plans 在构建目录的 `runs/<name>/`。
 
 | 运行 | 控制器 | AI 数 | 圈速 s | 侧接触 | 帧时中位 / P95 ms（GO+2..11 s） | ticks / 9 s | 运行错误 |
 |---|---|---:|---|---:|---|---:|---:|

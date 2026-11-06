@@ -82,6 +82,25 @@ namespace BuddahGo.Tests
 
         private static bool RaceSceneActive() => SceneManager.GetActiveScene().name == SceneNames.RaceMap;
 
+        // Lambdas here must not capture locals: entering Play mode reloads the domain and the test framework rebuilds
+        // the iterator without the closure object the compiler allocated at the top of the method.
+        private static bool StoppedInMenu()
+        {
+            NetworkManager network = GameNetworkManager.Instance != null ? GameNetworkManager.Instance.FishNetManager : null;
+            return network != null && !network.ClientManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu;
+        }
+
+        // The persistent session objects must survive the menu → race scene change.
+        private static NetworkManager LiveNetwork()
+        {
+            Assert.That(GameNetworkManager.Instance, Is.Not.Null, "GameNetworkManager must persist into the race");
+            Assert.That(SessionControl.Current, Is.Not.Null, "SessionControl must persist into the race");
+            Assert.That(RoomStateManager.Instance, Is.Not.Null, "RoomStateManager must persist into the race");
+            NetworkManager network = GameNetworkManager.Instance.FishNetManager;
+            Assert.That(network, Is.Not.Null, "GameNetworkManager has no FishNet NetworkManager");
+            return network;
+        }
+
         private static string[] SelectableSkills()
         {
             SkillDatabase database = AssetDatabase.LoadAssetAtPath<SkillDatabase>("Assets/Skills_Assets/Skill Database.asset");
@@ -100,14 +119,14 @@ namespace BuddahGo.Tests
             Assert.That(Time.maximumDeltaTime, Is.EqualTo(Time.fixedDeltaTime * SessionLauncher.SoloMaxPhysicsStepsPerFrame).Within(1e-6f));
             yield return WaitUntil(RaceSceneActive, 45f);
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.RaceMap), "Solo goes straight from the menu into the race.");
-            var network = Object.FindFirstObjectByType<NetworkManager>();
+            var network = LiveNetwork();
             // Inject a startup failure at the private rollback boundary after the menu unloaded.
             // This tests recovery, not the cause or duration of a real authentication timeout.
             var rollback = typeof(SessionLauncher).GetMethod("Rollback", Private);
             Assert.That(rollback, Is.Not.Null);
             Assert.That(rollback.Invoke(SessionControl.Current, new object[] { "Injected startup failure" }), Is.EqualTo(false));
             Assert.That(network.ClientManager.Started, Is.True, "Failure cleanup is also deferred out of its calling stack.");
-            yield return WaitUntil(() => !network.ClientManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu, 45f);
+            yield return WaitUntil(StoppedInMenu, 45f);
             Assert.That(network.ServerManager.Started || network.ClientManager.Started, Is.False);
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.MainMenu));
             Assert.That(SessionControl.Current.LastError, Is.EqualTo("Injected startup failure"));
@@ -142,9 +161,9 @@ namespace BuddahGo.Tests
             Assert.That(RoomStateManager.Instance.Players.Count, Is.EqualTo(1), "Practice has one player and no AI.");
             yield return WaitUntil(RaceSceneActive, 45f);
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.RaceMap));
-            var network = Object.FindFirstObjectByType<NetworkManager>();
+            var network = LiveNetwork();
             SessionControl.Current.RequestStopSession();
-            yield return WaitUntil(() => !network.ClientManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu, 45f);
+            yield return WaitUntil(StoppedInMenu, 45f);
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.MainMenu));
             yield return new ExitPlayMode();
         }
@@ -166,7 +185,7 @@ namespace BuddahGo.Tests
             if (!SessionControl.Current.IsOnlineAvailable)
                 Assert.That(RoomStateManager.Instance.Players[0].PlayerName, Is.EqualTo("玩家"));
 
-            var network = Object.FindFirstObjectByType<NetworkManager>();
+            var network = LiveNetwork();
             // Batch runs have no focused Game View. Scope the input routing override
             // to this test and restore it in teardown; production settings stay unchanged.
             _backgroundBehavior = InputSystem.settings.backgroundBehavior;
@@ -184,7 +203,7 @@ namespace BuddahGo.Tests
             yield return null;
             GameObject.Find("ConfirmQuit").GetComponent<Button>().onClick.Invoke();
             Assert.That(network.ClientManager.Started, Is.True, "Stop must be deferred out of the calling RPC/UI stack.");
-            yield return WaitUntil(() => !network.ClientManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu, 45f);
+            yield return WaitUntil(StoppedInMenu, 45f);
             Assert.That(network.ServerManager.Started || network.ClientManager.Started, Is.False);
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.MainMenu));
             Assert.That(MatchRules.Current.RequiresReady, Is.True);
@@ -211,7 +230,8 @@ namespace BuddahGo.Tests
             var loadout = human.GetComponent<SkillLoadout>();
             Assert.That(Enumerable.Range(0, SkillLoadout.SlotCount).Select(loadout.GetSkillId).ToArray(), Is.EqualTo(pick), "The racer's slots are the menu pick, in order.");
             var skin = human.GetComponent<RacerSkinApplier>();
-            yield return WaitUntil(() => skin.AppliedSkinId == "zhehong", 5f);
+            float skinDeadline = Time.realtimeSinceStartup + 5f;
+            while (Time.realtimeSinceStartup < skinDeadline && skin.AppliedSkinId != "zhehong") yield return null;
             Assert.That(skin.AppliedSkinId, Is.EqualTo("zhehong"), "The racer wears the menu's skin.");
 
             QueueKeyboardState(new KeyboardState(Key.Escape));
@@ -288,8 +308,9 @@ namespace BuddahGo.Tests
             Assert.That(GameObject.Find("Rematch").GetComponent<Button>().interactable, Is.True);
             GameObject.Find("Rematch").GetComponent<Button>().onClick.Invoke();
             // A rematch passes through the menu scene (FishNet does not reload a loaded scene) and races again.
-            yield return WaitUntil(() => human == null && RaceSceneActive() && RoomStateManager.Instance != null
-                && RoomStateManager.Instance.CurrentMatchSessionPhase == MatchSessionPhase.InMatch, 60f);
+            float rematchDeadline = Time.realtimeSinceStartup + 60f;
+            while (Time.realtimeSinceStartup < rematchDeadline && !(human == null && RaceSceneActive() && RoomStateManager.Instance != null
+                && RoomStateManager.Instance.CurrentMatchSessionPhase == MatchSessionPhase.InMatch)) yield return null;
             Assert.That(human == null, Is.True, "The old racer is gone.");
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.RaceMap));
             Assert.That(RoomStateManager.Instance.CurrentMatchSessionPhase, Is.EqualTo(MatchSessionPhase.InMatch));
@@ -300,7 +321,7 @@ namespace BuddahGo.Tests
             Assert.That(Enumerable.Range(0, SkillLoadout.SlotCount).Select(again.GetComponent<SkillLoadout>().GetSkillId).ToArray(), Is.EqualTo(pick),
                 "The rematch keeps the menu pick.");
             SessionControl.Current.RequestStopSession();
-            yield return WaitUntil(() => !network.ClientManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu, 45f);
+            yield return WaitUntil(StoppedInMenu, 45f);
             Assert.That(network.ServerManager.Started || network.ClientManager.Started, Is.False);
             Assert.That(MatchServices.Clock, Is.Null);
             Assert.That(MatchServices.Timing, Is.Null);

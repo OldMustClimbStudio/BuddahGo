@@ -11,8 +11,9 @@ namespace BuddahGo.VFX.EditorTools
     //  - frost_lock_hit, the ice block on every frozen racer (FrozenIceShell plays it on FrozenChanged). The crystal and
     //    the v1.5 ice the user picked on 2026-11-06 (Docs/vfx/yuanqi-frost-lock/probes/frost_build_v3.cs: backMid,
     //    veinsMid, coreMid, surfMid): inner walls (the crystal inside out), internal fractures, a weak core glow and the
-    //    outer surface, plus twinkling glints and shards that break off at the thaw. Every part is a one-particle mesh
-    //    system, so the slot pipeline fades, stretches and scales it like any other layer (a giant gets a x4 block).
+    //    outer surface, as MeshRenderers like the swatch (on one-particle mesh systems the same materials rendered far
+    //    fainter); SkillVfxMeshAlpha turns the layer's alpha curve into their fade in, grow and melt. The layer scales
+    //    with the body (a giant gets a x4 block). Plus twinkling glints and flecks thrown off at the thaw.
     //  - frost_lock_release, the frozen ground under the caster (Yuanqi_FrostLock.PlayObservers): a frost sheet and
     //    radial cracks that spread to R in 0.12 s, a ring that flashes out to R and stays as its rim, ground glints.
     //    Laid once at the trigger and left in place, in world units (casterScaling None): R does not grow with the body.
@@ -39,8 +40,8 @@ namespace BuddahGo.VFX.EditorTools
         const float IcePopFrom = 0.88f;           // the block grows from 88 % ...
         const float IcePopShare = 0.06f;          // ... to full size in the first 6 % (0.09 s)
         const float IceMeltShare = 0.15f;         // and melts away in the last 15 % (0.22 s)
-        const float ShardBurstAt = 1.3f;          // reference seconds: the shards break off as the melt starts
-        const int ShardCount = 16;
+        const float ShardBurstAt = 1.3f;          // reference seconds: flecks break off as the melt starts
+        const int ShardCount = 24;
         const float GlintRate = 6f;               // per second
         static readonly Vector2 GlintSize = new Vector2(1.1f, 1.8f);   // metres at body scale 1
         const float GroundRadius = 12f;           // R, YuanqiEffectFrostLock.radiusMeters (a test keeps them equal)
@@ -78,12 +79,9 @@ namespace BuddahGo.VFX.EditorTools
             Mesh crystal = SaveMesh(BuildCrystal(body, CrystalSeed), "Mesh_FX_FrostLock_Crystal");
             Mesh inside = SaveMesh(InsideOut(crystal), "Mesh_FX_FrostLock_CrystalBack");
             Mesh glintPoints = SaveMesh(GlintPoints(crystal, 6, 3f), "Mesh_FX_FrostLock_GlintPoints");
-            Mesh shard = SaveMesh(BuildShard(), "Mesh_FX_FrostLock_Shard");
             log.Append("body bounds " + body.size.ToString("F1") + "; ");
 
             Materials m = BuildMaterials(crack, Load<Texture2D>("Assets/VFX/Shared/Piloto/Textures/Gradient_maker_simple_round_radial.png"), Load<Texture2D>(PilotoTexture("FX_Ring_01_T.png")));
-            List<ParticleSystemVertexStream> streams = VertexStreams();
-
             // ---- ice block (hit slot, on the frozen racer)
             SkillReleaseProto.Skill iceSlot = Slot(IceVfxId);
             log.Append(SkillReleaseProto.Build(iceSlot, false)).Append("; ");
@@ -92,18 +90,19 @@ namespace BuddahGo.VFX.EditorTools
             {
                 Transform scaled = ClearLayers(root);
                 SkillVfxLayer ice = NewLayer(scaled, IceLayer, SkillVfxFunction.Mesh, SkillVfxTier.Core, 1, true, SkillVfxAnchor.CasterAttached, SkillVfxCasterScaling.Whole, Vector3.zero);
-                // A freeze that ends early (reset, respawn) stops the slot (FrozenIceShell): the block goes at once.
-                ice.clearOnDissipation = true;
+                // The block fades in with the pop and melts at the end (SkillVfxMeshAlpha reads this curve); a freeze
+                // that ends early (reset, respawn) ends the window, which hides the meshes at once.
+                ice.alpha = new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(IcePopShare, 1f), new Keyframe(1f - IceMeltShare, 1f), new Keyframe(1f, 0f));
                 // Back to front, as the swatch: inner walls, fractures (0.9 shell), core glow (0.8 shell), surface.
-                IceShell(ice.transform, "IceBack", inside, m.back, 1f, body.center, streams);
-                IceShell(ice.transform, "IceVeins", crystal, m.veins, 0.9f, body.center, streams);
-                IceShell(ice.transform, "IceCore", crystal, m.core, 0.8f, body.center, streams);
-                IceShell(ice.transform, "IceSurface", crystal, m.surface, 1f, body.center, streams);
+                IceShell(ice.transform, "IceBack", inside, m.back, 1f, body.center);
+                IceShell(ice.transform, "IceVeins", crystal, m.veins, 0.9f, body.center);
+                IceShell(ice.transform, "IceCore", crystal, m.core, 0.8f, body.center);
+                IceShell(ice.transform, "IceSurface", crystal, m.surface, 1f, body.center);
 
                 SkillVfxLayer accent = NewLayer(scaled, IceAccentLayer, SkillVfxFunction.Sparks, SkillVfxTier.Accent, 2, false, SkillVfxAnchor.CasterAttached, SkillVfxCasterScaling.Whole, Vector3.zero);
                 accent.clearOnDissipation = true;
                 Glints(accent.transform, glintPoints, m.glint);
-                Shards(accent.transform, crystal, shard, m.surface, streams);
+                Shards(accent.transform, crystal, m.shard);
                 SetReference(root, ReferenceSeconds);
                 Finish(root);
                 PrefabUtility.SaveAsPrefabAsset(root, iceSlot.PrefabPath);
@@ -210,8 +209,7 @@ namespace BuddahGo.VFX.EditorTools
                 ParticleSystem.MainModule main = ps.main;
                 main.playOnAwake = false;
                 main.scalingMode = ParticleSystemScalingMode.Hierarchy;
-                // Every renderer feeds UberFXSG the pack's streams; with Unity's default billboard streams the ground
-                // quads drew nothing.
+                // Every particle renderer feeds UberFXSG the pack's own streams.
                 ps.GetComponent<ParticleSystemRenderer>().SetActiveVertexStreams(streams);
             }
         }
@@ -256,31 +254,24 @@ namespace BuddahGo.VFX.EditorTools
             emission.SetBursts(new[] { new ParticleSystem.Burst(time, (short)count, (short)count, 1, 0.01f) });
         }
 
-        static void MeshRender(ParticleSystem ps, Mesh mesh, Material material, List<ParticleSystemVertexStream> streams)
+        // One crystal shell as a MeshRenderer (the swatch's setup): the mesh is authored around the body (visual root
+        // frame), a shell scale s shrinks it about the body centre. SkillVfxMeshAlpha fades and grows it with the layer.
+        static void IceShell(Transform layer, string name, Mesh mesh, Material material, float shellScale, Vector3 bodyCentre)
         {
-            var renderer = ps.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.Mesh;
-            renderer.mesh = mesh;
-            renderer.alignment = ParticleSystemRenderSpace.Local;
+            var go = new GameObject(name);
+            go.transform.SetParent(layer, false);
+            go.transform.localPosition = bodyCentre * (1f - shellScale);
+            go.transform.localScale = Vector3.one * shellScale;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
-            renderer.SetActiveVertexStreams(streams);
-        }
-
-        // One crystal shell for the whole window: the mesh is authored around the body (visual root frame), so the
-        // particle sits at the layer origin; a shell scale s shrinks it about the body centre.
-        static void IceShell(Transform layer, string name, Mesh mesh, Material material, float shellScale, Vector3 bodyCentre, List<ParticleSystemVertexStream> streams)
-        {
-            ParticleSystem ps = NewSystem(layer, name, ReferenceSeconds, 1);
-            ps.transform.localPosition = bodyCentre * (1f - shellScale);
-            ps.transform.localScale = Vector3.one * shellScale;
-            Burst(ps, 0f, 1);
-            MeshRender(ps, mesh, material, streams);
-            ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
-            size.enabled = true;
-            size.size = new ParticleSystem.MinMaxCurve(1f, Grow(IcePopFrom, IcePopShare));
-            ParticleSystem.ColorOverLifetimeModule colour = ps.colorOverLifetime;
-            colour.enabled = true;
-            colour.color = Fade(IcePopShare * 0.6f, 1f, 1f - IceMeltShare, 1f);
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            var fade = go.AddComponent<SkillVfxMeshAlpha>();
+            fade.popFrom = IcePopFrom;
+            fade.pivot = bodyCentre;
         }
 
         static void Glints(Transform layer, Mesh points, Material material)
@@ -307,18 +298,15 @@ namespace BuddahGo.VFX.EditorTools
             renderer.sharedMaterial = material;
         }
 
-        // Pieces breaking off the block as it thaws: small crystals thrown off its surface, falling.
-        static void Shards(Transform layer, Mesh crystal, Mesh shard, Material material, List<ParticleSystemVertexStream> streams)
+        // Flecks breaking off the block as it thaws: bright specks thrown off its surface, falling.
+        static void Shards(Transform layer, Mesh crystal, Material material)
         {
-            ParticleSystem ps = NewSystem(layer, "ThawShards", 0.6f, ShardCount);
+            ParticleSystem ps = NewSystem(layer, "ThawFlecks", 0.6f, ShardCount);
             ParticleSystem.MainModule main = ps.main;
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.45f, 0.7f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(5f, 12f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.4f);
-            main.startRotation3D = true;
-            main.startRotationX = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.startRotationY = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.startRotationZ = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.3f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
             main.gravityModifier = 2f;
             Burst(ps, ShardBurstAt, ShardCount);
             ParticleSystem.ShapeModule shape = ps.shape;
@@ -328,14 +316,13 @@ namespace BuddahGo.VFX.EditorTools
             shape.mesh = crystal;
             ParticleSystem.RotationOverLifetimeModule spin = ps.rotationOverLifetime;
             spin.enabled = true;
-            spin.separateAxes = true;
-            spin.x = new ParticleSystem.MinMaxCurve(-6f, 6f);
-            spin.y = new ParticleSystem.MinMaxCurve(-6f, 6f);
             spin.z = new ParticleSystem.MinMaxCurve(-6f, 6f);
             ParticleSystem.ColorOverLifetimeModule colour = ps.colorOverLifetime;
             colour.enabled = true;
             colour.color = Fade(0.02f, 1f, 0.55f, 1f);
-            MeshRender(ps, shard, material, streams);
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.sharedMaterial = material;
         }
 
         static void GroundDisc(Transform layer, string name, Material material, float size, float lift, AnimationCurve grow, ParticleSystem.MinMaxGradient fade)
@@ -435,7 +422,7 @@ namespace BuddahGo.VFX.EditorTools
 
         struct Materials
         {
-            public Material back, veins, core, surface, glint, sheet, cracks, rim;
+            public Material back, veins, core, surface, glint, shard, sheet, cracks, rim;
         }
 
         static Materials BuildMaterials(Texture2D crack, Texture2D disc, Texture2D ring)
@@ -444,6 +431,7 @@ namespace BuddahGo.VFX.EditorTools
             Texture2D noiseTex = Load<Texture2D>("Assets/VFX/Shared/Piloto/Textures/Tx_Noise_20.png");
             Texture2D veinTex = Load<Texture2D>("Assets/VFX/Shared/Piloto/Textures/Noise_TilingSoftWebbing.png");
             Texture2D flareTex = Load<Texture2D>("Assets/Plugins/Piloto Studio/Textures/Flare_Cross.png");
+            Texture2D fleckTex = Load<Texture2D>("Assets/Plugins/Piloto Studio/Textures/Fleks_Shiny.png");
             Material alphaSrc = Load<Material>("Assets/VFX/Shared/Piloto/Materials/Smoke_screen_cloud_sharp_fb_1_alpha_soft.mat");
             Material addSrc = Load<Material>("Assets/VFX/Shared/Piloto/Materials/Ring_Halo_faded_add_soft.mat");
 
@@ -473,6 +461,11 @@ namespace BuddahGo.VFX.EditorTools
             m.glint.DisableKeyword("_USERAMP"); m.glint.SetFloat("_USERAMP", 0f);
             m.glint.DisableKeyword("_FRESNEL"); m.glint.SetFloat("_FRESNEL", 0f);
 
+            m.shard = Fx(addSrc, "ThawFlecks", fleckTex, noiseTex, 1f, 3004);
+            m.shard.DisableKeyword("_USERAMP"); m.shard.SetFloat("_USERAMP", 0f);
+            m.shard.DisableKeyword("_FRESNEL"); m.shard.SetFloat("_FRESNEL", 0f);
+            m.shard.SetVector("_MainAlphaChannel", new Vector4(0, 0, 0, 1));   // Fleks_Shiny is white, shapes in alpha
+
             // Ground: frost sheet (crystal facets in a soft round mask), radial cracks, the rim at R (the pack's thin
             // double ring). White and grey only.
             m.sheet = Fx(alphaSrc, "GroundSheet", crystalTex, noiseTex, 4f, 3000);
@@ -497,7 +490,7 @@ namespace BuddahGo.VFX.EditorTools
             m.rim.DisableKeyword("_FRESNEL"); m.rim.SetFloat("_FRESNEL", 0f);
 
             m.back = SaveMaterial(m.back); m.veins = SaveMaterial(m.veins); m.core = SaveMaterial(m.core);
-            m.surface = SaveMaterial(m.surface); m.glint = SaveMaterial(m.glint);
+            m.surface = SaveMaterial(m.surface); m.glint = SaveMaterial(m.glint); m.shard = SaveMaterial(m.shard);
             m.sheet = SaveMaterial(m.sheet); m.cracks = SaveMaterial(m.cracks); m.rim = SaveMaterial(m.rim);
             return m;
         }
@@ -660,33 +653,6 @@ namespace BuddahGo.VFX.EditorTools
                 prism(basePt, axis, w * R(0.18f, 0.32f), sh, sh * R(0.3f, 0.6f), rnd.Next(4, 7));
             }
             return Finalise("Mesh_FX_FrostLock_Crystal", pos, tris, 0.6f * h);
-        }
-
-        // One small shard (a five-sided prism with a tip), about 1 m long.
-        static Mesh BuildShard()
-        {
-            var pos = new List<Vector3>();
-            var tris = new List<int>();
-            const int sides = 5;
-            var ring = new Vector3[sides];
-            for (int k = 0; k < sides; k++)
-            {
-                float a = k * Mathf.PI * 2f / sides;
-                ring[k] = new Vector3(Mathf.Cos(a) * 0.18f, -0.25f, Mathf.Sin(a) * 0.18f * (k % 2 == 0 ? 1f : 0.7f));
-            }
-            var tip = new Vector3(0.03f, 0.75f, 0f);
-            var bottom = new Vector3(0f, -0.4f, 0.02f);
-            for (int k = 0; k < sides; k++)
-            {
-                int n = (k + 1) % sides;
-                foreach (Vector3[] t in new[] { new[] { ring[k], tip, ring[n] }, new[] { ring[k], ring[n], bottom } })
-                {
-                    int s = pos.Count;
-                    pos.AddRange(t);
-                    tris.Add(s); tris.Add(s + 1); tris.Add(s + 2);
-                }
-            }
-            return Finalise("Mesh_FX_FrostLock_Shard", pos, tris, 0.6f);
         }
 
         static Mesh Finalise(string name, List<Vector3> pos, List<int> tris, float tile)

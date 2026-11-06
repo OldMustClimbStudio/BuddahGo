@@ -71,7 +71,7 @@
 
 **未决**：
 1. 找到产生 Inf 的东西：要那台电脑的显卡型号和 `%USERPROFILE%\AppData\LocalLow\OMCStudio\BuddahGo\Player.log`，最好在那台电脑上跑一次探针。
-2. 显卡把 Inf 写成最大有限值时（NVIDIA 的做法），Stop NaN 抓不到，只能靠降低 Bloom 的 `clamp`（现在默认 65472，`RaceMap_Dusk_Profile` 没覆盖）。clamp 1000 能把坏像素的光收在它附近，但低于约 7000 会压暗黄昏太阳在赛道上的反光（R1 的观感），由用户定。
+2. 显卡把 Inf 写成最大有限值时（NVIDIA 的做法），Stop NaN 抓不到，只能靠降低 Bloom 的 `clamp`（默认 65472，`RaceMap_Dusk_Profile` 没覆盖）。clamp 1000 能把坏像素的光收在它附近，但低于约 7000 会压暗黄昏太阳在赛道上的反光（R1 的观感）。**用户 2026-11-06 定：只开 Stop NaN，clamp 保持默认**，不再作为待办。
 
 **探针用法**（只在开发版 build 和编辑器里编译，不带参数时什么都不做）：用 `ThrustVectorAcceptanceBuild.Build` 出开发版（`THRUST_BUILD_RELEASE` 不设为 1），然后
 `BuddahGoProbe.exe -force-device-index <显卡序号> -screen-fullscreen 0 -screen-width 1280 -screen-height 720 --vfx-nan-probe <空目录> [--vfx-nan-cycles 6] [--vfx-nan-skills acceleration,push_projectile_hands] [--vfx-nan-plant]`。它从菜单开一局 A1 单人赛（本地赛手由 AI 驾驶，1 个 AI 对手），每 8 秒让本地赛手放一次技能并出一掌，每 0.1 秒把比赛相机渲染成原始 HDR 和带后期的图，`probe.log` 记 NaN / Inf / 最大值 / 白色占比，坏帧存图；`--vfx-nan-plant` 改为每轮放上面那块 Inf / NaN 面片，偶数轮关、奇数轮开 Stop NaN，各截一张 Game 视图。

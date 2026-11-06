@@ -155,8 +155,8 @@ What one gameplay frame does, on every quality level unless marked (since c7124d
   reflection (`RenderingModulesTests.PostVolumesHoldWhatTheirFeelShakersDrive` catches it in every build scene);
   letting `Volume_Dark` drift makes the curtain drop or change the grade. Turning off Stop NaN on the race camera
   brings back the full-screen white glow with a black hole on GPUs that keep Inf / NaN in the HDR target (Intel Arc
-  reproduces it; `RenderingModulesTests.RaceCameraStopsNaNBeforePost`). Bloom's `clamp` is the profile default 65472;
-  lowering it is an open user decision (it would dim the sun glare).
+  reproduces it; `RenderingModulesTests.RaceCameraStopsNaNBeforePost`). Bloom's `clamp` stays the profile default 65472
+  (user, 2026-11-06: Stop NaN only; a lower clamp would dim the sun glare).
   `RaceMap_Environment_Profile.asset` (pre-dusk) is used by no scene ([retired.md](retired.md)).
 
 ### 5. `BuddahGo/Lit` and its materials

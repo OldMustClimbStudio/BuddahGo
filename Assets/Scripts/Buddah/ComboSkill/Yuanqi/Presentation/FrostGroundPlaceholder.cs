@@ -71,8 +71,12 @@ public sealed class FrostGroundPlaceholder : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (_material != null)
+        if (_material == null)
+            return;
+        if (Application.isPlaying)
             Destroy(_material);
+        else
+            DestroyImmediate(_material);
     }
 
     // First solid, non-racer surface below the centre; the centre's own height without one.

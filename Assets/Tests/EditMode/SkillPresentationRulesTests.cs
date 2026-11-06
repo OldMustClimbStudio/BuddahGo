@@ -149,12 +149,26 @@ namespace BuddahGo.Tests
         public void YuanqiPresentationIsLeftToTheObservers()
         {
             EveryCase.Parts(
-                ("frost lock draws nothing itself", () =>
+                ("frost lock draws only its switchable placeholder ground", () =>
                 {
-                    // Interfaces only (2026-10-26): the placeholder ice visuals are gone; observers use SkillExecutor.YuanqiObserved.
+                    // User 2026-11-06: a procedural placeholder until the real VFX (replaces "interfaces only", 2026-10-26).
                     var method = typeof(Yuanqi_FrostLock).GetMethod(nameof(YuanqiAction.PlayObservers));
-                    Assert.IsNotNull(method);
-                    Assert.AreEqual(typeof(YuanqiAction), method.DeclaringType);
+                    Assert.AreEqual(typeof(Yuanqi_FrostLock), method.DeclaringType);
+                    bool was = FrostPlaceholder.Enabled;
+                    try
+                    {
+                        FrostPlaceholder.Enabled = false;
+                        Assert.IsNull(FrostGroundPlaceholder.Spawn(UnityEngine.Vector3.zero, 12f, 1.5f), "off: nothing is drawn");
+                        FrostPlaceholder.Enabled = true;
+                        FrostGroundPlaceholder ground = FrostGroundPlaceholder.Spawn(new UnityEngine.Vector3(0f, 500f, 0f), 12f, 1.5f);
+                        try
+                        {
+                            Assert.IsNotNull(ground, "on: the ground placeholder is drawn");
+                            Assert.That(ground.transform.localScale.x, Is.GreaterThan(0f).And.LessThan(12f), "it starts small and spreads to R");
+                        }
+                        finally { if (ground != null) UnityEngine.Object.DestroyImmediate(ground.gameObject); }
+                    }
+                    finally { FrostPlaceholder.Enabled = was; }
                 }),
                 ("the giant charge caster FOV kick is modest and spans the burst", () =>
                 {

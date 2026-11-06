@@ -149,26 +149,22 @@ namespace BuddahGo.Tests
         public void YuanqiPresentationIsLeftToTheObservers()
         {
             EveryCase.Parts(
-                ("frost lock draws only its switchable placeholder ground", () =>
+                ("frost lock plays the frozen ground and the ice block slots for the freeze", () =>
                 {
-                    // User 2026-11-06: a procedural placeholder until the real VFX (replaces "interfaces only", 2026-10-26).
+                    // Docs/vfx/yuanqi-frost-lock.md (2026-11-06, replaces the procedural placeholder): the ground slot from
+                    // PlayObservers, the ice block on each frozen racer from FrozenIceShell, both for N.
                     var method = typeof(Yuanqi_FrostLock).GetMethod(nameof(YuanqiAction.PlayObservers));
                     Assert.AreEqual(typeof(Yuanqi_FrostLock), method.DeclaringType);
-                    bool was = FrostPlaceholder.Enabled;
+                    var frost = UnityEngine.ScriptableObject.CreateInstance<Yuanqi_FrostLock>();
                     try
                     {
-                        FrostPlaceholder.Enabled = false;
-                        Assert.IsNull(FrostGroundPlaceholder.Spawn(UnityEngine.Vector3.zero, 12f, 1.5f), "off: nothing is drawn");
-                        FrostPlaceholder.Enabled = true;
-                        FrostGroundPlaceholder ground = FrostGroundPlaceholder.Spawn(new UnityEngine.Vector3(0f, 500f, 0f), 12f, 1.5f);
-                        try
-                        {
-                            Assert.IsNotNull(ground, "on: the ground placeholder is drawn");
-                            Assert.That(ground.transform.localScale.x, Is.GreaterThan(0f).And.LessThan(12f), "it starts small and spreads to R");
-                        }
-                        finally { if (ground != null) UnityEngine.Object.DestroyImmediate(ground.gameObject); }
+                        frost.vfxId = "frost_lock_release";
+                        var slots = new System.Collections.Generic.List<SkillAction.VfxSlotTiming>();
+                        frost.CollectVfxSlots(slots);
+                        Assert.That(slots.ConvertAll(s => s.vfxId), Is.EqualTo(new[] { "frost_lock_release", FrozenIceShell.VfxId }));
+                        Assert.That(slots.ConvertAll(s => s.seconds), Is.All.EqualTo(frost.freezeSeconds));
                     }
-                    finally { FrostPlaceholder.Enabled = was; }
+                    finally { UnityEngine.Object.DestroyImmediate(frost); }
                 }),
                 ("the giant charge caster FOV kick is modest and spans the burst", () =>
                 {

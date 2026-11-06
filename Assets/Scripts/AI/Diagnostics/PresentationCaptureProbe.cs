@@ -15,8 +15,8 @@ namespace BuddahGo.AI
     /// a script samples them on a 1/15 s grid into the labelled GIF (Docs/gameplay/practice-verification.md, 2026-11-06).
     /// Modes: "frost" (S9: from the frost_lock trigger, ground + ice blocks), "palm" (S10: each charged palm of the
     /// human from its spawn), "charge" (S8: from each giant_charge trigger, through the game camera's own pose and FOV
-    /// every frame, so the take is what the caster sees). Options: placeholdersOff (FrostPlaceholder.Enabled = false for the "before" take),
-    /// oldPalmRule (palm = body scale as before 2026-11-06: in-memory SO values, restored when the probe ends).
+    /// every frame, so the take is what the caster sees). Option: oldPalmRule (palm = body scale as before 2026-11-06:
+    /// in-memory SO values, restored when the probe ends).
     /// Started from execute_code after MechanicsPracticeHarness.Begin.
     /// </summary>
     public sealed class PresentationCaptureProbe : MonoBehaviour
@@ -40,7 +40,7 @@ namespace BuddahGo.AI
         private readonly List<Action> _restore = new List<Action>();
         private StreamWriter _captions;
 
-        public static PresentationCaptureProbe Begin(string dir, string mode, bool placeholdersOff, bool oldPalmRule)
+        public static PresentationCaptureProbe Begin(string dir, string mode, bool oldPalmRule)
         {
             Directory.CreateDirectory(dir);
             var go = new GameObject("PresentationCaptureProbe");
@@ -49,9 +49,6 @@ namespace BuddahGo.AI
             probe._dir = dir;
             probe._mode = mode;
             probe._oldPalmRule = oldPalmRule;
-            bool wasEnabled = FrostPlaceholder.Enabled;
-            FrostPlaceholder.Enabled = !placeholdersOff;
-            probe._restore.Add(() => FrostPlaceholder.Enabled = wasEnabled);
             probe._captions = new StreamWriter(Path.Combine(dir, "captions.txt")) { AutoFlush = true };
             Status = "waiting for the human racer";
             return probe;

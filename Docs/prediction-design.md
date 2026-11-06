@@ -1,6 +1,6 @@
 # 预测系统核心设计
 
-当前实现位于 `Assets/Scripts/New_Buddah/`。本文说明模拟、回放与表现的边界及已实现的时钟契约；阶段实测结果和未完成验收见[公开运行记录](optimization/review-runtime-round2.md)。
+当前实现位于 `Assets/Scripts/New_Buddah/`。本文说明模拟、回放与表现的边界及已实现的时钟契约；阶段实测结果和未完成验收见[公开运行记录](archive/optimization/review-runtime-round2.md)。
 
 ## 模拟与回放
 
@@ -25,7 +25,7 @@
 - 容量溢出、重复事件和过期事件需要明确处理，关键效果不能悄悄丢失。
 - 开场、复活和结算交接需要考虑 owner/server/旁观者。请求成功返回只代表当前步骤被接受，不能证明 RPC 返回链路已完成。
 - 模式切换清理旧输入、队列和控制标记，防止 Legacy 与预测运动同时驱动角色。
-- 开场交接：本地 GO 到 motor 消费权威 handoff 之间，`RaceBodyIntroStateController` 继续沿 spline 末端切线驱动 kinematic 刚体和渲染采样（上限 `maxGoOvershootSeconds + maxHandoffPendingOvershootSeconds`），motor 在此期间不写刚体；Solo 物理时钟路径不外推。消费时 `ConsumePendingLaunchHandoffEvent` 把根落到碰撞体静止高度（`BuddahHandoffGroundSnap`），owner 与 server 同一路径。2026-10-30 起交接是完全物理的（玩法深化 §3）：消费那一 tick 设一次开场速度，Inherit / Blend 时长（`Movement.launchInheritSeconds` / `launchBlendSeconds`）和交接后的转向屏蔽都是 0，之后只有物理和输入；联机两端在这个设定下的交接表现没有重新验证。来龙去脉见 [联机修复](online-repair/progress.md) 与 [交接连续性](handoff-continuity/findings.md)。
+- 开场交接：本地 GO 到 motor 消费权威 handoff 之间，`RaceBodyIntroStateController` 继续沿 spline 末端切线驱动 kinematic 刚体和渲染采样（上限 `maxGoOvershootSeconds + maxHandoffPendingOvershootSeconds`），motor 在此期间不写刚体；Solo 物理时钟路径不外推。消费时 `ConsumePendingLaunchHandoffEvent` 把根落到碰撞体静止高度（`BuddahHandoffGroundSnap`），owner 与 server 同一路径。2026-10-30 起交接是完全物理的（玩法深化 §3）：消费那一 tick 设一次开场速度，Inherit / Blend 时长（`Movement.launchInheritSeconds` / `launchBlendSeconds`）和交接后的转向屏蔽都是 0，之后只有物理和输入；联机两端在这个设定下的交接表现没有重新验证。来龙去脉见 [联机修复](archive/online-repair/progress.md) 与 [交接连续性](archive/handoff-continuity/findings.md)。
 
 ## 技能 modifier 命令
 
@@ -78,7 +78,7 @@
 
 ## 诊断与验收边界
 
-预测/技能输入的屏幕 debug 已移除绘制入口，普通 HUD 和日志保留原有构建门控。采样开关、复现命令和已公开 R8 范围见[诊断日志说明](diagnostic-log-sampling-r8.md)。
+预测/技能输入的屏幕 debug 已移除绘制入口，普通 HUD 和日志保留原有构建门控。采样开关、复现命令和已公开 R8 范围见[诊断日志说明](archive/diagnostic-log-sampling-r8.md)。
 
 玩法深化的四种新命令和回放 tick 解析由 EditMode 测试覆盖（[BuddahPredictedModifierResolverTests](../Assets/Tests/EditMode/BuddahPredictedModifierResolverTests.cs)、[BuddahPredictedModifierStateOpsTests](../Assets/Tests/EditMode/BuddahPredictedModifierStateOpsTests.cs)、`BuddahTickMathTests`、`HandoffClockTests`），实机只在训练模式（本机 host）验证过（[训练模式验证记录](gameplay/practice-verification.md)）。冻结、突进和反噬减速在远端 owner 上的预测与 reconcile 还没有联机验证。
 

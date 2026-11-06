@@ -40,7 +40,7 @@
 | Host 正常、远端异常 | 序列化、客户端输入/回放、RPC 返回链路 |
 | 加入大厅报 `Prediction protocol mismatch` | 两端构建的 `PredictionProtocol.Version` 不同，换同一版本的构建 |
 | 角色或相机抖动 | [预测设计](prediction-design.md)中的模拟状态与视觉平滑边界 |
-| 预测对象随速度回跳或重影，host 与 client 都有 | NetworkManager → TimeManager 的 Physics Mode 必须是 `TimeManager`；`Unity` 模式下 reconcile 回放不做物理积分，每次校正都是真实回跳（[联机修复 R1](online-repair/findings.md)）。Editor/Development 下 `BuddahPredictedMotor` 启动时会报 invariant 错误 |
+| 预测对象随速度回跳或重影，host 与 client 都有 | NetworkManager → TimeManager 的 Physics Mode 必须是 `TimeManager`；`Unity` 模式下 reconcile 回放不做物理积分，每次校正都是真实回跳（[联机修复 R1](archive/online-repair/findings.md)）。Editor/Development 下 `BuddahPredictedMotor` 启动时会报 invariant 错误 |
 
 ## SceneCondition 与常驻对象
 

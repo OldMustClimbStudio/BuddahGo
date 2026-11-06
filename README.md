@@ -66,7 +66,7 @@ Unity.exe -batchmode -nographics -projectPath <项目路径> -runTests -testPlat
 ## 常见问题
 
 - **缺贴图、模型或 DLL**：先确认 LFS 文件已下载完整（`git lfs pull`）。
-- **特效显示洋红色或看不见**：通常是 ShaderGraph / VFX Graph 的本地导入缓存失效。运行 `Tools > BuddahGo > Repair Original VFX Imports`，详见 [Docs/vfx-asset-recovery.md](Docs/vfx-asset-recovery.md)。
+- **特效显示洋红色或看不见**：通常是 ShaderGraph / VFX Graph 的本地导入缓存失效。运行 `Tools > BuddahGo > Repair Original VFX Imports`，详见 [Docs/vfx-asset-recovery.md](Docs/archive/vfx-asset-recovery.md)。
 - **排查未使用资源**：`Tools > Asset Audit > Report Unused Asset Candidates`；运行时动态加载（如 `Resources/AI`）仍需结合代码确认。
 
 ## 开发入口

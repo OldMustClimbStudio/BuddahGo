@@ -7,7 +7,8 @@ build and the scripts default to the git-ignored project `Logs/` folder: the Pla
 runs under `Logs/thrust-vector/runs/<name>/` (script env `THRUST_ROOT`). The 2026-10-02 runs used
 `C:/Users/dwh88/Documents/Codex/2026-10-02/claude-thrust/`.
 Each run copies summary/configuration/events/perf (and race-results) into `../rollout-2026-10-02/player/<name>/`,
-resolved relative to the script; those copies are committed, with CSV/JSONL stored via Git LFS.
+resolved relative to the script. Do not commit them: the 2026-10-02 copies were removed on 2026-11-05
+(read them with `git show cc7bc106:Tools/ai/thrust-vector/rollout-2026-10-02/...`).
 
 - `lap.sh <name> <profile.json> <laps 1|3> <aiCount> [timeoutSec]` — one racer driven by the profile
   (`--ai-a1-output` / `--ai-a2-output`), optional server AI sharing the same profile (`--ai-count`),

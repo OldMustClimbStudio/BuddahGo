@@ -154,9 +154,13 @@ namespace SteamMultiplayer.UI
             return rt;
         }
 
+        /// <summary>Root of the target glowing under the pointer right now (null when none); the menu's hover labels follow it.</summary>
+        public Transform HoveredRoot { get; private set; }
+
         private void LateUpdate()
         {
             Runtime hovered = FindHovered();
+            HoveredRoot = hovered != null ? hovered.target.root : null;
             float dt = Time.unscaledDeltaTime;
             _brightest.Clear();
             foreach (Runtime rt in _runtime)

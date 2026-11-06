@@ -39,6 +39,19 @@ namespace SteamMultiplayer.UI
         private int GuestCount => PlayerCount - (_hasHost ? 1 : 0);
         public int Capacity => slots.Length;
 
+        /// <summary>Raised whenever a player joins or leaves, or the room opens or closes.</summary>
+        public event System.Action Changed;
+
+        public Transform SpotAt(int i) => i >= 0 && i < slots.Length ? slots[i] : null;
+
+        /// <summary>A player stands on spot i.</summary>
+        public bool IsTaken(int i) => _occupants != null && i >= 0 && i < _occupants.Length && _occupants[i] != null;
+
+        /// <summary>The host's spot, or -1 when no room is open.</summary>
+        public int HostSpot => _hasHost && _joinOrder.Count > 0 ? _joinOrder[0] : -1;
+
+        public float PlayerHeight => playerHeight;
+
         public void Configure(Transform[] spots, GameObject prefab, Button join, Button leave, Text count, MenuRoomView room)
         {
             slots = spots; playerPrefab = prefab; joinButton = join; leaveButton = leave; countLabel = count; roomView = room;
@@ -166,6 +179,7 @@ namespace SteamMultiplayer.UI
             if (countLabel != null) countLabel.text = $"玩家 {PlayerCount}/{Capacity}";
             if (joinButton != null) joinButton.interactable = PlayerCount < Capacity;
             if (leaveButton != null) leaveButton.interactable = GuestCount > 0;
+            Changed?.Invoke();
         }
     }
 }

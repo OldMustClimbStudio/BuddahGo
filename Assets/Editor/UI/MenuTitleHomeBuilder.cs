@@ -722,7 +722,7 @@ public static class MenuTitleHomeBuilder
         }
         Txt(join.transform, "ListLabel", "房间列表", font, 15, new Vector2(1376, 726), 0.75f, SpacingNormal);
         var rooms = new List<MenuDojoPage.JoinRoom>();
-        // Example rooms until the open rooms come from the network (MenuDojoPage.JoinRequested is the hook).
+        // Placeholder rows; MenuDojoPage fills them with the rooms Steam lists (MenuRoomSession) and hides the rest.
         var openRooms = new (string, int)[] { ("明月寺", 3), ("竹林小院", 1), ("听松阁", 5) };
         if (openRooms.Length == 0) Txt(join.transform, "NoRooms", "暂无房间", font, T4, new Vector2(1376, 762), MinTextAlpha, SpacingNormal);
         foreach (var (name, players) in openRooms)

@@ -247,7 +247,7 @@ namespace NewBuddah.PredictionV2.Core
                 }
             }
 
-            // Modifier compare (3c) — 12 ComputedStats fields (4 floats + 5 bools + 3 floats).
+            // Modifier compare (3c) — 15 ComputedStats fields (4 floats + 5 bools + 3 floats + 3 bools).
             // Real-side ModifierRan is set at the motor.cs:341 hook; shadow-side is set by
             // BuddahModifierStep.Run. Resolver is pure-static, so any delta > 1e-4 on floats
             // or any bool mismatch points to a divergent _modifierState input — NOT
@@ -338,6 +338,24 @@ namespace NewBuddah.PredictionV2.Core
                 if (realStats.IsRoomBypassActive != shadowStats.IsRoomBypassActive)
                 {
                     Debug.LogWarning($"[D-LOC] T={tick} mod-flag mismatch: flag=IsRoomBypassActive real={realStats.IsRoomBypassActive} shadow={shadowStats.IsRoomBypassActive}");
+                    modDiverged = true;
+                }
+
+                if (realStats.IsFrozen != shadowStats.IsFrozen)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-flag mismatch: flag=IsFrozen real={realStats.IsFrozen} shadow={shadowStats.IsFrozen}");
+                    modDiverged = true;
+                }
+
+                if (realStats.IsBurstActive != shadowStats.IsBurstActive)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-flag mismatch: flag=IsBurstActive real={realStats.IsBurstActive} shadow={shadowStats.IsBurstActive}");
+                    modDiverged = true;
+                }
+
+                if (realStats.IsMaxSpeedPenaltyActive != shadowStats.IsMaxSpeedPenaltyActive)
+                {
+                    Debug.LogWarning($"[D-LOC] T={tick} mod-flag mismatch: flag=IsMaxSpeedPenaltyActive real={realStats.IsMaxSpeedPenaltyActive} shadow={shadowStats.IsMaxSpeedPenaltyActive}");
                     modDiverged = true;
                 }
             }

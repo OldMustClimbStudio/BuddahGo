@@ -10,10 +10,72 @@ namespace BuddahGo.DesignTables
         {
             CheckpointCountMatchesTrack(set, issues);
             RosterMatchesPersonalities(set, issues);
-            KeyMaxBelowComboWindow(set, issues);
             SkillRowsAreConsistent(set, issues);
             DefaultLoadoutUsesSelectableSkills(set, issues);
+            BackfireAndSurchargeCellsAreFilled(set, issues);
+            TrainingDummyCellsAreFilled(set, issues);
             GraphicsSettingsAreComplete(set, issues);
+        }
+
+        /// <summary>Error for each blank cell of <paramref name="vars"/> in the row (columns the sheet lacks are skipped).</summary>
+        private static void RequireFilled(DesignSheet sheet, DataRow row, List<Issue> issues, string why, params string[] vars)
+        {
+            foreach (string var in vars)
+            {
+                ColumnSpec column = sheet.FindColumn(var);
+                if (column != null && string.IsNullOrWhiteSpace(sheet.Cell(row, column)))
+                    issues.Add(new Issue { Severity = IssueSeverity.Error, Location = sheet.Location(row, column), Message = "'" + var + "' must be filled: " + why });
+            }
+        }
+
+        private static void SkillRowsAreConsistent(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet skill = set.Find("Skill", "Skill");
+            if (skill == null) return;
+            ColumnSpec id = skill.FindColumn("skillId"), anti = skill.FindColumn("antiSkillId"), gain = skill.FindColumn("obsessionGain");
+            if (id == null || anti == null) return;
+            HashSet<string> antiIds = new HashSet<string>();
+            foreach (DataRow row in skill.Rows)
+            {
+                string a = skill.Cell(row, anti).Trim();
+                string sid = skill.Cell(row, id).Trim();
+                if (!string.IsNullOrEmpty(a)) antiIds.Add(a);
+                else if (!sid.EndsWith("_anti"))
+                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, anti), Message = "normal skill '" + sid + "' has no antiSkillId" });
+            }
+            if (gain == null) return;
+            // A backfire adds no obsession (unified penalty, its _anti variant still runs); the anti row's value is never read.
+            foreach (DataRow row in skill.Rows)
+            {
+                string sid = skill.Cell(row, id).Trim();
+                string g = skill.Cell(row, gain).Trim();
+                if (antiIds.Contains(sid) && !string.IsNullOrEmpty(g) && ValueConverter.ToFloat(g) != 0f)
+                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, gain), Message = "obsessionGain on anti skill '" + sid + "' is ignored (a backfire adds no obsession); leave it blank" });
+            }
+        }
+
+        // Blank numeric cells import as 0 and the #range check skips them: a blank multiplier or keep ratio would zero the effect.
+        private static void BackfireAndSurchargeCellsAreFilled(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet obsession = set.Find("Skill", "Obsession");
+            if (obsession == null) return;
+            foreach (DataRow row in obsession.Rows)
+                RequireFilled(obsession, row, issues, "a blank cell imports as 0 and the range check skips it",
+                    "repeatWindowSeconds", "repeatGainMultiplier", "backfireLockSeconds", "backfireMaxSpeedMultiplier", "backfireEndKeepRatio");
+        }
+
+        // Rows that spawn training dummies need every placement cell (a blank spacing stacks them all on one spot).
+        private static void TrainingDummyCellsAreFilled(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet mode = set.Find("Match", "ModeRule");
+            ColumnSpec count = mode != null ? mode.FindColumn("trainingDummyCount") : null;
+            if (count == null) return;
+            foreach (DataRow row in mode.Rows)
+            {
+                if (ValueConverter.ToInt(mode.Cell(row, count)) <= 0) continue;
+                RequireFilled(mode, row, issues, "this row spawns training dummies (trainingDummyCount > 0)",
+                    "trainingDummySpacingMeters", "trainingDummyStartOffsetMeters", "trainingDummyLateralOffsetMeters", "trainingDummyResetDelaySeconds");
+            }
         }
 
         private static void CheckpointCountMatchesTrack(DesignTableSet set, List<Issue> issues)
@@ -47,56 +109,6 @@ namespace BuddahGo.DesignTables
             if (roster == null || personalities == null) return;
             if (roster.Rows.Count != personalities.Rows.Count)
                 issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "AI.xlsx/Roster", Message = "Roster has " + roster.Rows.Count + " slots but Personality has " + personalities.Rows.Count + " rows; AISkillCatalog requires them to match RacerId.MaxAI (5)" });
-        }
-
-        private static void KeyMaxBelowComboWindow(DesignTableSet set, List<Issue> issues)
-        {
-            // The AI's key-hold maximum must stay inside the player's combo input window.
-            float keyMax = -1f, window = -1f;
-            DesignSheet tuning = set.Find("AI", "SkillTuning");
-            if (tuning != null && tuning.FindColumn("keyMaxSeconds") != null && tuning.Rows.Count > 0)
-                keyMax = ValueConverter.ToFloat(tuning.Cell(tuning.Rows[0], tuning.FindColumn("keyMaxSeconds")));
-            else
-            {
-                DesignSheet global = set.Find("AI", "SkillGlobal");
-                if (global != null)
-                {
-                    ColumnSpec k = global.FindColumn("key"), v = global.FindColumn("value");
-                    foreach (DataRow row in global.Rows)
-                        if (global.Cell(row, k).Trim() == "KeyMaxSeconds") keyMax = ValueConverter.ToFloat(global.Cell(row, v));
-                }
-            }
-            DesignSheet combo = set.Find("Skill", "ComboInput");
-            if (combo != null && combo.FindColumn("inputWindowSeconds") != null && combo.Rows.Count > 0)
-                window = ValueConverter.ToFloat(combo.Cell(combo.Rows[0], combo.FindColumn("inputWindowSeconds")));
-            if (keyMax >= 0f && window >= 0f && keyMax >= window)
-                issues.Add(new Issue { Severity = IssueSeverity.Error, Location = "AI.xlsx/SkillTuning", Message = "keyMaxSeconds " + keyMax + " must be below Skill/ComboInput.inputWindowSeconds " + window });
-        }
-
-        private static void SkillRowsAreConsistent(DesignTableSet set, List<Issue> issues)
-        {
-            DesignSheet skill = set.Find("Skill", "Skill");
-            if (skill == null) return;
-            ColumnSpec id = skill.FindColumn("skillId"), anti = skill.FindColumn("antiSkillId"), gain = skill.FindColumn("obsessionGain");
-            if (id == null || anti == null) return;
-            HashSet<string> antiIds = new HashSet<string>();
-            foreach (DataRow row in skill.Rows)
-            {
-                string a = skill.Cell(row, anti).Trim();
-                string sid = skill.Cell(row, id).Trim();
-                if (!string.IsNullOrEmpty(a)) antiIds.Add(a);
-                else if (!sid.EndsWith("_anti"))
-                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, anti), Message = "normal skill '" + sid + "' has no antiSkillId" });
-            }
-            if (gain == null) return;
-            // Backfire adds the requested skill's obsessionGain (SkillExecutor.QueueCast); the anti row's value is never read.
-            foreach (DataRow row in skill.Rows)
-            {
-                string sid = skill.Cell(row, id).Trim();
-                string g = skill.Cell(row, gain).Trim();
-                if (antiIds.Contains(sid) && !string.IsNullOrEmpty(g) && ValueConverter.ToFloat(g) != 0f)
-                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, gain), Message = "obsessionGain on anti skill '" + sid + "' is ignored (backfire uses the requested skill's gain); leave it blank" });
-            }
         }
 
         private static void DefaultLoadoutUsesSelectableSkills(DesignTableSet set, List<Issue> issues)

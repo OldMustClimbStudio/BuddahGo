@@ -2,6 +2,8 @@
 
 本协议只测 **Solo / Practice / 0 AI**。联机 V2、Steam 双人、Solo/Online 交替和旧多人 Editor R8 均不属于前置或通过门槛；没有执行的联机项应写“不适用”，不能写“通过”。保留已有联机资产，不修改它们。0 AI 的结果不能外推成 1/3/5 AI 性能。
 
+**2026-10-26 注：** 玩法机制更新（PR #63 `feat/mechanics-update`）之后，0 AI Practice 会额外生成 3 个训练木桩：同一 Racer prefab 的无 owner 实例，带运动、物理和技能组件。场景里的 NetworkObject 数和每帧开销因此和之前的 Practice 不同，之前的采样不能直接对比；新采样要记录木桩数（`Match/ModeRule` Practice 行的 `trainingDummyCount`，设为 0 即不生成）。
+
 当前交付包括离线分析器、协议与 opt-in Player 采样/操作器源码模板；采样接点已在 Unity 2022.3.55f1c1 非 Development Player 编译成功，**已取得三个 Release 诊断窗口，但 GC 缺失和退出后配置摘要冲突尚未解决，完整耐久验收未完成**。Python 分析器不会启动进程；主集成任务统一构建、运行唯一 Player。运行入口见工具 README，数据状态以 progress.md 的实际验收记录为准。
 
 工具入口：[benchmark.py](../../Tools/SinglePlayerBenchmark/benchmark.py)。字段与主接点详见 [sampler-interface.md](../../Tools/SinglePlayerBenchmark/sampler-interface.md)。既有单机功能要求见 [phases.md](phases.md) 和 [design.md](design.md)。

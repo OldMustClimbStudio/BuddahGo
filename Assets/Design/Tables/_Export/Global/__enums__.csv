@@ -10,23 +10,26 @@
 ,SkillUnlockState,unlocked,0,,
 ,SkillUnlockState,locked,1,,
 ,SkillUnlockState,hidden,2,,
-,ComboToken,W,0,,
-,ComboToken,Up,1,,
 ,SkillTargetScope,Self,0,,
 ,SkillTargetScope,AllOthers,1,,
 ,StackPolicy,RefreshMaxDuration,0,,
 ,StackPolicy,RefreshMaxDurationOverwriteMagnitude,1,,
 ,StackPolicy,MaxMagnitudeMaxDuration,2,,
+,StackPolicy,Restart,3,,后到的命令同时覆盖期限与幅度（Burst）
 ,ImpulseSourceType,MeleePush,0,,
 ,ImpulseSourceType,Projectile,1,,
 ,ImpulseSourceType,ChargedProjectile,2,,
-,ModifierCommandType,Acceleration,0,,
-,ModifierCommandType,RootThenAcceleration,1,,
-,ModifierCommandType,InvertTurn,2,,
-,ModifierCommandType,Scale,3,,
-,ModifierCommandType,PushGrace,4,,
-,ModifierCommandType,SteeringSuppression,5,,
-,ModifierCommandType,RoomBypass,6,,
+,ModifierCommandType,Acceleration,1,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,RootThenAcceleration,2,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,InvertTurn,3,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,Scale,4,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,PushGrace,5,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,SteeringSuppression,6,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,RoomBypass,7,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,Freeze,8,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,EndModifier,9,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,Burst,10,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
+,ModifierCommandType,MaxSpeedMultiplier,11,,与 C# BuddahPredictedModifierCommandType 同值（None=0 不列）
 ,TeleportSourceType,DropRespawn,0,,
 ,TeleportSourceType,WrongWayCorrection,1,,
 ,TeleportSourceType,Manual,2,,

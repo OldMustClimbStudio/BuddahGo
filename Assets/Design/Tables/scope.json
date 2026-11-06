@@ -10,8 +10,6 @@
       "Push",
       "SkillSelectionRule",
       "DefaultLoadout",
-      "ComboInput",
-      "ComboBinding",
       "Obsession",
       "VfxRegistry"
     ],
@@ -139,14 +137,6 @@
       "info"
     ],
     "Skill/DefaultLoadout": [
-      "skill",
-      "info"
-    ],
-    "Skill/ComboInput": [
-      "skill",
-      "balance"
-    ],
-    "Skill/ComboBinding": [
       "skill",
       "info"
     ],

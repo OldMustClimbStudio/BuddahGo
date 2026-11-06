@@ -19,54 +19,58 @@ public class AISkillCommitmentTests
         Assert.That(schedule.TryClaim(11, 1, 101), Is.True);
         Assert.That(schedule.TryClaim(12, 3, 102), Is.False, "Each racer retains its own tick phase.");
     }
-    private static readonly ComboSkillInput.Token[] Sequence = { ComboSkillInput.Token.W, ComboSkillInput.Token.Up, ComboSkillInput.Token.W };
-    [Test] public void CommitmentEmitsSeparatedKeysAndWaitsForRealExecution()
+    // A7: no combo keys. The commitment requests the slot on the tick after the decision (like a Human Player
+    // pressing the key) and then waits for the executor's real Accepted / Executed / Cancelled events.
+    [Test] public void CommitmentRequestsOnTheTickAfterBeginThenWaitsForRealExecution()
     {
-        var action = new AISkillCommitment(); var random = new Random(23);
-        action.Begin(0, Sequence, 100, 500);
-        Assert.That(action.NextKey(100, .02f, .25f, .25f, .35f, 0, random, out _), Is.False);
-        Assert.That(action.NextKey(101, .02f, .25f, .25f, .35f, 0, random, out var key), Is.True);
-        Assert.That(key, Is.EqualTo(Sequence[0]));
-        Assert.That(action.NextKey(102, .02f, .25f, .25f, .35f, 0, random, out _), Is.False);
-        Assert.That(action.NextKey(115, .02f, .25f, .25f, .35f, 0, random, out key), Is.True);
-        Assert.That(key, Is.EqualTo(Sequence[1]));
-        Assert.Throws<InvalidOperationException>(() => action.Begin(1, Sequence, 116, 500));
-        Assert.That(action.NextKey(130, .02f, .25f, .25f, .35f, 0, random, out key), Is.True);
+        var action = new AISkillCommitment();
+        action.Begin(0, 100, 500);
+        Assert.That(action.Phase, Is.EqualTo(AISkillCommitmentPhase.Decided));
+        Assert.That(action.Slot, Is.EqualTo(0)); Assert.That(action.Deadline, Is.EqualTo(500u));
+        Assert.That(action.ShouldRequest(100), Is.False, "Never on the decision tick itself.");
+        Assert.That(action.ShouldRequest(101), Is.True);
         Assert.That(action.Phase, Is.EqualTo(AISkillCommitmentPhase.WaitingConfirm));
-        Assert.That(action.NextKey(200, .02f, .25f, .25f, .35f, 0, random, out _), Is.False);
+        Assert.That(action.Waiting, Is.True);
+        Assert.That(action.ShouldRequest(102), Is.False, "One request per commitment.");
+        Assert.Throws<InvalidOperationException>(() => action.Begin(1, 103, 500));
+        action.Accepted(); Assert.That(action.Phase, Is.EqualTo(AISkillCommitmentPhase.WaitingConfirm));
         action.Resolve(); Assert.That(action.Phase, Is.EqualTo(AISkillCommitmentPhase.Resolved));
-        action.ReleaseResolved(); Assert.That(action.Active, Is.False);
+        Assert.That(action.Active, Is.False);
+        action.ReleaseResolved(); Assert.That(action.Phase, Is.EqualTo(AISkillCommitmentPhase.Idle));
+        Assert.That(action.Slot, Is.EqualTo(-1));
     }
-    [Test] public void MistakeCreatesTimeoutThenOnlyOneRetry()
+    [Test] public void ExpiredCommitmentCancelsInsteadOfRequesting()
     {
-        var action = new AISkillCommitment(); var random = new Random(2);
-        action.Begin(0, Sequence, 0, 500);
-        action.NextKey(1, .02f, .25f, .25f, .35f, 1, random, out _);
-        Assert.That(action.NextKey(20, .02f, .25f, .25f, .35f, 1, random, out _), Is.False);
-        Assert.That(action.NextKey(21, .02f, .25f, .25f, .35f, 1, random, out _), Is.False);
-        Assert.That(action.NextKey(40, .02f, .25f, .25f, .35f, 1, random, out var key), Is.True);
-        Assert.That(key, Is.EqualTo(Sequence[0]));
-        action.NextKey(60, .02f, .25f, .25f, .35f, 1, random, out _);
-        Assert.That(action.Active, Is.False); Assert.That(action.FailedCombos, Is.EqualTo(2));
+        var action = new AISkillCommitment(); action.Begin(0, 1, 10);
+        Assert.That(action.ShouldRequest(10), Is.False);
+        Assert.That(action.Active, Is.False, "The opportunity expired: the commitment cancels itself.");
+        Assert.That(action.Slot, Is.EqualTo(-1));
+        Assert.That(action.ShouldRequest(11), Is.False);
     }
-    [Test] public void ExpiryAndCancellationNeverEmitALateKey()
+    [Test] public void CancelledCommitmentNeverRequests()
     {
-        var action = new AISkillCommitment(); action.Begin(0, Sequence, 1, 10);
-        Assert.That(action.NextKey(10, .02f, .2f, .3f, .35f, 0, new Random(1), out _), Is.False);
-        action.Cancel(); Assert.That(action.Slot, Is.EqualTo(-1));
-        Assert.That(action.NextKey(11, .02f, .2f, .3f, .35f, 0, new Random(1), out _), Is.False);
+        var action = new AISkillCommitment(); action.Begin(2, 1, 300);
+        action.Cancel();
+        Assert.That(action.Slot, Is.EqualTo(-1)); Assert.That(action.Active, Is.False);
+        Assert.That(action.ShouldRequest(2), Is.False);
+        Assert.That(action.ShouldRequest(3), Is.False);
     }
-    [Test] public void IndependentRandomAndCommitmentStateReplaysWithoutCrossTalk()
+    [Test] public void WaitingCommitmentIsOnlyReleasedByTheExecutor()
+    {
+        var action = new AISkillCommitment(); action.Begin(1, 1, 300);
+        Assert.That(action.ShouldRequest(2), Is.True);
+        for (uint tick = 3; tick < 400; tick++) Assert.That(action.ShouldRequest(tick), Is.False);
+        Assert.That(action.Waiting, Is.True, "Past the deadline the accepted request is not withdrawn by ticks.");
+        action.Cancel(); Assert.That(action.Phase, Is.EqualTo(AISkillCommitmentPhase.Idle));
+    }
+    [Test] public void TwoCommitmentsWithTheSameInputsStayInStep()
     {
         var a = new AISkillCommitment(); var b = new AISkillCommitment();
-        var ar = new Random(77); var br = new Random(77); var unrelated = new Random(88);
-        a.Begin(0, Sequence, 1, 300); b.Begin(0, Sequence, 1, 300);
-        for (uint tick = 2; tick < 300; tick++)
+        a.Begin(0, 1, 300); b.Begin(0, 1, 300);
+        for (uint tick = 1; tick < 310; tick++)
         {
-            for (int i = 0; i < 3; i++) unrelated.NextDouble();
-            bool ak = a.NextKey(tick, 1f / 60f, .2f, .3f, .35f, .15f, ar, out var at);
-            bool bk = b.NextKey(tick, 1f / 60f, .2f, .3f, .35f, .15f, br, out var bt);
-            Assert.That(ak, Is.EqualTo(bk)); Assert.That(at, Is.EqualTo(bt)); Assert.That(a.Phase, Is.EqualTo(b.Phase));
+            Assert.That(a.ShouldRequest(tick), Is.EqualTo(b.ShouldRequest(tick)));
+            Assert.That(a.Phase, Is.EqualTo(b.Phase));
         }
         a.Cancel(); Assert.That(b.Active, Is.True);
     }

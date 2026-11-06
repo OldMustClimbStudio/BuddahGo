@@ -1,5 +1,7 @@
 # PR #59 代码复核与清理记录（2026-10-04）
 
+> **已被取代（2026-10-31）：** S4 说的 `AISkillCaster` 搓招注入已随 A7（2026-10-28）删除，AI 直接调用 `SkillExecutor.CastSlotServer`，见 [AI 技能](ai-skills.md)。
+
 复核对象：`feat/single-player-mode` @ `3a3560c`，对比 `origin/dev` @ `fc7ab59`。本文只记录代码质量与结构问题；功能验收、自然赛与性能数据以 [实施记录](ai-skill-implementation-2026-10-03.md) 与 [实现复核](ai-skill-implementation-review-2026-10-03.md) 为准。行号对应 `3a3560c`。
 
 ## 1. 范围与规模

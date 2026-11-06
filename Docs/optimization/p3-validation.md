@@ -1,5 +1,7 @@
 # P3 技能系统验证记录
 
+> **已被取代（2026-10-31）：** 本记录里的反噬技能（`Skill_*_Anti`）和 `SkillConfigCrossValidator` 的 castLock / 反噬 id 比较已随玩法机制更新删除，反噬统一为 10 秒惩罚，见 [玩法深化](../gameplay/README.md)。
+
 ## P3-1 公共模板
 
 预检逐字比较了 14 个 `vfxDurationSeconds > 0f ? vfxDurationSeconds : fallback` 和 10 个 `PlayFeelLocalTimed(start, stop, duration, skillId + "_observers")`。fallback 全为只读字段/局部值的加法或直接读取，未包含副作用。抽为受保护的 ResolveVfxDuration / PlayObserverFeel；保留每个调用点原来的执行顺序、duration 值、空值语义和序列化字段。

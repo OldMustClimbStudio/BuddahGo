@@ -4,6 +4,8 @@
 - 方法：静态阅读全部自研脚本（`Assets/Scripts/`），按 `.meta` GUID 扫描 `.unity/.prefab/.asset` 引用，统计 C# 交叉引用、日志、单例与逐帧调用；抽查结论回到源码核实。未在 Unity 中运行。
 - 本文是**证据**；执行方案见 [refactor-plan.md](refactor-plan.md)，执行入口见 [HANDOFF.md](HANDOFF.md)。
 
+> **已被取代（2026-10-31）：** `antiSkillId` 的回退链和 `ComboSkillInput`（含 `debugHud`）已随玩法机制更新删除（统一反噬、单键施法），见 [玩法深化](../gameplay/README.md)。
+
 ## 1. 结论
 
 | 维度 | 评分 | 说明 |

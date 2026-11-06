@@ -1,6 +1,6 @@
 ##var,skillId,extraForwardForce,extraMaxSpeed,slowForwardForce,slowMaxSpeed
 ##type,enum:SkillId#key#ref=Skill.skillId,float,float,float,float
 ##group,,,,,
-##comment,普通与反噬各一行；空格 = 该行的技能类没有这个字段,普通：额外前推力 N,普通：额外限速 m/s,反噬：减速力 N,反噬：限速削减 m/s
+##comment,普通与反噬各一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_Acceleration / Skill_Acceleration_Anti SO（DesignTableOverlay.Apply）；空格 = 该行的技能类没有这个字段,额外前推力 N（Skill_Acceleration.extraForwardForce）,额外限速 m/s（Skill_Acceleration.extraMaxSpeed）,反噬：减速力 N,反噬：限速削减 m/s
 ,acceleration,50,40,,
 ,acceleration_anti,,,45,40

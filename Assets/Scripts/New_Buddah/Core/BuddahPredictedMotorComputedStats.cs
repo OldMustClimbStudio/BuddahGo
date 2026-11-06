@@ -1,5 +1,6 @@
 namespace NewBuddah.PredictionV2.Core
 {
+    // On the reconcile wire (BuddahPredictedReconcileData.ComputedStats): new fields need a protocol bump.
     [System.Serializable]
     public struct BuddahPredictedMotorComputedStats
     {
@@ -15,5 +16,10 @@ namespace NewBuddah.PredictionV2.Core
         public float ScaleMultiplier;
         public float ScaleMassMultiplier;
         public float ScaleForwardForceMultiplier;
+        // A freeze also sets IsRooted and IsSteeringSuppressed; IsFrozen adds the action lock.
+        public bool IsFrozen;
+        // Burst deadline active and the body is not rooted or frozen (drives burst body impacts).
+        public bool IsBurstActive;
+        public bool IsMaxSpeedPenaltyActive;
     }
 }

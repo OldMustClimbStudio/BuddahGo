@@ -1,13 +1,11 @@
 # Design tables validation
 
-- time: 2026-10-30 12:20:39
-- mode: import (changed)
-- changed workbooks: Skill
-- sheets re-mapped: 14, kept: 24, records: 69
+- time: 2026-11-05 15:25:07
+- mode: validate only
+- changed workbooks: (none)
+- sheets re-mapped: 0, kept: 0, records: 0
 - errors: 0, warnings: 3
-- outputs written: yes
-
-Re-mapped: Skill/Skill, Skill/SkillEffectAcceleration, Skill/SkillEffectSlowTrap, Skill/SkillEffectBlackCurtain, Skill/SkillEffectGiant, Skill/Push, Skill/SkillSelectionRule, Skill/DefaultLoadout, Skill/ComboInput, Skill/ComboBinding, Skill/Obsession, Skill/VfxRegistry, AI/Personality, AI/SkillOpportunity
+- outputs written: no (nothing changed)
 
 | severity | location | message |
 |---|---|---|

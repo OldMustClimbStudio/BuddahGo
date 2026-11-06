@@ -47,8 +47,35 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": ""HandPush"",
-                    ""type"": ""Button"",
+                    ""type"": ""PassThrough"",
                     ""id"": ""d2cc45e1-0a9d-4f5e-9e8c-7556a6dd049e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""SkillSlot1"",
+                    ""type"": ""Button"",
+                    ""id"": ""c726f05f-631f-4de4-b5a8-45ad1f327f78"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""SkillSlot2"",
+                    ""type"": ""Button"",
+                    ""id"": ""67534c36-c1a8-49e5-9765-b81b0fd4bf2c"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""SkillSlot3"",
+                    ""type"": ""Button"",
+                    ""id"": ""08731078-71cd-4a69-9fca-10e9f788db3a"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -74,6 +101,17 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse;XR"",
+                    ""action"": ""Movement"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""4f6b2c1e-8a3d-4e7b-9c25-1d0e7a6b3f48"",
+                    ""path"": ""<Keyboard>/w"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
                     ""action"": ""Movement"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -113,8 +151,8 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""5363e156-1751-4e7b-886e-035d28aa2ce8"",
-                    ""path"": ""<Keyboard>/w"",
+                    ""id"": ""1b4a055d-2459-426b-b872-1adf7b85fd9d"",
+                    ""path"": ""<Mouse>/leftButton"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -124,12 +162,78 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""9e1e20b6-0478-4521-8140-dc598efc26d8"",
-                    ""path"": ""<Keyboard>/upArrow"",
+                    ""id"": ""be536535-ab78-4015-9369-598b48288735"",
+                    ""path"": ""<Mouse>/rightButton"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""HandPush"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b71c7864-1104-4001-847e-7068d17be133"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SkillSlot1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""a40ce8c7-14d3-4711-b603-7c54deb021c8"",
+                    ""path"": ""<Keyboard>/1"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SkillSlot1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b523dd8d-b6ea-4636-b917-d2bd454b1032"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SkillSlot2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""58d47ed9-ed46-48a8-85ce-44a36fc595c9"",
+                    ""path"": ""<Keyboard>/2"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SkillSlot2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""6931281b-5bbe-4d11-9601-40bc6d2d73e1"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SkillSlot3"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""d6caabf7-4751-4f06-a7f7-67896ebb9756"",
+                    ""path"": ""<Keyboard>/3"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SkillSlot3"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -283,6 +387,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Player_Movement = m_Player.FindAction("Movement", throwIfNotFound: true);
         m_Player_HandRotation = m_Player.FindAction("HandRotation", throwIfNotFound: true);
         m_Player_HandPush = m_Player.FindAction("HandPush", throwIfNotFound: true);
+        m_Player_SkillSlot1 = m_Player.FindAction("SkillSlot1", throwIfNotFound: true);
+        m_Player_SkillSlot2 = m_Player.FindAction("SkillSlot2", throwIfNotFound: true);
+        m_Player_SkillSlot3 = m_Player.FindAction("SkillSlot3", throwIfNotFound: true);
         // Menu
         m_Menu = asset.FindActionMap("Menu", throwIfNotFound: true);
         m_Menu_MenuSelect = m_Menu.FindAction("MenuSelect", throwIfNotFound: true);
@@ -358,6 +465,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Movement;
     private readonly InputAction m_Player_HandRotation;
     private readonly InputAction m_Player_HandPush;
+    private readonly InputAction m_Player_SkillSlot1;
+    private readonly InputAction m_Player_SkillSlot2;
+    private readonly InputAction m_Player_SkillSlot3;
     public struct PlayerActions
     {
         private @InputSystem_Actions m_Wrapper;
@@ -365,6 +475,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         public InputAction @Movement => m_Wrapper.m_Player_Movement;
         public InputAction @HandRotation => m_Wrapper.m_Player_HandRotation;
         public InputAction @HandPush => m_Wrapper.m_Player_HandPush;
+        public InputAction @SkillSlot1 => m_Wrapper.m_Player_SkillSlot1;
+        public InputAction @SkillSlot2 => m_Wrapper.m_Player_SkillSlot2;
+        public InputAction @SkillSlot3 => m_Wrapper.m_Player_SkillSlot3;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -383,6 +496,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @HandPush.started += instance.OnHandPush;
             @HandPush.performed += instance.OnHandPush;
             @HandPush.canceled += instance.OnHandPush;
+            @SkillSlot1.started += instance.OnSkillSlot1;
+            @SkillSlot1.performed += instance.OnSkillSlot1;
+            @SkillSlot1.canceled += instance.OnSkillSlot1;
+            @SkillSlot2.started += instance.OnSkillSlot2;
+            @SkillSlot2.performed += instance.OnSkillSlot2;
+            @SkillSlot2.canceled += instance.OnSkillSlot2;
+            @SkillSlot3.started += instance.OnSkillSlot3;
+            @SkillSlot3.performed += instance.OnSkillSlot3;
+            @SkillSlot3.canceled += instance.OnSkillSlot3;
         }
 
         private void UnregisterCallbacks(IPlayerActions instance)
@@ -396,6 +518,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @HandPush.started -= instance.OnHandPush;
             @HandPush.performed -= instance.OnHandPush;
             @HandPush.canceled -= instance.OnHandPush;
+            @SkillSlot1.started -= instance.OnSkillSlot1;
+            @SkillSlot1.performed -= instance.OnSkillSlot1;
+            @SkillSlot1.canceled -= instance.OnSkillSlot1;
+            @SkillSlot2.started -= instance.OnSkillSlot2;
+            @SkillSlot2.performed -= instance.OnSkillSlot2;
+            @SkillSlot2.canceled -= instance.OnSkillSlot2;
+            @SkillSlot3.started -= instance.OnSkillSlot3;
+            @SkillSlot3.performed -= instance.OnSkillSlot3;
+            @SkillSlot3.canceled -= instance.OnSkillSlot3;
         }
 
         public void RemoveCallbacks(IPlayerActions instance)
@@ -525,6 +656,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         void OnMovement(InputAction.CallbackContext context);
         void OnHandRotation(InputAction.CallbackContext context);
         void OnHandPush(InputAction.CallbackContext context);
+        void OnSkillSlot1(InputAction.CallbackContext context);
+        void OnSkillSlot2(InputAction.CallbackContext context);
+        void OnSkillSlot3(InputAction.CallbackContext context);
     }
     public interface IMenuActions
     {

@@ -1,5 +1,7 @@
 # 执行进度
 
+> 2026-10-26 注：玩法机制更新（PR #63，`feat/mechanics-update`）删除了六个 `Skill_*_Anti` 类与资产（P3-2 的对象）、`SkillAction.antiSkillId`、`SkillAction.castLockSeconds` 和全局施法锁。本目录里涉及它们的条目是当时的记录；现行规则见 [../gameplay/README.md](../gameplay/README.md)。
+
 状态取值：`todo` / `doing` / `blocked` / `done` / `done-unverified`。每完成一步就更新本表。流程见 [HANDOFF.md](HANDOFF.md)。
 
 步骤表和首轮修复表保留各自提交时的验证范围；后续契约与公开证据见本文的 [second review follow-up](#2026-09-30-second-review-follow-up) 及 [逐 PR 跟进](review-followups.md)。历史未测项不能读成后续始终未执行，历史通过数也不能充当后续提交的重测结果。

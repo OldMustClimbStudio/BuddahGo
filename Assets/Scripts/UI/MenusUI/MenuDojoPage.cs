@@ -240,8 +240,13 @@ namespace SteamMultiplayer.UI
             return fallback;
         }
 
-        /// <summary>The host is alone (or offline): the room races solo against AI.</summary>
-        private bool IsSolo => _session.PlayerCount <= 1;
+        /// <summary>
+        /// Offline, or the host alone in an online room: the room races solo against AI. A guest never races solo, and
+        /// while a joined room's roster has not arrived yet (Connecting) nothing can be started.
+        /// </summary>
+        private bool IsSolo => !_session.InLobby || (_session.IsOnline && _session.IsHost && _session.PlayerCount <= 1);
+
+        private bool Connecting => _session.InLobby && !_session.IsOnline;
 
         /// <summary>The AI names in seat order: the empty seats after the host's, as many as the race has AI.</summary>
         private List<string> SoloNames()
@@ -308,9 +313,9 @@ namespace SteamMultiplayer.UI
             bool starting = solo ? _soloRequested : _onlineStartT > 0f || _session.IsStartingMatch;
             bool guestReady = _session.TryGetLocalPlayer(out RoomPlayerState me) && me.IsReady;
             if (startLabel != null)
-                startLabel.text = starting ? "正在进入" : solo ? "单人修行" : _session.IsHost ? "开始修行" : guestReady ? "取消准备" : "准备";
+                startLabel.text = Connecting ? "正在连接" : starting ? "正在进入" : solo ? "单人修行" : _session.IsHost ? "开始修行" : guestReady ? "取消准备" : "准备";
             if (startNote != null)
-                startNote.text = !solo ? (starting ? ""
+                startNote.text = Connecting ? "" : !solo ? (starting ? ""
                                           : !_session.IsHost ? (guestReady ? "等房主开局" : "准备好了就按 Enter")
                                           : "玩家 + " + Numeral(TakenCount() - 1) + " 位道友" + (_session.CanHostStart ? "" : "　<color=#F4EFE6AA>等道友准备</color>"))
                                : !string.IsNullOrEmpty(_soloError) ? "<color=#B8352A>" + _soloError + "</color>"
@@ -983,6 +988,7 @@ namespace SteamMultiplayer.UI
                 _practiceHover = MenuHit.Contains(practiceItem.rectTransform, at, 10f);
                 if ((click && _practiceHover) || (kb != null && kb.pKey.wasPressedThisFrame)) { StartSolo(true); start = false; }
             }
+            if (start && Connecting) start = false;
             if (start && solo) StartSolo();
             else if (start && !_session.IsHost) _session.ToggleReady();
             else if (start && _onlineStartT <= 0f && !_session.IsStartingMatch)

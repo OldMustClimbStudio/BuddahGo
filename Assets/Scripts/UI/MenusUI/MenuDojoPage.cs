@@ -223,6 +223,23 @@ namespace SteamMultiplayer.UI
 
         private int TakenCount() => _session.PlayerCount;
 
+        /// <summary>Match/ModeRule (Solo) defaultDifficulty until the player has picked one.</summary>
+        private static SoloDifficulty DefaultDifficulty()
+        {
+            ModeRuleRecord solo = DesignTableOverlay.ModeRule("Solo");
+            return solo != null && System.Enum.TryParse(solo.defaultDifficulty, true, out SoloDifficulty d) ? d : SoloDifficulty.Normal;
+        }
+
+        /// <summary>The UI/MenuOption row marked isDefault in a group (new rooms' max_players and visibility).</summary>
+        private static string MenuOptionDefault(string group, string fallback)
+        {
+            ProjectConfigDatabase db = DesignTableOverlay.Db;
+            if (db == null || db.menuOptions == null) return fallback;
+            foreach (MenuOptionRecord option in db.menuOptions)
+                if (option != null && option.optionGroup == group && option.isDefault && !string.IsNullOrWhiteSpace(option.value)) return option.value;
+            return fallback;
+        }
+
         /// <summary>The host is alone (or offline): the room races solo against AI.</summary>
         private bool IsSolo => _session.PlayerCount <= 1;
 
@@ -313,7 +330,7 @@ namespace SteamMultiplayer.UI
 
         private void Awake()
         {
-            _difficulty = (SoloDifficulty)Mathf.Clamp(PlayerPrefs.GetInt(DifficultyKey, (int)SoloDifficulty.Normal), 0, 2);
+            _difficulty = (SoloDifficulty)Mathf.Clamp(PlayerPrefs.GetInt(DifficultyKey, (int)DefaultDifficulty()), 0, 2);
             _canvasRect = transform as RectTransform;
             doorPage.alpha = 0f;
             lobbyPage.alpha = 0f;
@@ -400,7 +417,10 @@ namespace SteamMultiplayer.UI
             }
             _awaitingLobby = true;
             Notice("正在开门");
-            _session.CreateRoom(roomName, lobby != null ? lobby.Capacity : 6);
+            int seats = lobby != null ? lobby.Capacity : 6;
+            int capacity = int.TryParse(MenuOptionDefault("max_players", seats.ToString()), out int max) ? Mathf.Clamp(max, 2, seats) : seats;
+            LobbyVisibility visibility = System.Enum.TryParse(MenuOptionDefault("visibility", "Public"), true, out LobbyVisibility v) ? v : LobbyVisibility.Public;
+            _session.CreateRoom(roomName, capacity, visibility);
         }
 
         private void OnSessionEntered()

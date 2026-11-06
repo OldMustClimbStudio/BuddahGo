@@ -96,10 +96,10 @@ namespace SteamMultiplayer.UI
 
         // ---------- actions ----------
 
-        public void CreateRoom(string name, int capacity)
+        public void CreateRoom(string name, int capacity, LobbyVisibility visibility)
         {
             Tick();
-            Lobby?.CreateLobby(name, LobbyVisibility.Public, capacity);
+            Lobby?.CreateLobby(name, visibility, capacity);
         }
 
         public void RefreshList()

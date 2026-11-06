@@ -182,8 +182,6 @@ namespace BuddahGo.Tests
                         Assert.AreEqual(3, db.modeRules.Count);
                         Assert.AreEqual((int)Cell(set, "Match", "ModeRule", "modeId", "Practice", "trainingDummyCount"), db.modeRules.Find(m => m.modeId == "Practice").trainingDummyCount, "training dummies live on the Practice row");
                         Assert.AreEqual("Normal", db.modeRules.Find(m => m.modeId == "Solo").defaultDifficulty, "RacerNaming.defaultDifficulty moved onto ModeRule");
-                        Assert.AreEqual(1, db.selectionStages.Count, "map / skin placeholder stages are commented out with ##");
-                        Assert.AreEqual(0, db.selectionOptions.Count, "placeholder options are commented out with ##");
                         Assert.AreEqual(6, db.trackSpawns.Count);
                         Assert.AreEqual(1, db.movements.Count);
                         Assert.AreEqual(Cell(set, "Movement", "Movement", "profileId", "default", "pushGraceSeconds"), db.movements[0].pushGraceSeconds, "PushReaction merged into Movement");

@@ -40,8 +40,6 @@
 ,Match,Lobby,(新增) LobbyRecord,Assets/Scenes/MainMenu.unity SteamLobbyManager; SessionLauncher.cs,
 ,Match,ResultVoteRule,(新增) ResultVoteRuleRecord,ResultDecisionManager.EvaluateDecisionServer:252-275,presentationOnly：法定规则硬编码在 ResultDecisionManager.EvaluateDecisionServer，仅记录
 ,Match,ResultPresentation,(新增) ResultPresentationRecord,Assets/Scenes/RaceMap.unity,
-,Match,SelectionStage,(新增) SelectionStageRecord,PropertiesSelectionManager.RegisterDefaultStageProperties:566-568,v2：地图/皮肤占位行屏蔽（结果无人读取）
-,Match,SelectionOption,(新增) SelectionOptionRecord,PropertiesSelectionManager:1126-1136（占位数据）,v2：占位选项全部屏蔽，PropertiesSelectionManager 回退到代码占位
 ,Match,Intro,(新增) IntroRecord ← IntroSequenceManager,Assets/Scenes/RaceMap.unity,
 ,Match,IntroLayout,(新增) IntroLayoutRecord ← IntroSequenceManager.layouts,Assets/Scenes/RaceMap.unity,presentationOnly：布局 prefab 引用留在场景，仅记录
 ,Match,IntroSlotStyle,(新增) IntroSlotStyleRecord（范围内未找到消费方）,Assets/Placeholder/Intro/Layout4P.prefab,

@@ -97,8 +97,5 @@ namespace BuddahGo.Match
             _skinId = PlayerPrefs.GetString(SkinKey, string.Empty);
             _mapId = PlayerPrefs.GetString(MapKey, string.Empty);
         }
-
-        /// <summary>Test hook: forget the cached values so the next read goes back to PlayerPrefs.</summary>
-        internal static void ReloadForTests() => _skills = null;
     }
 }

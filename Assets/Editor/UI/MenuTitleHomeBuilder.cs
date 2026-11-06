@@ -511,8 +511,8 @@ public static class MenuTitleHomeBuilder
             arts.Add(new MenuSkillPage.SkillArt { skillId = id, name = sprite, description = text, backfire = backfire, title = art });
         }
 
-        // Combo panel on the left, shown after a click on the hokora (layout after the reference: small category,
-        // title, text, then dark boxes): one row per slot with the slotted skill's name on the left and its key caps on the right.
+        // Slot-key panel on the left, shown after a click on the hokora (layout after the reference: small category,
+        // title, text, then dark boxes): one row per slot with the slotted skill's name on the left and its keys on the right.
         CanvasGroup leftShade = Group(root, "LeftShade");
         leftShade.transform.SetSiblingIndex(0); // under the title and 返回, which sit on the left too
         Shade(leftShade.transform, "ShadeLeft", true, 0.52f, 0.85f);
@@ -520,8 +520,8 @@ public static class MenuTitleHomeBuilder
         Txt(keys.transform, "Category", "", font, 15, new Vector2(120, 236), 0.5f, SpacingNormal);
         TextMeshProUGUI comboHeader = keys.transform.Find("Category").GetComponent<TextMeshProUGUI>();
         comboHeader.rectTransform.sizeDelta = new Vector2(480, 26);
-        Txt(keys.transform, "Title", "搓招", font, 34, new Vector2(120, 264), 1f, SpacingWide);
-        TextMeshProUGUI how = Txt(keys.transform, "Text", "比赛中依次按出一槽的按键，就放出这一槽的技能。按键之间别停顿太久。", font, 17, new Vector2(120, 326), 0.75f, SpacingNormal);
+        Txt(keys.transform, "Title", "技能键", font, 34, new Vector2(120, 264), 1f, SpacingWide);
+        TextMeshProUGUI how = Txt(keys.transform, "Text", "比赛中按下一槽的键，就放出这一槽的技能。", font, 17, new Vector2(120, 326), 0.75f, SpacingNormal);
         how.rectTransform.sizeDelta = new Vector2(470, 56);
         how.enableWordWrapping = true;
         var rows = new List<RectTransform>();

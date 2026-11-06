@@ -11,9 +11,10 @@ namespace SteamMultiplayer.UI
     /// wall and hokora. Always there: the title at the top left, 返回 at the bottom left and a thin ensō around the ema
     /// under the pointer, and the loadout: one ensō per hokora slot holding the slotted skill's name (an empty slot is a
     /// faint ring with ＋), drawn on a world-space canvas on the front of the hokora's wooden base, so it keeps the
-    /// scene's perspective as the camera turns. A click on the hokora slides in the combo panel on the left, over a
-    /// dark gradient from the left edge: "搓招", how combos work, then one row per slot with the slotted skill's name and its key caps
-    /// (from the ComboBinding table, coming in one after another); Esc, a right-click or a click elsewhere hides it.
+    /// scene's perspective as the camera turns. A click on the hokora slides in the slot-key panel on the left, over a
+    /// dark gradient from the left edge: "技能键", how casting works, then one row per slot with the slotted skill's name and
+    /// its keys (the keyboard bindings of InputSystem_Actions Player.SkillSlot1–3, coming in one after another); Esc, a
+    /// right-click or a click elsewhere hides it.
     /// While an ema is inspected (MenuEmaInspector moves it to the left of the
     /// screen) the loadout fades out and the right side slides in with its dark gradient: the skill's calligraphy
     /// name, what it does, its backfire, cooldown and duration (from the Skill table), how to put the ema back.
@@ -216,17 +217,52 @@ namespace SteamMultiplayer.UI
             BuildKeys();
         }
 
-        /// <summary>Key caps for each slot's combo from the ComboBinding table (W, ↑, …).</summary>
+        /// <summary>
+        /// Keyboard tokens ("Q", "1") bound to each skill slot, read once from InputSystem_Actions Player.SkillSlot1–3
+        /// (the same source as the race HUD's SkillSlotUI).
+        /// </summary>
+        private static List<string>[] SlotKeys()
+        {
+            var keys = new List<string>[3];
+            InputSystem_Actions actions = null;
+            try
+            {
+                actions = new InputSystem_Actions();
+                InputAction[] slotActions = { actions.Player.SkillSlot1, actions.Player.SkillSlot2, actions.Player.SkillSlot3 };
+                for (int i = 0; i < slotActions.Length; i++)
+                {
+                    keys[i] = new List<string>();
+                    foreach (InputBinding binding in slotActions[i].bindings)
+                    {
+                        const string prefix = "<Keyboard>/";
+                        string path = binding.effectivePath;
+                        if (binding.isComposite || binding.isPartOfComposite || path == null || !path.StartsWith(prefix)) continue;
+                        keys[i].Add(path.Substring(prefix.Length).ToUpperInvariant());
+                    }
+                }
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogException(exception);
+            }
+            finally
+            {
+                if (actions != null) Destroy(actions.asset);
+            }
+            return keys;
+        }
+
+        /// <summary>Key caps for each slot's keys (Q / 1, E / 2, R / 3 today).</summary>
         private void BuildKeys()
         {
-            var db = DesignTableOverlay.Db;
+            List<string>[] slotKeys = SlotKeys();
             for (int i = 0; i < keyRows.Length; i++)
             {
                 var caps = new List<CanvasGroup>();
                 _keys.Add(caps);
                 RectTransform row = keyRows[i];
-                ComboBindingRecord binding = db != null && db.comboBindings != null ? db.comboBindings.Find(b => b.slotIndex == i) : null;
-                int n = binding != null ? binding.sequence.Count : 0;
+                List<string> sequence = i < slotKeys.Length && slotKeys[i] != null ? slotKeys[i] : new List<string>();
+                int n = sequence.Count;
                 for (int k = 0; k < n; k++)
                 {
                     var go = new GameObject("Key_" + k, typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
@@ -242,7 +278,7 @@ namespace SteamMultiplayer.UI
                     var g = go.GetComponent<CanvasGroup>();
                     g.alpha = 0f;
                     caps.Add(g);
-                    Sprite icon = IconFor(binding.sequence[k]);
+                    Sprite icon = IconFor(sequence[k]);
                     if (icon != null)
                     {
                         img.sprite = icon;
@@ -256,7 +292,7 @@ namespace SteamMultiplayer.UI
                     lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one; lrt.offsetMin = lrt.offsetMax = Vector2.zero;
                     var t = label.GetComponent<TextMeshProUGUI>();
                     t.font = keyFont;
-                    t.text = KeyLabel(binding.sequence[k]);
+                    t.text = KeyLabel(sequence[k]);
                     t.fontSize = keySize * 0.55f;
                     t.alignment = TextAlignmentOptions.Center;
                     t.color = new Color32(0xF4, 0xEF, 0xE6, 0xFF);

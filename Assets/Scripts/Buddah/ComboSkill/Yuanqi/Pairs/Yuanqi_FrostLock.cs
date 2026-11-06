@@ -8,10 +8,10 @@ using UnityEngine;
 /// other than the caster within radiusMeters (horizontal) of the caster — AI and training dummies included — is frozen
 /// for freezeSeconds (ApplyFreezeToOwner also interrupts a confirming cast and refunds that slot). Effect first, then
 /// the skills the row's consumeA / consumeB name are consumed (yuanqi-architecture §4.2 / §4.6).
-/// Presentation: a procedural placeholder until the real VFX (FrostGroundPlaceholder from PlayObservers,
-/// FrozenIceShellPlaceholder on each frozen racer). Every peer gets the payload (centre, radius R, seconds N, frozen
-/// target ids) through SkillExecutor.YuanqiObserved, and each frozen racer raises
-/// RacerSkillPresentationState.FrozenChanged (its Animator holds while frozen).
+/// Presentation (Docs/vfx/yuanqi-frost-lock.md): the slot vfxId (the frozen ground, radius R) on the caster from
+/// PlayObservers, and the ice block slot FrozenIceShell.VfxId on each frozen racer from its own
+/// RacerSkillPresentationState.FrozenChanged (its Animator holds while frozen). Every peer gets the payload (centre,
+/// radius R, seconds N, frozen target ids) through SkillExecutor.YuanqiObserved.
 /// </summary>
 [CreateAssetMenu(fileName = "Yuanqi_FrostLock", menuName = "Skills/Yuanqi/Frost Lock")]
 public class Yuanqi_FrostLock : YuanqiAction
@@ -62,10 +62,17 @@ public class Yuanqi_FrostLock : YuanqiAction
         if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Yuanqi][FrostLock][Server] '{caster.name}' froze {frozen} racer(s) within {radiusMeters:0.#} m for {freezeSeconds:0.##}s; consume {skillA}={consumeA}, {skillB}={consumeB}.");
     }
 
-    // Every peer. 占位，等禅足冰封正式特效: the frozen ground (radius R, held for N). The ice blocks on the frozen racers
-    // come from their own FrozenChanged (FrozenIceShellPlaceholder).
+    // Every peer: the frozen ground slot on the caster for the freeze (laid once, left in place). The ice blocks on the
+    // frozen racers come from their own FrozenChanged (FrozenIceShell).
     public override void PlayObservers(SkillExecutor caster, YuanqiPresentationPayload payload, bool localIsCaster)
     {
-        FrostGroundPlaceholder.Spawn(payload.Center, payload.Radius, payload.Seconds);
+        PlayVfxSlotLocal(caster, payload.Seconds > 0f ? payload.Seconds : freezeSeconds);
+    }
+
+    public override void CollectVfxSlots(List<SkillAction.VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, freezeSeconds, "Skill/YuanqiEffectFrostLock.freezeSeconds");
+        // Played by each frozen racer (FrozenIceShell) for the freeze seconds it has left: N at the trigger.
+        into.Add(new SkillAction.VfxSlotTiming { vfxId = FrozenIceShell.VfxId, seconds = freezeSeconds, source = "Skill/YuanqiEffectFrostLock.freezeSeconds" });
     }
 }

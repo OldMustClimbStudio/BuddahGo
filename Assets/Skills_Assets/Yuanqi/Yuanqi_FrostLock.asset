@@ -21,6 +21,7 @@ MonoBehaviour:
   mode: 0
   retriggerPolicy: 0
   isEnabled: 1
+  vfxId: frost_lock_release
   freezeSeconds: 1.5
   radiusMeters: 12
   affectsTrainingDummies: 1

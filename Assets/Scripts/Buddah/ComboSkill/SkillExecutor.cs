@@ -221,7 +221,7 @@ public class SkillExecutor : NetworkBehaviour
         ResolveMotor();
         ResolveCharacterAnimator();
         _presentationState.Bind(_motor, characterAnimator);
-        FrozenIceShellPlaceholder.Attach(gameObject, _presentationState); // 占位，等禅足冰封正式特效
+        FrozenIceShell.Attach(gameObject, _presentationState); // 禅足冰封's ice block on this racer (Docs/vfx/yuanqi-frost-lock.md)
     }
 
     public override void OnStartServer()

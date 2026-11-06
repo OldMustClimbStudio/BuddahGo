@@ -22,21 +22,27 @@ namespace BuddahGo.Tests
             return database;
         }
 
-        [TestCase("acceleration", "acceleration_anti", typeof(Skill_Acceleration_Anti))]
-        [TestCase("slowtrap", "slowtrap_anti", typeof(Skill_SlowTrap_Anti))]
-        [TestCase("blackcurtain", "blackcurtain_anti", typeof(Skill_BlackCurtain_Anti))]
-        [TestCase("giant", "giant_anti", typeof(Skill_Giant_Anti))]
-        [TestCase("push_projectile_hands", "push_projectile_hands_anti", typeof(Skill_PushProjectileHands_Anti))]
-        [TestCase("reverseturn", "reverseturn_anti", typeof(Skill_ReverseTurn_Anti))]
-        public void EverySkillResolvesItsDevVariant(string skillId, string antiId, Type variantType)
+        [Test]
+        public void EverySkillResolvesItsDevVariant()
         {
             SkillDatabase database = LoadDatabase();
-            Assert.IsTrue(database.TryGet(skillId, out SkillAction skill) && skill != null, skillId);
-            Assert.AreEqual(antiId, database.GetAntiSkillId(skillId, skill), "Skill.antiSkillId of " + skillId);
-            Assert.AreEqual(antiId, skill.antiSkillId, "the SO names the same variant as the table");
-            Assert.IsTrue(database.TryGet(antiId, out SkillAction variant) && variant != null, antiId + " resolves");
-            Assert.IsInstanceOf(variantType, variant, antiId);
-            Assert.IsTrue(database.antiSkills.Contains(variant), antiId + " lives in SkillDatabase.antiSkills");
+            EveryCase.Check(new[]
+            {
+                (skillId: "acceleration", antiId: "acceleration_anti", variantType: typeof(Skill_Acceleration_Anti)),
+                (skillId: "slowtrap", antiId: "slowtrap_anti", variantType: typeof(Skill_SlowTrap_Anti)),
+                (skillId: "blackcurtain", antiId: "blackcurtain_anti", variantType: typeof(Skill_BlackCurtain_Anti)),
+                (skillId: "giant", antiId: "giant_anti", variantType: typeof(Skill_Giant_Anti)),
+                (skillId: "push_projectile_hands", antiId: "push_projectile_hands_anti", variantType: typeof(Skill_PushProjectileHands_Anti)),
+                (skillId: "reverseturn", antiId: "reverseturn_anti", variantType: typeof(Skill_ReverseTurn_Anti)),
+            }, c =>
+            {
+                Assert.IsTrue(database.TryGet(c.skillId, out SkillAction skill) && skill != null, c.skillId);
+                Assert.AreEqual(c.antiId, database.GetAntiSkillId(c.skillId, skill), "Skill.antiSkillId of " + c.skillId);
+                Assert.AreEqual(c.antiId, skill.antiSkillId, "the SO names the same variant as the table");
+                Assert.IsTrue(database.TryGet(c.antiId, out SkillAction variant) && variant != null, c.antiId + " resolves");
+                Assert.IsInstanceOf(c.variantType, variant, c.antiId);
+                Assert.IsTrue(database.antiSkills.Contains(variant), c.antiId + " lives in SkillDatabase.antiSkills");
+            }, c => "skill " + c.skillId);
         }
 
         [Test]

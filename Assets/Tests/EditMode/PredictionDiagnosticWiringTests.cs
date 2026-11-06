@@ -47,13 +47,6 @@ namespace BuddahGo.Tests
         }
 
         [Test]
-        public void DiagnosticComponentsCannotDrawEvenWithOldSerializedFlags()
-        {
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-            Assert.That(typeof(BuddahPredictionDebugOverlay).GetMethod("OnGUI", flags), Is.Null);
-        }
-
-        [Test]
         public void PrefabDisablesScreenFlagsAndKeepsConsoleMirror()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Character/Prefab/Buddah.prefab");

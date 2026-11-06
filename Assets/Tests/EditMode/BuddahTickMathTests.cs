@@ -6,25 +6,31 @@ namespace BuddahGo.Tests
 {
     public class BuddahTickMathTests
     {
-        [TestCase(5687u, 5690u)]
-        [TestCase(0u, 1u)]
-        [TestCase(uint.MaxValue - 1, uint.MaxValue)]
-        public void ReplayDoesNotConsumeAnImpulseFromItsFuture(uint replayTick, uint eventTick)
+        [Test]
+        public void ReplayDoesNotConsumeAnImpulseFromItsFuture()
         {
-            var channel = new BuddahPredictionEventChannel<int>();
-            channel.TryEnqueue(7, eventTick, 1, out _);
-            int applications = 0;
-            bool Apply(in BuddahPredictionEventChannel<int>.Entry entry)
-            { applications += entry.Payload; return true; }
+            EveryCase.Check(new[]
+            {
+                (replayTick: 5687u, eventTick: 5690u),
+                (replayTick: 0u, eventTick: 1u),
+                (replayTick: uint.MaxValue - 1, eventTick: uint.MaxValue),
+            }, c =>
+            {
+                var channel = new BuddahPredictionEventChannel<int>();
+                channel.TryEnqueue(7, c.eventTick, 1, out _);
+                int applications = 0;
+                bool Apply(in BuddahPredictionEventChannel<int>.Entry entry)
+                { applications += entry.Payload; return true; }
 
-            // A live timing update may already have advanced beyond the event.
-            uint clock = BuddahTickMath.ImpulseEventClock(false, true, 4021, uint.MaxValue, replayTick);
-            Assert.That(channel.ConsumeReady(clock, Apply), Is.Zero);
-            Assert.That(channel.Count, Is.EqualTo(1));
-            clock = BuddahTickMath.ImpulseEventClock(false, true, 4021, uint.MaxValue, eventTick);
-            Assert.That(channel.ConsumeReady(clock, Apply), Is.EqualTo(1));
-            Assert.That(channel.ConsumeReady(clock, Apply), Is.Zero);
-            Assert.That(applications, Is.EqualTo(7));
+                // A live timing update may already have advanced beyond the event.
+                uint clock = BuddahTickMath.ImpulseEventClock(false, true, 4021, uint.MaxValue, c.replayTick);
+                Assert.That(channel.ConsumeReady(clock, Apply), Is.Zero);
+                Assert.That(channel.Count, Is.EqualTo(1));
+                clock = BuddahTickMath.ImpulseEventClock(false, true, 4021, uint.MaxValue, c.eventTick);
+                Assert.That(channel.ConsumeReady(clock, Apply), Is.EqualTo(1));
+                Assert.That(channel.ConsumeReady(clock, Apply), Is.Zero);
+                Assert.That(applications, Is.EqualTo(7));
+            }, c => $"replayTick={c.replayTick} eventTick={c.eventTick}");
         }
 
         [Test]
@@ -45,30 +51,52 @@ namespace BuddahGo.Tests
                 "outside a replay FishNet leaves ClientReplayTick unset");
         }
 
-        [TestCase(35000u, 37477u, 34560u, 32083u)]
-        [TestCase(37477u, 37477u, 34560u, 34560u)]
-        [TestCase(37480u, 37477u, 34560u, 34563u)]
-        [TestCase(0u, 0u, 100u, 100u)]
-        [TestCase(1u, 3000u, 10u, 0u)]
-        [TestCase(uint.MaxValue, 0u, 1u, uint.MaxValue)]
-        [TestCase(100u, 100u, 100u, 100u)]
-        [TestCase(100u, 90u, 200u, 210u)]
-        public void ServerEventsMapToLocalClockWithoutUnsignedUnderflow(uint tick, uint server, uint local, uint expected)
+        [Test]
+        public void ServerTicksTranslateWithSaturation()
         {
-            Assert.That(BuddahTickMath.ServerEventToLocalTick(tick, server, local), Is.EqualTo(expected));
+            EveryCase.Parts(
+                ("server events map to the local clock without unsigned underflow", () => EveryCase.Check(new[]
+                {
+                    (tick: 35000u, server: 37477u, local: 34560u, expected: 32083u),
+                    (tick: 37477u, server: 37477u, local: 34560u, expected: 34560u),
+                    (tick: 37480u, server: 37477u, local: 34560u, expected: 34563u),
+                    (tick: 0u, server: 0u, local: 100u, expected: 100u),
+                    (tick: 1u, server: 3000u, local: 10u, expected: 0u),
+                    (tick: uint.MaxValue, server: 0u, local: 1u, expected: uint.MaxValue),
+                    (tick: 100u, server: 100u, local: 100u, expected: 100u),
+                    (tick: 100u, server: 90u, local: 200u, expected: 210u),
+                }, c => Assert.That(BuddahTickMath.ServerEventToLocalTick(c.tick, c.server, c.local), Is.EqualTo(c.expected)),
+                c => $"tick={c.tick} server={c.server} local={c.local}")),
+                // Moved from HandoffClockTests: events and deadlines saturate rather than wrapping.
+                ("events and deadlines saturate rather than wrapping", () => EveryCase.Check(new[]
+                {
+                    (value: 0u, server: 10u, local: 100u, expectedEvent: 90u, expectedDeadline: 0u),
+                    (value: 1u, server: 3000u, local: 10u, expectedEvent: 0u, expectedDeadline: 0u),
+                    (value: uint.MaxValue, server: 0u, local: 1u, expectedEvent: uint.MaxValue, expectedDeadline: uint.MaxValue),
+                    (value: 1u, server: uint.MaxValue, local: 5u, expectedEvent: 0u, expectedDeadline: 0u),
+                    (value: uint.MaxValue - 1u, server: 2u, local: 10u, expectedEvent: uint.MaxValue, expectedDeadline: uint.MaxValue),
+                }, c =>
+                {
+                    Assert.That(BuddahTickMath.ServerEventToLocalTick(c.value, c.server, c.local), Is.EqualTo(c.expectedEvent));
+                    Assert.That(BuddahTickMath.ServerDeadlineToLocalTick(c.value, c.server, c.local), Is.EqualTo(c.expectedDeadline));
+                }, c => $"value={c.value} server={c.server} local={c.local}")));
         }
 
-        [TestCase(0f, .02f, 0u)]
-        [TestCase(.001f, .02f, 1u)]
-        [TestCase(.02f, .02f, 1u)]
-        [TestCase(1f, .02f, 50u)]
-        [TestCase(1.01f, .02f, 51u)]
-        [TestCase(.0001f, 0f, 1u)]
-        [TestCase(.0001f, -1f, 1u)]
-        [TestCase(.001f, .0001f, 11u)]
-        public void DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics(float seconds, float delta, uint expected)
+        [Test]
+        public void DurationRoundsUpUsingExistingFloatAndMinimumDeltaSemantics()
         {
-            Assert.That(BuddahTickMath.DurationToTicks(seconds, delta), Is.EqualTo(expected));
+            EveryCase.Check(new[]
+            {
+                (seconds: 0f, delta: .02f, expected: 0u),
+                (seconds: .001f, delta: .02f, expected: 1u),
+                (seconds: .02f, delta: .02f, expected: 1u),
+                (seconds: 1f, delta: .02f, expected: 50u),
+                (seconds: 1.01f, delta: .02f, expected: 51u),
+                (seconds: .0001f, delta: 0f, expected: 1u),
+                (seconds: .0001f, delta: -1f, expected: 1u),
+                (seconds: .001f, delta: .0001f, expected: 11u),
+            }, c => Assert.That(BuddahTickMath.DurationToTicks(c.seconds, c.delta), Is.EqualTo(c.expected)),
+            c => $"seconds={c.seconds} delta={c.delta}");
         }
     }
 }

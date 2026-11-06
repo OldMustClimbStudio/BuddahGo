@@ -18,6 +18,7 @@ namespace BuddahGo.DesignTables
             YuanqiPairsAreValid(set, issues);
             YuanqiAvoidsPairwiseTriangles(set, issues);
             BackfireAndSurchargeCellsAreFilled(set, issues);
+            PalmSizeCellsAreFilled(set, issues);
             TrainingDummyCellsAreFilled(set, issues);
             GraphicsSettingsAreComplete(set, issues);
         }
@@ -163,6 +164,25 @@ namespace BuddahGo.DesignTables
             foreach (DataRow row in obsession.Rows)
                 RequireFilled(obsession, row, issues, "a blank cell imports as 0 and the range check skips it",
                     "repeatWindowSeconds", "repeatGainMultiplier", "backfireLockSeconds", "backfireMaxSpeedMultiplier", "backfireEndKeepRatio");
+        }
+
+        // The palm size multipliers (user 2026-11-06) scale the 如来神掌 hitbox and visual: a blank one imports as 0 and the
+        // palm shrinks to the 0.05 floor (PalmSizeRule.MinPalmSizeMultiplier).
+        private static void PalmSizeCellsAreFilled(DesignTableSet set, List<Issue> issues)
+        {
+            DesignSheet push = set.Find("Skill", "Push");
+            ColumnSpec pushId = push != null ? push.FindColumn("pushId") : null;
+            if (pushId != null)
+                foreach (DataRow row in push.Rows)
+                {
+                    string id = push.Cell(row, pushId).Trim();
+                    if (id == "charged" || id == "charged_anti")
+                        RequireFilled(push, row, issues, "the palm's base size; a blank cell imports as 0 and the range check skips it", "sizeMultiplier");
+                }
+            DesignSheet giant = set.Find("Skill", "SkillEffectGiant");
+            if (giant != null)
+                foreach (DataRow row in giant.Rows)
+                    RequireFilled(giant, row, issues, "the palm size at this row's full body scale; a blank cell imports as 0 and the range check skips it", "palmSizeMultiplier");
         }
 
         // Rows that spawn training dummies need every placement cell (a blank spacing stacks them all on one spot).

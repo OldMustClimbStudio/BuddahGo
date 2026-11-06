@@ -32,7 +32,8 @@ namespace BuddahGo.DesignTables
         {
             DesignSheet skill = set.Find("Skill", "Skill");
             if (skill == null) return;
-            ColumnSpec id = skill.FindColumn("skillId"), anti = skill.FindColumn("antiSkillId"), gain = skill.FindColumn("obsessionGain");
+            ColumnSpec id = skill.FindColumn("skillId"), anti = skill.FindColumn("antiSkillId"), gain = skill.FindColumn("obsessionGain"),
+                cooldown = skill.FindColumn("cooldownSeconds");
             if (id == null || anti == null) return;
             HashSet<string> antiIds = new HashSet<string>();
             foreach (DataRow row in skill.Rows)
@@ -43,15 +44,23 @@ namespace BuddahGo.DesignTables
                 else if (!sid.EndsWith("_anti"))
                     issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, anti), Message = "normal skill '" + sid + "' has no antiSkillId" });
             }
-            if (gain == null) return;
-            // A backfire adds no obsession (unified penalty, its _anti variant still runs); the anti row's value is never read.
+            // A backfire adds no obsession (unified penalty, its _anti variant still runs) and spends the requested
+            // skill's cooldown (SkillExecutor.QueueCast): neither value on the anti row is ever read.
             foreach (DataRow row in skill.Rows)
             {
                 string sid = skill.Cell(row, id).Trim();
-                string g = skill.Cell(row, gain).Trim();
-                if (antiIds.Contains(sid) && !string.IsNullOrEmpty(g) && ValueConverter.ToFloat(g) != 0f)
+                if (!antiIds.Contains(sid)) continue;
+                if (gain != null && IsNonZero(skill.Cell(row, gain)))
                     issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, gain), Message = "obsessionGain on anti skill '" + sid + "' is ignored (a backfire adds no obsession); leave it blank" });
+                if (cooldown != null && IsNonZero(skill.Cell(row, cooldown)))
+                    issues.Add(new Issue { Severity = IssueSeverity.Warning, Location = skill.Location(row, cooldown), Message = "cooldownSeconds on anti skill '" + sid + "' is ignored (a backfire uses the requested skill's cooldown); leave it blank" });
             }
+        }
+
+        private static bool IsNonZero(string cell)
+        {
+            string value = cell.Trim();
+            return !string.IsNullOrEmpty(value) && ValueConverter.ToFloat(value) != 0f;
         }
 
         // Blank numeric cells import as 0 and the #range check skips them: a blank multiplier or keep ratio would zero the effect.

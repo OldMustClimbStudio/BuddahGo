@@ -6,14 +6,14 @@ Solo Match：一个 Human Player 对 0–5 个 AI Racer，完全离线，流程�
 
 | 范围 | 状态 | 未闭合 |
 |---|---|---|
-| S1 离线 Practice | 可玩，用户已试玩 | 长测、完整 benchmark（V11/V12）未跑 |
+| S1 离线 Practice | 可玩，用户已试玩；0 AI 时生成 3 个训练木桩（机制更新） | 长测、完整 benchmark（V11/V12）未跑 |
 | S2 Racer 身份 | 已实现（`RacerId`，ADR 0002） | 同上 |
 | S3a 五个 AI 跑完一局 | 六车同场三圈自然完赛 | 通用 Stuck Recovery、全配置长测 |
-| S3b / S5 AI 施法与五种人格 | 已实现 | 数值与人格辨识度等用户试玩 |
+| S3b / S5 AI 施法与五种人格 | 已实现；A7 后 AI 与真人走同一施法门（`SkillExecutor.CastSlotServer`）和统一反噬 | 数值与人格辨识度等用户试玩；联机未验证 |
 | S4 AI 驾驶 | `ThrustVectorPlanner` 三档难度（`Assets/Resources/AI/*.asset`），用户已验收：Hard 约 82 s、Normal 约 93 s、Easy 约 116 s 一圈 | 横向离散度、车车碰撞建模 |
 | S6 体验收尾 / S7 暂停 | 未开始 | |
 
-逐阶段证据和历史调参见 [progress.md](progress.md)；历史交接、阶段性复核和一次性修复记录在 [archive/single-player/](../archive/single-player/)。PR #63（机制更新）改了 AI 技能适配，合入 `dev` 后更新本表。
+逐阶段证据和历史调参见 [progress.md](progress.md)；历史交接、阶段性复核和一次性修复记录在 [archive/single-player/](../archive/single-player/)。机制更新（PR #74）已合入 `dev`：单键施法、鼠标瞄准、W 推进、取消全局施法锁、统一反噬、训练木桩，规则以 [玩法深化](../gameplay/README.md) 为准；缘起在 PR #75（`feat/yuanqi`）。
 
 ## 去哪看
 
@@ -24,6 +24,7 @@ Solo Match：一个 Human Player 对 0–5 个 AI Racer，完全离线，流程�
 | 阶段目标与 V 项定义 | [phases.md](phases.md) |
 | AI 驾驶规格 | [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md) |
 | AI 技能管线与人格 | [ai-skills.md](ai-skills.md) · [ai-personalities.md](ai-personalities.md) · [试玩清单](ai-skill-playtest.md) |
+| 玩家与 AI 共享的技能规则（单键施法、施法节奏、执念与反噬、训练木桩） | [玩法深化](../gameplay/README.md) · [训练模式验证记录](../gameplay/practice-verification.md) |
 | AI 调校与测试方法 | [ai-testing.md](ai-testing.md) |
 | Solo 呈现时间线（开场到驾驶的交接） | [solo-presentation-timeline.md](solo-presentation-timeline.md) |
 | 性能采样协议（要跑 benchmark 时） | [benchmark.md](benchmark.md) |
@@ -47,9 +48,10 @@ Solo Match：一个 Human Player 对 0–5 个 AI Racer，完全离线，流程�
 - **不要在 RPC 调用栈里停止会话**：会销毁正在执行的 NetworkBehaviour。统一用 `SessionControl.Current.RequestStopSession()`，它在下一帧执行。
 - **单人房间自动开始**：`RoomStateManager.StartSoloAfterInitialScenes` 等待本地连接认证和初始场景加载后调用 `TryStartSoloMatchServer`。
 - **AI 的 owner 无效**：`OwnerId` 恒为 -1，`Owner` 是 EmptyConnection（不是 null）。按 owner 做的判断或键会把所有 AI 当成同一个对象；统一用 RacerId（ADR 0002，接缝见 design.md §3.3）。
+- **训练木桩不是参赛者**：`MatchSpawnManager.SpawnTrainingDummies` 用同一个 Racer prefab 生成，无 owner，`RacerIdentity.IsTrainingDummy` 为真，racer id 为 −1；只加普通 MonoBehaviour（`TrainingDummy`、`TrainingDummyReadout`）。`IsServerControlled` / `HasLocalControl` 包含木桩，`IsServerAI` / `IsProgressAuthority` 不包含，所以它不计圈、不排名，但技能能找到它。数量与位置在 `Match/ModeRule` 的 Practice 行。
 - **AI 的计圈和复活复用现有代码**：只把 owner 门槛换成 `IsProgressAuthority`，不另写计圈规则。
 - **不在运行时添加 NetworkBehaviour**：`RacerIdentity` 和 AI 组件预先放在 prefab 上。现有代码只通过契约层（`Assets/Scripts/Match/Contracts/`）访问 Solo 模块。
-- **比赛自动全油门**，AI 只转向和施法；**运动没有线性阻力**，所以 AI 要往前推演才能稳定走线。不为好控制而改运动参数。
+- **推进**：玩家按住 W 推进（2026-10-30 起不再自动全油门），AI 经同一推进开关一直推进，只转向和施法；**运动没有线性阻力**，所以 AI 要往前推演才能稳定走线。不为好控制而改运动参数。
 - **计时用 Match Clock**：GO、圈速和完赛用服务器 tick；真人圈数经约 100 ms 进度上报，不能声称冲线精确到一个 tick。
 - **handoff 流畅度要实测**：本地 host 不代表姿态、镜头、输入交接自然流畅；不授权全局移除 prediction。
 - **FishNet 本地修改**：`Assets/FishNet/Runtime/Utility/TransformTickSmoother.cs` 新增 `SetPresentationSuspended(bool)`，只由 `BuddahPredictionVisualRootBridge` 用于 Solo 呈现时间线；升级 FishNet 后要重新应用。

@@ -26,13 +26,13 @@ public class Skill_BlackCurtain : SkillAction
         if (caster == null)
             return;
 
-        BuddahGo.Match.SkillPerceptionState.ApplyCurtain(caster, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds, false);
+        BuddahGo.Match.SkillPerceptionState.ApplyCurtain(caster, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
 
         float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
         GameLog.Verbose($"[Skill_BlackCurtain][Server] Triggered by {caster.name}, totalDuration={actualDuration:0.00}s");
     }
 
-    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool isAnti, bool localIsCaster)
+    public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
         // Before the curtain's own gate: the release is seen by everyone, affected or not.
         PlaySlotOnCaster(caster, releaseVfxId, ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds));
@@ -45,7 +45,7 @@ public class Skill_BlackCurtain : SkillAction
             fadeOutDurationSeconds = fadeOutDurationSeconds,
             maxOpacity = maxOpacity,
         };
-        if (!BlackCurtainPresentation.TryPlay(caster, isAnti, localIsCaster, GetType().Name, settings))
+        if (!BlackCurtainPresentation.TryPlay(caster, false, localIsCaster, GetType().Name, settings))
             return;
 
         float actualDuration = ResolveVfxDuration(vfxDurationSeconds, expandDurationSeconds + holdDurationSeconds + fadeOutDurationSeconds);
@@ -53,7 +53,6 @@ public class Skill_BlackCurtain : SkillAction
 
         GameLog.Verbose($"[Skill_BlackCurtain][Observers] Local player affected by '{skillId}' (slot {slotIndex})");
     }
-
 
     public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)
     {

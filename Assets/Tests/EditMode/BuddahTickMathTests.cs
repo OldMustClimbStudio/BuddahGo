@@ -35,6 +35,16 @@ namespace BuddahGo.Tests
             Assert.That(BuddahTickMath.ImpulseEventClock(false, true, 100, 1900, 0), Is.Zero);
         }
 
+        [Test]
+        public void ModifiersResolveAtTheReplayedTickOnlyWhileAClientReplays()
+        {
+            Assert.That(BuddahTickMath.ModifierResolveTick(true, true, 1900, 1800), Is.EqualTo(1900), "the server never replays");
+            Assert.That(BuddahTickMath.ModifierResolveTick(true, false, 1900, 1800), Is.EqualTo(1900));
+            Assert.That(BuddahTickMath.ModifierResolveTick(false, true, 3019, 3012), Is.EqualTo(3012));
+            Assert.That(BuddahTickMath.ModifierResolveTick(false, false, 3019, uint.MaxValue), Is.EqualTo(3019),
+                "outside a replay FishNet leaves ClientReplayTick unset");
+        }
+
         [TestCase(35000u, 37477u, 34560u, 32083u)]
         [TestCase(37477u, 37477u, 34560u, 34560u)]
         [TestCase(37480u, 37477u, 34560u, 34563u)]

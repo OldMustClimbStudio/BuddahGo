@@ -228,7 +228,8 @@ namespace BuddahGo.Tests
         // README 4: the effect of one cast (charge + flight + dissipation) fits in the cast lock. The buff state layer
         // runs for the buff's length and is outside this rule (paper confirmation Q1, 2026-10-28).
         [Test]
-        public void OneCastOfTheEffectFitsInTheCastLock()
+        // The global cast lock is retired (mechanics update A3); the slot cooldown is the bound a recast cannot beat.
+        public void OneCastOfTheEffectFitsInTheCooldown()
         {
             var cases = new[]
             {
@@ -242,7 +243,7 @@ namespace BuddahGo.Tests
                 PushRecord push = database.pushes.Single(p => p.pushId == c.pushId);
                 VfxRegistryRecord vfx = database.vfxRegistries.Single(r => r.vfxId == c.vfxId);
                 float total = push.windupSeconds + push.lifetimeSeconds + vfx.disSeconds;
-                Assert.That(total, Is.LessThanOrEqualTo(skill.castLockSeconds), c.skillId);
+                Assert.That(total, Is.LessThanOrEqualTo(skill.cooldownSeconds), c.skillId);
             });
         }
     }

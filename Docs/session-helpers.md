@@ -31,9 +31,11 @@
 
 ## 身份回退
 
+`PlayerIdentity` 只处理连接、Steam ID 和显示名。比赛内的参赛者身份（`RacerIdentity`、`RacerAuthority`，包括训练木桩）见[架构说明](architecture.md#参赛者身份与权限)。
+
 - `GetLocalClientId(null)` 返回 -1。
 - `GetSteamIdForConnection()` 在 transport 或 connection 为空时返回空字符串，不调用 transport；否则用 `connection.ClientId` 查询地址。null、空和纯空白地址转为空字符串，非空白地址原样返回，不额外 Trim 或验证 Steam ID 格式。
-- `ResolvePlayerName()` 依次尝试匹配 lobby 成员、有效且 ID 匹配的本地 Steam 身份，最后回退为 `Player {clientId}`。名单显示名的 Trim/长度限制由 `RoomRoster.SanitizePlayerName()` 单独处理。
+- `ResolvePlayerName()` 依次尝试匹配 lobby 成员、有效且 ID 匹配的本地 Steam 身份；当前模式规则有默认名（`MatchRules.Current.DefaultPlayerName` 非空，如 Solo）且 Steam 有效时返回本地 Steam 名；最后回退为 `FallbackName(clientId)`，即默认名，没有默认名时为 `Player {clientId}`。名单显示名的 Trim/长度限制由 `RoomRoster.SanitizePlayerName()` 单独处理。
 
 ## 验证入口与边界
 

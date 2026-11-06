@@ -4,16 +4,18 @@
 
 | 需要了解 | 文档 |
 |---|---|
-| 系统职责与比赛流程 | [architecture.md](architecture.md) |
+| 系统职责、比赛流程、技能施法链路、参赛者身份与训练模式 | [architecture.md](architecture.md) |
 | 房间名单、握手、配装与身份 helper | [session-helpers.md](session-helpers.md) |
 | FishNet 权限、同步与场景要点 | [networking.md](networking.md) |
-| 预测与回放的核心设计 | [prediction-design.md](prediction-design.md) |
-| Unity MCP 启动与连接 | [unity-mcp.md](unity-mcp.md) |
-| 术语表 / 架构决策 | [../CONTEXT.md](../CONTEXT.md) · [adr/](adr/) |
+| 预测与回放的核心设计、技能 modifier 命令 | [prediction-design.md](prediction-design.md) |
+| Unity MCP 启动、多编辑器连接、headless 测试与训练模式验证入口 | [unity-mcp.md](unity-mcp.md) |
+| 术语表（比赛与 AI；技能与风险）/ 架构决策 | [../CONTEXT.md](../CONTEXT.md) · [../GLOSSARY.md](../GLOSSARY.md) · [adr/](adr/) |
 | 单机模式（AI、离线流程）：现状、规格与事实 | [single-player/HANDOFF.md](single-player/HANDOFF.md) |
 | 策划配表：Excel 工作簿、导入器、规范与筛查清单 | [design-tables/README.md](design-tables/README.md) |
 | 技能特效：分层规范、流程、插槽、预算与档位；每个技能一篇专题 | [vfx/README.md](vfx/README.md) |
-| 玩法改动的退休清单 | [gameplay/retired.md](gameplay/retired.md) |
+| 玩法深化：执念与反噬、单键施法与鼠标瞄准、W 推进、训练木桩（A5 缘起在 PR #75 `feat/yuanqi`；联机验证未做） | [gameplay/README.md](gameplay/README.md) |
+| 训练模式验证：各场景的实测值与重跑方法（只覆盖本机 host） | [gameplay/practice-verification.md](gameplay/practice-verification.md) |
+| 玩法改动的退役清单：删了什么、在哪个提交、哪些有意保留 | [gameplay/retired.md](gameplay/retired.md) |
 | 渲染入口：改动前读什么、不变量、抓图—烘焙—对比流程 | [rendering/HARNESS.md](rendering/HARNESS.md) · [rendering/ARCHITECTURE.md](rendering/ARCHITECTURE.md) |
 | 画质设置：选项与档位、运行时接口、未实现与占位清单 | [rendering/graphics-settings.md](rendering/graphics-settings.md) |
 | 2026-11 全项目代码复核：结论与待你决定的事 | [code-review/README.md](code-review/README.md) |

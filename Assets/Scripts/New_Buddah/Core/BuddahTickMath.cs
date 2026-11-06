@@ -12,6 +12,14 @@ namespace NewBuddah.PredictionV2.Core
             return isServer ? localTick : isReplaying ? serverReplayTick : serverTick;
         }
 
+        // Modifier deadlines live in this peer's local clock (reconcile translates them). A client replay
+        // must resolve them at the tick being replayed: LocalTick does not move during a replay, and the
+        // decaying Burst cap (and every deadline) would otherwise be evaluated at "now" for each past tick.
+        internal static uint ModifierResolveTick(bool isServer, bool isReplaying, uint localTick, uint clientReplayTick)
+        {
+            return !isServer && isReplaying ? clientReplayTick : localTick;
+        }
+
         // Server-stamped events must enter the owner's local simulation clock before queuing.
         // Event tick zero is valid (unlike a modifier deadline's unset sentinel).
         internal static uint ServerEventToLocalTick(uint eventTick, uint serverTick, uint localTick)
@@ -40,6 +48,10 @@ namespace NewBuddah.PredictionV2.Core
             state.PushGraceUntilTick = ServerDeadlineToLocalTick(state.PushGraceUntilTick, serverTick, localTick);
             state.SuppressSteeringUntilTick = ServerDeadlineToLocalTick(state.SuppressSteeringUntilTick, serverTick, localTick);
             state.RoomBypassUntilTick = ServerDeadlineToLocalTick(state.RoomBypassUntilTick, serverTick, localTick);
+            state.FreezeUntilTick = ServerDeadlineToLocalTick(state.FreezeUntilTick, serverTick, localTick);
+            state.BurstUntilTick = ServerDeadlineToLocalTick(state.BurstUntilTick, serverTick, localTick);
+            state.MaxSpeedPenaltyUntilTick = ServerDeadlineToLocalTick(state.MaxSpeedPenaltyUntilTick, serverTick, localTick);
+            // BurstDurationTicks is a duration, not a timestamp: it must not be translated.
             return state;
         }
 

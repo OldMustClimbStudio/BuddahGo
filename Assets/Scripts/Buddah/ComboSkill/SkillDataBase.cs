@@ -15,6 +15,7 @@ public class SkillDatabase : ScriptableObject
     public List<SkillAction> normalSkills = new();
 
     [Header("Anti Skills")]
+    [Tooltip("The per-skill _anti variants. A backfire runs the requested skill's variant (Skill.antiSkillId).")]
     public List<SkillAction> antiSkills = new();
 
     [Header("Legacy / Unsorted (Optional)")]
@@ -125,15 +126,15 @@ public class SkillDatabase : ScriptableObject
         return fallbackSkill != null ? Mathf.Max(0f, fallbackSkill.cooldownSeconds) : 0f;
     }
 
-    public float GetCastLockSeconds(string skillId, SkillAction fallbackSkill)
+    public string GetAntiSkillId(string skillId, SkillAction fallbackSkill)
     {
         if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository)
-            && repository.TryGetCastLock(skillId, out float configuredValue))
+            && repository.TryGetAntiSkillId(skillId, out string configuredValue))
         {
-            return Mathf.Max(0f, configuredValue);
+            return configuredValue;
         }
 
-        return fallbackSkill != null ? Mathf.Max(0f, fallbackSkill.castLockSeconds) : 0f;
+        return fallbackSkill != null ? (fallbackSkill.antiSkillId ?? string.Empty).Trim() : string.Empty;
     }
 
     public float GetObsessionGain(string skillId, SkillAction fallbackSkill)
@@ -145,17 +146,6 @@ public class SkillDatabase : ScriptableObject
         }
 
         return fallbackSkill != null ? Mathf.Max(0f, fallbackSkill.ObsessionGain) : 0f;
-    }
-
-    public string GetAntiSkillId(string skillId, SkillAction fallbackSkill)
-    {
-        if (ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository repository)
-            && repository.TryGetAntiSkillId(skillId, out string configuredValue))
-        {
-            return configuredValue;
-        }
-
-        return fallbackSkill != null ? (fallbackSkill.antiSkillId ?? string.Empty).Trim() : string.Empty;
     }
 
     public bool GetAllowDuplicateSkillSelections(bool fallbackValue = false)
@@ -333,9 +323,10 @@ public class SkillDatabase : ScriptableObject
 
     // Design tables own the effect numbers; the SO fields are only the editor-time fallback.
     // Applied in play mode only so edit-mode validation can still compare SO values against the tables.
-    //   Skill.effectDurationSeconds      → the primary duration field of each skill class (EffectDurationField)
-    //   SkillEffect<Family> rows         → same-name fields of the normal / anti class (blank cells have no field on that class)
-    //   Push charged / charged_anti rows → explicit mapping onto the two projectile skills (basic row belongs to BuddahHandControl)
+    //   Skill.effectDurationSeconds → the primary duration field of each skill class (EffectDurationField)
+    //   SkillEffect<Family> rows    → same-name fields of the normal / anti class (blank cells have no field on that class)
+    //   Push charged / charged_anti → explicit mapping onto the two projectile skills (basic row belongs to BuddahHandControl)
+    // Rows without an asset here are skipped silently.
     private void ApplyDesignTablesToSkills()
     {
         ProjectConfigDatabase db = DesignTableOverlay.Db;

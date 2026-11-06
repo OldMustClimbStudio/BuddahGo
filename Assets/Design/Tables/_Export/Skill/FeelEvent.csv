@@ -3,11 +3,11 @@
 ##group,,,doc
 ##comment,,Buddah.prefab 内 MMF_Player 所在物体名；空=未接线,
 ,acceleration_shared,,Skill_Acceleration 默认（SO 中为空）
-,Anti_Reflection_Shared,反噬Reflection_Shared.prefab:反噬Reflection_Shared,SkillExecutor.cs:55
-,Anti_Reflection_Local,反噬Reflection_Local.prefab:反噬Reflection_Local,SkillExecutor.cs:56
-,Skill_Reflection_Local,技能Reflection_Local.prefab:技能Reflection_Local,SkillExecutor.cs:54
-,Skill_Reflection_Shared,技能Reflection_Shared.prefab:技能Reflection_Shared,SkillExecutor.cs:53
-,acceleration_local,,"OwnerMovementEffectApplier.cs:25,52（router 未注册）"
+,Anti_Reflection_Shared,反噬Reflection_Shared.prefab:反噬Reflection_Shared,SkillExecutor.cs:136（统一反噬的前摇表现）
+,Anti_Reflection_Local,反噬Reflection_Local.prefab:反噬Reflection_Local,SkillExecutor.cs:137（统一反噬的前摇表现）
+,Skill_Reflection_Local,技能Reflection_Local.prefab:技能Reflection_Local,SkillExecutor.cs:134
+,Skill_Reflection_Shared,技能Reflection_Shared.prefab:技能Reflection_Shared,SkillExecutor.cs:133
+,acceleration_local,,"OwnerMovementEffectApplier.cs:29,56（router 未注册）"
 ,acceleration_anti_observers,,Skill_Acceleration_Anti 默认（router 未注册）
 ,blackcurtain_observers,,Skill_BlackCurtain.asset（router 未注册）
 ,blackcurtain_anti_observers,,Skill_BlackCurtain_Anti.asset（router 未注册）

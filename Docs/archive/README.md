@@ -16,7 +16,7 @@
 - `agent-exchange/`：2026-04/05 预测重构 phase3/4 的控制台日志与交接（68 个文件）
 - `Docs/optimization/evidence/`：R8 CSV 压缩包与运行时 JSON
 - `Tools/ai/thrust-vector/rollout-2026-10-02/`：三档难度验收比赛的输出
-- `Tools/Validation/ReviewRuntimeRound2/`、`Tools/Validation/*-cases.cs.txt`、`Tools/Performance/`：重构 R 项的一次性驱动脚本
+- `Tools/Validation/ReviewRuntimeRound2/`、`Tools/Validation/*-cases.cs.txt`（`modifier-clock-cases.cs.txt` 除外，机制更新仍在维护）、`Tools/Performance/`：重构 R 项的一次性驱动脚本
 - `Docs/` 下没有被任何文档直接链接的逐视角帧与候选图（120 张）
 
 更早的历史在 Git 里，例如 `git log -- Docs/prediction-refactor-plan/`。

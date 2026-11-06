@@ -69,7 +69,7 @@ namespace BuddahGo.VFX
         public float endWithWindowSeconds = 1f;
 
         [Header("Caster scale (Docs/vfx/giant.md)")]
-        [Tooltip("CasterAttached / CasterFollow layers on a caster whose body scale changes (巨大化 ×4, its anti ×0.3). Whole: the layer is scaled with the caster at once. Blend: Area Systems follow over the seconds below with an alpha dip, every other system (authored with ScalingMode Shape) spreads its spawn area and keeps its grain, Scale Surge marks the change.")]
+        [Tooltip("CasterAttached / CasterFollow layers on a caster whose body scale changes (巨大化 ×4, its anti ×0.3). Whole: the layer is scaled with the caster at once. Blend: Area Systems follow over the seconds below with an alpha dip, every other system (authored with ScalingMode Shape) spreads its spawn area and keeps its grain, Scale Surge marks the change. None: the layer keeps its authored size, only its offset follows the body (a route sized in world units).")]
         public SkillVfxCasterScaling casterScaling = SkillVfxCasterScaling.Whole;
         [Tooltip("Blend: systems that draw the area itself (ground rings, large smudges, outward pulses). They stay ScalingMode Hierarchy and grow with the layer.")]
         public ParticleSystem[] areaSystems;
@@ -234,6 +234,8 @@ namespace BuddahGo.VFX
         // takes the caster's scale as it is; a later change starts a blend (surge, handoff) and the area eases there.
         internal float FollowCasterScale(float casterScale, float now)
         {
+            if (casterScaling == SkillVfxCasterScaling.None)
+                return 1f;
             if (casterScaling != SkillVfxCasterScaling.Blend || _isArea == null)
                 return casterScale;
             if (_areaScale < 0f)

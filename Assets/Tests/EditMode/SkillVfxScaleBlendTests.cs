@@ -54,6 +54,20 @@ namespace BuddahGo.Tests
         // A Blend layer (禅定缓流's ground zone): giant ×4 eases the area out over scaleUpSeconds, its anti ×0.3 (and
         // any shrink) eases it in and out over scaleDownSeconds with the detail emission paused; details are born at
         // their own grain; the surge leaves the layer. A Whole layer takes the caster's scale at once.
+        // None (金足破阵's ink route): the layer keeps its authored size at any body scale.
+        [Test]
+        public void NoneLayerKeepsItsAuthoredSize()
+        {
+            using (var rig = new SkillVfxTestRig())
+            {
+                SkillVfxLayer layer = rig.Layer(rig.Slot().transform, SkillVfxAnchor.CasterRelative);
+                layer.casterScaling = SkillVfxCasterScaling.None;
+                Assert.That(layer.FollowCasterScale(1f, 0f), Is.EqualTo(1f));
+                Assert.That(layer.FollowCasterScale(4f, 0.5f), Is.EqualTo(1f));
+                Assert.That(layer.FollowCasterScale(0.3f, 1f), Is.EqualTo(1f));
+            }
+        }
+
         [Test]
         public void BlendLayerEasesTheAreaBothWaysAndKeepsTheDetailGrain()
         {

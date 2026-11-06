@@ -68,6 +68,9 @@ namespace BuddahGo.VFX
         // Area systems follow the caster over scaleUpSeconds / scaleDownSeconds with an alpha dip, the other systems
         // (ScalingMode Shape) only spread their spawn area and keep their grain, and a surge ring marks the change.
         Blend,
+        // The layer keeps its authored size at any body scale; only its caster offset follows the body (a route
+        // laid on the ground in world units, e.g. 金足破阵's ink route, Docs/vfx/yuanqi-giant-charge.md).
+        None,
     }
 
     // How a layer's content follows a window that is longer or shorter than the one it was tuned for (the phase length

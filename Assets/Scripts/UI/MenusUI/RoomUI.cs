@@ -138,7 +138,7 @@ namespace SteamMultiplayer.UI
                 return;
 
             _roomStateManager.Players.OnChange += HandlePlayersChanged;
-            _roomStateManager.OnPropertiesSelectorTransitionRequested += HandlePropertiesSelectorTransitionRequested;
+            _roomStateManager.OnMatchTransitionRequested += HandlePropertiesSelectorTransitionRequested;
             _subscribedRoomPlayers = true;
         }
 
@@ -148,7 +148,7 @@ namespace SteamMultiplayer.UI
                 return;
 
             _roomStateManager.Players.OnChange -= HandlePlayersChanged;
-            _roomStateManager.OnPropertiesSelectorTransitionRequested -= HandlePropertiesSelectorTransitionRequested;
+            _roomStateManager.OnMatchTransitionRequested -= HandlePropertiesSelectorTransitionRequested;
             _subscribedRoomPlayers = false;
         }
 
@@ -246,7 +246,7 @@ namespace SteamMultiplayer.UI
             {
                 if (_roomStateManager == null)
                     roomStatusText.text = "Waiting for room state manager...";
-                else if (_roomStateManager.IsTransitioningToPropertiesSelector)
+                else if (_roomStateManager.IsTransitioningToMatch)
                     roomStatusText.text = "Opening Properties Selector...";
                 else if (_steamLobbyManager != null && _steamLobbyManager.IsLobbyOwner)
                     roomStatusText.text = _roomStateManager.CanHostStartGame
@@ -345,11 +345,11 @@ namespace SteamMultiplayer.UI
             bool isHost = _steamLobbyManager != null && _steamLobbyManager.IsLobbyOwner;
 
             if (readyButton != null)
-                readyButton.gameObject.SetActive(hasRoomState && !isHost && !_roomStateManager.IsTransitioningToPropertiesSelector);
+                readyButton.gameObject.SetActive(hasRoomState && !isHost && !_roomStateManager.IsTransitioningToMatch);
 
             if (startGameButton != null)
             {
-                startGameButton.gameObject.SetActive(hasRoomState && isHost && !_roomStateManager.IsTransitioningToPropertiesSelector);
+                startGameButton.gameObject.SetActive(hasRoomState && isHost && !_roomStateManager.IsTransitioningToMatch);
                 startGameButton.interactable = hasRoomState && isHost && _roomStateManager.CanHostStartGame;
             }
 

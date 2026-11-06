@@ -155,10 +155,10 @@ namespace BuddahGo.Match
             }
             if (!IsStarting) return;
             // Local transport connection precedes room authentication and scene loading.
-            // Keep the Solo deadline armed until its selection screen is actually ready.
-            var selection = PropertiesSelectionManager.Instance;
+            // Keep the Solo deadline armed until the room has actually started moving into the race.
+            var room = RoomStateManager.Instance;
             bool ready = _network.ClientManager.Started && (Settings == null ||
-                (selection != null && selection.IsClientInitialized && selection.IsStageCountdownActive));
+                (room != null && room.IsClientInitialized && room.CurrentMatchSessionPhase != MatchSessionPhase.InRoom));
             if (ready) IsStarting = false;
             else if (Time.realtimeSinceStartup >= _startupDeadline) Rollback("连接超时，请重试。");
         }

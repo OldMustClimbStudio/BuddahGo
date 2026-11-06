@@ -51,8 +51,9 @@ What one gameplay frame does, on every quality level unless marked (since c7124d
    (layer 8, transparent queue), `RenderTrails` (layer 7, transparent queue), `RenderSkillVfx` (layer 6 transparent,
    the skill VFX slots). Who sees what is `BlackCurtainViewController`'s job: the caster sees edges and racers, a
    victim sees the red trails and itself, the anti skill swaps them.
-7. Post (one global stack): Bloom, WhiteBalance, ColorAdjustments, ACES tonemapping (LDR grading mode), then FXAA / TAA
-   from `CameraAntialiasingPolicy`. Everything above, effects included, is graded.
+7. Post (one global stack): Stop NaN (RaceMap `Main Camera`, zeroes NaN / Inf pixels so Bloom cannot spread one across
+   the screen; [../vfx/slots.md](../vfx/slots.md) 1.2), Bloom, WhiteBalance, ColorAdjustments, ACES tonemapping (LDR
+   grading mode), then FXAA / TAA from `CameraAntialiasingPolicy`. Everything above, effects included, is graded.
 
 ## Modules
 
@@ -152,7 +153,10 @@ What one gameplay frame does, on every quality level unless marked (since c7124d
   Bloom and ColorAdjustments present (values may change; Feel shakes relative to them). Runtime values, no bake.
 - **Remove it and**: removing a component a Feel shaker drives throws a NullReferenceException every frame after a skill
   reflection (`RenderingModulesTests.PostVolumesHoldWhatTheirFeelShakersDrive` catches it in every build scene);
-  letting `Volume_Dark` drift makes the curtain drop or change the grade.
+  letting `Volume_Dark` drift makes the curtain drop or change the grade. Turning off Stop NaN on the race camera
+  brings back the full-screen white glow with a black hole on GPUs that keep Inf / NaN in the HDR target (Intel Arc
+  reproduces it; `RenderingModulesTests.RaceCameraStopsNaNBeforePost`). Bloom's `clamp` is the profile default 65472;
+  lowering it is an open user decision (it would dim the sun glare).
   `RaceMap_Environment_Profile.asset` (pre-dusk) is used by no scene ([retired.md](retired.md)).
 
 ### 5. `BuddahGo/Lit` and its materials

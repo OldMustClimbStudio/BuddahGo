@@ -619,6 +619,19 @@ MonoBehaviour:
     scaleMultiplier: 0
     lightSeconds: 0
     lightIntensity: 0
+  - vfxId: giant_charge_release
+    prefabPath: "Assets/VFX/\u91D1\u8DB3\u7834\u9635/Release/VFX_GiantCharge_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
   movements:
   - profileId: default
     forwardForce: 50

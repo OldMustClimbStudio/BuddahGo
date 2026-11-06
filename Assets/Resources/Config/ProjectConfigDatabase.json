@@ -750,6 +750,21 @@
             "scaleMultiplier": 0.0,
             "lightSeconds": 0.0,
             "lightIntensity": 0.0
+        },
+        {
+            "vfxId": "giant_charge_release",
+            "prefabPath": "Assets/VFX/金足破阵/Release/VFX_GiantCharge_Release.prefab",
+            "warmup": true,
+            "antiOf": "",
+            "chgRatio": 0.0,
+            "impFrames": 0,
+            "disSeconds": 0.0,
+            "linSeconds": 0.0,
+            "bufFadeSeconds": 0.0,
+            "trailSeconds": 0.0,
+            "scaleMultiplier": 0.0,
+            "lightSeconds": 0.0,
+            "lightIntensity": 0.0
         }
     ],
     "movements": [

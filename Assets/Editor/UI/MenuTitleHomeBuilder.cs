@@ -512,8 +512,8 @@ public static class MenuTitleHomeBuilder
             arts.Add(new MenuSkillPage.SkillArt { skillId = id, name = sprite, description = text, backfire = backfire, title = art });
         }
 
-        // Combo panel on the left, shown after a click on the hokora (layout after the reference: small category,
-        // title, text, then dark boxes): one row per slot with the slotted skill's name on the left and its key caps on the right.
+        // Slot-key panel on the left, shown after a click on the hokora (layout after the reference: small category,
+        // title, text, then dark boxes): one row per slot with the slotted skill's name on the left and its keys on the right.
         CanvasGroup leftShade = Group(root, "LeftShade");
         leftShade.transform.SetSiblingIndex(0); // under the title and 返回, which sit on the left too
         Shade(leftShade.transform, "ShadeLeft", true, 0.52f, 0.85f);

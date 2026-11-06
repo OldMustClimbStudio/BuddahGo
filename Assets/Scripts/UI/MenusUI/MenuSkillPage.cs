@@ -11,9 +11,10 @@ namespace SteamMultiplayer.UI
     /// wall and hokora. Always there: the title at the top left, 返回 at the bottom left and a thin ensō around the ema
     /// under the pointer, and the loadout: one ensō per hokora slot holding the slotted skill's name (an empty slot is a
     /// faint ring with ＋), drawn on a world-space canvas on the front of the hokora's wooden base, so it keeps the
-    /// scene's perspective as the camera turns. A click on the hokora slides in the combo panel on the left, over a
-    /// dark gradient from the left edge: "技能键", how a slot's key casts it, then one row per slot with the slotted skill's name and its key caps
-    /// (the slot's cast keys from the input actions, coming in one after another); Esc, a right-click or a click elsewhere hides it.
+    /// scene's perspective as the camera turns. A click on the hokora slides in the slot-key panel on the left, over a
+    /// dark gradient from the left edge: "技能键", how casting works, then one row per slot with the slotted skill's name and
+    /// its keys (the keyboard bindings of InputSystem_Actions Player.SkillSlot1–3, coming in one after another); Esc, a
+    /// right-click or a click elsewhere hides it.
     /// While an ema is inspected (MenuEmaInspector moves it to the left of the
     /// screen) the loadout fades out and the right side slides in with its dark gradient: the skill's calligraphy
     /// name, what it does, its backfire, cooldown and duration (from the Skill table), how to put the ema back.
@@ -138,6 +139,8 @@ namespace SteamMultiplayer.UI
         private int _hokoraClickFrame = -1;
         private float _arrowsT;
         private float _nudgePrev, _nudgeNext;
+        private readonly List<Renderer> _renderers = new List<Renderer>(); // reused by the per-frame screen placement
+        private RectTransform _collapseHint; // the panel's "Esc 收起" (built by MenuTitleHomeBuilder as Hint_Collapse)
 
         /// <summary>On the skill-select shot with no other view over it (the menu hides its proto panel then).</summary>
         public bool IsShown =>
@@ -214,19 +217,55 @@ namespace SteamMultiplayer.UI
             if (previousArrow != null) previousArrow.onClick.AddListener(() => Cycle(-1));
             if (nextArrow != null) nextArrow.onClick.AddListener(() => Cycle(1));
             BuildKeys();
+            if (keysGroup != null) _collapseHint = keysGroup.transform.Find("Hint_Collapse") as RectTransform;
         }
 
-        /// <summary>Key caps for each slot's cast keys, read from the input actions like the race HUD (Q 1, E 2, R 3).</summary>
+        /// <summary>
+        /// Keyboard tokens ("Q", "1") bound to each skill slot, read once from InputSystem_Actions Player.SkillSlot1–3
+        /// (the same source as the race HUD's SkillSlotUI).
+        /// </summary>
+        private static List<string>[] SlotKeys()
+        {
+            var keys = new List<string>[3];
+            InputSystem_Actions actions = null;
+            try
+            {
+                actions = new InputSystem_Actions();
+                InputAction[] slotActions = { actions.Player.SkillSlot1, actions.Player.SkillSlot2, actions.Player.SkillSlot3 };
+                for (int i = 0; i < slotActions.Length; i++)
+                {
+                    keys[i] = new List<string>();
+                    foreach (InputBinding binding in slotActions[i].bindings)
+                    {
+                        const string prefix = "<Keyboard>/";
+                        string path = binding.effectivePath;
+                        if (binding.isComposite || binding.isPartOfComposite || path == null || !path.StartsWith(prefix)) continue;
+                        keys[i].Add(path.Substring(prefix.Length).ToUpperInvariant());
+                    }
+                }
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogException(exception);
+            }
+            finally
+            {
+                if (actions != null) Destroy(actions.asset);
+            }
+            return keys;
+        }
+
+        /// <summary>Key caps for each slot's keys (Q / 1, E / 2, R / 3 today).</summary>
         private void BuildKeys()
         {
-            string[][] slotKeys = SlotKeys(keyRows.Length);
+            List<string>[] slotKeys = SlotKeys();
             for (int i = 0; i < keyRows.Length; i++)
             {
                 var caps = new List<CanvasGroup>();
                 _keys.Add(caps);
                 RectTransform row = keyRows[i];
-                string[] sequence = slotKeys[i];
-                int n = sequence.Length;
+                List<string> sequence = i < slotKeys.Length && slotKeys[i] != null ? slotKeys[i] : new List<string>();
+                int n = sequence.Count;
                 for (int k = 0; k < n; k++)
                 {
                     var go = new GameObject("Key_" + k, typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
@@ -398,7 +437,7 @@ namespace SteamMultiplayer.UI
             }
             if (description != null)
                 description.text = art != null && !string.IsNullOrEmpty(art.description) ? art.description : Text("skill." + id + ".desc", "");
-            if (backfire != null) backfire.text = art != null && !string.IsNullOrEmpty(art.backfire) ? "<color=#B8352A>反噬</color>　" + art.backfire + "，并锁住全部技能 5 秒" : "";
+            if (backfire != null) backfire.text = art != null && !string.IsNullOrEmpty(art.backfire) ? "<color=#B8352A>反噬</color>　" + art.backfire + BackfirePenalty() : "";
             if (stats != null) stats.text = Stats(id);
         }
 
@@ -413,6 +452,17 @@ namespace SteamMultiplayer.UI
             if (row.effectDurationSeconds > 0f) text += "　持续 " + Seconds(row.effectDurationSeconds) + " 秒";
             if (row.obsessionGain > 0f) text += "　执念 +" + Seconds(row.obsessionGain);
             return text;
+        }
+
+        /// <summary>
+        /// The unified backfire penalty that follows every skill's own backfire (Obsession.backfireLockSeconds: all slots
+        /// locked, top speed lowered); empty when the table has no row.
+        /// </summary>
+        private static string BackfirePenalty()
+        {
+            var db = DesignTableOverlay.Db;
+            ObsessionRecord row = db != null && db.obsessions != null ? db.obsessions.Find(r => r.profileId == "default") : null;
+            return row != null && row.backfireLockSeconds > 0f ? "，随后 " + Seconds(row.backfireLockSeconds) + " 秒技能全锁、限速降低" : "";
         }
 
         private static string Seconds(float s) => Mathf.Approximately(s, Mathf.Round(s)) ? Mathf.RoundToInt(s).ToString() : s.ToString("0.#");
@@ -499,7 +549,7 @@ namespace SteamMultiplayer.UI
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRect, screenEdge, null, out Vector2 edge)) return;
             float kick = 14f * Mathf.Sin(nudge * Mathf.PI);
             rt.anchoredPosition = edge + new Vector2(side * (arrowGap + breathe + kick), 0f);
-            bool hover = Hit(rt, pointer, 12f);
+            bool hover = MenuHit.Contains(rt, pointer, 12f);
             float scale = Mathf.MoveTowards(rt.localScale.x, hover ? 1.15f : 1f, Time.unscaledDeltaTime / 0.12f);
             rt.localScale = Vector3.one * scale;
             if (arrow.targetGraphic != null)
@@ -512,7 +562,8 @@ namespace SteamMultiplayer.UI
             rect = default;
             bool any = false;
             Vector2 min = new Vector2(float.MaxValue, float.MaxValue), max = new Vector2(float.MinValue, float.MinValue);
-            foreach (Renderer r in item.GetComponentsInChildren<Renderer>())
+            item.GetComponentsInChildren(_renderers);
+            foreach (Renderer r in _renderers)
             {
                 if (!r.enabled || r.name == "HoverOutline") continue;
                 Bounds b = r.bounds;
@@ -612,7 +663,8 @@ namespace SteamMultiplayer.UI
             if (p <= 0f || _noteEma == null || targetCamera == null || _canvasRect == null) return;
             Bounds b = new Bounds(_noteEma.position, Vector3.zero);
             bool any = false;
-            foreach (Renderer r in _noteEma.GetComponentsInChildren<Renderer>())
+            _noteEma.GetComponentsInChildren(_renderers);
+            foreach (Renderer r in _renderers)
             {
                 if (!r.enabled || r.name == "HoverOutline") continue;
                 if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
@@ -634,7 +686,8 @@ namespace SteamMultiplayer.UI
             if (hovered == null || targetCamera == null || _canvasRect == null) return;
             Bounds b = new Bounds(hovered.position, Vector3.zero);
             bool any = false;
-            foreach (Renderer r in hovered.GetComponentsInChildren<Renderer>())
+            hovered.GetComponentsInChildren(_renderers);
+            foreach (Renderer r in _renderers)
             {
                 if (!r.enabled || r.name == "HoverOutline") continue;
                 if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
@@ -662,7 +715,9 @@ namespace SteamMultiplayer.UI
                 {
                     _pressAt = at;
                     _pressOnHokora = onHokora;
-                    if (Hit(backHint != null ? backHint.rectTransform : null, at, 10f)) back = true;
+                    // 返回 only while it shows (it gives way to the panel's 收起, which closes the panel instead).
+                    if (_keysOpen) { if (MenuHit.Contains(_collapseHint, at, 10f)) cancel = true; }
+                    else if (MenuHit.Contains(backHint != null ? backHint.rectTransform : null, at, 10f)) back = true;
                 }
                 // A click (press and release without moving) on the hokora shows the combos; anywhere else hides them.
                 if (mouse.leftButton.wasReleasedThisFrame && (at - _pressAt).magnitude <= clickSlopPixels)
@@ -683,14 +738,6 @@ namespace SteamMultiplayer.UI
                 int menu = switcher.IndexOf("主菜单");
                 if (menu >= 0) switcher.SwitchTo(menu);
             }
-        }
-
-        private static bool Hit(RectTransform rect, Vector2 screen, float pad)
-        {
-            if (rect == null || !RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screen, null, out Vector2 local)) return false;
-            Rect r = rect.rect;
-            r.xMin -= pad; r.xMax += pad; r.yMin -= pad; r.yMax += pad;
-            return r.Contains(local);
         }
 
         private static string Text(string key, string fallback) => DesignTableOverlay.Text(key, fallback);

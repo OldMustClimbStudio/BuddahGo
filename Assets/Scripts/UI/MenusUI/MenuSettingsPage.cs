@@ -241,24 +241,10 @@ namespace SteamMultiplayer.UI
             _audioContent.sizeDelta = new Vector2(rowWidth, _audioRows.Count * rowHeight);
         }
 
-        /// <summary>One group per slot, from the SkillSlot actions (Q 1　E 2　R 3).</summary>
-        private static string SkillKeys()
-        {
-            string[][] slots = MenuSkillPage.SlotKeys(3);
-            var groups = new List<string>();
-            foreach (string[] slot in slots)
-            {
-                var caps = new List<string>();
-                foreach (string token in slot) caps.Add(Key(token.ToLowerInvariant()));
-                groups.Add(string.Join(" ", caps));
-            }
-            return string.Join("　", groups);
-        }
-
         private static string Key(string key) => "<sprite name=\"key_" + key + "\" tint=1>";
 
         /// <summary>
-        /// 操作 rows: the race's keys (InputSystem_Actions → Player; each skill slot's cast keys are read from the actions), a hairline,
+        /// 操作 rows: the race's keys (InputSystem_Actions → Player, Docs/gameplay/README.md §3 键位), a hairline,
         /// then the menu's keys (style guide 8). Read only: chosen like the other rows, never stepped.
         /// </summary>
         private void BuildControls()
@@ -270,11 +256,11 @@ namespace SteamMultiplayer.UI
             _controlsContent.anchoredPosition = Vector2.zero;
             var race = new[]
             {
+                ("forward", "前进", Key("w")),
                 ("steer", "转向", Key("a") + " " + Key("d")),
-                ("forward", "前进", "按住 " + Key("w")),
-                ("hand", "转动佛手", Key("mouse_move") + "　无鼠标时 " + Key("left") + " " + Key("right")),
-                ("push", "推掌", Key("mouse_left") + " 左手　" + Key("mouse_right") + " 右手"),
-                ("skill", "施展技能", SkillKeys()),
+                ("aim", "瞄准佛手", Key("mouse_move")),
+                ("push", "推掌", Key("mouse_left") + " " + Key("mouse_right")),
+                ("skill", "施展技能", Key("q") + Key("e") + Key("r") + " / " + Key("1") + Key("2") + Key("3")),
             };
             var menu = new[]
             {
@@ -422,16 +408,16 @@ namespace SteamMultiplayer.UI
                 if (wheel < 0f) move++;
                 if (click || moved)
                     for (int i = 0; i < tabs.Length; i++)
-                        if (click && Hit(tabs[i].rectTransform, at, 14f)) SelectTab(i, false);
-                if (HasRows && Hit(viewport, at, 0f))
+                        if (click && MenuHit.Contains(tabs[i].rectTransform, at, 14f)) SelectTab(i, false);
+                if (HasRows && MenuHit.Contains(viewport, at, 0f))
                 {
                     List<Row> rows = Rows;
                     for (int i = 0; i < rows.Count; i++)
                     {
-                        if (!Hit(rows[i].rect, at, 0f)) continue;
+                        if (!MenuHit.Contains(rows[i].rect, at, 0f)) continue;
                         if (moved) _selected = i;
                         // Volume bar: click or drag sets the volume where the pointer is.
-                        if (rows[i].bar != null && mouse.leftButton.isPressed && Hit(rows[i].bar, at, 6f))
+                        if (rows[i].bar != null && mouse.leftButton.isPressed && MenuHit.Contains(rows[i].bar, at, 6f))
                         {
                             _selected = i;
                             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(rows[i].bar, at, null, out Vector2 local))
@@ -442,13 +428,13 @@ namespace SteamMultiplayer.UI
                         if (click)
                         {
                             _selected = i;
-                            step = Hit(rows[i].previous.rectTransform, at, 6f) ? -1 : 1;
+                            step = MenuHit.Contains(rows[i].previous.rectTransform, at, 6f) ? -1 : 1;
                         }
                     }
                 }
-                if (click && Hit(applyHint.rectTransform, at, 8f)) apply = true;
-                if (click && Hit(resetHint.rectTransform, at, 8f)) reset = true;
-                if (click && Hit(backHint.rectTransform, at, 8f)) back = true;
+                if (click && MenuHit.Contains(applyHint.rectTransform, at, 8f)) apply = true;
+                if (click && MenuHit.Contains(resetHint.rectTransform, at, 8f)) reset = true;
+                if (click && MenuHit.Contains(backHint.rectTransform, at, 8f)) back = true;
                 if (mouse.rightButton.wasPressedThisFrame) back = true;
             }
 
@@ -465,14 +451,6 @@ namespace SteamMultiplayer.UI
             if (_tab == ControlsTab) return; // read only
             if (apply && GraphicsSettingsService.HasPendingChanges) GraphicsSettingsService.Apply();
             if (reset) GraphicsSettingsService.ResetToPreset();
-        }
-
-        private static bool Hit(RectTransform rect, Vector2 screen, float pad)
-        {
-            if (rect == null || !RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screen, null, out Vector2 local)) return false;
-            Rect r = rect.rect;
-            r.xMin -= pad; r.xMax += pad; r.yMin -= pad; r.yMax += pad;
-            return r.Contains(local);
         }
 
         private void SelectTab(int index, bool reset)

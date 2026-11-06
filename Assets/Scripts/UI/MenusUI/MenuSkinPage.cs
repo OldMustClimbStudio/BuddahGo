@@ -225,9 +225,9 @@ namespace SteamMultiplayer.UI
                 if (mouse.leftButton.wasPressedThisFrame)
                 {
                     for (int i = 0; i < skins.Length; i++)
-                        if (skins[i].label != null && skins[i].label.transform.parent.gameObject.activeSelf && Hit(skins[i].label.rectTransform, at, 10f))
+                        if (skins[i].label != null && skins[i].label.transform.parent.gameObject.activeSelf && MenuHit.Contains(skins[i].label.rectTransform, at, 10f))
                         { Choose(i); break; }
-                    if (Hit(backHint != null ? backHint.rectTransform : null, at, 10f)) back = true;
+                    if (MenuHit.Contains(backHint != null ? backHint.rectTransform : null, at, 10f)) back = true;
                 }
             }
             if (move != 0) Choose(Mathf.Clamp(selected + move, 0, skins.Length - 1));
@@ -253,14 +253,6 @@ namespace SteamMultiplayer.UI
                 for (int k = 0; k < mats.Length; k++) mats[k] = skins[selected].material;
                 r.sharedMaterials = mats;
             }
-        }
-
-        private static bool Hit(RectTransform rect, Vector2 screen, float pad)
-        {
-            if (rect == null || !RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screen, null, out Vector2 local)) return false;
-            Rect r = rect.rect;
-            r.xMin -= pad; r.xMax += pad; r.yMin -= pad; r.yMax += pad;
-            return r.Contains(local);
         }
     }
 }

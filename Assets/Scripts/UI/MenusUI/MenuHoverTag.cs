@@ -101,14 +101,6 @@ namespace SteamMultiplayer.UI
             _image.color = new Color(1f, 1f, 1f, e);
         }
 
-        private bool Hit(Vector2 screen)
-        {
-            RectTransform rect = _text.rectTransform;
-            if (!rect.gameObject.activeInHierarchy) return false;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screen, null, out Vector2 local)) return false;
-            Rect r = rect.rect;
-            r.xMin -= hitPad; r.xMax += hitPad; r.yMin -= hitPad; r.yMax += hitPad;
-            return r.Contains(local);
-        }
+        private bool Hit(Vector2 screen) => MenuHit.Contains(_text.rectTransform, screen, hitPad);
     }
 }

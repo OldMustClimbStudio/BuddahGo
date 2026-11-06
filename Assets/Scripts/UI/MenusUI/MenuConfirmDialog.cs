@@ -258,7 +258,7 @@ namespace SteamMultiplayer.UI
                 bool click = mouse.leftButton.wasPressedThisFrame;
                 int over = -1;
                 for (int i = 0; i < _count; i++)
-                    if (Hit(_choices[i].label.rectTransform, at, 0f)) over = i;
+                    if (MenuHit.Contains(_choices[i].label.rectTransform, at, 0f)) over = i;
                 if (moved)
                 {
                     _showTag = over >= 0;
@@ -272,15 +272,6 @@ namespace SteamMultiplayer.UI
             if (move != 0) { _showTag = true; SetFocus(_focus + move); }
             if (clicked >= 0) { SetFocus(clicked); submit = true; }
             if (submit) Close(_choices[_focus].action);
-        }
-
-        private static bool Hit(RectTransform rect, Vector2 screen, float pad)
-        {
-            if (rect == null || !rect.gameObject.activeInHierarchy) return false;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screen, null, out Vector2 local)) return false;
-            Rect r = rect.rect;
-            r.xMin -= pad; r.xMax += pad; r.yMin -= pad; r.yMax += pad;
-            return r.Contains(local);
         }
     }
 }

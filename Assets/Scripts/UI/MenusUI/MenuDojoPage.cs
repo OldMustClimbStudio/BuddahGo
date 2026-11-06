@@ -443,11 +443,11 @@ namespace SteamMultiplayer.UI
                 Vector2 at = mouse.position.ReadValue();
                 for (int i = 0; i < doorItems.Length; i++)
                 {
-                    if (doorItems[i].comingSoon || !Hit(doorItems[i].text.rectTransform, at, 14f)) continue;
+                    if (doorItems[i].comingSoon || !MenuHit.Contains(doorItems[i].text.rectTransform, at, 14f)) continue;
                     if (mouse.delta.ReadValue().sqrMagnitude > 0f) Select(i);
                     if (mouse.leftButton.wasPressedThisFrame) { Select(i); submit = true; }
                 }
-                if (mouse.leftButton.wasPressedThisFrame && Hit(doorBack != null ? doorBack.rectTransform : null, at, 10f)) back = true;
+                if (mouse.leftButton.wasPressedThisFrame && MenuHit.Contains(doorBack != null ? doorBack.rectTransform : null, at, 10f)) back = true;
             }
             if (move != 0)
             {
@@ -533,12 +533,12 @@ namespace SteamMultiplayer.UI
                 bool click = mouse.leftButton.wasPressedThisFrame;
                 for (int i = 0; i < rooms.Length; i++)
                 {
-                    if (!Hit(rooms[i].row, at, 4f)) continue;
+                    if (!MenuHit.Contains(rooms[i].row, at, 4f)) continue;
                     if (moved) _roomSelected = i;
                     if (click) { _roomSelected = i; submit = true; }
                 }
-                if (click && Hit(codeField, at, 8f)) _roomSelected = -1;
-                if (click && Hit(doorBack != null ? doorBack.rectTransform : null, at, 10f)) back = true;
+                if (click && MenuHit.Contains(codeField, at, 8f)) _roomSelected = -1;
+                if (click && MenuHit.Contains(doorBack != null ? doorBack.rectTransform : null, at, 10f)) back = true;
             }
             if (move != 0) _roomSelected = Mathf.Clamp(_roomSelected + move, -1, rooms.Length - 1);
             if (back) { CloseJoin(); return; }
@@ -732,10 +732,10 @@ namespace SteamMultiplayer.UI
             Mouse mouse = Mouse.current;
             Vector2 at = mouse != null ? mouse.position.ReadValue() : new Vector2(-1f, -1f);
             bool click = mouse != null && mouse.leftButton.wasPressedThisFrame;
-            if (click && Hit(leaveHint != null ? leaveHint.rectTransform : null, at, 10f)) leave = true;
+            if (click && MenuHit.Contains(leaveHint != null ? leaveHint.rectTransform : null, at, 10f)) leave = true;
             foreach (TextMeshProUGUI item in lobbyItems)
             {
-                bool hover = Hit(item.rectTransform, at, 12f);
+                bool hover = MenuHit.Contains(item.rectTransform, at, 12f);
                 item.alpha = Mathf.MoveTowards(item.alpha, hover ? 1f : 0.8f, dt / 0.12f);
                 if (click && hover) Notice(item.text + "　尚未接入房间流程");
             }
@@ -748,7 +748,7 @@ namespace SteamMultiplayer.UI
                 if (kb != null && (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame)) step--;
                 if (kb != null && (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame)) step++;
                 for (int i = 0; i < difficultyItems.Length; i++)
-                    if (click && Hit(difficultyItems[i].rectTransform, at, 10f)) { _difficulty = (SoloDifficulty)i; _soloError = ""; }
+                    if (click && MenuHit.Contains(difficultyItems[i].rectTransform, at, 10f)) { _difficulty = (SoloDifficulty)i; _soloError = ""; }
                 if (step != 0)
                 {
                     _difficulty = (SoloDifficulty)Mathf.Clamp((int)_difficulty + step, 0, 2);
@@ -757,7 +757,7 @@ namespace SteamMultiplayer.UI
             }
             if (startButton != null)
             {
-                bool hover = Hit(startButton, at, 6f);
+                bool hover = MenuHit.Contains(startButton, at, 6f);
                 _startHover = Mathf.MoveTowards(_startHover, hover ? 1f : 0f, dt / 0.12f);
                 startButton.localScale = Vector3.one * (1f + 0.05f * _startHover);
                 if (click && hover) start = true;
@@ -765,10 +765,11 @@ namespace SteamMultiplayer.UI
             _practiceHover = false;
             if (solo && !_soloRequested && practiceItem != null)
             {
-                _practiceHover = Hit(practiceItem.rectTransform, at, 10f);
+                _practiceHover = MenuHit.Contains(practiceItem.rectTransform, at, 10f);
                 if ((click && _practiceHover) || (kb != null && kb.pKey.wasPressedThisFrame)) { StartSolo(true); start = false; }
             }
             if (start && solo) StartSolo();
+            else if (start && StartOnlineRequested == null) Notice("联机开局尚未接入");
             else if (start && _onlineStartT <= 0f)
             {
                 _onlineStartT = 1.5f;
@@ -783,15 +784,6 @@ namespace SteamMultiplayer.UI
                         () => { if (roomView != null) roomView.Leave(); }, "留下");
                 else roomView.Leave();
             }
-        }
-
-        private static bool Hit(RectTransform rect, Vector2 screen, float pad)
-        {
-            if (rect == null || !rect.gameObject.activeInHierarchy) return false;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screen, null, out Vector2 local)) return false;
-            Rect r = rect.rect;
-            r.xMin -= pad; r.xMax += pad; r.yMin -= pad; r.yMax += pad;
-            return r.Contains(local);
         }
     }
 }

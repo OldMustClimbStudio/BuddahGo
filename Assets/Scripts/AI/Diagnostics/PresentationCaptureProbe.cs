@@ -14,14 +14,15 @@ namespace BuddahGo.AI
     /// that follow real time. Frames go to &lt;dir&gt;/&lt;mode&gt;_&lt;take&gt;_&lt;frame&gt;.png with a caption line in captions.txt;
     /// a script samples them on a 1/15 s grid into the labelled GIF (Docs/gameplay/practice-verification.md, 2026-11-06).
     /// Modes: "frost" (S9: from the frost_lock trigger, ground + ice blocks), "palm" (S10: each charged palm of the
-    /// human from its spawn). Options: placeholdersOff (FrostPlaceholder.Enabled = false for the "before" take),
+    /// human from its spawn), "charge" (S8: from each giant_charge trigger, through the game camera's own pose and FOV
+    /// every frame, so the take is what the caster sees). Options: placeholdersOff (FrostPlaceholder.Enabled = false for the "before" take),
     /// oldPalmRule (palm = body scale as before 2026-11-06: in-memory SO values, restored when the probe ends).
     /// Started from execute_code after MechanicsPracticeHarness.Begin.
     /// </summary>
     public sealed class PresentationCaptureProbe : MonoBehaviour
     {
         private const int Width = 640, Height = 360;
-        private const float FrostSeconds = 2.4f, PalmSeconds = 1.2f;
+        private const float FrostSeconds = 2.4f, PalmSeconds = 1.2f, ChargeSeconds = 2.4f;
         private const int MaxTakes = 2;
 
         public static string Status { get; private set; } = "idle";
@@ -34,6 +35,7 @@ namespace BuddahGo.AI
         private Texture2D _readback;
         private int _takes;
         private bool _capturing;
+        private bool _followGameCamera;
         private readonly HashSet<int> _seenProjectiles = new HashSet<int>();
         private readonly List<Action> _restore = new List<Action>();
         private StreamWriter _captions;
@@ -67,6 +69,16 @@ namespace BuddahGo.AI
                 WatchPalm();
         }
 
+        // After the camera brain has placed the game camera this frame (both run in LateUpdate; a one-frame lag at most).
+        private void LateUpdate()
+        {
+            Camera main = Camera.main;
+            if (!_followGameCamera || _camera == null || main == null)
+                return;
+            _camera.transform.SetPositionAndRotation(main.transform.position, main.transform.rotation);
+            _camera.fieldOfView = main.fieldOfView;
+        }
+
         private bool TryBindHuman()
         {
             foreach (SkillExecutor executor in FindObjectsByType<SkillExecutor>(FindObjectsSortMode.None))
@@ -74,7 +86,7 @@ namespace BuddahGo.AI
                 if (!executor.IsOwner || executor.StateBoard == null)
                     continue;
                 _human = executor;
-                if (_mode == "frost")
+                if (_mode == "frost" || _mode == "charge")
                     _human.YuanqiObserved += OnYuanqi;
                 if (_oldPalmRule)
                     ApplyOldPalmRule();
@@ -91,7 +103,16 @@ namespace BuddahGo.AI
 
         private void OnYuanqi(string yuanqiId, YuanqiPresentationPayload payload, bool localIsCaster)
         {
-            if (yuanqiId != "frost_lock" || _capturing || _takes >= MaxTakes)
+            if (_capturing || _takes >= MaxTakes)
+                return;
+            if (_mode == "charge" && yuanqiId == "giant_charge")
+            {
+                var scale = _human.GetComponent<PlayerScaleEffect>();
+                StartCoroutine(Capture(Vector3.zero, Vector3.forward, ChargeSeconds,
+                    "giant_charge body x" + (scale != null ? scale.CurrentScaleMultiplier : 1f).ToString("0.##") + " at the trigger", true));
+                return;
+            }
+            if (yuanqiId != "frost_lock" || _mode != "frost")
                 return;
             Transform caster = _human.transform;
             Vector3 flatForward = Vector3.ProjectOnPlane(caster.forward, Vector3.up).normalized;
@@ -125,9 +146,10 @@ namespace BuddahGo.AI
             }
         }
 
-        private IEnumerator Capture(Vector3 eye, Vector3 lookAt, float seconds, string caption)
+        private IEnumerator Capture(Vector3 eye, Vector3 lookAt, float seconds, string caption, bool gameCamera = false)
         {
             _capturing = true;
+            _followGameCamera = gameCamera;
             int take = ++_takes;
             EnsureCamera();
             _camera.transform.SetPositionAndRotation(eye, Quaternion.LookRotation(lookAt - eye, Vector3.up));
@@ -149,6 +171,7 @@ namespace BuddahGo.AI
             }
             times.Dispose();
             _capturing = false;
+            _followGameCamera = false;
             Status = take >= MaxTakes ? "done" : "captured take " + take;
             if (take >= MaxTakes)
                 Finish();

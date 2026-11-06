@@ -8,7 +8,8 @@ using UnityEngine;
 /// other than the caster within radiusMeters (horizontal) of the caster — AI and training dummies included — is frozen
 /// for freezeSeconds (ApplyFreezeToOwner also interrupts a confirming cast and refunds that slot). Effect first, then
 /// the skills the row's consumeA / consumeB name are consumed (yuanqi-architecture §4.2 / §4.6).
-/// Presentation is an interface only (no art yet): every peer gets the payload (centre, radius R, seconds N, frozen
+/// Presentation: a procedural placeholder until the real VFX (FrostGroundPlaceholder from PlayObservers,
+/// FrozenIceShellPlaceholder on each frozen racer). Every peer gets the payload (centre, radius R, seconds N, frozen
 /// target ids) through SkillExecutor.YuanqiObserved, and each frozen racer raises
 /// RacerSkillPresentationState.FrozenChanged (its Animator holds while frozen).
 /// </summary>
@@ -59,5 +60,12 @@ public class Yuanqi_FrostLock : YuanqiAction
         ctx.ConsumeConfigured("yuanqi:" + yuanqiId);
 
         if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Yuanqi][FrostLock][Server] '{caster.name}' froze {frozen} racer(s) within {radiusMeters:0.#} m for {freezeSeconds:0.##}s; consume {skillA}={consumeA}, {skillB}={consumeB}.");
+    }
+
+    // Every peer. 占位，等禅足冰封正式特效: the frozen ground (radius R, held for N). The ice blocks on the frozen racers
+    // come from their own FrozenChanged (FrozenIceShellPlaceholder).
+    public override void PlayObservers(SkillExecutor caster, YuanqiPresentationPayload payload, bool localIsCaster)
+    {
+        FrostGroundPlaceholder.Spawn(payload.Center, payload.Radius, payload.Seconds);
     }
 }

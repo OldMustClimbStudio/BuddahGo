@@ -221,6 +221,7 @@ public class SkillExecutor : NetworkBehaviour
         ResolveMotor();
         ResolveCharacterAnimator();
         _presentationState.Bind(_motor, characterAnimator);
+        FrozenIceShellPlaceholder.Attach(gameObject, _presentationState); // 占位，等禅足冰封正式特效
     }
 
     public override void OnStartServer()

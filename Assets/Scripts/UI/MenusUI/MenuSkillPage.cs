@@ -139,6 +139,7 @@ namespace SteamMultiplayer.UI
         private int _hokoraClickFrame = -1;
         private float _arrowsT;
         private float _nudgePrev, _nudgeNext;
+        private readonly List<Renderer> _renderers = new List<Renderer>(); // reused by the per-frame screen placement
         private RectTransform _collapseHint; // the panel's "Esc 收起" (built by MenuTitleHomeBuilder as Hint_Collapse)
 
         /// <summary>On the skill-select shot with no other view over it (the menu hides its proto panel then).</summary>
@@ -525,7 +526,8 @@ namespace SteamMultiplayer.UI
             rect = default;
             bool any = false;
             Vector2 min = new Vector2(float.MaxValue, float.MaxValue), max = new Vector2(float.MinValue, float.MinValue);
-            foreach (Renderer r in item.GetComponentsInChildren<Renderer>())
+            item.GetComponentsInChildren(_renderers);
+            foreach (Renderer r in _renderers)
             {
                 if (!r.enabled || r.name == "HoverOutline") continue;
                 Bounds b = r.bounds;
@@ -625,7 +627,8 @@ namespace SteamMultiplayer.UI
             if (p <= 0f || _noteEma == null || targetCamera == null || _canvasRect == null) return;
             Bounds b = new Bounds(_noteEma.position, Vector3.zero);
             bool any = false;
-            foreach (Renderer r in _noteEma.GetComponentsInChildren<Renderer>())
+            _noteEma.GetComponentsInChildren(_renderers);
+            foreach (Renderer r in _renderers)
             {
                 if (!r.enabled || r.name == "HoverOutline") continue;
                 if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
@@ -647,7 +650,8 @@ namespace SteamMultiplayer.UI
             if (hovered == null || targetCamera == null || _canvasRect == null) return;
             Bounds b = new Bounds(hovered.position, Vector3.zero);
             bool any = false;
-            foreach (Renderer r in hovered.GetComponentsInChildren<Renderer>())
+            hovered.GetComponentsInChildren(_renderers);
+            foreach (Renderer r in _renderers)
             {
                 if (!r.enabled || r.name == "HoverOutline") continue;
                 if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);

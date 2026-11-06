@@ -407,7 +407,7 @@
 
 ## 6. PR #63 的影响
 
-> 2026-11-06：PR #63 拆成 #74（游戏机制，已合入 dev）和 #75（缘起，未合）。#74 带进 dev 的部分已经按本节和 §4 处理，结果见 §10。#75 的 7 个缘起测试文件等它合入后再过一遍。
+> 2026-11-06：PR #63 拆成 #74（游戏机制，已合入 dev）和 #75（缘起）。#74 带进 dev 的部分已经按本节和 §4 处理，结果见 §10；#75 改基到 dev 时它的缘起测试按同一规则处理，结果见 §11。
 
 - 标 [PR#63] 的 10 个文件：AISkillCommitment、AISkillDecision、AISkillScene、BuddahTickMath、DesignTableRuntime、DesignTable、HandoffClock、MatchRules、PredictionDiagnosticWiring、SoloSessionFlow。本分支版本是 107 个用例，建议做完是 45 个。
 - PR #63 分支里这 10 个文件的版本不一样（例如 AISkillDecision 27 个、MatchRules 11 个、DesignTable 15 个、DesignTableRuntime 8 个），等它合并以后，要在合并后的版本上按 §4 的思路重新下结论，不能直接套这里的行号。
@@ -492,9 +492,42 @@
 没做的：
 - `AISkillDecisionTests` 里 "5 种人格 / 6 个技能"，`DesignTableTests` 导出测试里的行数字面量（§4 建议改成和表的行数比）。这些只改断言，不影响用例数，这次没动。
 - `DesignTableRuntimeTests`（6）、`SoloSessionFlowTests`（3）按 §4 全留；#74 新增的输入回归测试 `DriveInputTests`（3）、`HandPushInputTests`（2）每个都要单独驱动一次 Input System 更新，也留着。
-- #75 缘起分支的 7 个测试文件（`Yuanqi*`、`SkillStateBoardCoreTests`），等它合入后按本文规则再过。
+- #75 缘起分支的测试文件，见 §11。
 
 检查：
 - 每个提交单独编译：`git archive` 取出提交内容，用 dotnet 和 Unity 生成的 csproj 编译 Runtime / Editor / Tests / Assembly-CSharp-Editor。17 个提交全部通过。
 - 分支末端（`89924a90`）关掉编辑器后跑批处理：配表导入 `DesignTableCli.ImportAndValidate` 为 OK，0 个错误，3 个警告；EditMode `-runTests -testPlatform EditMode` **213/213 通过**，0 失败，0 跳过，`error CS` 0 条。运行器报的数和静态数一致。批处理改写的 `validation.md` 和 `SilverSkin.mat` 已经还原，没有提交。
 - 没跑 Practice / Solo：这次只改测试代码，没有改玩法或 AI 行为。
+
+## 11. #75 缘起改基到 dev 时（2026-11-06，分支 `feat/yuanqi`）
+
+#75 的 8 个缘起提交 cherry-pick 到 `dev`（`be1d96aa`）之后，再按 §1 口径数。
+
+| | 用例数 |
+|---|---:|
+| dev（`be1d96aa`） | 213 |
+| 旧 `feat/yuanqi`（`1c7c8833`，#78 之前的 dev 加缘起） | 510 |
+| 改基后、精简前 | 289 |
+| 精简后 | **232** |
+
+- 改基时与 #78 冲突的 4 个文件，缘起用例直接写成已有表驱动测试的一段（`EveryCase.Parts`），不另开 `[Test]`：`DesignTableTests`（两条缘起校验规则并进 `ValidationReportsBadCellsAndMissingDomainCells`，导出断言并进 `RealWorkbooksLoadValidateAndExport`）、`InGameHudTests`（缘起文字并进 `HudLabelsFormatSlotAndObsessionState`）、`AISkillDecisionTests`（两条并进 `UtilityGatesOnReactionTimeAndUnifiedBackfireRisk`）。`SkillPresentationRulesTests` 的两条缘起表现检查合成一个新测试（+1）。
+- `DesignTableRuntimeTests` 按 §4 全留，缘起新增的 2 个照留（6 → 8）。
+- 8 个缘起测试文件 73 → 16：
+
+| 测试类 | 前 | 后 | 方式 |
+|---|---:|---:|---|
+| SkillStateBoardCoreTests | 12 | 3 | 并：登记与激活、时钟与过期、结束与清理 |
+| YuanqiPairTableTests | 12 | 3 | 并 |
+| AIYuanqiPlannerTests | 11 | 3 | 并 |
+| YuanqiContextTests | 10 | 2 | 并 |
+| YuanqiPairRulesTests | 9 | 2 | 并：14 条目标判定收成一张表 |
+| YuanqiCatalogTests | 7 | 1 | 并 |
+| YuanqiPairConsumeTests | 7 | 1 | 并：消耗标记的组合收成表 |
+| YuanqiPairAssetTests | 5 | 1 | 删 1 + 并 |
+| 合计 | 73 | 16 | |
+
+真删（§1 "钉死配表数值"）：`YuanqiPairAssetTests.ClassDefaultsAreThePhaseAPlaceholders`（拿 1.5 / 12 / 60 / 0.8 / 3 比类默认值，这些数已进 `YuanqiEffect*` 表），以及三个资产测试里拿字面量比 `skillA / skillB / consume* / mode / retriggerPolicy / isEnabled` 和"资产值等于类默认值"的断言。这些格子由 `DesignTableRuntimeTests` 逐行跟资产比。资产存在、类型、`yuanqiId`、兜底显示名留下，并进剩下的一个表。
+
+其余断言全留，每段或每行各自重建夹具（有 `TearDown` 的先拆再建），失败信息带段名或这组输入。没有回归测试（8 个文件都由 `feat:` 提交加入）。
+
+检查：每个提交用 dotnet 单独编译；分支末端的配表导入和 EditMode 结果见 PR #75。

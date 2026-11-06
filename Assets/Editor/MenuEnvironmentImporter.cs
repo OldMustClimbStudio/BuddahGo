@@ -1657,7 +1657,7 @@ public static class MenuEnvironmentImporter
         panelRect.SetParent(canvas.transform, false);
         panelRect.anchorMin = Vector2.zero; panelRect.anchorMax = Vector2.one;
         panelRect.offsetMin = panelRect.offsetMax = Vector2.zero;
-        // Placeholders: the lobby flow (CreateRoomUI / RoomJoinUI) is not hooked up yet.
+        // Placeholders; the Dojo page (MenuDojoPage) drives the real room flow and hides these.
         var create = CreateTempButton(panelRect, "TEMP_CreateRoomButton", "创建房间", new Vector2(-64f, 272f));
         CreateTempButton(panelRect, "TEMP_JoinRoomButton", "加入房间", new Vector2(-64f, 168f));
         var back = CreateTempButton(panelRect, "TEMP_RoomBackButton", "返回", new Vector2(-64f, 64f));

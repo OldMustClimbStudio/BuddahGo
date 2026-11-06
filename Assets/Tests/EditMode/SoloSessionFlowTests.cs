@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Linq;
 using BuddahGo.Match;
 using FishNet.Managing;
 using NUnit.Framework;
@@ -13,16 +15,22 @@ using UnityEngine.TestTools;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
+using Object = UnityEngine.Object;
 
 namespace BuddahGo.Tests
 {
     public class SoloSessionFlowTests
     {
+        private const string MenuScene = "Assets/Scenes/MenuEnvironmentSetting.unity";
+        private const System.Reflection.BindingFlags Private = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+
         private Keyboard _keyboard;
-        private System.Action _pendingInput;
+        private Action _pendingInput;
         private InputSettings.BackgroundBehavior _backgroundBehavior;
         private InputSettings.EditorInputBehaviorInPlayMode _editorInputBehavior;
         private bool _inputSettingsChanged;
+        private string[] _savedSkills;
+        private string _savedSkin;
 
         private void QueueKeyboardState(KeyboardState state)
         {
@@ -38,6 +46,14 @@ namespace BuddahGo.Tests
             InputSystem.onBeforeUpdate += _pendingInput;
         }
 
+        [SetUp]
+        public void SaveMenuPick()
+        {
+            // The tests write the menu pick (PlayerPrefs); give the developer's own pick back afterwards.
+            _savedSkills = LocalMatchSelection.Skills;
+            _savedSkin = LocalMatchSelection.SkinId;
+        }
+
         [TearDown]
         public void RemoveTestKeyboard()
         {
@@ -51,52 +67,58 @@ namespace BuddahGo.Tests
             }
             if (_keyboard != null && _keyboard.added) InputSystem.RemoveDevice(_keyboard);
             _keyboard = null;
+            if (_savedSkills != null) LocalMatchSelection.SetSkills(_savedSkills);
+            if (_savedSkin != null) LocalMatchSelection.SetSkin(_savedSkin);
+        }
+
+        private static IEnumerator WaitUntil(Func<bool> done, float seconds)
+        {
+            float deadline = Time.realtimeSinceStartup + seconds;
+            while (Time.realtimeSinceStartup < deadline && !done()) yield return null;
+        }
+
+        private static bool RoomLeftMenu() => RoomStateManager.Instance != null && RoomStateManager.Instance.IsClientInitialized
+            && RoomStateManager.Instance.CurrentMatchSessionPhase != MatchSessionPhase.InRoom;
+
+        private static bool RaceSceneActive() => SceneManager.GetActiveScene().name == SceneNames.RaceMap;
+
+        private static string[] SelectableSkills()
+        {
+            SkillDatabase database = AssetDatabase.LoadAssetAtPath<SkillDatabase>("Assets/Skills_Assets/Skill Database.asset");
+            return database.BuildSelectableSkillOptions().Where(o => o.IsUnlocked).Select(o => o.OptionId).ToArray();
         }
 
         [UnityTest]
-        public IEnumerator StartupRollback_AfterSelectionLoad_RestoresVisibleSetupSettingsAndError()
+        public IEnumerator StartupRollback_AfterRaceLoad_ReturnsToMenuWithTheError()
         {
-            EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");
+            EditorSceneManager.OpenScene(MenuScene);
             yield return new EnterPlayMode();
             yield return null;
             float projectMaximumDeltaTime = Time.maximumDeltaTime;
             Assert.That(SessionControl.Current.StartSoloHost(new SoloMatchSettings(0, SoloDifficulty.Hard)), Is.True);
             // Solo physics runs on FixedUpdate; its slow-frame catch-up must not exceed the TimeManager's tick budget.
             Assert.That(Time.maximumDeltaTime, Is.EqualTo(Time.fixedDeltaTime * SessionLauncher.SoloMaxPhysicsStepsPerFrame).Within(1e-6f));
-            float deadline = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < deadline && (PropertiesSelectionManager.Instance == null ||
-                !PropertiesSelectionManager.Instance.IsClientInitialized || !PropertiesSelectionManager.Instance.IsStageCountdownActive))
-                yield return null;
-            Assert.That(PropertiesSelectionManager.Instance, Is.Not.Null);
+            yield return WaitUntil(RaceSceneActive, 45f);
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.RaceMap), "Solo goes straight from the menu into the race.");
             var network = Object.FindFirstObjectByType<NetworkManager>();
-            // Inject a startup failure at the private rollback boundary after scene load.
+            // Inject a startup failure at the private rollback boundary after the menu unloaded.
             // This tests recovery, not the cause or duration of a real authentication timeout.
-            var rollback = typeof(SessionLauncher).GetMethod("Rollback",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var rollback = typeof(SessionLauncher).GetMethod("Rollback", Private);
             Assert.That(rollback, Is.Not.Null);
             Assert.That(rollback.Invoke(SessionControl.Current, new object[] { "Injected startup failure" }), Is.EqualTo(false));
             Assert.That(network.ClientManager.Started, Is.True, "Failure cleanup is also deferred out of its calling stack.");
-            deadline = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < deadline && (network.ClientManager.Started ||
-                SceneManager.GetActiveScene().name != SceneNames.MainMenu)) yield return null;
+            yield return WaitUntil(() => !network.ClientManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu, 45f);
             Assert.That(network.ServerManager.Started || network.ClientManager.Started, Is.False);
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.MainMenu));
             Assert.That(SessionControl.Current.LastError, Is.EqualTo("Injected startup failure"));
             Assert.That(Time.maximumDeltaTime, Is.EqualTo(projectMaximumDeltaTime), "Leaving Solo restores the project's catch-up limit.");
             Assert.That(LocalInputBlock.IsBlocked, Is.False);
-            deadline = Time.realtimeSinceStartup + 5f;
-            while (Time.realtimeSinceStartup < deadline && GameObject.Find("StartPractice") == null)
-                yield return null;
-            var menu = Object.FindFirstObjectByType<MainMenuUI>();
-            Assert.That(menu.CurrentPanel, Is.EqualTo(MainMenuUI.MenuPanel.SoloSetup));
-            Assert.That(menu.HomePanel.activeInHierarchy, Is.False);
-            Assert.That(GameObject.Find("StartPractice").GetComponent<Button>().interactable, Is.True);
-            var setup = Object.FindFirstObjectByType<SoloSetupPanel>();
-            Assert.That(setup.gameObject.activeInHierarchy, Is.True);
-            Assert.That(System.Array.Exists(setup.GetComponentsInChildren<TMPro.TMP_Text>(),
-                label => label.text == "Injected startup failure"), Is.True, "Setup displays the error without another click.");
-            Assert.That(System.Array.Exists(setup.GetComponentsInChildren<TMPro.TMP_Text>(),
-                label => label.text == "● 困难"), Is.True, "Restore the failed request, not the saved default.");
+            yield return null;
+            var dojo = Object.FindFirstObjectByType<MenuDojoPage>();
+            Assert.That(dojo, Is.Not.Null);
+            Assert.That(typeof(MenuDojoPage).GetField("_soloError", Private).GetValue(dojo), Is.EqualTo("Injected startup failure"),
+                "The Dojo page takes the failed start back and shows its error.");
+            Assert.That(SessionControl.Current.TakeFailedSoloSettings(), Is.Null, "The page consumed the failed request.");
             Assert.That(MatchServices.Clock, Is.Null);
             Assert.That(MatchServices.Timing, Is.Null);
             Assert.That(Object.FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None).Length, Is.Zero);
@@ -104,65 +126,45 @@ namespace BuddahGo.Tests
         }
 
         [UnityTest]
-        public IEnumerator SetupPracticeButton_StartsZeroAIPracticeWithTrainingDummies()
+        public IEnumerator DojoPractice_StartsZeroAIPracticeStraightIntoTheRace()
         {
-            // The setup panel's second start button is the visible Practice entry: Solo host, 0 AI, Practice rules.
-            EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");
+            // The Dojo page's 练习 entry: Solo host, 0 AI, Practice rules, no selection scene in between.
+            EditorSceneManager.OpenScene(MenuScene);
             yield return new EnterPlayMode();
             yield return null;
-            Object.FindFirstObjectByType<MainMenuUI>().ShowSoloSetup();
-            yield return null;
-            var practice = GameObject.Find("StartTraining");
-            Assert.That(practice, Is.Not.Null);
-            Assert.That(practice.GetComponent<Button>().interactable, Is.True);
-            practice.GetComponent<Button>().onClick.Invoke();
+            var dojo = Object.FindFirstObjectByType<MenuDojoPage>();
+            Assert.That(dojo, Is.Not.Null);
+            typeof(MenuDojoPage).GetMethod("StartSolo", Private).Invoke(dojo, new object[] { true });
             Assert.That(MatchRules.Current.SpawnTrainingDummies, Is.True, SessionControl.Current.LastError);
             Assert.That(MatchRules.Current.EndOnHumanFinish, Is.True);
-            Assert.That(practice.GetComponent<Button>().interactable, Is.False, "One request per click.");
-            float deadline = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < deadline && (PropertiesSelectionManager.Instance == null ||
-                !PropertiesSelectionManager.Instance.IsClientInitialized || PropertiesSelectionManager.Instance.Participants.Count == 0))
-                yield return null;
-            Assert.That(PropertiesSelectionManager.Instance, Is.Not.Null, "Practice must reach the selection scene.");
-            Assert.That(PropertiesSelectionManager.Instance.Participants.Count, Is.EqualTo(1), "Practice has no AI racers.");
+            Assert.That(typeof(MenuDojoPage).GetField("_soloRequested", Private).GetValue(dojo), Is.True, "One request per press.");
+            yield return WaitUntil(RoomLeftMenu, 45f);
+            Assert.That(RoomStateManager.Instance.Players.Count, Is.EqualTo(1), "Practice has one player and no AI.");
+            yield return WaitUntil(RaceSceneActive, 45f);
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.RaceMap));
             var network = Object.FindFirstObjectByType<NetworkManager>();
             SessionControl.Current.RequestStopSession();
-            deadline = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < deadline && (network.ClientManager.Started ||
-                SceneManager.GetActiveScene().name != SceneNames.MainMenu)) yield return null;
+            yield return WaitUntil(() => !network.ClientManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu, 45f);
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.MainMenu));
             yield return new ExitPlayMode();
         }
 
         [UnityTest]
-        public IEnumerator Practice_SelectsExitsReopensAndRematches_WithSyntheticFinish()
+        public IEnumerator Practice_RacesWithTheMenuPick_ExitsReopensAndRematches()
         {
-            EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");
+            EditorSceneManager.OpenScene(MenuScene);
             yield return new EnterPlayMode();
             yield return null;
             Assert.That(SessionControl.Current, Is.Not.Null);
-            ScreenCapture.CaptureScreenshot("Temp/solo-home.png");
+            ScreenCapture.CaptureScreenshot("Temp/solo-menu.png");
             yield return null;
-            Object.FindFirstObjectByType<MainMenuUI>().ShowSoloSetup();
-            yield return null;
-            ScreenCapture.CaptureScreenshot("Temp/solo-setup.png");
-            yield return null;
-            GameObject.Find("StartPractice").GetComponent<Button>().onClick.Invoke();
-            Assert.That(MatchRules.Current.AutoStartRoom, Is.True, SessionControl.Current.LastError);
-            float waitDeadline1 = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < waitDeadline1 && ((PropertiesSelectionManager.Instance == null || !PropertiesSelectionManager.Instance.IsClientInitialized || PropertiesSelectionManager.Instance.Participants.Count == 0 || !PropertiesSelectionManager.Instance.IsStageCountdownActive)))
-                yield return null;
-            var selection = PropertiesSelectionManager.Instance;
-            Assert.That(selection, Is.Not.Null, "Auto-start must reach the selection scene.");
-            Assert.That(selection.Participants.Count, Is.EqualTo(1));
-            Assert.That(selection.StageOrder.Contains(PropertiesSelectionManager.MapStageKey), Is.False);
-            Assert.That(selection.StageCountdownSecondsRemaining, Is.Zero);
-            Assert.That(selection.IsStageCountdownActive, Is.True, "Selection submissions remain enabled without a timer.");
+            Assert.That(SessionControl.Current.StartSoloHost(new SoloMatchSettings(0, SoloDifficulty.Normal)), Is.True, SessionControl.Current.LastError);
+            Assert.That(MatchRules.Current.AutoStartRoom, Is.True);
+            yield return WaitUntil(RaceSceneActive, 45f);
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.RaceMap), "Auto-start goes straight into the race.");
+            Assert.That(RoomStateManager.Instance.Players.Count, Is.EqualTo(1));
             if (!SessionControl.Current.IsOnlineAvailable)
-                Assert.That(selection.Participants[0].PlayerName, Is.EqualTo("玩家"));
-            float selectionWaitUntil = Time.realtimeSinceStartup + 1f;
-            while (Time.realtimeSinceStartup < selectionWaitUntil) yield return null;
-            Assert.That(selection.CurrentStagePropertyKey, Is.EqualTo(PropertiesSelectionManager.SkillLoadoutStageKey));
+                Assert.That(RoomStateManager.Instance.Players[0].PlayerName, Is.EqualTo("玩家"));
 
             var network = Object.FindFirstObjectByType<NetworkManager>();
             // Batch runs have no focused Game View. Scope the input routing override
@@ -177,40 +179,41 @@ namespace BuddahGo.Tests
             QueueKeyboardState(new KeyboardState(Key.Escape));
             float quitDeadline = Time.realtimeSinceStartup + 3f;
             while (!LocalInputBlock.IsBlocked && Time.realtimeSinceStartup < quitDeadline) yield return null;
-            Assert.That(LocalInputBlock.IsBlocked, Is.True, $"Esc must open the quit modal during selection. Dialogs={Object.FindObjectsByType<QuitConfirmDialog>(FindObjectsSortMode.None).Length}; keyboard={Keyboard.current == _keyboard}; pressed={_keyboard.escapeKey.isPressed}; enabled={_keyboard.enabled}; frame={Time.frameCount}");
+            Assert.That(LocalInputBlock.IsBlocked, Is.True, $"Esc must open the quit modal before GO. Dialogs={Object.FindObjectsByType<QuitConfirmDialog>(FindObjectsSortMode.None).Length}; keyboard={Keyboard.current == _keyboard}; pressed={_keyboard.escapeKey.isPressed}; enabled={_keyboard.enabled}; frame={Time.frameCount}");
             QueueKeyboardState(new KeyboardState());
             yield return null;
             GameObject.Find("ConfirmQuit").GetComponent<Button>().onClick.Invoke();
             Assert.That(network.ClientManager.Started, Is.True, "Stop must be deferred out of the calling RPC/UI stack.");
-            float waitDeadline2 = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < waitDeadline2 && ((network.ClientManager.Started || SceneManager.GetActiveScene().name != SceneNames.MainMenu)))
-                yield return null;
+            yield return WaitUntil(() => !network.ClientManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu, 45f);
             Assert.That(network.ServerManager.Started || network.ClientManager.Started, Is.False);
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.MainMenu));
             Assert.That(MatchRules.Current.RequiresReady, Is.True);
 
+            // The menu pick (skill page, skin page) is what the racer gets.
+            string[] offered = SelectableSkills();
+            Assert.That(offered.Length, Is.GreaterThanOrEqualTo(3));
+            string[] pick = { offered[2], offered[0], offered[1] };
+            LocalMatchSelection.SetSkills(pick);
+            LocalMatchSelection.SetSkin("zhehong");
             Assert.That(SessionControl.Current.StartSoloHost(new SoloMatchSettings(0, SoloDifficulty.Normal)), Is.True,
                 SessionControl.Current.LastError);
-            float waitDeadline3 = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < waitDeadline3 && ((PropertiesSelectionManager.Instance == null || !PropertiesSelectionManager.Instance.IsClientInitialized || PropertiesSelectionManager.Instance.Participants.Count == 0 || !PropertiesSelectionManager.Instance.IsStageCountdownActive)))
-                yield return null;
-            selection = PropertiesSelectionManager.Instance;
-            Assert.That(selection, Is.Not.Null);
-            var options = selection.GetOptionsForProperty(PropertiesSelectionManager.SkillLoadoutStageKey);
-            Assert.That(options.Count, Is.GreaterThanOrEqualTo(3));
-            selection.SubmitSkillLoadoutSelection(new[] { options[0].OptionId, options[1].OptionId, options[2].OptionId });
-            float waitDeadline4 = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < waitDeadline4 && (selection.CurrentStagePropertyKey != PropertiesSelectionManager.SkinStageKey)) yield return null;
-            Assert.That(selection.CurrentStagePropertyKey, Is.EqualTo(PropertiesSelectionManager.SkinStageKey));
-            options = selection.GetOptionsForProperty(PropertiesSelectionManager.SkinStageKey);
-            Assert.That(options.Count, Is.GreaterThan(0));
-            selection.SubmitPlayerSelection(PropertiesSelectionManager.SkinStageKey, options[0].OptionId);
             float raceStartDeadline = Time.realtimeSinceStartup + 90f;
             while (Time.realtimeSinceStartup < raceStartDeadline && (RoomStateManager.Instance == null || !RoomStateManager.Instance.IsAuthoritativeGoIssued)) yield return null;
-            Assert.That(RoomStateManager.Instance.IsAuthoritativeGoIssued, Is.True, "Selection and intro must reach authoritative GO.");
+            Assert.That(RoomStateManager.Instance.IsAuthoritativeGoIssued, Is.True, "Start and intro must reach authoritative GO.");
             float movementDeadline = Time.realtimeSinceStartup + 15f;
             while (Time.realtimeSinceStartup < movementDeadline && !RoomStateManager.Instance.IsGameplayMovementUnlocked) yield return null;
             Assert.That(RoomStateManager.Instance.IsGameplayMovementUnlocked, Is.True);
+
+            var reporters = Object.FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None);
+            var ownedReporters = Array.FindAll(reporters, reporter => reporter.IsOwner);
+            Assert.That(ownedReporters.Length, Is.EqualTo(1));
+            var human = ownedReporters[0];
+            var loadout = human.GetComponent<SkillLoadout>();
+            Assert.That(Enumerable.Range(0, SkillLoadout.SlotCount).Select(loadout.GetSkillId).ToArray(), Is.EqualTo(pick), "The racer's slots are the menu pick, in order.");
+            var skin = human.GetComponent<RacerSkinApplier>();
+            yield return WaitUntil(() => skin.AppliedSkinId == "zhehong", 5f);
+            Assert.That(skin.AppliedSkinId, Is.EqualTo("zhehong"), "The racer wears the menu's skin.");
+
             QueueKeyboardState(new KeyboardState(Key.Escape));
             quitDeadline = Time.realtimeSinceStartup + 3f;
             while (!LocalInputBlock.IsBlocked && Time.realtimeSinceStartup < quitDeadline) yield return null;
@@ -224,10 +227,7 @@ namespace BuddahGo.Tests
             Assert.That(MatchServices.Clock, Is.Not.Null);
             Assert.That(MatchServices.Timing, Is.Not.Null);
             // Practice (0 AI) adds three training dummies from the same prefab; they carry reporters but are never racers.
-            var reporters = Object.FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None);
-            var ownedReporters = System.Array.FindAll(reporters, reporter => reporter.IsOwner);
-            Assert.That(ownedReporters.Length, Is.EqualTo(1));
-            var dummies = System.Array.FindAll(Object.FindObjectsByType<RacerIdentity>(FindObjectsSortMode.None), identity => identity.IsTrainingDummy);
+            var dummies = Array.FindAll(Object.FindObjectsByType<RacerIdentity>(FindObjectsSortMode.None), identity => identity.IsTrainingDummy);
             Assert.That(dummies.Length, Is.EqualTo(3), "Practice spawns three training dummies.");
             Assert.That(reporters.Length, Is.EqualTo(ownedReporters.Length + dummies.Length));
             foreach (var dummy in dummies)
@@ -241,6 +241,7 @@ namespace BuddahGo.Tests
                 Assert.That(dummy.GetComponent<Rigidbody>().isKinematic, Is.False, "The host must be able to push a dummy.");
                 Assert.That(dummy.GetComponent<RaceBodyIntroStateController>().HasAssignment, Is.False, "The intro neither flies nor launches dummies.");
                 Assert.That(dummy.GetComponent<TrainingDummy>(), Is.Not.Null);
+                Assert.That(dummy.GetComponent<RacerSkinApplier>().AppliedSkinId, Is.Null, "Dummies keep the prefab's material.");
             }
             Assert.That(RacerDirectory.Current.All.Count, Is.EqualTo(1), "Dummies are not in the racer directory.");
             Assert.That(LeaderboardManager.Instance.Rankings.Count, Is.EqualTo(1), "Dummies are not ranked.");
@@ -266,7 +267,7 @@ namespace BuddahGo.Tests
                 .GetComponentInChildren<RaceCompletionTracker>(true);
             Assert.That(unowned.OwnerId, Is.EqualTo(-1));
             Assert.That(finish.TryRegisterFinish(unowned), Is.False);
-            var live = ownedReporters[0].GetComponent<RaceCompletionTracker>();
+            var live = human.GetComponent<RaceCompletionTracker>();
             start = MatchServices.Clock.Now - finish.LapsToFinish;
             timing.Begin(start);
             for (int lap = 1; lap < finish.LapsToFinish; lap++) timing.ObserveCompletedLaps(racer, lap, start + lap);
@@ -279,23 +280,27 @@ namespace BuddahGo.Tests
             Assert.That(finish.IsRaceForceEnded, Is.True);
             Assert.That(LeaderboardManager.Instance.BuildFinalResultsSnapshot()[0].IsFinished, Is.True);
             Assert.That(LeaderboardManager.Instance.BuildFinalResultsSnapshot().Count, Is.EqualTo(1), "Results never list training dummies.");
-            float resultDeadline = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < resultDeadline && MatchResultPresentationCoordinator.Instance.CurrentStage != MatchResultPresentationStage.ResultInteractive)
-                yield return null;
+            yield return WaitUntil(() => MatchResultPresentationCoordinator.Instance.CurrentStage == MatchResultPresentationStage.ResultInteractive, 45f);
             Assert.That(MatchResultPresentationCoordinator.Instance.CurrentStage, Is.EqualTo(MatchResultPresentationStage.ResultInteractive));
             yield return null;
             ScreenCapture.CaptureScreenshot("Temp/solo-results.png");
             yield return null;
             Assert.That(GameObject.Find("Rematch").GetComponent<Button>().interactable, Is.True);
             GameObject.Find("Rematch").GetComponent<Button>().onClick.Invoke();
-            float rematchDeadline = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < rematchDeadline && (PropertiesSelectionManager.Instance == null || !PropertiesSelectionManager.Instance.IsClientInitialized))
-                yield return null;
-            Assert.That(PropertiesSelectionManager.Instance, Is.Not.Null);
+            // A rematch passes through the menu scene (FishNet does not reload a loaded scene) and races again.
+            yield return WaitUntil(() => human == null && RaceSceneActive() && RoomStateManager.Instance != null
+                && RoomStateManager.Instance.CurrentMatchSessionPhase == MatchSessionPhase.InMatch, 60f);
+            Assert.That(human == null, Is.True, "The old racer is gone.");
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(SceneNames.RaceMap));
+            Assert.That(RoomStateManager.Instance.CurrentMatchSessionPhase, Is.EqualTo(MatchSessionPhase.InMatch));
             Assert.That(network.ServerManager.Started && network.ClientManager.Started, Is.True);
+            yield return WaitUntil(() => Array.Exists(Object.FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None), r => r.IsOwner), 30f);
+            var again = Array.Find(Object.FindObjectsByType<PlayerProgressReporter>(FindObjectsSortMode.None), r => r.IsOwner);
+            Assert.That(again, Is.Not.Null, "The rematch spawns the player again.");
+            Assert.That(Enumerable.Range(0, SkillLoadout.SlotCount).Select(again.GetComponent<SkillLoadout>().GetSkillId).ToArray(), Is.EqualTo(pick),
+                "The rematch keeps the menu pick.");
             SessionControl.Current.RequestStopSession();
-            float waitDeadline5 = Time.realtimeSinceStartup + 45f;
-            while (Time.realtimeSinceStartup < waitDeadline5 && ((network.ClientManager.Started || SceneManager.GetActiveScene().name != SceneNames.MainMenu))) yield return null;
+            yield return WaitUntil(() => !network.ClientManager.Started && SceneManager.GetActiveScene().name == SceneNames.MainMenu, 45f);
             Assert.That(network.ServerManager.Started || network.ClientManager.Started, Is.False);
             Assert.That(MatchServices.Clock, Is.Null);
             Assert.That(MatchServices.Timing, Is.Null);

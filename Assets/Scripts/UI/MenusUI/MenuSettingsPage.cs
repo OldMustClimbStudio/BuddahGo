@@ -14,7 +14,7 @@ namespace SteamMultiplayer.UI
     /// stays on the baseline below it. Tabs 画面 / 音频 / 操作. 操作 lists the keys (race, then menu) as rows to read, not to change. 音频 shows <see cref="AudioSettingsService"/>:
     /// 总音量 / 音乐 / 音效 as a value and a thin bar (step, or click / drag on the bar), and 切到后台时静音 on / off; audio
     /// changes take effect and are saved at once, R puts the defaults back. The graphics rows come from
-    /// <see cref="GraphicsSettingsService"/> at runtime, the same model as the old SettingsPanelUI: a preset row, then
+    /// <see cref="GraphicsSettingsService"/> at runtime, the same model as the retired SettingsPanelUI: a preset row, then
     /// one row per option. The selected row brightens (same size) with a vermilion dot before it and ‹ › around its value;
     /// stepping changes the model only ("＊" while an option differs from the preset), Enter applies and saves, R puts
     /// the preset back, Esc closes (with unapplied changes, after the confirm dialog: 应用 / 放弃 / 继续调整). Options that do not take effect now are dimmed and

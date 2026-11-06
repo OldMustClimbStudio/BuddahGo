@@ -22,7 +22,7 @@ namespace BuddahGo.Tests
         [UnityTest]
         public IEnumerator YakOnlyHost_InitializesManagersAndStopsCleanly()
         {
-            EditorSceneManager.OpenScene("Assets/Scenes/MainMenu.unity");
+            EditorSceneManager.OpenScene("Assets/Scenes/MenuEnvironmentSetting.unity");
             yield return new EnterPlayMode();
             NetworkManager network = Object.FindFirstObjectByType<NetworkManager>();
             Assert.That(network, Is.Not.Null);

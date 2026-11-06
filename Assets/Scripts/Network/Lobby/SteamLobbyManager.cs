@@ -499,7 +499,7 @@ namespace SteamMultiplayer.Network
             string remotePvStr = lobby.GetData(KEY_PREDICTION_PROTOCOL_VERSION);
 
             // Treat lobbies missing core metadata as invalid join targets.
-            // This prevents the UI from entering RoomUI for dead/invalid lobby ids.
+            // This keeps the menu from entering the hall for dead/invalid lobby ids.
             if (string.IsNullOrWhiteSpace(hostSteamId))
             {
                 lobby.Leave();

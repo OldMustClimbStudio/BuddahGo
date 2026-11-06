@@ -75,6 +75,9 @@ namespace BuddahGo.Tests
             { "cast", 21 }, { "reverse_hit", 19 }, { "accel_release", 15 },
             // 10 + the scale surge ring (Docs/vfx/giant.md).
             { "slow_release", 11 },
+            // First pass of 金足破阵 (accel_release's blast + the Frontal Pulses route); the user tunes it in VFXtests
+            // (Docs/vfx/yuanqi-giant-charge.md section 5).
+            { "giant_charge_release", 19 },
         };
         const int DefaultParticleSystemCeiling = 10;
 
@@ -180,7 +183,7 @@ namespace BuddahGo.Tests
                 }));
         }
 
-        static readonly Regex VfxIdRule = new Regex(@"^(?:(cast)|(palm|accel|slow|reverse|curtain|giant)_(release|bullet|hit|buff))(_anti)?$");
+        static readonly Regex VfxIdRule = new Regex(@"^(?:(cast)|(palm|accel|slow|reverse|curtain|giant_charge|giant)_(release|bullet|hit|buff))(_anti)?$");
 
         static readonly Dictionary<string, (string folder, string name)> SkillFolders = new Dictionary<string, (string, string)>
         {
@@ -191,6 +194,8 @@ namespace BuddahGo.Tests
             ["reverse"] = ("转向反转", "Reverse"),
             ["curtain"] = ("一念光明", "Curtain"),
             ["giant"] = ("巨大化", "Giant"),
+            // 缘起 slots use the pair's Chinese name as the folder (README section 6).
+            ["giant_charge"] = ("金足破阵", "GiantCharge"),
         };
 
         // README section 5: an empty (0) cell of the VFX table falls back to the default look instead of collapsing the

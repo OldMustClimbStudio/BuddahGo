@@ -82,8 +82,9 @@ Assets/Adobe/Substance3DForUnity/Runtime/Plugins/Temp.meta
 ~$*.xlsx.meta
 *.xlsx#
 
-# Full-resolution RaceMap capture PNGs written by RaceMapViewpointCapture stay local; the docs commit JPEG side-by-sides
+# Full-resolution RaceMap capture PNGs and their probe JSON stay local; the docs commit JPEG side-by-sides
 /Docs/rendering/racemap/*/*.png
+/Docs/rendering/racemap/*/*.json
 # The rendering showcase's PNG renders stay local; the docs commit JPEG copies
 /Docs/rendering/showcase/*.png
 

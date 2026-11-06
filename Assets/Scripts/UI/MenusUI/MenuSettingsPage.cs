@@ -408,16 +408,16 @@ namespace SteamMultiplayer.UI
                 if (wheel < 0f) move++;
                 if (click || moved)
                     for (int i = 0; i < tabs.Length; i++)
-                        if (click && Hit(tabs[i].rectTransform, at, 14f)) SelectTab(i, false);
-                if (HasRows && Hit(viewport, at, 0f))
+                        if (click && MenuHit.Contains(tabs[i].rectTransform, at, 14f)) SelectTab(i, false);
+                if (HasRows && MenuHit.Contains(viewport, at, 0f))
                 {
                     List<Row> rows = Rows;
                     for (int i = 0; i < rows.Count; i++)
                     {
-                        if (!Hit(rows[i].rect, at, 0f)) continue;
+                        if (!MenuHit.Contains(rows[i].rect, at, 0f)) continue;
                         if (moved) _selected = i;
                         // Volume bar: click or drag sets the volume where the pointer is.
-                        if (rows[i].bar != null && mouse.leftButton.isPressed && Hit(rows[i].bar, at, 6f))
+                        if (rows[i].bar != null && mouse.leftButton.isPressed && MenuHit.Contains(rows[i].bar, at, 6f))
                         {
                             _selected = i;
                             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(rows[i].bar, at, null, out Vector2 local))
@@ -428,13 +428,13 @@ namespace SteamMultiplayer.UI
                         if (click)
                         {
                             _selected = i;
-                            step = Hit(rows[i].previous.rectTransform, at, 6f) ? -1 : 1;
+                            step = MenuHit.Contains(rows[i].previous.rectTransform, at, 6f) ? -1 : 1;
                         }
                     }
                 }
-                if (click && Hit(applyHint.rectTransform, at, 8f)) apply = true;
-                if (click && Hit(resetHint.rectTransform, at, 8f)) reset = true;
-                if (click && Hit(backHint.rectTransform, at, 8f)) back = true;
+                if (click && MenuHit.Contains(applyHint.rectTransform, at, 8f)) apply = true;
+                if (click && MenuHit.Contains(resetHint.rectTransform, at, 8f)) reset = true;
+                if (click && MenuHit.Contains(backHint.rectTransform, at, 8f)) back = true;
                 if (mouse.rightButton.wasPressedThisFrame) back = true;
             }
 
@@ -451,14 +451,6 @@ namespace SteamMultiplayer.UI
             if (_tab == ControlsTab) return; // read only
             if (apply && GraphicsSettingsService.HasPendingChanges) GraphicsSettingsService.Apply();
             if (reset) GraphicsSettingsService.ResetToPreset();
-        }
-
-        private static bool Hit(RectTransform rect, Vector2 screen, float pad)
-        {
-            if (rect == null || !RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screen, null, out Vector2 local)) return false;
-            Rect r = rect.rect;
-            r.xMin -= pad; r.xMax += pad; r.yMin -= pad; r.yMax += pad;
-            return r.Contains(local);
         }
 
         private void SelectTab(int index, bool reset)

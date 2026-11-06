@@ -513,7 +513,7 @@ namespace SteamMultiplayer.UI
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRect, screenEdge, null, out Vector2 edge)) return;
             float kick = 14f * Mathf.Sin(nudge * Mathf.PI);
             rt.anchoredPosition = edge + new Vector2(side * (arrowGap + breathe + kick), 0f);
-            bool hover = Hit(rt, pointer, 12f);
+            bool hover = MenuHit.Contains(rt, pointer, 12f);
             float scale = Mathf.MoveTowards(rt.localScale.x, hover ? 1.15f : 1f, Time.unscaledDeltaTime / 0.12f);
             rt.localScale = Vector3.one * scale;
             if (arrow.targetGraphic != null)
@@ -680,8 +680,8 @@ namespace SteamMultiplayer.UI
                     _pressAt = at;
                     _pressOnHokora = onHokora;
                     // 返回 only while it shows (it gives way to the panel's 收起, which closes the panel instead).
-                    if (_keysOpen) { if (Hit(_collapseHint, at, 10f)) cancel = true; }
-                    else if (Hit(backHint != null ? backHint.rectTransform : null, at, 10f)) back = true;
+                    if (_keysOpen) { if (MenuHit.Contains(_collapseHint, at, 10f)) cancel = true; }
+                    else if (MenuHit.Contains(backHint != null ? backHint.rectTransform : null, at, 10f)) back = true;
                 }
                 // A click (press and release without moving) on the hokora shows the combos; anywhere else hides them.
                 if (mouse.leftButton.wasReleasedThisFrame && (at - _pressAt).magnitude <= clickSlopPixels)
@@ -702,14 +702,6 @@ namespace SteamMultiplayer.UI
                 int menu = switcher.IndexOf("主菜单");
                 if (menu >= 0) switcher.SwitchTo(menu);
             }
-        }
-
-        private static bool Hit(RectTransform rect, Vector2 screen, float pad)
-        {
-            if (rect == null || !RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screen, null, out Vector2 local)) return false;
-            Rect r = rect.rect;
-            r.xMin -= pad; r.xMax += pad; r.yMin -= pad; r.yMax += pad;
-            return r.Contains(local);
         }
 
         private static string Text(string key, string fallback) => DesignTableOverlay.Text(key, fallback);

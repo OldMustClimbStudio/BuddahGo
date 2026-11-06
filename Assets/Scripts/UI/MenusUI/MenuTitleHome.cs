@@ -437,23 +437,13 @@ namespace SteamMultiplayer.UI
                 Vector2 at = mouse.position.ReadValue();
                 for (int i = 0; i < items.Length; i++)
                 {
-                    if (!Hit(items[i].text.rectTransform, at)) continue;
+                    if (!MenuHit.Contains(items[i].text.rectTransform, at, new Vector2(16f, 14f))) continue;
                     if (mouse.delta.ReadValue().sqrMagnitude > 0f) Select(i);
                     if (mouse.leftButton.wasPressedThisFrame) { Select(i); submit = true; }
                 }
             }
             if (move != 0) Select((selected + move + items.Length) % items.Length);
             if (submit) Submit(items[selected]);
-        }
-
-        private static bool Hit(RectTransform rect, Vector2 screen)
-        {
-            // A little padding so the small labels are easy to point at.
-            Vector2 local;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screen, null, out local)) return false;
-            Rect r = rect.rect;
-            r.xMin -= 16f; r.xMax += 16f; r.yMin -= 14f; r.yMax += 14f;
-            return r.Contains(local);
         }
 
         private void Select(int index)

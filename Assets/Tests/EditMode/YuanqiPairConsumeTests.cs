@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using FishNet.Object;
@@ -45,63 +46,52 @@ namespace BuddahGo.Tests
             if (_racer != null) Object.DestroyImmediate(_racer);
         }
 
-        [TestCase(true, true)]
-        [TestCase(true, false)]
-        [TestCase(false, true)]
-        [TestCase(false, false)]
-        public void FrostLockConsumesWhatTheRowNames(bool consumeA, bool consumeB)
-        {
-            var frost = Pair<Yuanqi_FrostLock>("frost_lock", "acceleration", "slowtrap", consumeA, consumeB);
-            var acceleration = new CountingHandle("acceleration");
-            var slowTrap = new CountingHandle("slowtrap");
-
-            frost.OnTriggerServer(Context(frost, acceleration, slowTrap));
-
-            Assert.AreEqual(consumeA ? 1 : 0, acceleration.ConsumeCount, "神足通 consumed only when consumeA");
-            Assert.AreEqual(consumeB ? 1 : 0, slowTrap.ConsumeCount, "禅定缓流 consumed only when consumeB");
-        }
+        // Each case gets a new caster, board and pair, as a separate test would.
+        private void Renew() { TearDown(); SetUp(); }
 
         [Test]
-        public void GiantChargeShippedRowConsumesOnlyTheAcceleration()
+        public void PairsConsumeWhatTheRowNames()
         {
-            var charge = Pair<Yuanqi_GiantCharge>("giant_charge", "acceleration", "giant", true, false);
-            var acceleration = new CountingHandle("acceleration");
-            var giant = new CountingHandle("giant");
+            EveryCase.Parts(
+                ("frost lock consumes what the row names", () => EveryCase.Check(new[]
+                {
+                    (consumeA: true, consumeB: true),
+                    (consumeA: true, consumeB: false),
+                    (consumeA: false, consumeB: true),
+                    (consumeA: false, consumeB: false),
+                }, c =>
+                {
+                    Renew();
+                    var frost = Pair<Yuanqi_FrostLock>("frost_lock", "acceleration", "slowtrap", c.consumeA, c.consumeB);
+                    var acceleration = new CountingHandle("acceleration");
+                    var slowTrap = new CountingHandle("slowtrap");
 
-            ExpectMissingHandsWarning();
-            charge.OnTriggerServer(Context(charge, acceleration, giant));
+                    frost.OnTriggerServer(Context(frost, acceleration, slowTrap));
 
-            Assert.AreEqual(1, acceleration.ConsumeCount);
-            Assert.AreEqual(0, giant.ConsumeCount, "法相金身 keeps running");
-        }
+                    Assert.AreEqual(c.consumeA ? 1 : 0, acceleration.ConsumeCount, "神足通 consumed only when consumeA");
+                    Assert.AreEqual(c.consumeB ? 1 : 0, slowTrap.ConsumeCount, "禅定缓流 consumed only when consumeB");
+                }, c => $"frost_lock consumeA={c.consumeA} consumeB={c.consumeB}")),
+                // The pair is unordered: listing 法相金身 first must not end it in place of 神足通.
+                ("giant charge consumes what the row names, whichever skill it lists first", () => EveryCase.Check(new[]
+                {
+                    (name: "shipped row consumes only the acceleration", skillA: "acceleration", skillB: "giant", consumeA: true, consumeB: false, accelerationConsumed: 1, giantConsumed: 0),
+                    (name: "row listing the giant first still consumes the acceleration", skillA: "giant", skillB: "acceleration", consumeA: false, consumeB: true, accelerationConsumed: 1, giantConsumed: 0),
+                    (name: "row consuming nothing keeps both skills", skillA: "acceleration", skillB: "giant", consumeA: false, consumeB: false, accelerationConsumed: 0, giantConsumed: 0),
+                }, c =>
+                {
+                    Renew();
+                    var charge = Pair<Yuanqi_GiantCharge>("giant_charge", c.skillA, c.skillB, c.consumeA, c.consumeB);
+                    var handleA = new CountingHandle(c.skillA);
+                    var handleB = new CountingHandle(c.skillB);
+                    CountingHandle acceleration = c.skillA == "acceleration" ? handleA : handleB;
+                    CountingHandle giant = c.skillA == "giant" ? handleA : handleB;
 
-        // The pair is unordered: listing 法相金身 first must not end it in place of 神足通.
-        [Test]
-        public void GiantChargeRowListingTheGiantFirstStillConsumesTheAcceleration()
-        {
-            var charge = Pair<Yuanqi_GiantCharge>("giant_charge", "giant", "acceleration", false, true);
-            var giant = new CountingHandle("giant");
-            var acceleration = new CountingHandle("acceleration");
+                    ExpectMissingHandsWarning();
+                    charge.OnTriggerServer(Context(charge, handleA, handleB));
 
-            ExpectMissingHandsWarning();
-            charge.OnTriggerServer(Context(charge, giant, acceleration));
-
-            Assert.AreEqual(0, giant.ConsumeCount, "consumeA = false keeps 法相金身");
-            Assert.AreEqual(1, acceleration.ConsumeCount, "consumeB = true ends 神足通");
-        }
-
-        [Test]
-        public void GiantChargeRowConsumingNothingKeepsBothSkills()
-        {
-            var charge = Pair<Yuanqi_GiantCharge>("giant_charge", "acceleration", "giant", false, false);
-            var acceleration = new CountingHandle("acceleration");
-            var giant = new CountingHandle("giant");
-
-            ExpectMissingHandsWarning();
-            charge.OnTriggerServer(Context(charge, acceleration, giant));
-
-            Assert.AreEqual(0, acceleration.ConsumeCount);
-            Assert.AreEqual(0, giant.ConsumeCount);
+                    Assert.AreEqual(c.accelerationConsumed, acceleration.ConsumeCount, "神足通 consumes");
+                    Assert.AreEqual(c.giantConsumed, giant.ConsumeCount, "法相金身 consumes (it keeps running unless its own flag is set)");
+                }, c => "giant_charge " + c.name)));
         }
 
         private T Pair<T>(string id, string skillA, string skillB, bool consumeA, bool consumeB) where T : YuanqiAction

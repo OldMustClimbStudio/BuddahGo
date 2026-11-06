@@ -17,101 +17,87 @@ namespace BuddahGo.Tests
         // ---- #2 targeting -------------------------------------------------------------------------------------
 
         [Test]
-        public void Targeting_RadiusIsHorizontalAndInclusive()
+        public void TargetingUsesAHorizontalInclusiveRadiusAndItsExclusions()
         {
-            Assert.IsTrue(YuanqiTargeting.IsEligible(Other(Center + new Vector3(12f, 0f, 0f)), Center, 12f, true), "exactly R is inside");
-            Assert.IsTrue(YuanqiTargeting.IsEligible(Other(Center + new Vector3(0f, 0f, -11.99f)), Center, 12f, true));
-            Assert.IsFalse(YuanqiTargeting.IsEligible(Other(Center + new Vector3(12.01f, 0f, 0f)), Center, 12f, true), "just outside R");
-            Assert.IsFalse(YuanqiTargeting.IsEligible(Other(Center + new Vector3(9f, 0f, 9f)), Center, 12f, true), "diagonal 12.7 m is outside");
-            Assert.IsTrue(YuanqiTargeting.IsEligible(Other(Center + new Vector3(3f, 40f, 4f)), Center, 12f, true), "height is ignored");
-        }
-
-        [Test]
-        public void Targeting_ExcludesCasterAndUninitialized()
-        {
-            var caster = new YuanqiTargetCandidate(Center, isCaster: true, isServerInitialized: true, isTrainingDummy: false);
-            Assert.IsFalse(YuanqiTargeting.IsEligible(caster, Center, 12f, true), "the caster is never a target");
-            Assert.IsFalse(YuanqiTargeting.IsEligible(Other(Center, initialized: false), Center, 12f, true), "not server-initialized");
-            Assert.IsTrue(YuanqiTargeting.IsEligible(Other(Center), Center, 12f, true), "another racer on the caster's spot");
-        }
-
-        [Test]
-        public void Targeting_TrainingDummiesFollowTheFlag()
-        {
-            YuanqiTargetCandidate dummy = Other(Center + Vector3.right, dummy: true);
-            Assert.IsTrue(YuanqiTargeting.IsEligible(dummy, Center, 12f, includeTrainingDummies: true));
-            Assert.IsFalse(YuanqiTargeting.IsEligible(dummy, Center, 12f, includeTrainingDummies: false));
-            Assert.IsTrue(YuanqiTargeting.IsEligible(Other(Center + Vector3.right), Center, 12f, includeTrainingDummies: false), "racers stay targets");
-        }
-
-        [Test]
-        public void Targeting_NonPositiveOrInvalidRadiusSelectsNobody()
-        {
-            Assert.IsFalse(YuanqiTargeting.IsEligible(Other(Center), Center, 0f, true));
-            Assert.IsFalse(YuanqiTargeting.IsEligible(Other(Center), Center, -1f, true));
-            Assert.IsFalse(YuanqiTargeting.IsEligible(Other(Center), Center, float.NaN, true));
+            EveryCase.Check(new[]
+            {
+                // The radius is horizontal and inclusive.
+                (name: "exactly R is inside", candidate: Other(Center + new Vector3(12f, 0f, 0f)), radius: 12f, dummies: true, eligible: true),
+                (name: "just inside R", candidate: Other(Center + new Vector3(0f, 0f, -11.99f)), radius: 12f, dummies: true, eligible: true),
+                (name: "just outside R", candidate: Other(Center + new Vector3(12.01f, 0f, 0f)), radius: 12f, dummies: true, eligible: false),
+                (name: "diagonal 12.7 m is outside", candidate: Other(Center + new Vector3(9f, 0f, 9f)), radius: 12f, dummies: true, eligible: false),
+                (name: "height is ignored", candidate: Other(Center + new Vector3(3f, 40f, 4f)), radius: 12f, dummies: true, eligible: true),
+                // The caster and uninitialized racers are excluded.
+                (name: "the caster is never a target", candidate: new YuanqiTargetCandidate(Center, isCaster: true, isServerInitialized: true, isTrainingDummy: false), radius: 12f, dummies: true, eligible: false),
+                (name: "not server-initialized", candidate: Other(Center, initialized: false), radius: 12f, dummies: true, eligible: false),
+                (name: "another racer on the caster's spot", candidate: Other(Center), radius: 12f, dummies: true, eligible: true),
+                // Training dummies follow the flag.
+                (name: "dummy with includeTrainingDummies", candidate: Other(Center + Vector3.right, dummy: true), radius: 12f, dummies: true, eligible: true),
+                (name: "dummy without includeTrainingDummies", candidate: Other(Center + Vector3.right, dummy: true), radius: 12f, dummies: false, eligible: false),
+                (name: "racers stay targets without includeTrainingDummies", candidate: Other(Center + Vector3.right), radius: 12f, dummies: false, eligible: true),
+                // A non-positive or invalid radius selects nobody.
+                (name: "radius 0", candidate: Other(Center), radius: 0f, dummies: true, eligible: false),
+                (name: "radius -1", candidate: Other(Center), radius: -1f, dummies: true, eligible: false),
+                (name: "radius NaN", candidate: Other(Center), radius: float.NaN, dummies: true, eligible: false),
+            }, c => Assert.AreEqual(c.eligible, YuanqiTargeting.IsEligible(c.candidate, Center, c.radius, c.dummies)), c => c.name);
         }
 
         // ---- #4 body impact -----------------------------------------------------------------------------------
 
         [Test]
-        public void BodyImpact_OncePerVictimPerArm()
+        public void BodyImpactHitsOncePerVictimInsideTheWindowAndScattersSideways()
         {
-            var rule = new BuddahBodyImpactRule();
-            rule.Arm(300f, 0.8f, now: 5f);
-            Assert.IsTrue(rule.TryClaimHit(victimKey: 7, now: 5.1f, casterBursting: true), "first contact hits");
-            Assert.IsFalse(rule.TryClaimHit(7, 5.2f, true), "same victim, same burst: no second hit");
-            Assert.IsTrue(rule.TryClaimHit(8, 5.2f, true), "another victim still hits");
+            EveryCase.Parts(
+                ("once per victim per Arm", () =>
+                {
+                    var rule = new BuddahBodyImpactRule();
+                    rule.Arm(300f, 0.8f, now: 5f);
+                    Assert.IsTrue(rule.TryClaimHit(victimKey: 7, now: 5.1f, casterBursting: true), "first contact hits");
+                    Assert.IsFalse(rule.TryClaimHit(7, 5.2f, true), "same victim, same burst: no second hit");
+                    Assert.IsTrue(rule.TryClaimHit(8, 5.2f, true), "another victim still hits");
 
-            rule.Arm(300f, 0.8f, now: 9f);
-            Assert.IsTrue(rule.TryClaimHit(7, 9.1f, true), "a new Arm forgets the earlier victims");
-        }
+                    rule.Arm(300f, 0.8f, now: 9f);
+                    Assert.IsTrue(rule.TryClaimHit(7, 9.1f, true), "a new Arm forgets the earlier victims");
+                }),
+                ("only inside the window and while bursting", () =>
+                {
+                    var rule = new BuddahBodyImpactRule();
+                    Assert.IsFalse(rule.IsArmed(0f), "never armed");
+                    Assert.IsFalse(rule.TryClaimHit(1, 0f, true));
 
-        [Test]
-        public void BodyImpact_OnlyInsideTheWindowAndWhileBursting()
-        {
-            var rule = new BuddahBodyImpactRule();
-            Assert.IsFalse(rule.IsArmed(0f), "never armed");
-            Assert.IsFalse(rule.TryClaimHit(1, 0f, true));
+                    rule.Arm(300f, 0.8f, now: 5f);
+                    Assert.IsTrue(rule.IsArmed(5f));
+                    Assert.IsFalse(rule.TryClaimHit(1, 5.1f, casterBursting: false), "the motor burst is over (or the caster is frozen)");
+                    Assert.IsTrue(rule.TryClaimHit(1, 5.2f, casterBursting: true), "a refused contact does not use up the victim");
+                    Assert.IsFalse(rule.TryClaimHit(2, 5.9f, true), "the window [now, now + seconds) has closed");
+                    Assert.IsFalse(rule.IsArmed(5.9f));
+                }),
+                ("zero magnitude or duration never arms", () =>
+                {
+                    var rule = new BuddahBodyImpactRule();
+                    rule.Arm(0f, 0.8f, 5f);
+                    Assert.IsFalse(rule.TryClaimHit(1, 5.1f, true));
+                    rule.Arm(300f, 0f, 5f);
+                    Assert.IsFalse(rule.TryClaimHit(1, 5f, true));
+                    rule.Arm(-300f, 0.8f, 5f);
+                    Assert.IsFalse(rule.IsArmed(5f));
+                }),
+                ("direction is horizontal from caster to victim", () =>
+                {
+                    Vector3 impulse = BuddahBodyImpactRule.ResolveImpulse(new Vector3(0f, 1f, 0f), new Vector3(3f, 9f, 4f), Vector3.forward, 300f);
+                    Assert.AreEqual(0f, impulse.y, 1e-5f, "no vertical component");
+                    Assert.AreEqual(300f, impulse.magnitude, 1e-3f);
+                    Assert.AreEqual(180f, impulse.x, 1e-3f, "3/5 of 300: sideways scatter, not the caster's heading");
+                    Assert.AreEqual(240f, impulse.z, 1e-3f);
+                }),
+                ("degenerate direction falls back to caster forward", () =>
+                {
+                    Vector3 stacked = BuddahBodyImpactRule.ResolveImpulse(Vector3.zero, new Vector3(0f, 5f, 0f), new Vector3(0f, 0.5f, -2f), 300f);
+                    AssertVector(new Vector3(0f, 0f, -300f), stacked, "victim straight above: flat caster forward");
 
-            rule.Arm(300f, 0.8f, now: 5f);
-            Assert.IsTrue(rule.IsArmed(5f));
-            Assert.IsFalse(rule.TryClaimHit(1, 5.1f, casterBursting: false), "the motor burst is over (or the caster is frozen)");
-            Assert.IsTrue(rule.TryClaimHit(1, 5.2f, casterBursting: true), "a refused contact does not use up the victim");
-            Assert.IsFalse(rule.TryClaimHit(2, 5.9f, true), "the window [now, now + seconds) has closed");
-            Assert.IsFalse(rule.IsArmed(5.9f));
-        }
-
-        [Test]
-        public void BodyImpact_ZeroMagnitudeOrDurationNeverArms()
-        {
-            var rule = new BuddahBodyImpactRule();
-            rule.Arm(0f, 0.8f, 5f);
-            Assert.IsFalse(rule.TryClaimHit(1, 5.1f, true));
-            rule.Arm(300f, 0f, 5f);
-            Assert.IsFalse(rule.TryClaimHit(1, 5f, true));
-            rule.Arm(-300f, 0.8f, 5f);
-            Assert.IsFalse(rule.IsArmed(5f));
-        }
-
-        [Test]
-        public void BodyImpact_DirectionIsHorizontalFromCasterToVictim()
-        {
-            Vector3 impulse = BuddahBodyImpactRule.ResolveImpulse(new Vector3(0f, 1f, 0f), new Vector3(3f, 9f, 4f), Vector3.forward, 300f);
-            Assert.AreEqual(0f, impulse.y, 1e-5f, "no vertical component");
-            Assert.AreEqual(300f, impulse.magnitude, 1e-3f);
-            Assert.AreEqual(180f, impulse.x, 1e-3f, "3/5 of 300: sideways scatter, not the caster's heading");
-            Assert.AreEqual(240f, impulse.z, 1e-3f);
-        }
-
-        [Test]
-        public void BodyImpact_DegenerateDirectionFallsBackToCasterForward()
-        {
-            Vector3 stacked = BuddahBodyImpactRule.ResolveImpulse(Vector3.zero, new Vector3(0f, 5f, 0f), new Vector3(0f, 0.5f, -2f), 300f);
-            AssertVector(new Vector3(0f, 0f, -300f), stacked, "victim straight above: flat caster forward");
-
-            Vector3 straightUp = BuddahBodyImpactRule.ResolveImpulse(Vector3.zero, Vector3.zero, Vector3.up, 300f);
-            AssertVector(new Vector3(0f, 0f, 300f), straightUp, "no usable forward: world forward");
+                    Vector3 straightUp = BuddahBodyImpactRule.ResolveImpulse(Vector3.zero, Vector3.zero, Vector3.up, 300f);
+                    AssertVector(new Vector3(0f, 0f, 300f), straightUp, "no usable forward: world forward");
+                }));
         }
 
         private static void AssertVector(Vector3 expected, Vector3 actual, string message)

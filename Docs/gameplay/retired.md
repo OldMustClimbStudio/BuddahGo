@@ -168,6 +168,16 @@ PR #68（`refactor/vfx-refactor` → dev）从 dev 9629c317 切出，那时 dev 
 7. “反作用”由变体取代。
 8. 变体不另算冷却和执念。
 
+## 9. 2026-11-06 缘起实装补齐（`feat/yuanqi`）
+
+| 内容 | 状态 | 说明 | 提交 |
+|---|---|---|---|
+| 蓄力掌、反噬弹幕的尺寸直接等于体型倍率（`GetPushScaleMultiplier`，金身 ×4、反噬 ×0.3） | 已改 | 用户新定：普通 ×0.5、金身 ×2、反噬 ×0.5（`PalmSizeRule`）；出生点、普通推掌和准星死区仍用体型倍率 | 5997da94、988a15e7 |
+| #1 金身巨掌冲量乘体型倍率（×4） | 已改 | 改乘掌倍率（金身 ×2），用户选 | 988a15e7 |
+| `SkillPresentationRulesTests` 的“frost lock draws nothing itself”（2026-10-26 只留接口） | 已改 | 用户要求先补冰封占位，改为检查占位可开关 | 62dc6269 |
+| S14 固定 0.9 秒后请求反噬金身 | 已改 | 改为按 `giant_anti` 行的 2 秒窗口算请求时刻 | bfa14498 |
+| 冰封占位 `FrostPlaceholder`、`FrostGroundPlaceholder`、`FrozenIceShellPlaceholder` | 保留 | 新加的占位，正式特效接上同样的接口后删掉并改记“已删” | 7ad81a9c |
+
 ## 代码审查清理的退役记录（dev，PR #68，2026-11-03）
 
 > 合入 dev（c34d0d11）时从 dev 的同名文件并入；它记录的是特效以外的代码退休，原标题“已退休的玩法、网络、UI 与编辑器代码”。下面各节的“待删 [PR#63]”指等 PR #63 合并后再删的项。

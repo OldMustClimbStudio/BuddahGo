@@ -69,6 +69,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   projectileImpulseStrength: 500
   projectileColliderSize: {x: 60, y: 90, z: 20}
+  projectileSizeMultiplier: 0.5
   ignoreSolidWorld: 0
   vfxId: palm_release
   handVfxId: palm_bullet

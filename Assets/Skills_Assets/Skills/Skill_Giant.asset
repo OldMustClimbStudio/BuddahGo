@@ -18,6 +18,7 @@ MonoBehaviour:
   obsessionGain: 200
   antiSkillId: giant_anti
   scaleMultiplier: 4
+  palmSizeMultiplier: 2
   durationSeconds: 6
   growDurationSeconds: 0.35
   shrinkDurationSeconds: 0.35

@@ -18,6 +18,7 @@ MonoBehaviour:
   obsessionGain: 0
   antiSkillId: 
   scaleMultiplier: 0.3
+  palmSizeMultiplier: 0.5
   durationSeconds: 6
   shrinkDurationSeconds: 0.25
   restoreDurationSeconds: 0.25

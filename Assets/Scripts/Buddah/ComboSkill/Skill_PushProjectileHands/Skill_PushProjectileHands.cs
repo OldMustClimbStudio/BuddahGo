@@ -20,6 +20,8 @@ public class Skill_PushProjectileHands : SkillAction
     public AnimationCurve projectileSpeedCurve = ChargedProjectileFlight.DefaultSpeedCurve();
     [Min(0f)] public float projectileImpulseStrength = 12f;
     [SerializeField] public Vector3 projectileColliderSize = new Vector3(1.25f, 1.1f, 1.8f);
+    [Tooltip("Base palm size (Skill/Push charged sizeMultiplier): the hitbox and the visual are both multiplied, then by the body's palm multiplier (PalmSizeRule).")]
+    [Min(0.05f)] public float projectileSizeMultiplier = 1f;
 
     [Header("VFX (vfx_id rows of Skill.xlsx / VfxRegistry, prefabs in SkillVfxDatabase)")]
     [Tooltip("Fire animation at the caster (Chg while winding up, Imp at launch).")]

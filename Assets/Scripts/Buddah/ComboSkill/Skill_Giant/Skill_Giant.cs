@@ -7,6 +7,8 @@ public class Skill_Giant : SkillAction
 
     [Header("Scale Buff")]
     [Min(1f)] public float scaleMultiplier = 5f;
+    [Tooltip("如来神掌 palm size at the full body scale (SkillEffectGiant.palmSizeMultiplier); the palm follows the body linearly (PalmSizeRule).")]
+    [Min(0.05f)] public float palmSizeMultiplier = 2f;
     [Min(0.1f)] public float durationSeconds = 6f;
     [Min(0f)] public float growDurationSeconds = 0.35f;
     [Min(0f)] public float shrinkDurationSeconds = 0.35f;

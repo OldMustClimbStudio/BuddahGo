@@ -381,14 +381,16 @@ public class SkillDatabase : ScriptableObject
     public static readonly string[] PushChargedMap =
     {
         "windupSeconds=buildUpSeconds", "pushCooldownSeconds=chargedPushCooldownSeconds", "delayedPushActionSeconds", "lifetimeSeconds=projectileLifetimeSeconds",
-        "impulseStrength=projectileImpulseStrength", "speed=projectileSpeed", "forwardOffset=projectileForwardOffset", "heightOffset=projectileHeightOffset", "colliderSize=projectileColliderSize"
+        "impulseStrength=projectileImpulseStrength", "speed=projectileSpeed", "forwardOffset=projectileForwardOffset", "heightOffset=projectileHeightOffset", "colliderSize=projectileColliderSize",
+        "sizeMultiplier=projectileSizeMultiplier"
     };
 
     /// <summary>Skill/Push "charged_anti" row → Skill_PushProjectileHands_Anti fields.</summary>
     public static readonly string[] PushChargedAntiMap =
     {
         "windupSeconds=buildUpSeconds", "lifetimeSeconds=projectileLifetimeSeconds", "impulseStrength=projectileImpulseStrength", "speed=projectileSpeed",
-        "forwardOffset=additionalForwardSpawnOffset", "heightOffset=additionalHeightSpawnOffset", "projectileCount", "projectileSpacing", "colliderSize=projectileColliderSize", "hitTurnTorqueImpulse"
+        "forwardOffset=additionalForwardSpawnOffset", "heightOffset=additionalHeightSpawnOffset", "projectileCount", "projectileSpacing", "colliderSize=projectileColliderSize", "sizeMultiplier=projectileSizeMultiplier",
+        "hitTurnTorqueImpulse"
     };
 
     /// <summary>Skill/Yuanqi row → YuanqiAction fields. Explicit: the row also carries text keys and pairNumber, which are not SO fields.</summary>

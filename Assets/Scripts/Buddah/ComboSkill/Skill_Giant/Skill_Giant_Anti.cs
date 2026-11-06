@@ -5,6 +5,8 @@ public class Skill_Giant_Anti : SkillAction
 {
     [Header("Shrink Debuff")]
     [Range(0.1f, 0.99f)] public float scaleMultiplier = 0.5f;
+    [Tooltip("如来神掌 palm size at the full shrink (SkillEffectGiant.palmSizeMultiplier); the palm follows the body linearly (PalmSizeRule).")]
+    [Min(0.05f)] public float palmSizeMultiplier = 0.5f;
     [Min(0.1f)] public float durationSeconds = 4f;
     [Min(0f)] public float shrinkDurationSeconds = 0.25f;
     [Min(0f)] public float restoreDurationSeconds = 0.25f;

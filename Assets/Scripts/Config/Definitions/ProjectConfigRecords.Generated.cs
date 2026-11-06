@@ -93,6 +93,8 @@ public class SkillEffectGiantRecord
     /// <summary>float</summary>
     [Tooltip("体型倍率（Skill_Giant.scaleMultiplier；反噬 <1，Skill_Giant_Anti.scaleMultiplier）")] public float scaleMultiplier = 0f;
     /// <summary>float</summary>
+    [Tooltip("体型到达本行倍率时如来神掌的掌（蓄力掌、反噬弹幕）的尺寸倍率，变大变小过程中随体型线性过渡；金身巨掌（#1）的推力也乘它（Skill_Giant.palmSizeMultiplier → PlayerScaleEffect.CurrentPalmSizeMultiplier；反噬：Skill_Giant_Anti.palmSizeMultiplier）")] public float palmSizeMultiplier = 0f;
+    /// <summary>float</summary>
     [Tooltip("缩回过渡 s（Skill_Giant.shrinkDurationSeconds）；反噬：缩小过渡 s")] public float shrinkDurationSeconds = 0f;
     /// <summary>float</summary>
     [Tooltip("变大过渡 s（Skill_Giant.growDurationSeconds）")] public float growDurationSeconds = 0f;
@@ -140,6 +142,8 @@ public class PushRecord
     [Tooltip("charged_anti：弹幕间距 m")] public float projectileSpacing = 0f;
     /// <summary>vector3</summary>
     [Tooltip("charged：projectileColliderSize；basic 的 hitbox 尺寸见 SkillConstant")] public Vector3 colliderSize = Vector3.zero;
+    /// <summary>float</summary>
+    [Tooltip("charged / charged_anti：掌的基础尺寸倍率，碰撞体和画面一起乘，再乘体型带来的掌倍率（SkillEffectGiant.palmSizeMultiplier）；0.5 = 普通状态是原来的一半（2026-11-06 用户定）（charged=Skill_PushProjectileHands.projectileSizeMultiplier，charged_anti=Skill_PushProjectileHands_Anti.projectileSizeMultiplier）")] public float sizeMultiplier = 0f;
     /// <summary>float</summary>
     [Tooltip("charged_anti：命中时的转向冲量")] public float hitTurnTorqueImpulse = 0f;
 }

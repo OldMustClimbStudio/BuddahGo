@@ -23,7 +23,7 @@ public class SkillRecord
     /// <summary>float#range=0,120</summary>
     [Tooltip("槽位冷却 s，从请求时刻+前摇起算；反噬照常进本行冷却（SkillExecutor 经 SkillDatabase.GetCooldownSeconds）")] public float cooldownSeconds = 0f;
     /// <summary>float#range=0,5</summary>
-    [Tooltip("施法前摇 s，也是反噬的统一确认窗口，惩罚在窗口结束时开始（SkillExecutor 经 SkillConfigRepository.TryGetCastConfirmDelay）")] public float castConfirmDelaySeconds = 0f;
+    [Tooltip("普通行：施法前摇 s（SkillExecutor 经 SkillConfigRepository.TryGetCastConfirmDelay；AI 经 SkillExecutor.ConfirmationSecondsForSlot 只取普通行）；_anti 行：该技能反噬的确认窗口 s，惩罚在窗口结束时开始（SkillExecutor.ResolveCastConfirmDelay）。反噬行固定 2 s：必需的惩罚设计（2026-10-31 用户定，反噬前摇更长、cast_anti 特效完整播出），不是调试值，不要改回 1")] public float castConfirmDelaySeconds = 0f;
     /// <summary>float#range=0,1000</summary>
     [Tooltip("施法执行时增加的执念，同招加价按 Obsession.repeatGainMultiplier 复利；反噬不加（SkillExecutor 经 SkillDatabase.GetObsessionGain）")] public float obsessionGain = 0f;
     /// <summary>float#range=0,120</summary>

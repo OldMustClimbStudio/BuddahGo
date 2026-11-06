@@ -27,6 +27,18 @@ public class PlayerScaleEffect : MonoBehaviour
 
     public float CurrentScaleMultiplier => _initialized ? _appliedScaleMultiplier : 1f;
 
+    // The palm multiplier the current scale skill reaches at its full body scale (SkillEffectGiant.palmSizeMultiplier).
+    private float _palmSizeAtTarget = 1f;
+
+    /// <summary>如来神掌 palm size multiplier for the current body scale (PalmSizeRule); 1 without a scale skill.</summary>
+    public float CurrentPalmSizeMultiplier => _initialized ? PalmSizeRule.Resolve(_appliedScaleMultiplier, _targetScaleMultiplier, _palmSizeAtTarget) : 1f;
+
+    /// <summary>Set by the scale skill right after ApplyOrRefresh: the palm multiplier at its full body scale.</summary>
+    public void SetPalmSizeAtTarget(float palmSizeMultiplier)
+    {
+        _palmSizeAtTarget = Mathf.Max(PalmSizeRule.MinPalmSizeMultiplier, palmSizeMultiplier);
+    }
+
     public void ApplyOrRefresh(float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds, float massMultiplier = 1f, float forwardForceMultiplier = 1f)
     {
         float targetMultiplier = Mathf.Max(MinScaleMultiplier, scaleMultiplier);

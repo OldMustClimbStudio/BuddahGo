@@ -35,6 +35,25 @@ namespace BuddahGo.Tests
                 }));
         }
 
+        // User 2026-11-06: the palm is x2 at the giant's full x4 body and x0.5 at giant_anti's x0.3, linear in between.
+        [Test]
+        public void PalmSizeFollowsTheBodyLinearly()
+        {
+            var cases = new[]
+            {
+                (body: 1f, full: 4f, palm: 2f, expected: 1f),
+                (body: 4f, full: 4f, palm: 2f, expected: 2f),
+                (body: 2.5f, full: 4f, palm: 2f, expected: 1.5f),
+                (body: 0.3f, full: 0.3f, palm: 0.5f, expected: 0.5f),
+                (body: 0.65f, full: 0.3f, palm: 0.5f, expected: 0.75f),
+                (body: 1f, full: 1f, palm: 2f, expected: 1f),
+                (body: 0.01f, full: 0.3f, palm: 0.05f, expected: PalmSizeRule.MinPalmSizeMultiplier),
+            };
+            EveryCase.Check(cases, c =>
+                Assert.That(PalmSizeRule.Resolve(c.body, c.full, c.palm), Is.EqualTo(c.expected).Within(1e-4f)),
+                c => $"body={c.body} full={c.full} palm={c.palm}");
+        }
+
         [Test]
         public void PushAttackTimingFallbacks()
         {

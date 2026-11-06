@@ -2,7 +2,7 @@ using UnityEngine;
 
 internal static class ScaleSkillPresentation
 {
-    internal static void ApplyScaleEffect(SkillExecutor caster, float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds)
+    internal static void ApplyScaleEffect(SkillExecutor caster, float scaleMultiplier, float durationSeconds, float enterDurationSeconds, float restoreDurationSeconds, float palmSizeMultiplier)
     {
         if (caster == null)
             return;
@@ -12,6 +12,7 @@ internal static class ScaleSkillPresentation
             effect = caster.gameObject.AddComponent<PlayerScaleEffect>();
 
         effect.ApplyOrRefresh(scaleMultiplier, durationSeconds, enterDurationSeconds, restoreDurationSeconds);
+        effect.SetPalmSizeAtTarget(palmSizeMultiplier);
     }
 
     internal static void ResetLocalCamera(SkillExecutor caster, string logPrefix)

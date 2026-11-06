@@ -53,7 +53,7 @@ public class Skill_Giant : SkillAction
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
-        ScaleSkillPresentation.ApplyScaleEffect(caster, scaleMultiplier, durationSeconds, growDurationSeconds, shrinkDurationSeconds);
+        ScaleSkillPresentation.ApplyScaleEffect(caster, scaleMultiplier, durationSeconds, growDurationSeconds, shrinkDurationSeconds, palmSizeMultiplier);
         PlaySlotOnCaster(caster, releaseVfxId, durationSeconds);
 
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, durationSeconds);

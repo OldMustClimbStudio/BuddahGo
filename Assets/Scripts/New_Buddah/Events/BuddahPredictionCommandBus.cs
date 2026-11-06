@@ -15,7 +15,7 @@ namespace NewBuddah.PredictionV2.Events
     //
     // Phase 4b V2b Step 0: TryEnqueue* signatures take a uint currentTick (server-canonical clock).
     // RPC handlers stamp via cmd.EventTick verbatim — the cmd carries the server's tick across the
-    // wire. See agent-exchange/handoff/2026-05-02-phase4b-v2b-step0-design.md Q2 for rationale.
+    // wire. Rationale: Q2 of `git show cc7bc106:agent-exchange/handoff/2026-05-02-phase4b-v2b-step0-design.md`.
     //
     // Phase 4b V2b Step 1: TryEnqueue* signatures take an additional uint logicalId (Q0 dedup).
     // RPC handlers extract cmd.LogicalId and pass through. Recv log lines include logicalId for

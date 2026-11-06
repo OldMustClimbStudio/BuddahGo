@@ -61,10 +61,6 @@ public partial class ProjectConfigDatabase
     public List<TrackResultAnchorRecord> trackResultAnchors = new List<TrackResultAnchorRecord>();
     [Header("Match / Lobby")]
     public List<LobbyRecord> lobbies = new List<LobbyRecord>();
-    [Header("Match / SelectionStage")]
-    public List<SelectionStageRecord> selectionStages = new List<SelectionStageRecord>();
-    [Header("Match / SelectionOption")]
-    public List<SelectionOptionRecord> selectionOptions = new List<SelectionOptionRecord>();
     [Header("Match / Intro")]
     public List<IntroRecord> intros = new List<IntroRecord>();
     [Header("UI / Text")]

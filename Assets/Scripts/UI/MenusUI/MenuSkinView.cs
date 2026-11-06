@@ -21,6 +21,8 @@ namespace SteamMultiplayer.UI
         [Tooltip("Camera pose of the skin view (in front of the garden Buddha).")]
         [SerializeField] private Transform skinPose;
         [SerializeField] private float skinFieldOfView = 40f;
+        [Tooltip("Degrees the camera turns left of the skin pose, so the Buddha sits right of centre and the skin page has room on the left.")]
+        [SerializeField, Range(-30f, 30f)] private float framingYaw = 10f;
         [SerializeField, Min(0.05f)] private float moveDuration = 0.9f;
         [SerializeField] private AnimationCurve moveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
@@ -77,7 +79,8 @@ namespace SteamMultiplayer.UI
             if (inspector != null) inspector.enabled = false;
             Transform cam = targetCamera.transform;
             _returnPosition = cam.position; _returnRotation = cam.rotation; _returnFov = targetCamera.fieldOfView;
-            yield return Move(_returnPosition, _returnRotation, _returnFov, skinPose.position, skinPose.rotation, skinFieldOfView);
+            Quaternion framed = Quaternion.AngleAxis(-framingYaw, Vector3.up) * skinPose.rotation;
+            yield return Move(_returnPosition, _returnRotation, _returnFov, skinPose.position, framed, skinFieldOfView);
             _state = State.On;
         }
 

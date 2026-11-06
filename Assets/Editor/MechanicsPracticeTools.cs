@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEngine;
 
 // Starts the mechanics Practice verification probe (Assets/Scripts/AI/Diagnostics/MechanicsPracticeHarness.cs).
-// Enter Play mode on the MainMenu scene first. Evidence: Logs/mechanics-practice/<timestamp>/report.md (git-ignored).
+// Enter Play mode on the menu scene (MenuEnvironmentSetting) first. Evidence: Logs/mechanics-practice/<timestamp>/report.md (git-ignored).
 public static class MechanicsPracticeTools
 {
     private const string RunMenu = "Tools/Mechanics/Run Practice Verification";
@@ -14,19 +14,19 @@ public static class MechanicsPracticeTools
 
     // The main menu has no Practice entry (its Solo button reads Match/ModeRule Solo.aiCount = 5). For a hands-on
     // playtest this starts the same Solo host with 0 AI, which SoloMatchRules maps to the Practice row (3 training
-    // dummies). Enter Play mode on MainMenu first; the loadout / skin flow then continues as usual.
+    // dummies). Enter Play mode on the menu first; the race starts with the menu's saved loadout and skin.
     [MenuItem(StartPracticeMenu)]
     private static void StartPractice()
     {
         if (!EditorApplication.isPlaying)
         {
-            Debug.LogWarning("[MechanicsHarness] Open the MainMenu scene and enter Play mode, then run " + StartPracticeMenu + " again.");
+            Debug.LogWarning("[MechanicsHarness] Open the menu scene (MenuEnvironmentSetting) and enter Play mode, then run " + StartPracticeMenu + " again.");
             return;
         }
         var session = SessionControl.Current;
         if (session == null)
         {
-            Debug.LogWarning("[MechanicsHarness] No SessionControl yet; wait for MainMenu to initialise.");
+            Debug.LogWarning("[MechanicsHarness] No SessionControl yet; wait for the menu to initialise.");
             return;
         }
         if (!session.StartSoloHost(new SoloMatchSettings(0, SoloDifficulty.Normal)))
@@ -45,7 +45,7 @@ public static class MechanicsPracticeTools
     {
         if (!EditorApplication.isPlaying)
         {
-            Debug.LogWarning("[MechanicsHarness] Open the MainMenu scene and enter Play mode, then run " + RunMenu + " again.");
+            Debug.LogWarning("[MechanicsHarness] Open the menu scene (MenuEnvironmentSetting) and enter Play mode, then run " + RunMenu + " again.");
             return;
         }
         string directory = Path.GetFullPath(Path.Combine("Logs", "mechanics-practice", DateTime.Now.ToString("yyyyMMdd-HHmmss")));
@@ -55,7 +55,7 @@ public static class MechanicsPracticeTools
         }
         catch (Exception error) when (error is InvalidOperationException || error is ArgumentException)
         {
-            // Not on an idle MainMenu, a run still going, or the directory already used: say so instead of throwing.
+            // Not on an idle menu, a run still going, or the directory already used: say so instead of throwing.
             Debug.LogWarning("[MechanicsHarness] Not started: " + error.Message);
             return;
         }

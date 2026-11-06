@@ -19,8 +19,6 @@ namespace SteamMultiplayer.Network.Results
 
         [Header("Config")]
         [SerializeField, Min(1)] private int decisionDurationSeconds = 60;
-        [SerializeField] private string nextScenePropertySelection = SceneNames.PropertySelection;
-        [SerializeField] private string returnSceneMainMenu = SceneNames.MainMenu;
 
         public readonly SyncList<ResultPlayerDecision> PlayerDecisions = new SyncList<ResultPlayerDecision>();
 
@@ -311,11 +309,11 @@ namespace SteamMultiplayer.Network.Results
             switch (finalDecision)
             {
                 case ResultFinalDecision.StartNewGame:
-                    RoomStateManager.Instance.StartNextGameFromResultServer(nextScenePropertySelection);
+                    RoomStateManager.Instance.StartNextGameFromResultServer();
                     break;
                 case ResultFinalDecision.ReturnToRoom:
                 default:
-                    RoomStateManager.Instance.ReturnToRoomMenuKeepingSessionServer(returnSceneMainMenu);
+                    RoomStateManager.Instance.ReturnToRoomMenuKeepingSessionServer(null);
                     break;
             }
         }

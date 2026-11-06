@@ -637,10 +637,7 @@ namespace NewBuddah.PredictionV2.Core
             ConsumePendingLaunchHandoffEvent(tick);
             if (_lastConsumedLaunchHandoffEventId == before)
                 return false;
-            // Consume resets the body with Sleep/Wake. The normal motor tick restores
-            // inherited velocity later in RunInputs; this pre-physics path must restore
-            // that same consumed snapshot now, before the first Unity integration.
-            SetPredictionVelocitiesSafely(_handoffState.SnapshotVelocity, _handoffState.SnapshotAngularVelocity);
+            // Consume already left the snapshot velocity on the body (BuddahHandoffBodyPlacement).
             _computedStats = BuddahPredictedModifierResolver.Resolve(_modifierState, config, tick);
             // The handoff cannot bypass a live movement restriction before the next motor tick.
             if (_computedStats.IsRooted || !(_movementGateBridge.IsMovementAllowed(gameObject)
@@ -705,12 +702,9 @@ namespace NewBuddah.PredictionV2.Core
                 bootstrap?.LogVerbose(
                     $"[HandoffDebug] ground snap eventId={eventData.EventId} y={eventData.SnapshotPosition.y:0.000}->{landedPosition.y:0.000} clearance={groundClearance:0.000}");
             }
-            rb.position = landedPosition;
-            rb.rotation = eventData.SnapshotRotation;
-            rb.velocity = eventData.SnapshotVelocity;
-            rb.angularVelocity = eventData.SnapshotAngularVelocity;
-            rb.Sleep();
-            rb.WakeUp();
+            // The launch speed is set once, here (fully physical handoff, no Inherit/Blend phase to restore it later).
+            BuddahHandoffBodyPlacement.Place(rb, landedPosition, eventData.SnapshotRotation,
+                eventData.SnapshotVelocity, eventData.SnapshotAngularVelocity);
             InitializePredictionRigidbody();
             _splineProgressTracker?.SnapToWorldPosition(landedPosition);
 

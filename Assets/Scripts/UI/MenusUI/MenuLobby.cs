@@ -9,8 +9,7 @@ namespace SteamMultiplayer.UI
     /// Room lobby inside the main hall: six player spots around the sand table and on the balcony. A
     /// player who joins takes the first free spot (a model pops up there, posed as the spot); one who
     /// leaves sinks away. Creating a room seats the host (房主) on the first spot; the host stays until
-    /// the room is left, which clears the lobby. Two temporary buttons simulate other players joining and
-    /// leaving until the lobby is wired to the real room roster.
+    /// the room is left, which clears the lobby. MenuDojoPage keeps the head count in step with the room's roster.
     /// </summary>
     [DisallowMultipleComponent]
     public class MenuLobby : MonoBehaviour
@@ -25,23 +24,31 @@ namespace SteamMultiplayer.UI
         [Tooltip("Opens the room (host takes the first spot) on entering the hall and clears it on leaving.")]
         [SerializeField] private MenuRoomView roomView;
 
-        [Header("UI (temporary)")]
-        [SerializeField] private Button joinButton;
-        [SerializeField] private Button leaveButton;
-        [SerializeField] private Text countLabel;
-
         private GameObject[] _occupants;
         private readonly List<int> _joinOrder = new List<int>();
         private bool _hasHost;
 
         public int PlayerCount => _joinOrder.Count;
-        /// <summary>Players that "模拟退出" may remove: everyone but the host.</summary>
+        /// <summary>Players that Leave may remove: everyone but the host.</summary>
         private int GuestCount => PlayerCount - (_hasHost ? 1 : 0);
         public int Capacity => slots.Length;
 
-        public void Configure(Transform[] spots, GameObject prefab, Button join, Button leave, Text count, MenuRoomView room)
+        /// <summary>Raised whenever a player joins or leaves, or the room opens or closes.</summary>
+        public event System.Action Changed;
+
+        public Transform SpotAt(int i) => i >= 0 && i < slots.Length ? slots[i] : null;
+
+        /// <summary>A player stands on spot i.</summary>
+        public bool IsTaken(int i) => _occupants != null && i >= 0 && i < _occupants.Length && _occupants[i] != null;
+
+        /// <summary>The host's spot, or -1 when no room is open.</summary>
+        public int HostSpot => _hasHost && _joinOrder.Count > 0 ? _joinOrder[0] : -1;
+
+        public float PlayerHeight => playerHeight;
+
+        public void Configure(Transform[] spots, GameObject prefab, MenuRoomView room)
         {
-            slots = spots; playerPrefab = prefab; joinButton = join; leaveButton = leave; countLabel = count; roomView = room;
+            slots = spots; playerPrefab = prefab; roomView = room;
         }
 
         /// <summary>Name prefix of the editor-only stand-ins placed on the spots for arranging them in the Scene view.</summary>
@@ -58,8 +65,6 @@ namespace SteamMultiplayer.UI
 
         private void Start()
         {
-            if (joinButton != null) joinButton.onClick.AddListener(() => Join());
-            if (leaveButton != null) leaveButton.onClick.AddListener(() => Leave());
             if (roomView != null) { roomView.Entered += OpenRoom; roomView.Left += CloseRoom; }
             Refresh();
         }
@@ -163,9 +168,7 @@ namespace SteamMultiplayer.UI
 
         private void Refresh()
         {
-            if (countLabel != null) countLabel.text = $"玩家 {PlayerCount}/{Capacity}";
-            if (joinButton != null) joinButton.interactable = PlayerCount < Capacity;
-            if (leaveButton != null) leaveButton.interactable = GuestCount > 0;
+            Changed?.Invoke();
         }
     }
 }

@@ -187,18 +187,13 @@ so effects that carry gameplay information must not depend on it.
 
 ## The settings panel (main menu)
 
-`Canvas/MainMenuRoot/SettingsPanel` in `MainMenu.unity`, opened by the home panel's "设置" button (below Quit) through
-`MainMenuUI.ShowSettings`; Escape / Back returns like the other panels. `SettingsPanelUI`
-(`Assets/Scripts/UI/MenusUI/`) builds the content from the catalog when it first opens: a preset row (one button per
-preset, the current one disabled), group headers (`settings.graphics.group.*`) and one row per option with "<" / ">"
-stepping through the levels the preset allows (SSAO is skipped on the low preset); stepping only changes the model
-(the value shows "*" while it differs from the preset) and enables Apply / Revert (`GraphicsSettingsService.HasPendingChanges`);
-Apply applies and saves, Revert reloads the saved choice, Reset puts the preset's defaults back (unapplied until
-Apply), Back drops unapplied changes. The panel is one section, "画面", so other settings (audio, controls) go next
-to it later. The scene objects come from `Assets/Editor/UI/SettingsPanelBuilder.cs`
-(`Tools/BuddahGo/UI/Build Settings Panel`), plain uGUI in the other panels' style with the SoloCJK TMP font; re-run it
-after changing the layout code, it replaces the panel and the button and saves the scene. The font subset was
-regenerated for the labels (see `Assets/Fonts/SoloCJK/README.txt`).
+`MenuSettingsPage` (`Assets/Scripts/UI/MenusUI/`) in `MenuEnvironmentSetting.unity`, opened from 设置 on the home
+menu: tabs 画面 / 音频 / 操作. The 画面 tab builds its rows from `GraphicsSettingsService` at runtime: a preset row, then
+one row per option; stepping changes the model only ("＊" while an option differs from the preset), Enter applies and
+saves, R puts the preset back, Esc closes (asking first when there are unapplied changes). Options that do not take
+effect now are dimmed; restart-only ones carry a tag. The page is built by `Assets/Editor/UI/MenuTitleHomeBuilder.cs`
+(`Tools/Menu Environment/Build Title + Home UI`). The old uGUI `SettingsPanelUI` and its builder were retired with the
+old `MainMenu` scene on 2026-11-06 ([Docs/ui/retired.md](../ui/retired.md)).
 
 ## Binding (for the settings menu)
 

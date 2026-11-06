@@ -167,6 +167,7 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
 - **模板 prefab**：没有。`VFX_Template.prefab` 已于 2026-10-30 删除，新插槽由 `SkillReleaseProto` 生成。
 - **贴花层**：墨池、经文环都是包里的平面网格或面片（`RadialUV`、`High_Poly_flat_ring`），沿地面摆放，不改渲染器。
 - **屏幕后期层**：施法者本地的后期脉冲仍用 Feel（`SkillFeelRouter`）；包的 `Ying Yang Screen Space FX`（全屏阴阳扭曲）只作参考，不接。
+- **坏像素**：特效（或任何 shader）一旦输出 Inf / NaN，Bloom 会把它铺满整屏，NaN 显示成黑块，而且只在部分显卡上出现。比赛相机开着 Stop NaN 兜底（2026-11-06，[slots.md 1.2 节](slots.md#12-白屏inf--nan-像素被-bloom-铺满2026-11-06)）；写新 shader 时仍要避免除以 0、`atan2(0,0)`、`Inf×0`。
 - **管线限制**：`UberFXSG` 的软粒子与 `Piloto Warp` 的扭曲需要深度 / 不透明纹理，本项目 Balanced / Performant 管线资产没开（见 [push-projectile-hands.md 第 1 节](push-projectile-hands.md#1-玩法事实特效必须服从数值由配表管本轮不改)）；这两项只在 High Fidelity 生效，其他管线自动退化为硬边与无扭曲，设计上不能依赖它们传达玩法信息。
 
 ## 8. 预算与档位

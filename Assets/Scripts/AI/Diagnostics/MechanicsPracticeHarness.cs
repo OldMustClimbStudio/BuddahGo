@@ -33,9 +33,9 @@ namespace BuddahGo.AI
     // disabled backfire), SkillExecutor._nextReadyTime / _repeatSurcharge (cooldown and stack reset between scenarios),
     // harness teleports, a parking ISteeringOverride on the human (lifted only in S13, which drives with W), a virtual keyboard and mouse,
     // and direct server authority calls. It never edits gameplay state outside those, and it is never natural-race
-    // evidence. Start it from an idle MainMenu in Play mode: MechanicsPracticeHarness.Begin(absoluteOutputDir); poll
+    // evidence. Start it from an idle menu in Play mode: MechanicsPracticeHarness.Begin(absoluteOutputDir); poll
     // Status / IsRunning / LastReportPath. A finished run destroys its host, so it can be repeated in the same Play
-    // session (from an idle MainMenu, with a new directory). Tick-defined windows are measured in network ticks.
+    // session (from an idle menu, with a new directory). Tick-defined windows are measured in network ticks.
     public sealed class MechanicsPracticeHarness : MonoBehaviour
     {
         public static string Status { get; private set; } = "idle";
@@ -57,7 +57,7 @@ namespace BuddahGo.AI
         private HashSet<string> _only;
         private string[] _requestedLoadout;
         private string[] _submittedLoadout;
-        private readonly PracticeFlow _flow = new PracticeFlow();
+        private readonly SoloHarnessFlow _flow = new SoloHarnessFlow();
         private MeasurementSettings _measurement;
         private bool _measurementApplied, _finished, _logHooked, _destroying;
         private StreamWriter _events;
@@ -116,16 +116,16 @@ namespace BuddahGo.AI
 
         /// <param name="endRaceAtEnd">S12 force-ends the race (synthetic end) and checks the results screen.</param>
         /// <param name="scenarioFilter">Comma-separated scenario ids to run (e.g. "S0,S5"); null runs all.</param>
-        /// <param name="loadout">Three skill ids submitted at the selection stage; null uses acceleration, slowtrap, giant.</param>
+        /// <param name="loadout">Three skill ids raced with (written into the menu pick for the start); null uses acceleration, slowtrap, giant.</param>
         public static MechanicsPracticeHarness Begin(string absoluteOutputDir, bool endRaceAtEnd, string scenarioFilter, string[] loadout)
         {
             if (!Application.isPlaying || SceneManager.GetActiveScene().name != SceneNames.MainMenu || MatchServices.Clock != null)
-                throw new InvalidOperationException("Start the mechanics Practice harness from an idle MainMenu in Play mode.");
+                throw new InvalidOperationException("Start the mechanics Practice harness from an idle menu in Play mode.");
             // A finished harness destroys its host in Finish; one that is finishing this frame is ignored.
             if (IsRunning || FindObjectsByType<MechanicsPracticeHarness>(FindObjectsSortMode.None).Any(h => h != null && !h._finished))
                 throw new InvalidOperationException("A mechanics Practice harness is already running.");
             if (SessionControl.Current == null)
-                throw new InvalidOperationException("No SessionControl in MainMenu; cannot start Practice.");
+                throw new InvalidOperationException("No SessionControl in the menu; cannot start Practice.");
             if (string.IsNullOrWhiteSpace(absoluteOutputDir) || !Path.IsPathRooted(absoluteOutputDir))
                 throw new ArgumentException("Use an absolute evidence directory.");
             if (Directory.Exists(absoluteOutputDir) && Directory.EnumerateFileSystemEntries(absoluteOutputDir).Any())
@@ -364,7 +364,7 @@ namespace BuddahGo.AI
         {
             Status = "selection";
             float deadline = Time.realtimeSinceStartup + 150f;
-            while (!_flow.Advance(_requestedLoadout))
+            while (!_flow.Advance(new SoloMatchSettings(0, SoloDifficulty.Normal), _requestedLoadout))
             {
                 if (_human == null)
                     TryAttachHuman();
@@ -2751,51 +2751,6 @@ namespace BuddahGo.AI
             public ScenarioRow[] Scenarios;
             public CheckRow[] Checks;
             public string[] Errors, Notes;
-        }
-
-        // Practice: start a Solo host with 0 AI, submit the requested loadout (falls back to the first three offered skills
-        // when one is not offered), then the first skin. Stage 3 = every selection submitted.
-        private sealed class PracticeFlow
-        {
-            public int Stage { get; private set; }
-            public string[] Submitted { get; private set; } = Array.Empty<string>();
-            public string Note { get; private set; }
-
-            public bool Advance(string[] loadout)
-            {
-                if (Stage == 0 && SessionControl.Current != null)
-                {
-                    if (!SessionControl.Current.StartSoloHost(new SoloMatchSettings(0, SoloDifficulty.Normal)))
-                        throw new InvalidOperationException("StartSoloHost(0 AI) failed: " + SessionControl.Current.LastError);
-                    Stage = 1;
-                }
-                var selection = PropertiesSelectionManager.Instance;
-                if (Stage == 1 && selection != null && selection.IsClientInitialized && selection.IsStageCountdownActive
-                    && selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkillLoadoutStageKey)
-                {
-                    var offered = selection.GetOptionsForProperty(PropertiesSelectionManager.SkillLoadoutStageKey).Select(o => o.OptionId).ToList();
-                    string[] ids = loadout;
-                    if (ids == null || ids.Length < SkillLoadout.SlotCount || ids.Any(id => !offered.Contains(id)) || ids.Distinct().Count() != ids.Length)
-                    {
-                        Note = "requested loadout [" + string.Join(",", loadout ?? Array.Empty<string>()) + "] not offered (offered: "
-                               + string.Join(",", offered) + "); submitted the first three offered skills";
-                        ids = offered.Take(SkillLoadout.SlotCount).ToArray();
-                    }
-                    selection.SubmitSkillLoadoutSelection(ids);
-                    Submitted = ids;
-                    Stage = 2;
-                }
-                if (Stage == 2 && selection != null && selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkinStageKey)
-                {
-                    var options = selection.GetOptionsForProperty(PropertiesSelectionManager.SkinStageKey);
-                    if (options.Count > 0)
-                    {
-                        selection.SubmitPlayerSelection(PropertiesSelectionManager.SkinStageKey, options[0].OptionId);
-                        Stage = 3;
-                    }
-                }
-                return Stage >= 3;
-            }
         }
     }
 }

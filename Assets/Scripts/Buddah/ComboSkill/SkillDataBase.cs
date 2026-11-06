@@ -5,6 +5,9 @@ using SteamMultiplayer.Network;
 [CreateAssetMenu(menuName = "Skills/Databases/Skill Database")]
 public class SkillDatabase : ScriptableObject
 {
+    // PropertyKey of the options BuildSelectableSkillOptions returns.
+    public const string SkillLoadoutOptionKey = "skill_loadout";
+
     [Header("Config Bridge")]
     [SerializeField] private ProjectConfigDatabase _projectConfigDatabase;
     [SerializeField] private string _activeRuleSetId = ProjectConfigConstants.DefaultRuleSetId;
@@ -245,7 +248,7 @@ public class SkillDatabase : ScriptableObject
             }
 
             results.Add(SelectablePropertyOption.Create(
-                PropertiesSelectionManager.SkillLoadoutStageKey,
+                SkillLoadoutOptionKey,
                 skillId,
                 GetResolvedDisplayName(skillId, skill),
                 description,

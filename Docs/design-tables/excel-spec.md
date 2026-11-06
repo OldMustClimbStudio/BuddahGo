@@ -128,7 +128,7 @@ v0.3 起以生成的工作簿为准。六本工作簿共 63 张 sheet：导出 3
 | Skill | Skill（身份 + 冷却/前摇 + 执念 + 主效果时长）、SkillEffectAcceleration、SkillEffectSlowTrap、SkillEffectBlackCurtain、SkillEffectGiant、Push（basic / charged）、SkillSelectionRule、DefaultLoadout、Obsession（含同招加价与反噬惩罚）、Yuanqi（缘起身份与收尾规则）、YuanqiEffectFrostLock、YuanqiEffectGiantCharge | SkillPresentation、VfxRegistry、FeelEvent、BlackCurtainPresentation、SkillConstant（代码 / prefab 常量） |
 | Movement | Movement（运动 + 受击宽限 + 起跑交接）、Respawn | ModifierRule、Camera、RacerVisual、SplineTracking |
 | AI | DrivingTier、DrivingTuning、SkillDifficulty、Personality（含三槽权重）、PersonalitySituationBias、SkillOpportunity、SkillTuning、Roster | DrivingConstant |
-| Match | ModeRule、Track（含圈数与圈规则）、TrackWrongWay、TrackSpawn、TrackCheckpoint、TrackResultAnchor、Lobby、SelectionStage、SelectionOption、Intro（唯一的 handoffLeadSeconds） | ResultVoteRule、ResultPresentation、IntroLayout、IntroSlotStyle |
+| Match | ModeRule、Track（含圈数与圈规则）、TrackWrongWay、TrackSpawn、TrackCheckpoint、TrackResultAnchor、Lobby、Intro（唯一的 handoffLeadSeconds） | ResultVoteRule、ResultPresentation、IntroLayout、IntroSlotStyle |
 | UI | Text、MenuOption | SkillIcon、HudObsession、UiTiming、MiniMap |
 | Global | GlobalRule | StructuralConstant、GlobalPhysics、PhysicsMaterial、Tag、Layer、Scene、InputBinding、Timeline、`__enums__`、`__meta__` |
 
@@ -187,12 +187,11 @@ v0.3 起以生成的工作簿为准。六本工作簿共 63 张 sheet：导出 3
 | DrivingTier / DrivingTuning | AIDifficultyProfiles.Resolve（档位覆盖按名忽略大小写、速度 clamp、ThrustVectorPlanner 恢复阈值） |
 | SkillDifficulty / Personality / PersonalitySituationBias / SkillOpportunity / SkillTuning | AISkillCatalog.ApplyDesignTables（三槽权重填入 Weights[AISkillKind]；SkillTuning 单行按名覆盖 AISkillTuning；SkillOpportunity 每个技能只读自己的列，单元格即取值、0 有效，blackcurtain 有独立的 minValiditySeconds；impairedDrivingReactionTicks 由 AIRacerDriver 读取） |
 | Roster | MatchSpawnManager 按槽位取人格与名字 |
-| ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、PropertiesSelectionManager、ResultDecisionManager、RaceFinishManager；requiresReady 由 RoomStateManager 每局开始时读取；aiCount 与 defaultDifficulty 由 SoloSetupPanel 读取；Practice 行的 trainingDummyCount / SpacingMeters / StartOffsetMeters / LateralOffsetMeters / ResetDelaySeconds 由 MatchSpawnManager 在 Awake 读取（`TrainingDummyModeRuleMap`） |
+| ModeRule | OnlineMatchRules / SoloMatchRules 按行读取；时长写入 RoomStateManager、ResultDecisionManager、RaceFinishManager；requiresReady 由 RoomStateManager 每局开始时读取；aiCount 与 defaultDifficulty 由 MenuDojoPage（道场单人修行） 读取；Practice 行的 trainingDummyCount / SpacingMeters / StartOffsetMeters / LateralOffsetMeters / ResetDelaySeconds 由 MatchSpawnManager 在 Awake 读取（`TrainingDummyModeRuleMap`） |
 | Track / TrackWrongWay / TrackSpawn / TrackCheckpoint / TrackResultAnchor | 当前赛道 = `sceneName` 与组件所在场景同名的行，其次活动场景（场景物体在 FishNet 切换活动场景前就 Awake），没有行时组件保留场景 / prefab 值，不回退到第一行（`DesignTableOverlay.CurrentTrack / ForCurrentTrack`）。Track：RaceFinishManager 圈数、LapProgress 圈规则（显式映射）、MiniMapController 边界、RaceResultAreaManager 偏移、TrackSplineRef 弧长表分辨率；TrackWrongWay：RaceCompletionTracker；MatchSpawnManager、Checkpoint、EndFieldSpawnPoint 在 Awake 把场景物体移到表中世界坐标 |
 | Lobby | SteamLobbyManager 默认值与默认可见性、SessionLauncher 超时、RoomStateManager 玩家名截断长度 |
-| SelectionStage / SelectionOption | PropertiesSelectionManager（阶段名、选择模式、选项名/描述/图标 key/解锁；map / skin 占位行已屏蔽，代码兜底） |
 | Intro | IntroSequenceManager；RaceBodyIntroStateController 读 handoffLeadSeconds |
-| Text / MenuOption | RacerIdentity、MatchSpawnManager、SoloSetupPanel；CreateRoomUI 用 MenuOption 替换 MainMenu 场景里序列化的下拉选项，选中项按行的 value 读取而不是显示文本；技能与缘起的名称 / 描述经 Skill、Yuanqi 行的 key；HUD 标签（`InGameHudLabels`）有可选 key `hud.*`，表里没有行时用代码默认文本；文案经 `ProjectConfigRuntime.Texts` / `DesignTableOverlay.Text` |
+| Text / MenuOption | RacerIdentity、MatchSpawnManager；MenuOption 的默认行（`isDefault`）由 MenuDojoPage 读作新建房间的人数上限与可见性；技能与缘起的名称 / 描述经 Skill、Yuanqi 行的 key；HUD 标签（`InGameHudLabels`）有可选 key `hud.*`，表里没有行时用代码默认文本；文案经 `ProjectConfigRuntime.Texts` / `DesignTableOverlay.Text` |
 
 写入 SO 的值（技能主时长、家族表、Push charged 行、Yuanqi 行与缘起家族表）在每局 Play 第一次查技能时写入（`SkillDatabase.EnsureDesignTablesApplied`），不依赖 SO 的 `OnEnable`：编辑器进入 Play 时域重载调用 `OnEnable` 的那一刻 `Application.isPlaying` 仍为 false。编辑器内写入前快照（技能 SO 与 `Yuanqi_*` SO）、退出 Play 时恢复，资产文件保持序列化原值；导表写出后 `ProjectConfigRuntime.Invalidate()` 丢弃仓库缓存。
 

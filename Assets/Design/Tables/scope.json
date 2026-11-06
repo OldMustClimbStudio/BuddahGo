@@ -38,8 +38,6 @@
       "TrackCheckpoint",
       "TrackResultAnchor",
       "Lobby",
-      "SelectionStage",
-      "SelectionOption",
       "Intro"
     ],
     "UI": [
@@ -230,14 +228,6 @@
       "track"
     ],
     "Match/Lobby": [
-      "match",
-      "info"
-    ],
-    "Match/SelectionStage": [
-      "match",
-      "info"
-    ],
-    "Match/SelectionOption": [
       "match",
       "info"
     ],

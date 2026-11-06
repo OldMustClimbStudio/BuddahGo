@@ -9,6 +9,9 @@ namespace BuddahGo.Match
         bool StartOnlineClient(string hostSteamId);
         bool StartSoloHost(SoloMatchSettings settings);
         void RequestStopSession();
+        // Stops the running session (an online room the host is alone in) and starts this solo race instead,
+        // without going back through the menu scene.
+        void QueueSoloAfterStop(SoloMatchSettings settings);
         SoloMatchSettings TakeFailedSoloSettings();
     }
 

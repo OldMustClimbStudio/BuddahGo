@@ -74,7 +74,7 @@ rebase 之后 S14 失败：反噬的确认窗口改按 `_anti` 行算（2 秒，
 
 ## 重跑方法
 
-1. 在本 worktree 打开编辑器，打开 `Assets/Scenes/MainMenu.unity`，进入 Play，停在主菜单。
+1. 在本 worktree 打开编辑器，打开 `Assets/Scenes/MenuEnvironmentSetting.unity`，进入 Play，停在主菜单。harness 把请求的配装写进菜单的保存选择（`LocalMatchSelection`），开局后还原玩家自己的选择。
 2. 菜单 `Tools/Mechanics/Run Practice Verification`，或用 Unity MCP 的 `execute_code` 执行：
 
    ```csharp

@@ -27,6 +27,7 @@ namespace BuddahGo.Match
         internal const int SoloMaxPhysicsStepsPerFrame = 3;
         private readonly float _projectMaximumDeltaTime;
         private int _stopRequestedFrame = -1;
+        private SoloMatchSettings _soloAfterStop;
         private float _startupDeadline;
         private SoloMatchSettings _failedSoloSettings;
         public SoloMatchSettings Settings { get; private set; }
@@ -143,6 +144,15 @@ namespace BuddahGo.Match
             if (_stopRequestedFrame < 0) _stopRequestedFrame = Time.frameCount;
         }
 
+        public void QueueSoloAfterStop(SoloMatchSettings settings)
+        {
+            if (settings == null) return;
+            _soloAfterStop = settings;
+            LastError = string.Empty;
+            if (!_network.ServerManager.Started && !_network.ClientManager.Started) return; // nothing to stop: Pump starts it
+            RequestStopSession();
+        }
+
         public void Pump()
         {
             if (_stopRequestedFrame >= 0 && Time.frameCount > _stopRequestedFrame)
@@ -150,15 +160,26 @@ namespace BuddahGo.Match
                 _stopRequestedFrame = -1;
                 StopTransportAndReset();
                 SceneFadeController.ResetSessionTransition();
-                SceneManager.LoadScene(SceneNames.MainMenu);
+                // Already in the menu (left a room there): stay, the menu shows the door again.
+                if (_soloAfterStop == null && SceneManager.GetActiveScene().name != SceneNames.MainMenu)
+                    SceneManager.LoadScene(SceneNames.MainMenu);
+                return;
+            }
+            // A solo race queued behind a stop starts once the transports are idle (the frame after the stop).
+            if (_soloAfterStop != null && _stopRequestedFrame < 0 && !IsStarting
+                && !_network.ServerManager.Started && !_network.ClientManager.Started)
+            {
+                SoloMatchSettings queued = _soloAfterStop;
+                _soloAfterStop = null;
+                StartSoloHost(queued);
                 return;
             }
             if (!IsStarting) return;
             // Local transport connection precedes room authentication and scene loading.
-            // Keep the Solo deadline armed until its selection screen is actually ready.
-            var selection = PropertiesSelectionManager.Instance;
+            // Keep the Solo deadline armed until the room has actually started moving into the race.
+            var room = RoomStateManager.Instance;
             bool ready = _network.ClientManager.Started && (Settings == null ||
-                (selection != null && selection.IsClientInitialized && selection.IsStageCountdownActive));
+                (room != null && room.IsClientInitialized && room.CurrentMatchSessionPhase != MatchSessionPhase.InRoom));
             if (ready) IsStarting = false;
             else if (Time.realtimeSinceStartup >= _startupDeadline) Rollback("连接超时，请重试。");
         }

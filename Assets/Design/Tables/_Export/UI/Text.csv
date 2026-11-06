@@ -39,21 +39,6 @@
 ,ai.personality.opportunist.name,P5 机会型,,AI 人格显示名,AISkillPersonality.DisplayName
 ,match.default_player_name,玩家,Player,Solo 默认玩家名,SoloMatchRules.DefaultPlayerName
 ,lobby.default_room_name,My Room,My Room,默认房间名,SteamLobbyManager._defaultLobbyName
-,selection.stage.map,Map Selection,Map Selection,,PropertiesSelectionManager:1125
-,selection.stage.skill_loadout,Skill Loadout Selection,Skill Loadout Selection,,:1082
-,selection.stage.skin,Skin Selection,Skin Selection,,:1133
-,selection.option.map_a.name,Map A,Map A,占位,
-,selection.option.map_a.desc,Default placeholder map A.,Default placeholder map A.,占位,
-,selection.option.map_b.name,Map B,Map B,占位,
-,selection.option.map_b.desc,Default placeholder map B.,Default placeholder map B.,占位,
-,selection.option.map_c.name,Map C,Map C,占位,
-,selection.option.map_c.desc,Default placeholder map C.,Default placeholder map C.,占位,
-,selection.option.skin_a.name,Skin A,Skin A,占位,
-,selection.option.skin_a.desc,Default placeholder skin A.,Default placeholder skin A.,占位,
-,selection.option.skin_b.name,Skin B,Skin B,占位,
-,selection.option.skin_b.desc,Default placeholder skin B.,Default placeholder skin B.,占位,
-,selection.option.skin_c.name,Skin C,Skin C,占位,
-,selection.option.skin_c.desc,Default placeholder skin C.,Default placeholder skin C.,占位,
 ,racer.ai_fallback_prefix,AI ,AI ,AI 名为空时前缀+序号,RacerIdentity.cs:30
 ,racer.human_fallback,Player,Player,,RacerIdentity.cs:30
 ,racer.online_human_prefix,Player ,Player ,后接 clientId,MatchSpawnManager.cs:201

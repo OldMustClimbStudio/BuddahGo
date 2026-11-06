@@ -18,6 +18,7 @@ Unity 2022.3.55f1c1 · FishNet · FishyFacepunch · Steam.
 - Redoing or adding a skill VFX, its layers, shaders, textures or the VFX table: [Docs/vfx/README.md](Docs/vfx/README.md).
 - Any rendering change (lighting, bake, sky, fog, post, URP pipeline or renderer assets, the project's shaders): [Docs/rendering/HARNESS.md](Docs/rendering/HARNESS.md). Bake only with `BuddahGo/Rendering/Bake/Bake RaceMap + Menu`.
 - Solo Match (AI, offline flow): [Docs/single-player/HANDOFF.md](Docs/single-player/HANDOFF.md). Solo tasks do not run online tests.
+- Main menu, rooms, or what players pick before a match (skills, skin, map): [Docs/ui/menu-integration.md](Docs/ui/menu-integration.md).
 
 This is the shared policy for `Agent.md`, `AGENTS.md` and `CLAUDE.md`.
 Finished work lives in [Docs/archive/](Docs/archive/) and git history. It is evidence, not current instructions or a task queue.

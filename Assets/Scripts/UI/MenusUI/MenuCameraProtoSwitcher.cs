@@ -76,6 +76,16 @@ namespace SteamMultiplayer.UI
 
         public int IndexOf(string label) => shots.FindIndex(s => s.label == label);
 
+        /// <summary>Pose and field of view of the start shot (the main menu), or null when it is not set up.</summary>
+        public Transform StartPose => startShot >= 0 && startShot < shots.Count ? shots[startShot].pose : null;
+        public float StartFieldOfView => startShot >= 0 && startShot < shots.Count ? shots[startShot].fieldOfView : 60f;
+
+        /// <summary>Puts the camera on the start shot at once (used when the opening camera move ends).</summary>
+        public void ApplyStartShot()
+        {
+            if (StartPose != null) Apply(startShot);
+        }
+
         public void ConfigureWallShortcut(Transform[] parts, Collider proxy, int shot, MenuSkinView view)
         {
             wallParts = parts; wallProxy = proxy; wallShot = shot; skinView = view;

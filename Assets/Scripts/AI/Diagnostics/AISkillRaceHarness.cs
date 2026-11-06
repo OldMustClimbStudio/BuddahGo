@@ -56,8 +56,8 @@ namespace BuddahGo.AI
 
         public static AISkillRaceHarness Begin(string directory, SoloDifficulty difficulty = SoloDifficulty.Normal, bool skills = true, bool controlledEffects = false, bool captureDetails = true)
         {
-            if (!Application.isPlaying || SceneManager.GetActiveScene().name != "MainMenu" || MatchServices.Clock != null)
-                throw new InvalidOperationException("Start A3 from an idle MainMenu in Play mode.");
+            if (!Application.isPlaying || SceneManager.GetActiveScene().name != SceneNames.MainMenu || MatchServices.Clock != null)
+                throw new InvalidOperationException("Start A3 from an idle menu in Play mode.");
             if (FindFirstObjectByType<AISkillRaceHarness>() != null) throw new InvalidOperationException("An A3 observer already exists.");
             if (!Path.IsPathRooted(directory) || Directory.Exists(directory) && Directory.EnumerateFileSystemEntries(directory).Any())
                 throw new ArgumentException("Use a new absolute evidence directory; previous runs are never overwritten.");
@@ -87,7 +87,7 @@ namespace BuddahGo.AI
             try
             {
                 if (Time.realtimeSinceStartupAsDouble - _began > 900d) { Complete("timeout"); return; }
-                bool selected = _flow.Advance(5, Difficulty, ids => Event("human-loadout", string.Join(",", ids)));
+                bool selected = _flow.Advance(new SoloMatchSettings(5, Difficulty), null, ids => Event("human-loadout", string.Join(",", ids)));
                 if (!_attached && selected && RacerDirectory.Current != null && RacerDirectory.Current.All.Count == 6) Attach();
                 if (!_attached) return;
                 var room = RoomStateManager.Instance;

@@ -19,7 +19,7 @@ public static class ThrustVectorAcceptanceBuild
             throw new ArgumentException("THRUST_BUILD_NAME must be a Windows executable filename.");
         Directory.CreateDirectory(output);
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
-            scenes = new[] { "Assets/Scenes/MainMenu.unity", "Assets/Scenes/PropertySelection.unity", "Assets/Scenes/RaceMap.unity" },
+            scenes = new[] { "Assets/Scenes/MenuEnvironmentSetting.unity", "Assets/Scenes/RaceMap.unity" },
             locationPathName = Path.Combine(output, executable), target = BuildTarget.StandaloneWindows64,
             options = Environment.GetEnvironmentVariable("THRUST_BUILD_RELEASE") == "1" ? BuildOptions.None : BuildOptions.Development,
             extraScriptingDefines = Array.Empty<string>() });

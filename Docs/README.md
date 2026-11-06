@@ -19,6 +19,7 @@
 | 玩法改动的退役清单：删了什么、在哪个提交、哪些有意保留 | [gameplay/retired.md](gameplay/retired.md) |
 | 渲染入口：改动前读什么、不变量、抓图—烘焙—对比流程 | [rendering/HARNESS.md](rendering/HARNESS.md) · [rendering/ARCHITECTURE.md](rendering/ARCHITECTURE.md) |
 | 画质设置：选项与档位、运行时接口、未实现与占位清单 | [rendering/graphics-settings.md](rendering/graphics-settings.md) |
+| 主菜单与房间流程：菜单里选技能 / 皮肤 / 地图、道场联机房间、开局与再来一局；选择场景和旧菜单的退役清单 | [ui/menu-integration.md](ui/menu-integration.md) · [ui/retired.md](ui/retired.md) |
 | 2026-11 全项目代码复核：结论与待你决定的事 | [code-review/README.md](code-review/README.md) |
 
 ## 历史（追查旧问题时再看）

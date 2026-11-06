@@ -79,6 +79,7 @@
 | 禅定缓流 反噬（先定身再加速） | 反作用（红） | 代码已有口：`Skill_SlowTrap_Anti.vfxId`（空），填 id 即播 |
 | 巨大化 反噬（变小） | 反作用（红） | 代码已留口：`Skill_Giant_Anti.releaseVfxId`（空）。做好红色插槽后填 id 即可 |
 | 一念光明 反噬 | 反作用（红） | 黑幕落到自己。代码已留口：`Skill_BlackCurtain_Anti.releaseVfxId`（空） |
+| 缘起 金足破阵 释放 | 正向 | 方向已定（2026-11-06）：放大的神足通冲击波从巨人身后后喷，加一条一次画好的 Frontal Pulses 墨路，见 [yuanqi-giant-charge.md](yuanqi-giant-charge.md)。缘起还没有播插槽的入口（`Yuanqi_GiantCharge.PlayObservers` 只做 FOV 抖动） |
 
 各技能的反噬要不要单独做插槽，还是只靠通用反噬前摇加玩法效果本身，由用户逐个决定。
 

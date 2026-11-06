@@ -353,6 +353,7 @@ GameObject:
   - component: {fileID: 4889513177694151655}
   - component: {fileID: 5393487742474791642}
   - component: {fileID: 3212872375011852415}
+  - component: {fileID: 5530118790044730123}
   m_Layer: 6
   m_Name: Buddah
   m_TagString: Untagged
@@ -3684,3 +3685,17 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 9183447588538311417}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5530118790044730123
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574822749539875012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3bfb7cf28cd4d1aa6ed5c65bfe09282, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  body: {fileID: 812422496317005451}
+  waitSeconds: 10

@@ -196,6 +196,19 @@ namespace BuddahGo.AI
                 _camera.clearFlags = main.clearFlags;
                 _camera.backgroundColor = main.backgroundColor;
                 _camera.cullingMask = main.cullingMask;
+                // Same post, AA and volume mask as the game camera, so the takes are not washed out.
+                var source = main.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+                if (source != null)
+                {
+                    var data = UnityEngine.Rendering.Universal.CameraExtensions.GetUniversalAdditionalCameraData(_camera);
+                    data.renderPostProcessing = source.renderPostProcessing;
+                    data.antialiasing = source.antialiasing;
+                    data.antialiasingQuality = source.antialiasingQuality;
+                    data.dithering = source.dithering;
+                    data.renderShadows = source.renderShadows;
+                    data.volumeLayerMask = source.volumeLayerMask;
+                    data.volumeTrigger = main.transform;
+                }
             }
             _camera.enabled = false;
         }

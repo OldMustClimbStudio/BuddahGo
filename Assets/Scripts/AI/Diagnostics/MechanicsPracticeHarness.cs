@@ -1115,6 +1115,12 @@ namespace BuddahGo.AI
             Check("giant_charge registered for the loadout", charge != null, GiantChargeId, RegisteredIds());
             float lockSeconds = _obs.BackfireLockSeconds;
             float accelSeconds = ResolveEffectSeconds("acceleration");
+            // The backfire resolves after the giant_anti row's wind-up (2 s), not the giant's own 1 s: request it early
+            // enough that it resolves about 1 s before the acceleration ends, so every check below runs while the
+            // acceleration is still live and its own end can still be timed.
+            float antiConfirmSeconds = ResolveBackfireConfirmSeconds("giant");
+            float requestAfter = Mathf.Max(0.1f, accelSeconds - antiConfirmSeconds - S14ResolveBeforeAccelEndSeconds);
+            Info("giant backfire timing", "anti wind-up " + F(antiConfirmSeconds) + " s, requested " + F(requestAfter) + " s after the acceleration");
             int from = _casts.Count, yuanqiFrom = _yuanqis.Count;
             _exec.CastSlotServer(0); // acceleration, normal
             yield return Until(() => HasCast(from, CastStage.Executed, 0), 2.5f);
@@ -1123,7 +1129,7 @@ namespace BuddahGo.AI
                 Fail("acceleration executed", "Executed", CastsSince(from, "none"));
                 yield break;
             }
-            yield return Wait(0.9f);
+            yield return Wait(requestAfter);
 
             int from2 = _casts.Count;
             bool accepted;
@@ -1159,6 +1165,19 @@ namespace BuddahGo.AI
 
         private static float ResolveEffectSeconds(string skillId)
             => ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository skills) && skills.TryGet(skillId, out SkillRecord row) ? row.effectDurationSeconds : 0f;
+
+        // S14: the backfired giant resolves this long before the acceleration ends (covers the 0.5 s check wait + slack).
+        private const float S14ResolveBeforeAccelEndSeconds = 1f;
+        private const float FallbackBackfireConfirmSeconds = 2f;
+
+        // The confirm window of a backfire of skillId: its _anti row's castConfirmDelaySeconds (SkillExecutor.ResolveCastConfirmDelay).
+        private static float ResolveBackfireConfirmSeconds(string skillId)
+        {
+            if (!ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository skills)
+                || !skills.TryGet(skillId, out SkillRecord row) || string.IsNullOrWhiteSpace(row.antiSkillId))
+                return FallbackBackfireConfirmSeconds;
+            return skills.TryGetCastConfirmDelay(row.antiSkillId, out float seconds) ? seconds : FallbackBackfireConfirmSeconds;
+        }
 
         // ---------------------------------------------------------------- S6 freeze interrupt
 

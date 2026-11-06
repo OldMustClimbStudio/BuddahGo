@@ -72,7 +72,7 @@
 
 - `SteeringSuppression` 修饰：转向输入清零（开场交接用它；2026-10-30 起交接完全物理，交接后的屏蔽时长为 0，修饰本身保留）。
 - `BuddahPredictionRouter.RouteImpulse(victim, impulse, torque, sourceType, source)`：服务器权威冲量，V2 预测的 Buddah 转到 `BuddahPredictionCombatAdapter.TryRouteImpulse`，owner 远端时自动 TargetRpc。#4 的撞击冲量走它（来源类型新增 `BodyImpact`）；突进本身是 `Burst` 修饰，不是冲量。
-- `BuddahHandControl.GetPushScaleMultiplier()` 读 `PlayerScaleEffect.CurrentScaleMultiplier`：普通推掌 hitbox、蓄力弹碰撞体与出生点改版前就随体型缩放，只有冲量不随。所以 #1 金身巨掌在代码里原本就有一半（见 5.2 与 Q11）。
+- `BuddahHandControl.GetPushScaleMultiplier()` 读 `PlayerScaleEffect.CurrentScaleMultiplier`：普通推掌 hitbox、蓄力弹碰撞体与出生点改版前就随体型缩放，只有冲量不随。所以 #1 金身巨掌在代码里原本就有一半（见 5.2 与 Q11）。2026-11-06 起蓄力弹和反噬弹幕的尺寸改走 `GetPalmSizeMultiplier()`（`PalmSizeRule`：普通 ×0.5、金身 ×2、反噬 ×0.5），出生点和普通推掌仍随体型。
 - `RacerDirectory.Current.All`：本局所有已登记的 racer（一念光明用它找受害者；木桩的 racer id 未分配，不在里面）。
 - `SkillCombatEvents.Record(stage, kind, source, target, position, routed)`：诊断证据钩子，缘起触发也记（见 2.9）。
 - `SkillExecutor.ServerCastChanged`：服务器施法事件，AI 在订阅。
@@ -209,7 +209,7 @@ public interface IHandsImpulseScale { bool ImpulseFollowsScale { get; set; } }  
 
 **缓流的特效**：区域特效跟随目标、不挂在施法者下面，按子物体搜索找不到，所以 `SkillVfxReplicator` 记下自己生成的每个实例（有无父物体都记）；`StopVfxAll(vfxId, linger)` 走 `StopVfxAllObserversRpc`，各端对匹配的实例调用 `TimedVfxInstance.StopNow(linger)`：立即停止发射，粒子淡出后销毁。区域的所有结束方式（到期、缘起消耗、服务器控制复位）都走同一个结束入口并停掉特效，所以画出来的区域不会比实际区域和状态板 entry 活得更久。SO 的 `vfxDurationSeconds` = 11 是区域 10 秒时期留下的旧值（表里区域已经是 6 秒，`SkillPresentation` 同为 11，归 design-tables A9），现在只是特效时长的上限。
 
-**神足通的消耗与共享槽（待确认，Q15）**：预测路径下 `EndModifier(Acceleration)` 只在加成为正时结束，所以消耗不会结束施法者身上的缓流减速；legacy 路径（预测关闭）的 `CancelAndRestore` 会连同合并进去的减速一起清掉。边界情况：施法者先放神足通，之后敌人的缓流命中，减速覆盖了共享槽的加成（后写者的幅度生效，期限取两者较晚的一个）。这时 #2 或 #4 消耗神足通，对移动没有任何作用：施法者一直减速到较晚的期限，往往就是神足通原本的期限；#4 的突进从减速后的上限起步（80 − 20 + 60 = 120，而不是 140）。
+**神足通的消耗与共享槽（Q15，2026-11-06 已定：接受现状）**：预测路径下 `EndModifier(Acceleration)` 只在加成为正时结束，所以消耗不会结束施法者身上的缓流减速；legacy 路径（预测关闭）的 `CancelAndRestore` 会连同合并进去的减速一起清掉。边界情况：施法者先放神足通，之后敌人的缓流命中，减速覆盖了共享槽的加成（后写者的幅度生效，期限取两者较晚的一个）。这时 #2 或 #4 消耗神足通，对移动没有任何作用：施法者一直减速到较晚的期限，往往就是神足通原本的期限；#4 的突进从减速后的上限起步（80 − 20 + 60 = 120，而不是 140）。
 
 ### 2.6 `SkillExecutor` 的改动面（刻意收窄）
 
@@ -431,12 +431,12 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 
 ### 4.7 表现
 
-表现层这一轮只做接口、不做新特效（已定，2026-10-26）。`Yuanqi_FrostLock` 不画任何东西，美术以后从下面这些接口挂特效，各端都能读到：
+表现层原定这一轮只做接口、不做新特效（已定，2026-10-26）。2026-11-06 用户要求先补占位：`Yuanqi_FrostLock.PlayObservers` 生成 `FrostGroundPlaceholder`（地面冰面），每个 racer 上的 `FrozenIceShellPlaceholder` 跟着 `FrozenChanged` 显示冰块。两者都是程序化网格加 `Sprites/Default`（GraphicsSettings 的 Always Included），只用白 / 灰，没有美术资源；`FrostPlaceholder.Enabled = false` 关掉两者，正式特效从下面同样的接口挂上来后删掉占位（登记 [retired.md](retired.md)）。各端都能读到的接口：
 
 | 画面 | 接口 | 状态 |
 |---|---|---|
-| 地面瞬间结冰 | `SkillExecutor.YuanqiObserved(yuanqiId, payload, localIsCaster)`：载荷带中心、半径 R、秒数 N、目标 id | 接口已留，特效未做 |
-| 受害者冻成冰块 | 载荷的 `TargetObjectIds`；每个被冻的 racer 的 `RacerSkillPresentationState.FrozenChanged` | 接口已留，特效未做；冻结期间 Animator 停住（动作层，已做） |
+| 地面瞬间结冰 | `SkillExecutor.YuanqiObserved(yuanqiId, payload, localIsCaster)`：载荷带中心、半径 R、秒数 N、目标 id；`Yuanqi_FrostLock.PlayObservers` | 占位（2026-11-06）：`FrostGroundPlaceholder`，半径 R 的白色圆盘带亮边和裂纹，0.12 s 铺开、保持 N、0.45 s 淡出；平面，坡上会悬空或穿插（工程没有 URP decal） |
+| 受害者冻成冰块 | 载荷的 `TargetObjectIds`；每个被冻的 racer 的 `RacerSkillPresentationState.FrozenChanged` | 占位（2026-11-06）：`FrozenIceShellPlaceholder`，按身体碰撞体的半透明白色冰块（带亮边），开始即出现，解冻 0.25 s 化掉；冻结期间 Animator 停住（动作层，已做） |
 | 冻结期间的 HUD | owner 从 `BuddahPredictedMotor.FreezeSecondsLeft` 倒计时，`SkillSlotUI` 三个槽显示冻结 | 已做（A6） |
 | 触发提示 | 施法者的 `LocalYuanqiTriggered` → `YuanqiToastUI` 弹缘起名 | 已做（A6） |
 
@@ -501,8 +501,8 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 
 ### 5.2 #1 金身巨掌
 
-- **持续型**：`mode = Sustained`。`OnTriggerServer` 把 `BuddahHandControl` 的 `IHandsImpulseScale.ImpulseFollowsScale` 设为 true：蓄力弹的冲量乘上生成那一刻给尺寸用的同一个体型采样（`GetPushScaleMultiplier`），不设上限；`OnEndServer`（任一招 `Ended`）设回 false，`ResetSkillInputAndEffects` 也会清掉它。
-- **事实与决定**：尺寸、出生点、碰撞体改版前就随体型缩放，和有没有缘起无关。保留这个联动（已定，Q11）；缘起触发时掌的一切都按体型等比例放大，缘起真正新增的是冲量倍率，冲量与尺寸用同一个体型采样，不设上限。
+- **持续型**：`mode = Sustained`。`OnTriggerServer` 把 `BuddahHandControl` 的 `IHandsImpulseScale.ImpulseFollowsScale` 设为 true：蓄力弹的冲量乘上生成那一刻给尺寸用的同一个掌倍率采样（`PlayerScaleEffect.CurrentPalmSizeMultiplier`），不设上限；`OnEndServer`（任一招 `Ended`）设回 false，`ResetSkillInputAndEffects` 也会清掉它。
+- **事实与决定**：尺寸、出生点、碰撞体改版前就随体型缩放，和有没有缘起无关。保留这个联动（已定，Q11），缘起真正新增的是冲量倍率。2026-11-06 用户改了尺寸规则：掌不再等于体型，而是普通 ×0.5（`Push.sizeMultiplier`）、金身 ×2、反噬缩小 ×0.5（`SkillEffectGiant.palmSizeMultiplier`，体型变化中按 `PalmSizeRule` 线性过渡）；出生点仍跟体型。缘起的冲量跟掌倍率走（金身 ×2），不是体型的 ×4。
 - 没有参数，不建家族表。
 
 ## 6. 与 README 7.1 的对接
@@ -518,7 +518,7 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 
 ## 7. 问题与答复
 
-Q10–Q14 于 2026-10-25 答复，结论已写进对应章节；这里留对照，便于追溯。新问题从 Q16 编号。
+Q10–Q14 于 2026-10-25 答复，Q15 于 2026-11-06 答复，结论已写进对应章节；这里留对照，便于追溯。新问题从 Q16 编号。
 
 | # | 涉及 | 问题 | 答复 | 落点 |
 |---|---|---|---|---|
@@ -528,7 +528,7 @@ Q10–Q14 于 2026-10-25 答复，结论已写进对应章节；这里留对照�
 | Q12 | #2 | 冻结中受到冲量是推不动还是被推走 | 已定：推不动 | 4.5 |
 | Q13 | 全部 | 阶段 A 是否接受协议版本多次 +1 | 已定：接受，但每条命令一次改齐，保证干净 | 2.7、附录 A |
 | Q14 | 配表 | `Skill/Yuanqi` 与家族表结构是否按此建 | 已定：预留字段名；表要可延展、可读 | 3.1–3.3 |
-| Q15 | #2、#4 | 施法者放神足通后被敌人的缓流命中，减速覆盖了共享的加速槽：这时“消耗神足通”对移动没有作用（减速持续到较晚的期限），#4 的突进从减速后的上限起步。这样可以吗，还是消耗时连同这段减速一起结束？ | 待确认 | 2.5 |
+| Q15 | #2、#4 | 施法者放神足通后被敌人的缓流命中，减速覆盖了共享的加速槽：这时“消耗神足通”对移动没有作用（减速持续到较晚的期限），#4 的突进从减速后的上限起步。这样可以吗，还是消耗时连同这段减速一起结束？ | 已定（2026-11-06）：接受现状，照常消耗、照常弹射，从减速后的上限起步 | 2.5 |
 
 ## 附录 A：新增一条修饰期限的改动清单
 

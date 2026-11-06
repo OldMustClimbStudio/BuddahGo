@@ -139,6 +139,7 @@ namespace SteamMultiplayer.UI
         private int _hokoraClickFrame = -1;
         private float _arrowsT;
         private float _nudgePrev, _nudgeNext;
+        private RectTransform _collapseHint; // the panel's "Esc 收起" (built by MenuTitleHomeBuilder as Hint_Collapse)
 
         /// <summary>On the skill-select shot with no other view over it (the menu hides its proto panel then).</summary>
         public bool IsShown =>
@@ -215,6 +216,7 @@ namespace SteamMultiplayer.UI
             if (previousArrow != null) previousArrow.onClick.AddListener(() => Cycle(-1));
             if (nextArrow != null) nextArrow.onClick.AddListener(() => Cycle(1));
             BuildKeys();
+            if (keysGroup != null) _collapseHint = keysGroup.transform.Find("Hint_Collapse") as RectTransform;
         }
 
         /// <summary>
@@ -673,7 +675,9 @@ namespace SteamMultiplayer.UI
                 {
                     _pressAt = at;
                     _pressOnHokora = onHokora;
-                    if (Hit(backHint != null ? backHint.rectTransform : null, at, 10f)) back = true;
+                    // 返回 only while it shows (it gives way to the panel's 收起, which closes the panel instead).
+                    if (_keysOpen) { if (Hit(_collapseHint, at, 10f)) cancel = true; }
+                    else if (Hit(backHint != null ? backHint.rectTransform : null, at, 10f)) back = true;
                 }
                 // A click (press and release without moving) on the hokora shows the combos; anywhere else hides them.
                 if (mouse.leftButton.wasReleasedThisFrame && (at - _pressAt).magnitude <= clickSlopPixels)

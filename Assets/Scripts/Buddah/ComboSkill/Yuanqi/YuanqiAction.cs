@@ -27,6 +27,10 @@ public abstract class YuanqiAction : ScriptableObject
     public YuanqiRetrigger retriggerPolicy = YuanqiRetrigger.OncePerOverlap;
     public bool isEnabled = true;
 
+    [Header("Presentation")]
+    [Tooltip("Slot effect (SkillVfxDatabase id) the pair plays on the caster from PlayObservers; empty = none. Docs/vfx/README.md section 4.")]
+    public string vfxId;
+
     /// <summary>
     /// Server: both skills just overlapped. Set ctx.Presentation for observers. A pair that must consume before its
     /// effect calls ctx.ConsumeConfigured first (the flags decide what); otherwise the registry consumes afterwards.
@@ -41,5 +45,28 @@ public abstract class YuanqiAction : ScriptableObject
     /// <summary>Every peer (host included), presentation only. Never writes game state.</summary>
     public virtual void PlayObservers(SkillExecutor caster, YuanqiPresentationPayload payload, bool localIsCaster)
     {
+    }
+
+    /// <summary>The slot effects this pair plays and their lengths at the current values (SkillAction.CollectVfxSlots).</summary>
+    public virtual void CollectVfxSlots(System.Collections.Generic.List<SkillAction.VfxSlotTiming> into)
+    {
+    }
+
+    // Every peer, from PlayObservers (which already runs on every peer, so no RPC): plays vfxId on the caster for the
+    // given gameplay length. Silently does nothing without an id or a replicator.
+    protected void PlayVfxSlotLocal(SkillExecutor caster, float seconds)
+    {
+        if (caster == null || string.IsNullOrWhiteSpace(vfxId))
+            return;
+        SkillVfxReplicator vfx = caster.GetComponent<SkillVfxReplicator>();
+        if (vfx != null)
+            vfx.PlaySlotLocal(vfxId, seconds);
+    }
+
+    protected void AddVfxSlot(System.Collections.Generic.List<SkillAction.VfxSlotTiming> into, float seconds, string source)
+    {
+        if (string.IsNullOrWhiteSpace(vfxId))
+            return;
+        into.Add(new SkillAction.VfxSlotTiming { vfxId = vfxId, seconds = seconds, source = source });
     }
 }

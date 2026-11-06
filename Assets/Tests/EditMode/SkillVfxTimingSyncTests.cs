@@ -75,6 +75,33 @@ namespace BuddahGo.Tests
             Assert.AreEqual(shotAnti, lengths["push_projectile_hands_anti/palm_bullet_anti"], 1e-4f);
         }
 
+        // 缘起 pairs play their slot through YuanqiAction.vfxId (Docs/vfx/yuanqi-giant-charge.md): the id must be in
+        // SkillVfxDatabase, be a slot with an Imp reference length, and get a length from the pair.
+        [Test]
+        public void EverySlotAYuanqiPlaysIsASlotWithAReferenceLength()
+        {
+            var vfx = AssetDatabase.LoadAssetAtPath<SkillVfxDatabase>(VfxDatabaseAsset);
+            var source = AssetDatabase.LoadAssetAtPath<SkillDatabase>(SkillDatabaseAsset);
+            Assert.IsNotNull(vfx, VfxDatabaseAsset);
+            Assert.IsNotNull(source, SkillDatabaseAsset);
+            var slots = new List<SkillAction.VfxSlotTiming>();
+            foreach (YuanqiAction yuanqi in source.yuanqis)
+            {
+                if (yuanqi == null) continue;
+                slots.Clear();
+                yuanqi.CollectVfxSlots(slots);
+                foreach (SkillAction.VfxSlotTiming timing in slots)
+                {
+                    Assert.IsTrue(vfx.TryGetPrefab(timing.vfxId, out GameObject prefab) && prefab != null,
+                        yuanqi.yuanqiId + " plays '" + timing.vfxId + "', which SkillVfxDatabase does not have");
+                    var slot = prefab.GetComponent<SkillVfxPhaseController>();
+                    Assert.IsNotNull(slot, timing.vfxId + " is not a slot prefab");
+                    Assert.Greater(timing.seconds, 0f, yuanqi.yuanqiId + " plays '" + timing.vfxId + "' with no length");
+                    Assert.Greater(slot.ReferenceSeconds(SkillVfxPhase.Imp), 0f, timing.vfxId + " has no Imp reference length");
+                }
+            }
+        }
+
         // A skill reports the length it plays: the gameplay length by default; an absolute vfxDurationSeconds on the SO
         // wins and is flagged (the timing window shows "SO 写死了 vfxDurationSeconds，不跟配表"). Empty ids are left out.
         [Test]

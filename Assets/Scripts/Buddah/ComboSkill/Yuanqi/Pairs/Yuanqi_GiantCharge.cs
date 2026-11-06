@@ -6,9 +6,9 @@ using UnityEngine;
 /// dashes instead: the speed cap jumps to cap + burstExtraMaxSpeed and eases back over burstSeconds (motor Burst
 /// command). During the burst the giant's body hits each other racer once with impactImpulseMultiplier x the basic
 /// push impulse, sideways from the caster (Q9). 法相金身 keeps running to its own end (yuanqi-architecture §5.1).
-/// Presentation (interfaces, no art): the trigger payload carries the dash direction (SkillExecutor.YuanqiObserved),
-/// each hit raises SkillExecutor.YuanqiImpactObserved, the burst raises RacerSkillPresentationState.BurstChanged;
-/// the caster's own camera gets a short FOV kick.
+/// Presentation: the slot vfxId on every peer for the burst (Docs/vfx/yuanqi-giant-charge.md); the trigger payload
+/// carries the dash direction (SkillExecutor.YuanqiObserved), each hit raises SkillExecutor.YuanqiImpactObserved, the
+/// burst raises RacerSkillPresentationState.BurstChanged; the caster's own camera gets a short FOV kick.
 /// </summary>
 [CreateAssetMenu(fileName = "Yuanqi_GiantCharge", menuName = "Skills/Yuanqi/Giant Charge")]
 public class Yuanqi_GiantCharge : YuanqiAction
@@ -63,9 +63,11 @@ public class Yuanqi_GiantCharge : YuanqiAction
         if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[Yuanqi][GiantCharge][Server] '{caster.name}' burst +{burstExtraMaxSpeed:0.#} for {burstSeconds:0.##}s, impact impulse {impulse:0.#}; consume {skillA}={consumeA}, {skillB}={consumeB}.");
     }
 
-    // Every peer. Only the caster's own camera reacts; observers get the payload through SkillExecutor.YuanqiObserved.
+    // Every peer. The slot (vfxId: rear blast + ink route, Docs/vfx/yuanqi-giant-charge.md) plays on everyone for the
+    // burst; only the caster's own camera gets the FOV kick.
     public override void PlayObservers(SkillExecutor caster, YuanqiPresentationPayload payload, bool localIsCaster)
     {
+        PlayVfxSlotLocal(caster, payload.Seconds > 0f ? payload.Seconds : burstSeconds);
         if (caster == null || !localIsCaster || casterFovKickDegrees <= 0f)
             return;
         // The kick starts from ~0 in both cast orders, so it always widens the view: when 法相金身 completes the pair,
@@ -73,6 +75,11 @@ public class Yuanqi_GiantCharge : YuanqiAction
         // PlayerCamera.ResetRuntimeEffects), dropping a ramped 神足通 boost; when 神足通 completes it, its boost is still
         // at the start of its ramp-in. Instant (no ramp-in) so the dash reads at once.
         caster.PlayCameraFovBoostLocal(casterFovKickDegrees, 0f, casterFovKickHoldSeconds, casterFovKickSettleSeconds, slotTag: yuanqiId);
+    }
+
+    public override void CollectVfxSlots(System.Collections.Generic.List<SkillAction.VfxSlotTiming> into)
+    {
+        AddVfxSlot(into, burstSeconds, "Skill/YuanqiEffectGiantCharge.burstSeconds");
     }
 
     private static Vector3 FlatForward(Transform transform)

@@ -89,8 +89,8 @@ namespace BuddahGo.Tests
             Assert.That(SkillVfxRules.EmissionScale(low, true), Is.EqualTo(1f), "gameplay shape");
             Assert.That(SkillVfxRules.DetailEmissionScale(low), Is.EqualTo(0.4f).Within(1e-5f), "detail on any layer");
 
-            // Every slot prefab with particles keeps at least one shape system (or a scaling zone's area), so Low still
-            // draws each effect's outline at full count.
+            // Every slot prefab with particles keeps at least one shape system (or a scaling zone's area, or a mesh in a
+            // layer, which the tier never thins: 禅足冰封's ice block), so Low still draws each effect's outline at full count.
             var registry = AssetDatabase.LoadAssetAtPath<ProjectConfigDatabase>(DatabasePath);
             var failures = new List<string>();
             int withParticles = 0;
@@ -105,7 +105,8 @@ namespace BuddahGo.Tests
                 withParticles++;
                 var areas = new HashSet<ParticleSystem>(prefab.GetComponentsInChildren<SkillVfxLayer>(true)
                     .Where(l => l.areaSystems != null).SelectMany(l => l.areaSystems).Where(a => a != null));
-                if (!systems.Any(ps => areas.Contains(ps) || !SkillVfxRules.IsDetailSystem(ps)))
+                bool meshOutline = prefab.GetComponentsInChildren<MeshRenderer>(true).Any(r => r.GetComponentInParent<SkillVfxLayer>(true) != null);
+                if (!meshOutline && !systems.Any(ps => areas.Contains(ps) || !SkillVfxRules.IsDetailSystem(ps)))
                     failures.Add(row.vfxId + " has only detail systems");
             }
             Assert.That(withParticles, Is.GreaterThan(0));

@@ -100,6 +100,11 @@ namespace SteamMultiplayer.UI
         [SerializeField] private float keyStagger = 0.06f;
         [SerializeField, Min(0f)] private float clickSlopPixels = 6f;
 
+        [Header("缘起 list (combo panel, under the 执念 / 反噬 rules)")]
+        [Tooltip("Gap under the panel's Rules text, in reference pixels.")]
+        [SerializeField] private float yuanqiGap = 12f;
+        [SerializeField] private float yuanqiHeight = 110f;
+
         [Header("Arrows beside the inspected ema")]
         [SerializeField] private CanvasGroup arrows;
         [SerializeField] private Button previousArrow;
@@ -141,6 +146,9 @@ namespace SteamMultiplayer.UI
         private float _nudgePrev, _nudgeNext;
         private readonly List<Renderer> _renderers = new List<Renderer>(); // reused by the per-frame screen placement
         private RectTransform _collapseHint; // the panel's "Esc 收起" (built by MenuTitleHomeBuilder as Hint_Collapse)
+        private TextMeshProUGUI _yuanqiList;  // runtime copy of the panel's Rules text
+        private string _yuanqiSignature;
+        private readonly List<string> _yuanqiSkillIds = new List<string>();
 
         /// <summary>On the skill-select shot with no other view over it (the menu hides its proto panel then).</summary>
         public bool IsShown =>
@@ -218,6 +226,7 @@ namespace SteamMultiplayer.UI
             if (nextArrow != null) nextArrow.onClick.AddListener(() => Cycle(1));
             BuildKeys();
             if (keysGroup != null) _collapseHint = keysGroup.transform.Find("Hint_Collapse") as RectTransform;
+            BuildYuanqiList();
         }
 
         /// <summary>
@@ -611,6 +620,56 @@ namespace SteamMultiplayer.UI
                 }
             }
             if (comboHeader != null) comboHeader.text = "小祠　已装配 " + filled + " / " + keyRows.Length;
+            UpdateYuanqiList();
+        }
+
+        // ---------- 缘起 list ----------
+
+        /// <summary>
+        /// The 缘起 the loadout can trigger, under the combo panel's 执念 / 反噬 rules. A runtime copy of the panel's Rules
+        /// text (same font, size and colour), so the scene and MenuTitleHomeBuilder stay as they are.
+        /// </summary>
+        private void BuildYuanqiList()
+        {
+            if (keysGroup == null || !(keysGroup.transform.Find("Rules") is RectTransform rules)) return;
+            var template = rules.GetComponent<TextMeshProUGUI>();
+            if (template == null) return;
+            _yuanqiList = Instantiate(template, keysGroup.transform);
+            _yuanqiList.name = "Yuanqi";
+            _yuanqiList.text = string.Empty;
+            RectTransform rt = _yuanqiList.rectTransform;
+            rt.anchoredPosition = rules.anchoredPosition - new Vector2(0f, rules.sizeDelta.y + yuanqiGap);
+            rt.sizeDelta = new Vector2(rules.sizeDelta.x, yuanqiHeight);
+            _yuanqiList.gameObject.SetActive(false);
+        }
+
+        /// <summary>Rebuilds the list when the slotted skills (or the font fallbacks, or the database) change.</summary>
+        private void UpdateYuanqiList()
+        {
+            if (_yuanqiList == null) return;
+            _yuanqiSkillIds.Clear();
+            foreach (string id in _loadout)
+                if (!string.IsNullOrEmpty(id) && !_yuanqiSkillIds.Contains(id)) _yuanqiSkillIds.Add(id);
+            SkillDatabase database = HudSkillDatabase.Resolve();
+            string signature = (database != null ? "db|" : "|") + HudGlyphCoverage.GlobalFallbackCount() + "|" + string.Join("|", _yuanqiSkillIds);
+            if (signature == _yuanqiSignature) return;
+            _yuanqiSignature = signature;
+            HudRuntimeText.SetText(_yuanqiList, YuanqiListText(database, _yuanqiList.font, _yuanqiSkillIds));
+        }
+
+        /// <summary>
+        /// Same answer as the server registry (YuanqiCatalog.ForLoadout) and the same text as the old selection screen:
+        /// "缘起:" then one "name (A + B)" line per pair, "缘起: 无" when none, empty while fewer than two skills are slotted.
+        /// </summary>
+        private static string YuanqiListText(SkillDatabase database, TMP_FontAsset font, List<string> skillIds)
+        {
+            var entries = new List<YuanqiHudEntry>();
+            if (database != null)
+                foreach (YuanqiAction pair in YuanqiCatalog.ForLoadout(database.GetYuanqis(), skillIds))
+                    entries.Add(new YuanqiHudEntry(HudSkillDatabase.YuanqiName(database, font, pair.yuanqiId),
+                        HudSkillDatabase.SkillName(database, font, pair.skillA), HudSkillDatabase.SkillName(database, font, pair.skillB)));
+            string header = "<color=#B8352A>" + HudGlyphCoverage.Resolve(font, InGameHudLabels.YuanqiLoadoutHeader) + "</color>";
+            return YuanqiHudText.LoadoutList(header, HudGlyphCoverage.Resolve(font, InGameHudLabels.YuanqiLoadoutNone), entries, skillIds.Count);
         }
 
         // ---------- pointer ----------

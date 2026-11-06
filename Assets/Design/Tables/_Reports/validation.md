@@ -1,11 +1,13 @@
 # Design tables validation
 
-- time: 2026-11-05 15:25:07
-- mode: validate only
+- time: 2026-11-06 04:02:52
+- mode: import (force)
 - changed workbooks: (none)
-- sheets re-mapped: 0, kept: 0, records: 0
+- sheets re-mapped: 36, kept: 0, records: 544
 - errors: 0, warnings: 3
-- outputs written: no (nothing changed)
+- outputs written: yes
+
+Re-mapped: Skill/Skill, Skill/SkillEffectAcceleration, Skill/SkillEffectSlowTrap, Skill/SkillEffectBlackCurtain, Skill/SkillEffectGiant, Skill/Push, Skill/SkillSelectionRule, Skill/DefaultLoadout, Skill/Obsession, Skill/VfxRegistry, Movement/Movement, Movement/Respawn, AI/DrivingTier, AI/DrivingTuning, AI/SkillDifficulty, AI/Personality, AI/PersonalitySituationBias, AI/SkillOpportunity, AI/SkillTuning, AI/Roster, Match/ModeRule, Match/Track, Match/TrackWrongWay, Match/TrackSpawn, Match/TrackCheckpoint, Match/TrackResultAnchor, Match/Lobby, Match/SelectionStage, Match/SelectionOption, Match/Intro, UI/Text, UI/MenuOption, Global/GlobalRule, Graphics/GraphicsPreset, Graphics/GraphicsOption, Graphics/GraphicsOptionLevel
 
 | severity | location | message |
 |---|---|---|

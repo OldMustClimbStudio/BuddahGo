@@ -83,11 +83,15 @@ Editor controlled fixtures, starting from Play mode at idle MainMenu:
   AISkillLifecycleHarness.Begin(absoluteDirectory)
 These intentionally use runtime-only 0/100 backlash probability, authoritative
 fixture teleports/direct casts, or synthetic completion for boundary tests.
-The backlash matrix (backlash: true) checks the unified backfire (A4/A7): the
-cast confirms, spends its cooldown and does nothing, then the caster is locked
-out of every skill for 10 s with max speed x0.85 (RacerSample.BackfireLeft /
-MaxSpeedPenalty); no skill has its own backfire effect any more, so targets are
-placed exactly as in the normal cases and must stay untouched.
+The backlash matrix (backlash: true) checks the backfire of
+Docs/gameplay/README.md 6.2: after the 2 s backfire wind-up the cast spends its
+cooldown, the normal skill does not run, the caster is locked out of every skill
+for 5 s with max speed x0.85 (RacerSample.BackfireLeft / MaxSpeedPenalty), and
+the skill's own _anti variant runs: self slow (acceleration), root then boost
+(slowtrap), shrink (giant), self invert (reverseturn), own curtain only
+(blackcurtain), and a reverse burst of five palm projectiles (push_projectile_hands,
+targets placed 25 m behind the caster). The five self variants must leave every
+opponent untouched.
 Their output is explicitly labelled controlled and cannot qualify natural racing.
 The lifecycle fixture invokes the real Rematch and quit button callbacks.
   python Tools/ai/analyze_skill_matrix.py C:/Temp/effects --output C:/Temp/effects/analysis.json

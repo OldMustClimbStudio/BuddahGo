@@ -15,15 +15,15 @@ public class SkillRecord
     /// <summary>string#ref=UI/Text.key</summary>
     [Tooltip("描述文案 key（SkillConfigRepository.GetDescription、SkillDatabase.BuildSelectableSkillOptions）")] public string descriptionKey = string.Empty;
     /// <summary>int</summary>
-    [Tooltip("选择界面排序（SkillDatabase.CompareSelectableSkills）")] public int sortOrder = 0;
+    [Tooltip("选择界面排序（SkillDatabase.CompareSelectableSkills）；反噬行留空（hidden 行不进选择界面）")] public int sortOrder = 0;
     /// <summary>enum:SkillUnlockState</summary>
     [Tooltip("unlocked / locked / hidden（SkillDatabase.BuildSelectableSkillOptions 读 locked；SkillConfigCrossValidator 跳过 hidden）")] public string unlockState = string.Empty;
     /// <summary>string#ref=Skill.skillId</summary>
     [Tooltip("反噬变体 id；普通技能必填，反噬行留空")] public string antiSkillId = string.Empty;
     /// <summary>float#range=0,120</summary>
-    [Tooltip("槽位冷却 s，从请求时刻+前摇起算；反噬照常进本行冷却（SkillExecutor 经 SkillDatabase.GetCooldownSeconds）")] public float cooldownSeconds = 0f;
+    [Tooltip("槽位冷却 s，从请求时刻+前摇起算；反噬照常进本行冷却（SkillExecutor 经 SkillDatabase.GetCooldownSeconds）；反噬行留空：反噬按请求技能的普通行冷却，本列在反噬行没有读取方")] public float cooldownSeconds = 0f;
     /// <summary>float#range=0,5</summary>
-    [Tooltip("施法前摇 s，也是反噬的统一确认窗口，惩罚在窗口结束时开始（SkillExecutor 经 SkillConfigRepository.TryGetCastConfirmDelay）")] public float castConfirmDelaySeconds = 0f;
+    [Tooltip("普通行：施法前摇 s（SkillExecutor 经 SkillConfigRepository.TryGetCastConfirmDelay；AI 经 SkillExecutor.ConfirmationSecondsForSlot 只取普通行）；_anti 行：该技能反噬的确认窗口 s，惩罚在窗口结束时开始（SkillExecutor.ResolveCastConfirmDelay）。反噬行固定 2 s：必需的惩罚设计（2026-10-31 用户定，反噬前摇更长、cast_anti 特效完整播出），不是调试值，不要改回 1")] public float castConfirmDelaySeconds = 0f;
     /// <summary>float#range=0,1000</summary>
     [Tooltip("施法执行时增加的执念，同招加价按 Obsession.repeatGainMultiplier 复利；反噬不加（SkillExecutor 经 SkillDatabase.GetObsessionGain）")] public float obsessionGain = 0f;
     /// <summary>float#range=0,120</summary>

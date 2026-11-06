@@ -50,10 +50,13 @@ public static class SkillConfigCrossValidator
                 string context = path + " -> " + AssetDatabase.GetAssetPath(action);
                 if (repository.TryGet(id, out SkillRecord row))
                 {
-                    Compare(results, context, "cooldownSeconds", action.cooldownSeconds, row.cooldownSeconds);
-                    // Anti rows carry no obsession gain (a backfire adds none), so only normal skills are compared.
+                    // Anti rows carry no cooldown or obsession gain (a backfire spends the requested skill's cooldown
+                    // and adds no obsession), so only normal skills are compared.
                     if (!string.IsNullOrEmpty(row.antiSkillId) || !string.IsNullOrWhiteSpace(action.antiSkillId))
+                    {
+                        Compare(results, context, "cooldownSeconds", action.cooldownSeconds, row.cooldownSeconds);
                         Compare(results, context, "obsessionGain", action.obsessionGain, row.obsessionGain);
+                    }
                     if (!string.Equals((action.antiSkillId ?? string.Empty).Trim(), (row.antiSkillId ?? string.Empty).Trim(), StringComparison.Ordinal))
                         Add(results, ProjectConfigValidationSeverity.Warning, context,
                             "antiSkillId differs: action='" + action.antiSkillId + "', config='" + row.antiSkillId + "'. Config takes priority when nonempty.");

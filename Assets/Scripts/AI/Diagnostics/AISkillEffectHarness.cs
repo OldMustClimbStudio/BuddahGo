@@ -16,8 +16,8 @@ namespace BuddahGo.AI
     // Backlash cases (backlash: true) exercise the backfire: the cast confirms, spends its cooldown and the skill fails;
     // the caster is then locked out of every skill for Obsession.backfireLockSeconds (5 s) with max speed x0.85 (RacerSample.BackfireLeft /
     // MaxSpeedPenalty), and since 2026-10-31 the skill's own _anti variant also runs (mostly a self effect on the caster:
-    // slow, root then boost, self curtain, shrink, self invert, a reverse palm burst). Backlash fixtures still place targets
-    // like the normal ones; Tools/ai/analyze_skill_matrix.py holds the expectations (not yet updated for the variants).
+    // slow, root then boost, self curtain, shrink, self invert, a reverse palm burst). Backlash fixtures place the targets
+    // ahead, except behind the caster for the reverse palm burst; Tools/ai/analyze_skill_matrix.py holds the expectations.
     public sealed class AISkillEffectHarness : MonoBehaviour
     {
         public string Status { get; private set; }
@@ -115,8 +115,9 @@ namespace BuddahGo.AI
                 Vector3 offset = Vector3.zero;
                 if (!source)
                 {
-                    // Same placement for normal and backlash cases: a backfired skill has no effect of its own.
-                    float distance = skill == "slowtrap" ? -4f : skill == "push_projectile_hands" ? 25f : 20f;
+                    // Normal slow trap: targets drive into the zone from behind. Backfired palm: its reverse burst flies
+                    // backwards, so the targets wait behind the caster (dev's placement before the variants were retired).
+                    float distance = skill == "slowtrap" && !_backlash ? -4f : skill == "push_projectile_hands" ? (_backlash ? -25f : 25f) : 20f;
                     offset = forward * (distance + targetIndex * 8f) + side * ((targetIndex % 3 - 1) * 3f);
                     targetIndex++;
                 }

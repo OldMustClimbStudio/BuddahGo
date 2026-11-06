@@ -12,7 +12,7 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 | 反噬风险 | （2026-10-31：反噬是该技能自己的 `_anti` 变体 + 5 秒惩罚；用户定先保持下面的统一代价，不把变体代价加回来，试玩后再调。）统一反噬后代价与技能无关：`u = v − riskWeight × P(反噬) × backfireCost`，`P(反噬) ≥ stopProbability` 直接不放（所有技能一个阈值）。`AI/SkillTuning.backfireCost` 1；`AI/SkillDifficulty.stopProbability` Easy 1.01（从不停手）/ Normal 0.7 / Hard 0.45，沿用原 `severeStopProbability`；`backlashSeverity`、`mildStopProbability`、`severeSeverityThreshold` 删除 | 建议（实现采用） |
 | `AISkillWorld` 快照 | `AISkillWorld.Classify`：反噬惩罚的 ×0.85 限速（`MaxSpeedPenaltyUntilTick`）记为 `Slowed` 并计入受损秒数；突进（`BurstUntilTick`，缘起 PR 里的缘起才会施加）记为 `Accelerating`；缩小不再算受损（统一反噬后没有缩小来源） | 建议（实现采用） |
 | 掌形瞄准 | 仍经 `BuddahHandControl.InjectServerRotation`（180°/s，`Push.basic.rotationSpeedDegPerSec`）；发射改为直接 `InjectServerPush(true)`（不再注入搓招键），间隔按 `ServerPushCooldown`。瞄准容差 ±20° / ±12° / ±6° 没有重调：真人改鼠标瞄准后命中率的变化要用户试玩数据，见玩法深化 §8 | 待定（容差） |
-| 反噬矩阵 | `AISkillEffectHarness` 的反噬用例按统一反噬：目标摆放和普通用例相同，样本多记 `BackfireLeft`、`MaxSpeedPenalty`；`Tools/ai/analyze_skill_matrix.py` 六个技能的反噬期望都是 `{"backfire"}`，不许出现技能自身效果，掌形反噬 0 发射，全局技能反噬不影响任何人，18 s 内恢复 | 已定 |
+| 反噬矩阵 | `AISkillEffectHarness` 的反噬用例按 [玩法 §6.2](../gameplay/README.md) 的反噬（统一惩罚 + 该技能自己的 `_anti` 变体）：样本多记 `BackfireLeft`、`MaxSpeedPenalty`；`Tools/ai/analyze_skill_matrix.py` 的反噬期望是施法者身上有惩罚（`backfire`）和变体效果：神足通 `slow`、缓流 `root` + `acceleration`、金身 `small`、逆姻缘只反转自己、一念光明只遮自己、如来神掌向后发射 5 发反向弹幕（目标摆在施法者身后 25 m）；施法者身上不许出现普通技能自己的效果，五个自身变体不许影响任何对手；18 s 内恢复（2 s 反噬前摇 + 最长 10 s 的变体）。2026-11-06 按变体改写，此前（2026-10-28 A7 起）期望是统一惩罚、不放变体 | 建议（实现采用） |
 | 退役 | `ComboSkillInput`（类、prefab 组件、`SkillExecutor` 的订阅）、`Skill/ComboInput`、`Skill/ComboBinding`、`__enums__` 的 `ComboToken`、`AI/SkillDifficulty.keyMistakeProbability`、`AI/SkillTuning.keyMinSeconds / keyMaxSeconds / maxComboRetries / severeSeverityThreshold / scaleShrunkThreshold`、`AI/SkillOpportunity.backlashSeverity`、校验规则 `KeyMaxBelowComboWindow`、`AISkillTelemetry.Keys`、harness 结果里的 `ComboFailures / Keys` | 已定 |
 | 新增参数 | `AI/SkillTuning`：`backfireCost` 1。`Assets/Resources/AI/SkillPersonalities.json` 同步，只作无表时的兜底 | 建议（实现采用） |
 | 验证 | 无窗口 EditMode `BuddahGo.Tests` 577/577（A7 前 559）；无窗口导表 0 错误；单人赛（5 个 AI，`AISkillRaceHarness`）见本文末尾“A7 单人赛验证” | — |
@@ -54,7 +54,7 @@ A7 的结果（代码位置按 ac3d5fe；“已定”是玩法深化里用户定
 | `blackcurtain` | 16 | 展开 1 s、保持 10 s、淡出 2 s 的全屏遮挡；施法者可见边线 | 仅本地屏幕（单机 = 真人） |
 | `reverseturn` | 12 | 场上所有其他参赛者转向反转 10 s，不分距离 | 全场 |
 
-冷却从请求时刻加前摇起算（普通 1 s；反噬按 `_anti` 行是 2 s，2026-11-03 合入 dev 后），反噬也照常进本行冷却。AI 的时机估计用 `SkillExecutor.ConfirmationSeconds`（表里最长的前摇，即 2 s），所以机会有效期的要求比普通施法实际需要的多 1 s，偏保守。没有全局施法锁：一招执行后即可请求另一个冷却已好的槽，两个技能可以同时生效。掌形 buff 期间每次推掌都是一次蓄力发射。
+冷却从请求时刻加前摇起算（普通 1 s；反噬按 `_anti` 行是 2 s，2026-11-03 合入 dev 后），反噬也照常进本行冷却。AI 的时机估计用 `SkillExecutor.ConfirmationSecondsForSlot`，取本槽技能自己那一行的前摇（现在都是 1 s）。反噬行的 2 s 不计入：反噬的施法本来就用不上这次机会。没有全局施法锁：一招执行后即可请求另一个冷却已好的槽，两个技能可以同时生效。掌形 buff 期间每次推掌都是一次蓄力发射。
 
 **输入**：玩家单键施法（槽 0/1/2 = Q/E/R 与 1/2/3），手部朝向跟随光标的地面投影，鼠标左/右键推左/右手；按住 W 前进、松开停止推进（2026-10-30，W/↑ 推掌已删除）。AI 不按键：前进经 `AIRacerDriver.TryGetOverride` 的 `drive`，和真人的 W 写进同一个预测输入字段（`BuddahDriveInput.ResolveThrottle`），一直推进到完赛（已定，2026-10-30），驾驶规划 `BuddahMotionModel` 也按满推进力建模，所以这次改动不改变 AI 的驾驶。AI 不再搓招（A7）：决定后下一 tick 直接调用 `SkillExecutor.CastSlotServer`，再经 1 s 施法确认，从决定到效果出现约 1 s + 1 tick（决策前另有难度给定的反应延迟）。掌形 buff 期间 AI 的发射是直接的服务器推掌（`BuddahHandControl.InjectServerPush`，普通推掌冷却 0.4 s）。AI 的手部朝向经 `BuddahHandControl.InjectServerRotation` 以 180°/s 旋转，掌形发射方向 = 车头方向 + 手部 yaw。
 

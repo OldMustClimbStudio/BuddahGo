@@ -1,6 +1,6 @@
 # 禅足冰封（缘起 #2）特效
 
-> - **这是什么**：缘起「禅足冰封」（神足通 + 禅定缓流，`Yuanqi_FrostLock`）的特效设计记录：调研、项目现有素材、冰体材质的两轮小样，以及用户的选择。2026-11-06 特效设计会话。**还在设计阶段，没有正式实现**；现在比赛里跑的是程序化占位（第 6 节）。
+> - **这是什么**：缘起「禅足冰封」（神足通 + 禅定缓流，`Yuanqi_FrostLock`）的特效设计记录：调研、项目现有素材、冰体材质的三轮小样，以及用户的选择（冰体材质定为 v1.5，第 4 节）。2026-11-06 特效设计会话。**还在设计阶段，没有正式实现**；现在比赛里跑的是程序化占位（第 6 节）。
 > - **机制以哪里为准**：玩法见 [../gameplay/yuanqi.md](../gameplay/yuanqi.md)（#2），构筑和表现接口见 [../gameplay/yuanqi-architecture.md](../gameplay/yuanqi-architecture.md) 第 4 节。本文只写画面。
 > - **Notion**：「技能 Combo 缘起机制」里这一条的视觉是“瞬间生成周围地面冰洁效果，受到影响的敌方单位将会冻结为冰块，禁锢结束后恢复”，前面还有一句意象“加速减速相符而成 — 将周围的空间瞬时膨胀”。
 
@@ -58,9 +58,23 @@ v2 的微光 Fresnel 是 0.45 × 1.0，v2+ 是 1.1 × 1.3。结果：v2 有很�
 
 **用户定（2026-11-06）：取 v1 和 v2 之间**：保留内壁视差和闪点，微光比 v2 再弱，让冻住的是谁仍然认得出。
 
+**第三轮（v1 / v1.5 / v2）**：v1.5 用 v2 的五层，只把里面调淡：
+
+| 层 | v2 | v1.5 |
+|---|---|---|
+| 内壁 | 三色映射透明度 0.30 / 0.45 / 0.65 | 0.18 / 0.30 / 0.45 |
+| 内部裂纹 | 中间调 / 高光透明度 0.15 / 0.85 | 0.08 / 0.5 |
+| 内核微光 | 底色 0.06，Fresnel 0.45（scale 1.0，power 1.5，反转） | 底色 0.03，Fresnel 0.22（同） |
+| 外表面 | 本体透明度 0.12 / 0.35 / 0.8，边缘 2.2（scale 1.8，power 3.5） | 0.15 / 0.4 / 0.85，边缘 2.0（同） |
+| 闪点 | 6 个 `Flare_Cross` | 同 |
+
+结果：近景能透过薄微光看清佛脸和双手；比赛视角下仍是一整块白冰，里面的头和手比 v2 好认得多。图：`round3_*`。
+
+**用户定（2026-11-06）：冰体材质用 v1.5。** 精确数值在 [yuanqi-frost-lock/probes/frost_build_v3.cs](yuanqi-frost-lock/probes/frost_build_v3.cs)：`backMid`、`veinsMid`、`coreMid`、`surfMid` 复制自 v2 的 `back` / `veins` / `core` / `surf`，表里没列的参数（贴图、平铺、偏移、扭曲、渲染队列）和 v2 相同；闪点用同一个 `glint` 材质。
+
 ## 5. 还没定
 
-- 地面：四条思路（球壳改冰壳、冰柱封印、墨凝开片、空间膨胀）里冰块走了“特效冰”，地面和整体节奏还没选。
+- 地面：四条思路（球壳改冰壳、冰柱封印、墨凝开片、空间膨胀）里冰块走了“特效冰 v1.5”，地面和整体节奏还没选。
 - 颜色：冰要不要破例加一点淡青；受害者身上的冰是否服从“受击用红”（[README.md](README.md) 第 2 节）。目前小样全是中性白。
 - 冰块出现、解冻预警（裂纹按剩余时间生长）、碎裂或融化，都还没做。
 - 冰的造型：现在是测试形；正式造型要围绕“头 + 双手”。
@@ -79,4 +93,4 @@ v2 的微光 Fresnel 是 0.45 × 1.0，v2+ 是 1.1 × 1.3。结果：v2 有很�
 
 ## 7. 小样怎么重跑
 
-[yuanqi-frost-lock/probes/](yuanqi-frost-lock/probes/) 里是编辑器探针（`execute_code` 片段，C# 6）和出图脚本：RaceMap 只在内存里打开、物体 `DontSave`、做完回到 MainMenu。`frost_build*.cs` 搭建，`frost_capture*.cs` 截图，`frost_cleanup.cs` 清理，`frost_present*.py` 加标注、拼 GIF。第一轮的小样 2 需要先把 Shader Graph 冰样例拷到 `Assets/_FrostSwatchLocal/Ice`（做完删掉）。
+[yuanqi-frost-lock/probes/](yuanqi-frost-lock/probes/) 里是编辑器探针（`execute_code` 片段，C# 6）和出图脚本：RaceMap 只在内存里打开、物体 `DontSave`、做完回到 MainMenu。`frost_build*.cs` 搭建（无后缀 = 第一轮，`_v2` = 第二轮，`_v3` = 第三轮 v1.5），`frost_capture*.cs` 截图，`frost_cleanup.cs` 清理，`frost_present*.py` 加标注、拼 GIF。第一轮的小样 2 需要先把 Shader Graph 冰样例拷到 `Assets/_FrostSwatchLocal/Ice`（做完删掉）。

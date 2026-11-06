@@ -6,4 +6,4 @@
 
 The regression asserts that the known 360.233333–362.533333 plateau disappears, lag stays below 5 m, individual replay steps stay at or below 3.51 m (the existing high-speed floor is 3.5 m), and distance/parameter state agrees within the track inverse lookup tolerance. Synthetic tests cover forward/reverse clamps and wraps, held-sample flags/direction, out-of-corridor initialization, nearby parallel/crossing branches, distant/elevated branches, and the existing sequential checkpoint direction gate.
 
-Full baseline/fixed replay evidence, branch probes and build/test logs are private in `C:/Users/dwh88/Documents/Codex/2026-10-02/task`. The editor-only branch sampler is removed from the delivered runtime source. See [tracker fix evidence](../../Docs/single-player/tracker-fix-2026-10-02.md) for results and limitations.
+Full baseline/fixed replay evidence, branch probes and build/test logs are private in `C:/Users/dwh88/Documents/Codex/2026-10-02/task`. The editor-only branch sampler is removed from the delivered runtime source. See [tracker fix evidence](../../Docs/archive/single-player/tracker-fix-2026-10-02.md) for results and limitations.

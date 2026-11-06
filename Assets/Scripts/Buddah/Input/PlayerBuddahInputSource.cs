@@ -26,9 +26,19 @@ public sealed class PlayerBuddahInputSource : IBuddahInputSource
     {
     }
 
+    // W held = push forward (1), released = no push (0); the racer then coasts on ground friction alone.
     public float GetThrottle()
     {
-        return 1f;
+        if (_movementAction == null)
+            return 0f;
+
+        foreach (InputControl control in _movementAction.controls)
+        {
+            if (control is KeyControl key && key.keyCode == Key.W && key.isPressed)
+                return 1f;
+        }
+
+        return 0f;
     }
 
     public float GetSteering()

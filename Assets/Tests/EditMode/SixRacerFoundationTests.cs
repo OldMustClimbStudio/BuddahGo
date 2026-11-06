@@ -96,6 +96,14 @@ namespace BuddahGo.Tests
             Assert.That(prefab.GetComponent<RacerIdentity>(),Is.Not.Null);
             var driver=prefab.GetComponent<BuddahGo.AI.AIRacerDriver>();
             Assert.That(driver,Is.Not.Null);Assert.That(driver.enabled,Is.False);
+            // Moved from AISkillSceneTests. A7: combos are retired for everyone. The prefab carries no combo recognizer any more
+            // (and no component slot whose script is missing); the AI casts through the same SkillExecutor as a Human Player.
+            Assert.That(prefab.GetComponent<BuddahGo.AI.AISkillCaster>(), Is.Not.Null);
+            Assert.That(prefab.GetComponent<BuddahGo.AI.AISkillCaster>().enabled, Is.False);
+            Assert.That(prefab.GetComponent<SkillPerceptionState>(), Is.Not.Null);
+            Assert.That(prefab.GetComponent<SkillExecutor>(), Is.Not.Null);
+            Assert.That(AppDomain.CurrentDomain.GetAssemblies().Any(asm => asm.GetType("ComboSkillInput") != null), Is.False, "ComboSkillInput is deleted (A7)");
+            Assert.That(prefab.GetComponents<Component>().Count(c => c == null), Is.EqualTo(0), "no missing-script component slot left by the ComboSkillInput removal");
         }
     }
 }

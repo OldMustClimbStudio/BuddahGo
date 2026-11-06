@@ -1,6 +1,6 @@
 # 技能特效（VFX）重做：通用规范
 
-分支 `refactor/vfx-refactor` · Unity 2022.3.55f1c1 · URP 14.0.11 · Shuriken + VFX Graph 14 + Feel · 2026-10-28 与用户探讨定稿；同日第一次画面评审后修订第 2、3、7、9、11、12 节（诊断见 [push-projectile-hands.md 第 12 节](push-projectile-hands.md#12-2026-10-28-第一次画面评审诊断与修正)）；同日晚第二次评审按《绝区零》仪玄的分层再次改写第 2、3、7、9、11、12 节（见 [push-projectile-hands.md 第 13 节](push-projectile-hands.md#13-2026-10-28-第二次评审实体与外层水墨分家) 与 [vfx-design-research.md 第 8 节](vfx-design-research.md#8-参考板绝区零仪玄的实体--外层水墨2026-10-28-晚用户指定)）。同日深夜第三次改写第 2、7、8、9 节：用户指定 Piloto Studio「Realistic Ying Yang VFX」为唯一美术基准，素材与 shader 全部改用该包（见 [push-projectile-hands.md 第 14 节](push-projectile-hands.md#14-2026-10-28-晚第三次改写完全按-pilotorealistic-ying-yang-vfx) 与 [vfx-design-research.md 第 10 节](vfx-design-research.md#10-拆解piloto-studiorealistic-ying-yang-vfx2026-10-28-晚用户指定为唯一美术基准)）。
+Unity 2022.3.55f1c1 · URP 14.0.11 · Shuriken + VFX Graph 14 + Feel。插槽管线、如来神掌第一轮与 legacy 退休已随 PR #68 合入 `dev`（2026-11-03）。方向的演变（三次改写）记在 [push-projectile-hands.md 第 12–14 节](push-projectile-hands.md) 与 [vfx-design-research.md](vfx-design-research.md)；本文只写现在有效的规范。
 
 目标：把六个技能（正常 + 反噬共 12 个特效）按"多层结构"逐个重做。现有特效几乎都是单层，没有预备 / 释放 / 命中 / 消散的时间轴，也没有贴花、光、主体、闪光、粒子、后期的空间分层。本文是所有技能共用的规范与流程；每个技能一份专题文档记录现状、拆解表、决定与验收。第一个技能是[如来神掌](push-projectile-hands.md)。
 
@@ -10,7 +10,7 @@
 | [push-projectile-hands.md](push-projectile-hands.md) | 如来神掌：现状问题、目标、拆解表、反噬变体、验收记录、废弃资产 |
 | [vfx-design-research.md](vfx-design-research.md) | 2026-10-28 调研：方法论、题材、可读性、意象、URP 技法、性能，附三个候选方向与参考板链接 |
 
-本文只记录设计与决定，不描述已实现的代码；实现进度以各技能文档的验收记录为准。
+每个插槽的现状见 [slots.md](slots.md)；各技能的拆解表、决定与验收见各专题文档。
 
 ## 1. 流程（五步，全组共用）
 
@@ -24,9 +24,9 @@
 | 4 | 搭共用的贴图、材质、模板 | 第 7 节 shader 族、贴图库、模板 prefab，随如来神掌一起建起来 |
 | 5 | 新特效从模板起步，每个都过评审 | 每个技能先填拆解表、用户纸面确认一次，出三张材质小样确认一次（2026-10-28 评审后加的唯一中间评审），再一口气做完全部阶段、反噬与档位，整体给用户看一次（用户 2026-10-28：不分多次原型评审） |
 
-本轮分工：由 Claude 通过 Unity MCP 与编辑器脚本搭建资产和 shader，用户只做看图 / 试玩验收（用户自述手调效果一般）。本分支的文档会话只写文档，不改代码或资产。
+分工：由 Claude 通过 Unity MCP 与编辑器脚本搭建资产和 shader，用户只做看图 / 试玩验收（用户自述手调效果一般）。
 
-## 2. 视觉方向（已定，2026-10-28 晚第三次改写）
+## 2. 视觉方向
 
 - **配色原则：正向用仪玄色板，反作用用红（用户 2026-10-29 定的设计原则，优先于本节后面的色板和"反噬色板"两条）**。判断依据是这个效果对谁有利：
   - **正向**：施法者对自己或对别人的正常释放（神足通加速、禅定缓流、如来神掌出掌、巨大化、一念光明等）。色板按 [yixuan-palette.md](yixuan-palette.md)：墨是底、金是光、白是峰值；外黑内亮（光从墨壳里面透出来，不把金贴在墨的外缘）；大面积低饱和。
@@ -34,16 +34,13 @@
   - 一个插槽只属于一边，不要在同一个插槽里混用金和红。新插槽开工前先确定它是正向还是反作用。
 
 - **地图基调**：枯山水、禅院、谧静；日落下的大理石与沙地，ACES + 轻 bloom。技能特效允许比场景大胆、更有冲击力，但不是另一种美术。
-- **方向：黑白湿墨 + 白光，完全照 Piloto Studio「Realistic Ying Yang VFX」的画风做**（用户 2026-10-28 晚："完全参考对方的美术风格，跟那个来"；包的拆解见 [vfx-design-research.md 第 10 节](vfx-design-research.md#10-拆解piloto-studiorealistic-ying-yang-vfx2026-10-28-晚用户指定为唯一美术基准)）：
-  - **只有黑白两色。** 黑是**有光泽的湿墨**：墨池、墨浪、墨滴、墨烟，边缘带白描边与液体高光（扭曲网格 + 涂抹贴图 + 三色映射），不是平涂黑块；白是**光**：白色软雾、爆闪、火星、光环。灰只出现在烟和过渡里。
+- **形与材质：湿墨 + 白光，照 Piloto Studio「Realistic Ying Yang VFX」的画风做**（颜色按上面的配色原则）（用户 2026-10-28 晚："完全参考对方的美术风格，跟那个来"；包的拆解见 [vfx-design-research.md 第 10 节](vfx-design-research.md#10-拆解piloto-studiorealistic-ying-yang-vfx2026-10-28-晚用户指定为唯一美术基准)）：
+  - 黑是**有光泽的湿墨**：墨池、墨浪、墨滴、墨烟，边缘带白描边与液体高光（扭曲网格 + 涂抹贴图 + 三色映射），不是平涂黑块；白是**光**：白色软雾、爆闪、火星、光环。灰只出现在烟和过渡里。
   - **主体是画好的符图面片**，像它的阴阳符：白底、墨边晕染、软边的一张 2048² 图贴在面片上，外面裹黑色扭曲壳和白雾；不是实心网格、不是金属、不是发光金。
-  - **唯一的彩色是点缀**（它是竹叶的绿，面积不到 2%）：本项目只保留朱砂印记一处彩色，面积同样 ≤ 2%。金色整体废弃。
   - 题材元素借它的**墨竹**（竹影从地面升起、竹叶散落）与我们的禅院相通；加上本项目自己的掌印符、经文、朱砂印。
 - **前三版全部废弃**（留作教训）：半透明网格 + Fresnel 墨线；深色剪影 + 金 matcap + 粒子皮；仪玄式自发光金能量体 + 外层烟墨。共同点是自己造材质和形；这次材质、贴图、网格、shader 全部来自包，本项目只做拼装、尺寸、时序和三张自己的符图。
-- **色板（全技能共用）**：墨黑 `#000000`（永远带白描边或白高光，所以不是洞）、白 `#FFFFFF`（光，HDR 强度 1–30 由 shader 三色映射给出）、烟灰 `#808080`（只在烟与过渡）、朱砂 `#C0392B`（仅印记，≤ 2% 面积）。每个技能一个母题、一个剪影；禁止多层火焰烟雾堆叠。
-- **反噬色板：黑白互换（阴阳反转）**。正常版符图白底墨边，反噬版黑底白边；白光压暗到 60%；朱砂印记换成灰白"破印"。全技能的反噬都按这条执行，不另做造型。
 - 关键词：阴阳、湿墨、白光、墨竹、印、经文。
-- 禁止：任何金色或其他彩色（印记除外）、没有白描边的平涂黑块、金属质感、matcap、单独出现的半透明灰雾、程序化生成的形状贴图。
+- 禁止：配色原则以外的彩色、没有白描边的平涂黑块、金属质感、matcap、单独出现的半透明灰雾、程序化生成的形状贴图。
 
 ## 3. 分层概念（采用用户提供的《游戏特效分层拆解规范》）
 
@@ -82,13 +79,13 @@ glow 辉光（Add）、flash 闪光（Add，1–3 帧）、distortion 扭曲（�
 
 起止时间写成"相对该阶段起点的秒数"，而阶段的绝对起点来自玩法数值（第 5 节），这样改玩法时长不用改表。携带玩法信息的元素（主体、前导、方向提示）在备注里标 **玩法信息**，任何档位和任何距离都不省略。
 
-## 4. 运行时结构（设计，待实现）
+## 4. 运行时结构
 
-- **阶段控制器**：一个全技能共用的运行时组件（建议名 `SkillVfxPhaseController`），挂在特效 prefab 根上。技能代码只在正确时机报告阶段事件（Buf 开始 / Chg 开始并持续给进度 / Imp / Prj 开始 / Dis / 命中 / Buf 结束）并传入玩法数值；控制器按阶段启停各层、按 VFX 表缩放时长、按档位与距离省略层。每层在 prefab 上标注自己的阶段、层级、优先级。现状对比：`ChargedHandProjectileRuntime` 自己 `SetFloat("Progress")`、自己实例化发射特效、自己算寿命，每个技能一套私有逻辑。
-- **特效只在表现层**：现状已经是服务器只跑不可见碰撞体、视觉由 ObserversRpc 让客户端本地实例化，不走 NetworkObject；保持不变。`vfx_quality` 与未来的"特效质量"档位都是客户端本地的，携带玩法信息的层不依赖它们。
-- **技能资产统一引用 vfx_id**：现状加速、缓流走 `SkillVfxDatabase` 的 vfx_id，如来神掌直接引用两个 prefab，巨大化与反转的 vfx_id（`accel_anti_vfx`、`reverse_turn_trap_vfx`、`reverse_turn_trap_anti_vfx`）没有条目。改为所有技能只写 vfx_id，VFX 表登记 id 到 prefab 的映射与视觉数值，预热列表从表生成，悬空 id 清掉。
-- **反噬配对**：反噬特效与正常特效在表里显式配对（`<id>_anti` 命名，并有一列 `anti_of`），共用同一套层结构，只换反噬色板。
-- **视觉尺寸跟随玩法尺寸**：主体网格的外接盒按碰撞盒尺寸自动缩放，随 `PlayerScaleEffect`（巨大化 / 缩小）一起缩；拖尾长度按速度 × 寿命推导。用户以后改数值不用再手调特效。
+- **阶段控制器**：`SkillVfxPhaseController`（`Assets/Scripts/VFX/`）挂在插槽 prefab 根上。技能代码只在正确时机报告阶段事件并传入玩法数值；控制器按阶段启停各层（`SkillVfxLayer`）、按配表时长缩放、按档位与距离省略层。
+- **特效只在表现层**：服务器只跑不可见碰撞体，视觉由 ObserversRpc 让客户端本地实例化，不走 NetworkObject。`vfx_quality` 是客户端本地的，携带玩法信息的层不依赖它。
+- **技能只引用 vfx_id**：技能经 `SkillVfxReplicator` 按 vfx_id 播放；id 到 prefab 的映射登记在 `Skill.xlsx` 的 VfxRegistry 与 `SkillVfxDatabase`，命名见第 6 节。
+- **反噬配对**：反噬特效用 `<id>_anti` 命名、表里 `antiOf` 填正向 id，共用正向的层结构（优先做 prefab 变体，只换色板）；`SkillVfxTests` 检查配对。
+- **视觉尺寸跟随玩法尺寸**（设计目标；已实现的部分见下面的"体型适配"）：主体网格的外接盒按碰撞盒尺寸自动缩放，随 `PlayerScaleEffect`（巨大化 / 缩小）一起缩；拖尾长度按速度 × 寿命推导。用户以后改数值不用再手调特效。
 - **特效插槽（2026-10-29 用户确定）**：每个技能的特效是一组插槽 prefab，技能触发时直接实例化对应插槽播放，不再用挂在玩家身上的特效。插槽有两种：释放（`<技能>/Release/VFX_<技能>_Release`，挂在施法者身上）和受击（`<技能>/Hit/VFX_<技能>_Hit`，挂在被命中的玩家身上；目前只有转向反转有，表现"被反转"）。现有内容都是正向版，反噬版另开插槽。插槽里的层用三种锚点：`CasterRelative` 在出手时摆到施法者身上的固定点后留在原地（如来神掌的出掌爆发）；`CasterAttached` 在窗口内每帧跟着施法者，位置和朝向都跟（buff、拖尾）；`CasterFollow` 每帧只跟位置和体型，朝向停在出手时（贴地区域，禅定缓流；2026-10-30 加）。偏移按施法者坐标系、施法者体型 1 倍计，跟施法者缩放，不跟碰撞盒。插槽在 `Assets/Scenes/VFXtests.unity`（本地测试场景）里手调，用菜单 `Tools/BuddahGo/VFX/Proto/Release Placeholders/` 写回 prefab 和预览。
 - **玩家身上特效已全部退休（2026-10-29，用户确定并实施）**：`Buddah.prefab` 的 `VisualRoot/技能Particle`、`反噬Particle`、`Trails`（`AccelerationTrail`、`BlackCurtainTrail`）已删除；`FeelVFX` 两个 `Reflection_Shared` 播放器已连同 `SkillFeelRouter` 条目一起删除（2026-10-30，[retired.md](retired.md) 第 6 节；相机震动、后期等 Local 反馈不变）；`VisualRoot/沙砾` 保留。运行时接法：技能照旧按 vfx_id 走 `SkillVfxReplicator`；特效库里 prefab 带 `SkillVfxPhaseController` 时按插槽播放（生成在该玩家处、把该玩家交给控制器、开 `Imp`、窗口结束后自动销毁）。现用 vfx_id：`palm`→如来神掌 Frontal 爆发（`ChargedHandProjectileRuntime` 路径）、`accel`→神足通释放、`slow`→禅定缓流释放、`reverse_hit`→转向反转受击（服务器给每个被反转的玩家各播一次，`Skill_ReverseTurn.hitVfxId`）、`curtain_trail`→一念光明期间每个玩家身上的路线拖尾（`BlackCurtainViewController` 在本地对每个玩家 `PlaySlotLocal`，拖尾时长随窗口拉长，保留原来"黑幕里只看得见拖尾"的玩法信息）。旧 id `accel_back_vfx`、`slowtrap_vfx` 的表行、库条目和 prefab 已删（2026-10-30）；`palm_buf`、`palm_anti` 仍指向实现会话第五轮的旧 prefab，等对应插槽做好再换。复活或瞬移时，跟随施法者的插槽会清空自己的拖尾（一帧跳超过 60 单位）。
 - **跟随与卡顿（2026-10-29）**：角色根节点按物理 / 网络 tick 走（刚体没开插值），模型 `VisualRoot` 由 FishNet 平滑或单机时间线每帧插值。所以施法者锚点的层位置和朝向都跟 `VisualRoot`（经 `BuddahPredictionVisualRootBridge`），否则会对着模型和相机一顿一顿；体型仍取根节点（`PlayerScaleEffect` 缩放根节点）。`CasterAttached` 层的窗口结束后虽然停止发射，残留粒子仍跟着施法者，直到插槽销毁，不会留在赛道上。
@@ -145,12 +142,12 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
   2026-10-30 之前的旧名（`palm`、`palm_hand`、`palm_buf`、`accel`、`slow`、`reverse`、`curtain`、`curtain_trail`、`giant`，以及 `Proto/Release`、`Proto/Hit`、`Proto/Frontal` 目录）只留在各文档带日期的历史记录里。
 - 资产目录：`Assets/VFX/<技能中文名>/` 沿用现有目录；共用资源放 `Assets/VFX/Shared/`（贴图、材质、模板 prefab），shader 放 `Assets/Rendering/Shaders/FX/`（与已有的 `BuddahGo/Lit` 同处）。
 
-## 7. Shader、贴图与模板（2026-10-28 晚第三次改写）
+## 7. Shader、贴图与模板
 
 - **路线：直接用包的 shader、材质、贴图、网格，本项目只拼装。** 包的全部材质走一个 Shader Graph `UberFXSG`（Main Texture + Alpha Override 遮罩 + Detail Noise 按通道做乘 / 加 / 溶解 / 扭曲 / 顶点偏移 + **Color Ramping 三色映射** + Fresnel + 软粒子 + UV 平移），屏幕扭曲走 `Piloto Warp`。黑白风格就是三色映射设成黑 / 深灰 / 白（墨）或白 / 灰 / 黑（光）。之前"Shader Graph 退出特效制作、手写 HLSL 族"的决定作废：手写复刻它的三色映射没有意义，已写的 `FX/*` HLSL 保留文件但不再用于新元素。VFX Graph 仍不用。
 - **素材**：包按 Single Entity 授权在本项目内使用，贴图、材质、网格、shader 都可以直接引用，不限于它的 prefab；导入到 `Assets/Piloto Studio/`（保持原 GUID，便于日后升级），不改包内文件。本项目**只新建三张贴图**：掌印符图 `T_FX_PalmSymbol`（白底、墨边晕染、软边，照 `yingyang_1` 的做法画，2048²）、反噬破印 `T_FX_PalmSymbol_Broken`（黑底白边、带裂口）、朱砂印 `T_FX_PalmSeal`（印章式硬边）；经文环沿用 Noto Serif CJK 烘的真实《心经》（已有）。**不再程序化生成任何形状贴图**，噪声与渐变也直接用包里的。
 - **资源管理规则（用户 2026-10-29："合理管理所有特效资源"）**：
-  - **一个技能一个目录** `Assets/VFX/<技能中文名>/`。插槽 prefab 只放在 `Proto/Release/`、`Proto/Hit/`（如来神掌出掌在 `Proto/Frontal/`）；全技能共用的插槽放 `Assets/VFX/通用前摇/`。插槽总表 [slots.md](slots.md) 和插槽一起更新。
+  - **一个技能一个目录** `Assets/VFX/<技能中文名>/`。插槽 prefab 放在 `<技能中文名>/<插槽>/`（第 6 节）；全技能共用的插槽放 `Assets/VFX/通用前摇/`。插槽总表 [slots.md](slots.md) 和插槽一起更新。
   - **从包里拷来的材质、贴图、网格只放** `Assets/VFX/Shared/Piloto/<Materials|Textures|Meshes|Shaders>/`，由 `VfxPackVendor` 管，不手动拷、不手动改名；来源表 [asset-sources.md](asset-sources.md) 由工具重写。用户手调的预选 prefab 放 `Assets/VFX/Shared/预选/`。
   - **包目录 `Assets/Piloto Studio/` 只读**：不在里面建或改文件，入库资产不得引用它。
   - **测试场景** 只用 `Assets/Scenes/VFXtests.unity`，不入库；旧的 `Assets/VFX/Sandbox/` 已退休。
@@ -163,12 +160,12 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
   - 光 = Add 混合：`FuzzAdd_Soft`（软雾）、`Flare` / `LightFlash_Soft`（爆闪 0.15–0.3 s）、`Flecks_Shiny_Additive`（火星）、`Ring_Halo_faded_add_soft`（光环）；白色软雾 `FuzzAlpha_Soft` 用 Alpha。
   - 符图 = Alpha soft，三色映射白 / 灰 / 黑，Detail Noise 的扭曲通道给轻微晃动，溶解通道做入场 / 消散。
   - 亮度顺序：爆闪 > 白雾核心 > 符图白底 > 火星 > 烟灰 > 墨黑。面积最大的是墨池与白雾，最亮的是爆闪。
-- **模板 prefab**：（`VFX_Template.prefab` 已于 2026-10-30 删除，新插槽由 `SkillReleaseProto` 生成；下面是原设想）从包的 `Ying Yang Orb` + `Ying Yang Frontal` + `Ying Yang Buff` 派生的子系统集合，根上挂阶段控制器与六个阶段空槽；新特效从它起步，只换符图、尺寸与时序。**尺寸**：包按 1 单位 ≈ 1 米做，本项目角色 8 单位高、掌 60 × 90，所有尺寸乘 8（或根缩放 8）后再按碰撞盒贴合。
+- **模板 prefab**：没有。`VFX_Template.prefab` 已于 2026-10-30 删除，新插槽由 `SkillReleaseProto` 生成。
 - **贴花层**：墨池、经文环都是包里的平面网格或面片（`RadialUV`、`High_Poly_flat_ring`），沿地面摆放，不改渲染器。
 - **屏幕后期层**：施法者本地的后期脉冲仍用 Feel（`SkillFeelRouter`）；包的 `Ying Yang Screen Space FX`（全屏阴阳扭曲）只作参考，不接。
 - **管线限制**：`UberFXSG` 的软粒子与 `Piloto Warp` 的扭曲需要深度 / 不透明纹理，本项目 Balanced / Performant 管线资产没开（见 [push-projectile-hands.md 第 1 节](push-projectile-hands.md#1-玩法事实特效必须服从数值由配表管本轮不改)）；这两项只在 High Fidelity 生效，其他管线自动退化为硬边与无扭曲，设计上不能依赖它们传达玩法信息。
 
-## 8. 预算与档位（2026-10-28 晚修订）
+## 8. 预算与档位
 
 平台只有 PC Steam。包的每个效果用 14–52 个粒子系统（空根与占位在内），本项目按它的做法拼装但收紧：
 
@@ -202,7 +199,7 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
 
 验证方法：编辑器内用现有的 `RaceMapRenderCost` 一类测量（同机同会话对比），Rendering Debugger 看 overdraw；数字写进各技能文档。
 
-### 8.1 性能测量流程（2026-10-30，可对任一技能复用）
+### 8.1 性能测量流程
 
 脚本在 `Tools/vfxperf/`（Python 3，直连 Unity MCP 的 HTTP 端，见 [Docs/unity-mcp.md](../unity-mcp.md)）；Unity 要先开着目标 worktree，MCP 服务在 `http://127.0.0.1:8080`，实例名用环境变量 `UMCP_INSTANCE` 覆盖（默认 `vfx-refactor@20ffbfa46a852d00`）。编辑器同一时间只能一个人驱动。
 
@@ -216,7 +213,7 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
 
 读数的规矩：同一台机器、同一会话内对比；基线（0 个特效）每次都记，比赛进程不同基线会差 1–2 ms；p95 比中位更能反映卡顿；"六人同时放"= 连放 6 次；如来神掌的最坏情况是每客户端 24 掌。做"对照"时用旋钮关掉某一层（渲染器 `enabled = false`、预算 0 等），差值就是该层的开销。实测记进各技能文档（如来神掌：[push-projectile-hands.md 第 15.1 节](push-projectile-hands.md)）。编辑器数字只能做相对比较，不是 build 的绝对值。
 
-## 9. 验收与交付（2026-10-28 晚修订）
+## 9. 验收与交付
 
 每个技能一次纸面确认（拆解表 + 方向），**两轮拼装小样**，然后做完全部阶段、反噬与档位省略，整体给用户看一次：Practice 模式施放正常与反噬各 3 次，录短视频或固定视角连拍（沿用渲染文档的 JPEG 对比做法），用户在 Editor 里看过后回"过 / 改哪一层"。交付清单：
 
@@ -235,20 +232,22 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
 **拼装小样（取代前两版的"材质小样 / 基准小样"）**：
 1. 第一轮：把包的 `Ying Yang Orb`、`Ying Yang Frontal`、`Ying Yang Buff` **原样**放进我们的亮赛道（根缩放 8），在施法者 / 侧 45° / 受害者三个机位各截一张，只回答一个问题：这个画风在亮沙地 + 蓝天前成不成立。用户回"成 / 不成"。
 2. 第二轮：换上掌印符图，按 palm 文档第 4 节拼出飞行、出掌、蓄力三张静帧。用户回"过 / 改哪层"后再做完全部阶段。
-3. 小样里出现任何彩色（印记除外）、没有白描边的黑块、金属高光，就算不过。
+3. 小样里出现配色原则以外的彩色、没有白描边的黑块、金属高光，就算不过。
 
 本轮不做受击反馈（用户 2026-10-28：先优化特效本身），命中层在拆解表里只作占位；音频项目里完全没有，本轮只预留事件钩子。
 
-## 10. 技能顺序（暂定，模板完成后可调）
+## 10. 技能顺序
 
-| 序 | 技能 | 现状 | 专题文档 |
+| 序 | 技能 | 插槽 | 专题文档 |
 |---|---|---|---|
-| 1 | 如来神掌 `push_projectile_hands` | 单层点云手 + 8 层 Piloto 枪口焰，用户评为最难看 | [push-projectile-hands.md](push-projectile-hands.md) |
-| 2 | 巨大化 `giant` | 完全没有特效 | |
-| 3 | 转向反转 `reverseturn` | vfx_id 悬空，没有特效 | |
-| 4 | 禅定缓流 `slowtrap` | 有拖尾区特效，材质槽有丢失引用 | |
-| 5 | 一念光明 `blackcurtain` | 全屏遮挡 shader 可用 | |
-| 6 | 神足通 `acceleration` | 用户认为看着还行，最后统一色板微调 | |
+| 1 | 如来神掌 `push_projectile_hands` | 第一轮完成（PR #68）：`palm_release`、`palm_bullet`（墨手）、反噬两个、`palm_buff` | [push-projectile-hands.md](push-projectile-hands.md) |
+| 2 | 巨大化 `giant` | `giant_release`；体型适配 | [giant.md](giant.md) |
+| 3 | 转向反转 `reverseturn` | `reverse_release`、`reverse_hit` | |
+| 4 | 禅定缓流 `slowtrap` | `slow_release` | |
+| 5 | 一念光明 `blackcurtain` | `curtain_release`、`curtain_hit` | [blackcurtain-opening-research.md](blackcurtain-opening-research.md) |
+| 6 | 神足通 `acceleration` | `accel_release` | |
+
+每个插槽做到哪一步、用户调过没有，见 [slots.md](slots.md)。
 
 ## 11. 未决问题
 
@@ -266,7 +265,7 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
 - **阶段控制器（Phase Controller）**：第 4 节的共用运行时组件。
 - **标杆特效（Benchmark Effect）**：12 个技能特效，作为全组的尺子。
 - **玩法信息层**：携带"是什么、往哪、多大、来自谁"的元素，任何档位与距离都不省略。
-- **反噬色板**：去金换紫红的替换规则。
+- **反作用色板**：受击与反噬插槽用的红色系，见 [anti-palette.md](anti-palette.md)。
 - **符图（Symbol）**：画好的白底墨边图贴在面片上，技能的主体；照包里的阴阳符图。
 - **墨池 / 墨浪 / 墨溅 / 墨片（Ink Pool / Wave / Splat / Flakes）**：包里四类液体形的黑墨元素，都带白描边或高光。
 - **白雾 / 爆闪（Fuzz / Flare）**：包里的两类白光元素，承担亮度。

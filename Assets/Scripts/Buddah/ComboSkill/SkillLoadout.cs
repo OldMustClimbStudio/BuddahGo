@@ -28,6 +28,15 @@ public class SkillLoadout : NetworkBehaviour
             ApplyDefaultSkillsServer();
     }
 
+    /// <summary>The current slot ids as a new array (empty strings until the slots exist).</summary>
+    public string[] CopySlotSkillIds()
+    {
+        var ids = new string[SlotCount];
+        for (int i = 0; i < SlotCount; i++)
+            ids[i] = GetSkillId(i);
+        return ids;
+    }
+
     public string GetSkillId(int slotIndex)
     {
         if (slotIndex < 0 || slotIndex >= SlotCount)

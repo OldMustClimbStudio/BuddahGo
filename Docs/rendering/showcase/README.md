@@ -54,6 +54,8 @@ lightmapper after the active asset changes, and rendering in the same frame gave
 
 ## Effects, images and verdicts
 
+All shots are in [contact_sheet.jpg](contact_sheet.jpg). The single images named below were removed from the tree on 2026-11-05; they are at [cc7bc106](https://github.com/OldMustClimbStudio/BuddahGo/tree/cc7bc106/Docs/rendering/showcase).
+
 | # | Image(s) | Source | License | Verdict |
 |---|---|---|---|---|
 | 1 | `01_baseline_urp_lit.jpg` | URP 14 Lit, project pipeline asset | Unity | Reference. Trilight ambient makes the shadow side blue-grey and flat; the marble reads as plastic. |

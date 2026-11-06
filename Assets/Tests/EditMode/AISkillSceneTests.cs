@@ -1,6 +1,4 @@
 using System.Linq;
-using BuddahGo.AI;
-using BuddahGo.Match;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -33,31 +31,7 @@ public class AISkillSceneTests
         finally { EditorSceneManager.CloseScene(scene, true); }
     }
 
-    [Test] public void ProductRaceHasActiveTrackDataBeforeAIStarts()
-    {
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/RaceMap.unity", OpenSceneMode.Additive);
-        try
-        {
-            var tracks = scene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<TrackSplineRef>(true)).ToArray();
-            Assert.That(tracks.Length, Is.EqualTo(1));
-            Assert.That(tracks[0].gameObject.activeInHierarchy, Is.True, "The race cannot steer or report progress without an active MapPathLine.");
-            Assert.That(tracks[0].container, Is.Not.Null);
-            Assert.That(tracks[0].container.Spline.Count, Is.GreaterThan(3));
-        }
-        finally { EditorSceneManager.CloseScene(scene, true); }
-    }
-
-    [Test] public void RacerPrefabProvidesDisabledCasterAndThreeCompleteBindings()
-    {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Character/Prefab/Buddah.prefab");
-        Assert.That(prefab.GetComponent<AISkillCaster>(), Is.Not.Null);
-        Assert.That(prefab.GetComponent<AISkillCaster>().enabled, Is.False);
-        Assert.That(prefab.GetComponent<SkillPerceptionState>(), Is.Not.Null);
-        var input = prefab.GetComponent<ComboSkillInput>();
-        for (int slot = 0; slot < 3; slot++)
-        {
-            Assert.That(input.TryGetSequenceForSlot(slot, out var sequence), Is.True);
-            Assert.That(sequence.Length, Is.EqualTo(slot == 2 ? 4 : 3));
-        }
-    }
+    // ProductRaceHasActiveTrackDataBeforeAIStarts moved into SplineProgressTrackerTests.SavedRaceMapPositionsDoNotPlateau-
+    // OrAccumulateCatchup and RacerPrefabProvidesExecutorAndDisabledCasterWithoutComboInput into SixRacerFoundationTests.
+    // SerializedRacerContainsIdentityAndDisabledNormalDriver: the same scene and prefab are loaded there (04-tests.md 3, #4).
 }

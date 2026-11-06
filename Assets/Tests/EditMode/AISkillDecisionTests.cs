@@ -2,22 +2,14 @@ using System;
 using System.Linq;
 using BuddahGo.AI;
 using BuddahGo.Match;
+using BuddahGo.Tests;
 using NUnit.Framework;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 public class AISkillDecisionTests
 {
-    [Serializable] private struct RecordedStats { public NewBuddah.PredictionV2.Core.BuddahPredictedMotorComputedStats Stats; }
-    [Test] public void EvidenceIncludesActualMotorEffectState()
-    {
-        var row = new RecordedStats { Stats = new NewBuddah.PredictionV2.Core.BuddahPredictedMotorComputedStats
-            { IsRooted = true, FinalSteeringSign = -1f, ScaleMultiplier = .3f } };
-        var copy = JsonUtility.FromJson<RecordedStats>(JsonUtility.ToJson(row));
-        Assert.That(copy.Stats.IsRooted, Is.True);
-        Assert.That(copy.Stats.FinalSteeringSign, Is.EqualTo(-1f));
-        Assert.That(copy.Stats.ScaleMultiplier, Is.EqualTo(.3f));
-    }
+    // EvidenceIncludesActualMotorEffectState was removed: it only exercised JsonUtility (04-tests.md 3, #3).
     private AISkillCatalog _catalog;
     private AISkillSnapshot _frame;
     [SetUp] public void SetUp()
@@ -37,22 +29,27 @@ public class AISkillDecisionTests
     private AISkillOpportunity Evaluate(AISkillKind kind, AITargetPreference preference = AITargetPreference.Ahead)
         => AISkillDecision.Evaluate(kind, _frame, 0, _catalog.Tuning, preference, 0f, 180f);
 
-    [Test] public void ProductCatalogUsesSelectablePoolAndFiveDistinctCompleteLoadouts()
+    [Test] public void CatalogUsesTheSelectablePoolAndRejectsBadLoadouts()
     {
-        Assert.DoesNotThrow(() => _catalog.Validate(id => AISkillCatalog.SkillIds.Contains(id)));
-        Assert.That(AISkillCatalog.Current.Personalities.Length, Is.EqualTo(5), "Runtime repository validation must also succeed.");
-        Assert.That(_catalog.Personalities.SelectMany(p => p.Loadout).Distinct().Count(), Is.EqualTo(6));
-        foreach (var p in _catalog.Personalities)
-            Assert.That(p.Loadout.Distinct().Count(), Is.EqualTo(3));
-    }
-    [Test] public void CatalogRejectsUnknownDuplicateAndEmptyLoadouts()
-    {
-        _catalog.Personalities[0].Loadout[0] = "not-selectable";
-        Assert.Throws<ArgumentException>(() => _catalog.Validate(id => AISkillCatalog.SkillIds.Contains(id)));
-        _catalog.Personalities[0].Loadout[0] = _catalog.Personalities[0].Loadout[1];
-        Assert.Throws<ArgumentException>(() => _catalog.Validate(id => AISkillCatalog.SkillIds.Contains(id)));
-        _catalog.Personalities[0].Loadout[0] = "";
-        Assert.Throws<ArgumentException>(() => _catalog.Validate(id => AISkillCatalog.SkillIds.Contains(id)));
+        EveryCase.Parts(
+            ("the product catalog uses the selectable pool and five distinct complete loadouts", () =>
+            {
+                Assert.DoesNotThrow(() => _catalog.Validate(id => AISkillCatalog.SkillIds.Contains(id)));
+                Assert.That(AISkillCatalog.Current.Personalities.Length, Is.EqualTo(5), "Runtime repository validation must also succeed.");
+                Assert.That(_catalog.Personalities.SelectMany(p => p.Loadout).Distinct().Count(), Is.EqualTo(6));
+                foreach (var p in _catalog.Personalities)
+                    Assert.That(p.Loadout.Distinct().Count(), Is.EqualTo(3));
+            }),
+            ("the catalog rejects unknown, duplicate and empty loadouts", () =>
+            {
+                SetUp();
+                _catalog.Personalities[0].Loadout[0] = "not-selectable";
+                Assert.Throws<ArgumentException>(() => _catalog.Validate(id => AISkillCatalog.SkillIds.Contains(id)));
+                _catalog.Personalities[0].Loadout[0] = _catalog.Personalities[0].Loadout[1];
+                Assert.Throws<ArgumentException>(() => _catalog.Validate(id => AISkillCatalog.SkillIds.Contains(id)));
+                _catalog.Personalities[0].Loadout[0] = "";
+                Assert.Throws<ArgumentException>(() => _catalog.Validate(id => AISkillCatalog.SkillIds.Contains(id)));
+            }));
     }
     [Test] public void AccelerationNeedsUsableStraightAndNoExistingBoost()
     {
@@ -93,46 +90,113 @@ public class AISkillDecisionTests
         _frame.Racers[1] = Racer(0, 401);
         Assert.That(Evaluate(AISkillKind.Hands).Score, Is.Zero);
     }
-    [TestCase(AISkillKind.Reverse)] [TestCase(AISkillKind.Curtain)]
-    public void VisibleGlobalEffectSuppressesDuplicateOpportunity(AISkillKind kind)
+    [Test] public void VisibleGlobalEffectSuppressesDuplicateOpportunity()
     {
-        Assert.That(Evaluate(kind).Score, Is.GreaterThan(0));
-        _frame.ReverseSeconds = 3; _frame.CurtainSeconds = 3;
-        Assert.That(Evaluate(kind).Score, Is.Zero);
+        EveryCase.Check(new[] { AISkillKind.Reverse, AISkillKind.Curtain }, kind =>
+        {
+            SetUp();
+            Assert.That(Evaluate(kind).Score, Is.GreaterThan(0));
+            _frame.ReverseSeconds = 3; _frame.CurtainSeconds = 3;
+            Assert.That(Evaluate(kind).Score, Is.Zero);
+        }, kind => "kind=" + kind);
     }
-    [TestCase(AISkillKind.Hands)] [TestCase(AISkillKind.Reverse)] [TestCase(AISkillKind.Curtain)]
-    public void TargetIdentityDoesNotChangeOpportunity(AISkillKind kind)
+    [Test] public void TargetIdentityDoesNotChangeOpportunity()
     {
-        var human = Evaluate(kind); _frame.Racers[1].RacerId = 10004;
-        var ai = Evaluate(kind);
-        Assert.That(ai.Score, Is.EqualTo(human.Score)); Assert.That(ai.ValidSeconds, Is.EqualTo(human.ValidSeconds));
-        Assert.That(ai.TargetId, Is.EqualTo(10004));
+        EveryCase.Check(new[] { AISkillKind.Hands, AISkillKind.Reverse, AISkillKind.Curtain }, kind =>
+        {
+            SetUp();
+            var human = Evaluate(kind); _frame.Racers[1].RacerId = 10004;
+            var ai = Evaluate(kind);
+            Assert.That(ai.Score, Is.EqualTo(human.Score)); Assert.That(ai.ValidSeconds, Is.EqualTo(human.ValidSeconds));
+            Assert.That(ai.TargetId, Is.EqualTo(10004));
+        }, kind => "kind=" + kind);
     }
-    [TestCase(AISkillKind.Acceleration)] [TestCase(AISkillKind.Hands)] [TestCase(AISkillKind.Giant)]
-    public void RootAndInactiveRaceGateAllOpportunities(AISkillKind kind)
+    [Test] public void RootAndInactiveRaceGateAllOpportunities()
     {
-        _frame.Racers[0].Rooted = true; Assert.That(Evaluate(kind).Score, Is.Zero);
-        _frame.Racers[0].Rooted = false; _frame.Racers[0].Available = false; Assert.That(Evaluate(kind).Score, Is.Zero);
+        EveryCase.Check(new[] { AISkillKind.Acceleration, AISkillKind.Hands, AISkillKind.Giant }, kind =>
+        {
+            SetUp();
+            _frame.Racers[0].Rooted = true; Assert.That(Evaluate(kind).Score, Is.Zero);
+            _frame.Racers[0].Rooted = false; _frame.Racers[0].Available = false; Assert.That(Evaluate(kind).Score, Is.Zero);
+        }, kind => "kind=" + kind);
     }
-    [Test] public void ShortOpportunityCannotOutliveReactionAndCombo()
+    [Test] public void UtilityGatesOnReactionTimeAndUnifiedBackfireRisk()
     {
-        var p = _catalog.Personalities[1]; var d = _catalog.ForDifficulty(SoloDifficulty.Easy);
-        float value = AISkillDecision.Utility(AISkillKind.Hands, new AISkillOpportunity(1, 2), AISkillSituation.Chasing,
-            p, d, _catalog.Tuning, 0, 1.9f, .6f);
-        Assert.That(float.IsNegativeInfinity(value), Is.True);
+        EveryCase.Parts(
+            ("a short opportunity cannot outlive reaction and combo", () =>
+            {
+                var p = _catalog.Personalities[1]; var d = _catalog.ForDifficulty(SoloDifficulty.Easy);
+                float value = AISkillDecision.Utility(AISkillKind.Hands, new AISkillOpportunity(1, 2), AISkillSituation.Chasing,
+                    p, d, _catalog.Tuning, 0, 1.9f, .6f);
+                Assert.That(float.IsNegativeInfinity(value), Is.True);
+            }),
+            ("Easy ignores risk but Hard stops before a dangerous cast", () =>
+            {
+                var p = _catalog.Personalities[1]; var opportunity = new AISkillOpportunity(1, 6);
+                float easyLow = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p,
+                    _catalog.ForDifficulty(SoloDifficulty.Easy), _catalog.Tuning, 0, 2, 0);
+                float easyHigh = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p,
+                    _catalog.ForDifficulty(SoloDifficulty.Easy), _catalog.Tuning, .95f, 2, 0);
+                Assert.That(easyHigh, Is.EqualTo(easyLow));
+                Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p,
+                    _catalog.ForDifficulty(SoloDifficulty.Hard), _catalog.Tuning, .45f, 2, 0)), Is.True);
+                // A7: the backfire penalty is the same for every skill, so one stop threshold per difficulty applies to all of them.
+                Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Pursued,
+                    _catalog.Personalities[0], _catalog.ForDifficulty(SoloDifficulty.Hard), _catalog.Tuning, .5f, 2, 0)), Is.True);
+                Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Pursued,
+                    _catalog.Personalities[0], _catalog.ForDifficulty(SoloDifficulty.Normal), _catalog.Tuning, .5f, 2, 0)), Is.False);
+                Assert.That(_catalog.ForDifficulty(SoloDifficulty.Hard).StopProbability, Is.LessThan(_catalog.ForDifficulty(SoloDifficulty.Normal).StopProbability));
+            }),
+            ("the risk term is the unified backfire probability times the cost", () =>
+            {
+                var p = _catalog.Personalities[1]; var d = _catalog.ForDifficulty(SoloDifficulty.Hard); var opportunity = new AISkillOpportunity(1, 6);
+                _catalog.Tuning.BackfireCost = 2f;
+                float safe = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p, d, _catalog.Tuning, 0f, 2, 0);
+                float risky = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p, d, _catalog.Tuning, .2f, 2, 0);
+                Assert.That(safe - risky, Is.EqualTo(d.RiskWeight * .2f * 2f).Within(.0001f));
+                float trap = AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Chasing, _catalog.Personalities[0], d, _catalog.Tuning, .2f, 2, 0);
+                float trapSafe = AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Chasing, _catalog.Personalities[0], d, _catalog.Tuning, 0f, 2, 0);
+                Assert.That(trapSafe - trap, Is.EqualTo(safe - risky).Within(.0001f), "Every skill pays the same risk.");
+            }));
     }
-    [Test] public void EasyIgnoresRiskButHardStopsBeforeDangerousCast()
+    private static float ClassifyImpaired(NewBuddah.PredictionV2.Core.BuddahPredictedModifierState m, uint tick, out bool accelerating, out bool slowed)
     {
-        var p = _catalog.Personalities[1]; var opportunity = new AISkillOpportunity(1, 6);
-        float easyLow = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p,
-            _catalog.ForDifficulty(SoloDifficulty.Easy), _catalog.Tuning, 0, 2, 0);
-        float easyHigh = AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p,
-            _catalog.ForDifficulty(SoloDifficulty.Easy), _catalog.Tuning, .95f, 2, 0);
-        Assert.That(easyHigh, Is.EqualTo(easyLow));
-        Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.Acceleration, opportunity, AISkillSituation.Chasing, p,
-            _catalog.ForDifficulty(SoloDifficulty.Hard), _catalog.Tuning, .45f, 2, 0)), Is.True);
-        Assert.That(float.IsNegativeInfinity(AISkillDecision.Utility(AISkillKind.SlowTrap, opportunity, AISkillSituation.Pursued,
-            _catalog.Personalities[0], _catalog.ForDifficulty(SoloDifficulty.Hard), _catalog.Tuning, .5f, 2, 0)), Is.False);
+        AISkillWorld.Classify(in m, tick, 1f / 60f, out accelerating, out slowed, out float impaired);
+        return impaired;
+    }
+    [Test] public void ClassifyReadsImpairmentAndBoostsFromModifiers()
+    {
+        EveryCase.Parts(
+            ("the backfire speed penalty is slowed and impaired", () =>
+            {
+                var m = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { MaxSpeedPenaltyUntilTick = 160, MaxSpeedPenaltyMultiplier = .85f };
+                float impaired = ClassifyImpaired(m, 100, out bool accelerating, out bool slowed);
+                Assert.That(slowed, Is.True); Assert.That(accelerating, Is.False); Assert.That(impaired, Is.EqualTo(1f).Within(.0001f));
+                Assert.That(ClassifyImpaired(m, 160, out _, out slowed), Is.Zero); Assert.That(slowed, Is.False);
+            }),
+            ("the burst is accelerating", () =>
+            {
+                var m = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { BurstUntilTick = 148, BurstDurationTicks = 48, BurstExtraMaxSpeed = 60f };
+                Assert.That(ClassifyImpaired(m, 100, out bool accelerating, out bool slowed), Is.Zero);
+                Assert.That(accelerating, Is.True); Assert.That(slowed, Is.False);
+                m.BurstUntilTick = 100; ClassifyImpaired(m, 100, out accelerating, out _); Assert.That(accelerating, Is.False);
+                var boost = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { AccelUntilTick = 280, AccelExtraForwardForce = 50f, AccelExtraMaxSpeed = 40f };
+                ClassifyImpaired(boost, 100, out accelerating, out slowed); Assert.That(accelerating, Is.True); Assert.That(slowed, Is.False);
+            }),
+            ("root, freeze, invert and slow count but shrinking does not", () =>
+            {
+                var root = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { RootUntilTick = 130, FreezeUntilTick = 190, InvertTurnUntilTick = 160 };
+                Assert.That(ClassifyImpaired(root, 100, out _, out _), Is.EqualTo(1.5f).Within(.0001f));
+                var slow = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { AccelUntilTick = 220, AccelExtraForwardForce = -20f };
+                Assert.That(ClassifyImpaired(slow, 100, out bool accelerating, out bool slowed), Is.EqualTo(2f).Within(.0001f));
+                Assert.That(slowed, Is.True); Assert.That(accelerating, Is.False);
+                // 缩小 has no source after the unified backfire: a small scale is not an impairment any more.
+                var shrunk = new NewBuddah.PredictionV2.Core.BuddahPredictedModifierState { ScaleUntilTick = 400, ScaleMultiplier = .3f };
+                Assert.That(ClassifyImpaired(shrunk, 100, out _, out slowed), Is.Zero); Assert.That(slowed, Is.False);
+                var racer = Racer(0, 100f); racer.Scale = .3f;
+                Assert.That(racer.IsImpaired(.2f), Is.False);
+                racer.Slowed = true; Assert.That(racer.IsImpaired(.2f), Is.True);
+            }));
     }
     [Test] public void OpportunistOnlyGetsBonusWhileStateWillStillExistAtExecution()
     {

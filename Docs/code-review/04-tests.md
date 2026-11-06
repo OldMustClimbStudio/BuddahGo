@@ -407,6 +407,8 @@
 
 ## 6. PR #63 的影响
 
+> 2026-11-06：PR #63 拆成 #74（游戏机制，已合入 dev）和 #75（缘起，未合）。#74 带进 dev 的部分已经按本节和 §4 处理，结果见 §10。#75 的 7 个缘起测试文件等它合入后再过一遍。
+
 - 标 [PR#63] 的 10 个文件：AISkillCommitment、AISkillDecision、AISkillScene、BuddahTickMath、DesignTableRuntime、DesignTable、HandoffClock、MatchRules、PredictionDiagnosticWiring、SoloSessionFlow。本分支版本是 107 个用例，建议做完是 45 个。
 - PR #63 分支里这 10 个文件的版本不一样（例如 AISkillDecision 27 个、MatchRules 11 个、DesignTable 15 个、DesignTableRuntime 8 个），等它合并以后，要在合并后的版本上按 §4 的思路重新下结论，不能直接套这里的行号。
 - 跨文件的合并有三处牵涉 PR#63：
@@ -440,3 +442,59 @@
 
 - `Docs/vfx/retired.md` §3 第 73 行还把 "SkillVfxTests 里测旧 prefab 的两个用例 `PalmPrefab`/`AntiPrefab`" 标成"待删"，但代码里已经没有了（`grep PalmPrefab Assets/Tests` 0 处），§6.1 第 127 行也记了删除。§3 那一行是过期登记，可以改成"已删（见 §6.1）"。确定，低。
 - `Docs/design-tables/inventory-ui.md` §10 列的"会因数值搬进表而失败的测试"，本方案处理了 MatchRules :46（删）和 AISkillDecision :43（去字面量）；SoloSessionFlowTests :127（"玩家"）和 LeaderboardHud、SixRacerResults 的文本格式没动。处理完以后可以更新 §10。
+
+## 10. #74 合入 dev 后的第二轮（2026-11-06，分支 `test/trim-mechanics`）
+
+对象：`origin/dev` @ `ea074713`（#74 游戏机制已合入），`Assets/Tests/EditMode/` 58 个测试文件。计数口径同 §1，`[Test] public void X()` 写在同一行的也算。只动测试代码，没有改生产代码。
+
+| | 用例数 |
+|---|---:|
+| 精简前（`ea074713`） | **428** |
+| 精简后 | **213** |
+| 减少 | −215（50%） |
+| 其中真删（覆盖会少） | 8 |
+| 其中合并（断言全留） | 207 |
+
+真删的 8 个，都属于 §1 的四类：
+- `MatchRulesTests.OnlineRetainsExistingRoomSelectionAndResultPolicies` 和 `SoloRulesRemoveWaitsAndOnlyPracticeEndsOnHumanFinish` ×4：拿字面量比 Match/ModeRule 的表值（§3 #11–15）。代码自己决定的规则留了下来：`IsSolo`、只有 Practice 放训练木桩并在人类到终点时结束，以及联机从不放木桩。这些断言搬进了剩下的表驱动测试。辅助方法 `AssertDeferredFeaturesDisabled` 一起删掉。
+- `DesignTableTests.LocalizedTextRepository_FallsBackToKey`：一行 getter 的回退值（§3 #7）。
+- `PredictionDiagnosticWiringTests.DiagnosticComponentsCannotDrawEvenWithOldSerializedFlags`：断言某个方法不存在（§3 #18）。
+- `AISkillDecisionTests.EvidenceIncludesActualMotorEffectState`：测的是 JsonUtility（§3 #3）。
+
+另外两处跨文件搬动（§3 #4、§4），断言跟着搬，不算删：`AISkillSceneTests.ProductRaceHasActiveTrackDataBeforeAIStarts` 并进 `SplineProgressTrackerTests.SavedRaceMapPositionsDoNotPlateauOrAccumulateCatchup`（那里的 `.Single()` 已经要求恰好 1 条赛道）；`RacerPrefabProvidesExecutorAndDisabledCasterWithoutComboInput` 并进 `SixRacerFoundationTests.SerializedRacerContainsIdentityAndDisabledNormalDriver`。`HandoffClockTests.TranslationSaturatesRatherThanUnsignedWrapping` 并进 `BuddahTickMathTests.ServerTicksTranslateWithSaturation`。
+
+逐文件（只列有变化的 18 个，其余 40 个不变）：
+
+| 测试类 | 前 | 后 | 方式 |
+|---|---:|---:|---|
+| TrainingDummyTests | 34 | 5 | 并：布局、复位时钟、效果、读数 |
+| BuddahPredictedModifierStateOpsTests | 29 | 6 | 并：Apply、EndModifier（支持 / 不支持的目标）、复位、命令数据 |
+| HandoffClockTests | 28 | 8 | 并（受保护）：TestCase 输入表原样搬进数组；Translation 搬到 BuddahTickMath |
+| AISkillDecisionTests | 25 | 14 | 并 + 删 1；三个 AISkillKind 循环每组先 `SetUp()`，跟 NUnit 每个 TestCase 重建夹具一样 |
+| SkillCastRulesTests | 23 | 6 | 并：施法门、反噬掷骰、确认结果、挂起取消、执念加成 |
+| BuddahTickMathTests | 21 | 5 | 并（受保护）：输入表原样搬，多收进 HandoffClock 的 5 行 |
+| BuddahPredictedModifierResolverTests | 18 | 4 | 并；Owner 重放测试单独留着 |
+| InGameHudTests | 17 | 4 | 并：槽位时间线两组、文字格式、字体覆盖 |
+| HandAimMathTests | 16 | 3 | 并：朝向偏移、平滑、限速 |
+| SkillPresentationRulesTests | 15 | 4 | 并：表现标记、反噬标记、动画暂停、UI 事件 |
+| ObsessionBackfireRulesTests | 15 | 3 | 并：概率曲线、执念值、结束 tick |
+| DesignTableTests | 13 | 4 | 并 + 删 1：格式、真实工作簿、校验、导入 |
+| MatchRulesTests | 11 | 2 | 删 5 + 并 |
+| AISkillCommitmentTests | 9 | 4 | 并；回放确定性测试单独留着 |
+| BackfireVariantTests | 8 | 3 | 并：6 行技能 / 变体表原样搬 |
+| AimGroundIndicatorTests | 7 | 2 | 并 |
+| PredictionDiagnosticWiringTests | 3 | 2 | 删 1 |
+| AISkillSceneTests | 3 | 1 | 搬 2 个到同场景 / 同 prefab 的测试 |
+| 合计 | 295 | 80 | |
+
+做法：合并一律用 `EveryCase.Check`（表）或 `EveryCase.Parts`（同一夹具上的几个小测试）。每条断言都保留，失败信息带上这组输入或这一段的名字。每个文件的 `Assert.` 数量都对过：只有真删的那几个、搬走的那几处，以及 TrainingDummy 里几条逐行断言收成表（行数不变）的地方，数量会变。
+
+没做的：
+- `AISkillDecisionTests` 里 "5 种人格 / 6 个技能"，`DesignTableTests` 导出测试里的行数字面量（§4 建议改成和表的行数比）。这些只改断言，不影响用例数，这次没动。
+- `DesignTableRuntimeTests`（6）、`SoloSessionFlowTests`（3）按 §4 全留；#74 新增的输入回归测试 `DriveInputTests`（3）、`HandPushInputTests`（2）每个都要单独驱动一次 Input System 更新，也留着。
+- #75 缘起分支的 7 个测试文件（`Yuanqi*`、`SkillStateBoardCoreTests`），等它合入后按本文规则再过。
+
+检查：
+- 每个提交单独编译：`git archive` 取出提交内容，用 dotnet 和 Unity 生成的 csproj 编译 Runtime / Editor / Tests / Assembly-CSharp-Editor。17 个提交全部通过。
+- 分支末端（`89924a90`）关掉编辑器后跑批处理：配表导入 `DesignTableCli.ImportAndValidate` 为 OK，0 个错误，3 个警告；EditMode `-runTests -testPlatform EditMode` **213/213 通过**，0 失败，0 跳过，`error CS` 0 条。运行器报的数和静态数一致。批处理改写的 `validation.md` 和 `SilverSkin.mat` 已经还原，没有提交。
+- 没跑 Practice / Solo：这次只改测试代码，没有改玩法或 AI 行为。

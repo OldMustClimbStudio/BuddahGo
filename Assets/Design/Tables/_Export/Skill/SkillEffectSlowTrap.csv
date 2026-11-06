@@ -1,6 +1,6 @@
 ##var,skillId,perTargetReapplyCooldown,affectCaster,slowForwardForce,slowMaxSpeed,slowDurationSeconds,extraForwardForce,extraMaxSpeed,accelerationDurationSeconds
 ##type,enum:SkillId#key#ref=Skill.skillId,float,bool,float,float,float,float,float,float
 ##group,,,,,,,,,
-##comment,普通与反噬各一行；空格 = 该行的技能类没有这个字段,普通：同一目标重复施加间隔 s,普通：是否影响施法者,普通：减速力 N,普通：限速削减 m/s,普通：每次减速持续 s,反噬：定身后加速力 N,反噬：定身后额外限速 m/s,反噬：定身后加速持续 s
+##comment,普通与反噬各一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_SlowTrap / Skill_SlowTrap_Anti SO（DesignTableOverlay.Apply）；空格 = 该行的技能类没有这个字段,同一目标重复施加间隔 s（Skill_SlowTrap.perTargetReapplyCooldown）,是否影响施法者（Skill_SlowTrap.affectCaster）,减速力 N（Skill_SlowTrap.slowForwardForce）,限速削减 m/s（Skill_SlowTrap.slowMaxSpeed）,每次减速持续 s（Skill_SlowTrap.slowDurationSeconds）,反噬：定身后加速力 N,反噬：定身后额外限速 m/s,反噬：定身后加速持续 s
 ,slowtrap,0.5,false,40,20,2,,,
 ,slowtrap_anti,,,,,,10,3,2

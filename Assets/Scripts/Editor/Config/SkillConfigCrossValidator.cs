@@ -37,10 +37,11 @@ public static class SkillConfigCrossValidator
             Collect(database.antiSkills, actions, path, results);
             Collect(database.skills, actions, path, results);
 
-            foreach (string id in repository.Skills.Keys)
-                if (!actions.ContainsKey(id))
+            // Hidden rows are never offered or cast, so they need no action.
+            foreach (var pair in repository.Skills)
+                if (!actions.ContainsKey(pair.Key) && !IsHidden(pair.Value))
                     Add(results, ProjectConfigValidationSeverity.Warning, path,
-                        "Config skill '" + id + "' has no action in this SkillDatabase.");
+                        "Config skill '" + pair.Key + "' has no action in this SkillDatabase.");
 
             foreach (var pair in actions)
             {
@@ -49,10 +50,13 @@ public static class SkillConfigCrossValidator
                 string context = path + " -> " + AssetDatabase.GetAssetPath(action);
                 if (repository.TryGet(id, out SkillRecord row))
                 {
-                    Compare(results, context, "cooldownSeconds", action.cooldownSeconds, row.cooldownSeconds);
-                    Compare(results, context, "castLockSeconds", action.castLockSeconds, row.castLockSeconds);
+                    // Anti rows carry no cooldown or obsession gain (a backfire spends the requested skill's cooldown
+                    // and adds no obsession), so only normal skills are compared.
                     if (!string.IsNullOrEmpty(row.antiSkillId) || !string.IsNullOrWhiteSpace(action.antiSkillId))
+                    {
+                        Compare(results, context, "cooldownSeconds", action.cooldownSeconds, row.cooldownSeconds);
                         Compare(results, context, "obsessionGain", action.obsessionGain, row.obsessionGain);
+                    }
                     if (!string.Equals((action.antiSkillId ?? string.Empty).Trim(), (row.antiSkillId ?? string.Empty).Trim(), StringComparison.Ordinal))
                         Add(results, ProjectConfigValidationSeverity.Warning, context,
                             "antiSkillId differs: action='" + action.antiSkillId + "', config='" + row.antiSkillId + "'. Config takes priority when nonempty.");
@@ -63,26 +67,30 @@ public static class SkillConfigCrossValidator
                 else
                     Add(results, ProjectConfigValidationSeverity.Warning, context, "Action id '" + id + "' has no Skill row; runtime uses SkillAction balance values.");
 
-                string anti = string.Empty;
-                string layer = "none";
-                if (repository.TryGetAntiSkillId(id, out string configuredAnti))
+                // The variant a backfire of this skill runs (SkillExecutor.ResolveAntiSkillId order: config, SkillAction, "<id>_anti").
+                if (!id.EndsWith("_anti", StringComparison.Ordinal))
                 {
-                    anti = configuredAnti;
-                    layer = "config";
+                    string anti = string.Empty;
+                    string layer = "none";
+                    if (repository.TryGetAntiSkillId(id, out string configuredAnti))
+                    {
+                        anti = configuredAnti;
+                        layer = "config";
+                    }
+                    else if (!string.IsNullOrWhiteSpace(action.antiSkillId))
+                    {
+                        anti = action.antiSkillId.Trim();
+                        layer = "SkillAction";
+                    }
+                    else if (actions.ContainsKey(id + "_anti"))
+                    {
+                        anti = id + "_anti";
+                        layer = "inferred suffix";
+                    }
+                    Add(results, ProjectConfigValidationSeverity.Info, context, "Anti resolution: " + layer + " -> '" + anti + "'.");
+                    if (anti.Length > 0 && !actions.ContainsKey(anti))
+                        Add(results, ProjectConfigValidationSeverity.Warning, context, "Resolved anti id is absent; a backfire would run no variant.");
                 }
-                else if (!string.IsNullOrWhiteSpace(action.antiSkillId))
-                {
-                    anti = action.antiSkillId.Trim();
-                    layer = "SkillAction";
-                }
-                else if (actions.ContainsKey(id + "_anti"))
-                {
-                    anti = id + "_anti";
-                    layer = "inferred suffix";
-                }
-                Add(results, ProjectConfigValidationSeverity.Info, context, "Anti resolution: " + layer + " -> '" + anti + "'.");
-                if (anti.Length > 0 && !actions.ContainsKey(anti))
-                    Add(results, ProjectConfigValidationSeverity.Warning, context, "Resolved anti id is absent; runtime would fall back to the normal skill.");
 
                 using var serializedAction = new SerializedObject(action);
                 SerializedProperty vfx = serializedAction.FindProperty("vfxId");
@@ -106,8 +114,14 @@ public static class SkillConfigCrossValidator
                 else if (id == "push_projectile_hands_anti")
                     CompareMapped(results, context, action, Find(config.pushes, "charged_anti"), SkillDatabase.PushChargedAntiMap);
             }
+
         }
         return results;
+    }
+
+    private static bool IsHidden(SkillRecord row)
+    {
+        return row != null && string.Equals((row.unlockState ?? string.Empty).Trim(), "hidden", StringComparison.OrdinalIgnoreCase);
     }
 
     private static PushRecord Find(List<PushRecord> rows, string pushId)

@@ -266,6 +266,11 @@
             "sourceGuid": "159158a03c7689947a6777c097a15fb5"
         },
         {
+            "copy": "Assets/VFX/Shared/Piloto/Textures/FX_Ring_01_T.png",
+            "source": "Assets/Piloto Studio/Textures/FX_Ring_01_T.png",
+            "sourceGuid": "02353f5bf14c5824c9de12b866d31837"
+        },
+        {
             "copy": "Assets/VFX/Shared/Piloto/Textures/FX_TX_HorizontalGradient_04.jpg",
             "source": "Assets/Piloto Studio/Textures/FX_TX_HorizontalGradient_04.jpg",
             "sourceGuid": "25216b36afff8e9469847c2a25528701"
@@ -314,6 +319,11 @@
             "copy": "Assets/VFX/Shared/Piloto/Textures/Gradient_maker_simple_round_radial.png",
             "source": "Assets/Piloto Studio/Textures/Gradient_maker_simple_round_radial.png",
             "sourceGuid": "c9c8818f6800d894481529f04e5d3b7c"
+        },
+        {
+            "copy": "Assets/VFX/Shared/Piloto/Textures/GroundCrack_RadialPostExplody.png",
+            "source": "Assets/Piloto Studio/Textures/GroundCrack_RadialPostExplody.png",
+            "sourceGuid": "5d382d984aaa0894d86c75a06ec17a2a"
         },
         {
             "copy": "Assets/VFX/Shared/Piloto/Textures/Halo_Faded.png",

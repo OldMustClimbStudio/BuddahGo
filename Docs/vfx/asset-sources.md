@@ -57,8 +57,9 @@
 | `Meshes/Jarshapedtube2.fbx` | `Models/Jarshapedtube2.fbx` | VFX_Common_Cast_Anti |
 | `Meshes/vfxm_Fan_Full.fbx` | `Models/vfxm_Fan_Full.fbx` | VFX_Reverse_Hit、VFX_Curtain_Eye、VFX_Curtain_Eye_Anti |
 | `Shaders/Piloto Warp.shadergraph` | `Shaders_Reforged/Piloto Warp.shadergraph` | VFX_Accel_Release、VFX_GiantCharge_Release |
-| `Textures/CrystalNoise.png` | `Textures/CrystalNoise.png` | VFX_Accel_Release、VFX_GiantCharge_Release |
+| `Textures/CrystalNoise.png` | `Textures/CrystalNoise.png` | VFX_Accel_Release、VFX_GiantCharge_Release、VFX_FrostLock_Release、VFX_FrostLock_Hit |
 | `Textures/Diagonal_RedFlare.png` | `Textures/Diagonal_RedFlare.png` | （当前没有特效在用） |
+| `Textures/FX_Ring_01_T.png` | `Textures/FX_Ring_01_T.png` | VFX_FrostLock_Release |
 | `Textures/FX_TX_HorizontalGradient_04.jpg` | `Textures/FX_TX_HorizontalGradient_04.jpg` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_Reverse_Hit、VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_Common_Cast_Anti |
 | `Textures/Flare_Glowdot.png` | `Textures/Flare_Glowdot.png` | VFX_Reverse_Hit |
 | `Textures/Fuzzball_Clamped.tga` | `Textures/Fuzzball_Clamped.tga` | VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_Common_Cast_Anti |
@@ -68,13 +69,14 @@
 | `Textures/Gradient_Quad03.png` | `Textures/Gradient_Quad03.png` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_Common_Cast_Anti |
 | `Textures/Gradient_maker_Noise_X_Cut_Left.png` | `Textures/Gradient_maker_Noise_X_Cut_Left.png` | VFX_Common_Cast、VFX_Common_Cast_Anti |
 | `Textures/Gradient_maker_double_Fade_tappered.png` | `Textures/Gradient_maker_double_Fade_tappered.png` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_Reverse_Hit、VFX_Slow_Release、VFX_Accel_Release、VFX_GiantCharge_Release、VFX_Common_Cast、VFX_Common_Cast_Anti |
-| `Textures/Gradient_maker_simple_round_radial.png` | `Textures/Gradient_maker_simple_round_radial.png` | VFX_Reverse_Hit、VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_Common_Cast_Anti |
+| `Textures/Gradient_maker_simple_round_radial.png` | `Textures/Gradient_maker_simple_round_radial.png` | VFX_Reverse_Hit、VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_FrostLock_Release、VFX_Common_Cast_Anti |
+| `Textures/GroundCrack_RadialPostExplody.png` | `Textures/GroundCrack_RadialPostExplody.png` | VFX_FrostLock_Release |
 | `Textures/Halo_Faded.png` | `Textures/Halo_Faded.png` | VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_Common_Cast_Anti |
 | `Textures/Ink splat smudged 1 or somethingidk.png` | `Textures/Ink splat smudged 1 or somethingidk.png` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_GiantCharge_Release |
 | `Textures/LightFlash.png` | `Textures/LightFlash.png` | VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_Accel_Release、VFX_GiantCharge_Release |
 | `Textures/Liquid_smudge_pb_1.png` | `Textures/Liquid_smudge_pb_1.png` | VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_Common_Cast_Anti |
 | `Textures/Liquid_smudge_pb_3.png` | `Textures/Liquid_smudge_pb_3.png` | VFX_Slow_Release |
-| `Textures/Noise_TilingSoftWebbing.png` | `Textures/Noise_TilingSoftWebbing.png` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_GiantCharge_Release、VFX_Common_Cast_Anti |
+| `Textures/Noise_TilingSoftWebbing.png` | `Textures/Noise_TilingSoftWebbing.png` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_GiantCharge_Release、VFX_FrostLock_Hit、VFX_Common_Cast_Anti |
 | `Textures/OffsetLine_Warped2.tga` | `Textures/OffsetLine_Warped2.tga` | VFX_Slow_Release、VFX_Accel_Release、VFX_GiantCharge_Release |
 | `Textures/PearlyRainbowNoise.png` | `Textures/PearlyRainbowNoise.png` | VFX_Slow_Release、VFX_Accel_Release、VFX_GiantCharge_Release |
 | `Textures/Pulse_floor_1_color.png` | `Textures/Pulse_floor_1_color.png` | VFX_GiantCharge_Release |
@@ -103,7 +105,7 @@
 | `Textures/Tx_Noise_09.png` | `Textures/Tx_Noise_09.png` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_Slow_Release、VFX_Common_Cast_Anti |
 | `Textures/Tx_Noise_12.png` | `Textures/Tx_Noise_12.png` | VFX_Accel_Release、VFX_GiantCharge_Release、VFX_Common_Cast_Anti |
 | `Textures/Tx_Noise_17.png` | `Textures/Tx_Noise_17.png` | VFX_GiantCharge_Release |
-| `Textures/Tx_Noise_20.png` | `Textures/Tx_Noise_20.png` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_Reverse_Hit、VFX_Slow_Release、VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_Accel_Release、VFX_GiantCharge_Release、VFX_Common_Cast、VFX_Common_Cast_Anti |
+| `Textures/Tx_Noise_20.png` | `Textures/Tx_Noise_20.png` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_Reverse_Hit、VFX_Slow_Release、VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_Accel_Release、VFX_GiantCharge_Release、VFX_FrostLock_Release、VFX_FrostLock_Hit、VFX_Common_Cast、VFX_Common_Cast_Anti |
 | `Textures/Tx_Noise_29.png` | `Textures/Tx_Noise_29.png` | （当前没有特效在用） |
 | `Textures/Tx_Noise_37.png` | `Textures/Tx_Noise_37.png` | VFX_Reverse_Hit |
 | `Textures/Tx_Slash_07.png` | `Textures/Tx_Slash_07.png` | VFX_Reverse_Hit |

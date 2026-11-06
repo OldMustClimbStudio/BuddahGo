@@ -875,7 +875,7 @@ public static class MenuTitleHomeBuilder
         page.SetJoin(doorMenu, join, cells.ToArray(), lines.ToArray(), codeField, rooms.ToArray(), joinHint);
         page.SetLobby(lobbyGroup, null, roomInfo, (RectTransform)seats.transform, sand.rectTransform, leave, lobbyItems.ToArray(), start, notice,
             GameObject.Find("TEMP_RoomPanel"),
-            new[] { GameObject.Find("TEMP_RoomLeaveButton"), GameObject.Find("TEMP_LobbyCount"), GameObject.Find("TEMP_RopeHint") });
+            new[] { GameObject.Find("TEMP_RoomLeaveButton"), GameObject.Find("TEMP_RopeHint") });
         page.SetSolo(soloGroup, difficulty.ToArray(), difficultyInk.rectTransform, startText, startNote, spinner, practice);
         return page;
     }

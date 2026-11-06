@@ -31,7 +31,7 @@ namespace SteamMultiplayer.UI
     /// the host leaving with guests in the room is asked first (解散 / 留下). Back from a match while still in the room
     /// (the Steam lobby is kept), the menu skips its opening and walks straight into the hall.
     /// Seat labels sit on a dark backing. The bell rope's pull hint is built in the same style (the builder hands it to the
-    /// rope). Hides the TEMP door panel, the TEMP rope hint, the TEMP leave button and player count (the TEMP 模拟加入 / 模拟退出 stay for testing).
+    /// rope). Hides the TEMP door panel, the TEMP rope hint and the TEMP leave button.
     /// Built by Assets/Editor/UI/MenuTitleHomeBuilder.cs.
     /// </summary>
     [DisallowMultipleComponent]

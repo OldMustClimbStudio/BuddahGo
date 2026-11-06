@@ -1669,9 +1669,11 @@ namespace BuddahGo.AI
 
             var shot = new ShotResult();
             yield return FireChargedShot(shot);
-            Check("charged impulse = strength x current scale", shot.Found && Mathf.Abs(shot.Impulse - shot.Strength * shot.Scale) <= shot.Strength * shot.Scale * 0.02f,
+            Check("charged impulse = strength x current palm multiplier", shot.Found && Mathf.Abs(shot.Impulse - shot.Strength * shot.Scale) <= shot.Strength * shot.Scale * 0.02f,
                 shot.Found ? F(shot.Strength) + " x " + F(shot.Scale) + " = " + F(shot.Strength * shot.Scale) + " ±2%" : "a charged projectile",
                 shot.Found ? F(shot.Impulse) + " (follows=" + shot.Follows + ")" : "no projectile (push accepted=" + shot.Requested + ")");
+            Check("giant palm hitbox = base x palm multiplier (x2 at the full giant)", shot.Found && Mathf.Abs(shot.Scale - 2f) <= 0.05f && Mathf.Abs(shot.SizeY - shot.BaseSizeY * shot.Scale) <= shot.BaseSizeY * 0.02f,
+                "palm x2, height " + F(shot.BaseSizeY * 2f), "palm x" + F(shot.Scale) + ", height " + F(shot.SizeY) + " (base " + F(shot.BaseSizeY) + ")");
 
             yield return UntilClock(() => !BoardActive("giant"), 8f);
             yield return Until(() => !_hands.ImpulseFollowsScale, 0.5f);
@@ -1683,6 +1685,8 @@ namespace BuddahGo.AI
             Check("charged impulse back to the base strength", shot2.Found && Mathf.Abs(shot2.Impulse - shot2.Strength) <= shot2.Strength * 0.01f,
                 shot2.Found ? F(shot2.Strength) + " ±1%" : "a charged projectile",
                 shot2.Found ? F(shot2.Impulse) + " (scale " + F(shot2.Scale) + ", follows=" + shot2.Follows + ")" : "no projectile (push accepted=" + shot2.Requested + ")");
+            Check("normal palm hitbox = base (half the old size)", shot2.Found && Mathf.Abs(shot2.SizeY - shot2.BaseSizeY) <= shot2.BaseSizeY * 0.02f,
+                "height " + F(shot2.BaseSizeY), "height " + F(shot2.SizeY) + " (palm x" + F(shot2.Scale) + ")");
 
             // Leg 2, the other order of "after either ends it is false": push_projectile_hands ends first while the
             // giant still runs. Natural timings, no reflection on the buffs: the giant is requested when the push board
@@ -1755,8 +1759,12 @@ namespace BuddahGo.AI
                         continue; // the observer visual has no attacker
                     result.Found = true;
                     result.Impulse = Get<Vector3>(projectile, "_impulse").magnitude;
-                    result.Scale = scale != null ? Mathf.Max(0.1f, scale.CurrentScaleMultiplier) : 1f;
+                    // #1 follows the palm multiplier (PalmSizeRule: giant x2), not the body scale (x4); user 2026-11-06.
+                    result.Scale = scale != null ? scale.CurrentPalmSizeMultiplier : 1f;
                     result.Follows = _hands.ImpulseFollowsScale;
+                    BoxCollider box = projectile.GetComponent<BoxCollider>();
+                    result.SizeY = box != null ? box.size.y : 0f;
+                    result.BaseSizeY = Get<Vector3>(_hands, "_projectileColliderSizeServer").y * GetF(_hands, "_projectileSizeMultiplierServer");
                     yield break;
                 }
             }
@@ -2660,6 +2668,8 @@ namespace BuddahGo.AI
         {
             public bool Requested, Found, Follows;
             public float Impulse, Strength, Scale = 1f;
+            // Hitbox height of the shot and the base it should be: table colliderSize.y x Push sizeMultiplier (user 2026-11-06).
+            public float SizeY, BaseSizeY;
         }
 
         // T (Time.time) for Time.time mechanics (cooldowns, surcharge window, confirm delay, dummy reset, impact arm

@@ -16,7 +16,7 @@ MonoBehaviour:
   - id: baiyu
     displayName: "白玉"
     line: "温润如玉　静而不争"
-    material: {fileID: 0}
+    material: {fileID: -876546973899608171, guid: 5e3587d637270a740a4370872f3db4d2, type: 3}
     nameArt: {fileID: 21300000, guid: c5d7df0508cc4644b9e12acc49acf128, type: 3}
   - id: yinshen
     displayName: "银身"

@@ -375,6 +375,7 @@
         {
             "skillId": "giant",
             "scaleMultiplier": 4.0,
+            "palmSizeMultiplier": 2.0,
             "shrinkDurationSeconds": 0.3499999940395355,
             "growDurationSeconds": 0.3499999940395355,
             "massMultiplier": 3.0,
@@ -384,6 +385,7 @@
         {
             "skillId": "giant_anti",
             "scaleMultiplier": 0.30000001192092898,
+            "palmSizeMultiplier": 0.5,
             "shrinkDurationSeconds": 0.25,
             "growDurationSeconds": 0.0,
             "massMultiplier": 0.0,
@@ -413,6 +415,7 @@
                 "y": 0.0,
                 "z": 0.0
             },
+            "sizeMultiplier": 0.0,
             "hitTurnTorqueImpulse": 0.0
         },
         {
@@ -436,6 +439,7 @@
                 "y": 90.0,
                 "z": 20.0
             },
+            "sizeMultiplier": 0.5,
             "hitTurnTorqueImpulse": 0.0
         },
         {
@@ -459,6 +463,7 @@
                 "y": 50.0,
                 "z": 20.0
             },
+            "sizeMultiplier": 0.5,
             "hitTurnTorqueImpulse": 50.0
         }
     ],

@@ -310,6 +310,7 @@ MonoBehaviour:
   skillEffectGiants:
   - skillId: giant
     scaleMultiplier: 4
+    palmSizeMultiplier: 2
     shrinkDurationSeconds: 0.35
     growDurationSeconds: 0.35
     massMultiplier: 3
@@ -317,6 +318,7 @@ MonoBehaviour:
     restoreDurationSeconds: 0
   - skillId: giant_anti
     scaleMultiplier: 0.3
+    palmSizeMultiplier: 0.5
     shrinkDurationSeconds: 0.25
     growDurationSeconds: 0
     massMultiplier: 0
@@ -339,6 +341,7 @@ MonoBehaviour:
     projectileCount: 0
     projectileSpacing: 0
     colliderSize: {x: 0, y: 0, z: 0}
+    sizeMultiplier: 0
     hitTurnTorqueImpulse: 0
   - pushId: charged
     rotationSpeedDegPerSec: 0
@@ -356,6 +359,7 @@ MonoBehaviour:
     projectileCount: 0
     projectileSpacing: 0
     colliderSize: {x: 60, y: 90, z: 20}
+    sizeMultiplier: 0.5
     hitTurnTorqueImpulse: 0
   - pushId: charged_anti
     rotationSpeedDegPerSec: 0
@@ -373,6 +377,7 @@ MonoBehaviour:
     projectileCount: 5
     projectileSpacing: 30
     colliderSize: {x: 60, y: 50, z: 20}
+    sizeMultiplier: 0.5
     hitTurnTorqueImpulse: 50
   obsessions:
   - profileId: default

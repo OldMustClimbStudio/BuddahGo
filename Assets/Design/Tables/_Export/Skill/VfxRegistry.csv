@@ -17,3 +17,5 @@
 ,reverse_release,Assets/VFX/转向反转/Release/VFX_Reverse_Release.prefab,false,false,false,true,reverseturn（释放插槽，施法者身上，Skill_ReverseTurn.vfxId）,,,,,,,,,,,,
 ,curtain_release,Assets/VFX/一念光明/Release/VFX_Curtain_Release.prefab,false,false,false,true,blackcurtain（释放插槽，施法者身上，Skill_BlackCurtain.releaseVfxId）,,,,,,,,,,,,
 ,giant_charge_release,Assets/VFX/金足破阵/Release/VFX_GiantCharge_Release.prefab,false,false,false,true,yuanqi giant_charge（缘起金足破阵：后喷 + 墨路，Yuanqi_GiantCharge.vfxId，突进 burstSeconds）,,,,,,,,,,,,
+,frost_lock_release,Assets/VFX/禅足冰封/Release/VFX_FrostLock_Release.prefab,false,false,false,true,yuanqi frost_lock（缘起禅足冰封：施法者脚下的冰面，Yuanqi_FrostLock.vfxId，冻结 freezeSeconds）,,,,,,,,,,,,
+,frost_lock_hit,Assets/VFX/禅足冰封/Hit/VFX_FrostLock_Hit.prefab,false,false,false,true,yuanqi frost_lock（缘起禅足冰封：被冻住的人身上的冰块，FrozenIceShell.VfxId，冻结剩余秒数）,,,,,,,,,,,,

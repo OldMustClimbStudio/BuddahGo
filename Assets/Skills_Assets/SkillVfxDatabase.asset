@@ -56,3 +56,9 @@ MonoBehaviour:
   - vfxId: giant_charge_release
     prefab: {fileID: 6122481144441784420, guid: 7e649dd0e43d1044fa68621e3b528e06,
       type: 3}
+  - vfxId: frost_lock_release
+    prefab: {fileID: 4982837049716789308, guid: 62ada0d9a3a6cd7459fccaaa93d13607,
+      type: 3}
+  - vfxId: frost_lock_hit
+    prefab: {fileID: 8475670315883245797, guid: 741aba0e72c3f464fa6788e286351209,
+      type: 3}

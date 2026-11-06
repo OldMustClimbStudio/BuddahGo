@@ -33,7 +33,7 @@ cd BuddahGo
 git lfs pull
 ```
 
-用指定 Unity 版本打开项目，等待包解析和资源导入。保留 `Assets/`、`Packages/`、`ProjectSettings/`；`Library/` 等缓存由 Unity 生成。构建场景为 `MainMenu`、`PropertySelection`、`RaceMap`。
+用指定 Unity 版本打开项目，等待包解析和资源导入。保留 `Assets/`、`Packages/`、`ProjectSettings/`；`Library/` 等缓存由 Unity 生成。构建场景为 `MenuEnvironmentSetting`（主菜单）和 `RaceMap`。
 
 ## 代码地图
 

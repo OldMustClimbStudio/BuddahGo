@@ -33,7 +33,7 @@
     -testResults '<worktree>/Logs/<topic>/editmode.xml' -logFile '<worktree>/Logs/<topic>/editmode.log'
   ```
 
-- 训练模式验证：编辑器打开 `Assets/Scenes/MainMenu.unity`，进入 Play 并停在主菜单，执行菜单 `Tools/Mechanics/Run Practice Verification`，或用 `execute_code` 调 `BuddahGo.AI.MechanicsPracticeHarness.Begin(dir)`。之后轮询 `MechanicsPracticeHarness.Status`、`IsRunning`、`Summary`，或用菜单 `Tools/Mechanics/Log Practice Verification Status` 打到 Console。菜单运行的报告写在 `Logs/mechanics-practice/<时间戳>/`（`Logs/` 不进版本库），完整步骤见[训练模式验证记录](gameplay/practice-verification.md#重跑方法)。
+- 训练模式验证：编辑器打开 `Assets/Scenes/MenuEnvironmentSetting.unity`，进入 Play 并停在主菜单，执行菜单 `Tools/Mechanics/Run Practice Verification`，或用 `execute_code` 调 `BuddahGo.AI.MechanicsPracticeHarness.Begin(dir)`。之后轮询 `MechanicsPracticeHarness.Status`、`IsRunning`、`Summary`，或用菜单 `Tools/Mechanics/Log Practice Verification Status` 打到 Console。菜单运行的报告写在 `Logs/mechanics-practice/<时间戳>/`（`Logs/` 不进版本库），完整步骤见[训练模式验证记录](gameplay/practice-verification.md#重跑方法)。
 
 ## 配置说明
 

@@ -1,5 +1,7 @@
 # 配表筛查清单：比赛规则、赛道、大厅房间、流程时长、属性选择、开场、身份与文案
 
+> **已被取代（2026-11-06）。** `PropertySelection` 场景和旧 `MainMenu` 场景已退役：地图、技能、皮肤在新菜单 `MenuEnvironmentSetting` 里选，开局直接进赛道。见 [菜单接入](../ui/menu-integration.md) 和 [退役记录](../ui/retired.md)。下文是当时的记录，保留作证据。
+
 筛查日期 2026-10-12，基线 dev 9ff6338。本文件只做盘点，不含实现。总览与跨域结论见 [README.md](README.md)。
 
 > 2026-10-26 玩法深化之后（代码 0dbc551），下列基线说法不再完整，原文保留：表 1 的 `IMatchRules` 多了 `SpawnTrainingDummies`（Online 为 false，Solo 为 `_aiCount == 0`，即 Practice），训练木桩配置见表 1 末尾；「排除（工程参数）」一节的 `PredictionProtocol.Version` 现为 2（`Network/PredictionProtocol.cs`，`Global/StructuralConstant.prediction_protocol_version` 同步为 2）。

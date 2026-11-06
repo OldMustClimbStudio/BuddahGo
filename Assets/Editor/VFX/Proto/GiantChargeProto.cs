@@ -74,15 +74,10 @@ namespace BuddahGo.VFX.EditorTools
 
                 SkillVfxLayer blast = NewLayer(scaled, BlastLayer, SkillVfxFunction.Flash, false);
                 GameObject wave = Copy(accel.transform.Find(AccelBlast).gameObject, blast.transform, BlastPosition, Vector3.zero, Vector3.one * BlastScale);
-                // The pack root emits invisible 5 s particles that would keep the slot alive; its children are the effect.
-                var waveRoot = wave.GetComponent<ParticleSystem>();
-                if (waveRoot != null)
-                {
-                    ParticleSystem.EmissionModule emission = waveRoot.emission;
-                    emission.enabled = false;
-                    ParticleSystem.MainModule main = waveRoot.main;
-                    main.loop = false;
-                }
+                // The pack's group roots draw nothing (the blast root even emits invisible 5 s particles that would keep
+                // the slot alive); the layer plays every system itself, so the groups become plain transforms.
+                StripEmitter(wave);
+                StripEmitter(wave.transform.Find("Burst").gameObject);
 
                 SkillVfxLayer route = NewLayer(scaled, RouteLayer, SkillVfxFunction.Decal, true);
                 GameObject sweep = Copy(pack.transform.Find("Pulses").gameObject, route.transform, new Vector3(0f, 0.2f, 0f), new Vector3(0f, 90f, 0f), SweepScale);
@@ -93,6 +88,8 @@ namespace BuddahGo.VFX.EditorTools
                 slab.name = "Slab (Frontal Pulses ink floor)";
                 KeepOnly(slab, new HashSet<string> { SlabSystem });
                 EmitOnce(slab, SlabSpeed);
+                StripEmitter(sweep);
+                StripEmitter(slab);
 
                 foreach (ParticleSystem ps in root.GetComponentsInChildren<ParticleSystem>(true))
                 {
@@ -153,6 +150,16 @@ namespace BuddahGo.VFX.EditorTools
                     drop.Add(t.gameObject);
             foreach (GameObject go in drop)
                 Object.DestroyImmediate(go);
+        }
+
+        static void StripEmitter(GameObject group)
+        {
+            var renderer = group.GetComponent<ParticleSystemRenderer>();
+            var system = group.GetComponent<ParticleSystem>();
+            if (system != null)
+                Object.DestroyImmediate(system);
+            if (renderer != null)
+                Object.DestroyImmediate(renderer);
         }
 
         // One pulse per trigger: the pack loops its pulses every 1-1.5 s.

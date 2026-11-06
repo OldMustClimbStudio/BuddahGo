@@ -39,7 +39,7 @@
 | `Materials/Tree_pulse_floor_ink_1_alpha.mat` | `Materials/ARPG Ink/Tree_pulse_floor_ink_1_alpha.mat` | VFX_GiantCharge_Release |
 | `Materials/bamboo_leaf_alpha_soft.mat` | `Materials/ARPG Ying Yang/bamboo_leaf_alpha_soft.mat` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_Curtain_Eye、VFX_Curtain_Eye_Anti、VFX_Common_Cast、VFX_Common_Cast_Anti |
 | `Materials/ink_short_Dark_Shockwave_05_Distorted_alpha.mat` | `Materials/ARPG Ink/ink_short_Dark_Shockwave_05_Distorted_alpha.mat` | VFX_GiantCharge_Release |
-| `Materials/mat_Empty.mat` | `Materials/Shared/mat_Empty.mat` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_Reverse_Hit、VFX_Slow_Release、VFX_Accel_Release、VFX_GiantCharge_Release、VFX_Common_Cast、VFX_Common_Cast_Anti |
+| `Materials/mat_Empty.mat` | `Materials/Shared/mat_Empty.mat` | VFX_Palm_Release、VFX_Palm_Release_Anti、VFX_Reverse_Hit、VFX_Slow_Release、VFX_Accel_Release、VFX_Common_Cast、VFX_Common_Cast_Anti |
 | `Materials/yy_1_symbol_alpha_soft.mat` | `Materials/ARPG Ying Yang/yy_1_symbol_alpha_soft.mat` | VFX_Reverse_Hit、VFX_Curtain_Eye、VFX_Curtain_Eye_Anti |
 | `Materials/yy_2_symbol_alpha_soft.mat` | `Materials/ARPG Ying Yang/yy_2_symbol_alpha_soft.mat` | VFX_Common_Cast_Anti |
 | `Materials/yy_3_symbol_alpha_soft.mat` | `Materials/ARPG Ying Yang/yy_3_symbol_alpha_soft.mat` | （当前没有特效在用） |

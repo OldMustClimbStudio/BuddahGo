@@ -10,7 +10,7 @@ namespace SteamMultiplayer.Network
     /// </summary>
     internal sealed class MatchLoadoutResolver
     {
-        // Last resort when neither the skill table nor the database lists fallbacks (PropertiesSelectionManager's old default).
+        // Last resort when neither the skill table nor the database lists fallbacks (the retired selection scene's default).
         private static readonly string[] LegacyFallbackSkillIds = { "acceleration", "push_projectile_hands", "blackcurtain" };
 
         private readonly HashSet<string> _selectable = new HashSet<string>();

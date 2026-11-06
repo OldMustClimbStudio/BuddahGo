@@ -7,8 +7,6 @@ namespace BuddahGo.Match
         public bool IsSolo => false;
         public bool AutoStartRoom => R?.autoStartRoom ?? false;
         public bool RequiresReady => R?.requiresReady ?? true;
-        public bool SelectionTimeoutEnabled => R?.selectionTimeoutEnabled ?? true;
-        public bool SkipMapVote => R?.skipMapVote ?? false;
         public bool VoteOnResults => R?.voteOnResults ?? true;
         public bool ResultDecisionTimeoutEnabled => R?.resultDecisionTimeoutEnabled ?? true;
         public MatchReturnTarget ReturnTarget => R != null && R.returnTarget == "MainMenuHome" ? MatchReturnTarget.MainMenuHome : MatchReturnTarget.Room;

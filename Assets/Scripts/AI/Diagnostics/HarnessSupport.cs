@@ -36,32 +36,55 @@ namespace BuddahGo.AI
         }
     }
 
-    // Drives an idle MainMenu into a Solo race the way a player would: start the host, submit the first three
-    // loadout options, then the first skin. Stage 3 means every selection has been submitted.
+    // Drives an idle menu into a Solo race the way a player would: the loadout goes into the saved menu pick
+    // (LocalMatchSelection), the solo host starts and the room carries the pick into the race. Once the room has
+    // moved on, the player's own saved pick is put back. Stage 2 means the race is loading.
     internal sealed class SoloHarnessFlow
     {
         public int Stage { get; private set; }
-        public bool Advance(int aiCount, SoloDifficulty difficulty, Action<string[]> loadoutSubmitted)
+        public string[] Submitted { get; private set; }
+        public string Note { get; private set; }
+        private string[] _playerSkills;
+
+        /// <param name="loadout">Skill ids to race with; null or not selectable uses the first three selectable skills.</param>
+        public bool Advance(SoloMatchSettings settings, string[] loadout, Action<string[]> loadoutSubmitted = null)
         {
             if (Stage == 0 && SessionControl.Current != null)
             {
-                if (!SessionControl.Current.StartSoloHost(new SoloMatchSettings(aiCount, difficulty)))
+                string[] offered = SelectableSkills();
+                string[] ids = loadout;
+                if (ids == null || ids.Length < SkillLoadout.SlotCount || ids.Any(id => !offered.Contains(id)) || ids.Distinct().Count() != ids.Length)
+                {
+                    if (loadout != null)
+                        Note = "requested loadout [" + string.Join(",", loadout) + "] not selectable (selectable: "
+                               + string.Join(",", offered) + "); used the first three selectable skills";
+                    ids = offered.Take(SkillLoadout.SlotCount).ToArray();
+                }
+                _playerSkills = LocalMatchSelection.Skills;
+                LocalMatchSelection.SetSkills(ids);
+                if (!SessionControl.Current.StartSoloHost(settings))
+                {
+                    LocalMatchSelection.SetSkills(_playerSkills);
                     throw new InvalidOperationException(SessionControl.Current.LastError);
+                }
+                Submitted = ids;
+                loadoutSubmitted?.Invoke(ids);
                 Stage = 1;
             }
-            var selection = PropertiesSelectionManager.Instance;
-            if (Stage == 1 && selection != null && selection.IsClientInitialized && selection.IsStageCountdownActive
-                && selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkillLoadoutStageKey)
+            RoomStateManager room = RoomStateManager.Instance;
+            if (Stage == 1 && room != null && room.IsClientInitialized && room.CurrentMatchSessionPhase != MatchSessionPhase.InRoom)
             {
-                var ids = selection.GetOptionsForProperty(PropertiesSelectionManager.SkillLoadoutStageKey).Take(3).Select(o => o.OptionId).ToArray();
-                selection.SubmitSkillLoadoutSelection(ids); Stage = 2; loadoutSubmitted?.Invoke(ids);
+                LocalMatchSelection.SetSkills(_playerSkills);
+                Stage = 2;
             }
-            if (Stage == 2 && selection != null && selection.CurrentStagePropertyKey == PropertiesSelectionManager.SkinStageKey)
-            {
-                var options = selection.GetOptionsForProperty(PropertiesSelectionManager.SkinStageKey);
-                if (options.Count > 0) { selection.SubmitPlayerSelection(PropertiesSelectionManager.SkinStageKey, options[0].OptionId); Stage = 3; }
-            }
-            return Stage >= 3;
+            return Stage >= 2;
+        }
+
+        private static string[] SelectableSkills()
+        {
+            SkillDatabase database = Resources.FindObjectsOfTypeAll<SkillDatabase>().FirstOrDefault();
+            return database == null ? Array.Empty<string>()
+                : database.BuildSelectableSkillOptions().Where(o => o.IsUnlocked).Select(o => o.OptionId).ToArray();
         }
     }
 }

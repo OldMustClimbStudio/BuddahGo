@@ -9,8 +9,6 @@ namespace BuddahGo.Match
         bool IsSolo { get; }
         bool AutoStartRoom { get; }
         bool RequiresReady { get; }
-        bool SelectionTimeoutEnabled { get; }
-        bool SkipMapVote { get; }
         bool VoteOnResults { get; }
         bool ResultDecisionTimeoutEnabled { get; }
         MatchReturnTarget ReturnTarget { get; }

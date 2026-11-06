@@ -163,6 +163,10 @@ namespace BuddahGo.Tests
             try
             {
                 track=scene.GetRootGameObjects().SelectMany(x=>x.GetComponentsInChildren<TrackSplineRef>(true)).Single();
+                // Moved from AISkillSceneTests: the single track must be active before AI starts.
+                Assert.That(track.gameObject.activeInHierarchy, Is.True, "The race cannot steer or report progress without an active MapPathLine.");
+                Assert.That(track.container, Is.Not.Null);
+                Assert.That(track.container.Spline.Count, Is.GreaterThan(3));
                 typeof(TrackSplineRef).GetMethod("Awake",Flags).Invoke(track,null);
                 ApplyPrefabSettings();
                 var rows=File.ReadAllLines(Path.Combine(Application.dataPath, "../Tools/tracker/fixtures/stall-entry.jsonl")).Select(JsonUtility.FromJson<Replay>).ToArray();

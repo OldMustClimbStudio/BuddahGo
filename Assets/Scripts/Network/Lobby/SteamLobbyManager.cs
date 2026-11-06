@@ -23,6 +23,7 @@ namespace SteamMultiplayer.Network
     {
         public ulong LobbyId;
         public string LobbyName;
+        public string RoomCode;
         public string HostSteamId;
         public string Version;
         public string Visibility;
@@ -96,6 +97,11 @@ namespace SteamMultiplayer.Network
         // Phase 4b V5 Q1 — prediction wire-format protocol version. Joiners hard-reject mismatch.
         // See PredictionProtocol.cs for version semantics + bump policy.
         public const string KEY_PREDICTION_PROTOCOL_VERSION = "l_pv";
+        // Four-character room number shown in the menu's hall and typed in its join panel.
+        public const string KEY_ROOM_CODE = "l_code";
+        public const int RoomCodeLength = 4;
+        // No 0/O, 1/I: easy to read aloud and type.
+        private const string RoomCodeLetters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
         // ── Inspector ──────────────────────────────────────────────────────────
         [Header("Lobby Defaults")]
@@ -129,6 +135,17 @@ namespace SteamMultiplayer.Network
         /// <summary>Display name of the current lobby (empty if not in one).</summary>
         public string CurrentLobbyName
             => IsInLobby ? CurrentLobby.Value.GetData(KEY_LOBBY_NAME) : string.Empty;
+
+        /// <summary>Room number of the current lobby (empty if not in one).</summary>
+        public string CurrentRoomCode
+            => IsInLobby ? CurrentLobby.Value.GetData(KEY_ROOM_CODE) : string.Empty;
+
+        /// <summary>Capacity of the current lobby (0 if not in one).</summary>
+        public int CurrentMaxMembers => IsInLobby ? CurrentLobby.Value.MaxMembers : 0;
+
+        /// <summary>Visibility of the current lobby as written by its host.</summary>
+        public LobbyVisibility CurrentVisibility
+            => IsInLobby && Enum.TryParse(CurrentLobby.Value.GetData(KEY_VISIBILITY), out LobbyVisibility v) ? v : LobbyVisibility.Public;
 
         /// <summary>Most recent create-room visibility selection, for debug UIs before a lobby exists.</summary>
         public LobbyVisibility PendingVisibility { get; private set; } = LobbyVisibility.Public;
@@ -300,6 +317,64 @@ namespace SteamMultiplayer.Network
         }
 
         /// <summary>
+        /// Join the public lobby whose room number is <paramref name="code"/> (same app version). Fails through
+        /// OnLobbyJoinFailed when no such room is listed (friends-only and private rooms are not searchable).
+        /// </summary>
+        public void JoinLobbyByCode(string code)
+        {
+            SubscribeNetworkEvents();
+
+            if (!SteamClient.IsValid)
+            {
+                FireJoinFailed("Steam is not initialized.");
+                return;
+            }
+
+            if (IsInLobby)
+            {
+                NetLog.Warn("[Lobby] Already in a lobby – leave first.");
+                SetFlowState(LobbyFlowState.Failed, "Already in a lobby.");
+                return;
+            }
+
+            code = (code ?? string.Empty).Trim().ToUpperInvariant();
+            if (code.Length != RoomCodeLength)
+            {
+                FireJoinFailed($"Room code must have {RoomCodeLength} characters.");
+                return;
+            }
+
+            JoinLobbyByCodeAsync(code);
+        }
+
+        private async void JoinLobbyByCodeAsync(string code)
+        {
+            SetFlowState(LobbyFlowState.JoiningLobby, $"Looking for room {code}...");
+            Lobby[] lobbies = await new LobbyQuery()
+                .WithKeyValue(KEY_APP_VERSION, Application.version)
+                .WithKeyValue(KEY_ROOM_CODE, code)
+                .WithSlotsAvailable(1)
+                .WithMaxResults(1)
+                .RequestAsync();
+
+            if (lobbies == null || lobbies.Length == 0)
+            {
+                FireJoinFailed($"No open room with code {code}.");
+                return;
+            }
+
+            JoinLobbyAsync(lobbies[0].Id);
+        }
+
+        private static string NewRoomCode()
+        {
+            var chars = new char[RoomCodeLength];
+            for (int i = 0; i < chars.Length; i++)
+                chars[i] = RoomCodeLetters[UnityEngine.Random.Range(0, RoomCodeLetters.Length)];
+            return new string(chars);
+        }
+
+        /// <summary>
         /// Leave the current lobby and stop all network connections.
         /// Safe to call when not in a lobby.
         /// </summary>
@@ -384,6 +459,7 @@ namespace SteamMultiplayer.Network
             lobby.SetData(KEY_VISIBILITY, visibility.ToString());
             lobby.SetData(KEY_MAX_PLAYERS, maxPlayers.ToString());
             lobby.SetData(KEY_PREDICTION_PROTOCOL_VERSION, PredictionProtocol.Version.ToString());
+            lobby.SetData(KEY_ROOM_CODE, NewRoomCode());
 
             CurrentLobby = lobby;
             NetLog.Info($"[Lobby] Created — ID={lobby.Id.Value}  name={name}");
@@ -603,6 +679,7 @@ namespace SteamMultiplayer.Network
                 {
                     LobbyId = lobby.Id.Value,
                     LobbyName = lobby.GetData(KEY_LOBBY_NAME),
+                    RoomCode = lobby.GetData(KEY_ROOM_CODE),
                     HostSteamId = lobby.GetData(KEY_HOST_STEAM_ID),
                     Version = version,
                     Visibility = lobby.GetData(KEY_VISIBILITY),

@@ -123,7 +123,7 @@ historical snapshot's active flag alone would falsely classify this as resurrect
 This observation does not exercise a negative jump crossing a just-expired deadline;
 that specific boundary is not demonstrated by this published sample. The later
 snapshot-pair fix has synthetic boundary tests; they are not a new measured session.
-[Selected original records](evidence/review-round2/cycle-r9-selected.jsonl)
+[Selected original records](https://github.com/OldMustClimbStudio/BuddahGo/blob/cc7bc106/Docs/archive/optimization/evidence/review-round2/cycle-r9-selected.jsonl)
 include both sides of the update and both peers' completed rematch/return-to-room flow.
 
 ## High-speed visual capture and shader environment
@@ -141,7 +141,7 @@ The next run still showed Unity's cyan asynchronous-compilation placeholder. The
 before capture, including a readiness barrier in RaceMap. Both peers completed; all
 137 recorded frames have `shaderCompiling=false`. Inspected frames show the expected
 orange/yellow fire, without the earlier magenta/cyan rectangles. Material, texture,
-camera and frame records are in [visual evidence](evidence/review-round2/visual-warm-summary.json).
+camera and frame records are in [visual evidence](https://github.com/OldMustClimbStudio/BuddahGo/blob/cc7bc106/Docs/archive/optimization/evidence/review-round2/visual-warm-summary.json).
 
 Case 12 follows host caster object 2 on the host (owner) and pure client (observer).
 The authoritative caster stays at 80 u/s through all 31 owner frames; the observer has
@@ -178,8 +178,8 @@ at 2 seconds, then real owner respawn requests. No scene or user prefab is saved
 
 Integrated Unity compilation and EditMode: **75/75 passed**, no failures/skips,
 2026-09-30 17:26:40 UTC. Includes all three diagnostic wiring tests and four new
-impulse boundary/channel cases. [NUnit result](evidence/review-round2/editmode-results.xml),
-[compact runtime evidence](evidence/review-round2/runtime-summary.json),
-[charged timing comparison](evidence/review-round2/charged-timing-comparison.json).
+impulse boundary/channel cases. [NUnit result](https://github.com/OldMustClimbStudio/BuddahGo/blob/cc7bc106/Docs/archive/optimization/evidence/review-round2/editmode-results.xml),
+[compact runtime evidence](https://github.com/OldMustClimbStudio/BuddahGo/blob/cc7bc106/Docs/archive/optimization/evidence/review-round2/runtime-summary.json),
+[charged timing comparison](https://github.com/OldMustClimbStudio/BuddahGo/blob/cc7bc106/Docs/archive/optimization/evidence/review-round2/charged-timing-comparison.json).
 The tested working copy differs from the publication runtime only by opt-in observation
 probes; gameplay source changes are identical.

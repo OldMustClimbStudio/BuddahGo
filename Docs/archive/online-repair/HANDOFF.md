@@ -27,7 +27,7 @@ EXP-0、EXP-1 / §1 与开场交接残余修复已完成并经用户双端实测
   - `Buddah.prefab` → BuddahPredictionBootstrap → Debug Settings：`enableVerboseLogs`、`dumpReconcile`、`dumpReplicate`。
   - 全局：`NetDebug.EnableVerboseLog = true`。
   - Standalone 保留宏 `BUDDAH_PREDICTION_SHADOW` 可看 `[D-LOC HEARTBEAT]`。
-- 严格测量可复用归档的运行夹具 [Tools/Validation/ReviewRuntimeRound2](../../../Tools/Validation/ReviewRuntimeRound2/README.md)：它在 postTick/postReplay 记录每个 motor 的刚体位置，`summarize-runtime-stream.py` 输出 GO 后 1 秒的 `transformCorrection` 统计。它依赖一个观察探针补丁，仅用于一次性 worktree，不进入正式提交。
+- 严格测量可复用归档的运行夹具 [Tools/Validation/ReviewRuntimeRound2](https://github.com/OldMustClimbStudio/BuddahGo/blob/cc7bc106/Tools/Validation/ReviewRuntimeRound2/README.md)：它在 postTick/postReplay 记录每个 motor 的刚体位置，`summarize-runtime-stream.py` 输出 GO 后 1 秒的 `transformCorrection` 统计。它依赖一个观察探针补丁，仅用于一次性 worktree，不进入正式提交。
 
 ## 工作顺序
 

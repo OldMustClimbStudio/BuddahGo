@@ -82,7 +82,7 @@ measurement record: three source cells, three fresh host/client pairs per cell,
 It distinguishes existing P2 changes (A to B) from the log-only increment (B to C), retains
 all per-run variation and limits the conclusions to that Editor workload.
 
-Use the archived [ReviewR8Editor instructions](../../Tools/Performance/ReviewR8Editor/README.md)
+Use the archived [ReviewR8Editor instructions](https://github.com/OldMustClimbStudio/BuddahGo/blob/cc7bc106/Tools/Performance/ReviewR8Editor/README.md)
 for exact probe/driver setup and replaying the published analysis. Preserve identical
 source/settings on both peers, use distinct output directories and avoid concurrent
 tests, builds or recording. Main Thread includes Editor work and waits; GC per frame

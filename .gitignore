@@ -69,7 +69,7 @@ Assets/Sources/Font.meta
 # Project-local worktrees
 /.worktree/
 
-# Local code-count reports and complete raw playtest captures (digests in agent-exchange/console/*.log capture all [D-LOC] data).
+# Local code-count reports and raw playtest captures (the tracked agent-exchange digests were removed on 2026-11-05; read them at cc7bc106).
 /.VSCodeCounter/
 /agent-exchange/console/raw/
 
@@ -123,5 +123,5 @@ crashlytics-build.properties
 __pycache__/
 *.py[cod]
 
-# Tracked evidence archive that *.zip above would hide
-!/Docs/optimization/evidence/review-round2/r8-editor-csv.zip
+# AI acceptance runs: copies land here; keep them local (old runs: git show cc7bc106:<path>)
+/Tools/ai/thrust-vector/rollout-*/

@@ -45,7 +45,7 @@ This section records the approved afternoon checkpoint. Phase 1b replaced its su
 values with a sunset; phase 2 changed the shadow distance. The current values are in those sections.
 
 Images: [phase1_compare/all.jpg](phase1_compare/all.jpg) (before left, after right), per view in `phase1_compare/`.
-How the look was chosen: [phase1_candidates/](phase1_candidates/) (2x2 sheets). The full-resolution PNG captures are
+How the look was chosen: [phase1_candidates/](https://github.com/OldMustClimbStudio/BuddahGo/tree/cc7bc106/Docs/rendering/racemap/phase1_candidates) (2x2 sheets). The full-resolution PNG captures are
 not committed and stay on the capturing machine (`phase1_after/` can be regenerated from commit 51af7d5; the others
 record states that no longer exist): `phase0_before/`,
 `phase1_after/`, the candidates `cand_golden/`, `cand_afternoon/`, `cand_midday/`, `cand_c_tuned1/`, and two diagnostic
@@ -175,7 +175,7 @@ about 100 s with the GPU lightmapper.
 ## Phase 1b: sunset
 
 Images: [phase1b_compare/all.jpg](phase1b_compare/all.jpg) (phase 1 afternoon left, sunset right) and the candidate
-sheets in [phase1b_candidates/](phase1b_candidates/) (A afternoon, B golden hour 18 deg, C sunset 12 deg, D late sunset
+sheets in [phase1b_candidates/](https://github.com/OldMustClimbStudio/BuddahGo/tree/cc7bc106/Docs/rendering/racemap/phase1b_candidates) (A afternoon, B golden hour 18 deg, C sunset 12 deg, D late sunset
 7 deg). Local only: `phase1b_after/`, `cand_s_golden/`, `cand_s_sunset/`, `cand_s_late/`.
 
 ### Why a hand-written sky
@@ -240,7 +240,7 @@ results shot: the reflection now falls outside the frame.
 > notes say how to add it back.
 
 Images: [phase2_compare/all.jpg](phase2_compare/all.jpg) (phase 1b left, phase 2 right). Evidence in
-[phase2_evidence/](phase2_evidence/): `ssr_off_on.jpg`, `ssr_msaa8_off_on.jpg` (the shipped 8x MSAA path, captured
+[phase2_evidence/](https://github.com/OldMustClimbStudio/BuddahGo/tree/cc7bc106/Docs/rendering/racemap/phase2_evidence): `ssr_off_on.jpg`, `ssr_msaa8_off_on.jpg` (the shipped 8x MSAA path, captured
 with `RaceMapViewpointCapture.Capture(label, 8)`), `ssr_colour_mipmaps.jpg`, `shadow_distance_150_vs_220.jpg`,
 `quality_levels.jpg`, `propertyselection_shadows.jpg`. Local only: `phase2_after/`. The phase captures render
 without MSAA, so they show SSR's no-MSAA path.
@@ -370,7 +370,7 @@ shows on screen; no view shows that part of the sky.
 ## Phase 3: BuddahGo/Lit for the marble and sand
 
 Images: [phase3_compare/all.jpg](phase3_compare/all.jpg) (phase 2 left, phase 3 right) and
-[phase3_evidence/](phase3_evidence/): `shadowed_reflections_sweep.jpg`, `ssr_on_buddahgo_lit.jpg`,
+[phase3_evidence/](https://github.com/OldMustClimbStudio/BuddahGo/tree/cc7bc106/Docs/rendering/racemap/phase3_evidence): `shadowed_reflections_sweep.jpg`, `ssr_on_buddahgo_lit.jpg`,
 `occlusion_terms_intro_sand.jpg`. Local only: `phase3_after/`. The change is deliberately small: the materials look
 the same, and only shadows on glossy surfaces and occluded spots differ.
 

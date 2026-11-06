@@ -83,7 +83,57 @@ namespace SteamMultiplayer.UI
 
             GameObject runtimeLoader = new GameObject("SceneFadeController");
             _instance = runtimeLoader.AddComponent<SceneFadeController>();
+            _instance.BuildDefaultOverlay();
             return _instance;
+        }
+
+        // No scene carries a CrossFade carrier since the selection scene's timeline was retired: a plain black
+        // overlay on top of everything does the fade (alpha over fallbackDurationSeconds).
+        private void BuildDefaultOverlay()
+        {
+            if (crossFadeCanvasGroup != null || HasAnyFadeState(crossFadeAnimator))
+                return;
+
+            var overlay = new GameObject("DefaultFadeOverlay", typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup), typeof(Image));
+            overlay.transform.SetParent(transform, false);
+            var canvas = overlay.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = short.MaxValue;
+            var image = overlay.GetComponent<Image>();
+            image.color = Color.black;
+            image.raycastTarget = false;
+            crossFadeCanvasGroup = overlay.GetComponent<CanvasGroup>();
+            crossFadeCanvasGroup.alpha = 0f;
+            crossFadeCanvasGroup.interactable = false;
+            crossFadeCanvasGroup.blocksRaycasts = false;
+            crossFadeGraphic = image;
+            overlay.SetActive(false);
+        }
+
+        private Coroutine _alphaFade;
+
+        private void FadeCanvasGroup(float target, float seconds)
+        {
+            if (_alphaFade != null)
+                StopCoroutine(_alphaFade);
+            _alphaFade = StartCoroutine(FadeCanvasGroupCoroutine(target, seconds));
+        }
+
+        private IEnumerator FadeCanvasGroupCoroutine(float target, float seconds)
+        {
+            if (crossFadeGraphic != null)
+                crossFadeGraphic.gameObject.SetActive(true);
+            float start = crossFadeCanvasGroup.alpha;
+            for (float t = 0f; t < seconds && crossFadeCanvasGroup != null; t += Time.unscaledDeltaTime)
+            {
+                crossFadeCanvasGroup.alpha = Mathf.Lerp(start, target, t / seconds);
+                yield return null;
+            }
+            if (crossFadeCanvasGroup != null)
+                crossFadeCanvasGroup.alpha = target;
+            if (target <= 0f && crossFadeGraphic != null)
+                crossFadeGraphic.gameObject.SetActive(false);
+            _alphaFade = null;
         }
 
         private void Awake()
@@ -142,6 +192,16 @@ namespace SteamMultiplayer.UI
         private float PlayFadeInInternal(float fallbackDuration)
         {
             TryBindAnimator();
+            float duration = Mathf.Max(0f, fallbackDurationSeconds > 0f ? fallbackDurationSeconds : fallbackDuration);
+            if (!HasAnyFadeState(crossFadeAnimator) && crossFadeCanvasGroup != null)
+            {
+                // Overlay only: fade the alpha (a zero duration snaps to black).
+                crossFadeCanvasGroup.interactable = false;
+                crossFadeCanvasGroup.blocksRaycasts = false;
+                FadeCanvasGroup(1f, Mathf.Min(duration, fallbackDuration));
+                return duration;
+            }
+
             if (crossFadeCanvasGroup != null)
             {
                 crossFadeCanvasGroup.alpha = 1f;
@@ -164,11 +224,9 @@ namespace SteamMultiplayer.UI
                 {
                     bool fadeIn = string.Equals(primaryStateName, fadeInStateName, System.StringComparison.Ordinal)
                         || string.Equals(alternateStateName, AlternateFadeInState, System.StringComparison.Ordinal);
-                    crossFadeCanvasGroup.alpha = fadeIn ? 1f : 0f;
                     crossFadeCanvasGroup.interactable = false;
                     crossFadeCanvasGroup.blocksRaycasts = false;
-                    if (crossFadeGraphic != null && !fadeIn)
-                        crossFadeGraphic.gameObject.SetActive(false);
+                    FadeCanvasGroup(fadeIn ? 1f : 0f, fadeIn ? 0f : fallbackDurationSeconds);
                     return;
                 }
 

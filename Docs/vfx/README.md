@@ -10,6 +10,7 @@ Unity 2022.3.55f1c1 · URP 14.0.11 · Shuriken + VFX Graph 14 + Feel。插槽管
 | [push-projectile-hands.md](push-projectile-hands.md) | 如来神掌：现状问题、目标、拆解表、反噬变体、验收记录、废弃资产 |
 | [vfx-design-research.md](vfx-design-research.md) | 2026-10-28 调研：方法论、题材、可读性、意象、URP 技法、性能，附三个候选方向与参考板链接 |
 | [yuanqi-giant-charge.md](yuanqi-giant-charge.md) | 缘起金足破阵：玩法事实、已定方向（后喷 + 一次画好的墨路）、待定项 |
+| [yuanqi-frost-lock.md](yuanqi-frost-lock.md) | 缘起禅足冰封：玩法事实、渲染限制、参考、冰体材质两轮小样与用户选择、挂接点 |
 
 每个插槽的现状见 [slots.md](slots.md)；各技能的拆解表、决定与验收见各专题文档。
 

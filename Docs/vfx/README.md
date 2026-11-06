@@ -10,7 +10,7 @@ Unity 2022.3.55f1c1 · URP 14.0.11 · Shuriken + VFX Graph 14 + Feel。插槽管
 | [push-projectile-hands.md](push-projectile-hands.md) | 如来神掌：现状问题、目标、拆解表、反噬变体、验收记录、废弃资产 |
 | [vfx-design-research.md](vfx-design-research.md) | 2026-10-28 调研：方法论、题材、可读性、意象、URP 技法、性能，附三个候选方向与参考板链接 |
 | [yuanqi-giant-charge.md](yuanqi-giant-charge.md) | 缘起金足破阵：玩法事实、已定方向（后喷 + 一次画好的墨路）、待定项 |
-| [yuanqi-frost-lock.md](yuanqi-frost-lock.md) | 缘起禅足冰封：玩法事实、渲染限制、参考、冰体材质三轮小样与用户选择（定 v1.5）、挂接点 |
+| [yuanqi-frost-lock.md](yuanqi-frost-lock.md) | 缘起禅足冰封：玩法事实、渲染限制、参考、冰体材质小样与用户选择（v1.5）、第一版插槽和贴地特效的坑 |
 
 每个插槽的现状见 [slots.md](slots.md)；各技能的拆解表、决定与验收见各专题文档。
 
@@ -141,6 +141,7 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
   | 一念光明 | `curtain_release`、`curtain_hit` | `一念光明/Release/VFX_Curtain_Release`、`一念光明/Hit/VFX_Curtain_Hit` |
   | 巨大化 | `giant_release` | `巨大化/Release/VFX_Giant_Release` |
   | 缘起 金足破阵 | `giant_charge_release` | `金足破阵/Release/VFX_GiantCharge_Release`（缘起的插槽用缘起中文名做目录，短名 `GiantCharge`） |
+  | 缘起 禅足冰封 | `frost_lock_release`、`frost_lock_hit` | `禅足冰封/Release/VFX_FrostLock_Release`、`禅足冰封/Hit/VFX_FrostLock_Hit`（短名 `FrostLock`） |
 
   2026-10-30 之前的旧名（`palm`、`palm_hand`、`palm_buf`、`accel`、`slow`、`reverse`、`curtain`、`curtain_trail`、`giant`，以及 `Proto/Release`、`Proto/Hit`、`Proto/Frontal` 目录）只留在各文档带日期的历史记录里。
 - 资产目录：`Assets/VFX/<技能中文名>/` 沿用现有目录；共用资源放 `Assets/VFX/Shared/`（贴图、材质、模板 prefab），shader 放 `Assets/Rendering/Shaders/FX/`（与已有的 `BuddahGo/Lit` 同处）。

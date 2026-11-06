@@ -1,6 +1,6 @@
 # 禅足冰封（缘起 #2）特效
 
-> - **这是什么**：缘起「禅足冰封」（神足通 + 禅定缓流，`Yuanqi_FrostLock`）的特效设计记录：调研、项目现有素材、冰体材质的三轮小样，以及用户的选择（冰体材质定为 v1.5，第 4 节）。2026-11-06 特效设计会话。**还在设计阶段，没有正式实现**；现在比赛里跑的是程序化占位（第 6 节）。
+> - **这是什么**：缘起「禅足冰封」（神足通 + 禅定缓流，`Yuanqi_FrostLock`）的特效设计记录：调研、项目现有素材、冰体材质的三轮小样，以及用户的选择（冰体材质定为 v1.5，第 4 节）。2026-11-06 特效设计会话。2026-11-06 做了第一版正式特效并接上缘起，替换了程序化占位（第 6、8 节）；细节由用户在 VFXtests 里自己调。
 > - **机制以哪里为准**：玩法见 [../gameplay/yuanqi.md](../gameplay/yuanqi.md)（#2），构筑和表现接口见 [../gameplay/yuanqi-architecture.md](../gameplay/yuanqi-architecture.md) 第 4 节。本文只写画面。
 > - **Notion**：「技能 Combo 缘起机制」里这一条的视觉是“瞬间生成周围地面冰洁效果，受到影响的敌方单位将会冻结为冰块，禁锢结束后恢复”，前面还有一句意象“加速减速相符而成 — 将周围的空间瞬时膨胀”。
 
@@ -74,23 +74,47 @@ v2 的微光 Fresnel 是 0.45 × 1.0，v2+ 是 1.1 × 1.3。结果：v2 有很�
 
 ## 5. 还没定
 
-- 地面：四条思路（球壳改冰壳、冰柱封印、墨凝开片、空间膨胀）里冰块走了“特效冰 v1.5”，地面和整体节奏还没选。
-- 颜色：冰要不要破例加一点淡青；受害者身上的冰是否服从“受击用红”（[README.md](README.md) 第 2 节）。目前小样全是中性白。
-- 冰块出现、解冻预警（裂纹按剩余时间生长）、碎裂或融化，都还没做。
-- 冰的造型：现在是测试形；正式造型要围绕“头 + 双手”。
-- Balanced / Performant 档、巨大化 ×4 / 反噬 ×0.3 体型下都还没看。
-- 正式特效是否走缘起 SO 上的 vfx_id + `SkillVfxReplicator`（金足破阵的做法，[yuanqi-giant-charge.md](yuanqi-giant-charge.md)）。
+第一版（第 8 节）对下面几项先给了默认值，用户在 VFXtests 里看过再定：
 
-## 6. 现在比赛里的占位和挂接点
+- 地面：四条思路（球壳改冰壳、冰柱封印、墨凝开片、空间膨胀）里冰块走了“特效冰 v1.5”。第一版地面是“冰面 + 放射裂纹 + R 处的环”，环外扩一下算“空间膨胀”；整体节奏没有和用户对过。
+- 颜色：冰要不要破例加一点淡青；受害者身上的冰是否服从“受击用红”（[README.md](README.md) 第 2 节）。第一版全是中性白。
+- 冰块出现、解冻：第一版是 0.09 秒从 88% 长到全尺寸，最后 0.22 秒化掉，化的同时掉一把碎冰。解冻预警（裂纹按剩余时间生长）没做。
+- 冰的造型：仍是小样的测试形（围住身体包围盒的大晶块加九根斜刺）；正式造型要围绕“头 + 双手”。
+- Balanced / Performant 档、反噬 ×0.3 体型下没看；巨大化 ×4 的冰块在 VFXtests 看过（整块 ×4）。
+- 走插槽：已定（第 8 节），和金足破阵一样走缘起 SO 的 vfx_id。
 
-占位在 `feat/yuanqi` 7ad81a9c（实现会话做的，不走插槽）：
+## 6. 挂接点
 
-- 地面：`Yuanqi_FrostLock.PlayObservers` 调 `FrostGroundPlaceholder.Spawn(payload.Center, Radius, Seconds)`。
-- 冰块：`FrozenIceShellPlaceholder`，由 `SkillExecutor.AttachPresentationState` 挂到每个 racer，订阅 `FrozenChanged`。
-- 开关：`FrostPlaceholder.Enabled`。
+- 地面：`Yuanqi_FrostLock.PlayObservers` → `PlayVfxSlotLocal(caster, payload.Seconds)`，播 `vfxId = frost_lock_release`（每一端本地播，没有新 RPC）。
+- 冰块：`FrozenIceShell`，由 `SkillExecutor.AttachPresentationState` 挂到每个 racer，订阅 `FrozenChanged`：开始时用 `FreezeSecondsLeft` 播 `frost_lock_hit`；冻结提前结束（重置、复活）时 `StopSlotLocal`，冰块当场清掉。
+- `Yuanqi_FrostLock.CollectVfxSlots` 列出这两个插槽和长度 N，给时长同步检查用。
 
-换成正式特效时：在这两个位置挂正式特效，删掉这三个占位文件，并在 [retired.md](retired.md) 记一笔。
+2026-11-06 之前这里是程序化占位（7ad81a9c 的 `FrostPlaceholder`、`FrostGroundPlaceholder`、`FrozenIceShellPlaceholder`），已删，记在 [retired.md](retired.md) 第 6.6 节。
 
 ## 7. 小样怎么重跑
 
 [yuanqi-frost-lock/probes/](yuanqi-frost-lock/probes/) 里是编辑器探针（`execute_code` 片段，C# 6）和出图脚本：RaceMap 只在内存里打开、物体 `DontSave`、做完回到 MainMenu。`frost_build*.cs` 搭建（无后缀 = 第一轮，`_v2` = 第二轮，`_v3` = 第三轮 v1.5），`frost_capture*.cs` 截图，`frost_cleanup.cs` 清理，`frost_present*.py` 加标注、拼 GIF。第一轮的小样 2 需要先把 Shader Graph 冰样例拷到 `Assets/_FrostSwatchLocal/Ice`（做完删掉）。
+
+## 8. 第一版（2026-11-06，实现会话）
+
+照金足破阵的习惯：交付默认值，在 VFXtests 做好预览，细节用户自己调。
+
+**插槽**（README 第 6 节命名，`禅足冰封/` 目录，短名 `FrostLock`）：
+
+| 插槽 | 谁播、播多久 | 层 | 内容 |
+|---|---|---|---|
+| `frost_lock_release` → `Release/VFX_FrostLock_Release` | `Yuanqi_FrostLock.PlayObservers`，施法者处，N（参考 1.5 s，`Stretch`） | `FX_FrostLock_Imp_C_Decal_01`（玩法层）、`FX_FrostLock_Imp_A_Sparks_02`（点缀，优先级 2）；都是 `CasterRelative` + `casterScaling = None`，贴地 `casterOffset.y = -0.3` | 冰面（`CrystalNoise` 晶面放进圆形软遮罩）、放射裂纹（`GroundCrack_RadialPostExplody`）、R 处的环（`FX_Ring_01_T`：外扩时亮一下，之后留作冰区边缘），0.12 s 铺开，最后 25% 淡出；地面闪点 |
+| `frost_lock_hit` → `Hit/VFX_FrostLock_Hit` | `FrozenIceShell`，每个被冻的人身上，冻结剩余秒数 | `FX_FrostLock_Imp_C_Mesh_01`（玩法层）、`FX_FrostLock_Imp_A_Sparks_01`（点缀）；都是 `CasterAttached` + `Whole`（巨人的冰块整块 ×4），`clearOnDissipation` | v1.5 的四层（内壁、内部裂纹、内核微光、外表面，数值照 `frost_build_v3.cs`）各是一个“网格模式、只发一个粒子”的系统，所以插槽管线的淡入淡出、变速、体型缩放都照常用；闪点 `Flare_Cross` 每秒 6 个、从最高的 6 个尖角随机冒；解冻时 16 块碎冰从冰面飞出、下落 |
+
+粒子系统：地面 4 个，冰块 6 个，都在默认上限 10 以内。材质 `Materials/Mat_FX_FrostLock_*`（全是 `UberFXSG`，不读不透明纹理）；网格 `Meshes/Mesh_FX_FrostLock_*`（小样的晶块、翻面的内壁、闪点位置、碎冰）。用到的两张包贴图已 vendor。
+
+**怎么改、怎么看**：菜单 `Tools/BuddahGo/VFX/Proto/禅足冰封/Rebuild Slots (ice block + frozen ground)`（`FrostLockProto`，默认值在文件头）重建两个插槽、材质和网格（覆盖写入，GUID 不变；会冲掉手调，手调后要保留就别再跑它）；`.../Place Preview In VFXtests` 在 VFXtests 放施法者、三个被冻的人（一个 ×4）、`Cam_Race`（比赛镜头规则：跟随偏移 ×体型、FOV 30），由 `SkillVfxPreviewFrostLock` 循环触发，同时给场景套上 RaceMap 的观感（`Tools/BuddahGo/VFX/Proto/Apply RaceMap Look To VFXtests`：天空、环境光、雾、太阳、`RaceMap_Dusk_Profile` 后期、FXAA、赛道材质的地板；没有烘焙光照、禅砂和平面反射）。
+
+**做的时候踩到的**（下次做贴地特效先看）：
+
+- **`UberFXSG` 的贴图按线性读**：包的遮罩和裂纹贴图中间灰读出来只有约 0.2，三色映射的阈值和“主贴图 R 通道当透明度”会把它们切掉，只剩中心一小块。做法：阈值压低（0.02 / 0.12），通道权重给到 3–10（`_MainAlphaChannel`、`_AlphaOverrideChannel` 是点乘，可以大于 1），面片按“实际看得见的比例”放大（冰面 0.5、裂纹 0.45、环 0.93，常量在 `FrostLockProto`）。
+- **大面片被 `maxParticleSize` 截掉**：粒子渲染器默认最大只到视口的一半，25–50 m 的地面面片在近景里会缩小。这里设成 10。
+- **网格模式粒子要带包的顶点流**（位置、法线、颜色、UV、自定义数据），这里所有渲染器都抄 `accel_release` 的顶点流。
+- **VFXtests 的替身要放在场景根上**：FishNet 会给装着替身的父物体加 `NetworkObject`，进 Play 时没有 NetworkManager 就把它关掉；预览组件在 `Start` 里重新打开替身（金足破阵的 `SkillVfxPreviewDash` 同样做法）。
+
+**没验证的**：联机（各端由 `PlayObservers` 和 `FrozenChanged` 本地播，没有新 RPC）；Balanced / Performant 档；反噬 ×0.3 体型；坡道上的地面（平面面片，坡上会悬空或穿插）；AI 触发冰封时的画面。改了 R（配表 `YuanqiEffectFrostLock.radiusMeters`）要重跑 `FrostLockProto`，`SkillVfxTests.FrostLockGroundRimStandsAtTheFreezeRadius` 会提醒。

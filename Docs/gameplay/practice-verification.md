@@ -70,7 +70,7 @@ rebase 之后 S14 失败：反噬的确认窗口改按 `_anti` 行算（2 秒，
 | S10 #1 金身巨掌 | 金身时掌倍率 ×2：冲量 500 × 2 = 1000，判定盒高 90（基础 45 × 2，等于旧的普通大小）；金身结束、体型缩回后冲量 500，判定盒高 45（旧大小的一半） |
 | S14 本应缘起时反噬 | 金身反噬落定时神足通还在（开始后 2.14 秒）；没有缘起、没有突进；施法者缩到 0.3；5 秒惩罚；神足通跑满 2.998 秒 |
 
-禅足冰封的占位特效和神掌尺寸另有实拍对比 GIF（本机 `Logs/yuanqi-gif/`，不入库）：`frostlock-before-after.gif`（S9，左边只有接口，右边地面冰面 + 冰块）、`palm-before-after.gif`（S10，左边旧规则“掌 = 体型”，右边新规则）。抓帧用 `BuddahGo.AI.PresentationCaptureProbe.Begin(dir, "frost" | "palm", placeholdersOff, oldPalmRule)`，在 `MechanicsPracticeHarness.Begin(dir, true, "S8,S9" 或 "S10", null)` 之后由 `execute_code` 启动；帧按真实时间记录（冻结和突进按网络 tick 走，不能锁游戏时间步长）。每次 Play 里第一次缘起触发时编辑器会卡约 0.9 秒（有无占位都一样），所以冰封那次用 S8 先触发一次缘起。金足破阵用 `"charge"` 模式：从每次 `giant_charge` 触发开始，探针相机每帧跟游戏相机（位置、朝向、FOV、后期），S8 的两种施法顺序各一段（`Logs/yuanqi-gif/charge-before-*` 是接特效前、`charge-after-*` 是接上后）。GIF 没有覆盖：比赛赛道的光照、金身反噬缩小 ×0.5、反噬弹幕。
+禅足冰封的占位特效和神掌尺寸另有实拍对比 GIF（本机 `Logs/yuanqi-gif/`，不入库）：`frostlock-before-after.gif`（S9，左边只有接口，右边地面冰面 + 冰块）、`palm-before-after.gif`（S10，左边旧规则“掌 = 体型”，右边新规则）。抓帧用 `BuddahGo.AI.PresentationCaptureProbe.Begin(dir, "frost" | "palm" | "charge", oldPalmRule)`（冰封占位删掉后不再有 `placeholdersOff`），在 `MechanicsPracticeHarness.Begin(dir, true, "S8,S9" 或 "S10", null)` 之后由 `execute_code` 启动；帧按真实时间记录（冻结和突进按网络 tick 走，不能锁游戏时间步长）。每次 Play 里第一次缘起触发时编辑器会卡约 0.9 秒（有无占位都一样），所以冰封那次用 S8 先触发一次缘起。金足破阵用 `"charge"` 模式：从每次 `giant_charge` 触发开始，探针相机每帧跟游戏相机（位置、朝向、FOV、后期），S8 的两种施法顺序各一段（`Logs/yuanqi-gif/charge-before-*` 是接特效前、`charge-after-*` 是接上后）。GIF 没有覆盖：比赛赛道的光照、金身反噬缩小 ×0.5、反噬弹幕。
 
 ## 重跑方法
 

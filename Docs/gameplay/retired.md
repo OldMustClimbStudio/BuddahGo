@@ -176,7 +176,7 @@ PR #68（`refactor/vfx-refactor` → dev）从 dev 9629c317 切出，那时 dev 
 | #1 金身巨掌冲量乘体型倍率（×4） | 已改 | 改乘掌倍率（金身 ×2），用户选 | 988a15e7 |
 | `SkillPresentationRulesTests` 的“frost lock draws nothing itself”（2026-10-26 只留接口） | 已改 | 用户要求先补冰封占位，改为检查占位可开关 | 62dc6269 |
 | S14 固定 0.9 秒后请求反噬金身 | 已改 | 改为按 `giant_anti` 行的 2 秒窗口算请求时刻 | bfa14498 |
-| 冰封占位 `FrostPlaceholder`、`FrostGroundPlaceholder`、`FrozenIceShellPlaceholder` | 保留 | 新加的占位，正式特效接上同样的接口后删掉并改记“已删” | 7ad81a9c |
+| 冰封占位 `FrostPlaceholder`、`FrostGroundPlaceholder`、`FrozenIceShellPlaceholder` | 已删 | 正式插槽 `frost_lock_release` / `frost_lock_hit` 从同样的接口接上（[../vfx/retired.md](../vfx/retired.md) 第 6.6 节）；`SkillPresentationRulesTests` 那条改为检查冰封播的两个插槽 | 7ad81a9c 加，2a8734f3 删 |
 
 ## 代码审查清理的退役记录（dev，PR #68，2026-11-03）
 

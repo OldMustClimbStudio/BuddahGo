@@ -431,12 +431,12 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 
 ### 4.7 表现
 
-表现层原定这一轮只做接口、不做新特效（已定，2026-10-26）。2026-11-06 用户要求先补占位：`Yuanqi_FrostLock.PlayObservers` 生成 `FrostGroundPlaceholder`（地面冰面），每个 racer 上的 `FrozenIceShellPlaceholder` 跟着 `FrozenChanged` 显示冰块。两者都是程序化网格加 `Sprites/Default`（GraphicsSettings 的 Always Included），只用白 / 灰，没有美术资源；`FrostPlaceholder.Enabled = false` 关掉两者，正式特效从下面同样的接口挂上来后删掉占位（登记 [retired.md](retired.md)）。各端都能读到的接口：
+表现层原定这一轮只做接口、不做新特效（已定，2026-10-26）。2026-11-06 先补了程序化占位，同日换成正式插槽（[../vfx/yuanqi-frost-lock.md](../vfx/yuanqi-frost-lock.md) 第 8 节）：`Yuanqi_FrostLock.PlayObservers` 经 `YuanqiAction.PlayVfxSlotLocal` 播 `frost_lock_release`（地面冰面），每个 racer 上的 `FrozenIceShell` 跟着 `FrozenChanged` 播 `frost_lock_hit`（冰块）。占位已删（[retired.md](retired.md)）。各端都能读到的接口：
 
 | 画面 | 接口 | 状态 |
 |---|---|---|
-| 地面瞬间结冰 | `SkillExecutor.YuanqiObserved(yuanqiId, payload, localIsCaster)`：载荷带中心、半径 R、秒数 N、目标 id；`Yuanqi_FrostLock.PlayObservers` | 占位（2026-11-06）：`FrostGroundPlaceholder`，半径 R 的白色圆盘带亮边和裂纹，0.12 s 铺开、保持 N、0.45 s 淡出；平面，坡上会悬空或穿插（工程没有 URP decal） |
-| 受害者冻成冰块 | 载荷的 `TargetObjectIds`；每个被冻的 racer 的 `RacerSkillPresentationState.FrozenChanged` | 占位（2026-11-06）：`FrozenIceShellPlaceholder`，按身体碰撞体的半透明白色冰块（带亮边），开始即出现，解冻 0.25 s 化掉；冻结期间 Animator 停住（动作层，已做） |
+| 地面瞬间结冰 | `SkillExecutor.YuanqiObserved(yuanqiId, payload, localIsCaster)`：载荷带中心、半径 R、秒数 N、目标 id；`Yuanqi_FrostLock.PlayObservers` | 已做（2026-11-06 第一版）：`frost_lock_release`，半径 R 的冰面、放射裂纹和边缘环，0.12 s 铺开、N 的最后 25% 淡出；平面，坡上会悬空或穿插（工程没有 URP decal） |
+| 受害者冻成冰块 | 载荷的 `TargetObjectIds`；每个被冻的 racer 的 `RacerSkillPresentationState.FrozenChanged` | 已做（2026-11-06 第一版）：`FrozenIceShell` 播 `frost_lock_hit`，v1.5 冰块，开始即出现、随体型缩放，解冻时化掉并掉碎冰；冻结期间 Animator 停住（动作层，已做） |
 | 冻结期间的 HUD | owner 从 `BuddahPredictedMotor.FreezeSecondsLeft` 倒计时，`SkillSlotUI` 三个槽显示冻结 | 已做（A6） |
 | 触发提示 | 施法者的 `LocalYuanqiTriggered` → `YuanqiToastUI` 弹缘起名 | 已做（A6） |
 

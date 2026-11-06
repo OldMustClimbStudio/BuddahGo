@@ -1680,6 +1680,9 @@ namespace BuddahGo.AI
             Check("ImpulseFollowsScale false after the giant ends", !BoardActive("giant") && !_hands.ImpulseFollowsScale && _hands.ProjectileBuffSecondsLeft > 0f,
                 "giant ended, flag false, push buff still on", "giant=" + BoardActive("giant") + " follows=" + _hands.ImpulseFollowsScale + " buff=" + F(_hands.ProjectileBuffSecondsLeft) + " s");
             yield return Until(() => _hands.CanPushServer(true), 2f);
+            // The body shrinks back over the giant's restore time after the board entry ends; shoot the normal palm
+            // once it is back to 1, so the size check sees the base size.
+            yield return Until(() => { var scale = _human.GetComponent<PlayerScaleEffect>(); return scale == null || scale.CurrentPalmSizeMultiplier <= 1.001f; }, 1.5f);
             var shot2 = new ShotResult();
             yield return FireChargedShot(shot2);
             Check("charged impulse back to the base strength", shot2.Found && Mathf.Abs(shot2.Impulse - shot2.Strength) <= shot2.Strength * 0.01f,

@@ -4,7 +4,7 @@ Current state of BuddahGo's rendering as of 2026-11-05 (branch `feat/racemap-ren
 [OldMustClimbStudio/BuddahGo#73](https://github.com/OldMustClimbStudio/BuddahGo/pull/73)). Unity 2022.3.55f1c1, URP
 14.0.11, Forward, linear colour space.
 This file says **what exists, why, where it lives and what depends on it**. How each piece was found and tuned
-(phases, measurements, reviews) stays in [racemap/README.md](racemap/README.md) and
+(phases, measurements, reviews) stays in [racemap/history.md](racemap/history.md) and
 [racemap/dusk-color-study.md](racemap/dusk-color-study.md). Agents start from [HARNESS.md](HARNESS.md).
 
 Each module below has the same fields:
@@ -357,7 +357,8 @@ bake should be compared against the committed one with the loop above before it 
 |---|---|
 | Current architecture (this file) | `Docs/rendering/ARCHITECTURE.md` |
 | Agent entry, invariants, standard loop | [HARNESS.md](HARNESS.md) |
-| Phase history, measurements, traps, re-tuning checklist | [racemap/README.md](racemap/README.md) |
+| Open items, traps, tools, re-tuning checklist | [racemap/README.md](racemap/README.md) |
+| Phase history, measurements, reviews | [racemap/history.md](racemap/history.md) |
 | Dusk colour study, C2 numbers, A2/B2 alternatives | [racemap/dusk-color-study.md](racemap/dusk-color-study.md) |
 | Graphics settings spec and runtime | [graphics-settings.md](graphics-settings.md) |
 | Unused rendering assets waiting for a cleanup batch | [retired.md](retired.md) |

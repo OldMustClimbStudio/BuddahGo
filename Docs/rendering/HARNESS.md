@@ -43,4 +43,4 @@
 editor.
 
 **Record a new decision** in ARCHITECTURE's requirements table (date, what, modules) and the module's Need line; record
-how you got there (numbers, images) in racemap/README or a topic doc; record a retired asset in [retired.md](retired.md).
+how you got there (numbers, images) in [racemap/history.md](racemap/history.md) or a topic doc (open items and traps in racemap/README); record a retired asset in [retired.md](retired.md).

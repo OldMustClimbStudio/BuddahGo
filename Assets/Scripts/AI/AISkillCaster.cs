@@ -162,14 +162,13 @@ namespace BuddahGo.AI
             UpdateSituation(AISkillDecision.Situation(frame, self, _tuning), tick, delta);
             float age = (tick - frame.Tick) * delta;
             float probability = _obsession.GetBackfireProbabilityPercent(_obsession.Current) * .01f;
-            // No combo keys and no key retries: the request lands next tick, then the confirm delay.
-            float confirm = _executor.ConfirmationSeconds;
-            float required = confirm + delta * 2f;
             float best = float.NegativeInfinity; int chosen = -1;
             AISkillOpportunity opportunity = default;
             for (int slot = 0; slot < 3; slot++)
             {
                 if (!_executor.IsSlotReadyServer(slot)) { Emit("candidate", "cooldown-or-lock", slot); continue; }
+                // No combo keys and no key retries: the request lands next tick, then this skill's own confirm delay.
+                float required = _executor.ConfirmationSecondsForSlot(slot) + delta * 2f;
                 var candidate = AISkillDecision.Evaluate(_kinds[slot], frame, self, _tuning, Personality.Target, _hands.ServerHandYaw, _hands.HandRotationSpeed);
                 float noise = 1f + ((float)_decisionRandom.NextDouble() * 2f - 1f) * Difficulty.DecisionNoise;
                 float utility = AISkillDecision.Utility(_kinds[slot], candidate, _situation, Personality, Difficulty, _tuning, probability, required, age, noise);

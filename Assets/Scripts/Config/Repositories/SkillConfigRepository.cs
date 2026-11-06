@@ -19,15 +19,10 @@ public class SkillConfigRepository
                 continue;
 
             _byId.Add(skillId, record);
-            if (record.castConfirmDelaySeconds > MaxCastConfirmDelaySeconds)
-                MaxCastConfirmDelaySeconds = record.castConfirmDelaySeconds;
         }
     }
 
     public IReadOnlyDictionary<string, SkillRecord> Skills => _byId;
-
-    /// <summary>Largest castConfirmDelaySeconds over all rows (0 without rows); used for timing estimates.</summary>
-    public float MaxCastConfirmDelaySeconds { get; private set; }
 
     public bool TryGet(string skillId, out SkillRecord record)
     {

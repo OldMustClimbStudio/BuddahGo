@@ -82,9 +82,12 @@ public class SkillExecutor : NetworkBehaviour
     public event Action<CastEvent> ServerCastChanged;
     public event Action ActiveEffectsReset;
     public bool HasPendingCast => _pendingCast != null;
-    /// <summary>Longest Skill.castConfirmDelaySeconds in the tables (AI timing estimate); the constant without tables.</summary>
-    public float ConfirmationSeconds => ProjectConfigRuntime.TryGetSkillConfigRepository(out SkillConfigRepository skills) && skills.MaxCastConfirmDelaySeconds > 0f
-        ? skills.MaxCastConfirmDelaySeconds : CastConfirmDelaySeconds;
+    /// <summary>
+    /// Server AI timing estimate: the normal cast delay of the skill in this slot (its own Skill row). A backfire's
+    /// longer _anti wind-up is not counted: a backfired cast does not use the opportunity anyway.
+    /// </summary>
+    public float ConfirmationSecondsForSlot(int slotIndex) =>
+        ResolveCastConfirmDelay(loadout != null ? loadout.GetSkillId(slotIndex) : string.Empty, false);
 
     // Everything one confirming cast needs after its delay. The coroutine reads only this, never the _pending* fields.
     private readonly struct QueuedCast

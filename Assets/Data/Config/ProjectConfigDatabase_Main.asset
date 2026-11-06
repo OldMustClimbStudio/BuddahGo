@@ -632,6 +632,32 @@ MonoBehaviour:
     scaleMultiplier: 0
     lightSeconds: 0
     lightIntensity: 0
+  - vfxId: frost_lock_release
+    prefabPath: "Assets/VFX/\u7985\u8DB3\u51B0\u5C01/Release/VFX_FrostLock_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: frost_lock_hit
+    prefabPath: "Assets/VFX/\u7985\u8DB3\u51B0\u5C01/Hit/VFX_FrostLock_Hit.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
   movements:
   - profileId: default
     forwardForce: 50

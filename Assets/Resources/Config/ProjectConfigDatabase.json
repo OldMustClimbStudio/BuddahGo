@@ -765,6 +765,36 @@
             "scaleMultiplier": 0.0,
             "lightSeconds": 0.0,
             "lightIntensity": 0.0
+        },
+        {
+            "vfxId": "frost_lock_release",
+            "prefabPath": "Assets/VFX/禅足冰封/Release/VFX_FrostLock_Release.prefab",
+            "warmup": true,
+            "antiOf": "",
+            "chgRatio": 0.0,
+            "impFrames": 0,
+            "disSeconds": 0.0,
+            "linSeconds": 0.0,
+            "bufFadeSeconds": 0.0,
+            "trailSeconds": 0.0,
+            "scaleMultiplier": 0.0,
+            "lightSeconds": 0.0,
+            "lightIntensity": 0.0
+        },
+        {
+            "vfxId": "frost_lock_hit",
+            "prefabPath": "Assets/VFX/禅足冰封/Hit/VFX_FrostLock_Hit.prefab",
+            "warmup": true,
+            "antiOf": "",
+            "chgRatio": 0.0,
+            "impFrames": 0,
+            "disSeconds": 0.0,
+            "linSeconds": 0.0,
+            "bufFadeSeconds": 0.0,
+            "trailSeconds": 0.0,
+            "scaleMultiplier": 0.0,
+            "lightSeconds": 0.0,
+            "lightIntensity": 0.0
         }
     ],
     "movements": [

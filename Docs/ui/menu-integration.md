@@ -19,6 +19,7 @@
 新：MenuEnvironmentSetting（技能页 / 皮肤页 / 道场沙盘选地图）──开局──▶ 地图场景
 ```
 
+- **缘起列表**：技能页点小祠滑出的技能键面板，在执念 / 反噬规则下面列出小祠上这套配装能触发的缘起（`MenuSkillPage`，运行时复制面板的 Rules 文字；少于两招时不显示）。来自 `feat/yuanqi`，取代旧选择场景技能阶段的列表。
 - **本机选择**：`LocalMatchSelection`（`Match/Selection/`）把技能三槽、皮肤、地图存进 `PlayerPrefs`，菜单打开时恢复。技能页拖绘马（`MenuSkillLoadout`）、皮肤页换皮（`MenuSkinPage`）、沙盘上 ← →（房主）都写这里。
 - **目录**：`SelectionCatalog`（`Resources/Match/SelectionCatalog.asset`）：皮肤 id → 名字、短句、材质、名字书法；地图 id → 场景名、名字。菜单和比赛读同一份。材质放不进 xlsx，所以用 ScriptableObject。白玉用 `DefaultSkin`（菜单佛像自己的材质），赛车 prefab 默认是银身，不能留空。
 - **上报房间**：`RoomPlayerState` 加 `Skill0..2`、`SkinId`。客户端连上和本机选择变化时发 `SubmitSelectionServerRpc`，服务器用 `MatchLoadoutResolver`（`LoadoutRules` + `SkillDatabase`：已解锁、重复策略）校验，非法整组拒收、皮肤 id 规范化。地图是房间级 `SyncVar`（`MapId`），只有房主能改，开局前锁定。

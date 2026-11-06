@@ -278,7 +278,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 改哪里 | `SkillSlotUI`（状态在 `SkillSlotHudTimeline`）：每槽冷却、键位（Q/1、E/2、R/3）、同招加价窗口（冷却结束后 5 秒内显示下一次的执念倍率和窗口剩余秒数）、反噬锁和冻结时三个槽的倒计时；`ObsessionUI`：当前反噬概率是主数字，惩罚期间显示剩余秒数；`YuanqiToastUI`（`RaceMapUIBootstrap` 运行时挂到 HUD 画布）：施法者自己的缘起提示（`LocalYuanqiTriggered`）；选技能界面 `PropertiesSelectorUI` 在技能阶段列出本套配装能触发的缘起（`YuanqiCatalog.ForLoadout`，和服务器登记同一个答案） |
+| 改哪里 | `SkillSlotUI`（状态在 `SkillSlotHudTimeline`）：每槽冷却、键位（Q/1、E/2、R/3）、同招加价窗口（冷却结束后 5 秒内显示下一次的执念倍率和窗口剩余秒数）、反噬锁和冻结时三个槽的倒计时；`ObsessionUI`：当前反噬概率是主数字，惩罚期间显示剩余秒数；`YuanqiToastUI`（`RaceMapUIBootstrap` 运行时挂到 HUD 画布）：施法者自己的缘起提示（`LocalYuanqiTriggered`）；菜单技能页 `MenuSkillPage` 的技能键面板（点小祠后滑出）在执念 / 反噬规则下面列出本套配装能触发的缘起（`YuanqiCatalog.ForLoadout`，和服务器登记同一个答案） |
 | 退役 | 搓招进度（槽位的 W/↑ token 运行时隐藏，2026-10-31 连图一起删除）、全局施法锁的 UI（`LocalSkillUiEvent.CastLockSeconds`、2 秒假锁 `fallbackCastLockSeconds`）；`UI/UiTiming` 里 `SkillSlotUI` 的三行一并删除 |
 | 计时口径 | 冷却和同招加价窗口按服务器执行时的 tick 定锚（`CastObserversRpc` / `BackfireSkillUiTargetRpc` 带 `serverTick`，`LocalSkillUiEvent.SecondsSinceServerEvent` = 本端估算的服务器 tick 减去它），不按 RPC 到达时刻，否则远端客户端会晚一个完整 RTT。和反噬、冻结计时一样以服务器时钟为准，远端只剩上行延迟（约 RTT/2）的偏差，方向安全：显示就绪后按下，请求到达服务器时冷却已经结束（本端估算服务器 tick 的误差只有一两个 tick，小于上行延迟）；窗口最后约半个 RTT 显示的加价实际不会收（对玩家有利）。host 与训练模式没有偏差 |
 | 文字 | 中文只用 SoloCJK 字体子集里有的字（`InGameHudLabels`，`InGameHudTests` 检查）；“冻”“起”不在子集里，“冻结”显示 FROZEN，缘起名显示英文或 id，等子集重烘（第 8 节） |

@@ -35,6 +35,8 @@ namespace SteamMultiplayer.UI
         [Header("Presentation")]
         [Tooltip("Share of the screen height the ema fills while inspected.")]
         [SerializeField, Range(0.1f, 0.9f)] private float screenFill = 0.5f;
+        [Tooltip("Horizontal shift of the inspected ema, as a share of the screen width (negative = left), clearing room for the skill page on the right.")]
+        [SerializeField, Range(-0.4f, 0.4f)] private float screenOffsetX = -0.16f;
         [SerializeField, Min(0.01f)] private float moveDuration = 0.35f;
         [SerializeField] private AnimationCurve moveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
         [Tooltip("Degrees of rotation per screen-width of mouse drag.")]
@@ -74,6 +76,54 @@ namespace SteamMultiplayer.UI
         public Transform CurrentItem => _current != null ? _current.item : null;
 
         public void SetInspectables(List<Inspectable> items) => inspectables = items;
+
+        /// <summary>An ema is settled in front of the camera and there is another one to switch to.</summary>
+        public bool CanCycle => _state == State.Viewing && inspectables.Count > 1;
+
+        /// <summary>
+        /// Switches the inspection to the previous (-1) or next (+1) ema in the list: the current one hangs itself back
+        /// while the next one comes in, so the view never leaves inspection (the skill page's arrows).
+        /// </summary>
+        public void Cycle(int direction)
+        {
+            if (!CanCycle) return;
+            int n = inspectables.Count;
+            int at = Mathf.Max(0, inspectables.IndexOf(_current));
+            for (int step = 1; step < n; step++)
+            {
+                Inspectable next = inspectables[((at + direction * step) % n + n) % n];
+                if (next.item == null || next == _current) continue;
+                StartCoroutine(Swap(next));
+                return;
+            }
+        }
+
+        private IEnumerator Swap(Inspectable next)
+        {
+            Transform item = _current.item;
+            var attached = new List<(Transform t, Vector3 localPos, Quaternion localRot)>(_attached);
+            StartCoroutine(SendHome(item, item.position, item.rotation, _homePosition, _homeRotation, attached));
+            yield return Enter(next);
+        }
+
+        /// <summary>Hangs an ema back on its own (used while the next one comes in).</summary>
+        private IEnumerator SendHome(Transform item, Vector3 fromPos, Quaternion fromRot, Vector3 homePos, Quaternion homeRot,
+                                     List<(Transform t, Vector3 localPos, Quaternion localRot)> attached)
+        {
+            float time = 0f;
+            while (time < moveDuration)
+            {
+                time += Time.unscaledDeltaTime;
+                float k = moveCurve.Evaluate(Mathf.Clamp01(time / moveDuration));
+                item.SetPositionAndRotation(Vector3.Lerp(fromPos, homePos, k), Quaternion.Slerp(fromRot, homeRot, k));
+                foreach (var (t, localPos, localRot) in attached)
+                    t.SetPositionAndRotation(item.TransformPoint(localPos), item.rotation * localRot);
+                yield return null;
+            }
+            item.SetPositionAndRotation(homePos, homeRot);
+            foreach (var (t, localPos, localRot) in attached)
+                t.SetPositionAndRotation(item.TransformPoint(localPos), item.rotation * localRot);
+        }
 
         public void SetLoadout(MenuSkillLoadout skillLoadout) => loadout = skillLoadout;
 
@@ -246,7 +296,8 @@ namespace SteamMultiplayer.UI
         {
             Transform cam = targetCamera.transform;
             Transform item = _current.item;
-            Vector3 viewPos = cam.position + cam.forward * _distance;
+            float halfWidth = _distance * Mathf.Tan(targetCamera.fieldOfView * 0.5f * Mathf.Deg2Rad) * targetCamera.aspect;
+            Vector3 viewPos = cam.position + cam.forward * _distance + cam.right * (2f * screenOffsetX * halfWidth);
             // The ema's painted face looks along its forward axis: turn it to face the camera, then apply the drag spin.
             Quaternion facing = Quaternion.LookRotation(-cam.forward, cam.up);
             Quaternion viewRot = Quaternion.AngleAxis(_spin.x, cam.up) * Quaternion.AngleAxis(_spin.y, cam.right) * facing;

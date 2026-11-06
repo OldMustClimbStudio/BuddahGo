@@ -105,6 +105,15 @@ namespace SteamMultiplayer.UI
             return false;
         }
 
+        /// <summary>Proxy of the object the pointer is over right now (null when none or not on the idle main menu).</summary>
+        public Collider HoveredProxy()
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null || !MenuIdle) return null;
+            Shortcut s = Under(mouse.position.ReadValue());
+            return s != null ? s.proxy : null;
+        }
+
         /// <summary>The shortcut picked under the pointer.</summary>
         private Shortcut Under(Vector2 screen)
         {

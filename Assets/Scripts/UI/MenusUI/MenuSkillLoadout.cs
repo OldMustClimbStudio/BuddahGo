@@ -11,7 +11,8 @@ namespace SteamMultiplayer.UI
     /// Skill loadout on the hokora: each skill ema hangs either on its own spot of the ema wall or in one
     /// of the hokora's slots, never both. Drag an ema (press and move) onto the hokora to slot it, drop it
     /// anywhere else and it returns to where it came from; right-click an ema in the hokora to send it back
-    /// to the wall. A short click (no drag) is left to <see cref="MenuEmaInspector"/>.
+    /// to the wall, right-click one on the wall to hang it in the first free slot. A short click (no drag) is left to
+    /// <see cref="MenuEmaInspector"/>.
     /// </summary>
     [DisallowMultipleComponent]
     public class MenuSkillLoadout : MonoBehaviour
@@ -79,6 +80,23 @@ namespace SteamMultiplayer.UI
         private float _dragScale = 1f;
 
         public bool IsDragging => _dragging != null;
+
+        /// <summary>Skill id of the ema whose transform is item (null when it is not a skill ema).</summary>
+        public string SkillOf(Transform item)
+        {
+            if (item == null) return null;
+            foreach (SkillEma e in emas)
+                if (e.item == item) return e.skillId;
+            return null;
+        }
+
+        /// <summary>The ema whose transform is item hangs in the hokora (a right click takes it back to the wall).</summary>
+        public bool IsInHokora(Transform item)
+        {
+            if (item == null) return false;
+            State s = _states.Find(x => x.ema.item == item);
+            return s != null && s.slot >= 0;
+        }
 
         /// <summary>Skill id per slot (null = empty).</summary>
         public IReadOnlyList<string> Loadout
@@ -148,8 +166,12 @@ namespace SteamMultiplayer.UI
             if (!Available) { _pressed = null; return; }
             bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
-            if (mouse.rightButton.wasPressedThisFrame && !overUi && Pick(pointer) is State remove && remove.slot >= 0)
-                ReturnToWall(remove);
+            // Right-click: an ema in the hokora goes back to the wall, one on the wall goes into the first free slot.
+            if (mouse.rightButton.wasPressedThisFrame && !overUi && Pick(pointer) is State picked)
+            {
+                if (picked.slot >= 0) ReturnToWall(picked);
+                else EquipToFreeSlot(picked);
+            }
 
             if (mouse.leftButton.wasPressedThisFrame && !overUi)
             {
@@ -261,6 +283,16 @@ namespace SteamMultiplayer.UI
             SettleHome(s);
         }
 
+        /// <summary>Hangs a wall ema in the first free hokora slot; nothing when all slots are taken.</summary>
+        private void EquipToFreeSlot(State s)
+        {
+            int free = System.Array.IndexOf(_occupant, null);
+            if (free < 0) return;
+            Assign(s, free);
+            LoadoutChanged?.Invoke(Loadout);
+            SettleHome(s);
+        }
+
         private void Assign(State s, int slot)
         {
             s.slot = slot;
@@ -325,6 +357,16 @@ namespace SteamMultiplayer.UI
         {
             Ray ray = targetCamera.ScreenPointToRay(screenPoint);
             return _dragPlane.Raycast(ray, out float d) ? ray.GetPoint(d) : _dragging != null ? _dragging.ema.item.position : Vector3.zero;
+        }
+
+        /// <summary>The pointer is on the hokora itself (the ray crosses one of its parts' bounds); a click there shows the skill keys.</summary>
+        public bool PointsAtHokora(Vector2 screen)
+        {
+            if (targetCamera == null) return false;
+            Ray ray = targetCamera.ScreenPointToRay(screen);
+            foreach (Renderer r in hokoraRenderers)
+                if (r != null && r.enabled && r.bounds.IntersectRay(ray)) return true;
+            return false;
         }
 
         private bool IsOverHokora(Vector2 pointer)

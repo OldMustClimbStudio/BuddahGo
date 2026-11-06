@@ -48,6 +48,9 @@ namespace SteamMultiplayer.UI
 
         public bool IsInside => _state != State.Outside;
 
+        /// <summary>In the hall with the view settled: not on the way in through the doors, nor on the way out.</summary>
+        public bool IsSettled => _state == State.Inside;
+
         /// <summary>The room is open: the lobby view has faded in and its UI is up.</summary>
         public event System.Action Entered;
         /// <summary>The room is closed: raised while the screen is black, before the view cuts back to the door.</summary>

@@ -21,6 +21,10 @@ MonoBehaviour:
   mode: 0
   retriggerPolicy: 0
   isEnabled: 1
+  vfxId: giant_charge_release
   burstExtraMaxSpeed: 60
   burstSeconds: 0.8
   impactImpulseMultiplier: 3
+  casterFovKickDegrees: 8
+  casterFovKickHoldSeconds: 0.15
+  casterFovKickSettleSeconds: 0.65

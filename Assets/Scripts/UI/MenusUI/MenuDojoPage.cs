@@ -753,6 +753,7 @@ namespace SteamMultiplayer.UI
                 if (click && hover) start = true;
             }
             if (start && solo) StartSolo();
+            else if (start && StartOnlineRequested == null) Notice("联机开局尚未接入");
             else if (start && _onlineStartT <= 0f)
             {
                 _onlineStartT = 1.5f;

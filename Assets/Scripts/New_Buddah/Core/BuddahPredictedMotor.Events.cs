@@ -704,12 +704,9 @@ namespace NewBuddah.PredictionV2.Core
                 bootstrap?.LogVerbose(
                     $"[HandoffDebug] ground snap eventId={eventData.EventId} y={eventData.SnapshotPosition.y:0.000}->{landedPosition.y:0.000} clearance={groundClearance:0.000}");
             }
-            rb.position = landedPosition;
-            rb.rotation = eventData.SnapshotRotation;
-            rb.velocity = eventData.SnapshotVelocity;
-            rb.angularVelocity = eventData.SnapshotAngularVelocity;
-            rb.Sleep();
-            rb.WakeUp();
+            // The launch speed is set once, here (fully physical handoff, no Inherit/Blend phase to restore it later).
+            BuddahHandoffBodyPlacement.Place(rb, landedPosition, eventData.SnapshotRotation,
+                eventData.SnapshotVelocity, eventData.SnapshotAngularVelocity);
             InitializePredictionRigidbody();
             _splineProgressTracker?.SnapToWorldPosition(landedPosition);
 

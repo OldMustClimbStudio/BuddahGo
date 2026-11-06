@@ -123,6 +123,21 @@ namespace BuddahGo.Tests
                 }));
         }
 
+        // 禅足冰封's frozen ground is laid in world units (casterScaling None, Docs/vfx/yuanqi-frost-lock.md): the rim
+        // quad carries FX_Ring_01_T, whose ring sits at 93 % of the quad's half width, so the ring stands at the pair's R.
+        // Changing R means re-running FrostLockProto (or resizing the rim in VFXtests).
+        [Test]
+        public void FrostLockGroundRimStandsAtTheFreezeRadius()
+        {
+            var pair = AssetDatabase.LoadAssetAtPath<Yuanqi_FrostLock>("Assets/Skills_Assets/Yuanqi/Yuanqi_FrostLock.asset");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/VFX/禅足冰封/Release/VFX_FrostLock_Release.prefab");
+            Assert.IsNotNull(pair);
+            Assert.IsNotNull(prefab);
+            ParticleSystem rim = prefab.GetComponentsInChildren<ParticleSystem>(true).First(p => p.name == "Rim");
+            Assert.AreEqual(1f, rim.transform.lossyScale.x, 1e-4f, "the rim is authored at scale 1");
+            Assert.That(rim.main.startSize.constant * 0.93f * 0.5f, Is.EqualTo(pair.radiusMeters).Within(0.5f));
+        }
+
         [Test]
         public void VfxTableRowsPairAntiEffectsAndPointAtTheirPrefabs()
         {
@@ -183,7 +198,7 @@ namespace BuddahGo.Tests
                 }));
         }
 
-        static readonly Regex VfxIdRule = new Regex(@"^(?:(cast)|(palm|accel|slow|reverse|curtain|giant_charge|giant)_(release|bullet|hit|buff))(_anti)?$");
+        static readonly Regex VfxIdRule = new Regex(@"^(?:(cast)|(palm|accel|slow|reverse|curtain|giant_charge|giant|frost_lock)_(release|bullet|hit|buff))(_anti)?$");
 
         static readonly Dictionary<string, (string folder, string name)> SkillFolders = new Dictionary<string, (string, string)>
         {
@@ -196,6 +211,7 @@ namespace BuddahGo.Tests
             ["giant"] = ("巨大化", "Giant"),
             // 缘起 slots use the pair's Chinese name as the folder (README section 6).
             ["giant_charge"] = ("金足破阵", "GiantCharge"),
+            ["frost_lock"] = ("禅足冰封", "FrostLock"),
         };
 
         // README section 5: an empty (0) cell of the VFX table falls back to the default look instead of collapsing the

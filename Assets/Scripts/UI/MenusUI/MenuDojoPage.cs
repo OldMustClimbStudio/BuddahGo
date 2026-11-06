@@ -113,6 +113,8 @@ namespace SteamMultiplayer.UI
         [Tooltip("T5 line over the tag: who races, or why the start failed.")]
         [SerializeField] private TextMeshProUGUI startNote;
         [SerializeField] private Image startSpinner;
+        [Tooltip("练习: a click (or P) starts the same solo host with no AI (Match/ModeRule Practice: three training dummies); shown only while the host is alone.")]
+        [SerializeField] private TextMeshProUGUI practiceItem;
         [Tooltip("With guests 形象 · 技能 slide right by this much, into the room the difficulties leave.")]
         [SerializeField] private float itemsShiftWithGuests = 216f;
 
@@ -192,9 +194,10 @@ namespace SteamMultiplayer.UI
             lobbyItems = items; startButton = start; notice = noticeText; tempDoorPanel = doorPanel; tempHidden = hidden;
         }
 
-        public void SetSolo(CanvasGroup group, TextMeshProUGUI[] difficulties, RectTransform ink, TextMeshProUGUI label, TextMeshProUGUI note, Image spinner)
+        public void SetSolo(CanvasGroup group, TextMeshProUGUI[] difficulties, RectTransform ink, TextMeshProUGUI label, TextMeshProUGUI note, Image spinner, TextMeshProUGUI practice = null)
         {
             soloGroup = group; difficultyItems = difficulties; difficultyInk = ink; startLabel = label; startNote = note; startSpinner = spinner;
+            practiceItem = practice;
         }
 
         // Same key as the old solo setup panel, so the last difficulty carries over.
@@ -234,7 +237,10 @@ namespace SteamMultiplayer.UI
             return names;
         }
 
-        private void StartSolo()
+        private bool _practiceHover;
+
+        /// <summary>The same solo host; practice has no AI (SoloMatchRules maps 0 AI to the Match/ModeRule Practice row).</summary>
+        private void StartSolo(bool practice = false)
         {
             if (_soloRequested) return;
             ISessionControl session = SessionControl.Current;
@@ -242,7 +248,7 @@ namespace SteamMultiplayer.UI
             PlayerPrefs.SetInt(DifficultyKey, (int)_difficulty);
             PlayerPrefs.Save();
             _soloError = "";
-            if (!session.StartSoloHost(new SoloMatchSettings(SoloAICount(), _difficulty, SoloNames())))
+            if (!session.StartSoloHost(practice ? new SoloMatchSettings(0, _difficulty) : new SoloMatchSettings(SoloAICount(), _difficulty, SoloNames())))
             {
                 _soloError = string.IsNullOrEmpty(session.LastError) ? "启动失败，请重试" : session.LastError;
                 return;
@@ -293,7 +299,11 @@ namespace SteamMultiplayer.UI
             if (startNote != null)
                 startNote.text = !solo ? (starting ? "" : "玩家 + " + Numeral(TakenCount() - 1) + " 位道友")
                                : !string.IsNullOrEmpty(_soloError) ? "<color=#B8352A>" + _soloError + "</color>"
-                               : _soloRequested ? "" : "玩家 + " + Numeral(SoloAICount()) + " 位 AI";
+                               : _soloRequested ? ""
+                               : _practiceHover ? "不带 AI　场上立着木桩"
+                               : "玩家 + " + Numeral(SoloAICount()) + " 位 AI";
+            if (practiceItem != null)
+                practiceItem.alpha = Mathf.MoveTowards(practiceItem.alpha, _soloRequested ? 0.3f : _practiceHover ? 1f : 0.65f, dt / 0.15f);
             if (startSpinner != null)
             {
                 Color c = startSpinner.color;
@@ -751,6 +761,12 @@ namespace SteamMultiplayer.UI
                 _startHover = Mathf.MoveTowards(_startHover, hover ? 1f : 0f, dt / 0.12f);
                 startButton.localScale = Vector3.one * (1f + 0.05f * _startHover);
                 if (click && hover) start = true;
+            }
+            _practiceHover = false;
+            if (solo && !_soloRequested && practiceItem != null)
+            {
+                _practiceHover = Hit(practiceItem.rectTransform, at, 10f);
+                if ((click && _practiceHover) || (kb != null && kb.pKey.wasPressedThisFrame)) { StartSolo(true); start = false; }
             }
             if (start && solo) StartSolo();
             else if (start && _onlineStartT <= 0f)

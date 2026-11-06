@@ -359,7 +359,7 @@ namespace SteamMultiplayer.UI
             return _dragPlane.Raycast(ray, out float d) ? ray.GetPoint(d) : _dragging != null ? _dragging.ema.item.position : Vector3.zero;
         }
 
-        /// <summary>The pointer is on the hokora itself (the ray crosses one of its parts' bounds); a click there shows the combos.</summary>
+        /// <summary>The pointer is on the hokora itself (the ray crosses one of its parts' bounds); a click there shows the skill keys.</summary>
         public bool PointsAtHokora(Vector2 screen)
         {
             if (targetCamera == null) return false;

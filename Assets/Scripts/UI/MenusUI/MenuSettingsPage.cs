@@ -241,10 +241,24 @@ namespace SteamMultiplayer.UI
             _audioContent.sizeDelta = new Vector2(rowWidth, _audioRows.Count * rowHeight);
         }
 
+        /// <summary>One group per slot, from the SkillSlot actions (Q 1　E 2　R 3).</summary>
+        private static string SkillKeys()
+        {
+            string[][] slots = MenuSkillPage.SlotKeys(3);
+            var groups = new List<string>();
+            foreach (string[] slot in slots)
+            {
+                var caps = new List<string>();
+                foreach (string token in slot) caps.Add(Key(token.ToLowerInvariant()));
+                groups.Add(string.Join(" ", caps));
+            }
+            return string.Join("　", groups);
+        }
+
         private static string Key(string key) => "<sprite name=\"key_" + key + "\" tint=1>";
 
         /// <summary>
-        /// 操作 rows: the race's keys (InputSystem_Actions → Player; the skills' combos are on the skill page), a hairline,
+        /// 操作 rows: the race's keys (InputSystem_Actions → Player; each skill slot's cast keys are read from the actions), a hairline,
         /// then the menu's keys (style guide 8). Read only: chosen like the other rows, never stepped.
         /// </summary>
         private void BuildControls()
@@ -257,9 +271,10 @@ namespace SteamMultiplayer.UI
             var race = new[]
             {
                 ("steer", "转向", Key("a") + " " + Key("d")),
-                ("hand", "转动佛手", Key("left") + " " + Key("right")),
-                ("push", "推掌", Key("w") + " / " + Key("up")),
-                ("skill", "施展技能", "按出一槽的搓招"),
+                ("forward", "前进", "按住 " + Key("w")),
+                ("hand", "转动佛手", Key("mouse_move") + "　无鼠标时 " + Key("left") + " " + Key("right")),
+                ("push", "推掌", Key("mouse_left") + " 左手　" + Key("mouse_right") + " 右手"),
+                ("skill", "施展技能", SkillKeys()),
             };
             var menu = new[]
             {
@@ -525,7 +540,7 @@ namespace SteamMultiplayer.UI
             }
             if (_tab == ControlsTab)
             {
-                if (note != null) note.text = "施展技能：比赛中依次按出一槽的按键，键位见技能页";
+                if (note != null) note.text = "按住 W 前进，松开靠摩擦滑行。键位固定，不能修改";
                 if (applyHint != null) applyHint.alpha = 0.3f;
                 return;
             }

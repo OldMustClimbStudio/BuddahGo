@@ -42,7 +42,7 @@ public static class MenuTitleHomeBuilder
     private const float SlotsHeight = 0.98f;
     private const float SlotSpacing = 0.15f;
     private const string SkillArtDir = "Assets/UI/UI资源/文字PNG/New/";
-    // Descriptions follow the GitHub README ("当前已实现技能") and Docs/gameplay/README.md 6.2 (the backfire of each skill).
+    // Descriptions follow the GitHub README ("当前已实现技能") and Docs/gameplay/README.md 6.2 (the backfire of each skill: its _anti variant; the 5 s lock is appended by MenuSkillPage).
     private static readonly (string id, string art, string desc, string backfire)[] SkillArts =
     {
         ("acceleration", "神足通", "自身加速一段时间。", "自身减速"),
@@ -435,8 +435,9 @@ public static class MenuTitleHomeBuilder
         desc.enableWordWrapping = true;
         TextMeshProUGUI backfireText = Txt(nameGroup.transform, "Backfire", "", font, 15, new Vector2(1344, 490), 0.5f, SpacingNormal);
         backfireText.alignment = TextAlignmentOptions.Top;
-        backfireText.rectTransform.sizeDelta = new Vector2(480, 26);
-        TextMeshProUGUI stats = Txt(nameGroup.transform, "Stats", "", font, 15, new Vector2(1344, 518), 0.5f, SpacingNormal);
+        backfireText.rectTransform.sizeDelta = new Vector2(480, 44);
+        backfireText.enableWordWrapping = true;
+        TextMeshProUGUI stats = Txt(nameGroup.transform, "Stats", "", font, 15, new Vector2(1344, 540), 0.5f, SpacingNormal);
         stats.alignment = TextAlignmentOptions.Top;
         stats.rectTransform.sizeDelta = new Vector2(480, 26);
         // How to use the inspect view: in the bottom-right hint bar, in place of 返回 (which gives way while inspecting).
@@ -520,10 +521,16 @@ public static class MenuTitleHomeBuilder
         Txt(keys.transform, "Category", "", font, 15, new Vector2(120, 236), 0.5f, SpacingNormal);
         TextMeshProUGUI comboHeader = keys.transform.Find("Category").GetComponent<TextMeshProUGUI>();
         comboHeader.rectTransform.sizeDelta = new Vector2(480, 26);
-        Txt(keys.transform, "Title", "搓招", font, 34, new Vector2(120, 264), 1f, SpacingWide);
-        TextMeshProUGUI how = Txt(keys.transform, "Text", "比赛中依次按出一槽的按键，就放出这一槽的技能。按键之间别停顿太久。", font, 17, new Vector2(120, 326), 0.75f, SpacingNormal);
+        Txt(keys.transform, "Title", "技能键", font, 34, new Vector2(120, 264), 1f, SpacingWide);
+        TextMeshProUGUI how = Txt(keys.transform, "Text", "比赛中按下对应的键，就放出这一槽的技能。同一时间只能有一个技能在前摇。", font, 17, new Vector2(120, 326), 0.75f, SpacingNormal);
         how.rectTransform.sizeDelta = new Vector2(470, 56);
         how.enableWordWrapping = true;
+        // 执念 and 反噬 in a few lines under the rows (numbers from Skill/Obsession.csv: repeatWindowSeconds 5, repeatGainMultiplier 1.15, backfireLockSeconds 5).
+        TextMeshProUGUI rules = Txt(keys.transform, "Rules",
+            "<color=#B8352A>执念</color>　每放一次技能，执念就上升，越高越容易反噬。\n同一技能冷却结束后 5 秒内再放，执念多涨 15%。\n<color=#B8352A>反噬</color>　放出该技能的反噬版本，并锁住全部技能 5 秒。",
+            font, 15, new Vector2(120, 696), 0.6f, SpacingNormal);
+        rules.rectTransform.sizeDelta = new Vector2(480, 96);
+        rules.enableWordWrapping = true;
         var rows = new List<RectTransform>();
         var rowArts = new List<Image>();
         var rowEmpty = new List<TextMeshProUGUI>();
@@ -816,6 +823,9 @@ public static class MenuTitleHomeBuilder
             t.rectTransform.sizeDelta = new Vector2(t.GetPreferredValues(label).x, 32);
             difficulty.Add(t);
         }
+        // 练习: no AI, three training dummies on the track (Match/ModeRule Practice). Left of 形象, in the solo group only.
+        TextMeshProUGUI practice = Txt(soloGroup.transform, "Practice", "练习", font, 20, new Vector2(1056, 970), 0.65f, SpacingWide);
+        practice.rectTransform.sizeDelta = new Vector2(practice.GetPreferredValues("练习").x + 4f, 32);
         Image difficultyInk = Img(soloGroup.transform, "DifficultyInk", "Menu_ink", new Vector2(1352, 1000), new Vector2(0, 12), new Color(1, 1, 1, 0.85f));
         difficultyInk.type = Image.Type.Sliced;
         difficultyInk.pixelsPerUnitMultiplier = 5f;
@@ -874,7 +884,7 @@ public static class MenuTitleHomeBuilder
         page.SetLobby(lobbyGroup, null, roomInfo, (RectTransform)seats.transform, sand.rectTransform, leave, lobbyItems.ToArray(), start, notice,
             GameObject.Find("TEMP_RoomPanel"),
             new[] { GameObject.Find("TEMP_RoomLeaveButton"), GameObject.Find("TEMP_LobbyCount"), GameObject.Find("TEMP_RopeHint") });
-        page.SetSolo(soloGroup, difficulty.ToArray(), difficultyInk.rectTransform, startText, startNote, spinner);
+        page.SetSolo(soloGroup, difficulty.ToArray(), difficultyInk.rectTransform, startText, startNote, spinner, practice);
         return page;
     }
 
@@ -1465,7 +1475,7 @@ public static class MenuTitleHomeBuilder
     private static TMP_FontAsset LoadOrCreateFont()
     {
         var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetPath);
-        const string chars = "BUDDAHGOMCSTIN按任意键开始单人修行联机道场预设置离去与五位同竞速创建或加入房间形象技能画面声音操作游戏本殿点击进皮肤绘马墙前配挑选佛像尚未开放有未应用的改动按与预设不同后生效并保存在本机恢复返回音频操作需要重启标的将游戏自定义加入房间凭房号入门或从列表里挑一个道场明月寺竹林小院听松阁直接键入删除这个输四位挑选佛像形象白玉温润如静而不争银身通体辉映照四方雪岩色纹沉稳山织石交错细密锦赭红脉暗藏火已拥有按住拖动可旋转拉动铃绳按住往下摇铃开门挑三面挂入小祠细看装配点圆相取下已短暂一段时间自身减速布下区域碰到对手会被先住随后黑幕笼罩全场看不清赛道和其他人只遮住视野放大形态能把撞开缩小向前方发出推开挡路身后反向让所有左右转向颠倒反噬冷却秒持续拖动翻看空白处挂回右键收起↑↓←→联机道场最多六人同场竞速创建房间开门迎客加入好友去开着的列表看看哪些门输入房号凭四位入离开清风禅院号公开一二三四五六沙盘枯山水环道修行尚未接入流程比赛你主云游僧无尘明心慧觉了凡空位比赛中依次按出一槽的按键就放出这一槽的技能之间别停顿太久空祠总音量乐效切到后台时静开关默认改动立即今日到此为止？留下你是房主，会解散道友们也回殿门。未应用这些继续调整放弃";
+        const string chars = "BUDDAHGOMCSTIN按任意键开始单人修行联机道场预设置离去与五位同竞速创建或加入房间形象技能画面声音操作游戏本殿点击进皮肤绘马墙前配挑选佛像尚未开放有未应用的改动按与预设不同后生效并保存在本机恢复返回音频操作需要重启标的将游戏自定义加入房间凭房号入门或从列表里挑一个道场明月寺竹林小院听松阁直接键入删除这个输四位挑选佛像形象白玉温润如静而不争银身通体辉映照四方雪岩色纹沉稳山织石交错细密锦赭红脉暗藏火已拥有按住拖动可旋转拉动铃绳按住往下摇铃开门挑三面挂入小祠细看装配点圆相取下已短暂一段时间自身减速布下区域碰到对手会被先住随后黑幕笼罩全场看不清赛道和其他人只遮住视野放大形态能把撞开缩小向前方发出推开挡路身后反向让所有左右转向颠倒反噬冷却秒持续拖动翻看空白处挂回右键收起↑↓←→联机道场最多六人同场竞速创建房间开门迎客加入好友去开着的列表看看哪些门输入房号凭四位入离开清风禅院号公开一二三四五六沙盘枯山水环道修行尚未接入流程比赛你主云游僧无尘明心慧觉了凡空位比赛中依次按出一槽的按键就放出这一槽的技能之间别停顿太久空祠总音量乐效切到后台时静开关默认改动立即今日到此为止？留下你是房主，会解散道友们也回殿门。未应用这些继续调整放弃执念每上升越高容易结束内再涨该版锁部靠摩擦滑固鼠掌施展练习带木桩玩家";
         if (existing != null)
         {
             existing.TryAddCharacters(chars);

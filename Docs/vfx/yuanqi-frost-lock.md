@@ -8,7 +8,7 @@
 
 | 事实 | 现值 / 出处 | 对特效的意思 |
 |---|---|---|
-| 禁锢 | N = 1.5 秒，半径 R = 12 米（缓流区 7.5 米），施法者以外全部（真人、AI、木桩） | 冻住到解冻只有 1.5 秒；地面范围直径 24 米，会跨出赛道 |
+| 禁锢 | N = 1.5 秒，半径 R = 12 米（缓流区 7.5 米）× 施法者的掌倍率（金身 ×2 → 24 米，反噬 ×0.5 → 6 米，已定 2026-11-07），施法者以外全部（真人、AI、木桩） | 冻住到解冻只有 1.5 秒；地面范围直径 24 米（金身时 48 米），会跨出赛道 |
 | 时机 | 服务器触发那一刻就冻住；`RacerSkillPresentationState.FrozenChanged` 开始立即报、结束晚 0.1 秒报 | 冰块跟 `FrozenChanged` 出现，不等地面波 |
 | 冻结期间 | 速度归零、推不动、Animator 停、双手不转；HUD 从 `FreezeSecondsLeft` 倒计时 | 冰块是静止的；解冻预警可以读剩余时间 |
 | 两招都被消耗 | 神足通拖尾淡出，缓流墨池停止（余韵 1 秒） | 地面效果可以接上缓流墨池收掉的那一下 |
@@ -118,7 +118,7 @@ v2 的微光 Fresnel 是 0.45 × 1.0，v2+ 是 1.1 × 1.3。结果：v2 有很�
 
 | 插槽 | 谁播、播多久 | 层 | 内容 |
 |---|---|---|---|
-| `frost_lock_release` → `Release/VFX_FrostLock_Release` | `Yuanqi_FrostLock.PlayObservers`，施法者处，N（参考 1.5 s，`Stretch`） | `FX_FrostLock_Imp_C_Decal_01`（玩法层）、`FX_FrostLock_Imp_A_Sparks_02`（点缀，优先级 2）；都是 `CasterRelative` + `casterScaling = None`，贴地 `casterOffset.y = -0.3` | 冰面（`CrystalNoise` 晶面放进圆形软遮罩）、放射裂纹（`GroundCrack_RadialPostExplody`）、R 处的环（`FX_Ring_01_T`：外扩时亮一下，之后留作冰区边缘），0.12 s 铺开，最后 25% 淡出；地面闪点 |
+| `frost_lock_release` → `Release/VFX_FrostLock_Release` | `Yuanqi_FrostLock.PlayObservers`，施法者处，N（参考 1.5 s，`Stretch`） | `FX_FrostLock_Imp_C_Decal_01`（玩法层）、`FX_FrostLock_Imp_A_Sparks_02`（点缀，优先级 2）；都是 `CasterRelative` + `casterScaling = None`，贴地 `casterOffset.y = -0.3`；按 R 制作，播放时乘 半径 / R（`PlaySlotLocal` 的 `areaScale`），所以金身时冰面和 R 处的环一起放大到 2R，不跟体型本身（×4） | 冰面（`CrystalNoise` 晶面放进圆形软遮罩）、放射裂纹（`GroundCrack_RadialPostExplody`）、R 处的环（`FX_Ring_01_T`：外扩时亮一下，之后留作冰区边缘），0.12 s 铺开，最后 25% 淡出；地面闪点 |
 | `frost_lock_hit` → `Hit/VFX_FrostLock_Hit` | `FrozenIceShell`，每个被冻的人身上，冻结剩余秒数 | `FX_FrostLock_Imp_C_Mesh_01`（玩法层）、`FX_FrostLock_Imp_A_Sparks_01`（点缀）；都是 `CasterAttached` + `Whole`（巨人的冰块整块 ×4） | v4 的四层（内壁、内部裂纹、内核微光、外表面，数值照 `frost_build_v4.cs`，外表面和内壁用按假光着色的网格，每个晶面一个平的色调）和小样一样是 `MeshRenderer`；`SkillVfxMeshAlpha` 把层的 alpha 曲线换成 `UberFXSG` 的三色映射透明度和 Fresnel 颜色，并让冰块从 88% 长到全尺寸、融化时缩回；闪点 `Flare_Cross` 每秒 6 个、从最高的 6 个尖角随机冒；解冻时 24 颗碎冰亮点（`Fleks_Shiny`）从冰面飞出、下落 |
 
 粒子系统：地面 4 个，冰块 2 个（另有 4 个网格），都在默认上限 10 以内。材质 `Materials/Mat_FX_FrostLock_*`（全是 `UberFXSG`，不读不透明纹理）；网格 `Meshes/Mesh_FX_FrostLock_*`（小样的晶块、它的着色版、翻面并着色的内壁、闪点位置）。用到的两张包贴图已 vendor。
@@ -132,4 +132,4 @@ v2 的微光 Fresnel 是 0.45 × 1.0，v2+ 是 1.1 × 1.3。结果：v2 有很�
 - **冰块不能用网格模式粒子**：同样的 v1.5 材质（当时的版本）放在“只发一个粒子”的网格系统上，比赛和 VFXtests 里都只剩一层很淡的灰影（×1 的人几乎看不见），同一帧旁边放一个 `MeshRenderer` 版就是小样那块白冰。原因没查到底（顶点流、GPU instancing 都试过，没有区别）。所以冰块用 `MeshRenderer` + `SkillVfxMeshAlpha`；粒子渲染器仍抄 `accel_release` 的顶点流。
 - **VFXtests 的替身要放在场景根上**：FishNet 会给装着替身的父物体加 `NetworkObject`，进 Play 时没有 NetworkManager 就把它关掉；预览组件在 `Start` 里重新打开替身（金足破阵的 `SkillVfxPreviewDash` 同样做法）。
 
-**没验证的**：联机（各端由 `PlayObservers` 和 `FrozenChanged` 本地播，没有新 RPC）；Balanced / Performant 档；反噬 ×0.3 体型；坡道上的地面（平面面片，坡上会悬空或穿插）；AI 触发冰封时的画面。改了 R（配表 `YuanqiEffectFrostLock.radiusMeters`）要重跑 `FrostLockProto`，`SkillVfxTests.FrostLockGroundRimStandsAtTheFreezeRadius` 会提醒。
+**没验证的**：联机（各端由 `PlayObservers` 和 `FrozenChanged` 本地播，没有新 RPC）；Balanced / Performant 档；反噬 ×0.3 体型；金身时放大到 48 米直径的冰面在比赛镜头下的样子（训练模式 S9 只查了半径和冻结，没看画面）；坡道上的地面（平面面片，坡上会悬空或穿插）；AI 触发冰封时的画面。改了 R（配表 `YuanqiEffectFrostLock.radiusMeters`）要重跑 `FrostLockProto`，`SkillVfxTests.FrostLockGroundRimStandsAtTheFreezeRadius` 会提醒。

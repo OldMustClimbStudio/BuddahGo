@@ -355,9 +355,10 @@ t1   神足通请求（1 秒前摇，须 t1 ≤ t0+5）
 t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → board.Begin(acceleration, until t1+4, handle=accel)
      registry: Activated(acceleration) → {#2} → slowtrap 在板上、这两条没触发过 → 触发
        Yuanqi_FrostLock.OnTriggerServer(ctx):
-         1. YuanqiTargeting.CollectOthersWithin(caster, R, affectsTrainingDummies)
+         0. radius = R × 施法者的掌倍率（PlayerScaleEffect.CurrentPalmSizeMultiplier / PalmSizeRule；金身 ×2，已定 2026-11-07）
+         1. YuanqiTargeting.CollectOthersWithin(caster, radius, affectsTrainingDummies)
          2. 对每个目标 target.ApplyFreezeToOwner(N)
-         3. ctx.Presentation = { 中心, R, N, 目标 id }
+         3. ctx.Presentation = { 中心, radius, N, 目标 id }
          4. ctx.ConsumeConfigured(...)   // 表：两招都消耗。神足通：加速结束、拖尾、FOV；缓流：区域销毁、特效停止
        registry: 按表再 ConsumeConfigured 一次（幂等）→ PlayYuanqiObservers → 每个目标记一条 yuanqi-trigger
      board: 两条 Ended；这一组 (EntryIdA, EntryIdB) 已触发，不会再触发
@@ -435,7 +436,7 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 
 | 画面 | 接口 | 状态 |
 |---|---|---|
-| 地面瞬间结冰 | `SkillExecutor.YuanqiObserved(yuanqiId, payload, localIsCaster)`：载荷带中心、半径 R、秒数 N、目标 id；`Yuanqi_FrostLock.PlayObservers` | 已做（2026-11-06 第一版）：`frost_lock_release`，半径 R 的冰面、放射裂纹和边缘环，0.12 s 铺开、N 的最后 25% 淡出；平面，坡上会悬空或穿插（工程没有 URP decal） |
+| 地面瞬间结冰 | `SkillExecutor.YuanqiObserved(yuanqiId, payload, localIsCaster)`：载荷带中心、半径（R × 掌倍率）、秒数 N、目标 id；`Yuanqi_FrostLock.PlayObservers` 按 半径 / R 给插槽面积倍率（`SkillVfxReplicator.PlaySlotLocal` 的 `areaScale`，只作用于 `casterScaling = None` 的层） | 已做（2026-11-06 第一版）：`frost_lock_release`，按 R 制作、随半径放大的冰面、放射裂纹和边缘环，0.12 s 铺开、N 的最后 25% 淡出；平面，坡上会悬空或穿插（工程没有 URP decal） |
 | 受害者冻成冰块 | 载荷的 `TargetObjectIds`；每个被冻的 racer 的 `RacerSkillPresentationState.FrozenChanged` | 已做（2026-11-06 第一版）：`FrozenIceShell` 播 `frost_lock_hit`，v4 冰块，开始即出现、随体型缩放，解冻时化掉并掉碎冰；冻结期间 Animator 停住（动作层，已做） |
 | 冻结期间的 HUD | owner 从 `BuddahPredictedMotor.FreezeSecondsLeft` 倒计时，`SkillSlotUI` 三个槽显示冻结 | 已做（A6） |
 | 触发提示 | 施法者的 `LocalYuanqiTriggered` → `YuanqiToastUI` 弹缘起名 | 已做（A6） |
@@ -455,7 +456,7 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 | 字段 | 位置 | 值 | 备注 |
 |---|---|---|---|
 | `freezeSeconds`（N） | 表 `YuanqiEffectFrostLock`，兜底 `Yuanqi_FrostLock` SO | 1.5 秒 | 阶段 A 占位值（已定，yuanqi.md 文末），试玩后在表里调；控制叠加风险见 README §9 |
-| `radiusMeters`（R） | 同上 | 12 米 | 占位值（已定）；缓流区域半径 7.5 米，“较大圆形范围”应大于它 |
+| `radiusMeters`（R） | 同上 | 12 米 | 占位值（已定）；缓流区域半径 7.5 米，“较大圆形范围”应大于它。实际半径 = R × 施法者触发时的掌倍率（已定 2026-11-07，`Yuanqi_FrostLock.RadiusFor`）：金身 24 米、反噬 6 米 |
 | `affectsTrainingDummies` | 同上 | true | 训练模式验证要靠它 |
 
 ### 4.9 清理与边界

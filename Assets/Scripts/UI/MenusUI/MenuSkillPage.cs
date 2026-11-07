@@ -147,8 +147,11 @@ namespace SteamMultiplayer.UI
         private readonly List<Renderer> _renderers = new List<Renderer>(); // reused by the per-frame screen placement
         private RectTransform _collapseHint; // the panel's "Esc 收起" (built by MenuTitleHomeBuilder as Hint_Collapse)
         private TextMeshProUGUI _yuanqiList;  // runtime copy of the panel's Rules text
-        private string _yuanqiSignature;
-        private readonly List<string> _yuanqiSkillIds = new List<string>();
+        private readonly List<string> _yuanqiSkillIds = new List<string>(); // the ids the list was last built for
+        private readonly List<string> _yuanqiScratch = new List<string>();
+        private SkillDatabase _yuanqiDatabase;
+        private int _yuanqiFallbackCount;
+        private bool _yuanqiBuilt;
 
         /// <summary>On the skill-select shot with no other view over it (the menu hides its proto panel then).</summary>
         public bool IsShown =>
@@ -647,14 +650,27 @@ namespace SteamMultiplayer.UI
         private void UpdateYuanqiList()
         {
             if (_yuanqiList == null) return;
-            _yuanqiSkillIds.Clear();
+            // Runs every frame (UpdateKeys): compare into a reused list, allocate only when something changed.
+            _yuanqiScratch.Clear();
             foreach (string id in _loadout)
-                if (!string.IsNullOrEmpty(id) && !_yuanqiSkillIds.Contains(id)) _yuanqiSkillIds.Add(id);
+                if (!string.IsNullOrEmpty(id) && !_yuanqiScratch.Contains(id)) _yuanqiScratch.Add(id);
             SkillDatabase database = HudSkillDatabase.Resolve();
-            string signature = (database != null ? "db|" : "|") + HudGlyphCoverage.GlobalFallbackCount() + "|" + string.Join("|", _yuanqiSkillIds);
-            if (signature == _yuanqiSignature) return;
-            _yuanqiSignature = signature;
+            int fallbackCount = HudGlyphCoverage.GlobalFallbackCount();
+            if (_yuanqiBuilt && database == _yuanqiDatabase && fallbackCount == _yuanqiFallbackCount && SameIds(_yuanqiScratch, _yuanqiSkillIds)) return;
+            _yuanqiBuilt = true;
+            _yuanqiDatabase = database;
+            _yuanqiFallbackCount = fallbackCount;
+            _yuanqiSkillIds.Clear();
+            _yuanqiSkillIds.AddRange(_yuanqiScratch);
             HudRuntimeText.SetText(_yuanqiList, YuanqiListText(database, _yuanqiList.font, _yuanqiSkillIds));
+        }
+
+        private static bool SameIds(List<string> a, List<string> b)
+        {
+            if (a.Count != b.Count) return false;
+            for (int i = 0; i < a.Count; i++)
+                if (!string.Equals(a[i], b[i], System.StringComparison.Ordinal)) return false;
+            return true;
         }
 
         /// <summary>

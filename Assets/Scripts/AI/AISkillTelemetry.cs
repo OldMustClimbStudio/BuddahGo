@@ -54,7 +54,7 @@ namespace BuddahGo.AI
             _inputTicksThisFrame += inputTicks;
         }
 
-        // Kinds: candidate, decision, cast, cancel, aim-push.
+        // Kinds: candidate, decision, yuanqi (reason setup / follow-up), cast, cancel, aim-push.
         internal void Emit(string kind, string reason, int slot, AISkillSituation situation, int fallbackTarget,
             AISkillOpportunity opportunity = default, float utility = 0f, bool backlash = false)
         {

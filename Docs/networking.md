@@ -10,16 +10,17 @@
 - SyncTypes 的变化不是立即送达；依赖 RPC 与状态同步的先后关系时，检查实际发送时机。
 - SyncCollection 内部对象的修改需要正确标记 dirty；自定义网络数据需要完整、可往返的序列化。
 - 向 observers 发消息前确认观察者已建立；不要将 `OnStartServer` 等同于所有客户端已经 ready。
-- 网络组件预先放到 prefab，避免运行时动态添加 `NetworkBehaviour`。只在运行时需要的状态挂普通 MonoBehaviour（如 `RacerSkillPresentationState`、`TrainingDummy`），RPC 留在 prefab 上已有的 `NetworkBehaviour` 里。
+- 网络组件预先放到 prefab，避免运行时动态添加 `NetworkBehaviour`。只在运行时需要的状态挂普通 MonoBehaviour（如 `SkillStateBoard`、`YuanqiRegistry`、`RacerSkillPresentationState`、`TrainingDummy`），RPC 留在 prefab 上已有的 `NetworkBehaviour` 里。
 
 ## 协议版本
 
 - `PredictionProtocol.Version`（`Network/PredictionProtocol.cs`，现为 2）由大厅 host 写进 Steam lobby 元数据；加入方的 `SteamLobbyManager` 读到不同版本（或没有版本）就离开大厅、报加入失败。
-- 以下变化都要把版本加一，并在 `PredictionProtocol` 的 History 注释写一行：reconcile / replicate 载荷的序列化字段，TargetRpc 或 ObserversRpc 的参数，RPC 的增删或重排（FishNet 的 RPC id 按声明顺序分配），SyncVar 的增删或重排，以及经网络传输的枚举的新值（如冲量来源，随 `ImpulseCmd.SourceType` 以 byte 传输）。玩法深化一轮（未发布）的全部改动合在 v2 里。
+- 以下变化都要把版本加一，并在 `PredictionProtocol` 的 History 注释写一行：reconcile / replicate 载荷的序列化字段，TargetRpc 或 ObserversRpc 的参数，RPC 的增删或重排（FishNet 的 RPC id 按声明顺序分配），SyncVar 的增删或重排，以及经网络传输的枚举的新值（如冲量来源 `BodyImpact=5`，随 `ImpulseCmd.SourceType` 以 byte 传输）。玩法深化一轮（未发布）的全部改动合在 v2 里。
 
-## 技能的同步
+## 技能与缘起的同步
 
 - 运动效果走预测修饰命令：服务器写一份，再用 TargetRpc 让 owner 写同一条，见[预测设计](prediction-design.md#技能-modifier-命令)。服务器 AI 和训练木桩没有有效 owner，`SkillExecutor.ApplyXToOwner` 只在服务器写，TargetRpc 跳过。
+- 缘起的技能状态板和注册表只在服务器，不同步。客户端只收表现：`SkillExecutor` 的 `YuanqiObserversRpc`、`SkillConsumedObserversRpc`、`YuanqiImpactObserversRpc`，以及技能被消耗时停特效的 `SkillVfxReplicator.StopVfxAllObserversRpc`。
 - 反噬惩罚的结束 tick 是 `ObsessionFigure` 的 SyncVar：SyncVar 变化时各端触发 `BackfireStateChanged(true)`，本端时钟越过结束 tick 时触发 `false`，不等服务器清零；惩罚中途加入的端会收到一次开始。冻结和突进的剩余时间从本端的 modifier 期限读，不另发。
 - owner HUD 的冷却与同招加价窗口按服务器 tick 定锚：`CastObserversRpc` 和 `BackfireSkillUiTargetRpc` 带服务器执行时的 `serverTick`，owner 用本端估算的服务器 tick（`TimeManager.Tick`）减去它得到事件年龄（`LocalSkillUiEvent.SecondsSinceServerTick`），不按 RPC 到达时刻计时。远端只剩上行延迟的偏差，host 没有偏差。
 

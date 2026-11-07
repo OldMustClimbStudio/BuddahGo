@@ -68,6 +68,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   projectileImpulseStrength: 600
   projectileColliderSize: {x: 60, y: 50, z: 20}
+  projectileSizeMultiplier: 0.5
   hitTurnTorqueImpulse: 50
   vfxId: palm_release_anti
   handVfxId: palm_bullet_anti

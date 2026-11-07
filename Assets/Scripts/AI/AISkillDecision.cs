@@ -140,10 +140,11 @@ namespace BuddahGo.AI
         }
 
         // Unified backfire (A7, 建议（实现采用）): one stop threshold and one cost for every skill, since the penalty
-        // (Obsession.backfireLockSeconds lock, ×0.85 max speed, ×0.8 obsession) does not depend on which skill backfired; the skill's own _anti variant is not priced (user, 2026-10-31: keep one backfireCost for now).
+        // (Obsession.backfireLockSeconds lock, ×0.85 max speed, ×0.8 obsession) does not depend on which skill backfired; the skill's own _anti variant is not priced (user, 2026-10-31: keep one backfireCost for now). valueMultiplier is the
+        // 缘起 setup / follow-up bonus (AISkillCaster.Decide); it scales the value, never the risk.
         public static float Utility(AISkillKind kind, AISkillOpportunity opportunity, AISkillSituation situation,
             AISkillPersonality personality, AISkillDifficulty difficulty, AISkillTuning tuning, float backlashProbability,
-            float requiredSeconds, float opportunityAge, float noise = 1f)
+            float requiredSeconds, float opportunityAge, float noise = 1f, float valueMultiplier = 1f)
         {
             if (opportunity.Score <= 0f || opportunity.ValidSeconds - opportunityAge < requiredSeconds) return float.NegativeInfinity;
             if (backlashProbability >= difficulty.StopProbability) return float.NegativeInfinity;
@@ -151,7 +152,7 @@ namespace BuddahGo.AI
             if ((kind == AISkillKind.Acceleration || kind == AISkillKind.Hands) && opportunity.ImpairedTarget
                 && opportunity.StateSeconds - opportunityAge >= requiredSeconds)
                 value *= personality.ImpairedTargetMultiplier;
-            return value - difficulty.RiskWeight * backlashProbability * tuning.BackfireCost;
+            return value * valueMultiplier - difficulty.RiskWeight * backlashProbability * tuning.BackfireCost;
         }
 
         public static float CastProbability(float utility, float patience, float elapsed, float tempo)

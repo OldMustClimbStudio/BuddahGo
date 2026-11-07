@@ -13,7 +13,7 @@ Solo Match：一个 Human Player 对 0–5 个 AI Racer，完全离线，流程�
 | S4 AI 驾驶 | `ThrustVectorPlanner` 三档难度（`Assets/Resources/AI/*.asset`），用户已验收：Hard 约 82 s、Normal 约 93 s、Easy 约 116 s 一圈 | 横向离散度、车车碰撞建模 |
 | S6 体验收尾 / S7 暂停 | 未开始 | |
 
-逐阶段证据和历史调参见 [progress.md](progress.md)；历史交接、阶段性复核和一次性修复记录在 [archive/single-player/](../archive/single-player/)。机制更新（PR #74）已合入 `dev`：单键施法、鼠标瞄准、W 推进、取消全局施法锁、统一反噬、训练木桩，规则以 [玩法深化](../gameplay/README.md) 为准；缘起在 PR #75（`feat/yuanqi`）。
+逐阶段证据和历史调参见 [progress.md](progress.md)；历史交接、阶段性复核和一次性修复记录在 [archive/single-player/](../archive/single-player/)。机制更新（PR #74）已合入 `dev`：单键施法、鼠标瞄准、W 推进、取消全局施法锁、统一反噬、训练木桩，规则以 [玩法深化](../gameplay/README.md) 为准；缘起随 PR #75 加入，见 [缘起](../gameplay/yuanqi.md)。
 
 ## 去哪看
 
@@ -24,7 +24,7 @@ Solo Match：一个 Human Player 对 0–5 个 AI Racer，完全离线，流程�
 | 阶段目标与 V 项定义 | [phases.md](phases.md) |
 | AI 驾驶规格 | [thrust-vector-controller-spec.md](thrust-vector-controller-spec.md) |
 | AI 技能管线与人格 | [ai-skills.md](ai-skills.md) · [ai-personalities.md](ai-personalities.md) · [试玩清单](ai-skill-playtest.md) |
-| 玩家与 AI 共享的技能规则（单键施法、施法节奏、执念与反噬、训练木桩） | [玩法深化](../gameplay/README.md) · [训练模式验证记录](../gameplay/practice-verification.md) |
+| 玩家与 AI 共享的技能规则（单键施法、施法节奏、执念与反噬、缘起、训练木桩） | [玩法深化](../gameplay/README.md) · [训练模式验证记录](../gameplay/practice-verification.md) |
 | AI 调校与测试方法 | [ai-testing.md](ai-testing.md) |
 | Solo 呈现时间线（开场到驾驶的交接） | [solo-presentation-timeline.md](solo-presentation-timeline.md) |
 | 性能采样协议（要跑 benchmark 时） | [benchmark.md](benchmark.md) |

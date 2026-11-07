@@ -20,6 +20,8 @@ public class Skill_PushProjectileHands : SkillAction
     public AnimationCurve projectileSpeedCurve = ChargedProjectileFlight.DefaultSpeedCurve();
     [Min(0f)] public float projectileImpulseStrength = 12f;
     [SerializeField] public Vector3 projectileColliderSize = new Vector3(1.25f, 1.1f, 1.8f);
+    [Tooltip("Base palm size (Skill/Push charged sizeMultiplier): the hitbox and the visual are both multiplied, then by the body's palm multiplier (PalmSizeRule).")]
+    [Min(0.05f)] public float projectileSizeMultiplier = 1f;
 
     [Header("VFX (vfx_id rows of Skill.xlsx / VfxRegistry, prefabs in SkillVfxDatabase)")]
     [Tooltip("Fire animation at the caster (Chg while winding up, Imp at launch).")]
@@ -62,7 +64,8 @@ public class Skill_PushProjectileHands : SkillAction
             chargedPushCooldownSeconds,
             true,
             delayedPushActionSeconds,
-            projectileSpeedCurve);
+            projectileSpeedCurve,
+            projectileSizeMultiplier);
 
         GameLog.Verbose($"[Skill_PushProjectileHands][Server] Enabled charged projectile push buff for {buffDurationSeconds}s, buildup={buildUpSeconds}s, offset=({projectileForwardOffset},{projectileHeightOffset}), peakSpeed={projectileSpeed}, lifetime={projectileLifetimeSeconds}, range={ChargedProjectileFlight.Range(projectileSpeedCurve, projectileSpeed, projectileLifetimeSeconds):0}, impulse={projectileImpulseStrength}");
     }
@@ -102,7 +105,33 @@ public class Skill_PushProjectileHands : SkillAction
         if (localCasterBuffFovBoost <= 0f)
             return;
 
-        caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, buffDurationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve);
+        // Tagged with the skill id so a 缘起 consume settles the boost only while this skill still owns the FOV slot.
+        caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, buffDurationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve, skillId);
+    }
+
+    public override ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster)
+    {
+        if (caster == null)
+            return null;
+        BuddahHandControl handControl = caster.GetComponent<BuddahHandControl>();
+        return handControl != null ? new ProjectileHandsRuntimeHandle(caster, handControl, skillId) : null;
+    }
+
+    // 缘起 consumed the buff: every peer drops the local charged-push mode (owner cooldown / delay, observers' charged
+    // visual) and the owner's FOV boost settles early.
+    public override void ExecuteConsumedObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
+    {
+        if (caster == null)
+            return;
+
+        BuddahHandControl handControl = caster.GetComponent<BuddahHandControl>();
+        if (handControl != null)
+            handControl.EndProjectilePushModeLocal();
+
+        if (localIsCaster)
+            caster.SettleCameraFovBoostEarlyLocal(skillId, localCasterBuffFovSettleSeconds, localCasterBuffFovSettleCurve);
+
+        GameLog.Verbose($"[Skill_PushProjectileHands][Observers] '{skillId}' consumed (slot {slotIndex}), localIsCaster={localIsCaster}");
     }
 
     // Per shot, the fire animation and the bullet run Chg over buildUpSeconds and Prj over projectileLifetimeSeconds

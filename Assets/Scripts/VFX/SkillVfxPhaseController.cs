@@ -60,6 +60,8 @@ namespace BuddahGo.VFX
             public Action<string> playLocalFeel;
             public int burstIndex;
             public Vector3 burstCenterOffsetWorld;
+            // Size of the None-scaling layers for this play (0 or less = 1): SkillVfxLayer.SetAreaScale.
+            public float areaScale;
         }
 
         public void Configure(Context context)
@@ -96,6 +98,7 @@ namespace BuddahGo.VFX
                     layer.transform.position += context.burstCenterOffsetWorld;
                 layer.Initialize(SkillVfxRules.EmissionScale(tier, layer.gameplayInfo), SkillVfxRules.DetailEmissionScale(tier), keep);
                 layer.SetTrailSeconds(SkillVfxRules.TrailSeconds(tier, layer.gameplayInfo, _visual.trailSeconds));
+                layer.SetAreaScale(context.areaScale);
                 if (!keep)
                     layer.gameObject.SetActive(false);
             }

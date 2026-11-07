@@ -40,7 +40,7 @@
 | `SkillExecutor.ApplyFreezeToOwner` 注释里的“AI 搓招按键” | 已改 | AI 搓招 A7 已删 | f7f62017 |
 | `MatchSpawnManager._trainingDummyStartOffsetMeters` 的 tooltip 里的 0.2 秒继承 + 0.32 秒混合 | 已改 | A8 完全物理交接 | f7f62017 |
 | `SoloMatchRules.SpawnTrainingDummies` 注释“phase B may move this into the ModeRule row” | 已改 | 阶段 B 已做完，开关仍在代码，数量和摆放在 `Match/ModeRule` 的 Practice 行 | f7f62017 |
-| `HandPushProjectileRuntime` / `ChargedHandProjectileRuntime` 的 `allowSelfHit` 参数 | 保留 | 原来只有反噬弹幕传 true，现在恒为 false；它是两个弹道运行时的通用参数，删掉要改两个运行时的签名，收益小 | — |
+| `HandPushProjectileRuntime` / `ChargedHandProjectileRuntime` 的 `allowSelfHit` 参数 | 保留 | 只有反噬弹幕传 true。2026-10-31 删反噬变体时一度恒为 false；同日变体恢复，`BuddahHandControl` 的反向弹幕又传 true（2026-11-07 改正这句，#74 review 第 9 项）；它是两个弹道运行时的通用参数，删掉要改两个运行时的签名，收益小 | — |
 | `RaceBodyIntroStateController` 和预测马达里的继承 / 混合交接机制 | 保留 | 用户只把时长改成 0（已定，2026-10-30），机制还能按表重新打开 | — |
 | `SkillExecutor` 的 `IsAnti` 动画触发器、`Anti_Reflection_*` Feel 事件 | 保留 | 统一反噬的前摇表现在用（VFX 重构另有计划） | — |
 
@@ -57,6 +57,7 @@
 | `Assets/Data/SkillConfig/ProjectConfigSample.json`（连同文件夹 meta） | 已删 | 设计表之前的旧格式样例，无人引用，仍写着 `castLockSeconds`、`antiSkillId` | 8e14bb94 |
 | `Buddah.prefab` 的 FishNet `EmptyNetworkBehaviour`（第 3 项） | 保留 | 从工程最初的提交就在，不是这次退役的东西；删了会改动 NetworkBehaviour 编号 | — |
 | 神足通、缓流、神掌 SO 资产上的时长和冷却（10 / 12、10 / 12、冷却 18） | 待定 | 和表不一致（表是 3 / 5、6 / 8、12），运行时以表为准。按 [design-tables 决定 14](../design-tables/decisions.md)，SO 值只是无表时的兜底，设计表 README 把“已被表接管的重复字段”列为待删的遗留，而不是要同步的值。这里没有改数值，见第 6 节 | — |
+| `Skill_Acceleration_Anti` SO 的时长 6、`Skill_BlackCurtain_Anti` SO 的执念 100 | 待定 | 表里是 3 和空（#74 review 第 6 项，2026-11-07 补记）。运行时以表为准；但 `acceleration_anti` 的时长格留空时会退回 SO 的 6 秒，而不是 0。和上一行一起等用户定：同步 SO，还是删掉被表接管的字段 | — |
 
 ## 4. 2026-10-31 清理：配表
 
@@ -68,7 +69,7 @@
 | `UI/Text` 的 12 个 `skill.*_anti.name / .desc` | 已恢复 | 同上，见 4.1 | 6cf32706；2026-10-31 恢复（7a078eed），见第 8 节 |
 | `Skill/VfxRegistry` 的 `accel_anti_vfx`、`reverse_turn_trap_anti_vfx` | 已恢复 | 库中本来就没有条目，见 4.1 | 6cf32706；2026-10-31 恢复（7a078eed），见第 8 节 |
 | `Skill/Obsession.repeatWindowSeconds` 注释“SkillExecutor 每槽记层数” | 已改 | 同招加价按技能 id 记层数（`SkillRepeatSurcharge`） | bbda0a20 |
-| `Skill/Yuanqi.retriggerPolicy` 注释“YuanqiRegistry 读 SO.retriggerPolicy” | 已改 | 代码不按值分支，一次重叠只触发一次是 `YuanqiPairTable` 固定的（`Skill/Yuanqi` 已随缘起移到缘起 PR `feat/yuanqi`） | bbda0a20 |
+| `Skill/Yuanqi.retriggerPolicy` 注释“YuanqiRegistry 读 SO.retriggerPolicy” | 已改 | 代码不按值分支，一次重叠只触发一次是 `YuanqiPairTable` 固定的 | bbda0a20 |
 | `Skill/SkillPresentation.vfxDurationSeconds` 注释“slowtrap 的 11 = 区域 10 s + 1 s 余韵” | 已改 | 区域现在 6 秒，11 只是上限，区域结束时特效随之停止 | bbda0a20 |
 | `Skill/Skill.skillId` 注释里“枚举里保留的 *_anti 值” | 已改 | 枚举值已删 | 6cf32706；枚举值恢复后注释沿用现在的写法 |
 | `Global/InputBinding.status` 注释与 `__meta__` 说明里的“W/↑ 推掌是废弃内容” | 已改 | A8 已删 | bbda0a20 |
@@ -113,14 +114,14 @@
 
 ## 6. 留给用户决定
 
-- 神足通、缓流、神掌 SO 资产的时长和冷却和表不一致（第 3 节）。可选做法：把 SO 改成表值，或者按设计表 README 的遗留清单删除这些已被表接管的重复字段。两种都会改 SO，没有替用户定。
+- 神足通、缓流、神掌 SO 资产的时长和冷却，以及 `Skill_Acceleration_Anti` 的时长、`Skill_BlackCurtain_Anti` 的执念和表不一致（第 3 节）。可选做法：把 SO 改成表值，或者按设计表 README 的遗留清单删除这些已被表接管的重复字段。两种都会改 SO，没有替用户定。
 - 已被取代：`*_anti` 枚举值、文案和 VFX id 曾“保留删除（已定）”，同一天按用户决定恢复（第 8 节）。
 - 已答复：反噬变体与惩罚的边界（第 8 节，已定 2026-10-31）。
 - `Docs/vfx/retired.md` 计划删除 `Anti_Reflection_*` Feel 事件和 `IsAnti` 前摇；那是 VFX 重构的事，这里保留。
 
 ## 7. 和 PR #68 合并时怎么对齐
 
-> **已执行（2026-11-03）。** PR #68 先以 c34d0d11 squash 进 dev，本分支随后合入 dev，按下面的原则处理：`_anti` 类、资产和三个反噬 VFX id 两边都保留；`cast` / `cast_anti` 通用前摇插槽接到 `PlayQueuedCastFeedbackObserversRpc`，反噬前摇取 `_anti` 行的 2 秒；旧特效路径（`PlayerAccelerationTrail`、`TimedVfxInstance`、`SkillVfxTag` / `SkillVfxFollowTarget` / `SkillVfxAttachmentSettings`、`SkillVfxReplicator` 的 `StopVfxLocal(id, linger)`、技能 SO 上的 `vfxLocalOffset / vfxLocalEuler / vfxStopPlayingBeforeEndSeconds / consumedVfxLingerSeconds / zoneEndVfxLingerSeconds`）随 dev 退役，缘起消耗和缓流区域结束改调插槽管线的 `StopSlotLocal` / `StopVfxAll`（`StopVfxAllObserversRpc` 名字不变，`PredictionProtocol` 的表现列表仍对；缘起拆出后 `StopVfxAll` 与这条 RPC 随缘起移到缘起 PR `feat/yuanqi`）；配表按 CSV 镜像先合并再重建 `Skill.xlsx`，`castLockSeconds` 没有回来，`Skill/VfxRegistry` 按 dev 转为导出表；两边的 `Docs/gameplay/retired.md` 合成本文件（dev 的记录在最后一节）。验证见 PR #63 描述。
+> **已执行（2026-11-03）。** PR #68 先以 c34d0d11 squash 进 dev，本分支随后合入 dev，按下面的原则处理：`_anti` 类、资产和三个反噬 VFX id 两边都保留；`cast` / `cast_anti` 通用前摇插槽接到 `PlayQueuedCastFeedbackObserversRpc`，反噬前摇取 `_anti` 行的 2 秒；旧特效路径（`PlayerAccelerationTrail`、`TimedVfxInstance`、`SkillVfxTag` / `SkillVfxFollowTarget` / `SkillVfxAttachmentSettings`、`SkillVfxReplicator` 的 `StopVfxLocal(id, linger)`、技能 SO 上的 `vfxLocalOffset / vfxLocalEuler / vfxStopPlayingBeforeEndSeconds / consumedVfxLingerSeconds / zoneEndVfxLingerSeconds`）随 dev 退役，缘起消耗和缓流区域结束改调插槽管线的 `StopSlotLocal` / `StopVfxAll`（`StopVfxAllObserversRpc` 名字不变，`PredictionProtocol` 的表现列表仍对）；配表按 CSV 镜像先合并再重建 `Skill.xlsx`，`castLockSeconds` 没有回来，`Skill/VfxRegistry` 按 dev 转为导出表；两边的 `Docs/gameplay/retired.md` 合成本文件（dev 的记录在最后一节）。验证见 PR #63 描述。
 
 PR #68（`refactor/vfx-refactor` → dev）从 dev 9629c317 切出，那时 dev 还有六个反噬变体。它改过的文件里有下面这些引用了 `_anti` 技能、`antiSkillId` 或这批 id（2026-10-31 在 `origin/refactor/vfx-refactor` 4c81b6fa 上用 `git grep` 查，只列 #68 相对 merge-base 改过的文件）。#63 和 #68 谁后进 dev，谁处理冲突。
 
@@ -162,11 +163,34 @@ PR #68（`refactor/vfx-refactor` → dev）从 dev 9629c317 切出，那时 dev 
 1. 反噬本身就是该技能的 `_anti` 变体；统一惩罚改为 5 秒持续时间惩罚（`Skill/Obsession.backfireLockSeconds` 10 → 5，8f375ac0）：三槽全锁、执念冻结、极速 ×0.85 和变体自带的减速相乘、结束时执念 ×0.8。
 2. 变体按自己的时长结束，和惩罚互不影响。
 3. 反噬判定后在前摇里被禁锢，变体照常放出，和惩罚同时开始。
-4. 变体与缘起的规则随缘起 PR（分支 `feat/yuanqi`）加入。
+4. 变体不进技能状态板，不能触发也不能参与缘起；本应触发缘起时反噬，缘起不触发，正在生效的那一招按普通版本跑完（训练模式 S14 覆盖）。
 5. 复活时变体效果按普通技能效果的复位规则清掉，惩罚照旧持续。
 6. AI 先保持统一 `backfireCost`，不加回按技能的严重度，试玩后再调。
 7. “反作用”由变体取代。
 8. 变体不另算冷却和执念。
+
+## 9. 2026-11-06 缘起实装补齐（`feat/yuanqi`）
+
+| 内容 | 状态 | 说明 | 提交 |
+|---|---|---|---|
+| 蓄力掌、反噬弹幕的尺寸直接等于体型倍率（`GetPushScaleMultiplier`，金身 ×4、反噬 ×0.3） | 已改 | 用户新定：普通 ×0.5、金身 ×2、反噬 ×0.5（`PalmSizeRule`）；出生点、普通推掌和准星死区仍用体型倍率 | 5997da94、988a15e7 |
+| #1 金身巨掌冲量乘体型倍率（×4） | 已改 | 改乘掌倍率（金身 ×2），用户选 | 988a15e7 |
+| `SkillPresentationRulesTests` 的“frost lock draws nothing itself”（2026-10-26 只留接口） | 已改 | 用户要求先补冰封占位，改为检查占位可开关 | 62dc6269 |
+| S14 固定 0.9 秒后请求反噬金身 | 已改 | 改为按 `giant_anti` 行的 2 秒窗口算请求时刻 | bfa14498 |
+| 冰封占位 `FrostPlaceholder`、`FrostGroundPlaceholder`、`FrozenIceShellPlaceholder` | 已删 | 正式插槽 `frost_lock_release` / `frost_lock_hit` 从同样的接口接上（[../vfx/retired.md](../vfx/retired.md) 第 6.6 节）；`SkillPresentationRulesTests` 那条改为检查冰封播的两个插槽 | 7ad81a9c 加，71d59c8b 删 |
+| 选技能界面的缘起列表：`PropertiesSelectorUI` 的 `RefreshYuanqiList` 和 `yuanqiListFontSize / yuanqiListGap / yuanqiListHeight / skillWallLookupInterval`，`SkillWallSelectionController.SelectedSkillIds` | 已改 | dev（#80）退役了选择场景，这两个文件随之删除（合并时接受删除）。列表搬到菜单技能页 `MenuSkillPage` 的技能键面板（点小祠后滑出，用户选的位置），接在执念 / 反噬规则下面；配装改读 `MenuSkillLoadout.Loadout`；计算和文字不变（`YuanqiCatalog.ForLoadout`、`YuanqiHudText.LoadoutList`）。布局字段换成 `yuanqiGap`、`yuanqiHeight`，字号和颜色沿用面板的 Rules 文字 | 644cc04f 删，cc47a133 加 |
+
+| `ui.propertiesselectorui.*` 等 141 行 `UI/Text`、35 行 `UI/UiTiming` | 已删 | 来源文件随 dev #80 的选择场景和旧菜单一起删了，表行没有读取方（逐个 key 搜过代码、场景、prefab、资产和表）。记在 [../ui/retired.md](../ui/retired.md) 的配表一节 | 3aecb17a、c83bb977、42106eb1 |
+| `ApplyBurstToOwner`、`EndAccelerationForOwner`、`EndScaleForOwner`、`RacerSkillPresentationState.BurstChanged` | 保留 | #74 review 第 11 项：#74 里没有调用方。随 #75 都有了调用方（#4 突进、两对的消耗、#4 表现），不是死代码 | — |
+| `Tools/design-tables/build_tables.py`、`v2_layout.py` | 保留（过时，勿用） | #74 review 第 10 项。生成器没跟上 2026-10-26 之后的表结构，`Tools/design-tables/README.md` 顶部写明了不能再用；它们是建基线时的记录，删不删留给用户 | — |
+
+**2026-11-07 合入 dev 前的退役检查**（按 retire-before-adding，在 PR review 时做一次）：
+
+- 两个新特效目录 `Assets/VFX/禅足冰封/`、`Assets/VFX/金足破阵/` 的 13 个非 prefab 资产（材质、网格、贴图）都按 GUID 有引用；v4 重建按原路径覆盖写入材质和网格（`FrostLockProto`，GUID 不变），没有留下 v1.5 的旧文件。
+- 三个新插槽在四处登记（`SkillReleaseProto.Skills`、`Skill.xlsx` VfxRegistry、`SkillVfxDatabase`、`VfxPackVendor.EffectPrefabs`）都齐；VfxRegistry 和 `SkillVfxDatabase` 是同一组 17 个 id。
+- 本 PR 新加的入口（`YuanqiAction.vfxId` / `PlayVfxSlotLocal` / `CollectVfxSlots`、`SkillVfxCasterScaling.None`、`SkillVfxMeshAlpha`、`FrozenIceShell`、`SkillVfxPreviewDash`、`SkillVfxPreviewFrostLock`、`VfxTestsRaceMapLook`、`PresentationCaptureProbe`）都有调用方或由菜单 / prefab 使用。探针和 `Docs/vfx/yuanqi-frost-lock/probes/` 按惯例保留。
+- `InGameHudLabels` 的 9 个 `hud.*` key 在 `UI/Text` 里没有行：这是设计（行可选，没有行时用代码里的文字），不是缺 key。
+- dev 的“确定没用、等 PR #63 合并后再删”一组（本文后半第 2 节）2026-11-07 核对都还在，见那一节的说明。
 
 ## 代码审查清理的退役记录（dev，PR #68，2026-11-03）
 
@@ -202,6 +226,8 @@ PR #68（`refactor/vfx-refactor` → dev）从 dev 9629c317 切出，那时 dev 
 | `SceneFadeController.QueueFadeOutOnNextSceneLoad`；`SkillWallSelectionController` 的 `RebuildFromManager/RebuildWall/TryReplaceSlot/HandleItemInspectRequested/SelectedSkillIds/PlayRejectedSelectionFeedback` 和 `ResetView` 的参数；`SkillInspectController.RequestToggleInspect/CurrentItem`；`SkillInspectableItem.CreateInspectVisualInstance/SanitizeInstance/AllowInspect/SkillId` 以及字段 `visualRoot`、`inspectVisualPrefab`；`SkillWallItemView` 的 6 个属性和 3 个字段；`PropertyGroupView.PropertyKey`（B #19–#24） | 已删 | 旧"选技能墙"交互留下的入口：按名字重建墙、替换槽位、从墙上直接进入检视、复制检视模型。现在检视走 MenuInspect 输入，这些方法没有调用方，或者只互相调用。`技能绘马.prefab` 里两个字段的值会在下次保存时丢掉（不影响功能） | `18aa33ae` |
 
 ### 2. 确定没用、等 PR #63 合并后再删
+
+> 2026-11-07 核对（#74 review 第 5 项）：下面各项都还在。PR #63 已关闭，#74 已合入 dev，“等 #63 合并”这个条件已经不存在；在哪个 PR 删，等用户定。
 
 | 内容 | 原来做什么 / 为什么能删 |
 |---|---|

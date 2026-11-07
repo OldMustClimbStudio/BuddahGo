@@ -151,9 +151,19 @@
             "sourceGuid": "966ce257a6b10fb4ea706ed8de942e86"
         },
         {
+            "copy": "Assets/VFX/Shared/Piloto/Materials/Tree_pulse_floor_ink_1_alpha.mat",
+            "source": "Assets/Piloto Studio/Materials/ARPG Ink/Tree_pulse_floor_ink_1_alpha.mat",
+            "sourceGuid": "19fc713513f360a4ca47c00d483f6476"
+        },
+        {
             "copy": "Assets/VFX/Shared/Piloto/Materials/bamboo_leaf_alpha_soft.mat",
             "source": "Assets/Piloto Studio/Materials/ARPG Ying Yang/bamboo_leaf_alpha_soft.mat",
             "sourceGuid": "c78769e3ab313394d85dbd7cc0ada364"
+        },
+        {
+            "copy": "Assets/VFX/Shared/Piloto/Materials/ink_short_Dark_Shockwave_05_Distorted_alpha.mat",
+            "source": "Assets/Piloto Studio/Materials/ARPG Ink/ink_short_Dark_Shockwave_05_Distorted_alpha.mat",
+            "sourceGuid": "d98d56f0f6d42054d98638f01d4ab085"
         },
         {
             "copy": "Assets/VFX/Shared/Piloto/Materials/mat_Empty.mat",
@@ -179,6 +189,11 @@
             "copy": "Assets/VFX/Shared/Piloto/Materials/yy_Liquid_Splat_Frontal_3_alpha.mat",
             "source": "Assets/Piloto Studio/Materials/ARPG Ying Yang/yy_Liquid_Splat_Frontal_3_alpha.mat",
             "sourceGuid": "e956d95a7d49cba4ab7b6ec48fe6067e"
+        },
+        {
+            "copy": "Assets/VFX/Shared/Piloto/Materials/yy_Shockwave_1_Distorted_short_alpha.mat",
+            "source": "Assets/Piloto Studio/Materials/ARPG Ying Yang/yy_Shockwave_1_Distorted_short_alpha.mat",
+            "sourceGuid": "17fade94317e2844d95f205c14280bdf"
         },
         {
             "copy": "Assets/VFX/Shared/Piloto/Materials/yy_Shockwave_1_alpha.mat",
@@ -221,6 +236,11 @@
             "sourceGuid": "56a8dcf67fa84c56a400417feba374fa"
         },
         {
+            "copy": "Assets/VFX/Shared/Piloto/Meshes/High_Poly_flat_ring.fbx",
+            "source": "Assets/Piloto Studio/Models/High_Poly_flat_ring.fbx",
+            "sourceGuid": "f822ffb2b849f4d43ae0ec8bfbfe8381"
+        },
+        {
             "copy": "Assets/VFX/Shared/Piloto/Meshes/Jarshapedtube2.fbx",
             "source": "Assets/Piloto Studio/Models/Jarshapedtube2.fbx",
             "sourceGuid": "7b8bb3bc081f6244eb56ebdf59360a0e"
@@ -246,6 +266,11 @@
             "sourceGuid": "159158a03c7689947a6777c097a15fb5"
         },
         {
+            "copy": "Assets/VFX/Shared/Piloto/Textures/FX_Ring_01_T.png",
+            "source": "Assets/Piloto Studio/Textures/FX_Ring_01_T.png",
+            "sourceGuid": "02353f5bf14c5824c9de12b866d31837"
+        },
+        {
             "copy": "Assets/VFX/Shared/Piloto/Textures/FX_TX_HorizontalGradient_04.jpg",
             "source": "Assets/Piloto Studio/Textures/FX_TX_HorizontalGradient_04.jpg",
             "sourceGuid": "25216b36afff8e9469847c2a25528701"
@@ -266,6 +291,16 @@
             "sourceGuid": "48062ffb73b309947928e7030308023a"
         },
         {
+            "copy": "Assets/VFX/Shared/Piloto/Textures/Gradient_Quad02.png",
+            "source": "Assets/Piloto Studio/Textures/Pyke/Gradient_Quad02.png",
+            "sourceGuid": "3c2d3a0b6dfca1c47abd5bc456f12657"
+        },
+        {
+            "copy": "Assets/VFX/Shared/Piloto/Textures/Gradient_Quad02_nomipmap.png",
+            "source": "Assets/Piloto Studio/Textures/Gradient_Quad02_nomipmap.png",
+            "sourceGuid": "aaf863c8ffee84d418ac89997420ef64"
+        },
+        {
             "copy": "Assets/VFX/Shared/Piloto/Textures/Gradient_Quad03.png",
             "source": "Assets/Piloto Studio/Textures/Gradient_Quad03.png",
             "sourceGuid": "e918b17adaf4f114782dd54fdded06e1"
@@ -284,6 +319,11 @@
             "copy": "Assets/VFX/Shared/Piloto/Textures/Gradient_maker_simple_round_radial.png",
             "source": "Assets/Piloto Studio/Textures/Gradient_maker_simple_round_radial.png",
             "sourceGuid": "c9c8818f6800d894481529f04e5d3b7c"
+        },
+        {
+            "copy": "Assets/VFX/Shared/Piloto/Textures/GroundCrack_RadialPostExplody.png",
+            "source": "Assets/Piloto Studio/Textures/GroundCrack_RadialPostExplody.png",
+            "sourceGuid": "5d382d984aaa0894d86c75a06ec17a2a"
         },
         {
             "copy": "Assets/VFX/Shared/Piloto/Textures/Halo_Faded.png",
@@ -324,6 +364,11 @@
             "copy": "Assets/VFX/Shared/Piloto/Textures/PearlyRainbowNoise.png",
             "source": "Assets/Piloto Studio/Textures/PearlyRainbowNoise.png",
             "sourceGuid": "da2524f8b80e4bb45920e31ab35a7827"
+        },
+        {
+            "copy": "Assets/VFX/Shared/Piloto/Textures/Pulse_floor_1_color.png",
+            "source": "Assets/Piloto Studio/Textures/Pulse_floor_1_color.png",
+            "sourceGuid": "86d0ead93a50d8c44a6d7c08b5eaa053"
         },
         {
             "copy": "Assets/VFX/Shared/Piloto/Textures/RainbowColors.png",
@@ -401,6 +446,11 @@
             "sourceGuid": "f8e9502d89500d5499e176715845a773"
         },
         {
+            "copy": "Assets/VFX/Shared/Piloto/Textures/Tx_Line_08_Up.png",
+            "source": "Assets/Piloto Studio/Textures/Tx_Line_08_Up.png",
+            "sourceGuid": "1dcd60c5b755c124590a42ddd8f619f3"
+        },
+        {
             "copy": "Assets/VFX/Shared/Piloto/Textures/Tx_Liquid_01_2.png",
             "source": "Assets/Piloto Studio/Textures/Tx_Liquid_01_2.png",
             "sourceGuid": "407f9de8881c8e549a2b5e40ba803044"
@@ -414,6 +464,11 @@
             "copy": "Assets/VFX/Shared/Piloto/Textures/Tx_Mask_02.tga",
             "source": "Assets/Piloto Studio/Textures/Tx_Mask_02.tga",
             "sourceGuid": "d9ed838c23dd09449be2f67cd3d2617e"
+        },
+        {
+            "copy": "Assets/VFX/Shared/Piloto/Textures/Tx_Mask_02_Flipped.png",
+            "source": "Assets/Piloto Studio/Textures/Tx_Mask_02_Flipped.png",
+            "sourceGuid": "c5bb1709f879ff94bab19dc2172dd2ba"
         },
         {
             "copy": "Assets/VFX/Shared/Piloto/Textures/Tx_Noise_04.png",

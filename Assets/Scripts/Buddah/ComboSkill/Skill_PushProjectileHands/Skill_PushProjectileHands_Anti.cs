@@ -16,6 +16,8 @@ public class Skill_PushProjectileHands_Anti : SkillAction
     public AnimationCurve projectileSpeedCurve = ChargedProjectileFlight.DefaultSpeedCurve();
     [Min(0f)] public float projectileImpulseStrength = 12f;
     [SerializeField] public Vector3 projectileColliderSize = new Vector3(1.25f, 1.1f, 1.8f);
+    [Tooltip("Base palm size (Skill/Push charged_anti sizeMultiplier): the hitbox and the visual are both multiplied, then by the body's palm multiplier (PalmSizeRule).")]
+    [Min(0.05f)] public float projectileSizeMultiplier = 1f;
 
     [Header("Hit Spin")]
     [Tooltip("One-time signed torque impulse applied on hit. Positive spins right, negative spins left.")]

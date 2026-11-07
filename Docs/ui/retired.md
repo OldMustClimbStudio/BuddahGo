@@ -46,6 +46,9 @@
 | `Match/ModeRule` 的 `selectionTimeoutEnabled`、`skipMapVote`、`selectionStageSeconds` 列 | 已删 | 同上 |
 | `Global/__enums__` 的 `PropertySelectionMode`、`SelectionLayout` | 已删 | 只给上面两张表用 |
 | `UI/Text` 的 `selection.stage.*`、`selection.option.*` 15 行 | 已删 | 同上 |
+| `UI/Text` 里来源文件已删的 141 行自动提取文案：`ui.propertiesselectorui.*` 25 行，以及 `PropertiesSelectionManager`、`SoloSetupPanel`、`CreateRoomUI`、`RoomUI`、`LobbyBrowserUI` 等脚本和 `MainMenu.unity`、`PropertySelection.unity`、两个 prefab 的 116 行 | 已删（2026-11-07，PR #75 合入前） | 来源随本页的场景、代码和 prefab 一起删了；逐个 key 搜过代码、场景、prefab、资产和表，没有读取方。3aecb17a（25 行）、c83bb977（116 行） |
+| `UI/UiTiming` 里已删组件的 35 行（`SkillInspectPanelUI`、`SkillInspectController`、`SkillWallItemView`、`SkillWallSelectionController`、`PropertyCarouselView`、`PropertySelectionStageSceneController`、`PropertySelectionMatchTransitionTimeline`、`PropertiesSelectionManager`） | 已删（2026-11-07） | 组件已删；UiTiming 是只读展示表，生成物不变。42106eb1 |
+| `Assets/Animation/CG/PropertySelectionEnd.playable`，以及它在 `Global/Timeline`、`UI/UiTiming` 的两行 | 待定 | 选择场景的结束 timeline，场景删了以后全工程 0 引用（2026-11-07 按 GUID 查）。`Global/Timeline` 由 timeline 资产导出，删资产时两行一起删；没有替用户删 |
 | `UI/MenuOption`、`ModeRule.defaultDifficulty` | 保留 | 原读取方 `CreateRoomUI` / `SoloSetupPanel` 已删；改由 `MenuDojoPage` 读（新建房间的人数上限与可见性、单人默认难度） |
 
 ## 测试与诊断

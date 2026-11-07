@@ -9,6 +9,8 @@ Unity 2022.3.55f1c1 · URP 14.0.11 · Shuriken + VFX Graph 14 + Feel。插槽管
 | 本文 | 流程、分层概念、拆解表模板、参数与配表、命名、shader 与贴图、预算与档位、验收与交付、技能顺序、未决问题 |
 | [push-projectile-hands.md](push-projectile-hands.md) | 如来神掌：现状问题、目标、拆解表、反噬变体、验收记录、废弃资产 |
 | [vfx-design-research.md](vfx-design-research.md) | 2026-10-28 调研：方法论、题材、可读性、意象、URP 技法、性能，附三个候选方向与参考板链接 |
+| [yuanqi-giant-charge.md](yuanqi-giant-charge.md) | 缘起金足破阵：玩法事实、已定方向（后喷 + 一次画好的墨路）、第一版插槽的默认值（用户在 VFXtests 里调） |
+| [yuanqi-frost-lock.md](yuanqi-frost-lock.md) | 缘起禅足冰封：玩法事实、渲染限制、参考、冰体材质小样与用户选择（v1.5 → 去“糊”后定 v4，不加棱线）、第一版插槽和贴地特效的坑 |
 
 每个插槽的现状见 [slots.md](slots.md)；各技能的拆解表、决定与验收见各专题文档。
 
@@ -94,7 +96,7 @@ glow 辉光（Add）、flash 闪光（Add，1–3 帧）、distortion 扭曲（�
   - 自然消失：层勾 `particlesDieNaturally` 时，窗口结束（= 技能时长结束）那一刻层下所有粒子系统同时停止发射，已有粒子按各自寿命播完（Stretch 时寿命 × k），插槽等最后一个粒子死完才销毁（`SkillVfxPhaseController.DestroyWhenFinished` 取 max(固定尾巴 1.5 s × k, 最长寿命)）。不勾时仍是窗口后固定 1.5 s × k 销毁，寿命更长的粒子会被瞬间切掉。特效本身的播放逻辑（循环、寿命、延迟）不改，只决定何时停止发射。测试：`SkillVfxAnchorTests.CasterFollowLayerFollowsThePositionButNotTheFacing`、`SkillVfxTimingTests.ParticlesDieNaturallyKeepsTheSlotUntilTheLastParticleDies`。
   - 跟技能一起收（用户定：符在技能结束前 1 秒开始消失，消失约 1 秒，和其他特效同步结束）：寿命长的粒子系统（转向反转的阴阳符）自然消失会在技能结束后还挂着，看着像技能没结束。把它拖进层的 `endWithWindow`，在窗口结束前 `endWithWindowSeconds`（真实秒，默认 1）它停止发射，每个现存粒子跳到它自己颜色渐变最后一段（淡出段）上透明度相同的位置，再把寿命设成正好用这几秒播完淡出段：已经全亮的从淡出开头播，刚出生还在淡入的从同样透明度处往下播，已经在淡出的不跳；本来就会更早死的不动。所以窗口结束（其余层停止发射）那一刻它正好消失，不另加淡出，也不会突然变亮或变暗。窗口比这几秒还短、或被提前结束时，在 `Deactivate` 里补播同样的结尾。插槽销毁时间对这些系统只算 `endWithWindowSeconds`。只在勾了 `particlesDieNaturally` 时生效。实现：`SkillVfxLayer.BeginEnding`、`SkillVfxRules.EndingAge`。测试：`SkillVfxTimingTests.EndWithWindowCapsTheLongLivedSystemsTail`、`EndingAgeKeepsTheParticlesAlpha`。
   - 贴地高度：比赛赛道在角色 pivot（`VisualRoot`）下约 0.30（体型 1 倍），VFXtests 的 `Floor` 在 pivot 下 4.25。在 VFXtests 里调的贴地内容如果低于 pivot 0.3，比赛里会埋进赛道被深度挡住；用层的 `casterOffset.y` 整层抬高，层内相对位置不动（禅定缓流 0.62）。
-- **体型适配（2026-11-03，用户定）**：巨大化（×4）和反噬（×0.3）缩放角色根节点，施法者锚点层默认整体等比例放大（`casterScaling = Whole`）。层可以改成 `Blend`：撑面积的系统缓出跟上新体型，其余系统用 Scaling Mode = Shape，只铺开出生范围、保持颗粒，体型变化时老粒子淡出，墨浪领在边缘。禅定缓流已改。调查、逐个插槽的现状、做法和待办见 [giant.md](giant.md)，技能互相适配的总任务见 [../gameplay/skill-adaptation.md](../gameplay/skill-adaptation.md)。做新特效时要在巨人和反噬体型下各看一遍。
+- **体型适配（2026-11-03，用户定）**：巨大化（×4）和反噬（×0.3）缩放角色根节点，施法者锚点层默认整体等比例放大（`casterScaling = Whole`）。层可以改成 `Blend`：撑面积的系统缓出跟上新体型，其余系统用 Scaling Mode = Shape，只铺开出生范围、保持颗粒，体型变化时老粒子淡出，墨浪领在边缘。禅定缓流已改。第三种 `None`（2026-11-06）：层保持作者尺寸，只有偏移跟体型，给按世界单位定长的地面路线用（金足破阵的墨路和后喷，[yuanqi-giant-charge.md](yuanqi-giant-charge.md) 第 5 节）。调查、逐个插槽的现状、做法和待办见 [giant.md](giant.md)，技能互相适配的总任务见 [../gameplay/skill-adaptation.md](../gameplay/skill-adaptation.md)。做新特效时要在巨人和反噬体型下各看一遍。
 - **渲染顺序（2026-10-29，用户确定"同层即可"）**：为了让角色在一念光明的黑幕上可见，`URP-HighFidelity-Renderer` 的 `RenderBuddah` 在透明物之后又画一遍 Buddah 层，这会把角色盖在所有特效上面。现在技能特效和角色同层：`SkillVfxPhaseController.Configure` 把特效里 Default 层的物体改到 `Buddah` 层（已有专用层的保留，如一念光明的 `BlackCurtainTrail`）。渲染器最后加了 `RenderSkillVfx`（透明队列、Buddah 层、透明物之后），普通透明 pass 不再画 Buddah 层，所以特效只画一次，并且和角色做深度遮挡：在角色前面的挡住角色，在角色后面的被角色挡住。VFX Graph 的输出也走这个 pass（通用前摇曾临时复用旧 Graph，比赛里截图验证过）。编辑器里同一条规则：10 个插槽 prefab 本身已在 `Buddah` 层（菜单 `Tools/BuddahGo/VFX/Move Slot Prefabs To Character Layer`），`SkillVfxCharacterLayer` 在非 Play 时、层级变化后把 VFXtests 和 prefab 模式里插槽下新加的 Default 层物体改到 `Buddah` 层，所以预览和比赛的遮挡一致（2026-10-29 用户要求修 VFXtests 的渲染层）。只有 HighFidelity 渲染器有这套 pass，其他档位的渲染器层遮罩是全开的，本来就没有这个问题。
 - **时长缩放（2026-10-29）**：技能时长来自配表，插槽按比例适配。控制器 `referenceSeconds` 写的是"这个特效按多长调的"（例如 `reverse_hit` 的 Imp 是 10 秒）。层窗口用 `PhaseFraction`（相位的百分比，例如 0–0.3 表示前 30%），配表改了时长，窗口自动跟着走。窗口里的内容由每层的 `timeScaling` 决定，k = 实际窗口 ÷ 参考窗口：`Fixed` 内容按原样播放，只移动开始和停止发射的时刻；`Stretch` 整体变速（每个粒子系统按 1/k 速度模拟，延迟、寿命、运动一起等比例缩放，看起来一样，只是变慢或变快）；`Rhythm` 只缩放节奏（开始延迟、发射时长、burst 时间乘 k，粒子本身的寿命和速度不变；例如 10% 处的延迟始终在 10%）。没写参考长度的相位不缩放，`Seconds` 窗口也不缩放。插槽 Inspector 底部有 "Timing preview"：输入一个时长（或点 ×0.5/×1/×2），列出每层窗口和每个粒子系统从百分之几开始发射、到百分之几停止、到百分之几最后一个粒子消失。旁边的按钮把该相位的 `Seconds` 窗口换算成参考长度下的比例。（2026-10-29 早些时候的状态：`reverse_hit` 10 秒（0–100%）、`slow` 11 秒（0–55%）、`accel` 10 秒（0–30%）、`curtain_trail` 13 秒（0–100%）。四个都还是 `Fixed`，当前时长下表现不变。下一条起按"时长同步"改过。）
 - **时长同步（2026-10-29）**：用户要靠配表改前摇和持续时间来调强度，特效必须跟着走。规则：
@@ -138,6 +140,8 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
   | 转向反转 | `reverse_release`、`reverse_hit` | `转向反转/Release/VFX_Reverse_Release`、`转向反转/Hit/VFX_Reverse_Hit` |
   | 一念光明 | `curtain_release`、`curtain_hit` | `一念光明/Release/VFX_Curtain_Release`、`一念光明/Hit/VFX_Curtain_Hit` |
   | 巨大化 | `giant_release` | `巨大化/Release/VFX_Giant_Release` |
+  | 缘起 金足破阵 | `giant_charge_release` | `金足破阵/Release/VFX_GiantCharge_Release`（缘起的插槽用缘起中文名做目录，短名 `GiantCharge`） |
+  | 缘起 禅足冰封 | `frost_lock_release`、`frost_lock_hit` | `禅足冰封/Release/VFX_FrostLock_Release`、`禅足冰封/Hit/VFX_FrostLock_Hit`（短名 `FrostLock`） |
 
   2026-10-30 之前的旧名（`palm`、`palm_hand`、`palm_buf`、`accel`、`slow`、`reverse`、`curtain`、`curtain_trail`、`giant`，以及 `Proto/Release`、`Proto/Hit`、`Proto/Frontal` 目录）只留在各文档带日期的历史记录里。
 - 资产目录：`Assets/VFX/<技能中文名>/` 沿用现有目录；共用资源放 `Assets/VFX/Shared/`（贴图、材质、模板 prefab），shader 放 `Assets/Rendering/Shaders/FX/`（与已有的 `BuddahGo/Lit` 同处）。
@@ -247,8 +251,11 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
 | 4 | 禅定缓流 `slowtrap` | `slow_release` | |
 | 5 | 一念光明 `blackcurtain` | `curtain_release`、`curtain_hit` | [blackcurtain-opening-research.md](blackcurtain-opening-research.md) |
 | 6 | 神足通 `acceleration` | `accel_release` | |
+| 缘起 #4 | 金足破阵 `giant_charge` | `giant_charge_release`：第一版（2026-11-06），用户在 VFXtests 里调 | [yuanqi-giant-charge.md](yuanqi-giant-charge.md) |
+| 缘起 #2 | 禅足冰封 `frost_lock` | `frost_lock_release`、`frost_lock_hit`：第一版（2026-11-06），冰体 v4 | [yuanqi-frost-lock.md](yuanqi-frost-lock.md) |
+| 缘起 #1 | 金身巨掌 `giant_palm` | 不做（用户定，2026-11-06）：沿用神掌随掌倍率缩放的现有表现 | |
 
-每个插槽做到哪一步、用户调过没有，见 [slots.md](slots.md)。
+每个插槽做到哪一步、用户调过没有，见 [slots.md](slots.md)。两对缘起还要调的项集中在 [../gameplay/yuanqi-open-items.md](../gameplay/yuanqi-open-items.md) 第 1 节。
 
 ## 11. 未决问题
 

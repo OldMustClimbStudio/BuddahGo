@@ -221,7 +221,7 @@ namespace BuddahGo.VFX.EditorTools
             return (save ? "saved " : "prepared ") + StagePath + " (freezeAt=" + freezeAt + ")";
         }
 
-        static void StripNetworking(GameObject go)
+        internal static void StripNetworking(GameObject go)
         {
             var networked = new System.Collections.Generic.List<MonoBehaviour>();
             foreach (MonoBehaviour behaviour in go.GetComponentsInChildren<MonoBehaviour>(true))

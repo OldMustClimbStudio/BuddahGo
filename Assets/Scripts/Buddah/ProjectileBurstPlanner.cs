@@ -18,6 +18,7 @@ internal struct ProjectileBurstParameters
     internal bool spawnServerHitboxes;
     internal string replicatedSkillId;
     internal AnimationCurve speedCurve;   // flight shape (ChargedProjectileFlight)
+    internal float sizeMultiplier;        // base palm size (Skill/Push sizeMultiplier); 0 = unset = 1
 }
 
 internal static class ProjectileBurstPlanner

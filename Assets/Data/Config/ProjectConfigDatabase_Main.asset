@@ -310,6 +310,7 @@ MonoBehaviour:
   skillEffectGiants:
   - skillId: giant
     scaleMultiplier: 4
+    palmSizeMultiplier: 2
     shrinkDurationSeconds: 0.35
     growDurationSeconds: 0.35
     massMultiplier: 3
@@ -317,6 +318,7 @@ MonoBehaviour:
     restoreDurationSeconds: 0
   - skillId: giant_anti
     scaleMultiplier: 0.3
+    palmSizeMultiplier: 0.5
     shrinkDurationSeconds: 0.25
     growDurationSeconds: 0
     massMultiplier: 0
@@ -339,6 +341,7 @@ MonoBehaviour:
     projectileCount: 0
     projectileSpacing: 0
     colliderSize: {x: 0, y: 0, z: 0}
+    sizeMultiplier: 0
     hitTurnTorqueImpulse: 0
   - pushId: charged
     rotationSpeedDegPerSec: 0
@@ -356,6 +359,7 @@ MonoBehaviour:
     projectileCount: 0
     projectileSpacing: 0
     colliderSize: {x: 60, y: 90, z: 20}
+    sizeMultiplier: 0.5
     hitTurnTorqueImpulse: 0
   - pushId: charged_anti
     rotationSpeedDegPerSec: 0
@@ -373,6 +377,7 @@ MonoBehaviour:
     projectileCount: 5
     projectileSpacing: 30
     colliderSize: {x: 60, y: 50, z: 20}
+    sizeMultiplier: 0.5
     hitTurnTorqueImpulse: 50
   obsessions:
   - profileId: default
@@ -390,6 +395,47 @@ MonoBehaviour:
     backfireLockSeconds: 5
     backfireMaxSpeedMultiplier: 0.85
     backfireEndKeepRatio: 0.8
+  yuanqis:
+  - yuanqiId: giant_palm
+    displayNameKey: yuanqi.giant_palm.name
+    descriptionKey: yuanqi.giant_palm.desc
+    skillA: giant
+    skillB: push_projectile_hands
+    consumeA: 0
+    consumeB: 0
+    mode: Sustained
+    retriggerPolicy: OncePerOverlap
+    isEnabled: 1
+  - yuanqiId: frost_lock
+    displayNameKey: yuanqi.frost_lock.name
+    descriptionKey: yuanqi.frost_lock.desc
+    skillA: acceleration
+    skillB: slowtrap
+    consumeA: 1
+    consumeB: 1
+    mode: Instant
+    retriggerPolicy: OncePerOverlap
+    isEnabled: 1
+  - yuanqiId: giant_charge
+    displayNameKey: yuanqi.giant_charge.name
+    descriptionKey: yuanqi.giant_charge.desc
+    skillA: acceleration
+    skillB: giant
+    consumeA: 1
+    consumeB: 0
+    mode: Instant
+    retriggerPolicy: OncePerOverlap
+    isEnabled: 1
+  yuanqiEffectFrostLocks:
+  - yuanqiId: frost_lock
+    freezeSeconds: 1.5
+    radiusMeters: 12
+    affectsTrainingDummies: 1
+  yuanqiEffectGiantCharges:
+  - yuanqiId: giant_charge
+    burstExtraMaxSpeed: 60
+    burstSeconds: 0.8
+    impactImpulseMultiplier: 3
   vfxRegistries:
   - vfxId: palm_release
     prefabPath: "Assets/VFX/\u5982\u6765\u795E\u638C/Release/VFX_Palm_Release.prefab"
@@ -562,6 +608,45 @@ MonoBehaviour:
     lightIntensity: 0
   - vfxId: curtain_release
     prefabPath: "Assets/VFX/\u4E00\u5FF5\u5149\u660E/Release/VFX_Curtain_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: giant_charge_release
+    prefabPath: "Assets/VFX/\u91D1\u8DB3\u7834\u9635/Release/VFX_GiantCharge_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: frost_lock_release
+    prefabPath: "Assets/VFX/\u7985\u8DB3\u51B0\u5C01/Release/VFX_FrostLock_Release.prefab"
+    warmup: 1
+    antiOf: 
+    chgRatio: 0
+    impFrames: 0
+    disSeconds: 0
+    linSeconds: 0
+    bufFadeSeconds: 0
+    trailSeconds: 0
+    scaleMultiplier: 0
+    lightSeconds: 0
+    lightIntensity: 0
+  - vfxId: frost_lock_hit
+    prefabPath: "Assets/VFX/\u7985\u8DB3\u51B0\u5C01/Hit/VFX_FrostLock_Hit.prefab"
     warmup: 1
     antiOf: 
     chgRatio: 0
@@ -775,6 +860,7 @@ MonoBehaviour:
     target: Behind
     impairedTargetMultiplier: 1
     handsShots: 0
+    yuanqiAffinity: 1
   - personalityId: hunter
     displayNameKey: ai.personality.hunter.name
     slot0SkillId: push_projectile_hands
@@ -788,6 +874,7 @@ MonoBehaviour:
     target: Ahead
     impairedTargetMultiplier: 1
     handsShots: 4
+    yuanqiAffinity: 1
   - personalityId: brawler
     displayNameKey: ai.personality.brawler.name
     slot0SkillId: giant
@@ -801,6 +888,7 @@ MonoBehaviour:
     target: PackCentre
     impairedTargetMultiplier: 1
     handsShots: 3
+    yuanqiAffinity: 1
   - personalityId: trickster
     displayNameKey: ai.personality.trickster.name
     slot0SkillId: reverseturn
@@ -814,6 +902,7 @@ MonoBehaviour:
     target: EnteringCorner
     impairedTargetMultiplier: 1
     handsShots: 0
+    yuanqiAffinity: 1
   - personalityId: opportunist
     displayNameKey: ai.personality.opportunist.name
     slot0SkillId: acceleration
@@ -827,6 +916,7 @@ MonoBehaviour:
     target: Impaired
     impairedTargetMultiplier: 1.6
     handsShots: 2
+    yuanqiAffinity: 1
   personalitySituationBiases:
   - personalityId: keeper
     situation: Pursued
@@ -1005,6 +1095,11 @@ MonoBehaviour:
     maxWindowSeconds: 6
     minRelativeSpeed: 0.1
     maxElapsedSeconds: 1
+    yuanqiSetupMultiplier: 1.2
+    yuanqiFollowUpScore: 0.8
+    yuanqiFollowUpMultiplier: 1.5
+    yuanqiFollowUpTempoSeconds: 0.3
+    yuanqiLateWindowSeconds: 0.6
   rosters:
   - slotIndex: 0
     personalityId: keeper
@@ -1259,6 +1354,18 @@ MonoBehaviour:
     zh: "\u9006\u59FB\u7F18\uFF08\u566C\uFF09"
   - key: skill.reverseturn_anti.desc
     zh: "\u9006\u59FB\u7F18\u7684\u53CD\u566C\u53D8\u4F53"
+  - key: yuanqi.giant_palm.name
+    zh: "\u91D1\u8EAB\u5DE8\u638C"
+  - key: yuanqi.giant_palm.desc
+    zh: "\u91D1\u8EAB\u671F\u95F4\u795E\u638C\u968F\u4F53\u578B\u653E\u5927\uFF0C\u63A8\u529B\u4E00\u8D77\u53D8\u5927"
+  - key: yuanqi.frost_lock.name
+    zh: "\u7985\u8DB3\u51B0\u5C01"
+  - key: yuanqi.frost_lock.desc
+    zh: "\u51BB\u4F4F\u5468\u56F4\u7684\u5BF9\u624B\uFF0C\u4E24\u62DB\u90FD\u88AB\u6D88\u8017"
+  - key: yuanqi.giant_charge.name
+    zh: "\u91D1\u8DB3\u7834\u9635"
+  - key: yuanqi.giant_charge.desc
+    zh: "\u91D1\u8EAB\u5411\u524D\u7A81\u8FDB\u649E\u5F00\u5BF9\u624B\uFF0C\u795E\u8DB3\u901A\u88AB\u6D88\u8017"
   - key: ai.personality.keeper.name
     zh: "P1 \u5B88\u4F4D\u578B"
   - key: ai.personality.hunter.name
@@ -1346,26 +1453,6 @@ MonoBehaviour:
     zh: "\u7B2C {i + 1} \u5708  {FormatTime(result.LapSeconds[i])}"
   - key: "ui.soloresultsview.\u5708\u65F6"
     zh: "     \u5708\u65F6  "
-  - key: "ui.solosetuppanel.\u7B80\u5355"
-    zh: "\u7B80\u5355"
-  - key: "ui.solosetuppanel.\u666E\u901A"
-    zh: "\u666E\u901A"
-  - key: "ui.solosetuppanel.\u56F0\u96BE"
-    zh: "\u56F0\u96BE"
-  - key: "ui.solosetuppanel.\u5355\u4EBA\u6E38\u620F"
-    zh: "\u5355\u4EBA\u6E38\u620F"
-  - key: "ui.solosetuppanel.\u516D\u4EBA\u5355\u4EBA\u8D5B_\u73A9\u5BB6_5_ai"
-    zh: "\u516D\u4EBA\u5355\u4EBA\u8D5B \xB7 \u73A9\u5BB6 + 5 AI"
-  - key: "ui.solosetuppanel.\u4E94\u79CD\u6280\u80FD\u4EBA\u683C_\u56FA\u5B9A\u914D\u88C5"
-    zh: "\u4E94\u79CD\u6280\u80FD\u4EBA\u683C \xB7 \u56FA\u5B9A\u914D\u88C5"
-  - key: "ui.solosetuppanel.\u96BE\u5EA6"
-    zh: "\u96BE\u5EA6"
-  - key: "ui.solosetuppanel.\u5F00\u59CB\u5355\u4EBA\u8D5B"
-    zh: "\u5F00\u59CB\u5355\u4EBA\u8D5B"
-  - key: "ui.solosetuppanel.\u521D\u59CB\u5316\u5C1A\u672A\u5B8C\u6210_\u8BF7\u7A0D\u540E\u91CD\u8BD5"
-    zh: "\u521D\u59CB\u5316\u5C1A\u672A\u5B8C\u6210\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002"
-  - key: "ui.solosetuppanel.\u542F\u52A8\u5931\u8D25_\u8BF7\u91CD\u8BD5"
-    zh: "\u542F\u52A8\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u3002"
   - key: "ui.solouibootstrap.\u6B63\u5728\u521D\u59CB\u5316"
     zh: "\u6B63\u5728\u521D\u59CB\u5316\u2026"
   - key: ui.leaderboardmanager.empty
@@ -1428,52 +1515,6 @@ MonoBehaviour:
     zh: (none)
   - key: ui.roomroster.player_playername_rolelabel_readylabel
     zh: '{player.PlayerName} [{roleLabel}] [{readyLabel}]'
-  - key: ui.propertiesselectionmanager.duplicate_propertiesselectionmanager_det
-    zh: Duplicate PropertiesSelectionManager detected; destroying duplicate instance.
-  - key: ui.propertiesselectionmanager.skillloadoutstagekey_slotindex
-    zh: '{SkillLoadoutStageKey}_{slotIndex}'
-  - key: ui.propertiesselectionmanager.selection_submitted_player_caller_client
-    zh: 'Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}'
-  - key: ui.propertiesselectionmanager.all_required_selections_submitted_for_st
-    zh: All required selections submitted for stage '{propertyKey}'. Advancing immediately.
-  - key: ui.propertiesselectionmanager.stage_started_stagekey
-    zh: 'Stage started: ''{stageKey}'''
-  - key: ui.propertiesselectionmanager.resolved_match_scene_is_empty_or_scenema
-    zh: Resolved match scene is empty or SceneManager missing.
-  - key: ui.propertiesselectionmanager.loading_match_scene_resolvedmatchscenena
-    zh: 'Loading match scene: {_resolvedMatchSceneName}'
-  - key: ui.propertiesselectionmanager.validated_skill_loadout_submission_for_p
-    zh: Validated skill loadout submission for player={playerId}
-  - key: ui.propertiesselectionmanager.skill_loadout_selection
-    zh: Skill Loadout Selection
-  - key: ui.propertiesselectionmanager.map_selection
-    zh: Map Selection
-  - key: ui.propertiesselectionmanager.map_a
-    zh: Map A
-  - key: ui.propertiesselectionmanager.default_placeholder_map_a
-    zh: Default placeholder map A.
-  - key: ui.propertiesselectionmanager.map_b
-    zh: Map B
-  - key: ui.propertiesselectionmanager.default_placeholder_map_b
-    zh: Default placeholder map B.
-  - key: ui.propertiesselectionmanager.map_c
-    zh: Map C
-  - key: ui.propertiesselectionmanager.default_placeholder_map_c
-    zh: Default placeholder map C.
-  - key: ui.propertiesselectionmanager.skin_selection
-    zh: Skin Selection
-  - key: ui.propertiesselectionmanager.skin_a
-    zh: Skin A
-  - key: ui.propertiesselectionmanager.default_placeholder_skin_a
-    zh: Default placeholder skin A.
-  - key: ui.propertiesselectionmanager.skin_b
-    zh: Skin B
-  - key: ui.propertiesselectionmanager.default_placeholder_skin_b
-    zh: Default placeholder skin B.
-  - key: ui.propertiesselectionmanager.skin_c
-    zh: Skin C
-  - key: ui.propertiesselectionmanager.default_placeholder_skin_c
-    zh: Default placeholder skin C.
   - key: ui.resultdecisionmanager.choice_caller_clientid_choice
     zh: choice:{caller.ClientId}:{choice}
   - key: ui.resultdecisionmanager.decision_playername_choicelabel
@@ -1522,214 +1563,6 @@ MonoBehaviour:
     zh: 'Your Choice: {localDecision.Choice}'
   - key: ui.resultdecisionui.waiting_for_your_decision_state
     zh: Waiting for your decision state...
-  - key: ui.createroomui.steamlobbymanager_not_found
-    zh: SteamLobbyManager not found.
-  - key: ui.createroomui.creating_room
-    zh: Creating room...
-  - key: ui.createroomui.room_created_lobby_id_value
-    zh: 'Room created: {lobby.Id.Value}'
-  - key: ui.createroomui.create_failed_reason
-    zh: 'Create failed: {reason}'
-  - key: ui.createroomui.friends_only
-    zh: Friends Only
-  - key: ui.lobbybrowserlistitemui.unnamed_room
-    zh: Unnamed Room
-  - key: ui.lobbybrowserlistitemui.data_currentplayers_data_maxplayers
-    zh: '{data.CurrentPlayers} / {data.MaxPlayers}'
-  - key: ui.lobbybrowserlistitemui.host_data_hoststeamid
-    zh: 'Host: {data.HostSteamId}'
-  - key: ui.lobbybrowserlistitemui.lobby_id_data_lobbyid
-    zh: 'Lobby ID: {data.LobbyId}'
-  - key: ui.lobbybrowserui.no_rooms_loaded
-    zh: No rooms loaded.
-  - key: ui.lobbybrowserui.refreshing_rooms
-    zh: Refreshing rooms...
-  - key: ui.lobbybrowserui.joining_room_lobbyid
-    zh: Joining room {lobbyId}...
-  - key: ui.lobbybrowserui.no_joinable_rooms_found
-    zh: No joinable rooms found.
-  - key: ui.lobbybrowserui.found_lobbies_count_rooms
-    zh: Found {lobbies.Count} rooms.
-  - key: ui.lobbybrowserui.join_failed_reason
-    zh: 'Join failed: {reason}'
-  - key: ui.propertiesselectorui.properties_selector
-    zh: Properties Selector
-  - key: ui.propertiesselectorui.waiting_for_propertiesselectionmanager
-    zh: Waiting for PropertiesSelectionManager...
-  - key: ui.propertiesselectorui.loading_match
-    zh: Loading Match
-  - key: ui.propertiesselectorui.loading_selectionmanager_resolvedmatchsc
-    zh: Loading {_selectionManager.ResolvedMatchSceneName}...
-  - key: ui.propertiesselectorui.choose_skillloadout_slotcount_skills
-    zh: Choose {SkillLoadout.SlotCount} skills
-  - key: ui.propertiesselectorui.step_selectionmanager_currentstageindex_
-    zh: 'Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}:
-      {stageLabel}'
-  - key: ui.propertiesselectorui.time_remaining_selectionmanager_stagecou
-    zh: 'Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s'
-  - key: ui.propertiesselectorui.syncing_stage_data
-    zh: Syncing stage data
-  - key: ui.propertiesselectorui.waiting_for_host_stage_configuration
-    zh: Waiting for host stage configuration...
-  - key: ui.propertiesselectorui.all_stages_complete
-    zh: All stages complete
-  - key: ui.propertiesselectorui.waiting_to_enter_match
-    zh: Waiting to enter match...
-  - key: ui.propertiesselectorui.resolved_map_mapoptionid
-    zh: 'Resolved Map: {mapOptionId}'
-  - key: ui.propertiesselectorui.resolved_map_pending
-    zh: 'Resolved Map: pending'
-  - key: ui.propertiesselectorui.everyone_is_voting_on_the_current_stage_
-    zh: Everyone is voting on the current stage option.
-  - key: ui.propertiesselectorui.only_the_host_can_choose_during_this_sta
-    zh: Only the host can choose during this stage.
-  - key: ui.propertiesselectorui.choose_all_desired_options_before_the_ti
-    zh: Choose all desired options before the timer ends.
-  - key: ui.propertiesselectorui.choose_all_desired_options
-    zh: Choose all desired options.
-  - key: ui.propertiesselectorui.each_player_chooses_one_option_before_th
-    zh: Each player chooses one option before the timer ends.
-  - key: ui.propertiesselectorui.each_player_chooses_one_option
-    zh: Each player chooses one option.
-  - key: ui.propertiesselectorui.no_active_stage
-    zh: No active stage.
-  - key: ui.propertiesselectorui.filledcount_skillloadout_slotcount_strin
-    zh: '{filledCount}/{SkillLoadout.SlotCount} [{string.Join('
-  - key: ui.propertiesselectorui.names
-    zh: ', names)}]'
-  - key: ui.propertiesselectorui.participant_playername_selectedoptionid
-    zh: '{participant.PlayerName}: {selectedOptionId}'
-  - key: ui.propertiesselectorui.n
-    zh: \n
-  - key: ui.propertiesselectorui.no_players_connected
-    zh: No players connected.
-  - key: ui.propertycarouselview.focused_none
-    zh: 'Focused: None'
-  - key: ui.propertycarouselview.confirmed_none
-    zh: 'Confirmed: None'
-  - key: ui.propertycarouselview.confirmed_lastsubmittedoptionid
-    zh: 'Confirmed: {_lastSubmittedOptionId}'
-  - key: ui.propertycarouselview.focused_item_optionid_n_confirmedsuffix
-    zh: 'Focused: {item.OptionId}\n{confirmedSuffix}'
-  - key: ui.propertycarouselview.votes_count
-    zh: 'Votes: {count}'
-  - key: ui.propertycarouselview.selected_count
-    zh: 'Selected: {count}'
-  - key: ui.propertygroupview.selected_getoptiondisplayname_localselec
-    zh: 'Selected: {GetOptionDisplayName(localSelectedOptionId)}'
-  - key: ui.propertygroupview.selected_none
-    zh: 'Selected: None'
-  - key: ui.propertygroupview.mode_vote
-    zh: 'Mode: Vote'
-  - key: ui.propertygroupview.mode_host_only
-    zh: 'Mode: Host Only'
-  - key: ui.propertygroupview.mode_multi_select
-    zh: 'Mode: Multi Select'
-  - key: ui.propertygroupview.mode_single_select
-    zh: 'Mode: Single Select'
-  - key: ui.propertygroupview.votes_selectedcount
-    zh: 'Votes: {selectedCount}'
-  - key: ui.propertygroupview.players_selectedcount
-    zh: 'Players: {selectedCount}'
-  - key: ui.roomplayerentryui.unknown_player
-    zh: Unknown Player
-  - key: ui.roomui.opening_properties_selector
-    zh: Opening Properties Selector...
-  - key: ui.roomui.room_lobby_id_value
-    zh: Room #{lobby.Id.Value}
-  - key: ui.roomui.waiting_for_room_state_manager
-    zh: Waiting for room state manager...
-  - key: ui.roomui.host_can_start_the_game
-    zh: Host can start the game.
-  - key: ui.roomui.waiting_for_players_to_get_ready
-    zh: Waiting for players to get ready.
-  - key: ui.roomui.waiting_for_host_to_start_the_game
-    zh: Waiting for host to start the game.
-  - key: ui.roomui.cancel_ready
-    zh: Cancel Ready
-  - key: ui.skillinspectpanelui.esc_to_close
-    zh: Esc to close
-  - key: ui.skillinspectableitem.inspect_skillid
-    zh: Inspect_{SkillId}
-  - key: ui.skillwallitemview.skillwallitem_skillid
-    zh: SkillWallItem_{_skillId}
-  - key: ui.skillwallselectioncontroller.ignored_select_request_for_unknown_skill
-    zh: Ignored select request for unknown skill '{skillId}'.
-  - key: ui.skillwallselectioncontroller.ignored_select_request_because_skillid_i
-    zh: Ignored select request because '{skillId}' is already selected.
-  - key: ui.skillwallselectioncontroller.ignored_select_request_because_all_skill
-    zh: Ignored select request because all {SkillLoadout.SlotCount} slots are full.
-  - key: ui.skillwallselectioncontroller.skipped_wall_build_because_required_refe
-    zh: Skipped wall build because required references are missing.
-  - key: ui.skillwallselectioncontroller.built_skill_wall_with_spawneditems_count
-    zh: Built skill wall with {_spawnedItems.Count} selectable items.
-  - key: ui.skillwallselectioncontroller.scenemanagerfound_hasscenemanager_spawne
-    zh: sceneManagerFound={hasSceneManager}, spawned={isSpawned}, singletonNull={PropertiesSelectionManager.Instance
-      == null}
-  - key: ui.static.lobby_id_input
-    zh: Lobby Id Input
-  - key: ui.static.option_a
-    zh: Option A
-  - key: ui.static.room_visibility
-    zh: Room Visibility
-  - key: ui.static.max_player
-    zh: Max Player
-  - key: ui.static.create
-    zh: Create
-  - key: ui.static.create_room
-    zh: Create Room
-  - key: ui.static.public
-    zh: Public
-  - key: ui.static.room_name
-    zh: Room Name
-  - key: ui.static.browse_rooms
-    zh: Browse Rooms
-  - key: ui.static.ready
-    zh: Ready
-  - key: ui.static.join_room
-    zh: Join Room
-  - key: ui.static.enter_text
-    zh: Enter text...
-  - key: ui.static.4
-    zh: 4
-  - key: ui.static.start_game
-    zh: Start Game
-  - key: ui.static.return
-    zh: Return
-  - key: ui.static.refresh
-    zh: Refresh
-  - key: ui.static.back
-    zh: Back
-  - key: ui.static.join
-    zh: Join
-  - key: ui.static.playernum
-    zh: 'PlayerNum:'
-  - key: ui.static.leave_room
-    zh: Leave Room
-  - key: ui.static.your_role
-    zh: 'Your Role:'
-  - key: ui.static.quit
-    zh: Quit
-  - key: ui.static.pagetitletext
-    zh: pageTitleText
-  - key: "ui.static.\u6280\u80FD\u63CF\u8FF0\u6587\u672C"
-    zh: "\u6280\u80FD\u63CF\u8FF0\u6587\u672C"
-  - key: ui.static.confirm
-    zh: Confirm
-  - key: "ui.static.\u63D0\u793A\u6587\u672C"
-    zh: "\u63D0\u793A\u6587\u672C"
-  - key: ui.static.countdowntext
-    zh: countdownText
-  - key: ui.static.resolvedmaptext
-    zh: resolvedMapText
-  - key: ui.static.playersselectiontext
-    zh: PlayersSelectionText
-  - key: "ui.static.\u6807\u9898\u6587\u672C"
-    zh: "\u6807\u9898\u6587\u672C"
-  - key: ui.static.statustext
-    zh: statusText
-  - key: ui.static.stagetitletext
-    zh: StageTitleText
   - key: ui.static.return_to_room
     zh: Return To Room
   - key: ui.static.start_new_game
@@ -1742,16 +1575,6 @@ MonoBehaviour:
     zh: Player2
   - key: ui.static.player1
     zh: Player1
-  - key: ui.static.right
-    zh: Right
-  - key: ui.static.left
-    zh: Left
-  - key: ui.static.select
-    zh: Select
-  - key: ui.static.hosttext
-    zh: hostText
-  - key: ui.static.lobbyidtext
-    zh: LobbyIdText
   - key: settings.graphics.group.display
     zh: "\u663E\u793A"
   - key: settings.graphics.group.quality

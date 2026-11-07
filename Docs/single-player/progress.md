@@ -1,11 +1,11 @@
-**2026-10-26 玩法机制更新对单机的影响（PR #63 `feat/mechanics-update`，draft，未合并 dev）：** 规则以 [玩法深化](../gameplay/README.md) 为准，下面写的是 `0dbc551` 的代码现状；哪些是用户已定、哪些是实现采用的建议，看该文各表的“状态”列。
+**2026-10-26 玩法机制更新对单机的影响（当时是 PR #63 `feat/mechanics-update`；2026-11-06 拆成 #74 合入 dev，缘起随 #75 合入）：** 规则以 [玩法深化](../gameplay/README.md) 为准，下面写的是 `0dbc551` 的代码现状；哪些是用户已定、哪些是实现采用的建议，看该文各表的“状态”列。
 - 玩家操作：技能槽 0/1/2 同时绑 Q/E/R 和 1/2/3，单键释放，玩家不再搓招；手部朝向跟随光标在地面的投影（180°/s 上限加平滑），鼠标左/右键推左/右手；2026-10-30 起前进不再自动，按住 W 推进、松开停止推进，W/↑ 推掌已删除；AI 经同一个推进开关一直推进。
 - 施法节奏：取消全局施法锁，只保留每槽冷却；施法串行，同一时间最多一个施法在 1 秒前摇里；两个技能可以同时生效。
 - 执念与反噬：六种 `*_anti` 变体删除（2026-10-31 按用户决定恢复：反噬 = 统一惩罚 + 必定变体，见玩法 README §6.2）。反噬时本槽冷却照常花掉、技能不生效、不加执念，前摇结束起 10 秒锁住全部技能、执念冻结、极速 ×0.85，结束时执念 ×0.8；同一技能在冷却结束后 5 秒内重放，执念增量 ×1.15 复利。
-- 缘起：在叠在本 PR 之上的缘起 PR（分支 `feat/yuanqi`）里，本分支不含。
+- 缘起：#1 金身巨掌、#2 禅足冰封、#4 金足破阵，见 [缘起技能设计](../gameplay/yuanqi.md)。
 - Practice（0 AI）生成 3 个训练木桩：同一 Racer prefab，无 owner，不是参赛者（不进排名、结算和 `RacerDirectory`）；起跑线后约 53/68/83 米，沿赛道间隔 15 米，左中右排开，原地停车，最后一次受击 3 秒后回到原位。数量与位置在 `Match/ModeRule` 的 Practice 行（`trainingDummy*` 列）。没有对手时的命中、减速、反转和冲量现在可以对木桩验证。
 - 验证：`MechanicsPracticeHarness`（菜单 `Tools/Mechanics/Run Practice Verification`）2026-10-26 在编辑器训练模式 13/13 通过；这是受控夹具，不是自然比赛，见 [训练模式验证记录](../gameplay/practice-verification.md)。`AITuningHarness` 的 A1/A2 无技能跑圈会先移除木桩。
-- A7 AI 适配已完成（2026-10-28，ac3d5fe）：AI 不再经 `ComboSkillInput` 逐键搓招，`AISkillCaster` 决定后下一 tick 直接调用 `SkillExecutor.CastSlotServer`（和真人同一施法门）；统一反噬风险（`backfireCost` + 每难度一个 `stopProbability`）；`ComboSkillInput`、`Skill/ComboInput`、`Skill/ComboBinding` 删除。无窗口 EditMode 577/577，单人赛 harness：2026-10-28 Normal 一场：5 个 AI 施法 10–17 次、反噬 7 次、自然结算、0 运行错误，见 AI 技能文档末尾。细节见 [AI 技能](ai-skills.md) 顶部的 A7 结果表。
+- A7 AI 适配已完成（2026-10-28，ac3d5fe）：AI 不再经 `ComboSkillInput` 逐键搓招，`AISkillCaster` 决定后下一 tick 直接调用 `SkillExecutor.CastSlotServer`（和真人同一施法门）；缘起决策 `AIYuanqiPlanner`（#1、#2、#4）、统一反噬风险（`backfireCost` + 每难度一个 `stopProbability`）；`ComboSkillInput`、`Skill/ComboInput`、`Skill/ComboBinding` 删除。无窗口 EditMode 577/577，单人赛 harness：2026-10-28 Normal 一场：5 个 AI 施法 10–17 次、反噬 7 次、缘起 8 次、自然结算、0 运行错误，见 AI 技能文档末尾。细节见 [AI 技能](ai-skills.md) 顶部的 A7 结果表。
 
 本文以下记录里的“0 AI Practice 无法验证对手效果”、六技能“普通/反噬”变体和施法锁，都是机制更新之前的规则，按原记录保留。
 

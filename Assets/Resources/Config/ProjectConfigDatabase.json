@@ -375,6 +375,7 @@
         {
             "skillId": "giant",
             "scaleMultiplier": 4.0,
+            "palmSizeMultiplier": 2.0,
             "shrinkDurationSeconds": 0.3499999940395355,
             "growDurationSeconds": 0.3499999940395355,
             "massMultiplier": 3.0,
@@ -384,6 +385,7 @@
         {
             "skillId": "giant_anti",
             "scaleMultiplier": 0.30000001192092898,
+            "palmSizeMultiplier": 0.5,
             "shrinkDurationSeconds": 0.25,
             "growDurationSeconds": 0.0,
             "massMultiplier": 0.0,
@@ -413,6 +415,7 @@
                 "y": 0.0,
                 "z": 0.0
             },
+            "sizeMultiplier": 0.0,
             "hitTurnTorqueImpulse": 0.0
         },
         {
@@ -436,6 +439,7 @@
                 "y": 90.0,
                 "z": 20.0
             },
+            "sizeMultiplier": 0.5,
             "hitTurnTorqueImpulse": 0.0
         },
         {
@@ -459,6 +463,7 @@
                 "y": 50.0,
                 "z": 20.0
             },
+            "sizeMultiplier": 0.5,
             "hitTurnTorqueImpulse": 50.0
         }
     ],
@@ -479,6 +484,60 @@
             "backfireLockSeconds": 5.0,
             "backfireMaxSpeedMultiplier": 0.8500000238418579,
             "backfireEndKeepRatio": 0.800000011920929
+        }
+    ],
+    "yuanqis": [
+        {
+            "yuanqiId": "giant_palm",
+            "displayNameKey": "yuanqi.giant_palm.name",
+            "descriptionKey": "yuanqi.giant_palm.desc",
+            "skillA": "giant",
+            "skillB": "push_projectile_hands",
+            "consumeA": false,
+            "consumeB": false,
+            "mode": "Sustained",
+            "retriggerPolicy": "OncePerOverlap",
+            "isEnabled": true
+        },
+        {
+            "yuanqiId": "frost_lock",
+            "displayNameKey": "yuanqi.frost_lock.name",
+            "descriptionKey": "yuanqi.frost_lock.desc",
+            "skillA": "acceleration",
+            "skillB": "slowtrap",
+            "consumeA": true,
+            "consumeB": true,
+            "mode": "Instant",
+            "retriggerPolicy": "OncePerOverlap",
+            "isEnabled": true
+        },
+        {
+            "yuanqiId": "giant_charge",
+            "displayNameKey": "yuanqi.giant_charge.name",
+            "descriptionKey": "yuanqi.giant_charge.desc",
+            "skillA": "acceleration",
+            "skillB": "giant",
+            "consumeA": true,
+            "consumeB": false,
+            "mode": "Instant",
+            "retriggerPolicy": "OncePerOverlap",
+            "isEnabled": true
+        }
+    ],
+    "yuanqiEffectFrostLocks": [
+        {
+            "yuanqiId": "frost_lock",
+            "freezeSeconds": 1.5,
+            "radiusMeters": 12.0,
+            "affectsTrainingDummies": true
+        }
+    ],
+    "yuanqiEffectGiantCharges": [
+        {
+            "yuanqiId": "giant_charge",
+            "burstExtraMaxSpeed": 60.0,
+            "burstSeconds": 0.800000011920929,
+            "impactImpulseMultiplier": 3.0
         }
     ],
     "vfxRegistries": [
@@ -680,6 +739,51 @@
         {
             "vfxId": "curtain_release",
             "prefabPath": "Assets/VFX/一念光明/Release/VFX_Curtain_Release.prefab",
+            "warmup": true,
+            "antiOf": "",
+            "chgRatio": 0.0,
+            "impFrames": 0,
+            "disSeconds": 0.0,
+            "linSeconds": 0.0,
+            "bufFadeSeconds": 0.0,
+            "trailSeconds": 0.0,
+            "scaleMultiplier": 0.0,
+            "lightSeconds": 0.0,
+            "lightIntensity": 0.0
+        },
+        {
+            "vfxId": "giant_charge_release",
+            "prefabPath": "Assets/VFX/金足破阵/Release/VFX_GiantCharge_Release.prefab",
+            "warmup": true,
+            "antiOf": "",
+            "chgRatio": 0.0,
+            "impFrames": 0,
+            "disSeconds": 0.0,
+            "linSeconds": 0.0,
+            "bufFadeSeconds": 0.0,
+            "trailSeconds": 0.0,
+            "scaleMultiplier": 0.0,
+            "lightSeconds": 0.0,
+            "lightIntensity": 0.0
+        },
+        {
+            "vfxId": "frost_lock_release",
+            "prefabPath": "Assets/VFX/禅足冰封/Release/VFX_FrostLock_Release.prefab",
+            "warmup": true,
+            "antiOf": "",
+            "chgRatio": 0.0,
+            "impFrames": 0,
+            "disSeconds": 0.0,
+            "linSeconds": 0.0,
+            "bufFadeSeconds": 0.0,
+            "trailSeconds": 0.0,
+            "scaleMultiplier": 0.0,
+            "lightSeconds": 0.0,
+            "lightIntensity": 0.0
+        },
+        {
+            "vfxId": "frost_lock_hit",
+            "prefabPath": "Assets/VFX/禅足冰封/Hit/VFX_FrostLock_Hit.prefab",
             "warmup": true,
             "antiOf": "",
             "chgRatio": 0.0,
@@ -922,7 +1026,8 @@
             "tempoSeconds": 1.5,
             "target": "Behind",
             "impairedTargetMultiplier": 1.0,
-            "handsShots": 0
+            "handsShots": 0,
+            "yuanqiAffinity": 1.0
         },
         {
             "personalityId": "hunter",
@@ -937,7 +1042,8 @@
             "tempoSeconds": 1.2000000476837159,
             "target": "Ahead",
             "impairedTargetMultiplier": 1.0,
-            "handsShots": 4
+            "handsShots": 4,
+            "yuanqiAffinity": 1.0
         },
         {
             "personalityId": "brawler",
@@ -952,7 +1058,8 @@
             "tempoSeconds": 1.0,
             "target": "PackCentre",
             "impairedTargetMultiplier": 1.0,
-            "handsShots": 3
+            "handsShots": 3,
+            "yuanqiAffinity": 1.0
         },
         {
             "personalityId": "trickster",
@@ -967,7 +1074,8 @@
             "tempoSeconds": 2.0,
             "target": "EnteringCorner",
             "impairedTargetMultiplier": 1.0,
-            "handsShots": 0
+            "handsShots": 0,
+            "yuanqiAffinity": 1.0
         },
         {
             "personalityId": "opportunist",
@@ -982,7 +1090,8 @@
             "tempoSeconds": 1.5,
             "target": "Impaired",
             "impairedTargetMultiplier": 1.600000023841858,
-            "handsShots": 2
+            "handsShots": 2,
+            "yuanqiAffinity": 1.0
         }
     ],
     "personalitySituationBiases": [
@@ -1227,7 +1336,12 @@
             "backfireCost": 1.0,
             "maxWindowSeconds": 6.0,
             "minRelativeSpeed": 0.10000000149011612,
-            "maxElapsedSeconds": 1.0
+            "maxElapsedSeconds": 1.0,
+            "yuanqiSetupMultiplier": 1.2000000476837159,
+            "yuanqiFollowUpScore": 0.800000011920929,
+            "yuanqiFollowUpMultiplier": 1.5,
+            "yuanqiFollowUpTempoSeconds": 0.30000001192092898,
+            "yuanqiLateWindowSeconds": 0.6000000238418579
         }
     ],
     "rosters": [
@@ -1677,6 +1791,30 @@
             "zh": "逆姻缘的反噬变体"
         },
         {
+            "key": "yuanqi.giant_palm.name",
+            "zh": "金身巨掌"
+        },
+        {
+            "key": "yuanqi.giant_palm.desc",
+            "zh": "金身期间神掌随体型放大，推力一起变大"
+        },
+        {
+            "key": "yuanqi.frost_lock.name",
+            "zh": "禅足冰封"
+        },
+        {
+            "key": "yuanqi.frost_lock.desc",
+            "zh": "冻住周围的对手，两招都被消耗"
+        },
+        {
+            "key": "yuanqi.giant_charge.name",
+            "zh": "金足破阵"
+        },
+        {
+            "key": "yuanqi.giant_charge.desc",
+            "zh": "金身向前突进撞开对手，神足通被消耗"
+        },
+        {
             "key": "ai.personality.keeper.name",
             "zh": "P1 守位型"
         },
@@ -1849,46 +1987,6 @@
             "zh": "     圈时  "
         },
         {
-            "key": "ui.solosetuppanel.简单",
-            "zh": "简单"
-        },
-        {
-            "key": "ui.solosetuppanel.普通",
-            "zh": "普通"
-        },
-        {
-            "key": "ui.solosetuppanel.困难",
-            "zh": "困难"
-        },
-        {
-            "key": "ui.solosetuppanel.单人游戏",
-            "zh": "单人游戏"
-        },
-        {
-            "key": "ui.solosetuppanel.六人单人赛_玩家_5_ai",
-            "zh": "六人单人赛 · 玩家 + 5 AI"
-        },
-        {
-            "key": "ui.solosetuppanel.五种技能人格_固定配装",
-            "zh": "五种技能人格 · 固定配装"
-        },
-        {
-            "key": "ui.solosetuppanel.难度",
-            "zh": "难度"
-        },
-        {
-            "key": "ui.solosetuppanel.开始单人赛",
-            "zh": "开始单人赛"
-        },
-        {
-            "key": "ui.solosetuppanel.初始化尚未完成_请稍后重试",
-            "zh": "初始化尚未完成，请稍后重试。"
-        },
-        {
-            "key": "ui.solosetuppanel.启动失败_请重试",
-            "zh": "启动失败，请重试。"
-        },
-        {
             "key": "ui.solouibootstrap.正在初始化",
             "zh": "正在初始化…"
         },
@@ -2009,98 +2107,6 @@
             "zh": "{player.PlayerName} [{roleLabel}] [{readyLabel}]"
         },
         {
-            "key": "ui.propertiesselectionmanager.duplicate_propertiesselectionmanager_det",
-            "zh": "Duplicate PropertiesSelectionManager detected; destroying duplicate instance."
-        },
-        {
-            "key": "ui.propertiesselectionmanager.skillloadoutstagekey_slotindex",
-            "zh": "{SkillLoadoutStageKey}_{slotIndex}"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.selection_submitted_player_caller_client",
-            "zh": "Selection submitted: player={caller.ClientId}, property={propertyKey}, option={optionId}"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.all_required_selections_submitted_for_st",
-            "zh": "All required selections submitted for stage '{propertyKey}'. Advancing immediately."
-        },
-        {
-            "key": "ui.propertiesselectionmanager.stage_started_stagekey",
-            "zh": "Stage started: '{stageKey}'"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.resolved_match_scene_is_empty_or_scenema",
-            "zh": "Resolved match scene is empty or SceneManager missing."
-        },
-        {
-            "key": "ui.propertiesselectionmanager.loading_match_scene_resolvedmatchscenena",
-            "zh": "Loading match scene: {_resolvedMatchSceneName}"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.validated_skill_loadout_submission_for_p",
-            "zh": "Validated skill loadout submission for player={playerId}"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.skill_loadout_selection",
-            "zh": "Skill Loadout Selection"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.map_selection",
-            "zh": "Map Selection"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.map_a",
-            "zh": "Map A"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.default_placeholder_map_a",
-            "zh": "Default placeholder map A."
-        },
-        {
-            "key": "ui.propertiesselectionmanager.map_b",
-            "zh": "Map B"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.default_placeholder_map_b",
-            "zh": "Default placeholder map B."
-        },
-        {
-            "key": "ui.propertiesselectionmanager.map_c",
-            "zh": "Map C"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.default_placeholder_map_c",
-            "zh": "Default placeholder map C."
-        },
-        {
-            "key": "ui.propertiesselectionmanager.skin_selection",
-            "zh": "Skin Selection"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.skin_a",
-            "zh": "Skin A"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.default_placeholder_skin_a",
-            "zh": "Default placeholder skin A."
-        },
-        {
-            "key": "ui.propertiesselectionmanager.skin_b",
-            "zh": "Skin B"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.default_placeholder_skin_b",
-            "zh": "Default placeholder skin B."
-        },
-        {
-            "key": "ui.propertiesselectionmanager.skin_c",
-            "zh": "Skin C"
-        },
-        {
-            "key": "ui.propertiesselectionmanager.default_placeholder_skin_c",
-            "zh": "Default placeholder skin C."
-        },
-        {
             "key": "ui.resultdecisionmanager.choice_caller_clientid_choice",
             "zh": "choice:{caller.ClientId}:{choice}"
         },
@@ -2197,418 +2203,6 @@
             "zh": "Waiting for your decision state..."
         },
         {
-            "key": "ui.createroomui.steamlobbymanager_not_found",
-            "zh": "SteamLobbyManager not found."
-        },
-        {
-            "key": "ui.createroomui.creating_room",
-            "zh": "Creating room..."
-        },
-        {
-            "key": "ui.createroomui.room_created_lobby_id_value",
-            "zh": "Room created: {lobby.Id.Value}"
-        },
-        {
-            "key": "ui.createroomui.create_failed_reason",
-            "zh": "Create failed: {reason}"
-        },
-        {
-            "key": "ui.createroomui.friends_only",
-            "zh": "Friends Only"
-        },
-        {
-            "key": "ui.lobbybrowserlistitemui.unnamed_room",
-            "zh": "Unnamed Room"
-        },
-        {
-            "key": "ui.lobbybrowserlistitemui.data_currentplayers_data_maxplayers",
-            "zh": "{data.CurrentPlayers} / {data.MaxPlayers}"
-        },
-        {
-            "key": "ui.lobbybrowserlistitemui.host_data_hoststeamid",
-            "zh": "Host: {data.HostSteamId}"
-        },
-        {
-            "key": "ui.lobbybrowserlistitemui.lobby_id_data_lobbyid",
-            "zh": "Lobby ID: {data.LobbyId}"
-        },
-        {
-            "key": "ui.lobbybrowserui.no_rooms_loaded",
-            "zh": "No rooms loaded."
-        },
-        {
-            "key": "ui.lobbybrowserui.refreshing_rooms",
-            "zh": "Refreshing rooms..."
-        },
-        {
-            "key": "ui.lobbybrowserui.joining_room_lobbyid",
-            "zh": "Joining room {lobbyId}..."
-        },
-        {
-            "key": "ui.lobbybrowserui.no_joinable_rooms_found",
-            "zh": "No joinable rooms found."
-        },
-        {
-            "key": "ui.lobbybrowserui.found_lobbies_count_rooms",
-            "zh": "Found {lobbies.Count} rooms."
-        },
-        {
-            "key": "ui.lobbybrowserui.join_failed_reason",
-            "zh": "Join failed: {reason}"
-        },
-        {
-            "key": "ui.propertiesselectorui.properties_selector",
-            "zh": "Properties Selector"
-        },
-        {
-            "key": "ui.propertiesselectorui.waiting_for_propertiesselectionmanager",
-            "zh": "Waiting for PropertiesSelectionManager..."
-        },
-        {
-            "key": "ui.propertiesselectorui.loading_match",
-            "zh": "Loading Match"
-        },
-        {
-            "key": "ui.propertiesselectorui.loading_selectionmanager_resolvedmatchsc",
-            "zh": "Loading {_selectionManager.ResolvedMatchSceneName}..."
-        },
-        {
-            "key": "ui.propertiesselectorui.choose_skillloadout_slotcount_skills",
-            "zh": "Choose {SkillLoadout.SlotCount} skills"
-        },
-        {
-            "key": "ui.propertiesselectorui.step_selectionmanager_currentstageindex_",
-            "zh": "Step {_selectionManager.CurrentStageIndex + 1}/{_selectionManager.TotalStageCount}: {stageLabel}"
-        },
-        {
-            "key": "ui.propertiesselectorui.time_remaining_selectionmanager_stagecou",
-            "zh": "Time Remaining: {_selectionManager.StageCountdownSecondsRemaining}s"
-        },
-        {
-            "key": "ui.propertiesselectorui.syncing_stage_data",
-            "zh": "Syncing stage data"
-        },
-        {
-            "key": "ui.propertiesselectorui.waiting_for_host_stage_configuration",
-            "zh": "Waiting for host stage configuration..."
-        },
-        {
-            "key": "ui.propertiesselectorui.all_stages_complete",
-            "zh": "All stages complete"
-        },
-        {
-            "key": "ui.propertiesselectorui.waiting_to_enter_match",
-            "zh": "Waiting to enter match..."
-        },
-        {
-            "key": "ui.propertiesselectorui.resolved_map_mapoptionid",
-            "zh": "Resolved Map: {mapOptionId}"
-        },
-        {
-            "key": "ui.propertiesselectorui.resolved_map_pending",
-            "zh": "Resolved Map: pending"
-        },
-        {
-            "key": "ui.propertiesselectorui.everyone_is_voting_on_the_current_stage_",
-            "zh": "Everyone is voting on the current stage option."
-        },
-        {
-            "key": "ui.propertiesselectorui.only_the_host_can_choose_during_this_sta",
-            "zh": "Only the host can choose during this stage."
-        },
-        {
-            "key": "ui.propertiesselectorui.choose_all_desired_options_before_the_ti",
-            "zh": "Choose all desired options before the timer ends."
-        },
-        {
-            "key": "ui.propertiesselectorui.choose_all_desired_options",
-            "zh": "Choose all desired options."
-        },
-        {
-            "key": "ui.propertiesselectorui.each_player_chooses_one_option_before_th",
-            "zh": "Each player chooses one option before the timer ends."
-        },
-        {
-            "key": "ui.propertiesselectorui.each_player_chooses_one_option",
-            "zh": "Each player chooses one option."
-        },
-        {
-            "key": "ui.propertiesselectorui.no_active_stage",
-            "zh": "No active stage."
-        },
-        {
-            "key": "ui.propertiesselectorui.filledcount_skillloadout_slotcount_strin",
-            "zh": "{filledCount}/{SkillLoadout.SlotCount} [{string.Join("
-        },
-        {
-            "key": "ui.propertiesselectorui.names",
-            "zh": ", names)}]"
-        },
-        {
-            "key": "ui.propertiesselectorui.participant_playername_selectedoptionid",
-            "zh": "{participant.PlayerName}: {selectedOptionId}"
-        },
-        {
-            "key": "ui.propertiesselectorui.n",
-            "zh": "\\n"
-        },
-        {
-            "key": "ui.propertiesselectorui.no_players_connected",
-            "zh": "No players connected."
-        },
-        {
-            "key": "ui.propertycarouselview.focused_none",
-            "zh": "Focused: None"
-        },
-        {
-            "key": "ui.propertycarouselview.confirmed_none",
-            "zh": "Confirmed: None"
-        },
-        {
-            "key": "ui.propertycarouselview.confirmed_lastsubmittedoptionid",
-            "zh": "Confirmed: {_lastSubmittedOptionId}"
-        },
-        {
-            "key": "ui.propertycarouselview.focused_item_optionid_n_confirmedsuffix",
-            "zh": "Focused: {item.OptionId}\\n{confirmedSuffix}"
-        },
-        {
-            "key": "ui.propertycarouselview.votes_count",
-            "zh": "Votes: {count}"
-        },
-        {
-            "key": "ui.propertycarouselview.selected_count",
-            "zh": "Selected: {count}"
-        },
-        {
-            "key": "ui.propertygroupview.selected_getoptiondisplayname_localselec",
-            "zh": "Selected: {GetOptionDisplayName(localSelectedOptionId)}"
-        },
-        {
-            "key": "ui.propertygroupview.selected_none",
-            "zh": "Selected: None"
-        },
-        {
-            "key": "ui.propertygroupview.mode_vote",
-            "zh": "Mode: Vote"
-        },
-        {
-            "key": "ui.propertygroupview.mode_host_only",
-            "zh": "Mode: Host Only"
-        },
-        {
-            "key": "ui.propertygroupview.mode_multi_select",
-            "zh": "Mode: Multi Select"
-        },
-        {
-            "key": "ui.propertygroupview.mode_single_select",
-            "zh": "Mode: Single Select"
-        },
-        {
-            "key": "ui.propertygroupview.votes_selectedcount",
-            "zh": "Votes: {selectedCount}"
-        },
-        {
-            "key": "ui.propertygroupview.players_selectedcount",
-            "zh": "Players: {selectedCount}"
-        },
-        {
-            "key": "ui.roomplayerentryui.unknown_player",
-            "zh": "Unknown Player"
-        },
-        {
-            "key": "ui.roomui.opening_properties_selector",
-            "zh": "Opening Properties Selector..."
-        },
-        {
-            "key": "ui.roomui.room_lobby_id_value",
-            "zh": "Room #{lobby.Id.Value}"
-        },
-        {
-            "key": "ui.roomui.waiting_for_room_state_manager",
-            "zh": "Waiting for room state manager..."
-        },
-        {
-            "key": "ui.roomui.host_can_start_the_game",
-            "zh": "Host can start the game."
-        },
-        {
-            "key": "ui.roomui.waiting_for_players_to_get_ready",
-            "zh": "Waiting for players to get ready."
-        },
-        {
-            "key": "ui.roomui.waiting_for_host_to_start_the_game",
-            "zh": "Waiting for host to start the game."
-        },
-        {
-            "key": "ui.roomui.cancel_ready",
-            "zh": "Cancel Ready"
-        },
-        {
-            "key": "ui.skillinspectpanelui.esc_to_close",
-            "zh": "Esc to close"
-        },
-        {
-            "key": "ui.skillinspectableitem.inspect_skillid",
-            "zh": "Inspect_{SkillId}"
-        },
-        {
-            "key": "ui.skillwallitemview.skillwallitem_skillid",
-            "zh": "SkillWallItem_{_skillId}"
-        },
-        {
-            "key": "ui.skillwallselectioncontroller.ignored_select_request_for_unknown_skill",
-            "zh": "Ignored select request for unknown skill '{skillId}'."
-        },
-        {
-            "key": "ui.skillwallselectioncontroller.ignored_select_request_because_skillid_i",
-            "zh": "Ignored select request because '{skillId}' is already selected."
-        },
-        {
-            "key": "ui.skillwallselectioncontroller.ignored_select_request_because_all_skill",
-            "zh": "Ignored select request because all {SkillLoadout.SlotCount} slots are full."
-        },
-        {
-            "key": "ui.skillwallselectioncontroller.skipped_wall_build_because_required_refe",
-            "zh": "Skipped wall build because required references are missing."
-        },
-        {
-            "key": "ui.skillwallselectioncontroller.built_skill_wall_with_spawneditems_count",
-            "zh": "Built skill wall with {_spawnedItems.Count} selectable items."
-        },
-        {
-            "key": "ui.skillwallselectioncontroller.scenemanagerfound_hasscenemanager_spawne",
-            "zh": "sceneManagerFound={hasSceneManager}, spawned={isSpawned}, singletonNull={PropertiesSelectionManager.Instance == null}"
-        },
-        {
-            "key": "ui.static.lobby_id_input",
-            "zh": "Lobby Id Input"
-        },
-        {
-            "key": "ui.static.option_a",
-            "zh": "Option A"
-        },
-        {
-            "key": "ui.static.room_visibility",
-            "zh": "Room Visibility"
-        },
-        {
-            "key": "ui.static.max_player",
-            "zh": "Max Player"
-        },
-        {
-            "key": "ui.static.create",
-            "zh": "Create"
-        },
-        {
-            "key": "ui.static.create_room",
-            "zh": "Create Room"
-        },
-        {
-            "key": "ui.static.public",
-            "zh": "Public"
-        },
-        {
-            "key": "ui.static.room_name",
-            "zh": "Room Name"
-        },
-        {
-            "key": "ui.static.browse_rooms",
-            "zh": "Browse Rooms"
-        },
-        {
-            "key": "ui.static.ready",
-            "zh": "Ready"
-        },
-        {
-            "key": "ui.static.join_room",
-            "zh": "Join Room"
-        },
-        {
-            "key": "ui.static.enter_text",
-            "zh": "Enter text..."
-        },
-        {
-            "key": "ui.static.4",
-            "zh": "4"
-        },
-        {
-            "key": "ui.static.start_game",
-            "zh": "Start Game"
-        },
-        {
-            "key": "ui.static.return",
-            "zh": "Return"
-        },
-        {
-            "key": "ui.static.refresh",
-            "zh": "Refresh"
-        },
-        {
-            "key": "ui.static.back",
-            "zh": "Back"
-        },
-        {
-            "key": "ui.static.join",
-            "zh": "Join"
-        },
-        {
-            "key": "ui.static.playernum",
-            "zh": "PlayerNum:"
-        },
-        {
-            "key": "ui.static.leave_room",
-            "zh": "Leave Room"
-        },
-        {
-            "key": "ui.static.your_role",
-            "zh": "Your Role:"
-        },
-        {
-            "key": "ui.static.quit",
-            "zh": "Quit"
-        },
-        {
-            "key": "ui.static.pagetitletext",
-            "zh": "pageTitleText"
-        },
-        {
-            "key": "ui.static.技能描述文本",
-            "zh": "技能描述文本"
-        },
-        {
-            "key": "ui.static.confirm",
-            "zh": "Confirm"
-        },
-        {
-            "key": "ui.static.提示文本",
-            "zh": "提示文本"
-        },
-        {
-            "key": "ui.static.countdowntext",
-            "zh": "countdownText"
-        },
-        {
-            "key": "ui.static.resolvedmaptext",
-            "zh": "resolvedMapText"
-        },
-        {
-            "key": "ui.static.playersselectiontext",
-            "zh": "PlayersSelectionText"
-        },
-        {
-            "key": "ui.static.标题文本",
-            "zh": "标题文本"
-        },
-        {
-            "key": "ui.static.statustext",
-            "zh": "statusText"
-        },
-        {
-            "key": "ui.static.stagetitletext",
-            "zh": "StageTitleText"
-        },
-        {
             "key": "ui.static.return_to_room",
             "zh": "Return To Room"
         },
@@ -2631,26 +2225,6 @@
         {
             "key": "ui.static.player1",
             "zh": "Player1"
-        },
-        {
-            "key": "ui.static.right",
-            "zh": "Right"
-        },
-        {
-            "key": "ui.static.left",
-            "zh": "Left"
-        },
-        {
-            "key": "ui.static.select",
-            "zh": "Select"
-        },
-        {
-            "key": "ui.static.hosttext",
-            "zh": "hostText"
-        },
-        {
-            "key": "ui.static.lobbyidtext",
-            "zh": "LobbyIdText"
         },
         {
             "key": "settings.graphics.group.display",

@@ -14,7 +14,7 @@ using UnityEngine.InputSystem.Controls;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(NetworkObject))]
-public class BuddahHandControl : NetworkBehaviour
+public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
 {
     [Header("Input")]
     [Tooltip("Read from InputSystem_Actions -> Player -> HandPush (mouse left / right button) and HandRotation (LeftArrow / RightArrow, fallback when there is no mouse).")]
@@ -109,6 +109,8 @@ public class BuddahHandControl : NetworkBehaviour
     private float _projectileLifetimeServer;
     private float _projectileImpulseStrengthServer;
     private Vector3 _projectileColliderSizeServer = new Vector3(1.25f, 1.1f, 1.8f);
+    // Base palm size of the active charged buff (Skill/Push charged sizeMultiplier).
+    private float _projectileSizeMultiplierServer = 1f;
     private float _projectileForwardOffsetServer;
     private float _projectileHeightOffsetServer;
     private float _projectileChargedPushCooldownServer;
@@ -128,6 +130,15 @@ public class BuddahHandControl : NetworkBehaviour
     public float HandRotationSpeed => rotationSpeedDegPerSec;
     public float ServerPushCooldown => GetActivePushCooldownServer(IsProjectilePushModeActiveServer(), _projectileUseChargedRuntimeServer);
     public float ProjectileBuffSecondsLeft => IsServerInitialized ? Mathf.Max(0f, _projectilePushModeUntilServer - Time.time) : 0f;
+
+    /// <summary>Skill/Push "basic" impulseStrength (table value in play): the base of 缘起 impulse multipliers (#4's M).</summary>
+    public float BasicPushImpulseStrength => pushImpulseStrength;
+
+    /// <summary>
+    /// Server, #1 金身巨掌 (IHandsImpulseScale): while true, the charged-projectile impulse follows the palm multiplier
+    /// (PalmSizeRule) of the same sample that already sizes the projectile. Cleared by ResetSkillInputAndEffects.
+    /// </summary>
+    public bool ImpulseFollowsScale { get; set; }
 
     public bool CanPushServer(bool left) => IsServerInitialized && !IsMotorFrozen() && Time.time >= (left ? _nextPushServerTimeLeft : _nextPushServerTimeRight);
 
@@ -156,6 +167,25 @@ public class BuddahHandControl : NetworkBehaviour
         if (IsServerInitialized) ClearProjectilePushModeServer();
         ClearProjectilePushModeLocal();
         HandRotationAxis = 0f;
+        ImpulseFollowsScale = false;
+    }
+
+    /// <summary>
+    /// Server: 缘起 consumed the charged-push buff. Only the buff ends; pushes already in windup keep their snapshot
+    /// (no input generation bump), the impulse rewrite belongs to the 缘起 that set it.
+    /// </summary>
+    public void EndProjectilePushModeServer()
+    {
+        if (!IsServerInitialized)
+            return;
+        ClearProjectilePushModeServer();
+        GameLog.Verbose("[HandControl] Projectile push mode ended early on server (consumed).");
+    }
+
+    /// <summary>Every peer: drops the local charged-push mode (presentation side of a consumed buff).</summary>
+    public void EndProjectilePushModeLocal()
+    {
+        ClearProjectilePushModeLocal();
     }
     public void CancelPendingServerInput() { if (IsServerInitialized) _inputGeneration++; }
 
@@ -941,7 +971,7 @@ public class BuddahHandControl : NetworkBehaviour
                 SpawnChargedProjectileServer(
                     spawnPos,
                     dir,
-                    scaleMultiplier,
+                    _projectileSizeMultiplierServer,
                     projectileBuildUpSeconds,
                     projectileSpeed,
                     projectileLifetimeSeconds,
@@ -968,6 +998,14 @@ public class BuddahHandControl : NetworkBehaviour
 
         Vector3 impulse = dir * pushImpulseStrength;
         hb.Init(base.NetworkObject, impulse, pushLifetimeSeconds);
+    }
+
+    // 如来神掌 palm multiplier from the body scale (PalmSizeRule via PlayerScaleEffect); 1 without a scale skill.
+    private float GetPalmSizeMultiplier()
+    {
+        if (_scaleEffect == null)
+            _scaleEffect = GetComponent<PlayerScaleEffect>();
+        return _scaleEffect != null ? _scaleEffect.CurrentPalmSizeMultiplier : 1f;
     }
 
     private float GetPushScaleMultiplier()
@@ -1029,7 +1067,8 @@ public class BuddahHandControl : NetworkBehaviour
         float chargedPushCooldownSeconds,
         bool useChargedProjectileRuntime = false,
         float delayedPushActionSeconds = 0f,
-        AnimationCurve chargedSpeedCurve = null)
+        AnimationCurve chargedSpeedCurve = null,
+        float projectileSizeMultiplier = 1f)
     {
         if (!IsServerInitialized)
             return;
@@ -1041,6 +1080,7 @@ public class BuddahHandControl : NetworkBehaviour
         _projectileLifetimeServer = Mathf.Max(0.05f, projectileLifetimeSeconds);
         _projectileImpulseStrengthServer = Mathf.Max(0f, projectileImpulseStrength);
         _projectileColliderSizeServer = SanitizeColliderSize(projectileColliderSize);
+        _projectileSizeMultiplierServer = Mathf.Max(PalmSizeRule.MinPalmSizeMultiplier, projectileSizeMultiplier);
         _projectileForwardOffsetServer = Mathf.Max(0f, projectileForwardOffset);
         _projectileHeightOffsetServer = Mathf.Max(0f, projectileHeightOffset);
         _projectileChargedPushCooldownServer = Mathf.Max(0f, chargedPushCooldownSeconds);
@@ -1148,7 +1188,7 @@ public class BuddahHandControl : NetworkBehaviour
     private void SpawnChargedProjectileServer(
         Vector3 spawnPos,
         Vector3 dir,
-        float scaleMultiplier,
+        float baseSizeMultiplier,
         float buildUpSeconds,
         float projectileSpeed,
         float projectileLifetimeSeconds,
@@ -1157,9 +1197,14 @@ public class BuddahHandControl : NetworkBehaviour
         float hitTurnTorqueImpulse = 0f,
         bool allowSelfHit = false)
     {
-        Vector3 scaledColliderSize = projectileColliderSize * scaleMultiplier;
-        Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
-        Vector3 impulse = dir * projectileImpulseStrength;
+        // The palm follows the body through PalmSizeRule (giant x2, giant_anti x0.5), on top of its base size.
+        float palmScale = GetPalmSizeMultiplier();
+        float sizeMultiplier = baseSizeMultiplier * palmScale;
+        Vector3 scaledColliderSize = projectileColliderSize * sizeMultiplier;
+        Vector3 scaledVisualSize = projectileVisualScale * sizeMultiplier;
+        // #1 金身巨掌: the impulse follows the palm multiplier of the same sample (the palm size relative to normal), uncapped.
+        float impulseScale = ImpulseFollowsScale ? palmScale : 1f;
+        Vector3 impulse = dir * (projectileImpulseStrength * impulseScale);
         PreciseTick spawnTick = base.TimeManager.GetPreciseTick(TickType.Tick);
 
         ChargedHandProjectileRuntime.SpawnServer(
@@ -1246,7 +1291,8 @@ public class BuddahHandControl : NetworkBehaviour
             additionalHeightSpawnOffset = skill.additionalHeightSpawnOffset,
             spawnServerHitboxes = true,
             replicatedSkillId = skill.skillId,
-            speedCurve = skill.projectileSpeedCurve
+            speedCurve = skill.projectileSpeedCurve,
+            sizeMultiplier = skill.projectileSizeMultiplier
         });
     }
 
@@ -1259,8 +1305,10 @@ public class BuddahHandControl : NetworkBehaviour
         Vector3 burstAnchor = GetProjectileBurstAnchorPosition(outwardDir, scaleMultiplier, burst.additionalForwardSpawnOffset, burst.additionalHeightSpawnOffset);
         Vector3 travelDir = burst.reverseDirection ? -outwardDir : outwardDir;
         Vector3 sideDir = Vector3.Cross(Vector3.up, outwardDir).normalized;
-        Vector3 scaledColliderSize = SanitizeColliderSize(burst.projectileColliderSize * scaleMultiplier);
-        Vector3 scaledVisualSize = projectileVisualScale * scaleMultiplier;
+        // Spawn geometry follows the body; the palms themselves follow PalmSizeRule on top of their base size.
+        float palmSize = (burst.sizeMultiplier > 0f ? burst.sizeMultiplier : 1f) * GetPalmSizeMultiplier();
+        Vector3 scaledColliderSize = SanitizeColliderSize(burst.projectileColliderSize * palmSize);
+        Vector3 scaledVisualSize = projectileVisualScale * palmSize;
         if (burst.spawnServerHitboxes && string.IsNullOrEmpty(burst.replicatedSkillId))
             Debug.LogWarning("[BuddahHandControl] Charged burst has no skillId; hitboxes spawn but replicated visuals cannot be resolved.", this);
         Vector3[] replicatedStarts = string.IsNullOrEmpty(burst.replicatedSkillId) ? null : new Vector3[safeProjectileCount];

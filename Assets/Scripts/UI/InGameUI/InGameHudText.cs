@@ -23,8 +23,8 @@ internal readonly struct HudLabel
 
 /// <summary>
 /// Default HUD labels (A6). Chinese only where the BuddahGoSoloCJK subset has every glyph (checked by
-/// InGameHudTests); 冻 (冻结) is not in the subset today, so it renders its ASCII text until the subset is
-/// re-baked. The keys are optional UI/Text rows: without a row the preferred text is used.
+/// InGameHudTests); 冻 (冻结) and 起 (缘起) are not in the subset today, so those render their ASCII text until the
+/// subset is re-baked. The keys are optional UI/Text rows: without a row the preferred text is used.
 /// </summary>
 internal static class InGameHudLabels
 {
@@ -35,10 +35,14 @@ internal static class InGameHudLabels
     internal static readonly HudLabel SlotFrozen = new HudLabel("hud.skill.frozen", "冻结", "FROZEN");
     // Prefix of "x1.15 4.2s": the recast's obsession gain multiplier inside the same-skill surcharge window.
     internal static readonly HudLabel SlotSurcharge = new HudLabel("hud.skill.surcharge", "执念", string.Empty);
+    internal static readonly HudLabel YuanqiToast = new HudLabel("hud.yuanqi.toast", "缘起", "Yuanqi");
+    internal static readonly HudLabel YuanqiLoadoutHeader = new HudLabel("hud.yuanqi.loadout_header", "缘起", "Yuanqi");
+    internal static readonly HudLabel YuanqiLoadoutNone = new HudLabel("hud.yuanqi.loadout_none", "无", "none");
 
     internal static readonly HudLabel[] All =
     {
-        ObsessionValue, BackfireChance, BackfirePenalty, SlotBackfireLock, SlotFrozen, SlotSurcharge
+        ObsessionValue, BackfireChance, BackfirePenalty, SlotBackfireLock, SlotFrozen, SlotSurcharge,
+        YuanqiToast, YuanqiLoadoutHeader, YuanqiLoadoutNone
     };
 }
 
@@ -80,4 +84,43 @@ internal static class ObsessionHudFormat
 
     private static string Prefixed(string label, string value)
         => string.IsNullOrEmpty(label) ? value : label + " " + value;
+}
+
+/// <summary>A 缘起 the chosen loadout can trigger, with names already resolved for the font.</summary>
+internal readonly struct YuanqiHudEntry
+{
+    public YuanqiHudEntry(string name, string skillAName, string skillBName)
+    {
+        Name = name ?? string.Empty;
+        SkillAName = skillAName ?? string.Empty;
+        SkillBName = skillBName ?? string.Empty;
+    }
+
+    public string Name { get; }
+    public string SkillAName { get; }
+    public string SkillBName { get; }
+}
+
+internal static class YuanqiHudText
+{
+    /// <summary>Caster toast: "缘起 禅足冰封".</summary>
+    internal static string Toast(string label, string name) => string.IsNullOrEmpty(label) ? name ?? string.Empty : label + " " + name;
+
+    /// <summary>
+    /// Selection screen list: empty while fewer than two skills are chosen (nothing can pair yet), "header: none" when
+    /// the loadout triggers nothing, else one "name (A + B)" line per 缘起 under "header:".
+    /// </summary>
+    internal static string LoadoutList(string header, string noneLabel, IReadOnlyList<YuanqiHudEntry> entries, int chosenSkillCount)
+    {
+        if (chosenSkillCount < 2)
+            return string.Empty;
+        if (entries == null || entries.Count == 0)
+            return header + ": " + noneLabel;
+
+        var builder = new StringBuilder(header).Append(':');
+        for (int i = 0; i < entries.Count; i++)
+            builder.Append('\n').Append(entries[i].Name).Append(" (").Append(entries[i].SkillAName)
+                .Append(" + ").Append(entries[i].SkillBName).Append(')');
+        return builder.ToString();
+    }
 }

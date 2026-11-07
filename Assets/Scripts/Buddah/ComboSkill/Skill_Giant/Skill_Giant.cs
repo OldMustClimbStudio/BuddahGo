@@ -7,6 +7,8 @@ public class Skill_Giant : SkillAction
 
     [Header("Scale Buff")]
     [Min(1f)] public float scaleMultiplier = 5f;
+    [Tooltip("如来神掌 palm size at the full body scale (SkillEffectGiant.palmSizeMultiplier); the palm follows the body linearly (PalmSizeRule).")]
+    [Min(0.05f)] public float palmSizeMultiplier = 2f;
     [Min(0.1f)] public float durationSeconds = 6f;
     [Min(0f)] public float growDurationSeconds = 0.35f;
     [Min(0f)] public float shrinkDurationSeconds = 0.35f;
@@ -51,7 +53,7 @@ public class Skill_Giant : SkillAction
 
     public override void ExecuteObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
     {
-        ScaleSkillPresentation.ApplyScaleEffect(caster, scaleMultiplier, durationSeconds, growDurationSeconds, shrinkDurationSeconds);
+        ScaleSkillPresentation.ApplyScaleEffect(caster, scaleMultiplier, durationSeconds, growDurationSeconds, shrinkDurationSeconds, palmSizeMultiplier);
         PlaySlotOnCaster(caster, releaseVfxId, durationSeconds);
 
         PlayObserverFeel(caster, observersFeelEventId, observersFeelStopEventId, durationSeconds);
@@ -64,6 +66,24 @@ public class Skill_Giant : SkillAction
             return;
 
         ScaleSkillPresentation.ResetLocalCamera(caster, GetType().Name);
+    }
+
+    public override ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster)
+    {
+        return caster != null ? new GiantRuntimeHandle(caster, skillId, durationSeconds) : null;
+    }
+
+    // 缘起 consumed the giant form: every peer runs the normal shrink now (the motor scale already ended).
+    public override void ExecuteConsumedObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
+    {
+        if (caster == null)
+            return;
+
+        var effect = caster.GetComponent<PlayerScaleEffect>();
+        if (effect != null)
+            effect.EndEarly();
+
+        GameLog.Verbose($"[Skill_Giant][Observers] '{skillId}' consumed (slot {slotIndex}), shrinking early.");
     }
 
     public override void CollectVfxSlots(System.Collections.Generic.List<VfxSlotTiming> into)

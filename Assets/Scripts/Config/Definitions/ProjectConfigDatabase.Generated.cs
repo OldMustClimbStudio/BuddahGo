@@ -19,6 +19,12 @@ public partial class ProjectConfigDatabase
     public List<PushRecord> pushes = new List<PushRecord>();
     [Header("Skill / Obsession")]
     public List<ObsessionRecord> obsessions = new List<ObsessionRecord>();
+    [Header("Skill / Yuanqi")]
+    public List<YuanqiRecord> yuanqis = new List<YuanqiRecord>();
+    [Header("Skill / YuanqiEffectFrostLock")]
+    public List<YuanqiEffectFrostLockRecord> yuanqiEffectFrostLocks = new List<YuanqiEffectFrostLockRecord>();
+    [Header("Skill / YuanqiEffectGiantCharge")]
+    public List<YuanqiEffectGiantChargeRecord> yuanqiEffectGiantCharges = new List<YuanqiEffectGiantChargeRecord>();
     [Header("Skill / VfxRegistry")]
     public List<VfxRegistryRecord> vfxRegistries = new List<VfxRegistryRecord>();
     [Header("Movement / Movement")]

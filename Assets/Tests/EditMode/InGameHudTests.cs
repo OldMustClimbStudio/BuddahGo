@@ -203,6 +203,26 @@ namespace BuddahGo.Tests
                     Assert.That(ObsessionHudFormat.ChangeKey(12.5f, 512.4f, true, 7.25f), Is.Not.EqualTo(key));
                     Assert.That(ObsessionHudFormat.ChangeKey(12.34f, 512.4f, true, 7.15f), Is.Not.EqualTo(key));
                     Assert.That(ObsessionHudFormat.ChangeKey(12.34f, 512.4f, false, 7.25f), Is.Not.EqualTo(key));
+                }),
+                ("缘起 labels", () =>
+                {
+                    Assert.That(HudText.PickCovered("禅足冰封", "frost_lock", _ => true), Is.EqualTo("禅足冰封"));
+                    Assert.That(HudText.PickCovered("禅足冰封", "frost_lock", _ => false), Is.EqualTo("frost_lock"));
+                    Assert.That(HudText.PickCovered("  ", "frost_lock", _ => true), Is.EqualTo("frost_lock"));
+                    Assert.That(HudText.PickCovered("禅足冰封", "frost_lock", null), Is.EqualTo("禅足冰封"));
+
+                    Assert.That(YuanqiHudText.Toast("Yuanqi", "frost_lock"), Is.EqualTo("Yuanqi frost_lock"));
+
+                    var entries = new List<YuanqiHudEntry>
+                    {
+                        new YuanqiHudEntry("frost_lock", "神足通", "禅定缓流"),
+                        new YuanqiHudEntry("giant_charge", "神足通", "法相金身"),
+                    };
+                    Assert.That(YuanqiHudText.LoadoutList("Yuanqi", "none", entries, chosenSkillCount: 1), Is.Empty);
+                    Assert.That(YuanqiHudText.LoadoutList("Yuanqi", "none", new List<YuanqiHudEntry>(), chosenSkillCount: 3),
+                        Is.EqualTo("Yuanqi: none"));
+                    Assert.That(YuanqiHudText.LoadoutList("Yuanqi", "none", entries, chosenSkillCount: 3),
+                        Is.EqualTo("Yuanqi:\nfrost_lock (神足通 + 禅定缓流)\ngiant_charge (神足通 + 法相金身)"));
                 }));
         }
 
@@ -226,7 +246,8 @@ namespace BuddahGo.Tests
                     TMP_FontAsset cjk = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/SoloCJK/BuddahGoSoloCJK.asset");
                     Assert.That(cjk, Is.Not.Null);
                     foreach (HudLabel label in new[] { InGameHudLabels.ObsessionValue, InGameHudLabels.BackfireChance,
-                                 InGameHudLabels.BackfirePenalty, InGameHudLabels.SlotBackfireLock, InGameHudLabels.SlotSurcharge })
+                                 InGameHudLabels.BackfirePenalty, InGameHudLabels.SlotBackfireLock, InGameHudLabels.SlotSurcharge,
+                                 InGameHudLabels.YuanqiLoadoutNone })
                     {
                         Assert.That(cjk.HasCharacters(label.Preferred, out uint[] missing, false, false), Is.True,
                             $"'{label.Preferred}' ({label.Key}) misses {Describe(missing)}");

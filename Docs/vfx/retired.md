@@ -203,3 +203,12 @@ GUID 搜不到引用，但可能被代码按名字加载（`Shader.Find`、`Reso
 | `curtain_release` 插槽里的 `BlackCurtainTrail`（TrailRenderer + `PlayerBlackCurtainTrail`） | 已删 | — |
 | `PlayerBlackCurtainTrail.cs` | 待删 | 0 个资产引用。调用点一起删：`BuddahRespawn.cs` 约 273 行（复活清拖尾）、`BuddahPredictedMotor.Events.cs` 约 869 行（瞬移重置拖尾）；`VFXtests.unity` 替身上还挂着，测试场景不入库 |
 | `curtain_release` 插槽本身（`VFX_Curtain_Release.prefab`、VfxRegistry 行、`Skill_BlackCurtain.releaseVfxId`） | 待定 | 现在只剩一个空层，播了也看不到东西。留作以后放释放内容，还是连表行一起退休，由用户定 |
+
+## 6.6 2026-11-06 禅足冰封占位退休（正式插槽接替）
+
+| 内容 | 状态 | 原来做什么 | 替代 |
+|---|---|---|---|
+| `Yuanqi/Presentation/FrostPlaceholder.cs`（连同空的 `Presentation/` 目录） | 已删 | 两个占位共用的程序化网格、`Sprites/Default` 材质和开关 `Enabled` | 插槽 `frost_lock_release` / `frost_lock_hit`（[yuanqi-frost-lock.md](yuanqi-frost-lock.md) 第 8 节），由 `FrostLockProto` 生成 |
+| `Yuanqi/Presentation/FrostGroundPlaceholder.cs` | 已删 | `Yuanqi_FrostLock.PlayObservers` 生成的白色地面圆盘 | `PlayVfxSlotLocal` 播 `frost_lock_release` |
+| `Buddah/FrozenIceShellPlaceholder.cs` | 已删 | 每个 racer 身上跟着 `FrozenChanged` 的白色方冰块 | `FrozenIceShell` 播 `frost_lock_hit` |
+| `PresentationCaptureProbe.Begin` 的 `placeholdersOff` 参数 | 已删 | 拍“改前”时关掉占位 | 签名改为 `Begin(dir, mode, oldPalmRule)` |

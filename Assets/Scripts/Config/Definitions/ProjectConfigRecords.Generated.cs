@@ -27,7 +27,7 @@ public class SkillRecord
     /// <summary>float#range=0,1000</summary>
     [Tooltip("施法执行时增加的执念，同招加价按 Obsession.repeatGainMultiplier 复利；反噬不加（SkillExecutor 经 SkillDatabase.GetObsessionGain）")] public float obsessionGain = 0f;
     /// <summary>float#range=0,120</summary>
-    [Tooltip("主效果持续 s；SkillDatabase 写入技能 SO 的主时长字段：acceleration/giant→durationSeconds，slowtrap→zoneDurationSeconds，blackcurtain→holdDurationSeconds，push_projectile_hands→buffDurationSeconds，reverseturn→invertDurationSeconds；反噬行：acceleration_anti/giant_anti→durationSeconds，slowtrap_anti→rootDurationSeconds，blackcurtain_anti→holdDurationSeconds，reverseturn_anti→invertDurationSeconds，push_projectile_hands_anti 瞬发无时长")] public float effectDurationSeconds = 0f;
+    [Tooltip("主效果持续 s，也是缘起状态板的生效窗口（SkillExecutor.ResolveEffectDurationSeconds）；SkillDatabase 写入技能 SO 的主时长字段：acceleration/giant→durationSeconds，slowtrap→zoneDurationSeconds，blackcurtain→holdDurationSeconds，push_projectile_hands→buffDurationSeconds，reverseturn→invertDurationSeconds；反噬行：acceleration_anti/giant_anti→durationSeconds，slowtrap_anti→rootDurationSeconds，blackcurtain_anti→holdDurationSeconds，reverseturn_anti→invertDurationSeconds，push_projectile_hands_anti 瞬发无时长")] public float effectDurationSeconds = 0f;
 }
 
 /// <summary>Skill.xlsx / SkillEffectAcceleration</summary>
@@ -92,6 +92,8 @@ public class SkillEffectGiantRecord
     [Tooltip("普通与反噬各一行；SkillDatabase 在 Play 首次查技能时按同名字段写入 Skill_Giant / Skill_Giant_Anti SO（DesignTableOverlay.Apply）；空格 = 该行的技能类没有这个字段")] public string skillId = string.Empty;
     /// <summary>float</summary>
     [Tooltip("体型倍率（Skill_Giant.scaleMultiplier；反噬 <1，Skill_Giant_Anti.scaleMultiplier）")] public float scaleMultiplier = 0f;
+    /// <summary>float#range=0.05,10</summary>
+    [Tooltip("体型到达本行倍率时如来神掌的掌（蓄力掌、反噬弹幕）的尺寸倍率，变大变小过程中随体型线性过渡；金身巨掌（#1）的推力也乘它（Skill_Giant.palmSizeMultiplier → PlayerScaleEffect.CurrentPalmSizeMultiplier；反噬：Skill_Giant_Anti.palmSizeMultiplier）")] public float palmSizeMultiplier = 0f;
     /// <summary>float</summary>
     [Tooltip("缩回过渡 s（Skill_Giant.shrinkDurationSeconds）；反噬：缩小过渡 s")] public float shrinkDurationSeconds = 0f;
     /// <summary>float</summary>
@@ -140,6 +142,8 @@ public class PushRecord
     [Tooltip("charged_anti：弹幕间距 m")] public float projectileSpacing = 0f;
     /// <summary>vector3</summary>
     [Tooltip("charged：projectileColliderSize；basic 的 hitbox 尺寸见 SkillConstant")] public Vector3 colliderSize = Vector3.zero;
+    /// <summary>float#range=0.05,10</summary>
+    [Tooltip("charged / charged_anti：掌的基础尺寸倍率，碰撞体和画面一起乘，再乘体型带来的掌倍率（SkillEffectGiant.palmSizeMultiplier）；0.5 = 普通状态是原来的一半（2026-11-06 用户定）（charged=Skill_PushProjectileHands.projectileSizeMultiplier，charged_anti=Skill_PushProjectileHands_Anti.projectileSizeMultiplier）")] public float sizeMultiplier = 0f;
     /// <summary>float</summary>
     [Tooltip("charged_anti：命中时的转向冲量")] public float hitTurnTorqueImpulse = 0f;
 }
@@ -178,6 +182,60 @@ public class ObsessionRecord
     [Tooltip("惩罚期间的限速倍率，走预测修饰 MaxSpeedMultiplier，复活不清（ObsessionFigure.backfireMaxSpeedMultiplier）；不可留空")] public float backfireMaxSpeedMultiplier = 0f;
     /// <summary>float#range=0,1</summary>
     [Tooltip("惩罚结束时执念保留的比例（ObsessionFigure.backfireEndKeepRatio）；不可留空，0 会清空执念")] public float backfireEndKeepRatio = 0f;
+}
+
+/// <summary>Skill.xlsx / Yuanqi</summary>
+[Serializable]
+public class YuanqiRecord
+{
+    /// <summary>enum:YuanqiId#key (key)</summary>
+    [Tooltip("缘起 id，名单在 Global/__enums__ 的 YuanqiId；SkillDatabase 按它找 yuanqiId 相同的 Yuanqi_* SO（Skill Database.asset 的 yuanqis），观察者也按它解析表现")] public string yuanqiId = string.Empty;
+    /// <summary>string#ref=UI/Text.key</summary>
+    [Tooltip("显示名文案 key（SkillDatabase.GetYuanqiDisplayName：HUD 缘起提示与选技能界面）")] public string displayNameKey = string.Empty;
+    /// <summary>string#ref=UI/Text.key</summary>
+    [Tooltip("描述文案 key（SkillDatabase.GetYuanqiDescription：选技能界面）")] public string descriptionKey = string.Empty;
+    /// <summary>enum:SkillId#ref=Skill.skillId</summary>
+    [Tooltip("两招无序；ctx.EntryA 总是 skillA（SkillDatabase 写入 Yuanqi_* SO 的 skillA，YuanqiCatalog / YuanqiRegistry 读 SO）")] public string skillA = string.Empty;
+    /// <summary>enum:SkillId#ref=Skill.skillId</summary>
+    [Tooltip("另一招，必须不同于 skillA；同一对在表内只能出现一次（Yuanqi_* SO 的 skillB）")] public string skillB = string.Empty;
+    /// <summary>bool</summary>
+    [Tooltip("触发后 skillA 的剩余效果是否被消耗（YuanqiRegistry 读 SO.consumeA）；必须填 true / false")] public bool consumeA = false;
+    /// <summary>bool</summary>
+    [Tooltip("触发后 skillB 的剩余效果是否被消耗（YuanqiRegistry 读 SO.consumeB）；必须填 true / false；Sustained 时两列都必须是 false")] public bool consumeB = false;
+    /// <summary>enum:YuanqiMode</summary>
+    [Tooltip("Instant 触发一次 / Sustained 两招都生效期间持续（YuanqiRegistry 读 SO.mode）；必须填，留空会沿用 SO 值")] public string mode = string.Empty;
+    /// <summary>enum:YuanqiRetrigger</summary>
+    [Tooltip("OncePerOverlap：同一对只在新的一次重叠时再触发（目前只有这一种：写入 Yuanqi_* SO，YuanqiPairTable 固定按“一次重叠只触发一次”判定，代码不按值分支）；必须填")] public string retriggerPolicy = string.Empty;
+    /// <summary>bool</summary>
+    [Tooltip("false = 暂时关掉这一对而不删行（YuanqiCatalog.ForLoadout 跳过）；留空等于 false，必须填 true")] public bool isEnabled = false;
+}
+
+/// <summary>Skill.xlsx / YuanqiEffectFrostLock</summary>
+[Serializable]
+public class YuanqiEffectFrostLockRecord
+{
+    /// <summary>enum:YuanqiId#key#ref=Yuanqi.yuanqiId (key)</summary>
+    [Tooltip("每对一行；SkillDatabase 在 Play 首次查表时按同名字段写入 Yuanqi_FrostLock SO（DesignTableOverlay.Apply）")] public string yuanqiId = string.Empty;
+    /// <summary>float#range=0,10</summary>
+    [Tooltip("N：范围内每个目标被禁锢的秒数（Yuanqi_FrostLock.freezeSeconds → SkillExecutor.ApplyFreezeToOwner）")] public float freezeSeconds = 0f;
+    /// <summary>float#range=0,100</summary>
+    [Tooltip("R：以施法者为中心的水平半径 m，缓流区域半径 7.5 m 可作参照（Yuanqi_FrostLock.radiusMeters）")] public float radiusMeters = 0f;
+    /// <summary>bool</summary>
+    [Tooltip("训练木桩也被冻住，训练模式验证靠它（Yuanqi_FrostLock.affectsTrainingDummies）；留空等于 false")] public bool affectsTrainingDummies = false;
+}
+
+/// <summary>Skill.xlsx / YuanqiEffectGiantCharge</summary>
+[Serializable]
+public class YuanqiEffectGiantChargeRecord
+{
+    /// <summary>enum:YuanqiId#key#ref=Yuanqi.yuanqiId (key)</summary>
+    [Tooltip("每对一行；SkillDatabase 在 Play 首次查表时按同名字段写入 Yuanqi_GiantCharge SO（DesignTableOverlay.Apply）")] public string yuanqiId = string.Empty;
+    /// <summary>float#range=0,500</summary>
+    [Tooltip("突进起始时在基础限速上额外加的限速 m/s，按 增量×剩余比例² 回落到 0（Yuanqi_GiantCharge.burstExtraMaxSpeed → SkillExecutor.ApplyBurstToOwner）")] public float burstExtraMaxSpeed = 0f;
+    /// <summary>float#range=0,10</summary>
+    [Tooltip("回落秒数，撞击判定也持续这么久（Yuanqi_GiantCharge.burstSeconds → ApplyBurstToOwner 与 BuddahBodyImpact.Arm）")] public float burstSeconds = 0f;
+    /// <summary>float#range=0,20</summary>
+    [Tooltip("M：撞击冲量 = M × Push.basic.impulseStrength，方向为施法者指向被撞者的水平方向（Yuanqi_GiantCharge.impactImpulseMultiplier）")] public float impactImpulseMultiplier = 0f;
 }
 
 /// <summary>Skill.xlsx / VfxRegistry</summary>
@@ -438,6 +496,8 @@ public class PersonalityRecord
     public float impairedTargetMultiplier = 0f;
     /// <summary>int#range=0,6</summary>
     public int handsShots = 0;
+    /// <summary>float#range=0,1.5</summary>
+    [Tooltip("缘起倾向：起手 / 跟进的价值倍率再乘它，0 = 不做缘起决策（AISkillCaster.Decide）。建议（实现采用）默认值 1")] public float yuanqiAffinity = 0f;
 }
 
 /// <summary>AI.xlsx / PersonalitySituationBias</summary>
@@ -542,6 +602,16 @@ public class SkillTuningRecord
     [Tooltip("AISkillDecision.cs:162")] public float minRelativeSpeed = 0f;
     /// <summary>float</summary>
     [Tooltip("AISkillCaster.cs:174")] public float maxElapsedSeconds = 0f;
+    /// <summary>float#range=0,3</summary>
+    [Tooltip("缘起起手：本槽是某对的先手、另一招冷却来得及时，价值乘它（再乘人格 yuanqiAffinity）（AISkillCaster.Decide / AIYuanqiPlanner.IsSetup）。建议（实现采用）默认值 1.2")] public float yuanqiSetupMultiplier = 0f;
+    /// <summary>float#range=0,1</summary>
+    [Tooltip("缘起跟进：另一招生效中时本槽的机会分下限 max(自身, 此值)（AISkillCaster.Decide / AIYuanqiPlanner.TryGetFollowUp）。建议（实现采用）默认值 0.8")] public float yuanqiFollowUpScore = 0f;
+    /// <summary>float#range=0,3</summary>
+    [Tooltip("缘起跟进：价值乘它（再乘人格 yuanqiAffinity）（AISkillCaster.Decide）。建议（实现采用）默认值 1.5")] public float yuanqiFollowUpMultiplier = 0f;
+    /// <summary>float#range=0.05,4</summary>
+    [Tooltip("缘起跟进时的节奏抽样秒数（代替人格 tempoSeconds，耐心按 0，否则等不到窗口）（AISkillCaster.Decide）。建议（实现采用）默认值 0.3")] public float yuanqiFollowUpTempoSeconds = 0f;
+    /// <summary>float#range=0,5</summary>
+    [Tooltip("缘起跟进：先放的那招会被消耗时晚打——只有它剩余 ≤ 前摇 + 此值才成为跟进候选；不消耗时立刻成为候选（AIYuanqiPlanner.TryGetFollowUp）。建议（实现采用）默认值 0.6")] public float yuanqiLateWindowSeconds = 0f;
 }
 
 /// <summary>AI.xlsx / Roster</summary>

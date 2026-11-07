@@ -146,6 +146,40 @@ namespace BuddahGo.Tests
         }
 
         [Test]
+        public void YuanqiPresentationIsLeftToTheObservers()
+        {
+            EveryCase.Parts(
+                ("frost lock plays the frozen ground and the ice block slots for the freeze", () =>
+                {
+                    // Docs/vfx/yuanqi-frost-lock.md (2026-11-06, replaces the procedural placeholder): the ground slot from
+                    // PlayObservers, the ice block on each frozen racer from FrozenIceShell, both for N.
+                    var method = typeof(Yuanqi_FrostLock).GetMethod(nameof(YuanqiAction.PlayObservers));
+                    Assert.AreEqual(typeof(Yuanqi_FrostLock), method.DeclaringType);
+                    var frost = UnityEngine.ScriptableObject.CreateInstance<Yuanqi_FrostLock>();
+                    try
+                    {
+                        frost.vfxId = "frost_lock_release";
+                        var slots = new System.Collections.Generic.List<SkillAction.VfxSlotTiming>();
+                        frost.CollectVfxSlots(slots);
+                        Assert.That(slots.ConvertAll(s => s.vfxId), Is.EqualTo(new[] { "frost_lock_release", FrozenIceShell.VfxId }));
+                        Assert.That(slots.ConvertAll(s => s.seconds), Is.All.EqualTo(frost.freezeSeconds));
+                    }
+                    finally { UnityEngine.Object.DestroyImmediate(frost); }
+                }),
+                ("the giant charge caster FOV kick is modest and spans the burst", () =>
+                {
+                    var charge = UnityEngine.ScriptableObject.CreateInstance<Yuanqi_GiantCharge>();
+                    try
+                    {
+                        Assert.That(charge.casterFovKickDegrees, Is.GreaterThan(0f).And.LessThanOrEqualTo(10f));
+                        Assert.That(charge.casterFovKickHoldSeconds + charge.casterFovKickSettleSeconds,
+                            Is.EqualTo(charge.burstSeconds).Within(1e-4f), "the kick settles when the burst has decayed");
+                    }
+                    finally { UnityEngine.Object.DestroyImmediate(charge); }
+                }));
+        }
+
+        [Test]
         public void SkillUiEventIsAnchoredOnTheServerClock()
         {
             EveryCase.Parts(

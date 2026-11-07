@@ -55,7 +55,29 @@ public class Skill_Acceleration : SkillAction
         if (localCasterBuffFovBoost <= 0f)
             return;
 
-        caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, durationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve);
+        // Tagged with the skill id so a 缘起 consume settles the boost only while this skill still owns the FOV slot.
+        caster.PlayCameraFovBoostLocal(localCasterBuffFovBoost, localCasterBuffFovRampInSeconds, durationSeconds, localCasterBuffFovSettleSeconds, localCasterBuffFovRampInCurve, localCasterBuffFovSettleCurve, skillId);
+    }
+
+    public override ISkillRuntimeHandle CreateRuntimeHandle(SkillExecutor caster)
+    {
+        return caster != null ? new AccelerationRuntimeHandle(caster, skillId, durationSeconds) : null;
+    }
+
+    // 缘起 consumed the buff: the release slot dissipates now (every peer runs this), the owner's FOV boost settles early.
+    public override void ExecuteConsumedObservers(SkillExecutor caster, int slotIndex, bool localIsCaster)
+    {
+        if (caster == null)
+            return;
+
+        var vfx = caster.GetComponent<SkillVfxReplicator>();
+        if (vfx != null)
+            vfx.StopSlotLocal(vfxId);
+
+        if (localIsCaster)
+            caster.SettleCameraFovBoostEarlyLocal(skillId, localCasterBuffFovSettleSeconds, localCasterBuffFovSettleCurve);
+
+        GameLog.Verbose($"[Skill_Acceleration][Observers] '{skillId}' consumed (slot {slotIndex}), localIsCaster={localIsCaster}");
     }
 
     // Played only while observersFeelEventId is empty (see ExecuteServer).

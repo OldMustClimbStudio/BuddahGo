@@ -9,9 +9,11 @@ namespace BuddahGo.VFX.EditorTools
     // materials, and places a looping preview in VFXtests; the user tunes the details there afterwards (the 金足破阵
     // habit: ship defaults, tune in VFXtests).
     //  - frost_lock_hit, the ice block on every frozen racer (FrozenIceShell plays it on FrozenChanged). The crystal and
-    //    the v1.5 ice the user picked on 2026-11-06 (Docs/vfx/yuanqi-frost-lock/probes/frost_build_v3.cs: backMid,
-    //    veinsMid, coreMid, surfMid): inner walls (the crystal inside out), internal fractures, a weak core glow and the
-    //    outer surface, as MeshRenderers like the swatch (on one-particle mesh systems the same materials rendered far
+    //    the v4 ice the user picked on 2026-11-06 (Docs/vfx/yuanqi-frost-lock.md section 4, round 4; probes/
+    //    frost_build_v4.cs: back4, veins4, core4, surf4, shaded): inner walls (the crystal inside out), crisp internal
+    //    cracks, a centre-only core glow and the outer surface; the surface and the inner walls carry flat per-face
+    //    tones baked into vertex colours from a fixed fake light, so each facet reads as one tone instead of a milky
+    //    blur; as MeshRenderers like the swatch (on one-particle mesh systems the same materials rendered far
     //    fainter); SkillVfxMeshAlpha turns the layer's alpha curve into their fade in, grow and melt. The layer scales
     //    with the body (a giant gets a x4 block). Plus twinkling glints and flecks thrown off at the thaw.
     //  - frost_lock_release, the frozen ground under the caster (Yuanqi_FrostLock.PlayObservers): a frost sheet and
@@ -37,6 +39,10 @@ namespace BuddahGo.VFX.EditorTools
         // ---- Defaults (2026-11-06). Times are shares of the window (reference 1.5 s = YuanqiEffectFrostLock.freezeSeconds).
         const float ReferenceSeconds = 1.5f;
         const int CrystalSeed = 7;                // the swatch crystal the user saw
+        // v4 facet tones (frost_build_v4.cs shaded): fake light in the crystal's frame, three bands dark / side / lit.
+        static readonly Vector3 FacetLight = new Vector3(-0.45f, 0.75f, 0.5f).normalized;
+        const float SurfaceDark = 0.18f, SurfaceBright = 1f;
+        const float BackDark = 0.35f, BackBright = 0.8f;
         const float IcePopFrom = 0.88f;           // the block grows from 88 % ...
         const float IcePopShare = 0.06f;          // ... to full size in the first 6 % (0.09 s)
         const float IceMeltShare = 0.15f;         // and melts away in the last 15 % (0.22 s)
@@ -77,7 +83,10 @@ namespace BuddahGo.VFX.EditorTools
 
             Bounds body = BodyBounds();
             Mesh crystal = SaveMesh(BuildCrystal(body, CrystalSeed), "Mesh_FX_FrostLock_Crystal");
-            Mesh inside = SaveMesh(InsideOut(crystal), "Mesh_FX_FrostLock_CrystalBack");
+            // v4: the surface and the inner walls get flat per-face tones in their vertex colours; the fractures, the
+            // core glow, the glints and the flecks keep the plain crystal.
+            Mesh surfaceMesh = SaveMesh(Shaded(crystal, SurfaceDark, SurfaceBright), "Mesh_FX_FrostLock_CrystalShaded");
+            Mesh inside = SaveMesh(Shaded(InsideOut(crystal), BackDark, BackBright), "Mesh_FX_FrostLock_CrystalBack");
             Mesh glintPoints = SaveMesh(GlintPoints(crystal, 6, 3f), "Mesh_FX_FrostLock_GlintPoints");
             log.Append("body bounds " + body.size.ToString("F1") + "; ");
 
@@ -97,7 +106,7 @@ namespace BuddahGo.VFX.EditorTools
                 IceShell(ice.transform, "IceBack", inside, m.back, 1f, body.center);
                 IceShell(ice.transform, "IceVeins", crystal, m.veins, 0.9f, body.center);
                 IceShell(ice.transform, "IceCore", crystal, m.core, 0.8f, body.center);
-                IceShell(ice.transform, "IceSurface", crystal, m.surface, 1f, body.center);
+                IceShell(ice.transform, "IceSurface", surfaceMesh, m.surface, 1f, body.center);
 
                 SkillVfxLayer accent = NewLayer(scaled, IceAccentLayer, SkillVfxFunction.Sparks, SkillVfxTier.Accent, 2, false, SkillVfxAnchor.CasterAttached, SkillVfxCasterScaling.Whole, Vector3.zero);
                 accent.clearOnDissipation = true;
@@ -429,33 +438,34 @@ namespace BuddahGo.VFX.EditorTools
         {
             Texture2D crystalTex = Load<Texture2D>("Assets/VFX/Shared/Piloto/Textures/CrystalNoise.png");
             Texture2D noiseTex = Load<Texture2D>("Assets/VFX/Shared/Piloto/Textures/Tx_Noise_20.png");
-            Texture2D veinTex = Load<Texture2D>("Assets/VFX/Shared/Piloto/Textures/Noise_TilingSoftWebbing.png");
             Texture2D flareTex = Load<Texture2D>("Assets/Plugins/Piloto Studio/Textures/Flare_Cross.png");
             Texture2D fleckTex = Load<Texture2D>("Assets/Plugins/Piloto Studio/Textures/Fleks_Shiny.png");
             Material alphaSrc = Load<Material>("Assets/VFX/Shared/Piloto/Materials/Smoke_screen_cloud_sharp_fb_1_alpha_soft.mat");
             Material addSrc = Load<Material>("Assets/VFX/Shared/Piloto/Materials/Ring_Halo_faded_add_soft.mat");
 
             var m = new Materials();
-            // v1.5 (frost_build_v3.cs), back to front.
+            // v4 (frost_build_v4.cs back4 / veins4 / core4 / surf4), back to front. No UV wobble on any layer, rims at
+            // most ~1.3 so bloom does not smear the faces; brightness per face comes from the shaded meshes.
             m.back = Fx(alphaSrc, "IceBack", crystalTex, noiseTex, 0.3f, 3000);
             m.back.SetTextureOffset("_MainTex", new Vector2(0.37f, 0.61f));
-            Ramp(m.back, new Color(0.16f, 0.19f, 0.22f, 0.18f), new Color(0.48f, 0.55f, 0.60f, 0.30f), new Color(1.1f, 1.15f, 1.2f, 0.45f), 0.4f, 0.8f);
-            Fresnel(m.back, new Color(0.5f, 0.55f, 0.6f, 1f), 0.8f, 3f, false);
+            Ramp(m.back, new Color(0.45f, 0.5f, 0.55f, 0.18f), new Color(0.55f, 0.6f, 0.65f, 0.24f), new Color(0.7f, 0.75f, 0.8f, 0.3f), 0.45f, 0.85f);
+            Fresnel(m.back, Color.black, 0f, 1f, false);
 
-            m.veins = Fx(alphaSrc, "IceVeins", veinTex, noiseTex, 1.4f, 3001);
-            Ramp(m.veins, new Color(0f, 0f, 0f, 0f), new Color(0.7f, 0.75f, 0.8f, 0.08f), new Color(1.4f, 1.45f, 1.5f, 0.5f), 0.55f, 0.82f);
-            Fresnel(m.veins, new Color(0f, 0f, 0f, 1f), 0f, 1f, false);
-            m.veins.SetVector("_DetailDistortionChannel", new Vector4(0.12f, 0, 0, 0));
+            // Crisp crack lines instead of the soft webbing (at tiling 0.9 the radial cracks line up into star spots).
+            m.veins = Fx(alphaSrc, "IceVeins", crack, noiseTex, 0.35f, 3001);
+            Ramp(m.veins, new Color(0f, 0f, 0f, 0f), new Color(0.9f, 0.92f, 0.95f, 0f), new Color(1.1f, 1.12f, 1.15f, 0.5f), 0.7f, 0.88f);
+            Fresnel(m.veins, Color.black, 0f, 1f, false);
 
-            // Main texture left empty: UberFXSG's default is white, so the alpha is 1 and only the inverted Fresnel shapes it.
+            // Main texture left empty: UberFXSG's default is white, so the alpha is 1 and only the inverted Fresnel shapes
+            // it; the ramp is black, so there is no base fill, only the centre glows.
             m.core = Fx(addSrc, "IceCore", null, noiseTex, 1f, 3002);
-            Ramp(m.core, new Color(0.03f, 0.032f, 0.035f, 1f), new Color(0.03f, 0.032f, 0.035f, 1f), new Color(0.03f, 0.032f, 0.035f, 1f), 0.4f, 0.8f);
-            Fresnel(m.core, new Color(0.22f, 0.23f, 0.25f, 1f), 1.0f, 1.5f, true);
+            Ramp(m.core, Color.black, Color.black, Color.black, 0.4f, 0.8f);
+            Fresnel(m.core, new Color(0.2f, 0.21f, 0.22f, 1f), 1.0f, 2.2f, true);
 
+            // Nearly flat ramp: a face reads as one tone, the vertex colour sets how bright.
             m.surface = Fx(alphaSrc, "IceSurface", crystalTex, noiseTex, 0.3f, 3003);
-            Ramp(m.surface, new Color(0.12f, 0.14f, 0.16f, 0.15f), new Color(0.70f, 0.75f, 0.80f, 0.40f), new Color(1.8f, 1.85f, 1.9f, 0.85f), 0.45f, 0.78f);
-            Fresnel(m.surface, new Color(2.0f, 2.05f, 2.1f, 1f), 1.8f, 3.5f, false);
-            m.surface.SetVector("_DetailDistortionChannel", new Vector4(0.05f, 0, 0, 0));
+            Ramp(m.surface, new Color(0.80f, 0.84f, 0.88f, 0.48f), new Color(0.88f, 0.91f, 0.94f, 0.58f), new Color(1f, 1f, 1f, 0.7f), 0.45f, 0.85f);
+            Fresnel(m.surface, new Color(1.3f, 1.32f, 1.35f, 1f), 1.2f, 4f, false);
 
             m.glint = Fx(addSrc, "Glint", flareTex, noiseTex, 1f, 3004);
             m.glint.DisableKeyword("_USERAMP"); m.glint.SetFloat("_USERAMP", 0f);
@@ -677,6 +687,25 @@ namespace BuddahGo.VFX.EditorTools
             m.colors = col;
             m.RecalculateBounds();
             m.RecalculateTangents();
+            return m;
+        }
+
+        // A copy with one flat tone per face in its vertex colours (frost_build_v4.cs shaded): d = n.L x 0.5 + 0.5 in three
+        // bands (< 0.4 / < 0.72 / rest) between dark and bright, tinted (v, 1.01v, 1.03v). The meshes are flat shaded
+        // (three vertices per triangle), so each face gets one tone.
+        static Mesh Shaded(Mesh source, float dark, float bright)
+        {
+            Mesh m = Object.Instantiate(source);
+            Vector3[] normals = m.normals;
+            var colours = new Color[normals.Length];
+            for (int i = 0; i < normals.Length; i++)
+            {
+                float d = Vector3.Dot(normals[i], FacetLight) * 0.5f + 0.5f;
+                float band = d < 0.4f ? 0f : d < 0.72f ? 0.5f : 1f;
+                float v = Mathf.Lerp(dark, bright, band);
+                colours[i] = new Color(v, v * 1.01f, v * 1.03f, 1f);
+            }
+            m.colors = colours;
             return m;
         }
 

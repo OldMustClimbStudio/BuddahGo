@@ -126,6 +126,28 @@ public class AIYuanqiPlannerTests
                 Assert.That(keeper.TryGetFollowUp(1, board, 100, Delta, Confirm, Late, out f), Is.True);
                 Assert.That(f.Pair.YuanqiId, Is.EqualTo("giant_charge"));
             }),
+            Fresh("two active partners: the follow-up is the pair the registry triggers, the later partner's", () =>
+            {
+                // Keeper: 神足通 (slot 1) completes #2 with 缓流 (slot 0) and #4 with 金身 (slot 2) (已定 2026-11-07).
+                var planner = Build(Keeper);
+                SkillStateEntry Entry(int id, string skill, int slot, uint start, uint until)
+                    => new SkillStateEntry { EntryId = id, SkillId = skill, Slot = slot, StartTick = start, UntilTick = until, IsActivated = true };
+
+                // 金身 then 缓流: 禅足冰封. 缓流 is consumed, so it waits for the late window and never falls back to #4.
+                var giantThenSlow = new[] { Entry(1, "giant", 2, 100, 1000), Entry(2, "slowtrap", 0, 160, 160 + 360) };
+                Assert.That(planner.TryGetFollowUp(1, giantThenSlow, 200, Delta, Confirm, Late, out _), Is.False, "too early for #2, and #4 would not be what triggers");
+                Assert.That(planner.TryGetFollowUp(1, giantThenSlow, 430, Delta, Confirm, Late, out var f), Is.True);
+                Assert.That(f.Pair.YuanqiId, Is.EqualTo("frost_lock"));
+
+                // 缓流 then 金身: 金足破阵, at once (金身 is not consumed).
+                var slowThenGiant = new[] { Entry(1, "slowtrap", 0, 100, 1000), Entry(2, "giant", 2, 160, 1000) };
+                Assert.That(planner.TryGetFollowUp(1, slowThenGiant, 200, Delta, Confirm, Late, out f), Is.True);
+                Assert.That(f.Pair.YuanqiId, Is.EqualTo("giant_charge"));
+
+                // A partner that ends before the cast lands is not a partner: the earlier one decides.
+                var giantEnding = new[] { Entry(1, "slowtrap", 0, 100, 1000), Entry(2, "giant", 2, 160, 230) };
+                Assert.That(planner.TryGetFollowUp(1, giantEnding, 200, Delta, Confirm, Late, out _), Is.False, "缓流 decides and is still too early");
+            }),
             Fresh("follow-up ignores pending, ended and foreign entries", () =>
             {
                 var planner = Build(Brawler);

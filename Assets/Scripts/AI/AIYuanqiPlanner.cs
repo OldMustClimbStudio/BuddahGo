@@ -73,36 +73,39 @@ namespace BuddahGo.AI
         }
 
         // Slot is a follow-up when the other skill of one of its pairs is active on the board (IsActivated && !IsEnded)
-        // with at least confirmSeconds + delta left; the candidate is valid for remaining − confirmSeconds. When the
-        // active skill is the one this pair consumes (#2, #4: 神足通), the follow-up waits until at most
-        // confirmSeconds + lateWindowSeconds remain so its effect is enjoyed first ("晚打"); otherwise (#1) it is a
-        // candidate at once so the overlap is as long as possible. Several pairs → the most urgent window wins.
+        // with at least confirmSeconds + delta left; the candidate is valid for remaining − confirmSeconds. Several such
+        // partners → only the pair whose partner took effect last is considered, because that is the one the registry
+        // will trigger (已定 2026-11-07, SkillStateEntry.TookEffectAfter); if its timing does not fit, there is no
+        // follow-up rather than another pair. When the active skill is the one this pair consumes (#2, #4: 神足通), the
+        // follow-up waits until at most confirmSeconds + lateWindowSeconds remain so its effect is enjoyed first
+        // ("晚打"); otherwise (#1) it is a candidate at once so the overlap is as long as possible.
         public bool TryGetFollowUp(int slot, IReadOnlyList<SkillStateEntry> boardEntries, uint tick, float delta,
             float confirmSeconds, float lateWindowSeconds, out AIYuanqiFollowUp followUp)
         {
             followUp = default;
             if (boardEntries == null || boardEntries.Count == 0) return false;
-            bool found = false;
+            AIYuanqiPair bestPair = null; SkillStateEntry bestEntry = null;
             for (int p = 0; p < _pairs.Count; p++)
             {
                 AIYuanqiPair pair = _pairs[p];
                 if (!pair.Contains(slot)) continue;
-                int other = pair.Other(slot);
-                string otherSkill = pair.SkillOf(other);
+                string otherSkill = pair.SkillOf(pair.Other(slot));
                 for (int i = 0; i < boardEntries.Count; i++)
                 {
                     SkillStateEntry entry = boardEntries[i];
                     if (entry == null || !entry.IsActivated || entry.IsEnded || entry.UntilTick <= tick) continue;
                     if (!string.Equals(entry.SkillId, otherSkill, StringComparison.Ordinal)) continue;
-                    float remaining = (entry.UntilTick - tick) * delta;
-                    if (remaining < confirmSeconds + delta) continue;
-                    if (pair.Consumes(other) && remaining > confirmSeconds + lateWindowSeconds) continue;
-                    float valid = remaining - confirmSeconds;
-                    if (found && valid >= followUp.ValidSeconds) continue;
-                    followUp = new AIYuanqiFollowUp(pair, slot, valid, remaining); found = true;
+                    // Still active when this cast lands; only then can the registry see it as a partner.
+                    if ((entry.UntilTick - tick) * delta < confirmSeconds + delta) continue;
+                    if (bestEntry != null && !SkillStateEntry.TookEffectAfter(entry, bestEntry)) continue;
+                    bestPair = pair; bestEntry = entry;
                 }
             }
-            return found;
+            if (bestEntry == null) return false;
+            float remaining = (bestEntry.UntilTick - tick) * delta;
+            if (bestPair.Consumes(bestPair.Other(slot)) && remaining > confirmSeconds + lateWindowSeconds) return false;
+            followUp = new AIYuanqiFollowUp(bestPair, slot, remaining - confirmSeconds, remaining);
+            return true;
         }
 
         // Slot is a setup when it is the FirstSlot of a pair whose SecondSlot will be off cooldown at least

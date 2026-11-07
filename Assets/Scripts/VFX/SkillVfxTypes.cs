@@ -68,8 +68,9 @@ namespace BuddahGo.VFX
         // Area systems follow the caster over scaleUpSeconds / scaleDownSeconds with an alpha dip, the other systems
         // (ScalingMode Shape) only spread their spawn area and keep their grain, and a surge ring marks the change.
         Blend,
-        // The layer keeps its authored size at any body scale; only its caster offset follows the body (a route
-        // laid on the ground in world units, e.g. 金足破阵's ink route, Docs/vfx/yuanqi-giant-charge.md).
+        // The layer keeps its authored size (times the play's area scale, 1 unless the play passes one) at any body
+        // scale; only its caster offset follows the body (a route laid on the ground in world units, e.g. 金足破阵's ink
+        // route, Docs/vfx/yuanqi-giant-charge.md; 禅足冰封's ground passes its radius / R, Docs/vfx/yuanqi-frost-lock.md).
         None,
     }
 

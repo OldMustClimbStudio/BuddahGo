@@ -63,9 +63,10 @@ public class SkillVfxReplicator : NetworkBehaviour
 
     // Local only (no RPC): plays a slot effect on this player on this client, e.g. what a local view controller
     // decides per observer (一念光明's trail). Silently ignores ids whose prefab is missing or not a slot.
-    public void PlaySlotLocal(string vfxId, float durationSeconds)
+    // areaScale sizes the slot's None-scaling layers (a rule-sized area such as #2's frozen ground); 1 keeps them.
+    public void PlaySlotLocal(string vfxId, float durationSeconds, float areaScale = 1f)
     {
-        PlaySlot(vfxId, durationSeconds, false);
+        PlaySlot(vfxId, durationSeconds, false, areaScale);
     }
 
     // Ends a local slot effect early: its layers stop and it fades out over its dissipation.
@@ -96,7 +97,7 @@ public class SkillVfxReplicator : NetworkBehaviour
     // A slot prefab places its own layers on this player (caster anchors), so it is not parented or offset here:
     // the root stands at the player, the controller gets this player as the caster and runs the release window.
     // Every client plays it locally; it never touches gameplay. warn: log why nothing played (the RPC path).
-    private void PlaySlot(string vfxId, float durationSeconds, bool warn)
+    private void PlaySlot(string vfxId, float durationSeconds, bool warn, float areaScale = 1f)
     {
         GameObject prefab = null;
         string problem = vfxDatabase == null ? "vfxDatabase is null."
@@ -122,6 +123,7 @@ public class SkillVfxReplicator : NetworkBehaviour
             caster = transform,
             isLocalCaster = IsOwner,
             playLocalFeel = executor != null ? executor.PlayFeelLocal : (System.Action<string>)null,
+            areaScale = areaScale,
         });
         controller.BeginPhase(SkillVfxPhase.Imp, Mathf.Max(0f, durationSeconds));
         controller.DestroyWhenFinished(SlotTailSeconds);

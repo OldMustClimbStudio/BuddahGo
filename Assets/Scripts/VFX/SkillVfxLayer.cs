@@ -229,13 +229,20 @@ namespace BuddahGo.VFX
             SetVisible(false);
         }
 
+        // The play's own size for a None layer (SkillVfxPhaseController.Context.areaScale; 1 unless the play asks): a
+        // gameplay area that is sized by the rules, not by the body, e.g. #2 禅足冰封's radius × palm multiplier.
+        float _playAreaScale = 1f;
+
+        internal void SetAreaScale(float areaScale) => _playAreaScale = areaScale > 0f && !float.IsNaN(areaScale) ? areaScale : 1f;
+
         // Scale for this layer when the caster's body is at casterScale, at time `now` (SkillVfxPhaseController places
         // caster-anchored layers with it every frame). Whole returns the caster's scale. Blend: the first placement
         // takes the caster's scale as it is; a later change starts a blend (surge, handoff) and the area eases there.
+        // None returns the play's area scale (1 by default) at any body scale.
         internal float FollowCasterScale(float casterScale, float now)
         {
             if (casterScaling == SkillVfxCasterScaling.None)
-                return 1f;
+                return _playAreaScale;
             if (casterScaling != SkillVfxCasterScaling.Blend || _isArea == null)
                 return casterScale;
             if (_areaScale < 0f)

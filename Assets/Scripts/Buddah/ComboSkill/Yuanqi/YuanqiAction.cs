@@ -53,14 +53,15 @@ public abstract class YuanqiAction : ScriptableObject
     }
 
     // Every peer, from PlayObservers (which already runs on every peer, so no RPC): plays vfxId on the caster for the
-    // given gameplay length. Silently does nothing without an id or a replicator.
-    protected void PlayVfxSlotLocal(SkillExecutor caster, float seconds)
+    // given gameplay length; areaScale sizes the slot's None-scaling layers (SkillVfxReplicator.PlaySlotLocal).
+    // Silently does nothing without an id or a replicator.
+    protected void PlayVfxSlotLocal(SkillExecutor caster, float seconds, float areaScale = 1f)
     {
         if (caster == null || string.IsNullOrWhiteSpace(vfxId))
             return;
         SkillVfxReplicator vfx = caster.GetComponent<SkillVfxReplicator>();
         if (vfx != null)
-            vfx.PlaySlotLocal(vfxId, seconds);
+            vfx.PlaySlotLocal(vfxId, seconds, areaScale);
     }
 
     protected void AddVfxSlot(System.Collections.Generic.List<SkillAction.VfxSlotTiming> into, float seconds, string source)

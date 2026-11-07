@@ -9,8 +9,8 @@ Unity 2022.3.55f1c1 · URP 14.0.11 · Shuriken + VFX Graph 14 + Feel。插槽管
 | 本文 | 流程、分层概念、拆解表模板、参数与配表、命名、shader 与贴图、预算与档位、验收与交付、技能顺序、未决问题 |
 | [push-projectile-hands.md](push-projectile-hands.md) | 如来神掌：现状问题、目标、拆解表、反噬变体、验收记录、废弃资产 |
 | [vfx-design-research.md](vfx-design-research.md) | 2026-10-28 调研：方法论、题材、可读性、意象、URP 技法、性能，附三个候选方向与参考板链接 |
-| [yuanqi-giant-charge.md](yuanqi-giant-charge.md) | 缘起金足破阵：玩法事实、已定方向（后喷 + 一次画好的墨路）、待定项 |
-| [yuanqi-frost-lock.md](yuanqi-frost-lock.md) | 缘起禅足冰封：玩法事实、渲染限制、参考、冰体材质小样与用户选择（v1.5 → 去“糊”后定 v4）、第一版插槽和贴地特效的坑 |
+| [yuanqi-giant-charge.md](yuanqi-giant-charge.md) | 缘起金足破阵：玩法事实、已定方向（后喷 + 一次画好的墨路）、第一版插槽的默认值（用户在 VFXtests 里调） |
+| [yuanqi-frost-lock.md](yuanqi-frost-lock.md) | 缘起禅足冰封：玩法事实、渲染限制、参考、冰体材质小样与用户选择（v1.5 → 去“糊”后定 v4，不加棱线）、第一版插槽和贴地特效的坑 |
 
 每个插槽的现状见 [slots.md](slots.md)；各技能的拆解表、决定与验收见各专题文档。
 
@@ -251,8 +251,11 @@ VFX 表建议列：`vfx_id`、`anti_of`、`prefab_path`、`chg_ratio`（蓄力�
 | 4 | 禅定缓流 `slowtrap` | `slow_release` | |
 | 5 | 一念光明 `blackcurtain` | `curtain_release`、`curtain_hit` | [blackcurtain-opening-research.md](blackcurtain-opening-research.md) |
 | 6 | 神足通 `acceleration` | `accel_release` | |
+| 缘起 #4 | 金足破阵 `giant_charge` | `giant_charge_release`：第一版（2026-11-06），用户在 VFXtests 里调 | [yuanqi-giant-charge.md](yuanqi-giant-charge.md) |
+| 缘起 #2 | 禅足冰封 `frost_lock` | `frost_lock_release`、`frost_lock_hit`：第一版（2026-11-06），冰体 v4 | [yuanqi-frost-lock.md](yuanqi-frost-lock.md) |
+| 缘起 #1 | 金身巨掌 `giant_palm` | 不做（用户定，2026-11-06）：沿用神掌随掌倍率缩放的现有表现 | |
 
-每个插槽做到哪一步、用户调过没有，见 [slots.md](slots.md)。
+每个插槽做到哪一步、用户调过没有，见 [slots.md](slots.md)。两对缘起还要调的项集中在 [../gameplay/yuanqi-open-items.md](../gameplay/yuanqi-open-items.md) 第 1 节。
 
 ## 11. 未决问题
 

@@ -72,6 +72,11 @@ rebase 之后 S14 失败：反噬的确认窗口改按 `_anti` 行算（2 秒，
 
 禅足冰封的占位特效和神掌尺寸另有实拍对比 GIF（本机 `Logs/yuanqi-gif/`，不入库）：`frostlock-before-after.gif`（S9，左边只有接口，右边地面冰面 + 冰块）、`palm-before-after.gif`（S10，左边旧规则“掌 = 体型”，右边新规则）。抓帧用 `BuddahGo.AI.PresentationCaptureProbe.Begin(dir, "frost" | "palm" | "charge", oldPalmRule)`（冰封占位删掉后不再有 `placeholdersOff`），在 `MechanicsPracticeHarness.Begin(dir, true, "S8,S9" 或 "S10", null)` 之后由 `execute_code` 启动；帧按真实时间记录（冻结和突进按网络 tick 走，不能锁游戏时间步长）。每次 Play 里第一次缘起触发时编辑器会卡约 0.9 秒（有无占位都一样），所以冰封那次用 S8 先触发一次缘起。金足破阵用 `"charge"` 模式：从每次 `giant_charge` 触发开始，探针相机每帧跟游戏相机（位置、朝向、FOV、后期），S8 的两种施法顺序各一段（`Logs/yuanqi-gif/charge-before-*` 是接特效前、`charge-after-*` 是接上后）。GIF 没有覆盖：比赛赛道的光照、金身反噬缩小 ×0.5、反噬弹幕。
 
+## 2026-11-06 / 11-07 重跑（合 dev #79/#80 与特效插槽之后）
+
+- 2026-11-06 合入 dev（#79/#80，644cc04f）、缘起列表搬到菜单技能页之后，完整 15 个场景：15/15 通过，0 个失败检查（本机 `Logs/mechanics-practice/pr75-sync-20261106-190510/`）。dev 把 `PracticeFlow` 合进了 `SoloHarnessFlow`，这次是从新菜单进训练模式。
+- 2026-11-07 录三对缘起的 GIF 时跑了三次 S8–S10（禅足冰封已是 v4 冰体插槽，0b2c7d2e）：每次 3/3 通过，0 个失败检查（本机 `Logs/mechanics-practice/yuanqi-all-*`）。GIF 在共享笔记 `yuanqi-all-gifs/`，不入库。
+
 ## 重跑方法
 
 1. 在本 worktree 打开编辑器，打开 `Assets/Scenes/MenuEnvironmentSetting.unity`，进入 Play，停在主菜单。harness 把请求的配装写进菜单的保存选择（`LocalMatchSelection`），开局后还原玩家自己的选择。
@@ -92,4 +97,4 @@ rebase 之后 S14 失败：反噬的确认窗口改按 `_anti` 行算（2 秒，
 - **联机**：远端客户端的预测与 reconcile（冻结、突进、反噬减速在远端 owner 上的表现，回放用回放 tick 结算修饰），观察者事件，黑幕落在别人屏幕上的效果。训练模式是本机 host，验证不了。
 - **AI**：单人赛里 5 个 AI 的施法、缘起和反噬次数。AI 适配（A7）不在这次范围，受影响的地方见 README 7.1 的 A7 和 PR #63 的说明。
 - **场景没覆盖的点**：#2 两种先后都触发过：先缓流、后神足通检查了半径、时长、载荷和消耗两招；S9 重新触发那一次是先神足通、后缓流，只检查了触发一次、范围内木桩再次冻住，没查消耗；复活后状态板清空、缘起能再触发没有单独测；冻结中被推没有测；一念光明、逆姻缘的生效窗口目前没有含它们的缘起，没有测。
-- **手感与画面**：转手平滑、突进 FOV、冻结定格、HUD 文字的位置和字体（缘起名和“冻结”在 SoloCJK 字体里缺字，现在显示英文或 id），都要用户试玩确认。表现层只留了接口，没有新特效。
+- **手感与画面**：转手平滑、突进 FOV、冻结定格、HUD 文字的位置和字体（缘起名和“冻结”在 SoloCJK 字体里缺字，现在显示英文或 id），都要用户试玩确认。#2、#4 的特效是第一版插槽（2026-11-06），调参和没看过的画质档见 [缘起开放项](yuanqi-open-items.md)。

@@ -14,7 +14,7 @@
 | 策划配表：Excel 工作簿、导入器、规范与筛查清单 | [design-tables/README.md](design-tables/README.md) |
 | 技能特效：分层规范、流程、插槽、预算与档位；每个技能一篇专题 | [vfx/README.md](vfx/README.md) |
 | 玩法深化：缘起、执念与反噬、单键施法与鼠标瞄准、W 推进、训练木桩（联机验证未做） | [gameplay/README.md](gameplay/README.md) |
-| 缘起：每一对的设计；模块边界、配表扩展与禅足冰封的构筑 | [gameplay/yuanqi.md](gameplay/yuanqi.md) · [gameplay/yuanqi-architecture.md](gameplay/yuanqi-architecture.md) |
+| 缘起：每一对的设计；模块边界、配表扩展与禅足冰封的构筑；合入 dev 时还开着的项（精修特效分支的起点） | [gameplay/yuanqi.md](gameplay/yuanqi.md) · [gameplay/yuanqi-architecture.md](gameplay/yuanqi-architecture.md) · [gameplay/yuanqi-open-items.md](gameplay/yuanqi-open-items.md) |
 | 训练模式验证：各场景的实测值与重跑方法（只覆盖本机 host） | [gameplay/practice-verification.md](gameplay/practice-verification.md) |
 | 玩法改动的退役清单：删了什么、在哪个提交、哪些有意保留 | [gameplay/retired.md](gameplay/retired.md) |
 | 渲染入口：改动前读什么、不变量、抓图—烘焙—对比流程 | [rendering/HARNESS.md](rendering/HARNESS.md) · [rendering/ARCHITECTURE.md](rendering/ARCHITECTURE.md) |

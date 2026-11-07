@@ -281,11 +281,11 @@
 | 改哪里 | `SkillSlotUI`（状态在 `SkillSlotHudTimeline`）：每槽冷却、键位（Q/1、E/2、R/3）、同招加价窗口（冷却结束后 5 秒内显示下一次的执念倍率和窗口剩余秒数）、反噬锁和冻结时三个槽的倒计时；`ObsessionUI`：当前反噬概率是主数字，惩罚期间显示剩余秒数；`YuanqiToastUI`（`RaceMapUIBootstrap` 运行时挂到 HUD 画布）：施法者自己的缘起提示（`LocalYuanqiTriggered`）；菜单技能页 `MenuSkillPage` 的技能键面板（点小祠后滑出）在执念 / 反噬规则下面列出本套配装能触发的缘起（`YuanqiCatalog.ForLoadout`，和服务器登记同一个答案） |
 | 退役 | 搓招进度（槽位的 W/↑ token 运行时隐藏，2026-10-31 连图一起删除）、全局施法锁的 UI（`LocalSkillUiEvent.CastLockSeconds`、2 秒假锁 `fallbackCastLockSeconds`）；`UI/UiTiming` 里 `SkillSlotUI` 的三行一并删除 |
 | 计时口径 | 冷却和同招加价窗口按服务器执行时的 tick 定锚（`CastObserversRpc` / `BackfireSkillUiTargetRpc` 带 `serverTick`，`LocalSkillUiEvent.SecondsSinceServerEvent` = 本端估算的服务器 tick 减去它），不按 RPC 到达时刻，否则远端客户端会晚一个完整 RTT。和反噬、冻结计时一样以服务器时钟为准，远端只剩上行延迟（约 RTT/2）的偏差，方向安全：显示就绪后按下，请求到达服务器时冷却已经结束（本端估算服务器 tick 的误差只有一两个 tick，小于上行延迟）；窗口最后约半个 RTT 显示的加价实际不会收（对玩家有利）。host 与训练模式没有偏差 |
-| 文字 | 中文只用 SoloCJK 字体子集里有的字（`InGameHudLabels`，`InGameHudTests` 检查）；“冻”“起”不在子集里，“冻结”显示 FROZEN，缘起名显示英文或 id，等子集重烘（第 8 节） |
+| 文字 | 中文只用 SoloCJK 字体子集里有的字（`InGameHudLabels`，`InGameHudTests` 检查）；“冻”“起”不在子集里，“冻结”显示 FROZEN，缘起名显示英文或 id，等子集重烘（第 8 节）。菜单技能页的缘起列表用菜单字体 MenuSerif，缘起名的字已补进去（077a2981） |
 | 训练模式验证 | 结果见 S11、S5、S6：槽位显示 Q/1、E/2、R/3，冷却 4.5s，“反噬 47%”（执念 495），惩罚中三个槽“反噬 9.6s”，冻结时 FROZEN |
 | 完成标准 | 不看日志也能读出执念、反噬概率、加价窗口，以及本套配装的缘起；位置、字体和可读性要用户试玩确认 |
 
-**表现层（已定，2026-10-26）。** 这一轮只做接口、不做新特效：每个新状态和事件在各端都能读到，美术以后从接口挂特效。接口有 `SkillExecutor.YuanqiObserved`（缘起触发，载荷含中心、半径、秒数、方向、目标 id）、`SkillExecutor.YuanqiImpactObserved`（#4 每次撞击）、`RacerSkillPresentationState.FrozenChanged / BurstChanged`、`ObsessionFigure.BackfireStateChanged`、`BuddahHandControl.TryGetAimGroundPoint`（准星地面点，2026-10-31 起有占位图标，见下）。不需要美术的“动作层”直接实现：冻结时该 racer 的 Animator 停住、双手不转；#4 突进时施法者相机有一次短 FOV 抖动（8 度，待试玩调）。2026-11-06 用户要求 #2 先补占位特效：地面白色冰面和被冻者身上的冰块，程序化、只用白 / 灰，正式特效来了就替换。细节见 [缘起架构设计 §4.7](yuanqi-architecture.md)。
+**表现层（已定，2026-10-26）。** 这一轮只做接口、不做新特效：每个新状态和事件在各端都能读到，美术以后从接口挂特效。接口有 `SkillExecutor.YuanqiObserved`（缘起触发，载荷含中心、半径、秒数、方向、目标 id）、`SkillExecutor.YuanqiImpactObserved`（#4 每次撞击）、`RacerSkillPresentationState.FrozenChanged / BurstChanged`、`ObsessionFigure.BackfireStateChanged`、`BuddahHandControl.TryGetAimGroundPoint`（准星地面点，2026-10-31 起有占位图标，见下）。不需要美术的“动作层”直接实现：冻结时该 racer 的 Animator 停住、双手不转；#4 突进时施法者相机有一次短 FOV 抖动（8 度，待试玩调）。2026-11-06 用户要求 #2 先补占位特效：地面白色冰面和被冻者身上的冰块，程序化、只用白 / 灰，正式特效来了就替换。同日 #2、#4 都换成了正式插槽的第一版（缘起 SO 的 `vfxId`，经 `YuanqiAction.PlayVfxSlotLocal` 在各端本地播，没有新 RPC），占位已删；#1 不另做特效。细节见 [缘起架构设计 §4.7](yuanqi-architecture.md)。
 
 **瞄准点占位图标（已定：占位已做，2026-10-31；手部朝向指引的设计待定）。** 用户要“一个做鼠标位置指示的图标占位符，这个是为了未来进一步处理手部朝向指引的”。它是以后手部朝向指引表现的落脚点，这次只做占位、不做美术。用户确认的四项（2026-10-31）：
 
@@ -368,12 +368,12 @@
 
 ## 8. 待定清单
 
-还要用户答复或安排的：
+还要用户答复或安排的。和缘起有关的开放项（特效调参、联机、数值、PR #74 review 的剩余项）另外集中在 [缘起开放项](yuanqi-open-items.md)，作为之后精修分支的起点。
 
 - [ ] AI 的反噬风险：先保持统一 `backfireCost`，不加回按技能的严重度（用户 2026-10-31：试玩后再调）
 - [ ] 缘起效果（如 #2 的禁锢）算不算控制，是否计入受害者控制上限（第 9 节的受害者保护）
 - [ ] SoloCJK 字体子集重烘：“冻”“起”等字缺失，“冻结”和缘起名现在显示英文或 id（A6）。2026-10-31 补充：单人设置面板现有文字也缺 9 个字（三 五 六 四 固 格 种 装 零），“六人单人赛”“五种技能人格 · 固定配装”显示成方块；训练模式按钮缺“训练模式”，暂用英文 “Practice (0 AI)”
-- [ ] 缘起特效（#2 结冰与冰块、#4 突进与撞击）：表现接口已留，美术未做；#1 金身巨掌不另做特效，沿用神掌随体型缩放的现有表现（已定，2026-11-06）。#2 在 2026-11-06 补了程序化占位（白色冰面 + 冰块，[缘起架构设计 §4.7](yuanqi-architecture.md)），正式特效在做设计
+- [ ] 缘起特效的调参：三对的做法已定（2026-11-06）：#1 金身巨掌不另做特效，沿用神掌随掌倍率缩放的现有表现；#2 禅足冰封第一版插槽 `frost_lock_release` / `frost_lock_hit`，冰体用 v4、不加棱线；#4 金足破阵第一版插槽 `giant_charge_release`，用户自己在 VFXtests 里调。还没定的颜色、节奏、尺寸、造型和没看过的画质档见 [缘起开放项](yuanqi-open-items.md) 第 1 节
 - [ ] 手部朝向指引的设计：瞄准点占位图标已做（A6，2026-10-31，圆环加十字，只给 owner），指引画什么（光标点还是手的实际朝向、要不要指向线）、美术和参数待定
 - [ ] 占位值和新参数的试玩调整：#2 的 N、R，#4 的突进与 M，转手平滑，突进 FOV，反噬结束的 ×0.8（全部在配表或组件字段上）
 - [ ] AI 瞄准容差（`AI/SkillDifficulty.aimToleranceDegrees` ±20° / ±12° / ±6°）要不要按真人改用鼠标后的命中水平重调：A7 没有改，要用户试玩数据（建议先保持）

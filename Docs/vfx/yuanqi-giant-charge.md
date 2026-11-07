@@ -31,6 +31,8 @@
 
 ## 3. 待定
 
+> 2026-11-06 起这一节的六项都有了第一版默认值（第 5 节），用户定由自己在 VFXtests 里调，不再由会话拍板；第 5 项已实测（不会喷两次）。还开着的项汇总在 [../gameplay/yuanqi-open-items.md](../gameplay/yuanqi-open-items.md) 第 1.1 节。下面保留讨论时的原文。
+
 除了第 5 项，都要在编辑器里把素材放到巨人体型、比赛视角下看过再定。驱动 Unity 前先问用户，并且要等编辑器没人在用。
 
 1. **线怎么出现**：瞬间出现（像盖印），还是 0.1–0.15 秒内一笔画出（毛笔拉开）。画得慢会被 140 的速度追上，所以最多 0.15 秒。
@@ -47,7 +49,7 @@
 - 缘起目前没有播插槽的入口：`Yuanqi_GiantCharge.PlayObservers` 只做 FOV 抖动。要在缘起 SO 上加 vfx_id，在 `PlayObservers` 里经 `SkillVfxReplicator` 播。
 - 新插槽照 README 第 4、7 节登记四处（`SkillReleaseProto.Skills`、`Skill.xlsx` VfxRegistry、`SkillVfxDatabase`、`VfxPackVendor.EffectPrefabs`），入库前跑 `Copy Used Pack Assets Into Project`。
 - 路线层按出手时摆一次、之后留在原地（`CasterRelative`）可以做"一次画好"；`CasterRelative` 不支持 `Blend`（[giant.md](giant.md) 第 5 节），尺寸要另外按路线定。
-- `feat/yuanqi` 上目前只有禅足冰封有程序化占位（`Yuanqi/Presentation/FrostPlaceholder.cs`、`FrostGroundPlaceholder.cs`，2026-11-06），金足破阵没有；挂接方式可以参考它。
+- （当时）`feat/yuanqi` 上只有禅足冰封有程序化占位（`Yuanqi/Presentation/FrostPlaceholder.cs`、`FrostGroundPlaceholder.cs`，2026-11-06），金足破阵没有；挂接方式可以参考它。这些占位已删（71d59c8b，[retired.md](retired.md) 第 6.6 节）。
 - 先复用后新增（[retired.md](retired.md)）：起手复用 `accel_release` 的冲击波内容，路线复用包里的 Frontal Pulses。
 
 ## 5. 第一版（2026-11-06，实现会话）

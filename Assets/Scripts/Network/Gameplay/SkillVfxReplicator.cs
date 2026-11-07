@@ -24,9 +24,6 @@ public class SkillVfxReplicator : NetworkBehaviour
     // Slot effects outlast their window by this much so the last particles and trails fade out.
     private const float SlotTailSeconds = 1.5f;
 
-    // Every instance this replicator spawned, parented or not: an unparented instance (SkillVfxFollowTarget, e.g. the
-    // slow-trap zone) is not under this transform, so stopping by id cannot search the children.
-
     public override void OnStartClient()
     {
         base.OnStartClient();

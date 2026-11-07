@@ -4,7 +4,7 @@ using UnityEngine;
 namespace BuddahGo.Tests
 {
     /// <summary>
-    /// Pure rules of the confirmed 缘起 pairs: #2 frost lock target selection (horizontal radius, exclusions) and
+    /// Pure rules of the confirmed 缘起 pairs: #2 frost lock target selection (horizontal radius × palm multiplier, exclusions) and
     /// #4 giant charge body impact (armed window, burst gate, once per victim per Arm, sideways scatter direction).
     /// </summary>
     public class YuanqiPairRulesTests
@@ -15,6 +15,10 @@ namespace BuddahGo.Tests
             => new YuanqiTargetCandidate(position, isCaster: false, isServerInitialized: initialized, isTrainingDummy: dummy);
 
         // ---- #2 targeting -------------------------------------------------------------------------------------
+
+        // #2's radius at R = 12 m for a caster at this body scale of a scale row (full body scale, palm multiplier there).
+        private static float FrostRadius(float bodyScale, float bodyScaleAtFull, float palmAtFull)
+            => Yuanqi_FrostLock.RadiusFor(12f, PalmSizeRule.Resolve(bodyScale, bodyScaleAtFull, palmAtFull));
 
         [Test]
         public void TargetingUsesAHorizontalInclusiveRadiusAndItsExclusions()
@@ -35,6 +39,15 @@ namespace BuddahGo.Tests
                 (name: "dummy with includeTrainingDummies", candidate: Other(Center + Vector3.right, dummy: true), radius: 12f, dummies: true, eligible: true),
                 (name: "dummy without includeTrainingDummies", candidate: Other(Center + Vector3.right, dummy: true), radius: 12f, dummies: false, eligible: false),
                 (name: "racers stay targets without includeTrainingDummies", candidate: Other(Center + Vector3.right), radius: 12f, dummies: false, eligible: true),
+                // The radius follows the caster's palm multiplier (已定 2026-11-07): R × PalmSizeRule, shipped rows giant
+                // ×2 at body ×4 and giant_anti ×0.5 at body ×0.3, linear while the body changes.
+                (name: "palm ×1 without 金身: 12 m", candidate: Other(Center + new Vector3(12f, 0f, 0f)), radius: FrostRadius(1f, 4f, 2f), dummies: true, eligible: true),
+                (name: "palm ×1 without 金身: 12.01 m outside", candidate: Other(Center + new Vector3(12.01f, 0f, 0f)), radius: FrostRadius(1f, 4f, 2f), dummies: true, eligible: false),
+                (name: "palm ×2 at full 金身: 20 m inside 24 m", candidate: Other(Center + new Vector3(0f, 0f, 20f)), radius: FrostRadius(4f, 4f, 2f), dummies: true, eligible: true),
+                (name: "palm ×2 at full 金身: 24.01 m outside", candidate: Other(Center + new Vector3(24.01f, 0f, 0f)), radius: FrostRadius(4f, 4f, 2f), dummies: true, eligible: false),
+                (name: "palm ×1.5 halfway (body ×2.5): 17.9 m inside 18 m", candidate: Other(Center + new Vector3(17.9f, 0f, 0f)), radius: FrostRadius(2.5f, 4f, 2f), dummies: true, eligible: true),
+                (name: "palm ×0.5 at full 金身反噬: 5.9 m inside 6 m", candidate: Other(Center + new Vector3(5.9f, 0f, 0f)), radius: FrostRadius(0.3f, 0.3f, 0.5f), dummies: true, eligible: true),
+                (name: "palm ×0.5 at full 金身反噬: 7 m outside", candidate: Other(Center + new Vector3(0f, 0f, -7f)), radius: FrostRadius(0.3f, 0.3f, 0.5f), dummies: true, eligible: false),
                 // A non-positive or invalid radius selects nobody.
                 (name: "radius 0", candidate: Other(Center), radius: 0f, dummies: true, eligible: false),
                 (name: "radius -1", candidate: Other(Center), radius: -1f, dummies: true, eligible: false),

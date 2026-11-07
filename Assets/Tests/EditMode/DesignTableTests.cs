@@ -203,7 +203,7 @@ namespace BuddahGo.Tests
                         Assert.AreEqual(1, db.respawns.Count);
                         Assert.AreEqual((int)Cell(set, "Match", "Track", "trackId", "racemap", "requiredCheckpointCount"), db.tracks[0].requiredCheckpointCount, "LapRule merged into Track");
                         Assert.AreEqual(1, db.trackWrongWays.Count);
-                        Assert.Greater(db.localizedTexts.Count, 200);
+                        Assert.Greater(db.localizedTexts.Count, 150, "UI/Text has 196 rows since the 2026-11-07 removal of rows whose source UI was retired");
                         Assert.IsTrue(db.globalRules.Exists(r => r.ruleKey == "target_frame_rate"));
                         Assert.IsFalse(db.globalRules.Exists(r => r.ruleKey == "combo_input_window_seconds"), "combo keys retired with ComboSkillInput (A7); none may return to GlobalRule");
                     }

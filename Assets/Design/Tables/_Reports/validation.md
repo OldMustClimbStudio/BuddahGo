@@ -1,9 +1,9 @@
 # Design tables validation
 
-- time: 2026-11-06 18:47:01
+- time: 2026-11-07 03:51:02
 - mode: import (force)
 - changed workbooks: (none)
-- sheets re-mapped: 37, kept: 0, records: 542
+- sheets re-mapped: 37, kept: 0, records: 401
 - errors: 0, warnings: 3
 - outputs written: yes
 

@@ -85,7 +85,7 @@ v2 的微光 Fresnel 是 0.45 × 1.0，v2+ 是 1.1 × 1.3。结果：v2 有很�
 
 结果：v4 的乳白雾基本没了，每个晶面一个平的灰白色调，佛脸和双手更清楚，冰里有几道硬的细裂纹，近看像干净的冰 / 玻璃；比赛视角和 v1.5 接近、略清透。v4 + 棱线（每条夹角大于约 12° 的晶面折线加一条宽约佛身高度 0.45% 的白线，叠加 0.55）最“脆”、远看最像冰晶，但小冰刺上的线太多，近看像线框。图：`round4_*`。
 
-**用户定（2026-11-06）：冰体材质换成 v4（不加棱线）。** 精确数值在 [yuanqi-frost-lock/probes/frost_build_v4.cs](yuanqi-frost-lock/probes/frost_build_v4.cs)：`surf4`、`back4`、`veins4`、`core4` 和着色函数 `shaded`。第 8 节的第一版插槽还是 v1.5，要按上表改 `FrostLockProto` 里的四个材质，并给外表面和内壁各存一份着色网格（`SkillVfxMeshAlpha` 只改三色映射和 Fresnel 的 alpha，不碰顶点色，所以不冲突）。
+**用户定（2026-11-06）：冰体材质换成 v4（不加棱线）。** 精确数值在 [yuanqi-frost-lock/probes/frost_build_v4.cs](yuanqi-frost-lock/probes/frost_build_v4.cs)：`surf4`、`back4`、`veins4`、`core4` 和着色函数 `shaded`。已按上表改进 `FrostLockProto`（2026-11-06，第 8 节）：四个材质换成 v4，外表面用着色网格 `Mesh_FX_FrostLock_CrystalShaded`，内壁 `Mesh_FX_FrostLock_CrystalBack` 直接带着色（只有内壁用它）；`SkillVfxMeshAlpha` 只改三色映射和 Fresnel 的 alpha，不碰顶点色，所以不冲突。
 
 ## 5. 还没定
 
@@ -119,9 +119,9 @@ v2 的微光 Fresnel 是 0.45 × 1.0，v2+ 是 1.1 × 1.3。结果：v2 有很�
 | 插槽 | 谁播、播多久 | 层 | 内容 |
 |---|---|---|---|
 | `frost_lock_release` → `Release/VFX_FrostLock_Release` | `Yuanqi_FrostLock.PlayObservers`，施法者处，N（参考 1.5 s，`Stretch`） | `FX_FrostLock_Imp_C_Decal_01`（玩法层）、`FX_FrostLock_Imp_A_Sparks_02`（点缀，优先级 2）；都是 `CasterRelative` + `casterScaling = None`，贴地 `casterOffset.y = -0.3` | 冰面（`CrystalNoise` 晶面放进圆形软遮罩）、放射裂纹（`GroundCrack_RadialPostExplody`）、R 处的环（`FX_Ring_01_T`：外扩时亮一下，之后留作冰区边缘），0.12 s 铺开，最后 25% 淡出；地面闪点 |
-| `frost_lock_hit` → `Hit/VFX_FrostLock_Hit` | `FrozenIceShell`，每个被冻的人身上，冻结剩余秒数 | `FX_FrostLock_Imp_C_Mesh_01`（玩法层）、`FX_FrostLock_Imp_A_Sparks_01`（点缀）；都是 `CasterAttached` + `Whole`（巨人的冰块整块 ×4） | v1.5 的四层（内壁、内部裂纹、内核微光、外表面，数值照 `frost_build_v3.cs`）和小样一样是 `MeshRenderer`；`SkillVfxMeshAlpha` 把层的 alpha 曲线换成 `UberFXSG` 的三色映射透明度和 Fresnel 颜色，并让冰块从 88% 长到全尺寸、融化时缩回；闪点 `Flare_Cross` 每秒 6 个、从最高的 6 个尖角随机冒；解冻时 24 颗碎冰亮点（`Fleks_Shiny`）从冰面飞出、下落 |
+| `frost_lock_hit` → `Hit/VFX_FrostLock_Hit` | `FrozenIceShell`，每个被冻的人身上，冻结剩余秒数 | `FX_FrostLock_Imp_C_Mesh_01`（玩法层）、`FX_FrostLock_Imp_A_Sparks_01`（点缀）；都是 `CasterAttached` + `Whole`（巨人的冰块整块 ×4） | v4 的四层（内壁、内部裂纹、内核微光、外表面，数值照 `frost_build_v4.cs`，外表面和内壁用按假光着色的网格，每个晶面一个平的色调）和小样一样是 `MeshRenderer`；`SkillVfxMeshAlpha` 把层的 alpha 曲线换成 `UberFXSG` 的三色映射透明度和 Fresnel 颜色，并让冰块从 88% 长到全尺寸、融化时缩回；闪点 `Flare_Cross` 每秒 6 个、从最高的 6 个尖角随机冒；解冻时 24 颗碎冰亮点（`Fleks_Shiny`）从冰面飞出、下落 |
 
-粒子系统：地面 4 个，冰块 2 个（另有 4 个网格），都在默认上限 10 以内。材质 `Materials/Mat_FX_FrostLock_*`（全是 `UberFXSG`，不读不透明纹理）；网格 `Meshes/Mesh_FX_FrostLock_*`（小样的晶块、翻面的内壁、闪点位置）。用到的两张包贴图已 vendor。
+粒子系统：地面 4 个，冰块 2 个（另有 4 个网格），都在默认上限 10 以内。材质 `Materials/Mat_FX_FrostLock_*`（全是 `UberFXSG`，不读不透明纹理）；网格 `Meshes/Mesh_FX_FrostLock_*`（小样的晶块、它的着色版、翻面并着色的内壁、闪点位置）。用到的两张包贴图已 vendor。
 
 **怎么改、怎么看**：菜单 `Tools/BuddahGo/VFX/Proto/禅足冰封/Rebuild Slots (ice block + frozen ground)`（`FrostLockProto`，默认值在文件头）重建两个插槽、材质和网格（覆盖写入，GUID 不变；会冲掉手调，手调后要保留就别再跑它）；`.../Place Preview In VFXtests` 在 VFXtests 放施法者、三个被冻的人（一个 ×4）、`Cam_Race`（比赛镜头规则：跟随偏移 ×体型、FOV 30），由 `SkillVfxPreviewFrostLock` 循环触发，同时给场景套上 RaceMap 的观感（`Tools/BuddahGo/VFX/Proto/Apply RaceMap Look To VFXtests`：天空、环境光、雾、太阳、`RaceMap_Dusk_Profile` 后期、FXAA、赛道材质的地板；没有烘焙光照、禅砂和平面反射）。
 
@@ -129,7 +129,7 @@ v2 的微光 Fresnel 是 0.45 × 1.0，v2+ 是 1.1 × 1.3。结果：v2 有很�
 
 - **`UberFXSG` 的贴图按线性读**：包的遮罩和裂纹贴图中间灰读出来只有约 0.2，三色映射的阈值和“主贴图 R 通道当透明度”会把它们切掉，只剩中心一小块。做法：阈值压低（0.02 / 0.12），通道权重给到 3–10（`_MainAlphaChannel`、`_AlphaOverrideChannel` 是点乘，可以大于 1），面片按“实际看得见的比例”放大（冰面 0.5、裂纹 0.45、环 0.93，常量在 `FrostLockProto`）。
 - **大面片被 `maxParticleSize` 截掉**：粒子渲染器默认最大只到视口的一半，25–50 m 的地面面片在近景里会缩小。这里设成 10。
-- **冰块不能用网格模式粒子**：同样的 v1.5 材质放在“只发一个粒子”的网格系统上，比赛和 VFXtests 里都只剩一层很淡的灰影（×1 的人几乎看不见），同一帧旁边放一个 `MeshRenderer` 版就是小样那块白冰。原因没查到底（顶点流、GPU instancing 都试过，没有区别）。所以冰块用 `MeshRenderer` + `SkillVfxMeshAlpha`；粒子渲染器仍抄 `accel_release` 的顶点流。
+- **冰块不能用网格模式粒子**：同样的 v1.5 材质（当时的版本）放在“只发一个粒子”的网格系统上，比赛和 VFXtests 里都只剩一层很淡的灰影（×1 的人几乎看不见），同一帧旁边放一个 `MeshRenderer` 版就是小样那块白冰。原因没查到底（顶点流、GPU instancing 都试过，没有区别）。所以冰块用 `MeshRenderer` + `SkillVfxMeshAlpha`；粒子渲染器仍抄 `accel_release` 的顶点流。
 - **VFXtests 的替身要放在场景根上**：FishNet 会给装着替身的父物体加 `NetworkObject`，进 Play 时没有 NetworkManager 就把它关掉；预览组件在 `Start` 里重新打开替身（金足破阵的 `SkillVfxPreviewDash` 同样做法）。
 
 **没验证的**：联机（各端由 `PlayObservers` 和 `FrozenChanged` 本地播，没有新 RPC）；Balanced / Performant 档；反噬 ×0.3 体型；坡道上的地面（平面面片，坡上会悬空或穿插）；AI 触发冰封时的画面。改了 R（配表 `YuanqiEffectFrostLock.radiusMeters`）要重跑 `FrostLockProto`，`SkillVfxTests.FrostLockGroundRimStandsAtTheFreezeRadius` 会提醒。

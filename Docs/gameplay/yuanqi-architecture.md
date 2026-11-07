@@ -436,7 +436,7 @@ t1+1 神足通 ExecuteServer → 加速修饰下发 → CastObserversRpc → boa
 | 画面 | 接口 | 状态 |
 |---|---|---|
 | 地面瞬间结冰 | `SkillExecutor.YuanqiObserved(yuanqiId, payload, localIsCaster)`：载荷带中心、半径 R、秒数 N、目标 id；`Yuanqi_FrostLock.PlayObservers` | 已做（2026-11-06 第一版）：`frost_lock_release`，半径 R 的冰面、放射裂纹和边缘环，0.12 s 铺开、N 的最后 25% 淡出；平面，坡上会悬空或穿插（工程没有 URP decal） |
-| 受害者冻成冰块 | 载荷的 `TargetObjectIds`；每个被冻的 racer 的 `RacerSkillPresentationState.FrozenChanged` | 已做（2026-11-06 第一版）：`FrozenIceShell` 播 `frost_lock_hit`，v1.5 冰块，开始即出现、随体型缩放，解冻时化掉并掉碎冰；冻结期间 Animator 停住（动作层，已做） |
+| 受害者冻成冰块 | 载荷的 `TargetObjectIds`；每个被冻的 racer 的 `RacerSkillPresentationState.FrozenChanged` | 已做（2026-11-06 第一版）：`FrozenIceShell` 播 `frost_lock_hit`，v4 冰块，开始即出现、随体型缩放，解冻时化掉并掉碎冰；冻结期间 Animator 停住（动作层，已做） |
 | 冻结期间的 HUD | owner 从 `BuddahPredictedMotor.FreezeSecondsLeft` 倒计时，`SkillSlotUI` 三个槽显示冻结 | 已做（A6） |
 | 触发提示 | 施法者的 `LocalYuanqiTriggered` → `YuanqiToastUI` 弹缘起名 | 已做（A6） |
 

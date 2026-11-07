@@ -3,8 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// #1 金身巨掌 (giant + push_projectile_hands, Sustained, consumes nothing). While both are active the charged
-/// projectile's impulse follows the body scale, sampled together with its size (which already follows the scale);
-/// no cap, no own parameters. Either skill ending turns it off (yuanqi-architecture §5.2).
+/// projectile's impulse follows the palm multiplier (PalmSizeRule: x2 at the giant's full x4 body), sampled together
+/// with its size; no cap, no own parameters. Either skill ending turns it off (yuanqi-architecture §5.2).
 /// </summary>
 [CreateAssetMenu(fileName = "Yuanqi_GiantPalm", menuName = "Skills/Yuanqi/Giant Palm")]
 public class Yuanqi_GiantPalm : YuanqiAction

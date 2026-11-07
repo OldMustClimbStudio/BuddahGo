@@ -135,8 +135,8 @@ public class BuddahHandControl : NetworkBehaviour, IHandsImpulseScale
     public float BasicPushImpulseStrength => pushImpulseStrength;
 
     /// <summary>
-    /// Server, #1 金身巨掌 (IHandsImpulseScale): while true, the charged-projectile impulse is multiplied by the same
-    /// body-scale sample that already sizes the projectile. Cleared by ResetSkillInputAndEffects.
+    /// Server, #1 金身巨掌 (IHandsImpulseScale): while true, the charged-projectile impulse follows the palm multiplier
+    /// (PalmSizeRule) of the same sample that already sizes the projectile. Cleared by ResetSkillInputAndEffects.
     /// </summary>
     public bool ImpulseFollowsScale { get; set; }
 

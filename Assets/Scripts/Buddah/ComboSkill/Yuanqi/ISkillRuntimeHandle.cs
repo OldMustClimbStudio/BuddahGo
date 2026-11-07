@@ -25,7 +25,7 @@ public interface IScaleRuntimeHandle : ISkillRuntimeHandle
 
 /// <summary>
 /// 如来神掌 rewrite (#1 金身巨掌). Implemented by BuddahHandControl, server-side: while true, the charged-projectile
-/// impulse is multiplied by the same body-scale sample that already sizes the projectile.
+/// impulse follows the palm multiplier (PalmSizeRule) of the same sample that already sizes the projectile.
 /// </summary>
 public interface IHandsImpulseScale
 {

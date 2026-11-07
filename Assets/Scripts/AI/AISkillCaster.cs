@@ -39,8 +39,6 @@ namespace BuddahGo.AI
         private Func<string, float> _effectDuration, _obsessionGain;
         private Func<float, float> _backfirePercent;
         private readonly AISkillKind[] _kinds = new AISkillKind[3];
-        // Estimated cooldown end (Time.time) per slot, from the Accepted events: the executor does not expose it.
-        private readonly float[] _slotReadyAt = new float[3];
         private System.Random _decisionRandom;
         private int _racerId, _index, _targetId = -1, _shotsThisBuff;
         private uint _nextDecision, _lastDecision, _nextShot, _situationSince;
@@ -243,17 +241,9 @@ namespace BuddahGo.AI
             string[] loadout = _loadout != null && _loadout.IsServerInitialized ? _loadout.CopySlotSkillIds() : Personality.Loadout;
             _planner = AIYuanqiPlanner.Build(loadout, registry != null ? registry.Registered : null, _effectDuration);
         }
+        // The executor's own cooldown end (a backfire's longer _anti confirm delay and a freeze refund included).
         private float SlotReadyInSeconds(int slot)
-        {
-            if (slot < 0 || slot >= _slotReadyAt.Length) return float.PositiveInfinity;
-            return _executor.IsSlotReadyServer(slot) ? 0f : Mathf.Max(0f, _slotReadyAt[slot] - Time.time);
-        }
-        private static float CooldownSeconds(string skillId)
-        {
-            var database = HudSkillDatabase.Resolve();
-            if (database != null) { database.TryGet(skillId, out SkillAction skill); return database.GetCooldownSeconds(skillId, skill); }
-            return ProjectConfigRuntime.TryGetSkillConfigRepository(out var skills) && skills.TryGetCooldown(skillId, out float seconds) ? seconds : 0f;
-        }
+            => _executor.IsSlotReadyServer(slot) ? 0f : _executor.SecondsUntilSlotReadyServer(slot);
         // SkillDatabase.GetObsessionGain: the base gain of the table row (the same-skill surcharge is not estimated).
         private static float ObsessionGain(string skillId)
         {
@@ -301,7 +291,6 @@ namespace BuddahGo.AI
                 case SkillExecutor.CastStage.Requested: Telemetry.Requests++; break;
                 case SkillExecutor.CastStage.Accepted:
                     Telemetry.Accepted++; Commitment.Accepted();
-                    if (cast.Slot >= 0 && cast.Slot < _slotReadyAt.Length) _slotReadyAt[cast.Slot] = Time.time + _executor.ConfirmationSecondsForSlot(cast.Slot) + CooldownSeconds(cast.SkillId);
                     break;
                 case SkillExecutor.CastStage.Executed:
                     Telemetry.Executed++; if (cast.IsBacklash) Telemetry.Backlashes++;

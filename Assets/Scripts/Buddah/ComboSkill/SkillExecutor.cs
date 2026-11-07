@@ -492,6 +492,12 @@ public class SkillExecutor : NetworkBehaviour
         return true;
     }
 
+    /// <summary>Server AI: seconds until this slot's cooldown ends (the executor's own cooldown end; 0 when it has ended).</summary>
+    public float SecondsUntilSlotReadyServer(int slotIndex) =>
+        _nextReadyTime != null && slotIndex >= 0 && slotIndex < _nextReadyTime.Length
+            ? Mathf.Max(0f, _nextReadyTime[slotIndex] - Time.time)
+            : float.PositiveInfinity;
+
     public bool IsSlotReadyServer(int slotIndex) => IsServerInitialized
         && slotIndex >= 0 && slotIndex < SkillLoadout.SlotCount
         && EvaluateCastGate(slotIndex, Time.time) == SkillCastBlock.None;

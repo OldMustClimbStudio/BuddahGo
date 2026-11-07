@@ -1292,6 +1292,54 @@ public class SkillExecutor : NetworkBehaviour
         LocalSkillUiTriggered?.Invoke(CreateSkillUiEvent(slotIndex, cooldownSeconds, LocalSkillUiEvent.StacksClearedByBackfire, serverTick));
     }
 
+    // The anti palm burst (Skill_PushProjectileHands_Anti), restored 2026-10-31; appended last to keep the RPC order.
+    // spawnTick / casterPositionAtSpawn: the server tick its hitboxes were spawned at and where the caster was then;
+    // the visual copies run on the same clock and follow the caster from the same point.
+    public void PlayChargedBurstVisualsServer(string skillId, Vector3[] starts, Vector3 direction,
+        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
+        PreciseTick spawnTick, Vector3 casterPositionAtSpawn)
+    {
+        if (!IsServerInitialized)
+            return;
+        PlayChargedBurstVisualsObserversRpc(skillId, starts, direction, speed, buildUpSeconds,
+            lifetimeSeconds, localEuler, visualSize, spawnTick, casterPositionAtSpawn);
+    }
+
+    // Appended after the existing RPC declarations to preserve their relative order.
+    [ObserversRpc]
+    private void PlayChargedBurstVisualsObserversRpc(string skillId, Vector3[] starts, Vector3 direction,
+        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
+        PreciseTick serverSpawnTick, Vector3 casterPositionAtSpawn)
+    {
+        if (database == null || !database.TryGet(skillId, out SkillAction action)
+            || !(action is Skill_PushProjectileHands_Anti skill) || starts == null)
+            return;
+
+        BuddahHandControl handControl = GetComponent<BuddahHandControl>();
+        if (handControl == null)
+            return;
+        handControl.SpawnChargedBurstVisualsAtPositions(starts, direction, speed, buildUpSeconds,
+            lifetimeSeconds, localEuler, visualSize, handControl.ResolveSkillVfxPrefab(skill.VfxId),
+            skill.projectileColliderSize, serverSpawnTick,
+            handControl.ResolveSkillVfxPrefab(skill.HandVfxId), skill.projectileSpeedCurve, casterPositionAtSpawn);
+    }
+
+    // A backfire's _anti variant on every peer (presentation and owner feel), resolved from this client's SkillDatabase like
+    // CastObserversRpc. Appended after the anti burst RPC to keep the RPC order (PredictionProtocol v2, unreleased).
+    [ObserversRpc]
+    private void BackfireVariantObserversRpc(int slotIndex, string antiSkillId)
+    {
+        if (database == null || !database.TryGet(antiSkillId, out SkillAction anti) || anti == null)
+            return;
+        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Observers] backfire variant '{antiSkillId}' (slot {slotIndex}), IsOwner={IsOwner}");
+        anti.ExecuteObservers(this, slotIndex, IsOwner);
+        if (IsOwner)
+            anti.ExecuteLocal(this, slotIndex);
+    }
+
+    // 缘起 RPCs, appended after BackfireVariantObserversRpc so every RPC dev already has keeps its index (FishNet
+    // numbers RPCs in declaration order; yuanqi-architecture 2.2).
+
     // 缘起 consumed a skill: its early-end presentation, resolved from this client's SkillDatabase like CastObserversRpc.
     [ObserversRpc]
     private void SkillConsumedObserversRpc(string skillId, int slotIndex)
@@ -1338,50 +1386,5 @@ public class SkillExecutor : NetworkBehaviour
             Point = point,
             Impulse = impulse,
         });
-    }
-
-    // The anti palm burst (Skill_PushProjectileHands_Anti), restored 2026-10-31; appended last to keep the RPC order.
-    // spawnTick / casterPositionAtSpawn: the server tick its hitboxes were spawned at and where the caster was then;
-    // the visual copies run on the same clock and follow the caster from the same point.
-    public void PlayChargedBurstVisualsServer(string skillId, Vector3[] starts, Vector3 direction,
-        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
-        PreciseTick spawnTick, Vector3 casterPositionAtSpawn)
-    {
-        if (!IsServerInitialized)
-            return;
-        PlayChargedBurstVisualsObserversRpc(skillId, starts, direction, speed, buildUpSeconds,
-            lifetimeSeconds, localEuler, visualSize, spawnTick, casterPositionAtSpawn);
-    }
-
-    // Appended after the existing RPC declarations to preserve their relative order.
-    [ObserversRpc]
-    private void PlayChargedBurstVisualsObserversRpc(string skillId, Vector3[] starts, Vector3 direction,
-        float speed, float buildUpSeconds, float lifetimeSeconds, Vector3 localEuler, Vector3 visualSize,
-        PreciseTick serverSpawnTick, Vector3 casterPositionAtSpawn)
-    {
-        if (database == null || !database.TryGet(skillId, out SkillAction action)
-            || !(action is Skill_PushProjectileHands_Anti skill) || starts == null)
-            return;
-
-        BuddahHandControl handControl = GetComponent<BuddahHandControl>();
-        if (handControl == null)
-            return;
-        handControl.SpawnChargedBurstVisualsAtPositions(starts, direction, speed, buildUpSeconds,
-            lifetimeSeconds, localEuler, visualSize, handControl.ResolveSkillVfxPrefab(skill.VfxId),
-            skill.projectileColliderSize, serverSpawnTick,
-            handControl.ResolveSkillVfxPrefab(skill.HandVfxId), skill.projectileSpeedCurve, casterPositionAtSpawn);
-    }
-
-    // A backfire's _anti variant on every peer (presentation and owner feel), resolved from this client's SkillDatabase like
-    // CastObserversRpc. Appended last to keep the RPC order (PredictionProtocol v2, unreleased).
-    [ObserversRpc]
-    private void BackfireVariantObserversRpc(int slotIndex, string antiSkillId)
-    {
-        if (database == null || !database.TryGet(antiSkillId, out SkillAction anti) || anti == null)
-            return;
-        if (NetDebug.EnableVerboseLog) GameLog.Verbose($"[SkillExecutor][Observers] backfire variant '{antiSkillId}' (slot {slotIndex}), IsOwner={IsOwner}");
-        anti.ExecuteObservers(this, slotIndex, IsOwner);
-        if (IsOwner)
-            anti.ExecuteLocal(this, slotIndex);
     }
 }

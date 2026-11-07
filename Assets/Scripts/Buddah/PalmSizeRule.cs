@@ -17,7 +17,9 @@ internal static class PalmSizeRule
         float span = bodyScaleAtFull - 1f;
         if (Mathf.Abs(span) < FlatScaleEpsilon)
             return 1f;
-        float t = (bodyScale - 1f) / span;
+        // Clamped: while a retarget (giant → giant_anti refresh) still has the body on the other side of 1 or beyond the
+        // row's full scale, the palm stays between 1 and the row's value instead of extrapolating.
+        float t = Mathf.Clamp01((bodyScale - 1f) / span);
         return Mathf.Max(MinPalmSizeMultiplier, 1f + t * (palmSizeAtFull - 1f));
     }
 }

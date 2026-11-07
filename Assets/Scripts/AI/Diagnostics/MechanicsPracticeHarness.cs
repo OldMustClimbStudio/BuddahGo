@@ -203,7 +203,7 @@ namespace BuddahGo.AI
             yield return new Scenario("S6", "freeze interrupt: cancel + refund; a rolled backfire survives and still runs its _anti variant", 40f, S6FreezeInterrupt, noPairCast);
             yield return new Scenario("S7", "dummies: slow + readout, invert, impulse and 3 s reset", 80f, S7Dummies, new[] { "slowtrap", "reverseturn", "blackcurtain" });
             yield return new Scenario("S8", "#4 giant_charge, both orders, body impact on a dummy", 120f, S8GiantCharge, new[] { "acceleration", "giant", "blackcurtain" });
-            yield return new Scenario("S9", "#2 frost_lock: radius, freeze time, consume both, once per overlap", 60f, S9FrostLock, new[] { "acceleration", "slowtrap", "blackcurtain" });
+            yield return new Scenario("S9", "#2 frost_lock: radius, freeze time, consume both, once per overlap; radius x palm multiplier under 金身", 75f, S9FrostLock, new[] { "acceleration", "slowtrap", "giant" });
             yield return new Scenario("S10", "#1 giant_palm: charged impulse follows body scale; off when either skill ends", 90f, S10GiantPalm, new[] { "giant", "push_projectile_hands", "blackcurtain" });
             yield return new Scenario("S11", "HUD smoke: key labels, cooldown text, backfire probability text", 30f, S11Hud, _submittedLoadout);
             // S13 runs before S12, which ends the race.
@@ -1643,6 +1643,53 @@ namespace BuddahGo.AI
             bool refrozen = _dummies.Where(d => frozenAt[d] > 0f).All(d => d.Motor.IsFrozen);
             Check("a new slowtrap + acceleration overlap triggers again", count == 1 && refrozen, "one new frost_lock, in-range dummies frozen again",
                 "triggers=" + count + " refrozen=" + refrozen);
+
+            // 禅足冰封 under 金身 (已定 2026-11-07, 技能联动): 金身, then 缓流, then 神足通. 缓流 is the latest partner, so
+            // frost_lock triggers (not giant_charge), with radius R x the caster's palm multiplier (x2 at the full giant).
+            yield return Until(() => !_dummies.Any(d => d.Motor.IsFrozen), seconds + 1f);
+            ClearCooldowns();
+            float length = TrackSplineRef.Instance.TrackLength;
+            Dummy near = _dummies[0];
+            // 5 m behind the first dummy and 6 m inward: with the shipped layout one dummy sits between R and 2R.
+            PlaceHuman(near.HomeProgress - 5f / length, near.Lateral + 6f, true, "mechanics-harness frost lock under giant");
+            yield return Wait(1.2f);
+            int yuanqiFrom3 = _yuanqis.Count;
+            int from5 = _casts.Count;
+            _exec.CastSlotServer(2); // giant
+            yield return Until(() => HasCast(from5, CastStage.Executed, 2), 2.5f);
+            var scaleEffect = _human.GetComponent<PlayerScaleEffect>();
+            yield return Until(() => scaleEffect != null && scaleEffect.CurrentPalmSizeMultiplier >= 1.99f, 2.5f);
+            int from6 = _casts.Count;
+            _exec.CastSlotServer(1); // slowtrap
+            yield return Until(() => HasCast(from6, CastStage.Executed, 1), 2.5f);
+            int from7 = _casts.Count;
+            _exec.CastSlotServer(0); // acceleration completes both #2 (slowtrap, latest) and #4 (giant)
+            yield return Until(() => HasCast(from7, CastStage.Executed, 0), 2.5f);
+            float palm = scaleEffect != null ? scaleEffect.CurrentPalmSizeMultiplier : 1f;
+            var giantFrozen = _dummies.ToDictionary(d => d, d => d.Motor.IsFrozen);
+            yield return Until(() => _yuanqis.Skip(yuanqiFrom3).Any(y => y.Id == FrostLockId), 0.5f);
+            bool giantObserved = _yuanqis.Skip(yuanqiFrom3).Any(y => y.Id == FrostLockId);
+            YuanqiRec giantRec = _yuanqis.Skip(yuanqiFrom3).FirstOrDefault(y => y.Id == FrostLockId);
+            bool charged = _yuanqis.Skip(yuanqiFrom3).Any(y => y.Id == GiantChargeId);
+            Check("giant: 金身, 缓流, 神足通 triggers frost_lock only (latest partner)", giantObserved && !charged, FrostLockId, YuanqiSince(yuanqiFrom3));
+            if (!giantObserved)
+                yield break;
+            float expected = Yuanqi_FrostLock.RadiusFor(radius, palm);
+            Check("giant: radius = R x palm multiplier", Mathf.Abs(giantRec.Payload.Radius - expected) <= 0.05f && palm >= 1.99f,
+                F(radius) + " x 2 = " + F(radius * 2f) + " m", F(giantRec.Payload.Radius) + " m (palm x" + F(palm) + ")");
+            var giantRows = new List<string>();
+            bool giantRadiusOk = true;
+            int beyondR = 0;
+            foreach (Dummy d in _dummies)
+            {
+                float distance = Flat(d.Identity.transform.position - giantRec.Payload.Center).magnitude;
+                bool inRange = distance <= giantRec.Payload.Radius;
+                giantRadiusOk &= giantFrozen[d] == inRange;
+                if (giantFrozen[d] && distance > radius) beyondR++;
+                giantRows.Add(d.Name + " " + F(distance) + " m frozen=" + giantFrozen[d]);
+            }
+            Check("giant: frozen exactly within the scaled radius", giantRadiusOk, "frozen exactly when <= " + F(giantRec.Payload.Radius) + " m", string.Join("; ", giantRows));
+            Check("giant: a dummy beyond R is frozen", beyondR > 0, "at least one frozen dummy farther than " + F(radius) + " m", beyondR + " (" + string.Join("; ", giantRows) + ")");
         }
 
         // ---------------------------------------------------------------- S10 giant palm

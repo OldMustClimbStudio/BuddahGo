@@ -17,6 +17,8 @@ public sealed class FrozenIceShell : MonoBehaviour
     // The thaw is reported RacerSkillPresentationState.releaseDelaySeconds (0.1 s) after the motor; a report that comes
     // sooner than the window's end minus this is an early end.
     private const float EarlyEndSlackSeconds = 0.05f;
+    // A freeze left that outlasts the playing block by more than this is an extension (reconcile jitter stays below).
+    private const float ExtendSlackSeconds = 0.1f;
 
     private RacerSkillPresentationState _state;
     private SkillVfxReplicator _vfx;
@@ -66,13 +68,29 @@ public sealed class FrozenIceShell : MonoBehaviour
             float seconds = _state != null ? _state.FreezeSecondsLeft : 0f;
             if (seconds <= 0f)
                 return;
-            _vfx.PlaySlotLocal(VfxId, seconds);
-            _endsAt = Time.time + seconds;
+            Play(seconds);
         }
         else if (_endsAt > 0f && Time.time < _endsAt - EarlyEndSlackSeconds)
         {
             _vfx.StopSlotLocal(VfxId);
             _endsAt = 0f;
         }
+    }
+
+    // A second freeze while frozen only extends the motor deadline (Math.Max, no new FrozenChanged): replay the block
+    // for the longer window so it does not melt while the racer is still frozen.
+    private void Update()
+    {
+        if (_endsAt <= 0f || _state == null || !_state.IsFrozen)
+            return;
+        float seconds = _state.FreezeSecondsLeft;
+        if (Time.time + seconds > _endsAt + ExtendSlackSeconds && (_vfx != null || TryGetComponent(out _vfx)))
+            Play(seconds);
+    }
+
+    private void Play(float seconds)
+    {
+        _vfx.PlaySlotLocal(VfxId, seconds);
+        _endsAt = Time.time + seconds;
     }
 }

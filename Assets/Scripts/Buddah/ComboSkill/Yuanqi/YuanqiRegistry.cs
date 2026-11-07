@@ -26,6 +26,7 @@ public sealed class YuanqiRegistry : MonoBehaviour
     private SkillStateBoard _board;
     private SkillDatabase _database;
     private Func<string, int> _activeEntryIdOf;
+    private Func<string, SkillStateEntry> _activeEntryOf;
 
     /// <summary>The per-racer pair instances for the current loadout, in database order.</summary>
     public IReadOnlyList<YuanqiAction> Registered => _instances;
@@ -37,6 +38,7 @@ public sealed class YuanqiRegistry : MonoBehaviour
         _board = board;
         _database = database;
         _activeEntryIdOf = ActiveEntryIdOf;
+        _activeEntryOf = ActiveEntryOf;
         if (_board != null)
         {
             _board.Activated += OnActivated;
@@ -94,21 +96,18 @@ public sealed class YuanqiRegistry : MonoBehaviour
         if (_candidates.Count == 0)
             return;
 
-        // Own copy: a trigger can consume the activated entry or re-enter through nested board events.
-        int[] candidates = _candidates.ToArray();
-        for (int i = 0; i < candidates.Length; i++)
-        {
-            if (activated.IsEnded)
-                break; // consumed by an earlier pair this tick
-            int pairIndex = candidates[i];
-            if (!_table.TryMatch(pairIndex, activated.SkillId, activated.EntryId, _activeEntryIdOf, out int entryIdA, out int entryIdB))
-                continue;
-            SkillStateEntry entryA = activated.EntryId == entryIdA ? activated : FindActive(entryIdA);
-            SkillStateEntry entryB = activated.EntryId == entryIdB ? activated : FindActive(entryIdB);
-            if (entryA == null || entryB == null)
-                continue;
-            Trigger(pairIndex, entryA, entryB);
-        }
+        // 已定 2026-11-07 (Docs/gameplay/yuanqi.md): one activation triggers at most one pair, the one whose partner
+        // took effect last (金身 then 缓流 then 神足通 → 禅足冰封; 缓流 then 金身 then 神足通 → 金足破阵).
+        int pairIndex = _table.PickLatestPartner(_candidates, activated.SkillId, activated.EntryId, _activeEntryOf);
+        if (pairIndex < 0)
+            return;
+        if (!_table.TryMatch(pairIndex, activated.SkillId, activated.EntryId, _activeEntryIdOf, out int entryIdA, out int entryIdB))
+            return;
+        SkillStateEntry entryA = activated.EntryId == entryIdA ? activated : FindActive(entryIdA);
+        SkillStateEntry entryB = activated.EntryId == entryIdB ? activated : FindActive(entryIdB);
+        if (entryA == null || entryB == null)
+            return;
+        Trigger(pairIndex, entryA, entryB);
     }
 
     private void Trigger(int pairIndex, SkillStateEntry entryA, SkillStateEntry entryB)
@@ -161,8 +160,10 @@ public sealed class YuanqiRegistry : MonoBehaviour
         }
     }
 
-    private int ActiveEntryIdOf(string skillId)
-        => _board != null && _board.TryGetActive(skillId, out SkillStateEntry entry) ? entry.EntryId : 0;
+    private SkillStateEntry ActiveEntryOf(string skillId)
+        => _board != null && _board.TryGetActive(skillId, out SkillStateEntry entry) ? entry : null;
+
+    private int ActiveEntryIdOf(string skillId) => ActiveEntryOf(skillId)?.EntryId ?? 0;
 
     private SkillStateEntry FindActive(int entryId)
     {

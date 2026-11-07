@@ -21,5 +21,13 @@ public sealed class SkillStateEntry
     /// <summary>Why the entry ended (log only); null while live.</summary>
     public string EndReason;
 
+    /// <summary>
+    /// <paramref name="entry"/> took effect after <paramref name="other"/>: a later StartTick, or the same tick and a
+    /// higher EntryId. The 缘起 partner rule (已定 2026-11-07): when one activation completes several pairs, only the
+    /// pair whose partner took effect last triggers (YuanqiPairTable.PickLatestPartner, AIYuanqiPlanner.TryGetFollowUp).
+    /// </summary>
+    public static bool TookEffectAfter(SkillStateEntry entry, SkillStateEntry other)
+        => other == null || (entry != null && (entry.StartTick != other.StartTick ? entry.StartTick > other.StartTick : entry.EntryId > other.EntryId));
+
     public override string ToString() => $"{SkillId}#{EntryId} slot {Slot} [{StartTick}, {UntilTick})";
 }

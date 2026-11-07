@@ -70,6 +70,43 @@ internal sealed class YuanqiPairTable<TPair, TState> where TPair : class
     }
 
     /// <summary>
+    /// The one candidate the activated entry may trigger (已定 2026-11-07): of the candidate pairs whose other skill has
+    /// an active entry (<paramref name="activeEntryOf"/>, null when none) not yet triggered with this one, the pair whose
+    /// partner took effect last (SkillStateEntry.TookEffectAfter). Registration order never decides. -1 when none.
+    /// </summary>
+    internal int PickLatestPartner(List<int> candidates, string activatedSkillId, int activatedEntryId,
+        Func<string, SkillStateEntry> activeEntryOf)
+    {
+        int best = -1;
+        SkillStateEntry bestPartner = null;
+        if (candidates == null || activeEntryOf == null)
+            return best;
+        string id = Normalize(activatedSkillId);
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            int pairIndex = candidates[i];
+            if (pairIndex < 0 || pairIndex >= _pairs.Count)
+                continue;
+            Registration pair = _pairs[pairIndex];
+            bool activatedIsA = string.Equals(pair.SkillA, id, StringComparison.Ordinal);
+            if (!activatedIsA && !string.Equals(pair.SkillB, id, StringComparison.Ordinal))
+                continue;
+            SkillStateEntry partner = activeEntryOf(activatedIsA ? pair.SkillB : pair.SkillA);
+            if (partner == null || partner.EntryId <= 0 || partner.EntryId == activatedEntryId)
+                continue;
+            int a = activatedIsA ? activatedEntryId : partner.EntryId;
+            int b = activatedIsA ? partner.EntryId : activatedEntryId;
+            if (_triggered.Contains((pairIndex, a, b)))
+                continue;
+            if (best >= 0 && !SkillStateEntry.TookEffectAfter(partner, bestPartner))
+                continue;
+            best = pairIndex;
+            bestPartner = partner;
+        }
+        return best;
+    }
+
+    /// <summary>
     /// The activated entry completes pair <paramref name="pairIndex"/> when the pair's other skill has an active entry
     /// (<paramref name="activeEntryIdOf"/> returns its id, or 0 or less when none) and these two entries have not
     /// triggered the pair yet. On success the overlap is claimed and the ids come back ordered as (skillA, skillB).

@@ -124,6 +124,43 @@ namespace BuddahGo.Tests
                     Assert.IsFalse(_table.TryMatch(0, "acceleration", 2, _activeEntryIdOf, out _, out _), "the same two entries never trigger twice");
                     Assert.IsFalse(_table.TryMatch(0, "slowtrap", 1, _activeEntryIdOf, out _, out _), "nor from the other side");
                 }),
+                Fresh("one activation completing two pairs triggers the one whose partner took effect last", () =>
+                {
+                    // Keeper loadout: 神足通 completes #2 (with 缓流) and #4 (with 金身). Registration order never decides.
+                    foreach (bool chargeFirst in new[] { false, true })
+                    {
+                        var table = new YuanqiPairTable<string, string>();
+                        if (chargeFirst) table.Register("giant_charge", "acceleration", "giant", sustained: false);
+                        table.Register("frost_lock", "acceleration", "slowtrap", sustained: false);
+                        if (!chargeFirst) table.Register("giant_charge", "acceleration", "giant", sustained: false);
+                        var candidates = new List<int>();
+                        table.CollectCandidates("acceleration", candidates);
+
+                        foreach (var (first, second, expected) in new[] { ("giant", "slowtrap", "frost_lock"), ("slowtrap", "giant", "giant_charge") })
+                        {
+                            var entries = new Dictionary<string, SkillStateEntry>
+                            {
+                                [first] = new SkillStateEntry { EntryId = 1, SkillId = first, StartTick = 100 },
+                                [second] = new SkillStateEntry { EntryId = 2, SkillId = second, StartTick = 160 },
+                            };
+                            int picked = table.PickLatestPartner(candidates, "acceleration", 3, id => entries.TryGetValue(id, out var e) ? e : null);
+                            Assert.AreEqual(expected, table.PairAt(picked), $"{first} then {second} then acceleration (giant_charge registered first: {chargeFirst})");
+
+                            // Same tick: the later entry id took effect last.
+                            entries[second].StartTick = entries[first].StartTick;
+                            Assert.AreEqual(expected, table.PairAt(table.PickLatestPartner(candidates, "acceleration", 3, id => entries.TryGetValue(id, out var e) ? e : null)));
+                        }
+                    }
+
+                    // A pair already triggered for this overlap, or with no active partner, is never picked.
+                    _active["slowtrap"] = 1;
+                    _active["acceleration"] = 2;
+                    var slow = new SkillStateEntry { EntryId = 1, SkillId = "slowtrap", StartTick = 100 };
+                    Assert.AreEqual(0, _table.PickLatestPartner(Candidates("acceleration"), "acceleration", 2, id => id == "slowtrap" ? slow : null));
+                    Assert.IsTrue(_table.TryMatch(0, "acceleration", 2, _activeEntryIdOf, out _, out _));
+                    Assert.AreEqual(-1, _table.PickLatestPartner(Candidates("acceleration"), "acceleration", 2, id => id == "slowtrap" ? slow : null));
+                    Assert.AreEqual(-1, _table.PickLatestPartner(Candidates("acceleration"), "acceleration", 2, id => null));
+                }),
                 Fresh("retriggers on a new entry", () =>
                 {
                     _active["slowtrap"] = 1;

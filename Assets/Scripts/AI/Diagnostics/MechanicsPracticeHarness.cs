@@ -1657,15 +1657,17 @@ namespace BuddahGo.AI
             int from5 = _casts.Count;
             _exec.CastSlotServer(2); // giant
             yield return Until(() => HasCast(from5, CastStage.Executed, 2), 2.5f);
-            var scaleEffect = _human.GetComponent<PlayerScaleEffect>();
-            yield return Until(() => scaleEffect != null && scaleEffect.CurrentPalmSizeMultiplier >= 1.99f, 2.5f);
+            // Read the component each time: the scale skill may add it (or replace it) after the cast executes.
+            Func<float> palmNow = () => { var s = _human.GetComponent<PlayerScaleEffect>(); return s != null ? s.CurrentPalmSizeMultiplier : 1f; };
+            yield return Until(() => palmNow() >= 1.99f, 2.5f);
+            float palmBefore = palmNow();
             int from6 = _casts.Count;
             _exec.CastSlotServer(1); // slowtrap
             yield return Until(() => HasCast(from6, CastStage.Executed, 1), 2.5f);
             int from7 = _casts.Count;
             _exec.CastSlotServer(0); // acceleration completes both #2 (slowtrap, latest) and #4 (giant)
             yield return Until(() => HasCast(from7, CastStage.Executed, 0), 2.5f);
-            float palm = scaleEffect != null ? scaleEffect.CurrentPalmSizeMultiplier : 1f;
+            float palm = palmNow();
             var giantFrozen = _dummies.ToDictionary(d => d, d => d.Motor.IsFrozen);
             yield return Until(() => _yuanqis.Skip(yuanqiFrom3).Any(y => y.Id == FrostLockId), 0.5f);
             bool giantObserved = _yuanqis.Skip(yuanqiFrom3).Any(y => y.Id == FrostLockId);
@@ -1676,7 +1678,7 @@ namespace BuddahGo.AI
                 yield break;
             float expected = Yuanqi_FrostLock.RadiusFor(radius, palm);
             Check("giant: radius = R x palm multiplier", Mathf.Abs(giantRec.Payload.Radius - expected) <= 0.05f && palm >= 1.99f,
-                F(radius) + " x 2 = " + F(radius * 2f) + " m", F(giantRec.Payload.Radius) + " m (palm x" + F(palm) + ")");
+                F(radius) + " x 2 = " + F(radius * 2f) + " m", F(giantRec.Payload.Radius) + " m (palm x" + F(palm) + ", x" + F(palmBefore) + " before 缓流)");
             var giantRows = new List<string>();
             bool giantRadiusOk = true;
             int beyondR = 0;

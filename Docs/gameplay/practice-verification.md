@@ -77,6 +77,12 @@ rebase 之后 S14 失败：反噬的确认窗口改按 `_anti` 行算（2 秒，
 - 2026-11-06 合入 dev（#79/#80，644cc04f）、缘起列表搬到菜单技能页之后，完整 15 个场景：15/15 通过，0 个失败检查（本机 `Logs/mechanics-practice/pr75-sync-20261106-190510/`）。dev 把 `PracticeFlow` 合进了 `SoloHarnessFlow`，这次是从新菜单进训练模式。
 - 2026-11-07 录三对缘起的 GIF 时跑了三次 S8–S10（禅足冰封已是 v4 冰体插槽，0b2c7d2e）：每次 3/3 通过，0 个失败检查（本机 `Logs/mechanics-practice/yuanqi-all-*`）。GIF 在共享笔记 `yuanqi-all-gifs/`，不入库。
 
+## 2026-11-07 重跑（PR #75 code review 修复、冰封范围随掌倍率）
+
+- 9 项 review 修复之后（01e7cbed），S3、S5、S8、S9、S10、S14：6/6 通过，0 个失败检查（本机 `Logs/mechanics-practice/pr75-review-fix-20261107-093452`）。
+- 用户定下“技能联动”、禅足冰封半径 = R × 施法者的掌倍率之后（[缘起技能设计](yuanqi.md) #2），S9 的配装改为神足通、缓流、金身，末尾加一段“金身下的冰封”：先金身（等掌倍率到 ×2）、再缓流、最后神足通。检查只触发 frost_lock、不触发 giant_charge（最晚的搭档是缓流）；载荷半径 = 12 × 2 = 24 米；冻结正好按 24 米划分，并且至少一个 12 米外的木桩被冻。实测：半径 24 米（掌倍率 ×2），20.8 米和 22.0 米的木桩被冻，38.3 米的不冻。同一轮 S3、S5、S8、S10、S14 照常：6/6 通过，0 个失败检查（本机 `Logs/mechanics-practice/pr75-frost-radius-20261107-100711`）。前一轮 S9 的掌倍率检查读成 ×1，是 harness 拿了金身重新加上之前的 `PlayerScaleEffect`，半径本身已是 24 米；2645c50b 改成每次现取。
+- 没有覆盖：金身反噬 ×0.5 下的冰封（只有 EditMode 的表驱动用例），冰面放大后的画面。
+
 ## 重跑方法
 
 1. 在本 worktree 打开编辑器，打开 `Assets/Scenes/MenuEnvironmentSetting.unity`，进入 Play，停在主菜单。harness 把请求的配装写进菜单的保存选择（`LocalMatchSelection`），开局后还原玩家自己的选择。
